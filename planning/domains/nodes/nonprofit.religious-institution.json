@@ -1,0 +1,449 @@
+{
+  "id": "nonprofit.religious-institution",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Religious institution — rite register and liturgical record",
+  "one_line": "NARROWED FROM THE ROSTER HINT. This row is NOT 'running a congregation as an organisation' - governance, buildings, giving, volunteers and safeguarding are already owned by nonprofit.governance, business_operations.facilities-workplace, nonprofit.fundraising-donor, nonprofit.volunteer-management and the nonprofit schema's own safeguarding structure, and this row cedes every one of them by name. What survives is the one structure the nonprofit schema itself says has no analogue anywhere else: a RITE REGISTER - a continuing, entry-numbered series recording baptisms, confirmations, marriages, funerals, burials and interments, naming the subject, the officiant and the witnesses, held on the INSTITUTION's side across generations - together with the certified extracts issued from it, the liturgical cycle that schedules the rites, and the minister-to-congregant pastoral record. It is not activated by a church, mosque, synagogue, temple, diocese or denomination NAME, by a clergy title, by scripture citation, or by a religious word beside a document-type word; those are never-alone tokens and this row strikes them first. Its default differs from the nonprofit schema's in all three legs: the register is an unbounded SERIES rather than a bounded engagement, so the schema's counterparty-then-period recommendation does not apply; its subjects are third parties who are minors, the dead, and relatives who never transacted with the institution at all; and the mere existence of an entry discloses a named person's religious affiliation, which no other row in this family produces as a by-product of its filing structure.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION. These are template-activation signals on a schema that declares no field rows, so nothing here licenses a stored religious fact, a named subject, or a folder level. Every accepted signal must evidence a REGISTER-OR-RITE STRUCTURE held on the institution's side. A religious body's name, a denomination, a clergy title, a place of worship, a scripture citation, a liturgical season, or any of these beside a document-type word is NEVER sufficient, in exactly the way the nonprofit schema strikes an association name: the token names an entity, not a relation, and the same entity appears as employer, landlord, venue, charity, publisher, cited authority and place of worship in one corpus.",
+      "The RITE-REGISTER SERIES structure, which is this row's whole existence claim: a bound or tabular register with one ROW PER RITE carrying a sequential entry number, a date of the rite, a rite label (baptism, christening, naming, confirmation, bar or bat mitzvah, nikah, marriage, funeral, burial, cremation, interment), a subject-name slot, an OFFICIANT slot, and one or more WITNESS or sponsor slots - and continuing across numbered volumes rather than terminating. The entry-number sequence and the officiant-and-witness slot pair are the discriminating structure; a dated list of names without them is a roll, not a register, and belongs to nonprofit.member-association.",
+      "The CERTIFIED-EXTRACT structure held on the ISSUING side: a single-entry document that cites its own source register by name, volume and entry number and carries an attestation or issuing signature, appearing with an issuance log, a fee record, or a run of sequential extracts. One extract addressed to its subject and held alone is NOT this - it is that person's own life-event document and belongs to identity.core-documents. The distinguishing evidence is the source-citation-plus-issuance context, not the certificate.",
+      "The BURIAL, INTERMENT or CREMATION register structure: one row per plot, niche or grave carrying a plot or section reference, an interment date, the name of the person interred, and frequently a separate right-of-burial or deed-of-grant holder who is a DIFFERENT living person. The two-name structure - one deceased subject, one living rights-holder - is specific to this row and appears nowhere else in the nonprofit family.",
+      "The LITURGICAL CYCLE structure: a plan, rota or preaching schedule binding DATED OCCASIONS in a repeating calendar to an officiant, readers, musicians and a rite or lectionary reference, with the cycle rather than a project or a grant supplying the period. Read through 00's spreadsheet path - \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\" - because the assignment matrix is usually a workbook. A generic staff or volunteer rota with no rite or occasion column is nonprofit.volunteer-management or hr.",
+      "The PASTORAL-CARE structure: dated contact or visit notes tying a named congregant to a minister, chaplain or pastoral visitor, with a reason for contact and no clinician role, no diagnosis, no medication and no clinical coding. Where any clinical structure is present the file is clinical_practice and the stricter side wins outright; this row does not compete for it.",
+      "An ARCHIVE MANIFEST whose member paths repeatedly encode a register name, a volume number, an entry range or a rite label - inspected without unpacking, because \"the normal scan should never extract archive contents to the filesystem\", using what 00 says an archive yields: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\".",
+      "A LABELLED-SLOT reading of any of the above from 00's direct-fact path, \"a labeled form field\": Entry No., Register, Volume, Rite, Officiant, Minister, Celebrant, Witnesses, Sponsors, Date of Baptism, Date of Interment, Plot, Section, Right of Burial. Position is weighted for the reason 00 gives - \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\" - and a table is read for the reason 00 gives: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their\".",
+      "OCR of a photographed or scanned register page reaching the same structure - entry numbers in a left column, ruled name and officiant columns, a repeated rite heading. The scan's PROVENANCE is not settled by the structure and must be resolved separately: an identical page can be an institution's own digitisation or a family historian's download, and those are different rows."
+    ],
+    "needs_llm": [
+      "Deciding CUSTODY, which is this row's whole question and is frequently unrecoverable from the bytes: institution-side register, subject-side certificate, depositing archive's accession copy, or a genealogist's downloaded image. The nonprofit schema's side problem appears here in its sharpest form because a register page is byte-identical in all four hands.",
+      "Separating this row from the institution's SELF-RUNNING record. The default answer is business_operations. A council, vestry, board or committee running a governance cycle in a religious body is business_operations.board-governance however religious its vocabulary; this row may only take a file that carries register or rite structure.",
+      "Recognising an unlabelled or handwritten historical register in prose or in a non-Latin script, where the rite label and the officiant slot are conventional rather than printed.",
+      "Distinguishing an operative institutional record from devotional, study or published material - a sermon, a lectionary, a hymn book, a denominational handbook, another body's annual report. Topic will not separate them: purpose is the only test that works, and most of this row's tempting false files are reading material.",
+      "Interpreting rite vocabulary across traditions and languages, where the deterministic labels above are English-and-Christian-shaped and the same structure exists under entirely different words. Abstention is required rather than a guess.",
+      "Deciding whether a pastoral note has crossed into clinical or safeguarding territory, and routing to the stricter side rather than adjudicating.",
+      "Abstaining whenever the evidence cannot cite the register structure: \"A model that cannot cite sufficient evidence must return unknown.\""
+    ],
+    "never_alone": [
+      "A religious body's NAME alone - a church, chapel, parish, diocese, mosque, synagogue, temple, gurdwara, denomination or ministry. This is the row's existential risk and it is struck first. The reasoning is read across by inference from \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" and it applies more strongly here, because one religious body's name appears in a corpus as employer, landlord, wedding venue, charity, school governor, publisher, cited authority, historical subject, and the place a photograph was taken.",
+      "A clergy or officiant TITLE alone - Reverend, Father, Pastor, Imam, Rabbi, Bhikkhu, Minister, Celebrant. A title is an authorship or role token and 00 forbids authorship as a destination; it names an ambiguous person, not a register.",
+      "Religious or devotional VOCABULARY alone - scripture citation, prayer, blessing, liturgy, sacrament, congregation, faith, worship, sermon. Every one of these appears in published books, music files, personal writing, academic religious studies and greeting cards.",
+      "A person's name beside a LIFE-EVENT word - wedding, funeral, christening, memorial. This is the most tempting false positive in the whole row and it is almost always a personal life event, not an institutional register: a wedding folder of photographs is photos.camera-events, a funeral order of service kept by a mourner is a keepsake, and neither names an officiant, an entry number or a witness.",
+      "A single CERTIFICATE addressed to its subject. A baptism or marriage certificate held by the person it is about is that person's identity document; the identical facts appear on it and on the register row it was copied from, and the certificate discriminates nothing on its own.",
+      "A LITURGICAL DATE or season alone - Advent, Easter, Ramadan, Yom Kippur, Diwali. A date is a calendar token and a shared calendar is not a relation.",
+      "An ORDER OF SERVICE or a sermon. Both are produced or authored documents; without the register or cycle structure behind them they are publication and writing, not the institution's record of a rite having occurred.",
+      "A charitable-status token beside any of the above. The nonprofit schema already concedes this in full - tax status is a field value, not a structure - and it is repeated here because a registered-charity footer on a religious body's document is the single commonest reason a file is wrongly promoted into this family."
+    ]
+  },
+  "proposed_context_terms": [
+    "register of baptisms",
+    "register of marriages",
+    "burial register",
+    "entry number",
+    "officiant",
+    "celebrant",
+    "witnesses",
+    "sponsors",
+    "godparents",
+    "certified copy of an entry",
+    "banns",
+    "confirmation",
+    "interment",
+    "cremation",
+    "right of burial",
+    "deed of grant",
+    "plot reference",
+    "columbarium",
+    "lectionary",
+    "order of service",
+    "rota of ministers",
+    "pastoral visit",
+    "congregation",
+    "parish",
+    "diocese",
+    "electoral roll"
+  ],
+  "work_types": [
+    "rite register volume and its entry pages",
+    "certified extract or certificate issued from a register, with its issuance log",
+    "burial, cremation and interment register, plot map and right-of-burial record",
+    "banns, notice or preliminary record preceding a rite",
+    "liturgical cycle plan, preaching schedule and minister rota",
+    "pastoral visit or contact record held by a minister or chaplain",
+    "register digitisation batch and its manifest"
+  ],
+  "grouping_reasons": [
+    "one REGISTER as a continuing series rather than as a set of dated files - the nonprofit schema names this group itself and this row is the only place it can form: the volumes, the entry pages, the index and the digitisation batch, joined by a register name and an entry-number sequence.",
+    "one RITE and its paperwork across time: the preliminary notice, the register entry, the extract issued years later, the correction or marginal annotation. Content-incoherent and purpose-coherent, which is 00's own licence for the group - \"The documents are content-incoherent but purpose-coherent.\"",
+    "one LITURGICAL CYCLE: the plan, the rota, the readings and the occasions it schedules, bounded by the cycle rather than by a calendar year.",
+    "one BURIAL PLOT across time: the deed of grant, the interment entries, the plot map revision. The group forms on the plot reference, never on the name of the person interred.",
+    "no group at all is a valid and common outcome here - a single scanned certificate, one downloaded register image, one order of service. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+    "and the stop rules apply as written: two institutions' registers do not merge, a register and a membership roll do not merge, and \"The graph does not automatically copy those missing facts onto sparse files.\" - an officiant read from a register page is not copied onto a photograph filed beside it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract - a dimension may only branch on a field the same schema declares and the nonprofit schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). Held as PROSE, and this paragraph is where the row differs from its schema's default rather than repeating it. The nonprofit schema recommends ASSOCIATION, then the non-exchange COUNTERPARTY OR FUND, then the PERIOD, then the DOCUMENT FUNCTION - an order built for a BOUNDED ENGAGEMENT with a beginning and an end: a grant, an appeal, a case, a membership year. A rite register has no such shape. It is an UNBOUNDED SERIES whose organising axis is the register itself and whose second axis is the entry sequence and the volume, not a period at all; a year level here splits a single bound volume across folders and breaks the sequence that makes an entry findable. So the recommendation is INSTITUTION only where a corpus genuinely spans more than one, then the REGISTER SERIES, then the VOLUME or entry range, then the DOCUMENT FUNCTION - and the period level the schema recommends is deliberately DROPPED. The institution level is seeded ineligible for the schema's own reason: in a single-institution corpus it is \"use an author or organization merely as a collector\" and it would \"create meaningless one-child levels\". The schema's ban on a named third party as a folder level is inherited and TIGHTENED: not the subject, not the officiant, not the person interred, not the rights-holder, because here the subjects include minors and the dead who cannot consent and whose relatives are named in the same entry without ever having transacted with the institution. Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" - and a register is the clearest instance of that sentence in the whole family, because its dates span generations. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "calendar",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".tif",
+      ".png",
+      ".zip",
+      ".ics",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Baptism register - Volume 7 - entries 0412-0498.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a ruled table with a sequential entry-number column running without gaps",
+        "per row: date of rite, name of the person baptised, names of parents, name of officiant, names of sponsors",
+        "a volume number in the running header and a continuation note to a further volume",
+        "marginal annotations against two entries in a later hand"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any nonprofit fact - the schema declares none",
+        "any named subject, parent, sponsor or officiant as a stored value that could reach a prompt or a path",
+        "that the dates in the entries are the file's date, or that the register belongs to any period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Marriage Certificate - Priya and Sam - 12 July 2019.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a single-entry form naming two parties, an officiant and two witnesses",
+        "an entry number and a register citation printed at the head",
+        "an issuing attestation and a seal",
+        "no surrounding register, no issuance log, no other extract"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a register citation on the page makes this the register. THIS IS THE COLLISION FIXTURE. Held by the couple it is their own life-event and status document and belongs to identity.core-documents; held by the issuing institution beside an issuance log and a run of sequential extracts it is this row. The bytes are the same and the citation is on the page in both cases",
+        "the named parties or witnesses as stored facts",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Interment register and plot map - Section C.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per plot carrying a section-and-plot reference, a date of interment and the name of the person interred",
+        "a separate column naming a living right-of-burial holder with a deed-of-grant number",
+        "a second sheet of unallocated plots",
+        "no institution-and-account header anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a workbook of references and fees is finance - the absence of an institution and an account is the discriminating evidence",
+        "either name as a stored fact, and specifically not the deceased as a folder level",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Service plan and rota - Advent to Epiphany 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per dated occasion within a named liturgical season",
+        "columns for officiant, preacher, readers, musicians and rite",
+        "a lectionary reference per row",
+        "a note that two occasions are weddings with external couples"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that this is a volunteer rota - the rite and occasion columns are what fire here, and a rota with names and shifts but no rite column is nonprofit.volunteer-management",
+        "that the season is a fiscal or calendar period",
+        "the named people as stored facts or as folder levels",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Pastoral visit notes - 2026 - confidential.docx",
+      "source_type": "text_document",
+      "observations": [
+        "dated entries each naming one congregant and a visiting minister",
+        "a reason-for-contact line and free-text prose about family circumstances and bereavement",
+        "no clinician role, no diagnosis, no medication, no coding",
+        "a header asserting confidentiality"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any named congregant as a stored value or a folder level",
+        "that the confidentiality header is a handling class - P7 owns that vocabulary and this row assigns none",
+        "that detection licenses movement. This file is detected in order to be PROTECTED: \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\"",
+        "a folder path"
+      ],
+      "also_schema": "clinical_practice",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PCC minutes - 12 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a council of a religious body, a meeting date, attendance, apologies and quorum",
+        "numbered papers and numbered resolutions",
+        "a registered-charity number and a diocesan reference in the footer",
+        "an agenda item about the fabric of the building"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a religious-institution record. IT IS NOT, and this row concedes it in the same terms its schema concedes trustee minutes: a council running a governance cycle is structurally identical to a company board and the row that owns it is business_operations.board-governance. The denomination, the charity number and the diocesan reference are all never-alone tokens and nothing here is a register",
+        "that religious vocabulary promotes a governance file into this row",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Parish register scan 1881-1904 - page 044.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed ruled register page with entry numbers, names and an officiant column",
+        "a watermark and a reference number in the corner from a subscription genealogy service",
+        "EXIF absent; a download timestamp in the filesystem",
+        "sibling files in the same folder are unrelated census images"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_year",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that register structure makes this the institution's register. It is a genealogist's downloaded source and belongs to photos.family-archive, or to Reading Inbox if no family-history purpose is evidenced. The watermark and the absent custody chain are the discriminating evidence",
+        "that missing EXIF proves anything about origin - 00 forbids that inference in both directions",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Order of Service - funeral - 4 November 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a designed booklet with a photograph, hymns, readings and an officiant's name",
+        "a date and a place of worship",
+        "no entry number, no witness slot, no register citation",
+        "one copy only, with no surrounding institutional material"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a rite word plus an officiant name is a register. It is a produced keepsake and a publication artefact; held by a mourner it is a personal document, and it fires nothing here",
+        "the deceased or the officiant as stored facts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gift Aid declaration - J Okonkwo - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a taxpayer declaration naming a place of worship as the recipient",
+        "a named donor, an address and a signature",
+        "a statement about past and future donations",
+        "no rite, no register, no officiant"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a religious recipient moves a gift record into this row. It is nonprofit.fundraising-donor's gift-and-tax-declaration structure and the religious name is the never-alone token",
+        "a donor fact or a tax_year fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "registers-digitisation-2026-batch3.zip",
+      "source_type": "archive",
+      "observations": [
+        "member paths repeatedly encoding a register name, a volume number and an entry range",
+        "a manifest listing page images and a per-volume index",
+        "a large uncompressed size and a mix of image and text members",
+        "no password"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any entry content - the archive is read from its manifest and \"the normal scan should never extract archive contents to the filesystem\"",
+        "that the batch establishes custody; a service bureau, a depositing archive and the institution all produce this shape",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "identity.core-documents",
+      "signal": "SAME FIXTURE BOTH SIDES: `Marriage Certificate - Priya and Sam - 12 July 2019.pdf` - this row owns the ISSUING side, meaning the register the entry lives in and the extracts issued from it in a sequential run with an issuance log; identity.core-documents owns the SUBJECT side, meaning the single certificate a person keeps as proof of their own name, status, parentage or age. Discriminated by the presence of the source register and issuance context around the file, never by the certificate itself, which carries an entry number and a register citation in both hands. In the reverse direction: a religious body holding one certificate about one of its own staff is holding an identity document, not a register. This is also the family's one place where a protected record legitimately EXISTS IN ORDER TO BE DISCLOSED - to the subject, on request - which is why the ban on a person-named folder level must be stated separately from the ban on extraction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "SAME FIXTURE BOTH SIDES: `PCC minutes - 12 March 2026.pdf` - this row owns nothing in it and says so; business_operations.board-governance owns the whole file, because a council, vestry, session or committee running a governance cycle in a religious body is structurally identical to a company board. Discriminated by the absence of any register or rite structure: the denomination, the clergy titles in the attendance list and the charity number in the footer are never-alone tokens. This is the seam the roster hint would have drawn wrongly - its word 'governance' is already nonprofit.governance's and business_operations.board-governance's, and this row cedes it by name.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "SAME FIXTURE BOTH SIDES: an `Electoral roll 2026.xlsx` or congregation roll - one row per named adherent with a join date and a status - this row owns it ONLY if it is a register of RITES with entry numbers, officiants and witnesses; nonprofit.member-association owns it as a membership roll, which is what it almost always is. Discriminated by the entry-number-plus-officiant-plus-witness triple: a roll records who belongs now and is revised in place, a register records what happened once and is never revised, only annotated. In the reverse direction, a member-association roll for a religious body does NOT come here merely because the body is religious.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.fundraising-donor",
+      "signal": "SAME FIXTURE BOTH SIDES: `Gift Aid declaration - J Okonkwo - signed.pdf` - this row owns none of it; nonprofit.fundraising-donor owns the gift-and-tax-declaration structure wherever the recipient is a religious body, a collection plate record, a tithe or offering ledger, or a pledge schedule. Discriminated by the fact that a giving record names a donor and an amount and no rite; the religious recipient name is the never-alone token. In the reverse direction, a rite register does not become a giving record because a fee for the rite appears beside the entry.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.archives-recordkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Baptism register - Volume 7 - entries 0412-0498.pdf` after deposit - this row owns the register while the institution holds and adds to it as an operative record; government.archives-recordkeeping owns the same volume once a public record office holds it under an accession, with a reference, a transfer agreement and an access condition. Discriminated by the accession-and-reference structure and the closure period, not by the register's content, which is unchanged by deposit. That landed row already recorded this as a status question rather than a mutex - 'a diocesan, union, or charity archive behaves identically to a public one ... the discriminator is public-body status' - and this row agrees the discriminator is custody, and states it as a mutex on the deposited fixture only. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.family-archive",
+      "signal": "SAME FIXTURE BOTH SIDES: `Parish register scan 1881-1904 - page 044.jpg` - this row owns a register page image only as part of the institution's own digitisation batch with a manifest and a volume-and-entry path structure; photos.family-archive owns the identical page as a genealogist's downloaded source among census images, birth indexes and family photographs. Discriminated by the surrounding batch and manifest versus a watermark, a service reference and unrelated research siblings. This is the row's second collision fixture and the harder one, because the page structure is genuinely identical.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "SAME FIXTURE BOTH SIDES: `Pastoral visit notes - 2026 - confidential.docx` - this row owns dated minister-to-congregant contact notes with a reason for contact and no clinical structure; clinical_practice owns the identical shape the moment a clinician role, a diagnosis, a medication or a coding structure appears, and where it does the stricter side wins outright. Discriminated by the clinical structure, which is a presence rather than an absence and therefore reliable. A hospital or hospice chaplain produces both in one folder and both should activate.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "SAME FIXTURE BOTH SIDES: a `Faculty application - reordering of the nave.pdf` or a building consent, quinquennial inspection or fabric report - this row owns none of it; business_operations.facilities-workplace owns the building, its condition surveys, its consents and its maintenance, and legal owns the consent as an instrument. Discriminated by the fact that a building record names a structure and a works programme and no rite. The roster hint's word 'buildings' is ceded here in full.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.event-production",
+      "signal": "SAME FIXTURE BOTH SIDES: a wedding run sheet for `12 June 2026` - this row owns the OFFICIANT side, meaning the preliminary notice, the register entry and the extract, all of which record that a rite occurred; retail_hospitality.event-production owns the VENUE side, meaning the booking, the run sheet, the catering, the staffing and the invoice, and it owns them even when the venue is a place of worship hiring its own hall. Discriminated by the exchange: the venue relation is value for value and this row's is not, which is the nonprofit schema's own non-exchange test applied to its narrowest case.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.estate-planning",
+      "signal": "SAME FIXTURE BOTH SIDES: a deed of grant of right of burial and the funeral-and-burial wishes that reference it - this row owns the INSTITUTION's interment register and plot allocation; legal.estate-planning owns the INDIVIDUAL's own disposition wishes, the deed as an asset in their estate, and the executor's copy. Discriminated by whether the file records an allocation across many plots or a single person's intention about one. That landed row already treats religious affiliation and disposition choice as facts it must not conclude, which this row reads as consistent with taking none of its material.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named FIRST and for a reason narrower than the schema's: this row's characteristic isolated file is a register page or a certificate naming a private person's rite, which discloses their religious affiliation and often that of their parents, spouse and witnesses. Where the row does not confidently activate the protective home is the correct one. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone rite document with no accepted group - one order of service, one certificate whose custody is unresolved, a single dedication or blessing record. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's defining failure, which is unresolved CUSTODY: a real register page whose holder could be the institution, a depositing archive, a genealogy subscriber or the subject's family. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Most of this row's tempting false files are reading material - sermons, lectionaries, denominational handbooks, another body's published history, religious-studies papers, downloaded transcriptions. When nothing else fires this is where they belong. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Church, mosque and synagogue management-system exports and password-protected register backups are ordinary here and are exactly the files that must not be forced open. \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, and it is argued as a DIFFERENCE from the nonprofit schema's default rather than a repetition of it, because that difference is the row's second node-test leg. The schema's protected party is a beneficiary or service user disclosed under need, and its rule is that a named third party may not be a folder level. Three things are different here. First, the disclosure is INTRINSIC rather than incidental: the schema's beneficiary record discloses need because of what it says, but a register entry discloses a named person's religious affiliation merely by EXISTING, before any content is read - the row's filing structure is itself the disclosure, which is true of no other row in this family. Second, the exposed parties never transacted with the institution at all: one entry names parents, sponsors, witnesses and a spouse alongside the subject, so a single file discloses affiliation for a household and frequently for three generations, and the schema's third-party argument does not reach people who are merely mentioned. Third, the subjects include MINORS and the DEAD, neither of whom can consent and neither of whom the schema contemplates; a deceased person's interment entry also names a living rights-holder, so age of the record does not retire the exposure. Against that, and stated because smoothing it would be dishonest, this is the family's one protected record whose lawful purpose INCLUDES disclosure: a person is entitled to an extract about themselves, and the institution issues one. The resolution is that detection here exists to protect and to find, never to move or to expose - the register may be recognised and grouped, and its subject names may not become paths, prompts, or branch labels. 00 nowhere names religion in its corpus sentence, so this argument is marked INFERENCE throughout; what 00 does supply is the general posture - \"The default posture must therefore be local-first and data-minimizing.\" - and the surrounding corpus it expects, which \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\", of which a certified rite extract is squarely an identity document. This row does not carry `is_safety_domain` and should not: 00's four are named and closed - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - which leaves the same gap the anchor recorded, restated in this row's open question. The handling class is P7's and is not set here.",
+  "open_question": "Four. (1) NJ-RI-1, the row's own existence, answered as a NARROW YES that can be reversed: this row stands only on the RITE REGISTER and the records that hang off it, and it cedes governance, buildings, giving, volunteers, membership and safeguarding to named landed neighbours. If R1c judges that the register is a work_type value on the nonprofit schema rather than a template - which is arguable, because `work_types` on the anchor already lists 'faith-institution rite register and its certificates' as a value - then the correct outcome is REFUSAL, and the coverage routes to the nonprofit schema's own register signal plus identity.core-documents plus government.archives-recordkeeping. This row's counter-argument, offered for that adjudication and not assumed: the register changes the schema's DIMENSION RECOMMENDATION (series-and-volume instead of counterparty-and-period, with the period level dropped) and its PRIVACY RULE (intrinsic disclosure, non-transacting third parties, minors and the dead), and a work_type value cannot do either. (2) NJ-RI-2, custody: this row's residual routing sends unresolved-custody files to Review Later, but a register page whose holder is unknown is simultaneously the most disclosive file in the row, so Protected Records may be the safer default even at the cost of hiding it. The alternatives are (a) Review Later as written, (b) Protected Records for any file carrying rite-register structure until custody is confirmed. This row cannot settle which, and states the tension rather than picking silently. (3) NJ-RI-3, the deposit seam with government.archives-recordkeeping: that landed row recorded diocesan archives as a status question and explicitly declined an edge; this row has authored a one-way mutex on the deposited-register fixture. R1c owes the reciprocal and should decide whether custody-on-deposit is a mutex or a co-activation. (4) NJ-RI-4, `also_holds_with` is EMPTY here because CONNECTION section 5 makes it schema-to-schema only and this row is a template. The co-activations this row would otherwise author are recorded in its memo for R1c: nonprofit with identity on a certified extract, nonprofit with government on a deposited register, nonprofit with clinical_practice on a chaplaincy note, and nonprofit with photos on a digitisation batch. If R1c wants any of them they belong on the `nonprofit` schema row, not here."
+}

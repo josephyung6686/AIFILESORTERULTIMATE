@@ -1,0 +1,784 @@
+{
+  "id": "finance.hoa-residents-association",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "HOA and residents' association records",
+  "one_line": "A protected Finance template for the holder's continuing relationship with a homeowners', condominium or residents' association: assessments, account notices, governing records, meetings, budgets, architectural decisions and enforcement correspondence, grouped by the explicitly named association rather than by a manager, portal or property address alone.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an ASSOCIATION-ASSESSMENT account structure: a homeowners', condominium, cooperative or residents' association is explicitly named in the document title, page-one heading or labelled Association slot; a separately labelled member, owner, unit, lot or parcel slot identifies the obligated side; and assessment charges, due dates, payments and balance rows appear together. A management-company logo or payment processor may identify who produced the record, but it does not replace the association value the roster assigns to institution",
+      "a SPECIAL-ASSESSMENT notice structure: an explicitly named association and member or unit reference together with a board action or assessment label, the common project or expense being funded, the apportioned charge, due or installment information, and notice or resolution context. The word assessment is insufficient because a property-tax authority also issues assessment notices",
+      "a GOVERNING-RECORD structure whose title or labelled heading identifies a declaration, covenants, conditions and restrictions, bylaws, articles, rules, policy or resolution; whose recitals or definitions name the association or common-interest community; and whose clauses describe membership, assessments, voting, property-use or board authority. The operative clauses may independently activate Legal; association identity and record kind are the Finance-side evidence",
+      "an ASSOCIATION-MEETING structure: the association name in the title or heading, a board, member or committee meeting label, a meeting date, attendees or quorum, agenda items, motions and vote or action results. A generic set of corporate minutes or a personal calendar reminder lacks the association-and-governance role pair",
+      "an ASSOCIATION-BUDGET or reserve structure: the association is named as the reporting entity, the title or sheet labels an operating budget, financial statement, reserve schedule or reserve study, and populated tables carry assessment income, expenses, fund or component balances and funding or replacement rows. This relies on 00's extraction reality: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.' A budget year or study date is not a tax_year",
+      "an ARCHITECTURAL-REVIEW structure: an association or its committee is explicitly named in an Association, Committee or Decision block; a member and unit or lot are separately labelled; the requested physical change is described; and an approval, denial, conditions or signature result is present. A blank request form or generic renovation guide does not fire",
+      "an ENFORCEMENT notice structure: an association or agent acting expressly on its behalf, a separately identified member and unit or lot, a cited covenant or rule, an alleged condition, and cure, hearing, fine or decision language. An address, fine amount or word violation alone is not enough; a live lien, collection or contested proceeding sits on the Legal collision seam",
+      "a RESALE-CERTIFICATE or association-status structure signed or certified by an association officer or authorized agent and tied to a unit, with labelled rows for regular or special assessments, delinquency or balance, fees, governing documents, reserve or budget information, violations, insurance or litigation. Its legal and property consequences do not erase the association-record reading",
+      "a HOMEOWNER-PORTAL record whose visible labelled slots identify the association, the member or unit account, and a dues, assessment, payment-history, document-library, architectural-review or board-packet function. The platform chrome and management-company brand are source context; the association role must be explicit in the content before institution is available",
+      "an archive manifest that co-locates association-shaped members such as declarations, bylaws, rules, minutes, budgets, reserve studies, assessment statements, architectural decisions and notices, inspected without writing members to disk. 00 is explicit: 'Archives should be inspected without being unpacked to disk.' The manifest supports a candidate packet; it does not copy any member's association, owner or record type onto a sibling"
+    ],
+    "needs_llm": [
+      "whether a management agent, law office, accountant, reserve consultant or portal provider authored a record for an association or is itself the institution the record belongs to. The model resolves labelled roles from bounded regions and must leave institution unknown when the association relationship is only implied",
+      "whether prose called rules, declaration, policy, resolution or notice is an operative association record, a generic template, a buyer guide, a news article or a different organization's governance document. The model may interpret the role-bearing clauses but cannot invent that the holder is a member",
+      "an OCR-damaged assessment statement, architectural decision or violation notice whose association, management agent, unit and mailing-address roles are partially merged. The model may use layout and nearby labels, but must abstain rather than promote the most frequent organization or address",
+      "whether a property identifier is the member's unit or lot, the association's mailing address, a manager's office, a utility service address or a property mentioned in a board discussion. The labelled role decides; a repeated address does not",
+      "whether a heterogeneous download is one association relationship, one annual meeting packet, one special-assessment project, one architectural application or one enforcement matter. The model receives a bounded dossier with direct anchors, sparse candidates and conflicts; 00 requires that 'A model that cannot cite sufficient evidence must return unknown.'",
+      "whether a manager email is a durable association record, ordinary community news, a maintenance conversation, a solicitation or correspondence in a contested matter. Sender domain and an association signature block support review but never settle the file's function alone",
+      "whether a reserve or budget workbook is an association-issued member record or the holder's own bookkeeping work. Repeated vendor names and money columns are shared; the reporting-entity and governance context must be resolved",
+      "a multilingual or unfamiliar common-interest-community record whose local terms for association, assessment, meeting, governing instrument or unit have no catalogue entry. The model may map observed structure to record_type, but it cannot import a jurisdiction's legal conclusion"
+    ],
+    "never_alone": [
+      "the tokens HOA, condo, strata, co-op, community, residents' association or homeowners' association alone. They appear in property listings, buyer guides, news, insurance certificates, vendor proposals and academic papers; a completed association-to-member, governance or account structure must accompany them",
+      "an association or community name alone. It may identify the property being insured, a client of a management company, a line in a utility account, a venue, or an entity cited in a dispute. Its labelled role and the record structure matter",
+      "a management-company, law-firm, accounting-firm, reserve-consultant, payment-processor or portal-provider name alone. The organization may author or deliver the file without being the association value assigned to institution",
+      "a street address, unit, lot, parcel or building name alone. It can be a recipient address, service location, insured property, tax parcel, neighbouring unit or meeting venue. Until its association-member role is labelled it remains an observation",
+      "a recurring amount, due date, balance, late fee or payment word alone. Utility bills, loans, insurance, subscriptions, taxes and ordinary receipts all have the same money shape",
+      "the word assessment alone. A member assessment needs an association and owner or unit account structure; a public authority's assessed value and tax-year structure belongs to the household-property situation",
+      "the words minutes, meeting, notice, rules, covenant, budget, reserve, election or violation alone. Corporate minutes, a personal reminder, a municipal notice and a generic rules template share them without being the holder's association record",
+      "a bare year in a filename, budget heading, meeting date, assessment period, reserve-study date or effective-date clause read as tax_year. Only an explicit tax-year slot on an actual tax record can support that field",
+      "a source type or extension alone. A PDF is not a covenant, a spreadsheet is not an association budget, an ICS file is not an official meeting notice, a screenshot is not an account record, and a ZIP is not an association packet. 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning'",
+      "an existing HOA folder, portal download batch or tightly bounded session. 00 says, 'A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.' Curated structure can seed review but cannot activate Finance or write an association fact",
+      "a photograph or sparse scan placed beside minutes, a violation or an architectural request. It may join an accepted matter as a reviewable member, but 00's firewall remains: 'The graph does not automatically copy those missing facts onto sparse files.'",
+      "missing EXIF on a portal or document image as proof that it is a screenshot. 00 says 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'; 'conflicting signals should lead to abstention rather than an invented classification'",
+      "an unreadable file named HOA Documents, Covenants, Dues or Violation. Unreadable material can be manually attached later, but its filename and neighbours cannot establish purpose"
+    ],
+    "proposed_context_terms": [
+      "annual assessment",
+      "special assessment",
+      "member account",
+      "unit owner",
+      "parcel owner",
+      "board meeting",
+      "governing documents",
+      "covenants conditions and restrictions",
+      "architectural review",
+      "violation notice",
+      "reserve study",
+      "resale certificate"
+    ],
+    "proposed_context_terms_note": "PROPOSED, not design. These are candidate role and document-kind terms harvested from the fixtures and current primary sources. R6 owns any term patterns and R4 owns organization-gazetteer contents; this node writes neither a regex nor a score."
+  },
+  "work_types": [
+    "assessment statement",
+    "dues or payment notice",
+    "payment receipt",
+    "special assessment notice",
+    "declaration or covenants",
+    "bylaws or articles",
+    "rule, policy or board resolution",
+    "meeting notice or agenda",
+    "meeting minutes",
+    "budget or financial report",
+    "reserve study or schedule",
+    "architectural request or decision",
+    "violation, hearing or enforcement notice",
+    "election ballot or proxy",
+    "resale certificate or status disclosure",
+    "association correspondence"
+  ],
+  "grouping_reasons": [
+    "one continuing member relationship with one explicitly identified association across assessment statements, receipts, governing documents, meetings, budgets, architectural decisions and notices. The association-role evidence is the anchor; the manager, address or portal brand alone is not",
+    "one member assessment account across periodic statements, a special assessment, payment confirmations, delinquency correspondence and a paid-in-full status letter. A stable labelled owner or account reference supports membership; no member name, balance or record_type propagates to a sparse email",
+    "one annual or special meeting packet across the notice, agenda, proxy, ballot, board packet, presentation and minutes. Structured association and meeting identifiers anchor it; the shared date or calendar adjacency alone does not",
+    "one architectural request across the application, plans, photographs, committee correspondence and final decision. The completed application or decision is the anchor; photographs can join without acquiring institution, account_holder or record_type",
+    "one enforcement matter across the initial notice, resident response, hearing notice, decision, cure evidence and any later legal correspondence. The routine association record and Legal matter may overlap as groups while each file keeps only its own facts",
+    "one capital project or special assessment across the board resolution, budget, reserve-study excerpt, assessment notice, contractor proposal and progress correspondence. Purpose coherence may support the packet; it cannot turn a contractor proposal into the resident's assessment statement",
+    "one portal export or records-request packet represented by an archive manifest and its individually extracted members, without unpacking or copying member facts onto the container",
+    "one file saved twice or revised after a board action, represented by duplicate_family and version_family rather than by an association fact",
+    "one file may participate in several accepted groups: covenants in an association packet and a Legal packet, a portal capture in Photos and Finance, or an assessment receipt in the association account and a transaction packet. 00 allows this directly: 'A file may validly belong to more than one accepted group'"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "record_type"
+    ],
+    "why": "institution first, carrying the roster's explicit instruction that the value is the association. An association relationship is more stable than the management company, portal, lawyer, accountant, consultant or contractor that may produce one record, and a leaf such as minutes or violation notice is not intelligible until the association is known. record_type follows as the useful functional split among statements, governing documents, meetings, budgets, architectural decisions and notices. account_type is omitted by default: a unit or lot is a property relationship, not a kind of financial account, and most residents have one association relationship per property. It remains available only when the record itself labels genuinely distinct member, assessment or ledger accounts and the resulting level materially separates records. tax_year is omitted because a budget year, meeting year, assessment period, reserve-study date, effective date and violation date do not answer the tax-year role; only an explicit tax-year slot on an actual association tax record can fill it. A multi-property holder exposes the current vocabulary gap: the visible finance.household-property proposal for property must be adjudicated in R1c before this node can recommend property as a level, so property or unit labels remain observations and group anchors here. The current order is intentionally shallow and not time-first, following 00: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Where institution would create only one branch, the interface should follow 00 and 'recommend flattening when a dimension does not materially improve retrieval.' Nothing is frozen: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.' This is a placeholder over a Finance safety domain, not authority to expose names, addresses or account details.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".html",
+      ".xlsx",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Annual Assessment Statement - Unit 4B.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names Oak Ridge Homeowners Association and labels the document Annual Assessment Statement",
+        "separate labelled slots identify Member, Unit 4B and Owner Assessment Account",
+        "the charges-and-payments table carries assessment dates, amounts, payments and a balance due",
+        "a footer identifies Cedar Management as managing agent for the association"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution = Cedar Management merely because it produced the statement; the explicit association role supplies the roster-directed value",
+        "tax_year from the statement date or year in a covered period",
+        "property or location from Unit 4B; no canonical Finance property field exists here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Special Assessment Notice - Roof Replacement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "association letterhead and a labelled Owner and Lot block identify both roles",
+        "subject and body identify a board-approved roof project and a special assessment",
+        "a table labels the member share, installment dates and payment instructions",
+        "the notice references the board resolution that authorized the charge"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "account_type from special assessment; that phrase describes a charge, not a financial account",
+        "tax_year from the installment dates",
+        "that a referenced resolution's facts belong to this notice beyond what the notice states",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "HOA Payment Receipt - 2026-04-01.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot belongs to the management company and the subject labels a payment receipt",
+        "body says the payment was received on behalf of Oak Ridge Homeowners Association",
+        "labelled rows identify the owner assessment account, unit, amount, transaction reference and remaining balance",
+        "recipient and body name the member"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the sender address without the on-behalf-of association statement",
+        "tax_year from the payment date",
+        "a standing association group from one receipt alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Declaration of Covenants Conditions and Restrictions - Recorded.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "recorded-instrument heading identifies a declaration and the common-interest community",
+        "definitions identify Oak Ridge Homeowners Association, owners, lots and common areas in separate roles",
+        "numbered clauses address membership, assessments, use restrictions and enforcement",
+        "recording stamp and execution or certification pages are present"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "account_holder from every owner or declarant named in the instrument",
+        "institution from the historic developer or recording office when the association role is explicit",
+        "tax_year from the recording or amendment date",
+        "that the Finance reading erases the independently operative Legal reading"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bylaws - Oak Ridge HOA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title and article heading name Oak Ridge Homeowners Association and Bylaws",
+        "articles describe membership, board offices, meeting procedure, voting and assessments",
+        "amendment and secretary-certification blocks identify the adopted version",
+        "no individual member account or property slot appears"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "account_holder from signatories who certify the bylaws",
+        "account_type from membership classes without an explicit financial-account role",
+        "tax_year from an adoption date",
+        "that a blank model-bylaws template is the holder's association record"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Board Meeting Minutes - 2026-06-18.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading names the association, board meeting and meeting date",
+        "attendance and quorum sections identify directors and management attendees",
+        "agenda sections record reports, motions, votes and action results",
+        "approval block identifies the minutes as adopted rather than a blank agenda"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the meeting date",
+        "account_holder from director or attendee names",
+        "a separate record_type for every agenda item",
+        "that generic corporate minutes are an HOA record without the association role"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "2026 Adopted Budget and Reserve Schedule.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet identifies Oak Ridge Homeowners Association as the reporting entity",
+        "populated sheets label operating budget, reserve schedule and assessment-rate calculation",
+        "rows separate assessment income, utilities, management, maintenance, insurance and reserve contributions",
+        "formula cells roll category rows into adopted totals"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the budget heading or fiscal period",
+        "institution from the manager, accountant or most frequent vendor row",
+        "account_type from budget-account categories",
+        "that the holder operates this bookkeeping system merely because they possess the workbook"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reserve Study - Final 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover labels a reserve study prepared for Oak Ridge Homeowners Association by a named consultant",
+        "component inventory lists common assets, condition, remaining life and replacement cost",
+        "funding analysis compares reserve balances, contributions and projected expenditures",
+        "signature page identifies the consultant who authored the study"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution = the reserve consultant; the labelled prepared-for association is the roster-directed relationship value",
+        "tax_year from the study date or projection columns",
+        "property as a Finance fact from the common-component inventory",
+        "that every component row is a separate household-property file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Architectural Change Request - Patio - Approved.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form labels the association, architectural review committee, applicant and unit or lot separately",
+        "filled request describes the patio materials, dimensions and attached plan",
+        "decision block marks approval with conditions and carries committee signatures",
+        "management contact appears only in a submission-instructions footer"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "property or location as a Finance fact from the unit or lot",
+        "institution from the manager or contractor named in the request",
+        "that the attached plan inherits the approval result without its own evidence",
+        "tax_year from the decision date"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Violation Notice - Balcony Storage.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "management-company letterhead states it acts for Oak Ridge Homeowners Association",
+        "labelled owner and unit fields identify the member side",
+        "body cites a governing-rule section and describes the alleged balcony condition",
+        "notice labels a cure date, hearing option and possible fine"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution = the management company without the explicit agency statement",
+        "that an allegation is a proven condition or final legal outcome",
+        "tax_year from the notice or cure date",
+        "that a later lien, collection or court matter's facts belong to this notice"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual Meeting Proxy and Ballot - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading identifies the association and annual member meeting",
+        "labelled member and unit slots are filled",
+        "proxy section names an authorized voter and ballot section lists candidate or resolution choices",
+        "signature and date fields are completed"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the election year",
+        "account_type from voting class unless it is also an explicit financial-account descriptor",
+        "a public sensitivity state from the meeting context; signatures and votes remain protected",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Resale Certificate - Unit 4B - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title and certification block identify the association and an authorized officer or agent",
+        "labelled unit and seller fields identify the subject member relationship",
+        "sections report regular and special assessments, unpaid balances, fees, reserves, budget, insurance, violations and pending matters",
+        "packet attaches or references governing documents and recent minutes"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the certificate date or budget period",
+        "property as a canonical Finance fact from Unit 4B",
+        "that every referenced or attached record shares the seller's balance or violation status",
+        "that Finance activation replaces Legal protection"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Owner Portal - Account Balance.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG dimensions, capture-software metadata and interface chrome support a screenshot hypothesis",
+        "OCR recovers Oak Ridge Homeowners Association, Owner Assessment Account and Unit 4B",
+        "screen labels current charges, payment history and balance due",
+        "portal footer names the management platform and management company separately"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "media_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "screenshot status from missing EXIF alone",
+        "institution from the platform or manager brand when the association role is separately explicit",
+        "tax_year from the capture date",
+        "that screen-neighbour files inherit the unit or balance"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_9034.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF supplies capture time, camera make and model",
+        "the image depicts a clubhouse bulletin board and a paper headed NOTICE",
+        "the association name and notice subject are not legible",
+        "the image sits near an annual-meeting packet in retrieval context"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Finance or this template from a building, bulletin board or unreadable NOTICE heading",
+        "institution or record_type from the nearby meeting packet",
+        "event or location from retrieval adjacency alone",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "HOA_Documents.zip",
+      "source_type": "archive",
+      "observations": [
+        "outer filename contains only HOA_Documents",
+        "manifest lists declarations, bylaws, rules, minutes, budgets, reserve-study, assessment and architectural-decision stems",
+        "member paths suggest one records-request packet but carry mixed dates and producers",
+        "archive is inspected without extracting members to disk"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from association-shaped member names or their frequency",
+        "account_holder, account_type or tax_year for the container",
+        "facts on one member from a sibling's name",
+        "that the outer filename alone activates this template"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Oak Ridge HOA Annual Meeting.ics",
+      "source_type": "calendar",
+      "observations": [
+        "structured SUMMARY names Oak Ridge HOA and Annual Meeting",
+        "DTSTART, DTEND and LOCATION fields provide the meeting schedule and venue",
+        "ORGANIZER is the management company's address and the description links the association agenda",
+        "no assessment account, payment or individual vote appears"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Finance activation from calendar format or recurrence syntax alone",
+        "institution = the manager from ORGANIZER when the association role is explicit in SUMMARY",
+        "tax_year from the meeting date",
+        "event as a Photos fact when Photos has not independently activated"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "water_bill_unit_4B.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "utility provider appears in the issuer block",
+        "labelled service address includes Unit 4B",
+        "meter, usage-unit, rate-plan and service-period rows are populated",
+        "statement labels a service account and amount due but no association relationship"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "this template from the shared unit address or recurring charge",
+        "an association because a property manager appears in the mailing block",
+        "tax_year from the service period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "County Property Tax Statement - Unit 4B - Tax Year 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "county tax authority appears in the issuer block",
+        "labelled parcel and property-address slots identify Unit 4B",
+        "assessed and taxable value rows lead to an amount-due schedule",
+        "a labelled Tax Year slot is present and no association is named"
+      ],
+      "facts_legal": [
+        "institution",
+        "tax_year",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "this template from the word assessment, the unit address or the amount due",
+        "an HOA assessment from a public authority's assessed-value structure",
+        "account_type from a parcel class",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "association_notice_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers NOTICE, Unit 4B and a date",
+        "the issuer or association logo is cropped and the subject line is unreadable",
+        "paper-edge geometry and scan metadata support a scanned-document hypothesis",
+        "retrieval context includes an assessment statement and violation notice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution, record_type or account_holder from the neighbouring files",
+        "this template from NOTICE and a unit token",
+        "media_type from missing EXIF alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Resident_Portal_Download.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "file signature identifies an encrypted archive",
+        "filesystem extraction supplies filename, MIME type, size, timestamps and content hash",
+        "no manifest, text, OCR or labelled field is available",
+        "the filename is the only association-shaped clue"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "this template or institution from the filename",
+        "record_type from files downloaded nearby",
+        "account_holder, account_type or tax_year",
+        "that encryption means the file has no user value"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Condominium Master Insurance Certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier and producer appear in separate labelled blocks",
+        "Named Insured identifies Oak Ridge Homeowners Association",
+        "policy rows label coverage types, policy numbers, limits and term dates",
+        "certificate holder and property description appear in their own roles"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "this template from the association in the Named Insured slot; the file's carrier-policy structure belongs to corporate insurance",
+        "institution = the association for this file when the carrier is the issuing institution",
+        "tax_year from the policy term",
+        "that possession through the owner portal changes the record's type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Understanding Condo Association Rules.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "publisher heading identifies a general consumer-information article",
+        "sections explain common dues, covenants, meetings and architectural reviews using fictional examples",
+        "no holder, property, association account, adopted instrument or completed decision is present",
+        "download metadata indicates an ordinary web save"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this template from dense HOA vocabulary",
+        "institution from an association used in a fictional example",
+        "record_type = governing document from explanatory headings",
+        "that the holder belongs to an association"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.household-property",
+      "signal": "Reciprocates the current neighbour draft. An association assessment and a general property record share the unit address, owner name and money figures. Dues, member-account, association-governance, meeting, covenant or architectural-review structure points here; acquisition, title, public property-tax, inspection, improvement, permit and installed-system structure points to finance.household-property. A unit address, property-manager name or the word assessment alone counts for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.subscriptions-utilities",
+      "signal": "Reciprocates the current neighbour draft. An association dues notice and a utility or recurring-service bill both name an organization, repeat, carry a property address and request payment. Association, member or unit, assessment, governance, meeting or covenant structure points here; a metered service, usage unit, rate plan, service identifier, paid plan or subscription lifecycle points to finance.subscriptions-utilities. The address and recurring amount decide neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "A member assessment statement and a bank, card or deposit statement can carry the same labelled period, account, charge, payment and balance slots. The discriminator is who holds what: an explicitly named association plus member or unit assessment structure belongs here; a financial institution plus deposit, card or cash-account descriptor and beginning or ending balance structure belongs to finance.personal-records. A management company sender, masked identifier or balance cannot fill both readings.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "A dues payment receipt and an ordinary purchase receipt each carry a named organization, transaction reference, date and amount. An explicit association, member or unit account and assessment or dues context makes the receipt part of the continuing association relationship; seller, order and item-total structure with no standing association evidence makes it a one-off transaction. When only the payment confirmation lands, Receipts and Confirmations is the honest broad home.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "An association budget, general ledger or reserve workbook and a small operation's books can be structurally identical: reporting period, account rows, debits, credits, expenses and balances. The reporting entity and governance purpose discriminate: an association named in the report with assessments, common expenses, reserves or board-adoption context belongs here; the holder's own operation, customers, vendors, invoice register and reconciliations belong to finance.small-business-bookkeeping. Possession by a board member or an HOA-named folder is not business ownership evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "An association master policy or certificate is commonly downloaded from the same portal as budgets and governing documents and names the association prominently. A carrier, Named Insured, policy number, coverage line, limit and term structure belongs to finance.insurance-corporate, where institution is the carrier and the association is the holder; an association-issued assessment, governance, meeting, architecture or enforcement structure belongs here. The association name and portal provenance cannot choose between them.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "A recorded declaration, covenant packet or association contract can be both an association record and an operative instrument, with organization names, numbered clauses and signatures. Party recitals, obligations and an execution block creating or amending duties are the legal-agreement evidence; association-to-member account, governance, meeting or administrative-record structure is this template's evidence. Governing documents may activate Finance and Legal on disjoint evidence; one association name or one clause must not be counted twice to force either reading.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "A routine violation or hearing notice and a live legal matter share the association, member, rule citation, deadline and possible monetary charge. An association enforcement form offering cure, hearing or board review belongs here; a filed lien, collection demand, attorney correspondence, court or tribunal caption, settlement, appeal or contested-proceeding structure belongs to legal.personal-legal-matters. The allegation, address and amount are shared evidence and settle neither side.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The roster-required default for a readable, durable association notice or form whose deeper relationship does not land. 00 defines Independent Records for 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.' Fixtures: Special Assessment Notice - Roof Replacement.pdf, Bylaws - Oak Ridge HOA.pdf and Oak Ridge HOA Annual Meeting.ics.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Owner statements, ballots, violation notices, architectural decisions and resale certificates expose addresses, balances, signatures, votes or allegations even when no accepted association group exists. 00's residual covers 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' and says it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated dues payment confirmation with no accepted association relationship is still the broad transaction 00 names among 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.' Fixture: HOA Payment Receipt - 2026-04-01.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00 defines this residual for 'screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.' A portal balance capture with no accepted association account belongs there rather than in a folder inferred from its pixels. Fixture: Owner Portal - Account Balance.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00 defines this residual for 'images with no event, project, reference collection, or photo-family association.' A camera photo of an unreadable community bulletin remains a capture when no association record or meeting group lands. Fixture: IMG_9034.HEIC.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00 defines it for 'files whose meaning is partly understood but whose final location requires a future decision.' A mixed archive manifest or cropped notice can be recognizably administrative without establishing the association, record role or member relationship. Fixtures: HOA_Documents.zip and association_notice_scan.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 defines this residual for 'password-protected archives, unreadable documents, damaged files, and unknown formats.' An encrypted portal download remains represented and manually attachable without inferring association purpose from its filename. Fixture: Resident_Portal_Download.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00 defines Reading Inbox for 'papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.' A general consumer guide about association rules is reading material, not proof of the holder's association relationship. Fixture: Understanding Condo Association Rules.pdf.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This template inherits Finance's safety posture. 00 requires: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' Association files can expose the holder's exact unit or property address, owner balance and payment history, member and resident contact data, signatures, ballots and proxies, architectural plans, alleged violations, hearing material, access or gate information, and resale or lien risk. The strongest subsets also resemble account statements and legal forms. 00 says, 'Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.' Only potentially_sensitive is authored here; D2's classification authority and P7's handling-class vocabulary are not duplicated or assigned.",
+  "open_question": "Two Joseph decisions remain. First, the roster says institution holds the association, while the canonical role is the financial or record-issuing institution and many records are produced by a management agent, portal, lawyer, accountant, consultant or insurer. This row follows the roster only when the association role is explicit and leaves the producer as an observation, but R1c must decide whether that is a permitted 'record belongs to' reading or whether a distinct association key is required. If property becomes canonical, R1c must also choose association then property versus property then association for multi-property holders; until then the order remains institution then record_type. Second, the roster intentionally includes covenants, minutes and violations inside a Finance template even though those records are not intrinsically financial. Should the template own the whole association relationship with Legal co-activation for operative or contested files, as this row models, or should its boundary shrink to assessments and administration while Legal becomes primary for governance and enforcement? The placeholder remains useful either way, and no field or handling class is minted to prejudge either answer."
+}

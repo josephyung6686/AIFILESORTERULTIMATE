@@ -1,0 +1,593 @@
+{
+  "id": "law_practice.discovery",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Discovery and disclosure: demand instruments, review logs and production sets",
+  "one_line": "The two machine-legible apparatuses by which one side's documents are demanded, searched, withheld and handed over: (1) the NUMBERED DEMAND INSTRUMENT and its answering counterpart, whose grammar is that the answer REPRODUCES each numbered demand verbatim and appends a labelled response or objection beneath it; and (2) the PRODUCED-CORPUS APPARATUS - preservation notice, custodian collection log, review-coding log, withholding schedule, redaction log, load file, image cross-reference, and a production volume whose members are a contiguous control-number range. It is NOT the litigation STAGE called discovery, not the word 'disclosure', not a Bates stamp, not a document-type name, and not any document merely because it was produced; the deposition, the exhibit, the motion to compel and the order compelling are all ceded to named siblings.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED WHOLE FROM THE SCHEMA AND NOT RESTATED PER SIGNAL: these are schema-activation signals, not licences to write facts - `law_practice` declares no field rows, so nothing below authorises a client, matter, party, custodian, responsiveness, privilege or date fact. Every signal is a STRUCTURE plus a LABELLED SLOT, and the schema's default additionally requires an exact matter, file or engagement reference. THIS TEMPLATE NARROWS THAT PRECONDITION IN ONE PLACE AND IT IS THE ROW'S FIRST REAL DIFFERENCE: signals D5, D6 and D9 below may be anchored instead by an exact PRODUCTION VOLUME DESIGNATION or a bounded CONTROL-NUMBER RANGE, because a load file, a native member and a production archive routinely carry no matter reference anywhere in their bytes - the volume designation is the only anchor they have. The schema default cannot see those artefacts at all for exactly that reason.",
+      "D1. THE REQUEST-AND-RESPONSE PAIR - the row's constitutive signal and the one nothing else in the family or the roster emits. A NUMBERED DEMAND INSTRUMENT is a document whose own grammar is a DEFINITIONS AND INSTRUCTIONS block followed by consecutively numbered demands, each demand being for the OTHER side's documents, things or written answers, with a labelled PROPOUNDING or REQUESTING PARTY slot and a labelled RESPONDING PARTY slot naming two different parties. Its counterpart, the ANSWERING INSTRUMENT, is recognised by a grammar that occurs almost nowhere else in office documents: it REPRODUCES EACH NUMBERED DEMAND VERBATIM and appends beneath it a labelled RESPONSE, OBJECTION, or both, item by item, usually closing with a verification or signature-of-the-responding-party block. The reproduce-then-answer alternation is the discriminator. A demand list alone is NOT this signal - see never_alone, where that shape is struck by name because it is also a due-diligence request list and an audit request list.",
+      "D2. THE DISCLOSURE LIST AND CERTIFICATE structure - the England-and-Wales-shaped sibling of D1 and a genuinely different structure, kept so the row is not a single-jurisdiction node. An enumerated schedule of documents PARTITIONED BY CONTROL STATUS - documents in the party's control and offered for inspection, documents once in control and no longer held, documents in control for which inspection is objected to - accompanied by a signed certificate describing the SEARCH THAT WAS CARRIED OUT (locations, date ranges, categories not searched, proportionality statement). The search-and-control declaration is the slot; no caption is required and a caption alone would not supply it.",
+      "D3. THE REVIEW-CODING structure: a table or export with ONE ROW PER DOCUMENT carrying a document or control identifier, a reviewer identifier, a coding decision drawn from a small closed decision set (responsive / not responsive / further review / technical issue), and usually an issue or category tag and a batch identifier. The one-row-per-document-plus-closed-decision-set shape is the signal. The schema's default template lists a disclosure-review structure among its twelve signals; THIS ROW IS WHERE THAT SIGNAL BELONGS AND IT IS SHARPENED HERE - the default states the shape, this template adds the closed decision set, the batch anchor, and the rule that a reviewer name is never-alone.",
+      "D4. THE WITHHOLDING SCHEDULE structure - a privilege log or its statutory-exemption equivalent: one row per WITHHELD document carrying author, recipient, copyee, date, document description, and an ASSERTED BASIS column. The asserted-basis column is the labelled slot, and the row records the assertion LITERALLY and decides nothing: the schema already strikes a privilege legend as evidence of legal status, and a withholding schedule is that legend in tabular form. Note that this structure is shared verbatim with an information-rights exemption schedule; the discriminator is stated reciprocally against `government.public-records-foi`, not asserted here.",
+      "D5. THE LOAD FILE AND IMAGE CROSS-REFERENCE structure - the single most discriminating artefact this row holds, because it is a MACHINE ARTEFACT that no other roster row emits. A delimited file whose HEADER ROW names begin and end control numbers, attachment begin and end ranges, a custodian column, a native-file path column and an extracted-text path column; or an image cross-reference file whose rows pair a control number with a page-image path, a volume label and a DOCUMENT-BREAK FLAG. The header vocabulary and the document-break column ARE the structure. Delimiters are frequently non-printing, so the same bytes may present as text_document or as opaque_binary depending on the reader; the row accepts both and treats a failure to parse as an Unsupported or Encrypted outcome rather than as absence of evidence.",
+      "D6. THE PRODUCTION VOLUME structure: an archive whose manifest, read WITHOUT UNPACKING, shows sibling member directories for page images, native files, extracted text and data, AND member names that form a CONTIGUOUS OR NEAR-CONTIGUOUS RUN OF FIXED-WIDTH CONTROL NUMBERS, usually beside a cover instrument naming the volume, its control range, its production format and any designation applied to it. 00 licenses exactly this reading: \"Archives should be inspected without being unpacked to disk. The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names.\" The contiguous-run-of-identifiers marker is this row's analogue of the source-code manifest.",
+      "D7. THE PRESERVATION-AND-COLLECTION structure: a notice pairing a NAMED CUSTODIAN SET with a preservation instruction, a scope description, a date range and an acknowledgement slot; or a collection log pairing each custodian with a SOURCE (mail account, laptop, share, phone, archive), a date range, a collected-item count and a hash or chain-of-custody line. Two labelled columns - custodian and source - are what make it a structure rather than a staff email.",
+      "D8. THE ITEM-BY-ITEM DEFICIENCY structure: correspondence whose body ENUMERATES ANOTHER DOCUMENT'S NUMBERED ITEMS BY NUMBER and states, per item, a deficiency, a compromise, a withdrawal or an agreed scope. This signal is conditional and says so: it fires only where the numbered instrument it references is itself evidenced in the corpus, because the same letter shape is ordinary matter correspondence otherwise.",
+      "D9. THE PRODUCTION-TRANSFER EMAIL: labelled sender and recipient slots crossing the requesting/responding or producing/receiving boundary, a subject or body carrying an EXACT volume designation or control range, and a CONCRETE TRANSFER REFERENCE - a named archive member, a media serial, a transfer receipt. Position in a thread is not the signal and neither is the word production in a subject line."
+    ],
+    "needs_llm": [
+      "WHICH SIDE PROPOUNDED, and it is unrecoverable from typography. The request instrument and the answering instrument are set in the same style, on the same caption, by the same word processor; the served copy of the OTHER side's requests sits in the holder's file identically to the holder's own. Only the propounding/responding party designations resolve it, and where they do not the correct outcome is a candidate for local review, not a guess.",
+      "Separating a discovery demand from its four structural twins: a due-diligence request list, an audit prepared-by-client list, a regulator's information request, and an information-rights (FOI or subject-access) request. All four are numbered demands for another party's documents with a per-item status column. This is the row's central interpretive burden and the reason its existential never_alone strike is written the way it is.",
+      "Deciding whether a produced corpus is THIS side's outgoing production, the OTHER side's incoming production, or the client's collected-but-not-yet-produced material. The same archive, the same load file and the same control numbers occur in all three states, and the three have different privacy consequences.",
+      "Reading a review or load file emitted by an unfamiliar platform whose column names are abbreviations. The row defines no platform catalogue and no column gazetteer; local interpretation of the header row or abstention are the only routes.",
+      "Deciding whether a custodian column names a person as a FACT or records a processing attribution. It records a processing attribution. The row states this because the temptation to promote a custodian column into a person fact - and then into a folder level - is the most likely way this material would leak.",
+      "Recognising unlabelled practitioner prose about the exercise: a running note of what was pulled from which mailbox, a handover note on where the second-pass review stopped, a scribbled search-term negotiation. 00 names unlabelled forms and unusual professional artifacts among the reasons rules alone are insufficient.",
+      "Deciding whether a redaction is APPLIED to the bytes in hand or merely PROPOSED in an accompanying schedule. The two produce identical filenames and the difference is a disclosure difference, not a filing one.",
+      "Distinguishing an operative discovery instrument from a study or exemplar copy - a procedure-course handout, a form-book precedent, a bar-course sample bundle. Topic will not separate them; \"purpose answers what the file was for\" is the only test that works, and this row's exemplars are the same words as its operative files.",
+      "Abstaining whenever neither the demand pair nor a volume-or-range anchor can be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "THE WORDS DISCOVERY, DISCLOSURE, PRODUCTION, E-DISCOVERY, INSPECTION, PRIVILEGE or RESPONSIVE ALONE, in a filename, a heading or a folder. The schema already strikes legal vocabulary as a class; this row restates it because its own name is one of those words and because a procedure-course handout titled with all of them trips nothing else. Inherited from the schema and sharpened by the specific false file.",
+      "A BATES-SHAPED OR CONTROL-NUMBER TOKEN ALONE, INCLUDING A CONTIGUOUS RUN OF THEM ACROSS SEVERAL FILES. This is the row's own hardest case and it is conceded in full: a control-number range is simultaneously the row's BEST GROUPING ANCHOR and its WORST ACTIVATION EVIDENCE, because a single produced page carries the stamp and nothing else, and because a downloaded court exhibit carries an opponent's stamp forever. The stamp supplies linkage only after a demand pair, a volume instrument or a load file has established the exercise. 00's narrow-date rule applies to the digits too - a number that looks like a year is not a date.",
+      "A NUMBERED LIST OF DOCUMENT DEMANDS ALONE - THE ROW'S EXISTENTIAL STRIKE, and it is the reason the constitutive signal D1 requires the REPRODUCE-THEN-ANSWER counterpart or an explicit two-party propounding/responding designation rather than the demand list by itself. A numbered demand for another party's documents with a per-item status column is equally a due-diligence request list, an audit prepared-by-client list, a procurement information request and an information-rights request. Without the party-role pair the shape proves a transaction, an audit or a citizen request just as well as a discovery exercise.",
+      "A WITHHOLDING OR EXEMPTION SCHEDULE ALONE. One row per withheld document with author, recipient, date, description and an asserted basis is the identical table whether the basis asserted is legal professional privilege or a statutory access exemption. The basis vocabulary is a value, not a structure, and this row does not read it as one.",
+      "A PRIVILEGED, CONFIDENTIAL, ATTORNEYS-EYES-ONLY, SUBJECT-TO-PROTECTIVE-ORDER, CLAWBACK or REDACTED LEGEND ALONE. The observation is preserved literally; nothing is decided about legal status, scope, waiver, access or disclosure rights, and specifically such a legend is not evidence that this row is the right home rather than the neighbour's.",
+      "A COURT CAPTION, FILED STAMP, CERTIFICATE OF SERVICE or PROOF-OF-SERVICE PAGE ALONE. A caption is `legal`'s signal and a filing mark is `law_practice.court-filing-record`'s; both are satisfied identically by a public download. Discovery instruments are frequently served-not-filed, so a caption is neither necessary nor sufficient here.",
+      "AN ARCHIVE WHOSE MEMBERS ARE MANY OFFICIAL-LOOKING PDFS THAT ARRIVED TOGETHER. 00: \"A session should never be treated as proof of topic\". A download session, a mailbox export and a shared-drive dump all produce that manifest; the production-volume signal requires the sibling image/native/text/data structure or the contiguous identifier run, not bulk alone.",
+      "A .DAT, .OPT, .LFP, .PST OR .TIFF EXTENSION ALONE, and more generally any source type or extension this row lists. file_kind_plausible is constitutionally never-alone; a .dat file is a load file only if its header row says so.",
+      "A CUSTODIAN, REVIEWER, PARTY, OPPOSING-FIRM or VENDOR NAME ALONE, and a name beside a document-type word. Read across from 00's rule for the neighbouring case - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" - and note that a discovery vendor's name appears on its own marketing, its invoices, its software installers and its output alike.",
+      "A FOLDER NAMED Discovery, Disclosure, Production, Prod Vol 3, Review, Incoming, Outgoing or Bates. Paths stay local, an existing folder supports review only, and a folder name is an unlabelled position.",
+      "MATCHING CONTROL-NUMBER RANGES, SEARCH TERMS, CUSTODIAN NAMES or DOCUMENT DESCRIPTIONS ACROSS TWO MATTERS. Cross-matter bridging is suppressed here even harder than the schema requires, because a repeated custodian across two matters is a fact about a real person's employment that the product has no licence to assemble.",
+      "PUBLIC AVAILABILITY of a document that was produced and later filed or exhibited, as proof that the local copy, its volume, its load file or its neighbouring review log is low-sensitivity or eligible for a remote prompt."
+    ]
+  },
+  "proposed_context_terms": [
+    "requests for production",
+    "request for documents",
+    "interrogatories",
+    "requests for admission",
+    "responses and objections",
+    "definitions and instructions",
+    "propounding party",
+    "responding party",
+    "verification",
+    "certificate of service",
+    "list of documents",
+    "documents no longer in my control",
+    "disclosure certificate",
+    "inspection",
+    "search terms",
+    "hit report",
+    "responsive",
+    "not responsive",
+    "further review",
+    "coding",
+    "first pass",
+    "privilege log",
+    "withheld",
+    "redaction log",
+    "custodian",
+    "litigation hold",
+    "preservation notice",
+    "chain of custody",
+    "load file",
+    "control number",
+    "begdoc",
+    "enddoc",
+    "begattach",
+    "nativelink",
+    "textpath",
+    "document break",
+    "production volume",
+    "cover letter enclosing production",
+    "clawback",
+    "inadvertent production",
+    "meet and confer",
+    "deficiency",
+    "esi protocol"
+  ],
+  "work_types": [
+    "request for production of documents or things",
+    "interrogatory or written-question set",
+    "request for admission",
+    "list of documents and disclosure certificate",
+    "third-party document subpoena or non-party request",
+    "response and objections to a numbered demand set",
+    "supplemental or amended response",
+    "preservation or litigation-hold notice and acknowledgement register",
+    "custodian interview note and collection log",
+    "processing exception and error report",
+    "search-term negotiation record and hit report",
+    "first-pass responsiveness review log",
+    "second-level, quality-control or analytics-training review log",
+    "privilege or exemption withholding schedule",
+    "redaction log and redaction instruction sheet",
+    "production cover letter and volume designation record",
+    "production volume archive, load file and image cross-reference",
+    "clawback or inadvertent-production notice",
+    "item-by-item deficiency or meet-and-confer letter",
+    "discovery status or completeness report",
+    "electronically-stored-information protocol or disclosure-scope agreement"
+  ],
+  "grouping_reasons": [
+    "ONE DEMAND SET, joined by an exact set designation - the propounding party plus the instrument plus the set ordinal, as it is written on the face of both instruments. Members: the served demands, the responses and objections, the verification, any deficiency correspondence, the compromise, the supplemental response. Content-incoherent and purpose-coherent, which is 00's own licence for the group: \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership; it copies no party, matter, responsiveness or objection fact onto any member.",
+    "ONE PRODUCTION VOLUME, joined by a BOUNDED CONTROL-NUMBER RANGE together with the volume designation. Members: the cover instrument, the archive, the load file, the image cross-reference, the exception report, the transfer or receipt confirmation. THIS IS THE ONLY GROUP IN THE law_practice FAMILY WHOSE MEMBERSHIP IS DECIDED BY NUMERIC RANGE CONTAINMENT rather than by a repeated literal reference, and that is stated as a difference from the schema default, not as a licence: range containment is candidate evidence only, the range must be bounded and explicitly declared by a cover or load file, and containment never writes a volume, custodian or matter fact onto the member document.",
+    "ONE REVIEW EXERCISE, joined by an exact review-batch, tranche or pass identifier. Members: the review log, the withholding schedule, the redaction log, the search-term hit report, the quality-control sample. A reviewer name never joins two batches and a batch never joins two matters.",
+    "ONE PRESERVATION EVENT, joined by an exact hold identifier and its named custodian set. The acknowledgement replies join the notice; the custodians do not thereby become a contacts group, and no employment or device fact is created about any of them.",
+    "MEMBERSHIP NEVER OVERWRITES A MEMBER'S OWN EVIDENCE. A produced bank statement is still Finance evidence, a produced clinical record is still Medical evidence, a produced identity copy is still Identity evidence, and a produced executed contract still carries `legal`'s instrument structure. Being inside a production range is a relationship, not a reclassification."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, AND THE FIRST THREE REASONS ARE THE SCHEMA'S, INHERITED WITHOUT RE-ARGUING THEM: (1) by contract a dimension may only branch on a field the same schema declares and `law_practice` declares none; (2) this material co-activates `legal`, one of 00's four safety domains, and no deep template unlocks from safety activation; (3) the natural client and matter levels can themselves disclose that a representation exists. THE FOURTH REASON IS THIS ROW'S OWN AND IT SURVIVES EVEN IF ALL THREE OF THOSE LIFT, WHICH IS WHY IT IS THE PART THAT DIFFERS FROM THE DEFAULT TEMPLATE. The natural dimensions of a discovery corpus are the PRODUCTION VOLUME, the CONTROL-NUMBER RANGE and the CUSTODIAN, and all three are disqualified for reasons peculiar to this row. A volume label is normally built from the opposing party's identifier plus a numeric range, so a visible `Prod Vol 3 (HN0004512-HN0009880)` branch announces both whose documents are held and how many of them - 00 makes the equivalent point for the neighbouring safety case, that \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" A control-number branch would create one folder per document, which is the meaningless-one-child-level failure at industrial scale. And a CUSTODIAN branch is the worst of the three: it would name real third parties - usually the client's own employees, who are not the user, are not the client and have consented to nothing - as permanent directory labels. THE RECOMMENDATION HELD AS PROSE, and this is precisely the sentence that differs from the schema default's: the MATTER, then the EXERCISE as a document-function level (this demand set / this review tranche / this production volume), then the PERIOD last; the CLIENT level stays seeded ineligible exactly as the schema requires, and the CUSTODIAN and CONTROL-NUMBER levels are seeded ineligible additionally and permanently by this row. Where the corpus is a single volume the exercise level collapses and the recommendation is one shallow, user-approved, redacted-label packet. `time_first` is false: production dates, service dates, collection date ranges, document dates and filesystem dates are five different clocks here and a time-first tree would interleave four of them wrongly.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "ocr",
+      "image",
+      "opaque_binary",
+      "audio_video",
+      "presentation",
+      "contacts"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".txt",
+      ".dat",
+      ".opt",
+      ".lfp",
+      ".log",
+      ".eml",
+      ".msg",
+      ".pst",
+      ".mbox",
+      ".zip",
+      ".7z",
+      ".tif",
+      ".tiff",
+      ".jpg",
+      ".png",
+      ".mp4",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Requests for Production of Documents - Set One - Hartley v Nash.docx",
+      "source_type": "text_document",
+      "observations": [
+        "opening block designates a propounding party and a responding party as two different named entities",
+        "a DEFINITIONS AND INSTRUCTIONS section precedes the body",
+        "body is consecutively numbered demands, each a demand for the other party's documents",
+        "closing certificate-of-service page naming service on opposing counsel, no filing mark"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder is the propounding side rather than the served side",
+        "that any demanded document exists, is held, or is responsive",
+        "a matter, client or party fact - the schema declares no fields"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Responses and Objections to Interrogatories - Set Two - SERVED 2026-08-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "each numbered demand from the other instrument is reproduced verbatim, followed by a labelled RESPONSE and where present a labelled OBJECTION",
+        "reproduce-then-answer alternation runs the length of the document",
+        "a verification block for signature by the responding party closes it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an objection is valid, waived, preserved or sustained",
+        "that the response is complete or that a supplemental response is owed",
+        "a legal-status conclusion from any word in the objection text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "List of Documents and Disclosure Certificate - Hartley.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "schedule partitioned into documents in control and offered for inspection, documents no longer in control, and documents in control for which inspection is objected to",
+        "a signed certificate describing the search carried out, the locations and date ranges searched, and categories not searched",
+        "no numbered demand list anywhere in the document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the search was adequate, proportionate or complete",
+        "that an objection to inspection establishes privilege",
+        "a jurisdiction fact - jurisdiction is neither a field nor a dimension here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Review log - first pass - batch 41127-R12.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per document with a control identifier, a reviewer identifier and a coding decision drawn from a closed set (responsive, not responsive, further review, technical issue)",
+        "an issue-tag column and a batch identifier column repeated on every row",
+        "several rows carry a free-text extracted-content excerpt column"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a coding decision is correct, final, or a legal characterisation",
+        "that a reviewer name is a person fact about the holder's team",
+        "that the extracted-content column may be surfaced or sent remotely because it is 'just a spreadsheet cell'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Privilege log - Tranche 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per WITHHELD document with author, recipient, copyee, date, description and an asserted-basis column",
+        "no document text is present, only descriptions of documents not produced",
+        "tranche identifier repeated in the header and in a column"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that any listed document is privileged, protected, waived or discoverable",
+        "that the description column is a summary the product may reuse or index remotely",
+        "that this file is discovery rather than an information-rights exemption schedule on the schedule shape alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "VOL003_load.dat",
+      "source_type": "text_document",
+      "observations": [
+        "header row names begin and end control numbers, attachment begin and end ranges, a custodian column, a native path column and an extracted-text path column",
+        "field and quote delimiters are non-printing characters, so some readers will present this as opaque_binary instead",
+        "row count is large and every row's paths point at sibling directories not present beside this file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the custodian column names a person as a fact rather than a processing attribution",
+        "that the referenced native or text paths should be resolved, opened or followed",
+        "a date fact from a fixed-width numeric control token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "PROD_VOL003_HN0004512-HN0009880.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking shows sibling IMAGES, NATIVES, TEXT and DATA member directories",
+        "member filenames in IMAGES and TEXT form a contiguous run of fixed-width identifiers",
+        "DATA contains one delimited file and one image cross-reference file",
+        "outer name repeats a bounded identifier range"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the archive should be unpacked to disk to improve classification",
+        "that members inherit a matter, party or responsiveness fact from the outer name",
+        "that a produced member loses its own schema evidence by being inside this range"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Cover letter enclosing Production Volume 3 - format and designations.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "names the volume, its declared control range, the production format and any designation applied",
+        "addressed from one party's representatives to the other party's representatives",
+        "encloses rather than demands - no numbered demand list"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a designation stated in the letter is a legal status or a handling class",
+        "that the declared range is complete or accurate",
+        "a folder path from the volume label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Litigation hold notice - Project Hartley - custodian list.msg",
+      "source_type": "email",
+      "observations": [
+        "labelled sender in a legal or in-house role, recipient set is an enumerated custodian list",
+        "body carries a preservation instruction, a scope description, a date range and an acknowledgement request",
+        "an attached acknowledgement register lists custodian names against response status"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the custodian list is a contacts group or an employment fact about anyone on it",
+        "that a hold is in force, adequate, or lifted",
+        "that recipients' names may appear in a folder label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Custodian collection log - devices and mailboxes.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns pair each custodian with a source (mail account, laptop, share, phone), a date range, a collected-item count and a hash line",
+        "a chain-of-custody column records handover names and timestamps",
+        "several rows record a refusal or an unavailable personal device"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a hash value verifies anything about the product's copy",
+        "that device ownership, employment or location facts may be derived about a custodian",
+        "that a personal-device row licenses reading anything on that device"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deficiency letter re Requests for Production Set One - items 4, 9, 17-22.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "body enumerates another document's numbered items by number and states a deficiency or compromise per item",
+        "the referenced instrument's set designation appears verbatim in the first line",
+        "closes with a proposed conferral date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that any alleged deficiency is real",
+        "that this is discovery rather than ordinary matter correspondence if the referenced instrument is not itself evidenced",
+        "that the conferral date is a deadline the product should compute or track"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Produced records - Marsh - HN0007712-HN0007990.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "every page carries a fixed-width stamp in the same corner, forming a contiguous run",
+        "OCR of the underlying pages shows a clinical record structure with a named patient and dated encounters",
+        "no cover instrument, load file or demand set is present beside the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the stamp alone activates this row - it is struck by name in never_alone",
+        "that production membership erases or overrides the clinical evidence",
+        "that a patient name may become a folder label because the file is 'discovery'"
+      ],
+      "also_schema": "medical.personal-health-records",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Due diligence request list - Project Hartley - v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "consecutively numbered demands for another organisation's documents, grouped by category",
+        "a per-item status column reading provided, outstanding, or in data room",
+        "party roles on the header are buyer-side and seller-side, with a data-room index reference; no propounding/responding designation, no tribunal, no certificate of service"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a numbered demand list plus a status column is a discovery instrument - it is this row's existential never_alone strike",
+        "a folder path",
+        "that the data-room index is a production load file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Subject access request response - J Marsh - redacted bundle and exemption schedule.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest shows a request letter, a redacted document bundle and a schedule of withheld material",
+        "the withholding schedule has the identical column shape as a privilege log - author, recipient, date, description, asserted basis - but the basis column cites statutory access exemptions",
+        "the requester is a single named individual acting for themselves and there is no second party and no matter reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the exemption schedule is a privilege log",
+        "that redaction plus a withholding schedule proves a litigation exercise",
+        "that the individual requester is a client"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Motion to Compel Production - FILED 2026-08-20.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tribunal caption with a matter-identifier slot and an electronic filing mark",
+        "argument structure with points and authorities, relief requested, signature block of counsel",
+        "recites the numbered requests at issue as background"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that reciting request numbers moves a filed motion into this row",
+        "that a caption or filing mark is this row's signal - both are struck in never_alone",
+        "any outcome, relief, or compliance status"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bates HN0004512.pdf",
+      "source_type": "image",
+      "observations": [
+        "single page, one fixed-width stamp in the corner, no other structured slot",
+        "content is a scanned invoice fragment",
+        "no cover instrument, load file, demand set or volume archive anywhere in the corpus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a stamp alone activates this row or joins it to any volume",
+        "that the invoice content creates a matter or party fact",
+        "a range membership from a single identifier"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Disclosure and Discovery - Part 31 lecture handout.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading and running footer of a taught course, week number, reading list",
+        "reproduces a specimen list of documents and a specimen privilege log as illustrations",
+        "no party designation, no matter reference, no control numbers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that specimen instruments reproduced as teaching material are operative instruments",
+        "that the row's own vocabulary in a title activates it",
+        "a practice-area or jurisdiction fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Processing exceptions - VOL003 - encrypted and corrupt members.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per item that failed processing, with a control identifier, a source path and an exception reason",
+        "reasons include password protected, unsupported container, zero-length, and text extraction failed",
+        "volume designation repeated in the header"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the product should attempt to open or crack any listed item",
+        "that an exception reason is a sensitivity or handling decision",
+        "that failed extraction is evidence of concealment"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.due-diligence",
+      "signal": "THE SHARPEST SAME-EVIDENCE MUTEX THIS ROW HAS, and it is stated on the same fixture bytes in both directions: `Due diligence request list - Project Hartley - v4.xlsx`. Both rows own a consecutively numbered demand for ANOTHER party's documents with a per-item fulfilment status column, both attract an index of what was handed over, and both call the handover a production in ordinary speech. TOWARDS THIS ROW: an explicit PROPOUNDING/RESPONDING (or requesting/responding) party designation naming two adverse parties, plus a definitions-and-instructions block, plus either the reproduce-then-answer counterpart or a certificate of service. TOWARDS DUE DILIGENCE: buyer-side and seller-side roles, category grouping by corporate function, a provided/outstanding/in-data-room status vocabulary, and a data-room index rather than a load file. Neither direction may be decided by the words request, production, disclosure or index. Provenance: inference. R1c owes the reciprocal on the due-diligence row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-records-foi",
+      "signal": "THE COLLISION FIXTURE OF RECORD, on shared bytes: `Subject access request response - J Marsh - redacted bundle and exemption schedule.zip`. An information-rights response is a request-and-response pair over documents, with redactions applied and a WITHHOLDING SCHEDULE whose columns are indistinguishable from a privilege log. TOWARDS THIS ROW: two adverse parties in a proceeding or pre-action posture, a set designation, and a basis column asserting professional or litigation grounds. TOWARDS THE AUTHORITY ROW: a single named requester acting for themselves, a statutory reference on the request, an exemption vocabulary in the basis column, statutory response-deadline slots, and a public-authority sender. NOTE THE THIRD POSSIBILITY EXPLICITLY, because it is why neither side may claim the fixture by default: the same bundle in the hands of the individual requester is `legal.personal-legal-matters` material. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "Same evidence, two worlds. An audit prepared-by-client list is a numbered demand for documents with a status column; an internal-investigation review log is one row per document with a reviewer and a closed decision set - structurally identical to signal D3. TOWARDS THIS ROW: the review log carries a control identifier from a declared production or collection, or the demand carries an adverse party designation. TOWARDS COMPLIANCE AND AUDIT: an engagement or audit-period header, a control or finding reference, an auditor/auditee role pair, and no adverse party. `law_practice.investigation` sits between them and takes the case where the review is run by the practitioner side under an internal-investigation mandate with no demand instrument at all. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "Sibling mutex on shared bytes: a produced document later marked as an exhibit, carrying BOTH a production stamp and an exhibit label. TOWARDS THIS ROW: the file is cited by a load file, a cover instrument or a review log, and its identifier falls inside a declared bounded range. TOWARDS EXHIBITS AND BUNDLES: the file carries an exhibit designation and appears in a bundle index or an index-to-evidence structure whose organising unit is the hearing or the witness rather than the volume. Where both are present the material is a candidate for both and the product should not resolve it silently. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.depositions-testimony",
+      "signal": "A DELIBERATE CESSION RECORDED AS A MUTEX, because in one major procedural tradition a deposition IS discovery and a naive reading would let this row swallow that sibling. THIS ROW OWNS ONLY DOCUMENTARY AND WRITTEN-ANSWER DEMANDS. TOWARDS DEPOSITIONS AND TESTIMONY: a reporter's certificate, appearances, question-and-answer pagination, errata, an audio or video recording of a proceeding. TOWARDS THIS ROW: written interrogatories, requests for admission, requests for production, and the exhibits-to-a-transcript only insofar as they carry production identifiers. The word discovery on either file decides nothing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.motions-and-briefs",
+      "signal": "Shared fixture: `Motion to Compel Production - FILED 2026-08-20.pdf`, which recites this row's numbered requests at length. TOWARDS MOTIONS AND BRIEFS: a tribunal caption, an argument-and-authorities structure, a relief-requested section, a filing mark. TOWARDS THIS ROW: the recited demand set and the responses themselves, which are served rather than filed and carry no argument structure. A protective-order application and an order compelling belong with motions and `law_practice.orders-and-judgments` respectively; this row holds neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.matter-correspondence",
+      "signal": "Shared fixture: `Deficiency letter re Requests for Production Set One - items 4, 9, 17-22.pdf`, and this row concedes the default. TOWARDS THIS ROW ONLY WHEN the letter enumerates another instrument's items BY NUMBER and that instrument is itself evidenced in the corpus. TOWARDS MATTER CORRESPONDENCE in every other case, including a letter that merely mentions disclosure, chases documents, or discusses scope in prose. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "Inherited from the schema and restated only where this row makes it sharper. `legal` is a safety schema activating on an executed-instrument or proceeding structure, and its protection runs first. Nearly every DOCUMENT INSIDE a production may carry `legal`'s signals - produced contracts, deeds, sworn statements, filed pleadings - and this row does not displace any of them. What this row holds is the APPARATUS, on which `legal`'s signals do not fire at all: a demand instrument (no bound party pair, no execution block), a review log, a withholding schedule, a load file, a volume manifest. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "The commonest co-activation here and the reason the row can stay narrow. A production volume's members include executed instruments and filed proceeding records that carry `legal`'s own structure; the volume apparatus carries this row's. Disjoint evidence, one corpus, both schemas fieldless, so the join carries protection and co-activation rather than fields. `legal` is a safety domain, so where they co-activate the protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "A produced ledger, statement or invoice run is Finance evidence on Finance's own institution-and-account slots AND a member of a production range on this row's. Being inside a control-number range is a relationship and never a reclassification; Finance keeps its slots and this row keeps its anchor. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "Named because it is the most consequential co-activation and the one the row's privacy argument rests on. Fixture `Produced records - Marsh - HN0007712-HN0007990.pdf` is a clinical record on Medical's evidence and a production member on this row's. Production membership must not strip the clinical protection, and the clinical protection must not hide the fact that the file is part of a bounded disclosed set. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "Identity documents are collected and produced in volume in immigration, family, insurance and fraud matters. Identity keeps its own evidence and its own protection; this row adds only range membership. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first and it takes most of this family when the row does not confidently activate, because the characteristic isolated file here is a document about, or belonging to, a named third party who is not the user. 00 names the residual and this material together - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" - which is exactly the posture a stray produced page, a privilege log fragment, a custodian log or an orphan volume member needs.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For readable, plainly professional artefacts whose exercise or side cannot be resolved: a numbered demand list with no party designation, a single stamped page with no declared range, a deficiency letter whose referenced instrument is absent. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" That is precisely this row's dominant failure mode, since its central ambiguity is which side propounded.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For load files whose delimiters defeat parsing, password-protected volume members, collected mail containers, damaged natives and the items enumerated in a processing-exception report. 00: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\" Nothing here is opened or unpacked to force a classification.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For specimen and study material that uses every one of this row's words: procedure-course handouts, form-book precedents, practice-note guides on disclosure, sample bundles. Purpose rather than topic is the test - \"purpose answers what the file was for\" - and where purpose is absent the reading home is correct.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, and this row's grounds are NOT the schema's grounds - which is one of the three legs on which it differs from the default template. The schema's privacy claim is that a matter file contains documents ABOUT NAMED THIRD PARTIES. This row's claim is quantitatively and structurally different in four ways. FIRST, THE CORPUS IS DELIBERATELY FOREIGN AND BULK: a production or collection is not a handful of documents about third parties, it is the wholesale contents of other people's mailboxes, drives and devices - usually the client's own employees, who are not the user, are not the client, and consented to nothing. 00's corpus sentence describes what lands inside one: a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and a single production volume can contain every one of those categories for a dozen people at once. SECOND, THE APPARATUS CONCENTRATES IT INTO ONE FILE. A review log and a load file carry an extracted-text or content-excerpt column, which means the readable substance of thousands of third-party documents sits in one spreadsheet that looks, to any generic handler, like an ordinary workbook. That is a remote-prompt hazard with no analogue elsewhere in the family, and it is why this row states the text column as a must-not-conclude on its own fixture. THIRD, THE METADATA IS THE DISCLOSURE. A withholding schedule describes documents that were specifically NOT handed over, and a custodian log names people, devices and date ranges; both leak precisely by being summarised. FOURTH, VOLUMETRICS THEMSELVES DISCLOSE - a visible branch label carrying a control range announces how many of another party's documents are held, which is 00's own distinction in the neighbouring case: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" Nothing here is a handling class; P7 owns those. Nothing here decides privilege, work product, protective-order scope, designation validity, waiver, clawback effect or any disclosure right - the schema strikes those legends as evidence and this row preserves them as literal observations only.",
+  "open_question": "Five, and NJ-LPD-1 is the one that can still kill this row. (1) NJ-LPD-1, THE EXISTENCE QUESTION, answered here as a NARROW YES that R1c may reverse. The strong case against the row is that discovery is a LIFECYCLE STAGE of litigation - the phase between pleadings and trial - and a stage is exactly what the node test forbids; a second case is that its `law_practice` parent already lists a disclosure-review structure among its own twelve deterministic signals, making this a duplicate of its schema's default template. The row survives on grounds that have nothing to do with the stage: the reproduce-then-answer instrument grammar (D1), the load file and image cross-reference (D5), and the contiguous-control-number volume manifest (D6) are STRUCTURES the schema default cannot see, and range-containment grouping plus a bulk-foreign-corpus privacy posture are behaviours the default does not have. IF R1c JUDGES THAT THOSE THREE STRUCTURES BELONG DIRECTLY ON THE SCHEMA'S DEFAULT SIGNAL LIST, the correct outcome is REFUSAL of this row, with coverage routing to `law_practice` itself, `law_practice.evidence-exhibits`, `law_practice.matter-correspondence`, `legal`, and Protected Records. This row would rather be refused than kept to save an id. (2) NJ-LPD-2, A CROSS-ROW RECOMMENDATION, NOT AN EDIT: the `law_practice` schema's sixth deterministic signal (the disclosure-review structure) and this row now describe overlapping shapes. R1c should decide whether the schema keeps it as a general activator with this row as the refinement, or delegates it here entirely. This row has not touched the schema file. (3) NJ-LPD-3, THE REQUESTING/RESPONDING ROLE PAIR HAS NO CANONICAL KEYS. `role_split` is empty for that reason, not because the split is absent - it is the row's central distinction. The canonical `our_firm`/`client` pair does not fit: the two roles here are two ADVERSE PARTIES, and the holder may act for either. If D1 lifts, R1c must decide whether an adverse-party role pair is expressible at all, or whether it is inherently ineligible as a destination. This row mints nothing. (4) NJ-LPD-4, RANGE-CONTAINMENT GROUPING NEEDS A P9 RULING. Every other group in this family joins on a repeated literal reference; this one joins on numeric containment within a declared bounded range. P9 must decide how containment is recorded as candidate membership without copying the volume, custodian or matter label onto the member, and how a range that is later extended or superseded is handled. (5) NJ-LPD-5, THE CUSTODIAN COLUMN. It is the single most tempting person-fact in the family and this row forbids promoting it to a fact or a dimension. If any future decision permits custodian-level structure, it must be taken as an explicit privacy decision about naming non-consenting third parties, not as a filing convenience."
+}

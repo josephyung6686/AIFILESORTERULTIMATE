@@ -15,7 +15,7 @@ These three do not invent mechanisms. I4 names processes the design already dist
 
 ## I4 — analysis tiers
 
-**P5 publishes a closed four-value vocabulary. Every cache key, run row, file-record status map, and replay tuple draws from it.**
+**P5 publishes a closed four-value vocabulary. Every cache key, run row, file-record status map, and replay tuple draws from it.** **Ratified 2026-08-19** — the four names below are settled and are not reopened; they are the same class of decision as I1 and I2.
 
 §3.4 requires `analysis tier` on the cache key and never lists the values. §8.2 requires the file record to retain "Extraction status by extractor tier" and never lists the tiers. Inventing a depth scale (tier 1/2/3) would be authorship. The design already distinguishes four *processes* that must not collide in the cache:
 

@@ -1,0 +1,505 @@
+{
+  "id": "research.ethics-compliance",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Ethics, IRB and consent materials",
+  "one_line": "One study's human-subjects paperwork: the protocol submitted to a review board, the approval letter that came back, the consent and assent forms participants sign, recruitment and information sheets, amendments and continuing reviews, deviation and adverse-event reports, data agreements, and the training certificates that licence the people running it.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "why": "The Research schema's default situation is research.project-workspace, recommending 00's own order for the domain: \"a Research template may define project → stage → artifact type\". This node differs on all three axes the node test names. Detection: the signals here fire on nothing in a workspace — a review-board letterhead over labelled approval slots, an informed-consent section structure with a participant signature block, a protocol-id-shaped token repeated across a header zone and an email subject, an approval-lifecycle term (amendment, continuing review, deviation, adverse event, closure), a human-subjects training certificate. Privacy: this is the sharpest difference and the reason the row exists. A study's working figures are ordinary research material; a stack of signed consent pages is a set of named people's signatures, and 00 puts material of that kind under protection before anything else happens to it — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\" — with the residual home 00 names for it: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\". Dimensions: the recommendation drops stage out of the order and stops at two levels, because the ethics file for one study is small and a participant-identifying level must never exist at all — the sibling medical safety row makes the same call, that a branch's own labels would publish in folder names what the protection exists to hide. No child node is proposed for any document kind: consent form, approval letter, amendment and training certificate are VALUES of artifact_type, and the approval lifecycle position is a value of stage."
+  },
+
+  "fields": [],
+  "fields_note": "A template references its schema's fields and never copies them. The Research keys this situation actually uses are project (the study the paperwork governs) and artifact_type (which ethics document this is) as the recommended dimensions; stage (submitted, approved, under amendment, in continuing review, closed) as a legal fact deliberately flattened out of the order; lab as a legal fact that is metadata here because a study's producing lab is constant across the whole branch; and authored_by only as a discriminator between a person-level compliance credential and a study document — 00 forbids it as a folder level outright: \"It should avoid using authorship or creator identity as a destination dimension\". venue is legal on the schema and has no role in this situation. No participant-bearing value is a field on any schema, and none is proposed: participant names, identifiers, dates of birth and contact details are protected CONTENT, not facts.",
+
+  "proposed_fields": [
+    {
+      "key": "protocol_id",
+      "type": "identifier",
+      "example": "the tracking token a review board issues for one study and repeats in the approval letter header, the consent form footer, the amendment cover sheet and the portal status page",
+      "destination_eligible": false,
+      "role_split_with": [],
+      "provenance": "proposal",
+      "why_no_existing_key_works": "The join handle that actually ties this situation together is the review-board-issued study token, and no canonical key holds it. `project` is the research project, and the relationship is many-to-many in both directions: one project can run under several protocols (a pilot and a main study), and one protocol can cover work that is filed as more than one project. `version_family` is the universal draft-family fact computed from content and stem, whereas this token is an observed labelled value that spans several version families — consent form v1 and v4 are different families under one protocol. `artifact_type` names the kind of document, not which study it belongs to. Without a key to hold it, the evidence that ties the approval letter, the signed consent scan, the amendment and the portal capture together has no shared validated fact to share, so the tie can only be expressed as retrieval similarity, which is never sufficient on its own. Recorded rather than minted because 00's rule is that fields are the stable vocabulary: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically\".",
+      "not_authored_here": "This node does not write the key into canonical_fields.json and does not put it in dimension_order — a template may only branch on fields its schema declares, and a folder level per study token would both create the tiny-folder split 00 asks the canvas to warn about (a level that \"creates a large number of tiny folders\") and put an institution-issued identifier into a visible folder name on material whose whole point is protection. If R1c or Joseph adopts it, it belongs on the Research schema as a search and grouping field with destination_eligible false. The name is deliberately jurisdiction-neutral: the issuing body is an IRB in one country, a research ethics committee or board elsewhere, and D4 forbids a jurisdiction-specific field NAME while allowing the values to carry the local flavour. Until it is adopted, the signals below treat a protocol-id-shaped token as evidence, never as a fact."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "a review-board decision structure: an institutional letterhead naming a review board or ethics committee together with labelled slots (protocol number, protocol title, principal investigator, approval date, expiration date) and a signature block — 00's direct-fact path for \"a labeled form field\", and the reason the extractor must read cells: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\"",
+      "an informed-consent document structure: a consent or assent heading over the canonical section sequence (purpose of the study, procedures, risks, benefits, confidentiality, voluntary participation and withdrawal) closing on a participant signature and date block — the structure is the signal, never the word consent on its own",
+      "a protocol-id-shaped token occurring in a high-weight zone (filename, page-one heading, running header or footer, email subject) AND again beside review-board or consent context in the same file — pattern plus context, the shape 00 states for a course fact needing \"a course-code pattern together with academic context\"",
+      "an approval-lifecycle term (amendment request, modification, continuing review, protocol deviation, adverse event report, study closure) co-occurring with a protocol-id-shaped token or review-board evidence in the same document or in an archive manifest",
+      "an archive manifest whose members combine a protocol document, a consent form, a recruitment or information sheet, investigator CVs and a data-management plan — read without unpacking, because \"the normal scan should never extract archive contents to the filesystem\"",
+      "a labelled slot in a structured source naming the protocol title, the principal investigator, the sponsor or the approval date — a spreadsheet header cell, a DOCX table cell, a form field — which is again 00's labelled-slot direct path, and which for spreadsheets reads what 00 requires that extractor to yield: \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\"",
+      "a human-subjects training completion record: a training provider's certificate structure carrying a learner name, a course name and a completion date. It is compliance material on its own evidence, and it is attached to a STUDY only when a protocol-id-shaped token also appears — otherwise it is a person-level credential and the career.credentials-licenses collision takes it",
+      "a participant-data structure: a header row over participant-shaped columns (participant or subject identifier, enrolment date, consent date, withdrawal date) beside a labelled protocol or study cell. This signal exists to trigger PROTECTION first, not extraction: 00 requires that \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\""
+    ],
+    "needs_llm": [
+      "whether a document naming a person and a medical procedure is a research participant record or the holder's own clinical record, when no protocol token and no review-board evidence fires — the medical.personal-health-records collision, and the reading 00 assigns the model rather than a pattern",
+      "whether a consent document is a blank template, a study-specific approved version, or a completed signed copy, when a scan yields only partial handwriting through OCR",
+      "whether a capture is an ethics-portal status page, some other submission portal, or an unrelated screen — 00 lists the alternatives an opaque image holds: it \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"",
+      "whether a document headed Protocol is a review-board submission or a bench procedure, when it carries both numbered steps and participant language",
+      "whether a heterogeneous archive is one study's ethics packet or an unrelated download bundle",
+      "whether a signed agreement between two institutions is a data use agreement governing this study's participant data or an unrelated contract — the legal.leases-agreements collision"
+    ],
+    "never_alone": [
+      "the word Protocol alone. This is the tempting false file for this node: Protocol_v2_BenchAssay.docx is a numbered bench procedure with a reagents list and belongs to research.lab-notebook-protocols, and the same token names a review-board submission here. The discriminating evidence is a review-board letterhead, a participants section, or a protocol-id-shaped token issued by a board — never the word",
+      "the word Consent alone — a cookie-consent export, a photo or media release, and a consent-to-treat form the holder signed for their own care are all consent documents and none of them is this situation",
+      "an institution, hospital, university or ethics-board organization name alone — 00: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\", and word-boundary matching is required because \"It should use word-boundary matching rather than substring matching.\"",
+      "a bare four-digit number alone as a year or as a protocol id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"; here it is just as likely a participant count, a form revision or a room number",
+      "a training-certificate structure alone as proof that a study is present — it names a person and a course, not a protocol",
+      "a source_type alone: text_document, ocr, image, spreadsheet, archive, email and calendar all appear in this situation and none of them proves it; the extension is a routing signal",
+      "the absence of camera EXIF alone as proof that a portal capture is a screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+      "a filename alone on a password-protected participant-data archive — 00: \"the system should not infer a purpose from their filename alone\""
+    ]
+  },
+
+  "work_types": [
+    "protocol submission",
+    "ethics approval letter",
+    "informed consent form",
+    "assent form",
+    "participant information sheet",
+    "recruitment flyer",
+    "amendment request",
+    "continuing review report",
+    "protocol deviation report",
+    "adverse event report",
+    "study closure report",
+    "debriefing form",
+    "data use agreement",
+    "data management plan",
+    "confidentiality agreement",
+    "human-subjects training certificate",
+    "conflict-of-interest disclosure",
+    "participant register"
+  ],
+  "work_types_note": "These are VALUES of the Research schema's artifact_type field, discovered at runtime. None is a roster node and none licenses a child template. The approval-lifecycle position each implies (submitted, approved, under amendment, in continuing review, closed) is likewise a value of stage.",
+
+  "grouping_reasons": [
+    "one study's ethics file: the protocol submission, the approval letter, the consent and assent versions, amendments, continuing reviews and the closure report, tied by a repeated protocol-id-shaped token rather than by topic",
+    "one consent form's version family across its drafts and the approved version — identity is the bytes, and the universal version-family fact is the anchor",
+    "one ethics submission packet: the archive's manifest members plus the review-board correspondence naming the same protocol token",
+    "a lab's reusable compliance material — a consent template, a standard confidentiality agreement, the team's training certificates — shared across several studies, which is a lab-scoped neighbourhood with no single project",
+    "a sparse participant-facing file (an unlabelled recruitment flyer, a scanned signature page, a stray portal capture) joins a study neighbourhood as a context-supported member and acquires no project fact — 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "the packet shape 00 already names for heterogeneous material held together by what it was for: \"The documents are content-incoherent but purpose-coherent\" — a protocol, a flyer, a CV and a budget page belong together because one submission needed all of them"
+  ],
+
+  "template": {
+    "dimension_order": ["project", "artifact_type"],
+    "why": "A recommendation for one organizational situation, not a filesystem: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" project leads for 00's stated reason — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and because a document named Amendment 3 or Consent Form v4 is unintelligible until the reader knows which study it governs, which is 00's parent-makes-the-child-intelligible rule stated as \"A work type such as Homework 3 is meaningful only after the course is known\". artifact_type is the leaf because it is the axis a person actually navigates in an ethics file: they are looking for the approval letter, or the current consent version, not for a lifecycle position. stage is a legal fact and is deliberately NOT a level: the ethics file for one study is small, most of its documents sit at approved for years, and a stage level would produce exactly what 00 asks the canvas to warn about — a level that \"produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\". lab is legal and metadata here for the repeats-the-parent half of that same warning: one study's producing lab is constant across the whole branch. Two levels is the honest depth, and the branch needs 00's scoped fallback for the compliance material that has no study at all — a team's training certificates and standing confidentiality agreements — which is the mechanism 00 already provides: \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\". The privacy constraint is part of the recommendation and not a footnote: no level here may be a participant, a signature set, or any participant-derived value, because a folder name is visible where the file's contents are not, and 00 requires the opposite posture for this material — \"Protected branches should have configurable redaction in the canvas and review screens.\"",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "archive",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [".pdf", ".docx", ".png", ".jpg", ".tif", ".zip", ".7z", ".xlsx", ".csv", ".eml", ".ics"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "IRB_2026-0417_Approval_Letter_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead names an institutional review board",
+        "labelled slots read Protocol Number, Protocol Title, Principal Investigator, Approval Date, Expiration Date",
+        "the protocol title repeats a project-shaped token that also appears in the filename",
+        "a signature block and a stamp close the page"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "a destination dimension from the principal investigator name — 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "a year or term fact from the digits inside the protocol number",
+        "venue from the board's institution — a review board is not a publication venue"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Consent_Form_v3_clean.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Informed Consent to Participate in Research",
+        "numbered sections: purpose, procedures, risks, benefits, confidentiality, voluntary withdrawal",
+        "signature and date lines are present and blank",
+        "a protocol-id-shaped token sits in the footer of every page",
+        "the filename carries a version token"
+      ],
+      "facts_legal": ["artifact_type", "project", "version_family", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any participant fact — this copy is blank, and blank is the discriminating observation",
+        "stage from the v3 token, which is version-family evidence rather than a workflow position",
+        "that a signed-shaped document is a personal legal matter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Signed_consents_batch_Mar2026.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; a scan of stacked signature pages, which is 00's direct OCR route — \"A file with no text should route directly to OCR\"",
+        "OCR recovers a repeated consent heading, handwritten names, signatures and dates at varying confidence",
+        "a protocol-id-shaped token recurs in the page footer",
+        "no project token anywhere in the recovered text"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any participant name, initials or signature as a field value — they are protected content, and no schema has a field for them",
+        "a people fact; people is a photos-schema key and is not destination-eligible in any case",
+        "project from the protocol token alone",
+        "that this OCR text may enter a cloud prompt by default — 00: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "participants_master_list.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names screening, enrolment, withdrawals",
+        "a labelled cell reading Protocol sits above a protocol-id-shaped token",
+        "a header row over columns participant_id, initials, date_of_birth, contact, consent_date",
+        "a four-digit number repeats in a site column"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any cell in the participant columns as a value of any field",
+        "medical fields — the medical schema is a field-less safety placeholder that activates for protection only",
+        "a tax_year or record_type reading; spreadsheet is a source_type, not a finance signal",
+        "a year from the four-digit site number"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CITI_Human_Subjects_Certificate_JYung.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a training provider's branded completion record",
+        "labelled slots naming a learner, a course title containing human subjects research, a completion date and a record id",
+        "an institution name appears once, as the learner's affiliation",
+        "no protocol token and no study title anywhere"
+      ],
+      "facts_legal": ["artifact_type", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "project — a training certificate belongs to a person, not to a study, and nothing here names one",
+        "lab from the affiliation line alone, which the never-alone rule strikes",
+        "that this node takes the file: with no protocol evidence the better-supported side is career.credentials-licenses"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Protocol_v2_BenchAssay.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Protocol: Western blot",
+        "numbered steps beside a reagents and materials list",
+        "no review-board letterhead, no participants section, no protocol-id-shaped token",
+        "a project-shaped token appears in the document title block"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "this situation from the word Protocol — the discriminating evidence is a review board, a participants section or a board-issued token, and none is present, so research.lab-notebook-protocols takes the item",
+        "stage from the v2 token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ethics_submission_packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a protocol DOCX, a consent form, a recruitment flyer, two investigator CVs, a data-management plan and a budget sheet",
+        "one member name carries a protocol-id-shaped token",
+        "the outer name carries no study identifier",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence",
+        "that the outer archive name means anything on its own",
+        "a career reading from the CV members — a CV inside a submission packet is supporting material for this purpose, which is 00's purpose-coherent packet, not a job application"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Amendment_3_IRB_2026-0417.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Amendment Request",
+        "a table lists changed protocol sections in one column and the reason in another",
+        "a protocol-id-shaped token in the running header repeats the approval letter's token",
+        "a submission date and a requester name in labelled slots"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "a version_family relationship to the protocol document from the word Amendment — this is a separate document about that one, not a draft of it",
+        "project from the protocol token alone when no study title resolves it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DUA_signed_UChicago_PVA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an agreement heading over two named institutional parties",
+        "an effective date, numbered clauses on permitted use and destruction of data, two signature blocks",
+        "one clause names the study and repeats a protocol-id-shaped token",
+        "a university name appears in the party block"
+      ],
+      "facts_legal": ["artifact_type", "project", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from the counterparty institution — the parties are a provider and a recipient, and only the holder's side is a producing lab",
+        "a personal legal matter reading; the discriminating evidence is that the agreement's subject is this study's participant data",
+        "target_university from the university name — that is the college-applications role and the never-alone rule strikes a bare institution hit"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_7731.png",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF; PNG at an exact display resolution",
+        "an OCR region reads a submission-portal banner naming a review board",
+        "another OCR region reads a protocol-id-shaped token beside a status line reading Approved",
+        "an OCR region reads a submitting investigator's name"
+      ],
+      "facts_legal": ["stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone",
+        "project from the protocol token unless that token resolves to a study already evidenced in this same file",
+        "authored_by as a destination dimension from the investigator name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Recruitment_flyer_v2.png",
+      "source_type": "image",
+      "observations": [
+        "poster-shaped layout with large type; no camera EXIF",
+        "OCR reads participants wanted language, eligibility bullets and a study contact email",
+        "an approval stamp line at the foot carries a protocol-id-shaped token",
+        "the filename carries a version token only"
+      ],
+      "facts_legal": ["artifact_type", "project"],
+      "must_not_conclude": [
+        "a folder path",
+        "a contacts fact from the study email — 00 keeps contact material out of folder proposals: it \"but should normally be privacy-protected rather than used to create folder proposals\" is stated of VCF data, and an OCR'd address is weaker still",
+        "location from a venue or room named in the eligibility text",
+        "stage from the word v2"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "RE Protocol 2026-0417 continuing review due.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries a protocol-id-shaped token beside a lifecycle phrase",
+        "sender is a research-compliance office at an institutional domain",
+        "body states a due date and lists required forms; a reply chain is present",
+        "an attachment name repeats the continuing-review form"
+      ],
+      "facts_legal": ["artifact_type", "stage", "project"],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from the sender's institutional domain alone",
+        "authored_by as a destination dimension from the sender",
+        "that this message may leave the device by default — 00 requires mail be handled \"while treating addresses and message content as potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Adverse_Event_Report_2026-04-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a reporting form structure with labelled slots for the protocol, the event date, the reporting investigator and the outcome",
+        "a narrative section describing a participant's clinical course, with the participant referred to by a study identifier",
+        "a protocol-id-shaped token in the header",
+        "a checkbox grid on severity and relatedness"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "medical fields — medical is a field-less safety placeholder and activates for protection only",
+        "the study identifier or any clinical detail as a field value",
+        "that a clinical narrative makes this the holder's own health record"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IRB continuing review meeting.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY names a review-board meeting",
+        "organizer and attendee addresses are present",
+        "no protocol token and no study title in the event body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that calendar as a source_type makes any schema plausible on its own",
+        "lab or project from the organizer's institutional domain",
+        "stage from the words continuing review in a meeting title"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "study_data_2026-0417.7z",
+      "source_type": "archive",
+      "observations": [
+        "password-protected; the manifest cannot be read",
+        "the filename carries a protocol-id-shaped token",
+        "size and timestamps only"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project or artifact_type from the filename — 00: \"the system should not infer a purpose from their filename alone\"",
+        "that the archive should be opened — 00: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Consent to Treat — Radiology.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a hospital letterhead over a consent heading",
+        "the signer is the holder, named in a labelled patient slot beside a record number",
+        "a procedure name and a clinician signature block",
+        "no protocol token, no review board, no study title"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this situation from the word Consent — the discriminating evidence is that the signer is the holder and the counterparty is a care provider, which puts the file on medical.personal-health-records",
+        "project or artifact_type from the consent structure",
+        "any clinical value as a fact; the correct outcome is protection first"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "research.lab-notebook-protocols",
+      "signal": "One evidence item — a document headed Protocol, with numbered steps and a materials or procedures section — supports both, and both sit on the same schema with the same project token. The discriminating evidence is who reviews it: a review-board letterhead, a board-issued protocol-id token, a participants or consent section, or an approval or expiration date puts the item here; a reagents list, instrument settings, and steps written to be executed at a bench put it on the notebook side. Fixture: Protocol_v2_BenchAssay.docx, which carries the word and none of the board evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "A consent form, a clinical narrative, a procedure name and a person's identifying details support both, and both are protection-first material. The discriminating evidence is the role the named person plays: a study participant under a board-issued protocol, referred to by a study identifier, is this situation; the holder themselves as a patient of a named care provider, with no protocol and no study title, is the medical side. Fixtures: Consent to Treat — Radiology.pdf on the medical side, Adverse_Event_Report_2026-04-02.pdf here. On a genuine tie the protection path runs regardless of which side wins the item — 00: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\"",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "A human-subjects training certificate is simultaneously a professional credential and a study-compliance document: one completion record, one learner name, one issuing body. The discriminating evidence is whether a protocol-id-shaped token or study title appears on or beside it. Absent that, the credential side is the better-supported one, because the certificate is about a person and this template is about a study. Fixture: CITI_Human_Subjects_Certificate_JYung.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "A data use agreement, a confidentiality agreement and a signed consent form are all signed agreements between named parties with clauses, effective dates and signature blocks — the same structural evidence on both sides. The discriminator is the subject of the agreement: an instrument whose subject is this study's participants or participant data belongs here; a lease, a personal contract or an unrelated commercial agreement belongs on the legal side. Fixture: DUA_signed_UChicago_PVA.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.grants-funding",
+      "signal": "A funding proposal carries a human-subjects section, often reproduces the approval letter, and shares the study's project token and sponsor name, so approval-letter and protocol-title evidence supports both. The discriminating evidence is what the document is FOR: a request or report addressed to a funder, with budget structure and a sponsor deadline, is the funding situation; an instrument addressed to or issued by a review board is this one. A proposal that embeds an approval letter is two situations on one project, not one item counting twice.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "Ethics documents physically live inside a study's working folder, and the same project token, lab and stage vocabulary supports both. The discriminating evidence is board-facing or participant-facing structure — review-board letterhead, consent sections, a board-issued token, an approval lifecycle term. Working material carrying none of it stays on the workspace side, and this template must not absorb a study's whole folder because one approval letter sits in it.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. The co-activation this situation actually produces is already carried on the Research schema row — research also_holds_with medical, for exactly this material, recorded there with an IRB protocol as its fixture. Two of this node's file examples record it as their also_schema (participants_master_list.xlsx, Adverse_Event_Report_2026-04-02.pdf); because medical is a field-less safety placeholder, that co-activation changes what is PROTECTED, never what is extracted.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The home for this situation's participant-bearing material when no accepted study group takes it. 00 defines the residual as \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", requires that it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\", and separately allows such files to surface at all outside a group: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" Fixtures: Signed_consents_batch_Mar2026.pdf, participants_master_list.xlsx, Adverse_Event_Report_2026-04-02.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — an approval letter, a training certificate or a signed agreement whose study never resolves is exactly that shape, and none of them carries a participant. Fixtures: CITI_Human_Subjects_Certificate_JYung.pdf, IRB_2026-0417_Approval_Letter_signed.pdf with no recoverable study, DUA_signed_UChicago_PVA.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the sparse pieces this situation produces in quantity: a blank consent template, a portal capture, an unlabelled form page whose protocol token resolves to nothing. Fixtures: Consent_Form_v3_clean.docx, IMG_7731.png, ethics_submission_packet.zip when the manifest names no study.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Participant data is routinely delivered password-protected, and 00 requires such an archive to be represented rather than forced: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\". Fixture: study_data_2026-0417.7z.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "None authored. The real role tension in this situation is between the organization that PRODUCED the study and the organization that REVIEWED it, and the Research schema has one organization key (lab) plus one that means something else entirely (venue). The reviewing body is neither. It is recorded as a finding in this node's research.md rather than as an edge, because role_split lives in the canonical field list and widening that list is R1c's or Joseph's, never a template's. The schema row already carries the lab-versus-school and venue-versus-lab splits and this node does not restate them.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the launch-relevant fact about the node. Signed consent pages carry named people's signatures; participant registers carry identifiers, dates of birth and contact details; adverse-event reports carry a person's clinical course. 00 puts material of that kind into protection immediately — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\" — keeps it out of prompts by default — \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it\" — and keeps the derived text local: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\" The review surface follows the same rule 00 states for sensitive branches: \"Protected branches should have configurable redaction in the canvas and review screens.\" The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Should completed, signed participant-facing documents be a folder level in this branch at all? This node recommends project → artifact_type, which puts a Consent Forms leaf beside Approval Letters, and that leaf is where the signature pages land — a folder whose NAME is harmless but whose existence advertises, in the canvas and in any shared screen, that a named study's identifiable participant material sits at a known path. The alternative is that study-specific ethics documents branch normally while completed participant-bearing copies never get a level of their own and are represented under the protected surface instead, the way the medical safety row recommends no dimensions at all for the same reason. 00 supports both readings — it wants the branch legible, and it wants protected material redacted in the canvas — and the fork decides where someone's real consent forms live. Joseph's call, not this node's."
+}

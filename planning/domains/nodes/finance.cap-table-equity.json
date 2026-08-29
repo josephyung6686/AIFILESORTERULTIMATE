@@ -1,0 +1,620 @@
+{
+  "id": "finance.cap-table-equity",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Cap tables and equity paperwork",
+  "one_line": "Company-side capitalization records and holder-side private-equity paperwork: cap-table exports, equity-plan reports, grant and exercise documents, SAFEs, valuation reports, tax elections, and the evidence that keeps them distinct from brokerage, employment, insurance, bookkeeping, and generic legal records.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "Kept under CONNECTION.md's template node test on two honest differences from the Finance default. First, the deterministic signals are specific structures that the schema-wide union cannot use to distinguish this situation: capitalization-by-stakeholder/share-class tables, equity-plan grant and vesting ledgers, labelled grant or exercise slots, SAFE instrument terms, and valuation-report structure. Second, the recommended order is deliberately shallower than the Finance default: institution, then record_type. A company-wide cap table spans security classes and holders, while a SAFE or valuation report often belongs to no account at all, so forcing account_type would open an empty or misleading level. Privacy remains the Finance safety posture; no stronger class was invented to save the row.",
+  "fields": [],
+  "fields_note": "Template row: it references the Finance schema's institution, account_type, tax_year, and record_type keys and does not copy them. account_holder appears in file examples only as the already-recorded Finance-schema proposal; this row neither asserts it as canonical nor re-proposes it.",
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a CAP-TABLE WORKBOOK structure: worksheet titles or labelled sections separate summary, stakeholder, share-class, security-ledger, option, warrant, SAFE/convertible, or fully-diluted views, and header cells pair holder or security identifiers with labelled quantities or ownership measures. A generic names-and-percentages sheet is not enough; the capitalization vocabulary and the cross-tab structure must describe the company whose securities are recorded.",
+      "an EQUITY-PLAN REPORT structure: labelled grant, participant, plan, vesting, exercise, settlement, cancellation, forfeiture, or pool-transaction columns under an explicit equity-plan heading. Carta's current official report description independently confirms that real exports combine grants, vesting schedules, plan transactions, and participant data; that source establishes the file shape, not a product-design rule.",
+      "a labelled GRANT OR AWARD structure: company or plan heading together with labelled Participant or Grantee, Grant Number, Grant Date, Vesting Commencement Date, Number of Shares or Units, Exercise Price where applicable, instrument type, and Vesting Schedule slots. The SEC-filed stock-option and RSU forms used in the research contain this structure. One isolated label is insufficient; the slot family is the evidence.",
+      "a labelled EXERCISE structure: purchaser or holder, originating grant identifier, exercise date, shares exercised, per-share exercise price, payment method, and an instruction or signature block directed to the issuing company's stock-administration function. A share count plus a price without the originating grant and exercise context is the brokerage collision instead.",
+      "a SAFE structure: the full instrument title or expansion of SAFE, an issuing company and investor in distinct party roles, a purchase amount, a valuation-cap, discount, or MFN term as applicable, conversion or liquidity language, and execution blocks. The ordinary adjective safe, the acronym by itself, or a filename alone never activates this situation.",
+      "a VALUATION-REPORT structure: an explicit valuation-report or 409A heading together with the subject company, an effective or as-of date, common-stock fair market value, equity allocation across share classes or instruments, valuation methodology, and assumptions. The subject company's security-issuer role supplies institution; the appraiser or platform producer does not.",
+      "a SECTION 83(b) ELECTION structure: an explicit election title or Form 15620 identifier with labelled taxpayer, property-transfer, fair-market-value, amount-paid, taxable-year, service-recipient, and signature slots. The jurisdiction-specific form name is a value of record_type, never a new field or dimension; tax_year is legal only from its labelled taxable-year slot.",
+      "an Open Cap Table Format package whose archive manifest and member names follow the standard issuer, stakeholder, stock-class, stock-plan, transaction, valuation, vesting, financing, and document families. OCF is JSON-based and commonly packaged as an .ocf.zip archive; the extension remains never-alone, and archive evidence is read without copying member facts to the outer file.",
+      "an organization-gazetteer hit matched at word boundary in a title, issuer slot, or page-one heading together with one of the equity structures above. The institution value is the company whose securities the record concerns, not the cap-table platform, e-signature provider, law firm, appraiser, employer name in unrelated prose, or investor named as counterparty.",
+      "an explicit labelled tax-year slot on an equity-related tax election or issued tax record. A grant date, vesting date, valuation effective date, cap-table as-of date, statement date, or a year-shaped filename token is not tax_year. Date observations stay observations unless the active schema has a field for their exact role.",
+      "an archive manifest that lists a coherent equity-administration packet, such as a cap-table workbook, plan report, grant notices, exercise records, signed financing instruments, valuation reports, and board approvals. 00 requires that Archives should be inspected without being unpacked to disk. The manifest proposes a packet for review; it does not propagate one member's institution, holder, account type, or record type to the others."
+    ],
+    "needs_llm": [
+      "an unlabeled founder-maintained spreadsheet with names, security labels, quantities, percentages, and several calculation tabs but no capitalization heading: deciding whether it is a cap table, a scenario model, a shareholder contact list, or an ordinary finance model. The model receives only a compact evidence packet and must cite the workbook structure.",
+      "an OCR'd dashboard screenshot: deciding whether the screen is an issuer or employee equity portal, a brokerage portfolio, a crypto exchange, a fundraising calculator, or an article about stock. OCR content, not PNG format or missing EXIF, must resolve the question.",
+      "a mixed legal closing set containing board consents, SAFEs or purchase agreements, side letters, charter amendments, signature pages, and a cap-table snapshot: deciding which members form one financing or issuance packet and which are unrelated corporate records. Group coherence is reviewable; no member gains another member's facts.",
+      "a platform-generated or appraiser-authored report where the producer name is prominent and the underlying security issuer appears only in prose or a table. Language interpretation may resolve the organization roles, but a model must return unknown when it cannot cite the subject-company evidence.",
+      "an unusual, multilingual, or non-U.S. share register, option certificate, warrant, convertible instrument, or valuation report whose field labels are not in the proposed context terms. This is language interpretation, never licence to create a jurisdiction field or jurisdiction-specific schema.",
+      "an email saying that equity is ready, changed, vested, or cancelled but omitting a labelled instrument summary. The model may decide whether it is a durable equity record or only a portal notification; the sender domain and the word equity alone remain possible clues.",
+      "a valuation deck or investor update that mentions enterprise value, common stock, dilution, and share classes: deciding whether it is the company's formal valuation record, a fundraising presentation, or commentary about another company. A model cannot promote a cited number into a Finance fact because no canonical amount or valuation field exists here."
+    ],
+    "never_alone": [
+      "the words equity, stock, shares, options, ownership, capitalization, grant, vesting, or SAFE alone. They appear in offer letters, research papers, news articles, insurance policies, pitch decks, brokerage statements, and source code; the structured document role must be present.",
+      "a short acronym such as RSU, ISO, NSO, FMV, SAFE, or 409A alone. It may be a filename stub, a citation, a plan example, or an unrelated identifier. A labelled grant, instrument, valuation, or tax-election structure is required.",
+      "a company, cap-table platform, law firm, appraiser, custodian, or e-signature-provider name alone. Organization names occupy different roles on the same file; 00 says The system must separate roles that happen to contain the same entity type.",
+      "a share count, price, percentage, valuation, or money figure alone. A brokerage confirmation, employment offer, pitch deck, insurance schedule, and cap table all carry these quantities. The figure establishes neither the domain situation nor a canonical fact.",
+      "a signature block, board heading, governing-law clause, or e-signature envelope alone. These are generic legal-document structures; the equity instrument, issuance, grant, valuation, or capitalization content must independently fire.",
+      "a source_type or extension alone. 00 directs the engine to treat the file extension as a routing signal rather than an assumption about meaning; .xlsx is not a cap table, .pdf is not a grant, .json is not OCF, and .zip is not an equity packet.",
+      "a bare 4-digit token read as tax_year. The 2026 in a plan name, cap-table as-of date, grant date, vesting date, valuation date, filing date, or filename does not make the document a 2026 tax record.",
+      "a cap-table platform or appraiser in author, creator, producer, sender, or footer metadata read as institution. The security issuer or subject company must be evidenced in its own role; producer identity is supporting evidence only and not a destination dimension.",
+      "membership in a download session or data-room folder. 00 says A session should never be treated as proof of topic; it retrieves a possible packet but neither activates Finance nor copies the issuer onto a sparse member.",
+      "the absence of EXIF on an equity-dashboard image read as proof it is a screenshot. 00 says the system must not mistake the absence of EXIF for proof that an image is a screenshot, and conflicting signals should lead to abstention rather than an invented classification.",
+      "an employer name beside a promised option count in an offer letter. That is the tempting career false file: a compensation promise is not an issued grant until a plan/grant instrument with its own labelled slots exists.",
+      "a custodian account, ticker, trade date, settlement date, and buy/sell action. That is the investment-brokerage sibling's record even when the traded asset is the same company's stock.",
+      "a debit/credit, invoice, expense, or general-ledger table merely because the company name matches. That is bookkeeping; a capitalization ledger tracks issuances, holders, classes, grants, conversions, exercises, cancellations, or ownership.",
+      "P9 group membership. A cropped vesting schedule may join an accepted grant packet without receiving the grant's institution or account_type: 00 says The graph does not automatically copy those missing facts onto sparse files."
+    ],
+    "proposed_context_terms": [
+      "capitalization table",
+      "cap table",
+      "fully diluted",
+      "share class",
+      "stakeholder",
+      "equity plan",
+      "grant number",
+      "vesting schedule",
+      "exercise price",
+      "restricted stock unit",
+      "simple agreement for future equity",
+      "valuation cap",
+      "fair market value per share",
+      "exercise notice",
+      "board consent"
+    ],
+    "proposed_context_terms_note": "Proposal provenance. 00 supplies the pattern-plus-context discipline for course codes, not these equity terms. These are candidate context terms for the later pattern owner; no regex, score, detector threshold, or gazetteer content is authored here."
+  },
+  "work_types": [
+    "capitalization table report or snapshot",
+    "Open Cap Table Format export",
+    "equity plan report",
+    "equity-pool transaction ledger",
+    "stakeholder or securities ledger",
+    "stock option grant notice or agreement",
+    "restricted-stock or RSU award notice or agreement",
+    "warrant, convertible note, or other convertible security",
+    "SAFE and pro-rata side letter",
+    "stock purchase or restricted-stock purchase agreement",
+    "stock certificate or issuance record",
+    "exercise notice or exercise confirmation",
+    "vesting schedule or vesting statement",
+    "equity ownership statement",
+    "409A or other common-stock valuation report",
+    "board or committee approval of issuances, grants, or fair market value",
+    "section 83(b) election or related equity tax record",
+    "cancellation, forfeiture, repurchase, transfer, or conversion notice",
+    "equity-administration notification"
+  ],
+  "work_types_note": "All are values of record_type or, when a labelled holder account/plan genuinely exists, account_type. They are not child schemas. Instrument names and jurisdiction-specific form names remain values; this row does not create SAFE, RSU, option, 409A, or Form 15620 fields.",
+  "grouping_reasons": [
+    "one security issuer across its cap-table snapshots, equity-plan reports, valuation reports, issuance records, and board approvals - the issuer role plus equity structures are anchors, never the company name alone",
+    "one grant or award across its notice, agreement, vesting schedule, exercise records, tax election, cancellation or settlement - a direct grant identifier or an accepted instrument packet anchors membership; a sparse member gains no copied issuer or plan fact",
+    "one financing or issuance across signed SAFEs or purchase agreements, side letters, board consents, charter or plan approvals, wire/closing evidence, and the cap-table snapshot updated by the transaction - purpose-coherent and partly legal, with outliers reviewed rather than absorbed",
+    "one cap-table as-of snapshot represented in several export formats, such as an Excel report, OCX workbook, OCF package, and a rendered PDF - content hashes and the universal duplicate_family/version_family facts distinguish copies and revisions",
+    "one holder's private equity packet across grant documents, ownership statements, vesting notices, exercises, and related tax records, while the company-wide cap table remains a separate multi-holder group",
+    "one valuation cycle across the draft report, final report, board approval of fair market value, and the subsequent option grants that cite it; the effective date and FMV stay observations unless a legal schema field exists for their exact role",
+    "one file in more than one accepted group: a signed SAFE or board consent can be an equity-finance artifact and a legal instrument; an employee grant can be an equity artifact and an employment record. 00 says A file may validly belong to more than one accepted group; placement is decided later"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "record_type"
+    ],
+    "why": "institution means the company whose securities or capitalization the record concerns, not the platform, appraiser, law firm, custodian, or e-signature producer. It comes first because a leaf named Cap Table, SAFE, Grant Notice, Exercise Notice, or Valuation Report is unintelligible without the issuer. record_type comes second and separates the recurring document roles. account_type is deliberately omitted from the default even though it remains legal: a company-wide cap table spans many classes and holders, a SAFE is an instrument rather than an account, and a 409A report values the issuer rather than an account. OPTIONAL PATTERN: when the file itself labels a holder account or equity plan, account_type may sit between institution and record_type; never infer it from the instrument acronym. OPTIONAL PATTERN: a tax_year leaf may appear only for a subset carrying its own labelled taxable-year slot, never from a grant, vesting, valuation, or as-of date. Not time-first: 00 says For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders. Uneven depth is expected; 00 says It should recommend flattening when a dimension does not materially improve retrieval. Safety posture: this is a protected, shallow recommendation, and company-side multi-holder records require redacted summaries as much as holder-side compensation documents do. The order is not a path or a mandate: 00 says The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "code_structured",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".xls",
+      ".csv",
+      ".json",
+      ".ocf.zip",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".msg",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Acme_Cap_Table_as_of_2026-06-30.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook title and a labelled issuer cell name Acme Robotics, Inc.",
+        "worksheet tabs separate Summary, By Stakeholder, By Share Class, Options, Warrants, and SAFEs & Convertibles",
+        "the stakeholder sheet carries labelled holder, security class, issued quantity, vested quantity, and fully diluted ownership columns",
+        "the report is explicitly labelled as of 2026-06-30 and contains many stakeholder names"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year from the as-of date or filename; a cap-table snapshot date is not a labelled taxable year",
+        "account_type from the share-class tabs; a company-wide report spans several security classes and does not belong to one holder account",
+        "institution = the cap-table platform named in workbook producer metadata; the underlying security issuer is the organizational role",
+        "that one stakeholder row supplies an account_holder fact to every other row or to a separate grant document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme_OCF_Export.ocf.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists issuer, stakeholders, stock classes, stock plans, transactions, valuations, vesting terms, financings, and documents JSON families",
+        "member names follow an Open Cap Table Format package layout",
+        "archive is inspected without extraction to disk",
+        "the outer filename names Acme but the archive member contents are not opened by the normal archive pass"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the outer filename alone; the OCF structure can establish record_type while issuer identity remains unresolved until its own evidence is safely available",
+        "stakeholder, stock-class, transaction, valuation, or vesting facts copied from member family names onto the archive",
+        "that the .ocf.zip extension alone proves a valid OCF package",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "2026 Equity Plan Report.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "title area names Acme Robotics, Inc. and the 2024 Equity Incentive Plan",
+        "tabs and header rows cover grants, participants, vesting schedules, exercises, settlements, forfeitures, and pool transactions",
+        "participant names and grant identifiers recur across tables",
+        "the workbook carries an export-generated date but no labelled tax-year slot"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "tax_year from 2026 in the filename or from the export date",
+        "one account_holder for the whole workbook; participant names are repeated holder-side observations in a multi-holder company record",
+        "account_type = every grant instrument in the workbook; the labelled plan is the account or plan context and the instrument is a record_type value",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RSU Grant Notice - Jordan Lee - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names Acme Robotics, Inc. and its Equity Incentive Plan",
+        "labelled slots name Participant, Grant Number, Date of Grant, Number of Restricted Stock Units, and Vesting Schedule",
+        "the participant and company execution blocks are completed",
+        "employment-continuation language appears in the vesting conditions"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "tax_year from the grant date, vesting dates, or 2024 in the plan name",
+        "institution = Jordan Lee; the person is the holder side and the company is the security issuer",
+        "that the employment context makes this only a career record; the formal grant slots are independent Finance evidence, while career may also be plausible on its own evidence",
+        "a final folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Post-Money SAFE - Valuation Cap - Northstar Ventures - Countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title expands SAFE as a simple agreement for future equity and names a valuation-cap form",
+        "party blocks distinguish Acme Robotics, Inc. as company and Northstar Ventures as investor",
+        "labelled or defined terms cover purchase amount, post-money valuation cap, conversion, liquidity, and dissolution events",
+        "company and investor signature blocks are completed"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "account_type merely from the SAFE acronym; this instrument is not a holder account and no labelled account or plan exists",
+        "tax_year from the signature date or the year in a footer",
+        "that company and investor are one organization role; institution is the security issuer and account_holder is the holder-side proposal",
+        "that its legal-schema facts erase its Finance facts or force one physical home",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme 409A Valuation Report - Effective 2026-05-31.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a 409A valuation report and Acme Robotics, Inc. as the subject company",
+        "labelled sections cover effective date, enterprise value, equity allocation by share class, valuation methodology, assumptions, and final common-stock fair market value per share",
+        "the valuation provider appears in the author and footer zones",
+        "the report is marked confidential"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution = the valuation provider; the destination role is the company whose common stock is valued, while the provider is author metadata",
+        "account_type from a common-stock label or equity-allocation table; a security class is not a labelled holder account or equity plan",
+        "tax_year from the effective date or 409A number",
+        "a valuation amount, method, or date as a Finance fact; this schema has no such fields, so those remain observations and evidence",
+        "that a fundraising valuation is interchangeable with a common-stock valuation report",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Form 15620 - Section 83(b) Election - Jordan Lee - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "official form heading identifies Form 15620 and a section 83(b) election",
+        "labelled slots include taxpayer name, taxpayer identification number, address, taxable year, property description, transfer date, fair market value, amount paid, service recipient, and signature",
+        "property description names restricted common stock of Acme Robotics, Inc.",
+        "the file contains direct identity and tax data"
+      ],
+      "facts_legal": [
+        "institution",
+        "tax_year",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "a field named form_15620, section_83b, jurisdiction, transfer_date, or fair_market_value; the form and election names are record_type values and the labelled taxable year fills tax_year",
+        "account_type unless the property description or an attached grant supplies a labelled plan or holder-account context",
+        "that the taxpayer identification number is safe for a cloud dossier or a visible group summary",
+        "that group membership in a grant packet copies the grant number or plan onto this form",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exercise Notice - Grant OPT-0174.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading directs the notice to Acme Robotics, Inc. Stock Administration",
+        "labelled slots name Purchaser, originating Grant Number and Grant Date, Exercise Date, Shares Exercised, Per Share Exercise Price, Total Exercise Price, and Payment Method",
+        "the notice incorporates the equity plan and option agreement by reference",
+        "purchaser signature and address fields are completed"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "that the per-share price and share count make this a brokerage trade confirmation; there is no custodian account or trade-date/settlement-date pair",
+        "tax_year from the exercise date",
+        "a canonical grant_id fact; the identifier is an observation and group anchor under the current field list",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Action required - accept your Acme option grant.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender slot names an equity-administration platform domain",
+        "subject states that an Acme option grant requires acceptance",
+        "body labels the issuing company, grant number, option type, number of options, exercise price, plan name, and acceptance link",
+        "attachment list is empty and the platform name is more prominent than the issuer in the headers"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "institution from the sender domain; the labelled issuing-company slot is required",
+        "activation from source_type = email or from the word option in the subject alone",
+        "that the email is the executed grant document; it is a notification unless an attached or linked instrument is separately indexed",
+        "tax_year from the sent date",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-06-14 at 09.18.42.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG dimensions and filename support a screenshot hypothesis; camera EXIF is absent",
+        "OCR reads Acme Robotics, Inc., Equity Awards, RSU, Option, Vested, Unvested, Exercise Price, and two grant identifiers",
+        "the screen shows a holder-level dashboard rather than a company-wide stakeholder ledger",
+        "an account profile name appears in the corner"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from absent EXIF alone; the file pattern, dimensions, and software evidence may support it, while OCR establishes the equity content",
+        "a valuation or current market value from any dashboard number; no canonical field permits it",
+        "that matching grant identifiers copy the PDF grant's institution or plan facts onto the screenshot; it may join the packet as a context-supported member",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Unanimous Board Consent - Equity Grants and FMV Approval.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading identifies the board of Acme Robotics, Inc. and a unanimous written consent",
+        "resolutions approve a common-stock fair market value, individual option grants, and an attached grant schedule",
+        "director signature blocks are completed",
+        "the attachment lists grantees, grant types, quantities, and plan references"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "Finance activation from the board heading, signatures, or company name alone; the equity-grant and FMV resolutions are the independent evidence",
+        "account_type for the whole consent unless the resolution labels one equity plan",
+        "tax_year from the approval date",
+        "that every attached grantee fact is copied to the consent's parent record or to other grants",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "vesting_schedule_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "scanned page has no text layer and the top letterhead is cropped out",
+        "OCR recovers Vesting Schedule, installment dates, quantities, and a partial grant-number-shaped token",
+        "no company, plan, participant, or instrument type is legible",
+        "mutual retrieval links point to one accepted option-grant packet and one unrelated RSU packet"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "institution, account_type, account_holder, or a complete grant identifier from either neighbourhood; the competing packets make the context ambiguous",
+        "tax_year from any installment date",
+        "automatic membership in the nearest grant packet; the file remains uncertain unless the dossier cites a distinguishing link",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Offer Letter - Jordan Lee - Equity Package.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead and a role title appear on page one",
+        "compensation paragraph promises that the board will consider an option grant and states a target number of shares",
+        "start date, salary, at-will employment, and acceptance signature lines are present",
+        "no grant number, equity-plan grant notice, vesting schedule table, exercise price, or issued instrument exists"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY fact of this template. This is the career collision fixture: a future compensation promise is an employment record, not an issued equity instrument or capitalization record",
+        "institution for this template from the employer name; the same organization can be an employer in one role and a security issuer in another",
+        "record_type = option grant from the promised share count",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Brokerage Trade Confirmation - ACME.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "custodian letterhead and a masked brokerage account appear at the top",
+        "labelled slots identify Buy, ticker ACME, quantity, trade date, settlement date, price, commission, and total amount",
+        "the issuer company appears only as the security description",
+        "no equity plan, grant identifier, vesting schedule, or company execution block exists"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY fact of this template. This is the investment-brokerage collision fixture: the custodian account and trade/settlement structure decide it, not the shared issuer, price, or quantity",
+        "institution = Acme for this template; Acme is the traded security issuer inside a custodian record",
+        "record_type = exercise notice",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "D&O Insurance Declarations - Acme Robotics.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "declarations heading names Acme Robotics, Inc. and several directors and officers",
+        "labelled policy number, carrier, policy period, limits, retentions, endorsements, and premium appear in tables",
+        "the document uses the word securities in an exclusion and names officers who also appear in the cap table",
+        "no share class, holder ledger, grant, vesting, issuance, conversion, or valuation structure exists"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY fact of this template. This is the corporate-insurance collision fixture: company and officer names do not convert a labelled policy structure into equity paperwork",
+        "record_type = capitalization or governance record from the securities exclusion",
+        "account_holder from the directors and officers list",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Equity_Data_Room.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "archive is password-protected and the member manifest cannot be read",
+        "outer filename contains Equity and Data Room",
+        "filesystem metadata records the extension, size, timestamps, and content hash",
+        "the archive arrived beside readable cap-table and legal-closing files in one download session"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, account_type, tax_year, record_type, or group membership from the outer name or download session",
+        "that the archive contains cap-table records merely because adjacent files do",
+        "that password protection lowers its sensitivity or permits cloud processing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Option Vesting Reminder.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event SUMMARY reads Option Vesting Reminder",
+        "DTSTART supplies a date and organizer is the file holder",
+        "DESCRIPTION contains no issuer, plan, grant identifier, quantity, exercise price, or portal link",
+        "the event was exported from a personal calendar"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Finance activation or record_type from source_type = calendar and the words option or vesting alone",
+        "institution, account_type, tax_year, or account_holder from the date and organizer",
+        "membership in a specific grant packet without an evidence-bearing link; it may be retrieved for review and still remain unresolved",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.employment-records",
+      "signal": "an offer letter and a formal grant both name an employer or issuer, a person, a share quantity, and compensation context. The discriminating evidence: a promise contingent on future board action, embedded in salary/start-date/employment terms with no grant instrument, is career.employment-records; an issued grant or award has its own plan/grant heading, grant identifier, instrument type, vesting slots, and acceptance or execution structure, which is this situation. A formal employee grant may still support Career on separate employment evidence; this edge only prevents the employer name and share count from doing both jobs. Fixture: Offer Letter - Jordan Lee - Equity Package.pdf versus RSU Grant Notice - Jordan Lee - Signed.pdf. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "an equity grant, exercise notice, holdings statement, and brokerage confirmation all carry an issuer, share quantity, and price. The discriminating evidence: a custodian account plus a trade-date/settlement-date pair and buy/sell action is investment brokerage; a company plan or instrument heading, grant identifier, vesting or exercise relationship, and no custodian is this situation. The issuer, quantity, and price must not count for both. Reciprocates the landed neighbour. Fixture: Brokerage Trade Confirmation - ACME.pdf versus Exercise Notice - Grant OPT-0174.pdf. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "D&O policy material and equity-governance material carry the same company and officer names, signature blocks, and the word securities. The discriminating evidence: a labelled carrier, policy number, policy period, limits, retention, endorsement, and premium structure is corporate insurance; a capitalization ledger, share or grant structure, issuance resolution, or valuation structure is this situation. Officer names alone count for neither. The currently visible untrusted neighbour partial names this row too; R1c must re-check reciprocity after that owner finishes. Fixture: D&O Insurance Declarations - Acme Robotics.pdf. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "a SAFE, stock-purchase agreement, option agreement, or exercise notice has parties, defined terms, governing-law clauses, and execution blocks like any signed agreement. The discriminating evidence: an equity instrument title plus share, conversion, grant, vesting, issuance, or exercise terms supports this situation; property, service, tenancy, or other non-equity subject matter supports legal.leases-agreements. Signature structure alone counts for neither. A signed equity instrument may independently activate the legal schema as well; this collision is evidence-item mutex, not file mutex. Fixture: Post-Money SAFE - Valuation Cap - Northstar Ventures - Countersigned.pdf. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "a founder-maintained cap table and a bookkeeping ledger are both company spreadsheets with names, dates, amounts, percentages, formulas, and several tabs. The discriminating evidence: stakeholder, share-class, security, issuance, conversion, grant, vesting, or fully-diluted headers support this situation; debit/credit, account, invoice, bill, expense, payment, or general-ledger headers support bookkeeping. Source type, company name, and formulas alone count for neither. Fixture: Acme_Cap_Table_as_of_2026-06-30.xlsx. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "a section 83(b) election is equity paperwork and tax-filing support on one file. The discriminating evidence item is the labelled taxable-year slot: it supports the tax-year filing situation, while the property-transfer, issuer, restricted-stock, fair-market-value, amount-paid, and service relationship support this situation. The form identifier alone must not make every file that cites it a filing or an equity record. The file may belong to both accepted groups; no fact is copied. Fixture: Form 15620 - Section 83(b) Election - Jordan Lee - Signed.pdf. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "an equity-dashboard screenshot and any other screenshot share a PNG format, display-shaped dimensions, default screenshot filename, and possibly no EXIF. The discriminating evidence is OCR content: an issuer beside labelled grants, vesting, exercise price, or ownership supports this situation; capture properties without that record structure support only the screenshot situation. Missing EXIF counts for neither. Fixture: Screenshot 2026-06-14 at 09.18.42.png. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by CONNECTION.md's kind rule: also_holds_with joins schema to schema only, and this is a template. Per-file co-activation is still recorded with also_schema: signed equity instruments and board consents may also activate legal; employee grants and grant notifications may also activate career; a tax election may also activate identity; an OCR dashboard may also activate photos. The Finance schema already carries its legal safety join; this row does not duplicate it at the wrong kind.",
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary fallthrough. Company-side cap tables expose private stakeholder identities, holdings, ownership and financing terms; holder-side grants, exercises, valuation reports, tax elections, signatures and addresses expose compensation, identity and tax data. 00's Protected Records residual covers sensitive isolated account and legal records and says it should normally remain local-only and must not cause filenames or content to be exposed in model prompts. A protected record may surface without a normal group; it never needs a fabricated association. Provenance: design.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For a partly understood vesting scan, unlabeled founder spreadsheet, or issuer-less notification where record shape is possible but the organizational role is unresolved. 00 defines Review Later for files whose meaning is partly understood but whose final location requires a future decision. Fixtures: vesting_schedule_scan.pdf and Option Vesting Reminder.ics. Provenance: design.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For protected data rooms, password-protected cap-table exports, unreadable signature packets, or unsupported proprietary equity exports. 00 says Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats. Filename and download-session guesses remain forbidden. Fixture: Equity_Data_Room.zip. Provenance: design.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Only when a likely screenshot has no accepted issuer or grant group and OCR cannot establish an equity record. 00 defines this residual for screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship. A readable equity dashboard returns to normal protected Finance placement instead. Fixture: Screenshot 2026-06-14 at 09.18.42.png under the inactive counterfactual. Provenance: design.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "role_split belongs in canonical_fields.json, never on a template. The relevant split is already visible on the Finance schema proposal: institution is the issuing side and account_holder is the holder side. This row additionally distinguishes security issuer from platform, appraiser, law firm, custodian, employer, and investor roles in recognition and must_not_conclude rather than minting private keys.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 makes Finance a safety domain: Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed. The material here exposes private capitalization, stakeholder lists, ownership percentages, financing terms, grant compensation, vesting, exercise prices, signatures, addresses, and sometimes taxpayer identifiers. 00 requires that Privacy policy must be enforced before content reaches any model or external connector. Protected material should not be included in cloud-model prompts by default; paths, full text, OCR, hashes, group memberships, and raw sensitive values remain local, and general summaries or representative previews must redact stakeholder and holder detail. This row assigns no P7 handling class and no detector threshold.",
+  "open_question": "Two coupled forks, recorded rather than silently settled. First: does this roster row intentionally combine company-side capitalization administration with an individual's holder-side equity packet? They share strong instrument evidence but differ in grouping and in the career seam: a company cap table is multi-holder corporate administration, while a formal employee grant is simultaneously private compensation paperwork. This node keeps one row because the roster explicitly names cap tables, option grants, SAFEs, valuation reports and equity statements together, recommends institution then record_type, and uses optional account_type only for a labelled holder account or plan; splitting into company-cap-table and holder-equity templates is Joseph's call. Second: does canonical institution explicitly mean the underlying security issuer or subject company on a platform-generated cap-table export and an appraiser-authored valuation report? This row follows the canonical alias issuer and uses that role. If institution instead means only the document producer, the recommended first dimension would group records under platforms and appraisers and the schema needs an issuer/subject-company field. No field is proposed until that role decision is made; account_holder is already the Finance schema's separate proposal and must remain destination-ineligible."
+}

@@ -1,0 +1,386 @@
+{
+  "id": "law_practice.engagement-terms",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Engagement letters, retainers and scope",
+  "one_line": "REFUSED. The engagement letter is not a situation on the `law_practice` schema - it IS that schema's activation precondition. The schema's default requires \"at least one artefact whose own labelled slots separate a PRACTITIONER OR FIRM role from a CLIENT role\", and the client care letter, the retainer and the terms of business are the canonical instance of that artefact; a template whose detection signal is its own schema's precondition has no signal of its own. The row is additionally a document-type word (struck never-alone by the schema), one verbatim value already carried in the schema's `work_types` enum, and a lifecycle stage (the opening of a matter). Its strongest fixture - a SIGNED retainer - has a bound party pair and an execution block, which is `legal`'s executed-instrument signal, and `legal` is a safety domain whose protection runs first; its unsigned firm-standard sibling has bracketed placeholders and blank signature lines, which is `law_practice.precedent-bank`'s inverse-recognition signal. Nothing is left in the middle but the schema default. Coverage routes to `legal` (executed terms), the `law_practice` schema default (named-client draft), `law_practice.precedent-bank` (blank firm standard), `law_practice.time-and-billing` (the fee and costs structure), and `legal.personal-legal-matters` (terms the HOLDER received as a client).",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "All three legs of the node test fail against the `law_practice` DEFAULT TEMPLATE, and they fail for independent reasons. (1) DETECTION SIGNALS ARE THE SCHEMA'S OWN PRECONDITION, NOT A VARIATION OF IT. The schema's first deterministic entry requires both legs of activation, the second being \"at least one artefact whose own labelled slots separate a PRACTITIONER OR FIRM role from a CLIENT role\". That artefact is the engagement letter. Every OTHER law_practice template that survives is named in the schema as a SEPARATE structure the precondition does not already describe - an intake-and-conflicts form, a matter-opening record, a time-and-disbursement column set, a limitation-and-diary portfolio table, a disclosure-review or privilege log, a blank-slot precedent, an internal work-product section grammar, a counsel-instruction pairing. Engagement terms is absent from that list because it is the precondition itself. There is no signal this row could carry that would not simply re-fire the schema. (2) DIMENSION ORDER IS IDENTICAL. `fields: []` under PR-6 and D1's deferral, so `dimension_order` is empty here exactly as it is empty on the schema, and the schema's prose recommendation - client only where approved, then matter, then document function, then period - already places this material: 'engagement terms' is a VALUE of the FUNCTION dimension, at the same level as 'pleadings' or 'correspondence'. Making a value into a node is the failure 00 warns of when it validates that a template must not \"create meaningless one-child levels\" - a matter has one engagement letter. (3) PRIVACY RULES ARE IDENTICAL, AND CANNOT DIFFER. `potentially_sensitive` is the strictest posture available at this row, and the schema already holds it on a third-party-exposure argument that this material shares without extending: an engagement letter exposes one client, where the schema's own worst case - a privilege log - exposes N non-consenting third parties in bulk. This row's privacy claim is WEAKER than the default's, and a weaker claim cannot found a node. THE FOURTH AND INDEPENDENT GROUND: the row is a document-type word. The schema strikes exactly this - \"A DOCUMENT-TYPE WORD, AND A DOCUMENT-TYPE WORD BESIDE A FIRM OR CLIENT NAME\" - and the row's whole name is three of them (engagement letter, retainer, scope). Apply the schema's deletion test: delete every entity name and every document-type word from `Client Care Letter - Ellis and Co - scope and fees.pdf` and from `Statement of Work - Meridian - Market entry advisory.pdf`, and the surviving structure is the same in both - two labelled party blocks, a scope section, a fee-basis section, an execution block. That is a professional-services agreement, not a legal-practice situation. THE FIFTH: `work_types` on the schema already carries \"engagement terms, retainer, scope and funding-basis record\" as one enum value, and the schema's `proposed_context_terms` already carries \"client care letter\", \"engagement terms\", \"retainer\" and \"scope of instructions\" as terms that help the SCHEMA activate. The dispatch rule is explicit that work types are values and do not become nodes. Inventing a filing world to save this id would be the 574's original mistake.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "AN ENGAGEMENT-DOCUMENT WORD - engagement letter, client care letter, retainer, terms of business, terms of engagement, letter of engagement, scope of instructions, conditional fee agreement, contingency fee agreement, funding options. Struck as the specific instance of the schema's rule that a document-type word is never a labelled party, and true of the tempting false file `Statement of Work - Meridian - Market entry advisory - executed.pdf`, which carries scope, fees, confidentiality and signatures without any practitioner-client pair.",
+      "A SCOPE-AND-FEE SECTION PAIR. A 'services to be provided' section beside a 'basis of charges' section is the ordinary shape of every professional-services agreement - a consulting statement of work, a vendor master services agreement, an accountant's letter of engagement, an architect's appointment. It discriminates nothing, and it is the structure this refused row would otherwise have claimed as its own.",
+      "A FEE-BASIS WORD - hourly, fixed fee, capped fee, no win no fee, success fee, uplift, contingency, disbursement estimate, retainer deposit. A fee basis is a VALUE, exactly as the schema ruled a practice area to be a value; and where a fee structure IS structural - rate columns, unit columns, disbursement rows - the schema's time-and-disbursement signal owns it and `law_practice.time-and-billing` is the situation.",
+      "A SIGNATURE OR EXECUTION BLOCK ON AN ENGAGEMENT DOCUMENT. It is not weak evidence, it is evidence for a DIFFERENT node: a bound party pair plus an execution block is `legal`'s signal, `legal` is a safety domain whose protection runs first, and this row would be claiming its strongest fixture from a neighbour that already sees it.",
+      "BRACKETED PLACEHOLDERS AND BLANK SIGNATURE LINES ON A FIRM-STANDARD TERMS DOCUMENT. Also not weak, also a different node: that is the schema's inverse-recognition signal and `law_practice.precedent-bank` is the situation. The file has no client, no matter and no third party in it at all.",
+      "A MATTER REFERENCE ON AN ENGAGEMENT DOCUMENT. The reference is allocated by SOME firm; whose it is remains open, which is precisely how `Ellis and Co - Client Care Letter - my divorce.pdf` presents to a practitioner-side classifier while belonging to the holder's own record.",
+      "A LAW-FIRM NAME, LETTERHEAD, PRACTISING-CERTIFICATE FOOTER or REGULATED-PROFESSION FOOTER beside any of the above. Two struck tokens are still struck; a role name cannot carry a node."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty, and its emptiness is part of the refusal rather than a consequence of PR-6 alone. The schema declares no field rows, so no branch is available by contract; but even if D1 lifted, this row would recommend nothing new. The schema's prose recommendation already runs client (only where genuinely multi-client and explicitly approved), then matter, then document function, then period, and 'engagement terms' is a value that lives in the FUNCTION slot beside pleadings, correspondence and billing. Promoting it to a node would add a level that 00's template validation rejects, since the engine \"validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group\" - and a matter normally holds one engagement letter, which is the one-child case exactly. Not time-first: 00 states that \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\", and an engagement letter's date is the least interesting thing about it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "spreadsheet",
+      "archive",
+      "email"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".zip",
+      ".eml",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Client Care Letter and Terms of Business - 41127-0006 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "firm letterhead block and a separately labelled client addressee block",
+        "labelled sections for scope of work, basis of charges, complaints procedure and cancellation rights",
+        "an execution block with two signature slots and two dated countersignatures",
+        "a matter reference repeated in the header of every page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is needed. A bound party pair plus an execution block is `legal`'s executed-instrument signal and `legal` fires first as a safety domain; the same bytes are also the `law_practice` schema's precondition leg (ii) and activate the schema directly. Two existing nodes already see this file and a third adds nothing",
+        "that the engagement is valid, in force, current, terminated or enforceable",
+        "a fee fact, a rate fact or a client fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Engagement letter - DRAFT for signature - Nash.docx",
+      "source_type": "text_document",
+      "observations": [
+        "two labelled role blocks, one naming the firm and a responsible fee-earner, one naming the client",
+        "scope and funding-basis sections present, a DRAFT watermark, empty signature lines with no dates",
+        "an allocated matter reference in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is the row's own evidence. THIS IS THE FIXTURE THAT KILLS THE NODE: it is the exact artefact the schema's precondition describes - labelled slots separating a practitioner or firm role from a client role - so it activates `law_practice` and nothing more specific. There is no residue for a child template to recognise",
+        "that a draft records an agreed scope or an accepted retainer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "TERMS OF BUSINESS (firm standard) v11 - CLEAN.docx",
+      "source_type": "text_document",
+      "observations": [
+        "bracketed placeholders where a client name and a fee-earner name would sit",
+        "blank signature lines, optional-clause alternatives and marginal drafting notes",
+        "a firm template version marker in the footer, no matter reference anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row. The deliberately empty party and execution slots are the schema's inverse-recognition signal and `law_practice.precedent-bank` is the situation. There is no client, no matter and no third party in the file",
+        "that a firm-standard terms document evidences any engagement, or that its version marker is a date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Retainer Agreement - hourly - Hartley acquisition - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a rate schedule table with fee-earner grades and hourly rates",
+        "a retainer deposit clause, a disbursement estimate and a termination clause",
+        "an execution block with both parties' signatures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the rate schedule founds a node. Where rate and unit structure is the discriminating evidence, the schema's time-and-disbursement signal owns it and `law_practice.time-and-billing` is the situation; where the execution block is the discriminating evidence, `legal` owns it",
+        "a rate, a fee or an amount as a fact of this schema",
+        "that a deposit was paid, held, applied or refunded",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Statement of Work - Meridian - Market entry advisory - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two organisation blocks labelled prepared for and prepared by",
+        "scope, exclusions, fee basis, confidentiality, deliverables, milestones and acceptance criteria",
+        "an execution block with two signatures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this schema. THIS IS THE COLLISION FIXTURE. Every structural feature this refused row would have claimed is present and no practitioner-client pair is: the discriminating evidence is the consulting prepared-for and prepared-by roles plus deliverables and acceptance milestones, and the absence anywhere in the corpus of a practitioner-side apparatus (an intake screen, a matter reference allocated by the holder's own firm, a time record, work product the holder produced). `career.consulting-client-engagement` owns it",
+        "that legal-sounding vocabulary in a consulting scope section is a legal-practice signal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ellis and Co - Client Care Letter - my divorce.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "law-firm letterhead, a matter reference allocated by that firm, a responsible-solicitor block",
+        "labelled scope, hourly-rate, complaints and cancellation sections",
+        "the addressee block names the HOLDER personally and the holder's signature appears on the client copy",
+        "no time record, no work product and no intake screen produced by the holder anywhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row, and this is the reason the refusal matters rather than a technicality: it is the single most engagement-shaped file a person is likely to hold, and it is the holder's own record. `legal.personal-legal-matters` owns it, and `legal` runs first as a safety domain. The fixture is named identically in the `law_practice` schema's own file list, on the same reasoning",
+        "that a matter reference is practitioner-side evidence - it was allocated by SOME firm and whose remains open",
+        "a folder path, and specifically nothing that would record the existence or subject of the holder's own proceeding"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Master Services Agreement - Northbridge IT - Schedule 2 fees.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two corporate party blocks, a services schedule, a charges schedule and a term-and-renewal clause",
+        "a signature block, and a supplier reference rather than a matter reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this schema. The second collision fixture, and it is the one that shows the scope-and-fee structure is generic across worlds: `business_operations.contract-administration` owns it through its live-obligation and register anchor, and a countersigned MSA is independently `legal`'s executed instrument",
+        "that a services-and-charges schedule is a legal-practice engagement",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Costs estimate and funding options - 41127-0006.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a matter-reference cell and column headers pairing scope stages with estimated fees and estimated disbursements",
+        "an alternative-funding tab comparing hourly, fixed and conditional bases",
+        "no party blocks and no signature anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. The workbook has no two-role artefact on it at all, so the only structure present is the schema's time-and-disbursement column set and `law_practice.time-and-billing` is the situation. This is where the fee-basis rescue for this row fails",
+        "an amount, an estimate or a funding basis as a fact",
+        "that an estimate is a quotation, an agreement or a cap",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scope variation letter - additional due diligence - countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a short letter referring back to an earlier engagement by date",
+        "an added-work section and a revised fee paragraph",
+        "a countersignature block dated by the client"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a lifecycle stage founds a node. 'Variation' names WHEN in a matter's life the artefact was made, not what structure it carries; the countersignature makes it `legal`'s executed instrument and the reference back to an earlier letter makes it a member of the same matter group, which the schema's anchor rules already handle",
+        "that the original scope was superseded, that the variation is in force, or that a fee changed",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Engagement letter.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a flatbed scan with no text layer; OCR recovers a letterhead and broken paragraph text",
+        "no readable role blocks, no matter reference, no legible signature block",
+        "the filename is a document-type word and nothing else"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "anything. This is the never-alone case in its purest form: a document-type word alone, on a source type that is constitutionally never-alone. It cannot establish a firm, a client, a side or a matter, and 00's direct-fact path requires \"a labeled form field\" that this scan does not supply",
+        "that the holder is the practitioner rather than the client",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Engagement pack - 41127-0006.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a client care letter, a terms-of-business schedule, two identity-document scans and a direct-debit mandate",
+        "the matter reference appears in the archive name and in the manifest"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the packet is one situation this row could own. Its members disperse to three existing homes on their own evidence - `legal` for the executed letter, `law_practice` schema activation for the two-role structure, independent identity activation for the scans - and packet membership never copies a fact onto a member",
+        "that the archive should be unpacked solely to improve classification",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Terms of business - please confirm - 41127-0006.eml",
+      "source_type": "email",
+      "observations": [
+        "an explicit sender and recipient pair crossing a firm-domain and a client-domain boundary",
+        "an exact matter reference in the subject and a concrete attachment name",
+        "a one-line body asking for confirmation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. A message ABOUT an engagement document is matter correspondence: `law_practice.matter-correspondence` is the situation, and the attachment is judged on its own evidence, not on the subject line",
+        "that a request for confirmation is a confirmation, an acceptance or an instruction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "THE ROLE FORK, stated reciprocally on the fixture `Ellis and Co - Client Care Letter - my divorce.pdf`, which the `law_practice` schema names in its own file list. FROM THIS SIDE: the most engagement-shaped file most people hold is one they RECEIVED as a client; it carries a firm name, an allocated matter reference, a scope section and a rate section, and a row called 'engagement letters, retainers and scope' would claim it on every token it has. FROM THAT SIDE: the holder is the addressee and the holder's signature is the client's; there is no intake screen, no time record and no work product the holder produced anywhere in the corpus, so the practitioner-side apparatus does not exist and the file is the holder's own record. Discriminator: WHICH SIGNATURE BLOCK IS THE HOLDER'S, plus whether practitioner-side apparatus exists in the corpus at all. The under-firing error here exposes the holder's own affairs, which is a further reason this coverage belongs with a safety-schema template rather than with a new child. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "THE GENERIC-ENGAGEMENT COLLISION, stated reciprocally on `Statement of Work - Meridian - Market entry advisory - executed.pdf`. FROM THIS SIDE: a statement of work has two party blocks, a scope section, an exclusions section, a fee basis, a confidentiality clause and an execution block - every structural feature a legal engagement letter has, which is exactly why 'engagement terms' cannot be a legal-practice node. Run the schema's deletion test on both documents and the survivors are identical. FROM THAT SIDE: the discriminating evidence is the consulting prepared-for and prepared-by role pair with deliverables, milestones and acceptance criteria, and the absence of any practitioner-side apparatus. The seam is not a word in the scope section; it is whether an intake screen, a firm-allocated matter reference, a time-and-disbursement record or legal work product exists elsewhere in the corpus. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "THE THIRD-WORLD PROOF, stated reciprocally on `Master Services Agreement - Northbridge IT - Schedule 2 fees.pdf`. FROM THIS SIDE: a vendor MSA with a services schedule and a charges schedule is structurally a retainer with different nouns, so any signal this row could write would fire on a purchasing file. FROM THAT SIDE: that landed row's anchor is a live obligation and its notice or renewal register, and its party pair is buyer-and-supplier, not practitioner-and-client. Two independent professional worlds file the same shape, which is the strongest available evidence that the shape is a document type rather than a situation. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "THE UNEXECUTED HALF, stated reciprocally on `TERMS OF BUSINESS (firm standard) v11 - CLEAN.docx`. FROM THIS SIDE: a firm's standard terms are the single most 'engagement terms'-named artefact in a practice, and a row bearing that name would claim every copy of them. FROM THAT SIDE: bracketed placeholders, blank signature lines, drafting notes, optional-clause alternatives and a template version marker are the schema's inverse-recognition signal, and the file contains no client, no matter and no third party at all - which is also why it is the one part of this family that falls through to Reading Inbox rather than Protected Records. Discriminator: whether the party and execution slots are filled or deliberately empty. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.time-and-billing",
+      "signal": "THE FEE-BASIS SEAM, stated reciprocally on `Costs estimate and funding options - 41127-0006.xlsx` and on the rate schedule inside `Retainer Agreement - hourly - Hartley acquisition - executed.pdf`. FROM THIS SIDE: the fee basis is the most-cited reason this row should exist, so it has to be answered - but a fee basis is a VALUE (hourly, fixed, capped, conditional), exactly as the schema ruled a practice area to be a value. FROM THAT SIDE: where fee information is STRUCTURAL - a matter-reference column beside timekeeper, activity, units, rate and disbursement columns - the schema's time-and-disbursement signal already fires and that row is the situation. What is left on the engagement letter is a fee PARAGRAPH, which is prose in a two-role document, which is the schema default. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "A SIGNED client care letter or retainer legitimately carries both schemas at once and this is a co-activation rather than a contest: `legal` fires on its own executed-instrument evidence - a bound party pair plus an execution block - and `law_practice` fires on the two labelled role blocks that are its precondition. Neither writes a field row, so the co-activation costs nothing, and `legal`'s safety protection runs first either way. This is the second half of the refusal: two schemas already see the file on evidence they own, and the child template that would sit between them recognises nothing neither of them can see. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The default home for a real, personalised engagement document that arrives without an accepted matter group - a client care letter, a signed retainer, an engagement pack. It names a living person's affairs and often their identity documents, and 00 places exactly this material there: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's characteristic failure, which is the SIDE question: an engagement-shaped document whose holder role is unresolved - practitioner or client, legal or consulting - and a scanned `Engagement letter.pdf` with no readable slots. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for an UNPERSONALISED specimen - a firm-standard terms of business with bracketed placeholders, a downloaded model retainer, a bar-association sample engagement letter. It contains no client, no matter and no third party, so the protective residual would be the wrong error and would file an empty template as if it were somebody's record.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The material is potentially sensitive - it names a client, states what they retained a practitioner to do, and travels with identity-verification and payment-mandate members - but the posture is IDENTICAL to the `law_practice` schema's default and that identity is itself the third leg of the refusal. `potentially_sensitive` is the strictest value available at this row (P7 owns handling classes and this row assigns none), so there is no stricter posture for a child to move to; and the schema's default already rests on a wider third-party argument than this material supports, since a privilege log or a disclosure production exposes many non-consenting third parties at once where an engagement letter exposes one client. A weaker privacy claim cannot found a template. One observation is preserved literally and decided nowhere: an engagement document frequently carries a confidentiality or privilege legend, and per the schema that legend is neither a legal status nor evidence that this world applies.",
+  "open_question": "NJ-LP-ET-1: if D1 and PR-6 lift and `law_practice` is allowed field rows, does the coverage refused here return as a `work_type` VALUE ('engagement terms, retainer, scope and funding-basis record', already in the schema's enum) or as a template? This row's recommendation is the value, and the reason is that the artefact is the schema's own activation precondition; but R1c should decide explicitly rather than letting a later field pass silently resurrect the id. NJ-LP-ET-2: R1c should decide where a SCOPE-VARIATION or termination-of-retainer letter sits once its countersignature makes it `legal`'s instrument - alongside the original terms in the matter's opening function slot, or in matter correspondence - since this row is not surviving to hold it."
+}

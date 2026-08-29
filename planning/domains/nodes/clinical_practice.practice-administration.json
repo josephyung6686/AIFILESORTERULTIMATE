@@ -1,0 +1,390 @@
+{
+  "id": "clinical_practice.practice-administration",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Practice administration and rostering",
+  "one_line": "The organizational situation of running a clinical practice as a regulated care provider: clinic lists and clinical-session rotas, registered-population and activity returns, recall and overdue-review searches, and the practice's own provider registration, inspection, and action-plan record. Absorbs the legacy row med.practice-administration. It is deliberately the NARROW reading: contracts, vendors, facilities, payroll, staff policies, and ordinary business meetings belong to business_operations or hr and do not become clinical because their holder is a clinic. The distinguishing structures are administrative records that contain multiple patients and regulated-provider records whose subject is the organisation rather than an individual practitioner. J-DEPTH placeholder: it recognizes and protects the situation and writes NO field rows, because the clinical_practice schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry is a DETECTION signal, never an extraction licence - this template's schema declares no field rows. The signals exist so P7 runs first: “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a clinic-list or session structure: a date, a session slot, a room or clinic name, and a per-slot row that names a person and a reason - a rota that is populated with patients rather than only with staff. This is the discriminating structure for the whole row and the reason it is not simply business_operations.",
+      "a rota or on-call structure: a staff-by-day grid with shift codes, leave markers, and a cover column, published for a stated period. Read alone this is an hr artifact; read beside clinic lists and cover-for-a-named-clinic entries it is this row.",
+      "a practice registration or inspection structure: an application, a conditions-of-registration certificate, an inspection report against published domains, or an action plan responding to one, naming the practice as the registered provider rather than naming an individual clinician.",
+      "an activity or contract return: a periodic count of registered population, appointments offered and attended, or coded activity, submitted against a payer or commissioner scheme reference. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a clinical-system report header: a report-name slot beside a run-by, a run-on, and a search-criteria block, in a high-weight zone - “It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.”",
+      "a practice-population or recall structure: a list produced by a search over registered patients - overdue reviews, a screening cohort, a chase list - which is administrative in purpose and clinical in content."
+    ],
+    "needs_llm": [
+      "PRECONDITION: rotas populated with patients and system reports are patient-identifying by default, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central judgement of this row and the one it most often gets wrong: whether an administrative document is clinical administration or generic business administration. A staff handbook, a lease, a supplier contract, and a payroll summary sit in a practice's folders and are not this row. The model must abstain rather than assert: “A model that cannot cite sufficient evidence must return unknown.”",
+      "whether a meeting record is a business meeting of the practice or a case discussion - the agenda shape is identical and only the presence of named cases separates them.",
+      "an unlabelled system export whose column meanings must be read rather than parsed.",
+      "administrative vocabulary in a language the deterministic structure catalogue does not cover."
+    ],
+    "never_alone": [
+      "administrative vocabulary alone - agenda, minutes, rota, policy, report. Every organisation on this roster produces those files, and a practice's copy is not distinguished by its shape. This is the tempting false file for this row, and it is why the row is drawn narrowly.",
+      "a practice or facility gazetteer hit alone - the multi-role problem 00 states for a university - “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - read across to a clinic by inference. A clinic letterhead sits on its lease as readily as on its clinic list.",
+      "a bare 4-digit number read as a year, a room number, a slot count, or a provider code.",
+      "source_type or extension alone. 00: “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Admin, Practice, Rota, or Reports alone. Folder context raises plausibility; it never fires by itself.",
+      "membership in one bulk export session - “A session should never be treated as proof of topic”",
+      "a spreadsheet of names alone: a staff list, a mailing list, and a patient recall list are the same shape and only the second is not clinical."
+    ]
+  },
+  "proposed_context_terms": [
+    "clinic list",
+    "session",
+    "rota",
+    "on call",
+    "cover",
+    "appointments offered",
+    "did not attend",
+    "registered population",
+    "list size",
+    "recall",
+    "search criteria",
+    "run by",
+    "registered provider",
+    "conditions of registration",
+    "inspection",
+    "action plan",
+    "commissioner",
+    "activity return",
+    "practice manager"
+  ],
+  "work_types": [
+    "clinic list or session plan",
+    "staff rota, on-call schedule, or leave record",
+    "appointment, attendance, or did-not-attend report",
+    "registered-population or list-size return",
+    "coded activity or quality-outcome return",
+    "recall, chase, or overdue-review list",
+    "practice registration application or certificate",
+    "regulator inspection report and action plan",
+    "practice or departmental meeting record",
+    "standard operating procedure or practice protocol",
+    "clinical-system search, report, or export",
+    "practice complaint-handling or feedback summary",
+    "practice business or development plan"
+  ],
+  "grouping_reasons": [
+    "one return or reporting cycle: the search, the export, the submitted return, and the acknowledgement, joined by their shared period and scheme reference rather than by any clinical fact.",
+    "one inspection: the notice, the evidence pack, the report, and the action plan that answers it.",
+    "one rota period: the draft, the published version, and the amendments, joined by the universal version_family fact.",
+    "one clinic or service, where the same session name recurs across dated lists. The anchor supports a candidate packet; it does not write a service fact onto members - “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome; a single stray clinic list is still protected material and is surfaced without one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and clinical_practice declares none (D1 as narrowed, _CONTRACT rules 10 and 15, PR-6). Held as prose for whoever answers the schema row's open_question: this row's natural order is administrative FUNCTION (registration, returns, rotas, reports, meetings) and then period, which is 00's own recommendation for record domains - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A person-shaped level is wrong here twice over: 00 rejects it in general - “It should avoid using authorship or creator identity as a destination dimension.” - and a level named for a clinician would publish a caseload the same way the chart row's patient level would.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".pptx",
+      ".eml",
+      ".ics",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Tuesday AM clinic list 2026-04-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a session header with a room, a start time, and a named clinician",
+        "per-slot rows carrying a name, a date of birth, a record-number token, and a short reason",
+        "a printed-by footer naming the practice system and a run time"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - the schema declares no field rows",
+        "that a scheduling document is administrative and therefore low-risk: a populated clinic list is a list of people attending healthcare on a stated day",
+        "a clinical judgement from a reason-for-attendance phrase",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "cleaning contract - renewal 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a two-party services agreement with a term, a schedule of works, and a price",
+        "the practice appears as the customer",
+        "no clinical content of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - this is THE collision fixture: a practice's supplier contract is business_operations.contract-administration material and being held by a clinic changes nothing about it",
+        "a clinical fact from the practice letterhead",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "rota_april_v3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a staff-by-day grid with shift codes and leave markers",
+        "a cover column naming clinics rather than people",
+        "three near-identical files differing in a version token",
+        "a notes column referencing an on-call handover"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "an hr fact: a staffing grid read alone is hr.org-design-headcount or hr.workforce-analytics material, and only its clinical-session content moves it here - the reciprocal boundary stated on both sides",
+        "an employment fact about a named person from a leave marker",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "overdue reviews search 2026-03.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a search-criteria header block naming a coded condition and an interval",
+        "hundreds of rows with names, record numbers, and last-review dates",
+        "a run-by slot naming a staff member"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that an administrative search is not clinical material: the criteria themselves disclose a condition for every person listed, which makes this the most sensitive shape on the row",
+        "a diagnosis fact for any listed person from the search criteria",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "inspection report - final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a regulator letterhead and a registered-provider block naming the practice",
+        "findings organised under published assessment domains",
+        "a ratings table and a must-do action list",
+        "anonymised quotations from staff and people using the service"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "an individual clinician's credential: clinical_practice.licensure-credentialing is refused, so a personal registration, licence, or revalidation record falls to career.credentials-licenses rather than this row; this file names the PRACTICE as registered provider",
+        "a government fact: an inspection report held by the inspected party is this row, while the regulator's own casework is government.professional-regulator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "practice meeting minutes 2026-02-03.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an attendance list, numbered agenda items, and an actions table with owners",
+        "items cover a boiler, a staffing gap, and a significant-event discussion naming one person",
+        "no case-list structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of clinical_practice.case-conference from the single named discussion - the anchor of this meeting is the business of the practice, and the sibling row's anchor is a meeting at which several named cases are discussed; that is the discriminator stated on both sides",
+        "any clinical_practice fact - none is declared",
+        "an action item as a scheduled product action of any kind",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "clinics.ics",
+      "source_type": "calendar",
+      "observations": [
+        "a recurring series whose summary fields name clinics and rooms",
+        "attendee fields carrying staff addresses",
+        "no free-text body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from the source_type - calendar is one of P5's fourteen SOURCE_TYPES and never a domain; this is the .ics fixture and it fires nothing on its own",
+        "a schedule fact about any person from an attendee field - contact-shaped data “should normally be privacy-protected rather than used to create folder proposals”",
+        "any clinical_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 09.14.11.png",
+      "source_type": "image",
+      "observations": [
+        "an exact display resolution and PNG format",
+        "no camera EXIF",
+        "OCR pending; the visible region resembles an appointment book grid"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the missing EXIF - the system “must not mistake the absence of EXIF for proof that an image is a screenshot”, and 00 requires that “conflicting signals should lead to abstention rather than an invented classification”",
+        "any clinical_practice fact - none is declared; a grid that resembles an appointment book is not yet evidence that it is one",
+        "that the capture is safe to send to a model before OCR resolves whether it shows names",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "quarterly return Q4.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an activity extract, a covering form, a validation log, and an acknowledgement",
+        "member paths partitioned by submission stage",
+        "no member is opened to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any clinical_practice fact - none is declared",
+        "that a member may be extracted to the filesystem - “the normal scan should never extract archive contents to the filesystem”",
+        "that an aggregate return is non-clinical because its cover form is: the extract inside may be row-per-person",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.organisational-records",
+      "signal": "THE collision this row exists inside, named at the nearest template because collides_with joins same-kind rows only (CONNECTION section 5) - the argument is against the whole business_operations family and business_operations.organisational-records is its representative row, and the reason it is drawn narrowly. Every generic artifact of running an organisation - contracts, vendors, facilities, procurement, policies, budgets, board and business meetings - appears in a practice's folders and is business_operations material there exactly as anywhere else; being held by a clinic is not evidence. The discriminating evidence for this row is CLINICAL CONTENT INSIDE AN ADMINISTRATIVE FORM: a session or clinic list populated with people, a search over a registered population, a coded activity return, a health-regulator registration of the practice as a care provider. Administrative shape alone - agenda, rota, minutes, report, contract - supports business_operations, not this row, and where only the shape is present the correct outcome is business_operations. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.org-design-headcount",
+      "signal": "Named at the nearest template because collides_with joins same-kind rows only (CONNECTION section 5); the argument is against the whole hr family. A rota, a leave record, a staff list, and an appraisal are hr material in a practice as in any employer. The discriminating evidence: a staffing artifact that names clinics, patient-facing sessions, or clinical cover for a named service supports this row; a staffing artifact that names only people, hours, leave, and pay supports hr. An individual clinician's own appraisal or revalidation portfolio is career.credentials-licenses material after refusal of clinical_practice.licensure-credentialing. A staff-by-day grid alone discriminates nothing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.case-conference",
+      "signal": "The reciprocal of an edge the landed case-conference row already states: departmental business meetings and case meetings share the agenda, attendance, minutes, and actions shape exactly, and often the same recurring calendar series. The discriminating evidence is whether NAMED CASES are the business of the meeting: several subjects discussed as the agenda supports the case-conference row; rotas, budgets, premises, and staffing support this row. A single significant-event item inside a business meeting is not enough to move it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.referral-correspondence",
+      "signal": "The reciprocal of an edge the landed referral-correspondence row already states: administrative onward-sends - records requests, chases, invoice covering letters - carry the addressee-and-patient shape without being clinical correspondence. The discriminating evidence: a clinical reason-for-referral or clinical body content supports the correspondence row; a purely procedural request about a record rather than about care supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "A practice's registration with a health regulator and an individual's professional credential produce nearly identical applications, certificates, conditions, renewals, and evidence packs. clinical_practice.licensure-credentialing is refused because regulator industry is only a value on the individual side. The discriminator here is WHO is regulated: a registered-provider or organisation block plus premises, service, inspection, or organisational action-plan structure supports this row; a personal registration number, scope of practice, continuing-competence cycle, or revalidation record attached to one named practitioner supports career.credentials-licenses. Certificate shape and regulator letterhead discriminate neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.professional-regulator",
+      "signal": "One inspection produces one report that both sides keep. The discriminating evidence is which side holds it: the inspected practice's copy, and the action plan answering it, support this row; the regulator's own casework, scheduling, and decision file support the government row. The report's own text discriminates nothing, because it is the same bytes. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for the patient-touching half - a populated clinic list, a recall search, a row-per-person return - when no accepted professional group or approved branch exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for the half that names nobody - a registration certificate, an inspection report, a standing procedure, a rota. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for the row's central ambiguity: an administrative document whose clinical-versus-generic reading is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for an un-OCRed capture of a practice system whose content is not yet known. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a proprietary practice-system export or an encrypted backup. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The row's defining property is that its documents look administrative and read as clinical. A clinic list is a list of people attending healthcare on a named day; a recall search discloses a coded condition for every person in it; an activity return may be row-per-person underneath an aggregate cover. 00 requires the immediate transition for the material - “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” - and the operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. The value is assigned to the whole row rather than per file because the false negative is the dangerous direction: treating a rota as ordinary office material is exactly how a populated clinic list reaches a cloud prompt. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it does not re-derive D2's ClassificationRecord.",
+  "open_question": "NJ-CP-12, and it is the fold question for this row rather than a detail. Should this row exist at all, or should the clinical-content subset become a BRANCH PATTERN on business_operations and hr, leaving no clinical_practice.practice-administration? The argument FOR keeping it: the node test licenses a template whose privacy rules differ from its schema's default, and this row's do - its administrative documents contain third-party patients by construction, which no business_operations template assumes, and the false negative sends a populated clinic list down a non-protected path. Two landed siblings (case-conference, referral-correspondence) already state collides_with against this id, so it is load-bearing for their discriminators. The argument AGAINST: as written the row survives only by being narrow, and the narrowing is a judgement rather than a fact - a practice manager does not experience registration, rotas, contracts, and premises as two worlds, and every boundary case in this row's own file list resolves toward business_operations or hr. A one-sentence ruling settles it. Recorded rather than decided here, because folding a row that two landed rows point at is a roster edit and this agent may not make one."
+}

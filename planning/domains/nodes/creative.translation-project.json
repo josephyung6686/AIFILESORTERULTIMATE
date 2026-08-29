@@ -1,0 +1,533 @@
+{
+  "id": "creative.translation-project",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Translation and localisation project",
+  "one_line": "One text that exists twice - a SOURCE and a TARGET standing in segment-by-segment correspondence - together with the two assets that make the correspondence repeatable across jobs: a translation memory and a termbase. The unit is not a file in a foreign language (that is the universal `language` fact, which every file in the corpus already carries) and not a job called translation (that is a value on an engagement). The unit is the PAIRING plus its instruments: a bilingual working file with source and target segments, a memory that deliberately spans projects and clients, a glossary the client approved, a quote priced on the SOURCE word count, and - in the certified branch - a signed attestation whose working material is somebody else's passport, diploma or medical report. Placeholder launch (J-IND): fields [], dimensions held as prose, recognition and the privacy posture are the whole deliverable.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "real file collections contain vague filenames, indirect language, multilingual documents, screenshots, unlabeled forms, unusual professional artifacts, and user-specific workflows that cannot be captured reliably by fixed patterns alone",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty by contract, not by judgement. _CONTRACT rule 12 forbids a template copying its schema's list, and the creative schema anchor declares no field rows at all (D1 as narrowed, rules 10 and 15, CONNECTION PR-6). The legal fact set on any file this row recognises is therefore the universals only - and the universal that matters here is already there: \"The product should have a small shared set of universal file facts, such as file type, creation date, language, duplicate family, version family, and sensitivity status.\" That `language` exists universally is the reason this row may NOT exist to record a language, and part of why it may exist to record a correspondence. This row minted nothing.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty, and two keys were genuinely tempting. (1) A SOURCE-LANGUAGE / TARGET-LANGUAGE PAIR. The canonical set holds one `language` key and it is monadic - it can say a file is in German, it cannot say this German file is the target of that English one. A pair of keys would be the honest model of this world and it is still not a template row's to mint: minting on a field-less schema is the 574's mistake at the exact point of maximum temptation, and it would immediately raise whether a folder may be named for a locale. (2) A LOCALE key. Refused for the same reason and one more: `creative.ad-campaign` already refused the identical key and recorded it as NJ-ADCAMP-1, naming this row by id as a co-claimant. Two template rows minting two spellings of one idea is the recorded overnight failure mode. Both are folded into NJ-TRANS-1 so R1c adjudicates ONE key for the family. If option (b) of NJ-R1a-1 is ever taken, the anchor's four parked keys (project, stage, artifact_type, client) are sufficient for everything in this row EXCEPT the source/target relation, which no existing key expresses.",
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below, inherited in force from the creative schema anchor: each is a DETECTION signal and never an extraction licence. This row declares no field rows, so nothing here writes a domain fact. It exists so a bilingual corpus is recognised, kept local where the sensitivity posture says so, and not scattered by format or by locale suffix. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "a BILINGUAL SEGMENT structure - the defining shape of this row and the one no creative sibling has. A single document interior in which numbered or identified SEGMENTS each carry a source string and a target string side by side, usually with per-segment state (locked, confirmed, draft) and a match percentage against a memory. The dedicated interchange formats carry it declaratively (XLIFF and its tool dialects: .xliff, .xlf, .sdlxliff, .mqxliff, .txlf), and 00's structured-text extractor already reaches it: source, configuration and structured-data formats should yield \"readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals\". The same shape appears undeclared as a two-column table in a .docx or .xlsx, where 00's spreadsheet extractor supplies \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\" and the discriminating observation is a column header pair naming two languages over rows of one-to-one text.",
+      "a TRANSLATION-MEMORY structure: a document whose whole interior is repeated translation UNITS, each holding two or more language variants of the same string, carrying their own creation and change dates, and - decisively - spanning a date range and a subject range wider than any one project in the corpus. This is the single most distinctive artefact in this world because its value is that it CROSSES jobs. A memory whose units all come from one document is a by-product; a memory whose units span years and clients is a practice asset and must not be filed under a project.",
+      "a TERMBASE or GLOSSARY structure: rows of source term / target term with at least one governance column beyond the pair - part of speech, approved-by, forbidden variant, do-not-translate. The governance column is what separates it from a study vocabulary list, and it is the discriminator this row's collision fixture turns on.",
+      "a MIRRORED-STEM RUN: two runs of files whose stems are identical except for a language or locale token in a fixed position (`_EN` / `_DE`, `.en-GB.` / `.pt-BR.`, `_SOURCE` / `_TARGET`), where the two runs have COMPARABLE member counts and comparable file sizes but are NOT duplicates and NOT successive versions. 00 already collects the structural half universally - \"Every file receives basic filesystem extraction, including path, filename, normalized filename, extension, MIME type, size, timestamps, content hash, duplicate and version-family signals, and parent-folder context\" - and this row exists in part to STOP that universal signal misreading a mirrored pair as a version family, which it otherwise will.",
+      "a SOURCE-COUNT QUOTE structure: a quote, purchase order or invoice whose priced quantity is a word, character or line count of the SOURCE text, at a per-unit rate, against a named target language and a delivery date. The commercial anchor of the whole world, and the thing that separates a paid job from a personal bilingual habit. A per-hour or per-deliverable fee with no source count is an ordinary engagement document and belongs to the engagement sibling.",
+      "a LOCALE STYLE-GUIDE structure: a short document scoped to one target locale that instructs on register and formality, date, number and currency rendering, name order, measurement units, and a do-not-translate list. It is a brief in the anchor's sense but its addressee is a locale rather than an audience, and it recurs unchanged across every job for the same client.",
+      "a LINGUISTIC-REVIEW structure: a table whose rows are segment identifiers and whose columns are an error CATEGORY (terminology, accuracy, style, locale convention), a severity label, a reviewer comment and an arbitration or accept/reject column. This is this world's revision round, and it is segment-addressed rather than page-addressed or timecode-addressed, which is what distinguishes it from every other review artefact in the creative family.",
+      "a CERTIFICATION structure: a signed statement in which a named person attests that an attached target document is a complete and accurate rendering of a named source document, giving both languages and a date. It travels physically attached to a scan of the source document, and that source document is very often a civil, academic or medical record belonging to a third party. This is a detection signal AND the trigger for this row's strictest privacy posture.",
+      "a SUBTITLE PAIR: two or more caption tracks sharing one stem and differing only on a locale token, where the segment boundaries and timecodes are IDENTICAL across the tracks. 00's audiovisual extractor already reaches the material - \"subtitles or captions where present\" - and the identical-timecode observation is what makes a pair a translation deliverable rather than one cut's caption track. A single caption track, in any language, is not this row's."
+    ],
+    "needs_llm": [
+      "deciding whether two same-stem documents in two languages are a SOURCE and a TARGET (this row), two contemporaneous columns of ONE instrument executed bilingually (legal), the same person's own document maintained in two languages (career, academic), or a market ADAPTATION that shares a campaign stem (creative.ad-campaign). The observation is identical in all four; only the surrounding purpose separates them, and 00 puts exactly this class of file in the model's hands - \"the product uses the LLM where it provides genuine value—interpreting natural language, vague documents, multilingual content, and purpose-based groups\"",
+      "judging whether a bilingual two-column table is a translation working file or a language-learning study sheet, when the governance columns are absent and both are simply two columns of paired text",
+      "reading a foreign-language document that carries NO bilingual partner in the corpus and deciding whether it is a delivered target with the source held elsewhere, an original work by a bilingual maker, or reading material. This is the commonest ambiguity in the world and the honest answer is usually Review Later",
+      "deciding whether a translation memory belongs to a client, to a subject field, or to the practice as a whole - a question about the maker's business, not about the file",
+      "recognising a relay or pivot translation, where the same file is the TARGET of one job and the SOURCE of the next, so that any single-direction reading of the pair is half wrong",
+      "separating a certified translation packet (this row, plus a protective posture) from a plain copy of somebody's identity document that happens to have a foreign-language original (identity, and this row must not activate at all)"
+    ],
+    "never_alone": [
+      "A LANGUAGE, or a locale token, on its own. This is the row's single most dangerous false positive and it is fatal because `language` is a UNIVERSAL fact: \"The product should have a small shared set of universal file facts, such as file type, creation date, language, duplicate family, version family, and sensitivity status.\" Every file in the corpus has one. A German PDF is not a translation project; a `_de_DE` suffix is an ad size's neighbour as often as it is a target locale; a CJK filename is a filename. The direct read-across of 00's own warning applies - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" - and a language string is weaker than a university name, not stronger, because there are fewer of them and they recur across unrelated corpora.",
+      "The WORD 'translation' in a filename, a folder name, an invoice line or an engagement scope. It names a service, and a service is a value on an engagement, not a node. Where the only evidence is that word, this row must abstain and `creative.client-engagement` holds the material; nothing in a bare service name produces a source, a target, a memory or a segment.",
+      "A dedicated FORMAT alone - a lone .tmx, .tbx, .xliff or .srt with nothing around it. \"The engine should treat the file extension as a routing signal rather than an assumption about meaning\". An .xliff shipped inside a software repository is a resource bundle and belongs to code; a lone .srt is a caption track; an exported .tmx with three units is a tool artefact, not a practice asset.",
+      "MULTILINGUAL CONTENT inside one document. A document that quotes two languages is not a translation; 00 explicitly guards against reading multilinguality as a defect or a signal - \"The system should not use unreliable global language-quality checks that incorrectly punish multilingual or mathematics-heavy documents\" - and the same restraint applies to reading it as a domain.",
+      "A VERSION-FAMILY or DUPLICATE-FAMILY signal computed over a mirrored pair. The universal extractor will report `contract_EN.docx` and `contract_DE.docx` as a version family on stem similarity, and that reading is not merely weak here, it is INVERTED: they are contemporaneous siblings, not successive revisions. This row's presence must suppress that inference, never inherit it.",
+      "A person's NAME appearing as a translator, reviewer, or attestor. Inherited from the anchor and sharper here, because in a certified packet the same page names the translator, the client, the document holder and a notary, and only one of those is the corpus owner. Authorship is never a destination.",
+      "A `_final`, `_v3` or `_FINAL_FINAL` token read as a stage - inherited verbatim in force from the schema anchor. In this world it is worse than elsewhere, because the token frequently appears on BOTH sides of a pair at different counts (`_EN_v2` beside `_DE_v5`) and a naive stage reading would declare the pair inconsistent."
+    ]
+  },
+  "proposed_context_terms": [
+    "source language",
+    "target language",
+    "source text",
+    "target text",
+    "word count",
+    "translation memory",
+    "termbase",
+    "glossary",
+    "segment",
+    "fuzzy match",
+    "back-translation",
+    "certified translation",
+    "sworn translation",
+    "certificate of accuracy",
+    "locale",
+    "do not translate"
+  ],
+  "proposed_context_terms_note": "PROPOSED, not design. 00 names the academic context floor by example - a course-code pattern needs \"academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”\" - and this list is the analogous floor for a locale-shaped or language-shaped token in this world. It is offered to R1c and to R2; no regex, no score and no threshold is written here. The terms are deliberately structural rather than linguistic: none of them is a language name, because a language name is precisely what must never fire alone.",
+  "work_types": [
+    "source text",
+    "target text",
+    "bilingual working file",
+    "translation memory",
+    "termbase or glossary",
+    "locale style guide",
+    "linguistic quality review",
+    "back-translation",
+    "certificate of accuracy",
+    "subtitle or caption track",
+    "source-count quote"
+  ],
+  "work_types_note": "VALUES on a `work_type` field, never child nodes, and none of them is a language. The schema anchor's enum already carries `manuscript draft`, `transcript`, `brief`, `proof` and `export or deliverable`, which cover the generic half; the eleven above are the artefact classes the anchor's enum does not name and which only exist because a text has two sides. `bilingual working file`, `translation memory` and `termbase or glossary` are the three that no other creative sibling can produce.",
+  "grouping_reasons": [
+    "one SOURCE and its TARGET, joined by segment correspondence or by a mirrored stem run of comparable size - the row's primary anchor, and the only one that establishes the pairing itself",
+    "one job: a source-count quote, its bilingual working files, its review table and its delivery, held together by the quote's named source document and target locale",
+    "one target LOCALE across several jobs for the same client, which is what a locale style guide and a client-approved termbase actually govern",
+    "one practice-level asset and everything it was built from - a memory or termbase and the jobs whose units it contains, which is a group that deliberately CROSSES projects and must not be dissolved into any one of them",
+    "one certified packet: a source scan, its target rendering and the signed attestation binding them, which is a purpose-coherent group in 00's sense even though its three members are content-incoherent (a photograph, a document and a signed form)",
+    "an existing curated folder the translator already made and named - typically a locale-named or client-named directory, which 00 treats as the strongest purpose evidence available"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT - the schema anchor declares no fields and a dimension may only branch on a field its schema declares. The recommendation is therefore held here as prose, and it differs from the anchor's DEFAULT TEMPLATE in two specific, arguable ways, which is the second leg of the node test. THE DEFAULT, as the anchor states it: client only where the corpus genuinely serves more than one client, then project, then stage, then artifact_type; not time-first. DIFFERENCE ONE - AN EXCEPTION ABOVE THE PROJECT LEVEL. The default is project-first for everything. This row's two instruments, the memory and the termbase, are destroyed by a project-first order: a .tmx filed under the job that happened to export it stops being findable by the next job, and its whole value is that it spans jobs. This row therefore recommends that memory and termbase sit at a practice level ABOVE any project branch, scoped by client or by subject field rather than by job. That is not a field difference; it is a placement difference for two named artefact classes, and no other creative sibling has an artefact that belongs above its own project. DIFFERENCE TWO - THE LOCALE IS NOT A LEVEL. The obvious deep branch here is target locale, and this row recommends AGAINST it at launch. A locale branch would scatter the two sides of one text into two subtrees, which is the exact harm 00 names for time - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" - and the parent-context test decides it: \"a parent dimension should provide the context required to understand the child\". `de-DE` is meaningless without the work, exactly as Homework 3 is meaningless without the course, and the work is meaningless split across its languages. The locale is a coordinate WITHIN the job, and this row minted no key for it (NJ-TRANS-1). NOT TIME-FIRST: this material is not capture-based, and the anchor grants the time-first exception to exactly two siblings by name, neither of which is this one. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "code_structured",
+      "spreadsheet",
+      "audio_video",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xliff",
+      ".xlf",
+      ".sdlxliff",
+      ".mqxliff",
+      ".tmx",
+      ".tbx",
+      ".docx",
+      ".pdf",
+      ".rtf",
+      ".txt",
+      ".xlsx",
+      ".csv",
+      ".srt",
+      ".vtt",
+      ".ttml",
+      ".idml",
+      ".po",
+      ".xml",
+      ".json",
+      ".jpg",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true,
+    "note": "The overlap with the anchor's extension list is deliberate and mostly ordinary - .docx, .pdf, .xlsx, .zip are the bulk of the real corpus. The four that are close to distinctive (.tmx, .tbx, .sdlxliff, .mqxliff) are still never sufficient: \"The engine should treat the file extension as a routing signal rather than an assumption about meaning\". .po and .json appear here only to be handed BACK to code - they are named so the boundary can be stated, not claimed."
+  },
+  "file_examples": [
+    {
+      "filename": "Nightwork_EN_SOURCE_ch07.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a language token and the literal word SOURCE in a fixed position",
+        "a sibling file Nachtarbeit_DE_TARGET_ch07.docx shares the chapter token and has a comparable size",
+        "interior is ordinary continuous prose with a chapter heading - nothing inside it is bilingual"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the pair is a version family, which the universal duplicate-and-version-family extractor will otherwise propose on stem similarity",
+        "a source or target language as a domain fact - the universal `language` fact is the only language record this row licenses"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_EN-DE_ch07.sdlxliff",
+      "source_type": "code_structured",
+      "observations": [
+        "XML interior of numbered translation units, each holding a source string and a target string",
+        "per-segment state attributes and match percentages against a named memory",
+        "translator comment nodes attached to individual segments",
+        "a language-pair token in the stem matching a mirrored-stem run elsewhere in the folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a repository or software project is present because the interior is XML",
+        "the client from the memory name in an attribute"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Aurora_Legal_EN-DE.tmx",
+      "source_type": "code_structured",
+      "observations": [
+        "repeated translation units, each with two language variants of one string",
+        "unit creation and change dates spanning several years and several subject areas",
+        "unit contents demonstrably drawn from more documents than exist in any one project folder in this corpus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "membership of the project it happens to sit beside - this is the row's named exception, an asset whose value is that it spans jobs",
+        "a client from the stem alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Termbase_Aurora_EN-DE-FR.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers naming three languages over rows of one-to-one term equivalents",
+        "governance columns beyond the pair: part of speech, approved-by, forbidden variant, do-not-translate flag",
+        "a client-shaped token in the stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a bilingual column pair alone is enough - without a governance column this is the study-sheet collision fixture below"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Quote_Nightwork_DE_18400_source_words.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a priced quantity expressed as a count of SOURCE words at a per-word rate",
+        "a named target language and a delivery date",
+        "an addressee organisation block and the maker's own footer on the same page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "the commissioning organisation from a footer - the addressee and the maker's own studio appear on the same page and must stay distinct roles",
+        "a financial record fact; this is an engagement artefact that also reads as one"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "LQA_Review_Nightwork_DE_ch01-05.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows addressed by segment identifier rather than by page or timecode",
+        "columns for error category, severity label, reviewer comment and an arbitration decision",
+        "a chapter range and a target language in the stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a quality judgement, a severity class or any handling class - the source labels are literal observations only",
+        "a reviewer identity as a destination"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Aurora_Style_Guide_de-DE.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "scoped to one locale in its own title",
+        "instructions on register and formality, date, number and currency rendering, measurement units",
+        "a do-not-translate list of brand and product strings"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a brand string in the do-not-translate list is a client fact - it is a list of words not to touch"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Certificate_of_Accuracy_Yilmaz_TR-EN_2026-05-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a signed attestation naming a person, a source document, both languages and a date",
+        "a stamp or seal region and a signature block",
+        "a reference to an attached source scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the attestation is valid, accepted, notarised or legally sufficient",
+        "an identity fact about the document holder, who is not the corpus owner"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Yilmaz_birth_certificate_TR_scan.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed or scanned civil record, readable only through OCR",
+        "OCR surfaces a person's name, a date and place of birth and an issuing authority",
+        "sits beside a target rendering and an attestation sharing its person token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that packet membership converts a third party's civil record into a creative fact",
+        "an identity fact for the corpus owner - the person named is the client, not the holder"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "EP04_captions_es-419.srt",
+      "source_type": "audio_video",
+      "observations": [
+        "timecoded caption cues",
+        "a sibling EP04_captions_en-US.srt whose cue boundaries and timecodes are identical",
+        "no picture file in the same directory"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a single caption track in any language is this row's - the identical-timecode PAIR is the whole signal",
+        "an episode or programme fact from the stem"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "HSK4_unit3_vocab_zh-en.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "two columns of paired terms with two language headers - structurally identical to a termbase",
+        "rows ordered by lesson or unit rather than alphabetically or by domain",
+        "no governance column: no approved-by, no forbidden variant, no do-not-translate",
+        "a course-shaped token in the stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a termbase reading, or any translation-project activation - THE COLLISION FIXTURE",
+        "that two language columns are ever sufficient evidence on their own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "AURA_Spring_RouteB_300x250_de_DE_v2.jpg",
+      "source_type": "image",
+      "observations": [
+        "a locale token and a pixel-dimension token on the same stem",
+        "sibling files varying the pixel pair while holding the locale, and varying the locale while holding the pixel pair",
+        "no source-language document anywhere in the neighbourhood"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a translation-project activation - a locale CROSSING a size grid is a campaign coordinate, not a source-and-target pair"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "mobile-app/src/strings/de.xliff",
+      "source_type": "code_structured",
+      "observations": [
+        "an XLIFF interior with source and target strings - this row's flagship structure, exactly",
+        "a repository marker and a package manifest at the enclosing root",
+        "sibling locale files under one strings directory and resource KEYS rather than document text as the unit"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any proposal to re-file anything inside a preserved repository root",
+        "a translation-project activation from the format alone"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kaufvertrag_DE-EN_gegenueberstellend_executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two languages in parallel columns on every page",
+        "a numbered clause set, a defined-terms section, a parties block and an execution block",
+        "a prevailing-language clause stating which column governs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a source-and-target reading - a dual-language instrument is ONE document executed bilingually, with no source that preceded a target",
+        "which language prevails, or any legal effect"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "resume_JP.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a sibling resume_EN.docx with a mirrored stem and comparable length",
+        "interior is the corpus owner's own employment history",
+        "no counterparty, no source-word count, no memory, no segment structure"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a translation-project activation - the subject of the document is the holder, and there is no job",
+        "that a mirrored stem alone is ever sufficient"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Nightwork_DE_delivery_2026-06-30.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a target document, a bilingual working file, a review table and a read-me",
+        "password protection reported by the manifest reader",
+        "\"Compressed archives should yield their manifests without extraction\""
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a purpose from the filename - \"the system should not infer a purpose from their filename alone\"",
+        "that the enclosure was delivered, accepted or paid"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.client-engagement",
+      "signal": "THE LOAD-BEARING COLLISION, and the one that decides whether this row exists at all. The engagement row holds the RELATIONSHIP - the contract, the scope, the rate card, the several jobs for one commissioner - and a job whose only distinguishing evidence is the word 'translation' in its scope IS the engagement row's, not this one's. This row is reached only by the pairing structure: a source and a target in correspondence, or a memory, or a termbase, or a source-count quote. RECIPROCAL, naming the same fixture: Quote_Nightwork_DE_18400_source_words.pdf is this row's when the priced quantity is a count of the SOURCE text, because that quantity only exists when a source exists; the identical document priced per hour or per deliverable is the engagement row's and this row must not pull it back by the target-language token in its stem. Provenance: inference."
+    },
+    {
+      "domain": "creative.book-manuscript",
+      "signal": "SAME FIXTURE, and the boundary is already written from the other side. The manuscript row states: 'translation must not absorb the source work's own draft family, and this row must not flatten a two-sided translation into one book's version family, because a source revision and a target revision are not members of one sequence.' Accepted verbatim in force and stated back: Nightwork_EN_SOURCE_ch07.docx and its draft run belong to the manuscript row as ONE work's version family; Nachtarbeit_DE_TARGET_ch07.docx belongs to the manuscript row too once the target book acquires its own compile container and apparatus; what belongs to THIS row is the RELATION between the two runs and the instruments that produced it - the .sdlxliff, the memory, the termbase, the review table. This row claims no draft family on either side. Provenance: inference."
+    },
+    {
+      "domain": "creative.ad-campaign",
+      "signal": "SAME FIXTURE BYTES, already named from the other side: AURA_Spring_RouteB_300x250_de_DE_v2.jpg. The campaign row states the test and this row accepts it unchanged - 'a locale token crossing a size token over one campaign stem is this row's; a locale pair with a source document and a delivery of its own is the translation row's, even when the client and the brand are identical.' Stated in this row's direction: a locale that is a COORDINATE in a published spec grid is the campaign's; a locale that names the TARGET of a source document is this row's. The discriminator is the presence or absence of a source text, not the presence of a locale. Both rows also refused to mint a locale key, and NJ-TRANS-1 folds into NJ-ADCAMP-1 so R1c adjudicates once. Provenance: inference."
+    },
+    {
+      "domain": "creative.post-production",
+      "signal": "SAME FIXTURE: EP04_captions_es-419.srt. Post-production owns a caption or subtitle track as a component of ONE cut - it hangs off a timeline, a picture lock and a conform, and its language is a property of that deliverable. This row owns a subtitle set only when two or more tracks share identical cue boundaries and timecodes across locales and are delivered as a job of their own, typically with a source transcript and a per-minute or per-word count. RECIPROCAL: this row must not claim a lone caption track because it is in Spanish, and post-production must not claim a locale-pair delivery merely because captions are audiovisual material. Where both readings are live - a localisation delivered into a cut - both activate on their own evidence and neither suppresses the other. Provenance: inference."
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "SAME FIXTURE, and the sharpest one this row has because the format is identical: mobile-app/src/strings/de.xliff. The interior is this row's flagship bilingual segment structure, and it still belongs to code. CODE claims the preserved repository root on the manifest, the version-control marker and the source layout, and its internal structure is preserved rather than re-filed; the unit under a strings directory is a resource KEY, not a document. RECIPROCAL, in the schema anchor's own terms: code must not claim a translator's .sdlxliff because it is XML, and this row must never propose re-filing anything inside a preserved repository root - at most it recognises the localisation material as a detection signal for grouping. The .po and .json entries in this row's extension list exist only to be handed back here. Provenance: inference."
+    },
+    {
+      "domain": "creative.uiux-product-design",
+      "signal": "Competing over a localised string export from a design tool - a spreadsheet of screen labels in several languages, or a board duplicated per locale. Product design owns the SCREEN and its component set; the locale variants are states of one design. This row owns the string table only when it has a governance column, a source-count price or a memory behind it - that is, when the strings are the deliverable rather than a property of the screens. RECIPROCAL: this row must not claim a design file because its artboards are named per locale, and product design must not claim a termbase because its terms appear in a UI. Provenance: inference."
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "SAME FIXTURE, and it is this row's designated collision fixture: HSK4_unit3_vocab_zh-en.xlsx. A language-learning vocabulary sheet is structurally indistinguishable from a termbase - two language columns, one-to-one rows. The discriminators are the governance column (approved-by, forbidden variant, do-not-translate) and the row ordering (by lesson for study, by term for work). RECIPROCAL: coursework must not claim a client-approved termbase because its subject is a language, and this row must not claim a study glossary, a graded translation exercise or a language-class assignment - those carry a course, an instructor and a term, and 00's academic context floor decides them. Provenance: inference."
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "SAME FIXTURE: Kaufvertrag_DE-EN_gegenueberstellend_executed.pdf. A dual-language instrument looks exactly like a parallel text and is not one: there is no source that preceded a target, both columns were executed together, and a prevailing-language clause usually says which governs. LEGAL claims it as one operative instrument. THIS ROW claims a contract only when a monolingual original exists separately and the second-language version was produced as a deliverable against it, usually with an attestation. RECIPROCAL: legal must not treat a certified translation of a contract as the instrument itself, and this row must not read a bilingual execution as a job it performed. Provenance: inference."
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "Competing over a translator's own sample pack - a curated set of source-and-target extracts assembled to win work, and over resume_JP.docx beside resume_EN.docx. The discriminating evidence is the anchor's own test, self-presentation versus making-record: a curated set of finished extracts ordered for showing, sitting beside a CV, is career; a pairing with a quote, a memory, a review table or a client behind it is this row. RECIPROCAL: career must not claim a working .sdlxliff because a sample was cut from it, and this row must not claim the holder's own bilingual CV, which has no counterparty and no source-word count. Provenance: inference."
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "SAME FIXTURE BYTES, and the most consequential boundary this row has: Yilmaz_birth_certificate_TR_scan.jpg. IDENTITY owns a civil, passport or immigration record belonging to the CORPUS OWNER or their dependants. This row sees the same bytes only when the document belongs to a CLIENT and is the working material of a certified job, evidenced by an attestation and a target rendering beside it. RECIPROCAL, and it is the safety-critical direction: this row must never claim the holder's own passport because a foreign-language original exists, and identity must not be suppressed because a translation packet encloses the scan. Where the holder is uncertain, neither activates and Protected Records is the correct destination - \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement\". Provenance: inference."
+    },
+    {
+      "domain": "creative.deliverable-handoff",
+      "signal": "Competing over Nightwork_DE_delivery_2026-06-30.zip. The handoff row owns an export set when the enclosure is the last thing anyone can see and its members are format and size variants of one stem. This row owns it when the manifest holds a bilingual working file, a review table or a source document alongside the target - that is, when the enclosure carries the CORRESPONDENCE rather than only its output. RECIPROCAL: handoff must not claim a bilingual working file as a delivery variant, and this row must not claim a plain single-language export because its stem carries a locale token. Provenance: inference."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "identity",
+      "signal": "The certified branch's legitimate double reading, on disjoint evidence: a person's name, date and place of birth and an issuing authority on one side; an attestation, a target rendering and a source-count quote on the other. \"One file may hold facts from more than one domain without losing information.\" Filed as a collision as well because the same bytes can be claimed WRONGLY - when the identity reading fires for the CORPUS OWNER's own document and a translation is merely how it arrived. The collision entry carries the discriminator; this entry carries the legitimate double reading, and in both cases the protective posture governs handling regardless of which reading is more useful for placement."
+    },
+    {
+      "domain": "medical",
+      "signal": "A translated medical report, discharge summary or clinical trial document is simultaneously a health record and the working material of a job. The evidence is disjoint - a clinician, a date of service and findings on one side; an attestation, a segment structure and a delivery on the other. Neither reading may suppress the other, and the health reading's posture is the stricter of the two, so it governs."
+    },
+    {
+      "domain": "academic",
+      "signal": "A certified translation of a diploma or a transcript is both an academic credential record and a translation deliverable, on disjoint evidence: an institution, an award and a conferral date on one side; both languages, an attestation and a source document reference on the other. It is listed here rather than as a collision because a credential's academic facts are true whichever job produced the rendering. Where the credential belongs to a client rather than the holder, the identity boundary above governs and this row must not write the credential as the holder's."
+    },
+    {
+      "domain": "legal",
+      "signal": "An attestation and a translated instrument are legally operative documents AND the record of a job. The evidence is disjoint - a signature block, a seal, a defined-terms set and a parties block on one side; the source document reference, the language pair and the delivery on the other. This row never decides validity, acceptance, notarisation, sufficiency or which language prevails."
+    },
+    {
+      "domain": "finance",
+      "signal": "A source-count quote or invoice is independently a finance record and this row's commercial anchor, on disjoint evidence: an issuer, an amount, a tax treatment and a payment state on one side; a source word count and a target locale on the other. Finance owns the financial slots; this row reads only the fact that the priced quantity is a count of a source text."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The primary fallthrough and by a wide margin, because the normal case in this world is a real-looking foreign-language document with no partner in the corpus, or a mirrored pair whose direction is unresolved. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "This row's characteristic residual and the one the creative default template does not need. A certified packet's source scan is a third party's civil, academic or medical record, and where the job around it is not established the scan must not be filed by this row at all. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A lone certified translation or attestation kept for its own sake, and a bilingual instrument with no job around it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Where the row's commonest false positive belongs: saved bilingual reference material, downloaded glossaries and study vocabulary sheets with no work around them. The clause \"does not belong to a current project\" is the exact test. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "A foreign-language article, paper or report saved to read is the single most common non-translation reason a corpus holds a document in another language, and it must land here rather than activate this row. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The transactional edge of this practice - a source-count quote, a purchase order or an agency invoice with no job register around it to hold it. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary here rather than exceptional: password-protected client deliveries, proprietary tool packages and interchange dialects no approved extractor reads. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the omission is argued rather than accidental. The genuine role split in this world is SOURCE versus TARGET, and it fails the edge's own definition twice: it is not two entity types in two roles but one text in two states, and it points at no neighbour that holds the other role - both sides live here. The anchor's client/our_firm split already covers the commissioning seam and a template repeating it would be padding. The source/target problem is recorded as NJ-TRANS-2 instead, because it is a field-shaped hole and this row may not mint keys.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The creative anchor's four reasons all apply here and a FIFTH one does not exist anywhere else in the family, which is the third leg of this row's node test. (1-4) INHERITED: unpublished work, third-party identity in paperwork, source protection, and the client's confidence. (5) THE WORKING MATERIAL IS SOMEBODY ELSE'S PROTECTED RECORD. In the certified and sworn branch the source document is routinely a passport, a birth or marriage certificate, a diploma, a court judgment, a police record or a medical report belonging to a person who is not the corpus owner, who commissioned a translation and never consented to a filing agent, let alone a model prompt. The packet holds the original scan, its rendering and an attestation naming both parties - so the sensitive content is not incidental to the work, it IS the work. Two consequences follow that the default creative template does not carry: Protected Records is a live residual for this row, and a segment-level excerpt sent for interpretation may contain a named person's civil data even when the filename is innocuous. Against all of it: \"Privacy policy must be enforced before content reaches any model or external connector.\" A sixth, weaker reason: a translation memory accumulates fragments of every document ever run through it, so one .tmx can carry sentences from unrelated clients' confidential material in a single file - which is also why it must not be treated as a project member. This row does NOT carry is_safety_domain, and it assigns no handling class; that vocabulary is P7's.",
+  "open_question": "Three. (1) NJ-TRANS-1 - THE LOCALE KEY, AND WHO MINTS IT. This row needs to say which locale a target is in and refused to propose a key, exactly as creative.ad-campaign refused and recorded NJ-ADCAMP-1, which names this row by id as a co-claimant. Three answers, three different products: (a) NO KEY - the locale stays detection evidence and never becomes a folder level, which is what this row recommends today and what keeps a directory from being named de-DE; (b) ONE SHARED KEY minted on the schema anchor and adjudicated once for creative.ad-campaign, creative.translation-project, creative.deliverable-handoff and creative.print-production together; (c) PER-ROW KEYS, which guarantees two spellings of one idea. Recorded, not resolved. Nothing was minted, and this is a decision the anchor must make - a template row may not edit the anchor, so the two should be updated together. (2) NJ-TRANS-2 - THE SOURCE/TARGET RELATION HAS NO KEY AND NO EDGE. `language` is canonical and monadic; it can record that a file is in German and cannot record that this German file is the target of that English one. Nothing in the closed edge vocabulary expresses a between-FILES relation either - collides_with, also_holds_with, file_kinds, falls_through_to and role_split are all between NODES. So the row's defining structure is currently expressible only as a detection signal and a grouping reason, never as a stored fact. Alternatives: (a) leave it as grouping only, which is sufficient for placement and loses the relation on retrieval; (b) a paired source_language/target_language key set if NJ-R1a-1 option (b) is taken, which records the direction but still not the partner; (c) treat it as a P9 relationship type alongside duplicate family and version family, which is where it structurally belongs and which is out of this row's authority entirely. This row recommends (c) and decides nothing. (3) NJ-TRANS-3 - WHETHER THE CERTIFIED BRANCH IS ONE ROW OR TWO. The literary/commercial branch and the certified/sworn branch share the pairing structure and share almost nothing else: different artefacts (a memory and a termbase versus an attestation and a scan), different counterparties (a publisher or agency versus a private individual), different residuals (Review Later versus Protected Records) and materially different privacy postures. If they were split, the certified row would arguably belong nearer identity than creative and might warrant a safety launch rather than a placeholder. They are kept together here because the pairing test is genuinely the same test and splitting would put the strictest posture on the smaller row; but the sensitivity_why above is doing the work of a second row, and that is worth Joseph's eye."
+}

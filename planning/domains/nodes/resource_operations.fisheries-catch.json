@@ -1,0 +1,485 @@
+{
+  "id": "resource_operations.fisheries-catch",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Fisheries and catch records",
+  "one_line": "The operator-side evidence chain for one fishing vessel or fleet activity: an authorised vessel or quota, a voyage or fishing operation, effort and area evidence, species-level retained or discarded catch, landing or transhipment, and the reconciliation or compliance record that connects those observations. A species name, vessel identifier, landing port, quota word, map, sales note or government licence is not sufficient without the catch-operation relation. Placeholder template: the resource_operations schema remains field-less pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a fishing logbook or electronic catch record whose labelled or structured slots join a vessel registration or IMO-like identifier, trip or voyage reference, departure or return, fishing date, gear or effort, fishing area, species, retained/discarded status, quantity and unit",
+      "a landing declaration whose own form joins the originating vessel and trip or landing reference to landing port, landing date, species, presentation, landed weight, weighing status and declaration or submission state",
+      "a transhipment declaration or event report that joins donor and receiving vessel identifiers, a trip or event reference, position or port, date/time, species and quantities transferred, and acknowledgment or submission status",
+      "a quota or entitlement ledger whose rows join one vessel, licence, quota allocation or stock/area entitlement to catch or landing uptake, remaining balance, transfer or lease event, and reporting period; a quota table without vessel or catch linkage is not enough",
+      "a vessel-monitoring or activity extract that joins a fishing vessel to timed positions, departure/arrival, gear or fishing-event markers and an accepted logbook, catch or landing reference; a vessel track alone is movement evidence, not catch fact",
+      "an observer, electronic-monitoring or inspection report whose labelled trip and vessel identifiers join gear deployment, species composition, retained/discarded observations, samples or estimated catch, and an inspection or review outcome",
+      "a catch-to-landing reconciliation that compares logbook or electronic catch by species with landing, weighing, sales-note or transport quantities and records adjustments, discrepancy reasons, approval or enforcement follow-up",
+      "a catch certificate or traceability packet that joins a product lot or consignment to an originating fishing vessel, voyage, catch area, species, quantities and landing or first-sale evidence; a certificate number or product lot alone is insufficient",
+      "a farmed-fish or aquaculture harvest register only when it explicitly joins a production unit or licensed site to harvest event, species, quantity, lot and transfer/landing status; generic aquaculture husbandry is not this capture-fisheries row",
+      "an archive manifest exposing a bounded voyage or reporting packet containing logbook, landing, quota, VMS, observer and reconciliation members; the manifest is inspected without unpacking and does not copy one member's vessel, species or period facts to every member"
+    ],
+    "needs_llm": [
+      "whether an unlabelled species-and-weight spreadsheet is a vessel catch record, a fish-market sales ledger, an aquaculture harvest, a laboratory dataset, a public statistic or a logistics consignment when headings are weak",
+      "whether a vessel and port appearing in a document are the operating vessel and landing site, a regulator's case subject, a carrier, a cited example or a customer in a sales document",
+      "whether a quota or licence file is the operator's continuing entitlement, a government issuer-side administration case, a policy publication or a broker's transaction record",
+      "whether an AIS/VMS track is tied to fishing effort and catch or is a generic vessel-movement export, and whether a time interval is a fishing operation rather than transit or anchorage",
+      "whether an observer or electronic-monitoring report records actual retained/discarded catch, a sampling estimate, a scientific survey or an enforcement allegation; the model must preserve uncertainty",
+      "whether landing, sales-note and transport quantities reconcile to the same trip and species presentation, rather than copying a nearby vessel or consignment's facts",
+      "whether a catch certificate packet is operator evidence, a buyer/importer's traceability file, a customs case or a government verification record when identical submitted bytes are held by different parties",
+      "whether OCR-poor handwritten logbook pages preserve enough vessel, trip, date, area, gear, species and quantity structure to activate, with unknown returned when the join cannot be cited",
+      "whether a screenshot of an electronic logbook or quota portal is a fisheries record or a generic web image; OCR-visible roles may support review but missing EXIF is not screenshot proof",
+      "multilingual species, gear, landing and quota forms outside the local term and authority catalogues"
+    ],
+    "never_alone": [
+      "the words fish, fishing, fisheries, catch, landing, quota, vessel, skipper, trawl, net, gear, species, discard, transhipment, port or seafood alone",
+      "a species, FAO code, stock, commodity, weight, unit or market price alone; the value may be a research sample, invoice line, cargo, public statistic or food-production record",
+      "a vessel name, registration number, IMO-like number, call sign, MMSI, licence number, trip number or quota reference outside a labelled operating role",
+      "a port, coastline, ICES area, statistical rectangle, coordinate, chart or vessel track alone; these may be navigation, tourism, environmental, engineering or public-data evidence",
+      "a quota, licence, entitlement, catch certificate or compliance word or identifier alone; government, business administration and logistics retain the same records",
+      "a quantity, landing date, fishing date, interval timestamp, species table or weighing result alone",
+      "a sales note, invoice, transport document, consignment, product lot, buyer or auction reference alone; logistics and finance may own the commercial transaction",
+      "a source_type or extension alone, including PDF, CSV, XLSX, XML, JSON, image, OCR, email, calendar, archive or opaque binary",
+      "a parent folder named Fishing, Fishery, Catch, Boats, Quota, Seafood, Landing, Marine, Vessel or Compliance alone",
+      "membership in one download, upload, email thread, portal session or archive alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "a camera photograph or screenshot with or without EXIF; absence of EXIF does not prove a screenshot and EXIF does not prove an operating catch record",
+      "a regulator, fisheries department, port authority, auction, buyer, vessel owner or processing company name alone; its role must be evidenced in the record structure"
+    ]
+  },
+  "work_types": [
+    "paper or electronic fishing logbook",
+    "electronic catch record",
+    "departure, return or end-of-fishing report",
+    "landing declaration",
+    "transhipment declaration",
+    "discards or catch-composition report",
+    "vessel-monitoring or fishing-activity extract",
+    "observer or electronic-monitoring report",
+    "quota allocation, transfer or uptake ledger",
+    "catch-to-landing or weighing reconciliation",
+    "catch certificate and traceability packet",
+    "inspection, infringement or corrective-action record tied to a trip",
+    "aquaculture harvest record where the licensed production relation is explicit"
+  ],
+  "grouping_reasons": [
+    "one vessel and voyage across departure, fishing activity, catch, VMS/AIS, return, landing and submission receipts",
+    "one species/stock and area entitlement across quota allocation, catch uptake, transfer, landing and reconciliation records",
+    "one landing or transhipment event across originating vessel, receiving vessel, declaration, weighing, transport and first-sale evidence",
+    "one catch discrepancy across logbook, landing declaration, observer or inspection record, correction and enforcement response",
+    "one traceability packet linking a landed product lot to its originating vessel, trip, area, species and quantities without treating buyer custody as operator fact",
+    "a sparse screenshot, email, calendar entry or image may join an accepted voyage or landing group without receiving vessel, trip, species, area or quantity facts; grouping does not copy labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The template is field-less because PR-6 and D1 defer resource_operations fields to R1c. Conditional on that adjudication, this situation's useful projection is operating_site or landing_context -> vessel/asset -> voyage or reporting_period -> record_type, with species/stock and entitlement as searchable evidence or optional dimensions only where a corpus genuinely needs them. This differs from the schema's broad site -> operating_authority -> output_stream -> reporting_period -> record_type proposal: a catch record is intelligible through vessel-and-voyage context, while quota and species values usually repeat across records and create one-child branches. It is not time-first; 00 says: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" No executable dimension is claimed until R1c licenses a canonical key.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".geojson",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".mp4",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Trip-2026-07-14_Electronic-Logbook.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "structured report contains vessel registration, trip reference, departure and return timestamps",
+        "repeated activity entries include gear, fishing area, species code, retained/discarded indicator, quantity and unit",
+        "submission block carries a reporting authority and transmission state"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "resource_operations fields before R1c licenses them",
+        "reporting period or voyage from the filename alone",
+        "that a submitted value is accurate, legal or accepted merely because a status field exists",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Landing-Declaration_LD-8821.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled landing declaration identifies originating vessel, landing port, landing date and declaration reference",
+        "table separates species/presentation from landed weight and unit",
+        "signature, weighing and submission sections are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the landing occurred at the named port solely from a planned form",
+        "that the vessel's licence or quota was valid",
+        "that landing weight equals catch weight without a reconciled trip chain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Quota-Uptake_Vessel-VS123_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook headers join a vessel or producer allocation to stock/area, allocated quantity, uptake, remaining quantity and transfer entries",
+        "sheets distinguish reporting period from amendment and approval metadata",
+        "some rows identify producer organisation or authority rather than the vessel operator"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that quota uptake is actual landed catch without a landing or catch link",
+        "that a stock/area token is an operating site",
+        "that the workbook is operator-held rather than authority-held",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "VMS-Track_VS123_Trip-07.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows contain vessel identity, position timestamps, latitude/longitude and movement or transmission status",
+        "file has no species, gear, catch quantity, landing or accepted trip declaration columns",
+        "a nearby logbook export has the same vessel and trip token but is a separate byte object"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "catch, species, effort or fishing activity from movement alone",
+        "that every timestamp is a fishing event",
+        "that the nearby logbook's facts belong to this file",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Observer-Trip-07_Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "report identifies vessel and trip, gear deployment observations and sampling method",
+        "tables record observed species composition, retained/discarded categories, estimated quantities and comments",
+        "review section distinguishes observation from follow-up or alleged infringement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an observer estimate is the vessel's declared catch",
+        "that an allegation is a confirmed infringement",
+        "that the report is operator-held rather than authority-held",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Catch-Record-App-Screenshot.png",
+      "source_type": "image",
+      "observations": [
+        "screen image shows a catch-record form with vessel/trip context, species rows, weights and a submitted status",
+        "image has PNG display dimensions and no reliable camera EXIF",
+        "visible interface text is partly clipped and the submission authority is not fully legible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the screenshot is authentic or that the submission reached the authority",
+        "vessel, trip, species or quantity from clipped OCR unless cited and resolved",
+        "a photo capture location or event from missing EXIF",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Signed-Catch-Logbook_Page-18_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF has no usable text layer and OCR recovers a vessel heading, handwritten date, gear notation, area, species and weights with gaps",
+        "signature and stamp regions are visible but not machine-verifiable",
+        "page number links it to a bound logbook only through the scan's own header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any vessel, trip, species or quantity where OCR is unreadable",
+        "that the signature proves the declaration's truth",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Transhipment-Declaration_VS123_to_VS455.eml",
+      "source_type": "email",
+      "observations": [
+        "native sender, recipients, sent time and subject identify a transhipment submission workflow",
+        "body and attachment manifest cite donor and receiving vessels, event reference, port/position, species and transferred quantities",
+        "the message does not itself prove that the authority accepted or verified the declaration"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "catch facts from an attachment that was not extracted",
+        "that sender identity equals vessel operator identity",
+        "that transmission equals approval",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Voyage-Catch-Packet_Trip-07.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists electronic logbook, VMS extract, landing declaration, weighing sheet, quota check and submission receipt",
+        "member names reference one trip but archive contents have not been unpacked",
+        "two members contain different vessel identifiers and require packet-level review"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "one vessel, period, species or landing for every archive member",
+        "facts from a manifest filename as if extracted from the member",
+        "that the packet is operator-held rather than submitted to an authority or buyer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fishing-Vessel-Licence-FV-2048.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "licence certificate names an issuing fisheries authority, vessel, licence conditions, validity and permitted activity",
+        "no catch event, trip, landing, quantity or species table appears",
+        "the same bytes may be retained by the operator or inside the authority's licensing case"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that fishing occurred or catch was authorised on a particular trip",
+        "operator-side entitlement from issuer letterhead alone",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fish-Transport-Document_Lot-L-771.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "transport form joins a product lot, boxes, vehicle, origin and destination with species and weights",
+        "it cites a landing declaration and originating vessel but contains no own trip log or operating catch table",
+        "seal and receipt sections concern movement after landing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that cited vessel or landing facts are extracted facts of the transport document's holder",
+        "that the quantity is catch rather than transported product weight",
+        "that a transport event is a fishing voyage",
+        "a folder path"
+      ],
+      "also_schema": "logistics",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Marine-Habitat-Survey_Transect-04.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "survey report contains a vessel name and coastal coordinates as fieldwork metadata",
+        "main tables concern benthic species observations, sampling method and habitat condition, not commercial catch or landing",
+        "no quota, vessel-trip, gear-effort or landing reconciliation exists"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "fishing activity from vessel presence",
+        "commercial species catch from species observations",
+        "a fisheries operating site from survey coordinates",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Fishing-Vessel-Engine-Maintenance-Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "work order identifies a vessel asset, engine serial, maintenance task, parts and technician sign-off",
+        "no fishing trip, catch, area, species or landing evidence appears",
+        "the vessel identifier is the only overlap with a catch packet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "catch or voyage facts from vessel identity",
+        "that maintenance date is a fishing date",
+        "that an engineering work order is a fisheries record",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.permit-licensing",
+      "signal": "SAME FIXTURE BYTES: Fishing-Vessel-Licence-FV-2048.pdf. Fisheries wins only when the licence is joined in the operator's own voyage/catch packet to a vessel, activity, entitlement use or landing; government.permit-licensing wins when the same bytes are the issuer-side application, approval, renewal, condition or enforcement case, and neither side may infer a catch event from the licence alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "SAME FIXTURE BYTES: Observer-Trip-07_Report.pdf. Fisheries wins when the report is retained as vessel-trip catch, effort, observer or discard evidence; government.environmental-regulation wins when the same bytes are a regulator's surveillance, protected-species, habitat or enforcement record, and fisheries must not turn a regulatory observation into a declared catch without the operating chain.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BYTES: Quota-Uptake_Vessel-VS123_2026.xlsx. Fisheries wins when rows reconcile an operator's vessel/stock entitlement to catch or landing uptake; business_operations.corporate-regulatory-filings wins when the same bytes are a company's submitted statutory return or filing-control record, and neither side may use the workbook's existence to prove the other custody role.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "SAME FIXTURE BYTES: Fishing-Vessel-Engine-Maintenance-Report.pdf. Fisheries wins only when the maintenance record is joined to an accepted vessel-trip or operating catch packet; engineering.drawing-package wins when the same vessel or gear bytes are controlled technical drawings, revisions or maintenance design evidence, and a vessel asset identifier alone never activates fisheries.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "SAME FIXTURE BYTES: Fish-Transport-Document_Lot-L-771.pdf. Fisheries wins when the document is part of the originating voyage/landing/catch-certificate chain and its species and quantities are reconciled to the vessel operation; logistics.shipment wins when the same bytes govern post-landing custody, vehicle, seals, destination or consignment movement, and transported product weight is not silently rewritten as catch.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Independent Records",
+    "Review Later",
+    "Protected Records",
+    "Reading Inbox",
+    "Temporary Screenshots",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Vessel identifiers, crew or skipper names, precise fishing positions, quota balances, commercially sensitive catch and landing quantities, enforcement observations and account or submission credentials may identify people, reveal activity patterns or expose regulated/commercial operations. This row assigns no handling class; P7's file-level classification and local/cloud policy remain authoritative.",
+  "open_question": "NJ-FISH-1: R1c must decide whether vessel, voyage/period, operating authority and catch/output roles can reuse the resource_operations proposals (site, operating_authority, asset, output_stream, reporting_period, record_type) or require one neutral global role. The fisheries projection wants vessel-and-voyage context, but a field-less placeholder cannot serialize it. NJ-FISH-2: Should an operator-held catch certificate that also supports a buyer/importer traceability group be coactivated through P9 only, or should a future logistics/finance template own a formal cross-schema relation? This row records the evidence and does not author also_holds_with. NJ-FISH-3: R2/R4 must settle how species codes, fishing areas and vessel identifiers are validated per deployment; no jurisdiction-specific regex or gazetteer is asserted here."
+}

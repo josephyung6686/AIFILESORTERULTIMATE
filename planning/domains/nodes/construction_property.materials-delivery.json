@@ -1,0 +1,516 @@
+{
+  "id": "construction_property.materials-delivery",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Materials ordering, delivery notes and goods received on site",
+  "one_line": "The organizational situation of PHYSICAL ARRIVAL: something was ordered for a named site, a lorry brought some of it, somebody standing in mud signed for what actually came off the back, and the difference between the three is the whole point of the file. The organizing anchor is the DELIVERY EVENT at a site on a date, which is why it is a different situation from the order that preceded it and from the invoice that follows it - a delivery note is evidence of receipt, and the shortage scrawled on it is the reason anyone keeps it. The row stands on ONE structural fingerprint that exists nowhere else in this family: a DELIVER-TO address in a labelled slot that differs from the INVOICE-TO address on the same page, ordered-against-delivered quantity columns, and a received-by signature carrying a correction made at the moment of handover. Absorbs the legacy row cons.materials-delivery (ROW). Placeholder row (J-IND/J-DEPTH): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a delivery-note structure: a delivery or advice note number, a DELIVER-TO address that differs from the invoice-to address, line items with quantities delivered - often against a separate ordered column - and a received-by signature block with a printed name and a time. The deliver-to versus invoice-to split is the discriminating shape and it exists in no other document in this family.",
+      "a goods-received or discrepancy annotation: a quantity struck through and rewritten, a shortage or damage note, or a 'received unchecked' endorsement across the signature. A document that carries a correction made at the point of handover is structurally unlike any other file here.",
+      "a proof-of-delivery capture: a photographed or scanned note, or a carrier-generated POD with a timestamp, a geolocation line and a signature image.",
+      "a purchase-order structure with a site delivery address and a requested delivery date - the ordering half of the same situation, distinguishable from a payment demand by its ORDER framing.",
+      "a waste transfer or duty-of-care note: the mirror movement off site, with a carrier registration, a waste description code and a transfer date. It is a delivery event running backwards and it files with the deliveries.",
+      "a materials schedule or take-off: quantities required by item, against which deliveries are booked in. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a product data or conformity attachment travelling with a load - a batch or heat number, a test certificate, a declaration of performance - which is kept because it evidences what was actually installed.",
+      "a delivery PACK arriving as one bundle or one email thread: the note, the photograph of the signed note, a discrepancy sheet and one or more certificates - heterogeneous in content and single in purpose. “A ZIP file named submission.zip may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague.”",
+      "a call-off or schedule release against a standing supply arrangement: a call-off reference pointing BACK at an order or a materials schedule, with a requested date and a site. It is the order half in its routine, non-competitive form, and it is the shape that separates this row's ordering evidence from a competitive procurement event."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating a delivery note from the supplier's invoice for the same load. They carry the same supplier, the same lines and often the same reference, and only one of them is a demand for payment. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "reading a handwritten shortage or damage annotation off a photographed note, where the printed lines OCR cleanly and the thing that matters does not.",
+      "deciding whether a photograph of a pallet on a pavement is delivery evidence, progress photography, or a damage claim - the same image serves all three and only context decides.",
+      "recognising a merchant's monthly statement as an accounting document rather than a delivery record, when it lists the same delivery-note numbers.",
+      "a delivery pack that is purpose-coherent and content-incoherent: a note, two certificates, a photograph and a signed sheet. “The documents are content-incoherent but purpose-coherent.”",
+      "deciding whether an ordering document is a routine site call-off (this row's ordering half), a competitively sourced purchase order (business_operations.procurement-sourcing), or a release against an executed supply agreement (business_operations.contract-administration). All three print the letters PO. Only the surrounding apparatus - a solicitation and an award, or a signed agreement reference, or a materials schedule and a site - separates them, and where none is present the model must abstain: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”"
+    ],
+    "never_alone": [
+      "a supplier's or builders' merchant's name alone. It is on the delivery note, the invoice, the statement, the catalogue and the marketing email, and a folder of merchant-named PDFs is usually accounts payable - read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "an address token alone: the deliver-to address, the invoice-to address and the letterhead address are three different things on one page.",
+      "a quantity or a unit token alone - orders, takeoffs, invoices, valuations and stock counts all carry them.",
+      "a signature image alone. A scrawl proves a handover happened, not what was in it.",
+      "a delivery-note number alone, and this is the sharpest one on the row: the same token is printed on the note, quoted on the invoice, listed on the monthly statement and typed into the goods-received sheet. It is a bridge between four different readings, and “one high-frequency entity acts as the only bridge” is a stop rule, not an activation.",
+      "a job or project reference alone. It is what makes the note THIS family's rather than logistics' - see collides_with - but it is on every document the job ever produced, so it selects the family and never the row.",
+      "a bare 4-digit number: a note number, an order number, a batch number and a postcode fragment all look like years.",
+      "membership in a download session that pulled a month of merchant paperwork at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a delivery-shaped WORD alone - ‘delivery note’, ‘POD’, ‘goods received’ - which is the exact evidence class that got construction_property.compliance-certificate refused in this family: a document-type word plus an address is constitutionally never-alone here. This row does not stand on the word; it stands on the deliver-to/invoice-to slot pair."
+    ]
+  },
+  "proposed_context_terms": [
+    "delivery note",
+    "advice note",
+    "despatch note",
+    "proof of delivery",
+    "POD",
+    "goods received",
+    "GRN",
+    "received in good condition",
+    "received unchecked",
+    "shortage",
+    "damaged in transit",
+    "deliver to",
+    "invoice to",
+    "purchase order",
+    "order number",
+    "requested delivery date",
+    "carrier",
+    "vehicle registration",
+    "pallets",
+    "batch number",
+    "heat number",
+    "declaration of performance",
+    "test certificate",
+    "waste transfer note",
+    "duty of care",
+    "take-off",
+    "materials schedule",
+    "call-off",
+    "schedule release",
+    "goods inwards",
+    "delivery ticket",
+    "weighbridge ticket",
+    "consignment note",
+    "kerbside delivery",
+    "offload",
+    "short delivered",
+    "signed for"
+  ],
+  "work_types": [
+    "delivery or advice note",
+    "signed proof of delivery",
+    "goods-received note",
+    "discrepancy, shortage or damage report",
+    "purchase order for materials",
+    "order acknowledgement",
+    "call-off against a schedule",
+    "materials take-off or schedule",
+    "batch, test or conformity certificate travelling with a load",
+    "waste transfer or duty-of-care note",
+    "delivery photograph",
+    "merchant statement (boundary case, usually not this row)",
+    "weighbridge or ticketed bulk delivery record",
+    "collection note for a trade-counter collection",
+    "fuel delivery note for site plant",
+    "carrier proof-of-delivery export (boundary case; see logistics)"
+  ],
+  "grouping_reasons": [
+    "one delivery event: the note, the photograph taken of it, the discrepancy report and any certificates that came with the load - joined by a site, a date and a note number rather than by content.",
+    "one order across its part-deliveries, which is the reason the situation exists at all: a single order arrives in four loads over three weeks and only the set shows whether it all came.",
+    "one site's deliveries over the life of a job, which is a running record and the thing a shortage argument is reconstructed from.",
+    "a note and the invoice that quotes it - a real reason to join files, and the one most likely to tempt a delivery fact onto an unrelated invoice from the same merchant. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: an isolated signed note for a one-off collection is a standalone record.",
+    "a supplier's name is NOT a grouping reason on this row, and it is the most tempting one: “It should not form a supported group when there is no valid anchor, when the graph is connected only by embeddings, when one high-frequency entity acts as the only bridge”. The valid anchors here are the note number, the order and the site - never the merchant."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the SITE or job, then the order, then the delivery date. Stated against the family default (site/property -> instruction -> document function) so a reader can check the difference honestly: the first level is the same, the second is arguably the same if an order counts as an instruction, and the THIRD is where this row departs - the family puts document function last, and this row puts the DELIVERY EVENT last, because the leaf of a delivery record is an arrival, not a genre. That is a real but modest difference, and this row does NOT rest its node test on it - see the memo, where leg 2 is conceded as weak and the row is carried by legs 1 and 3. Supplier must sit below site rather than above it: a merchant-first tree scatters one job's deliveries across five merchants and hides the only question anyone asks of these files, which is whether everything ordered for this job actually arrived. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a delivery note is unintelligible without knowing which site it landed at. Not time-first at the top: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - though a delivery date is the natural leaf, because within one order the event IS the date. Privacy caveat specific to this row: delivery notes name the individuals who signed for goods and carry site addresses and, on carrier PODs, geolocation - none of which should become a destination dimension or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "DN-448120 - Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a delivery note number and a despatch date",
+        "a deliver-to site address different from the invoice-to address",
+        "ordered and delivered quantity columns that do not match on two lines",
+        "a received-by signature block with a printed name and a time"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "the signer's name as a destination dimension: authorship and custody are never destinations",
+        "that the ordered quantity was received - the mismatch is the record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "IMG_1148.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF names a phone camera, a capture time and a GPS position",
+        "the frame is a photographed delivery note held against a van door",
+        "a handwritten '2 pallets short' across the lines",
+        "no OCR run yet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a shortage as a fact before OCR - the annotation is an observation and “must not mistake the absence of EXIF for proof that an image is a screenshot.”",
+        "a location fact as a destination dimension from GPS",
+        "that a capture-metadata file is therefore the photos situation: “EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Scan_GRN_week14.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned goods-received sheet with several note numbers listed",
+        "ticks, initials and two struck-through quantities",
+        "a week number written at the top",
+        "OCR recovers the numbers and mangles the initials"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "initials expanded into a person",
+        "quantities as validated facts from OCR of handwriting",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PO-3391 - timber package.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled purchase-order number and an order date",
+        "a site delivery address and a requested delivery date",
+        "line items with quantities and unit prices",
+        "an authorised-by line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that an order is a delivery: nothing has arrived, and the order half of this situation must not be read as receipt evidence",
+        "that an order is a payment - business_operations.procurement-sourcing and finance.small-business-bookkeeping own the two neighbouring readings",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Jewson statement - March.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an account number and a statement period",
+        "a list of invoice numbers with amounts and a balance",
+        "delivery-note references quoted against some lines",
+        "payment instructions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a merchant account statement is an accounting document even though it quotes delivery notes - the collision fixture, owned by finance.small-business-bookkeeping",
+        "a delivery fact copied onto it because it quotes a note number - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Waste transfer note - 12 Mar.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a carrier registration and a waste description with a code",
+        "a transfer date and both parties' signatures",
+        "a site of production and a destination facility",
+        "a duty-of-care declaration"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a statutory duty-of-care record is only a movement note - it is also a compliance record and construction_property.compliance-certificate is a live neighbour",
+        "a facility address as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DoP - steel batch 8841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a declaration of performance with a product identifier",
+        "a batch or heat number",
+        "a standard reference and a manufacturer's signature",
+        "no site, no date of delivery"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a site fact: this certificate travelled with a load and names no site at all",
+        "that it belongs to this row rather than to construction_property.compliance-certificate - it is kept because it evidences what was installed, and the two rows genuinely share it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "deliveries_marsh_lane.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing thirty photographed notes and one spreadsheet",
+        "mixed member types and inconsistent naming",
+        "no readable top-level document",
+        "a folder name carrying a site"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a site fact for every member from the archive name - members are extracted as their own files and some of them are other sites' notes filed in the wrong place",
+        "a single domain for the whole archive from its manifest",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Materials take-off - first fix.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "items with required quantities and a delivered-to-date column",
+        "a shortfall column with formulas",
+        "a tab per floor",
+        "no supplier, no dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a delivery event: a take-off records what was needed and booked in, not what a lorry brought",
+        "that a shortfall figure is a claim - construction_property.variation-claim owns the argument, this row owns the record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "POD_export_2026-03.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per consignment with a waybill reference and a carrier depot code",
+        "a delivered-at timestamp, a latitude/longitude pair and a signatory surname",
+        "a service level and a transport leg",
+        "no site name, no job reference, no line items"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row: this is the OUTBOUND collision fixture and it belongs on the logistics side of the site gate - a carrier's own network record, keyed on consignments rather than on a job",
+        "a site fact from a coordinate pair - geolocation is protected material, not a destination dimension",
+        "that a signatory surname identifies a person on the project",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fuel delivery - red diesel - 950L.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a delivery note with a volume, a temperature-corrected quantity and a tank reference",
+        "a site delivery address and a driver signature",
+        "a duty declaration for rebated fuel",
+        "no line items beyond the one product"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that it is plant-hire's because the fuel is for site plant - construction_property.plant-hire explicitly routes this file HERE, and this row accepts the routing rather than contradicting it",
+        "a machine identity from a tank reference",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RE_ Marsh Lane - blockwork call-off wk16.eml",
+      "source_type": "email",
+      "observations": [
+        "a thread releasing quantities against an existing schedule",
+        "a requested delivery date and a site contact's mobile number",
+        "an attached PDF acknowledgement",
+        "no solicitation, no award, no competition anywhere in the thread"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a procurement EVENT: there is no competition, which is precisely the discriminator business_operations.procurement-sourcing states for its own row",
+        "a delivery: a release is a request, and nothing has arrived",
+        "the site contact's mobile number as anything but protected material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The sharpest collision: the delivery note and the supplier invoice for the same load carry the same merchant, the same lines and often the same reference. The discriminating evidence: a deliver-to address distinct from an invoice-to address, quantity columns, and a received-by signature supports this row; an invoice number, tax treatment, payment terms and a statement balance supports bookkeeping. A merchant name alone discriminates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The ordering half overlaps that row's purchase-order half exactly, and both are authored to include POs. The discriminating evidence: a bounded competitive event with a solicitation reference, responses and an award supports the sourcing row; a routine site call-off against a materials schedule, and above all the ARRIVAL evidence, supports this row. Reciprocal to the open_question that row already carries about where POs belong.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "Trade counter ordering and stock replenishment use the same order and delivery-note shapes at high volume. The discriminating evidence: replenishment against a catalogue and a stockroom supports the retail row; delivery to a named site for a specific job supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "The row's most serious challenge, and the schema anchor has already ruled on it: construction_property stops at the SITE GATE. The anchor's reciprocal table states it in both directions - this schema must not take the carrier, route, fleet and warehouse (everything before the site gate), and logistics must not take a delivery note keyed to a plot and a job reference and signed by a site manager. This row adopts that line unchanged and adds the fixture bytes: POD_export_2026-03.csv (a carrier's consignment-keyed network record) is logistics'; DN-448120 - Marsh Lane.pdf (a job-keyed note with a received-by signature and a shortage annotation) is this row's; and a single carrier POD for a merchant delivery to a site is the file that genuinely sits on the gate and should be retrievable from both. Discriminator, stated so the unwritten schema's author can disagree explicitly: the KEY. A consignment or waybill reference keys the logistics reading; a job, plot or site reference keys this one. Authored one-way; the reciprocal is owed.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "signal": "Conformity declarations, batch certificates and waste transfer notes travel with loads and are also statutory records. The discriminating evidence: a regime, an inspection and a validity period supports the certificate row; arrival at a site on a date supports this row. This one is a genuine shared file rather than a mistake, and both rows should retrieve it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.plant-hire",
+      "signal": "A machine delivered to site arrives on a note that looks like a materials delivery. The discriminating evidence: an asset identity with an on-hire and off-hire period supports the plant row; consumed materials with quantities supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "Shortage and damage records become the substantiation of a claim. The discriminating evidence: an assertion of entitlement with a narrative and a cost consequence supports the claim row; the contemporaneous record of what arrived supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "signal": "A photograph of a pallet on site is delivery evidence in one folder and progress photography in another - the same bytes. The discriminating evidence: a photographed DOCUMENT, or an image whose accepted group is a delivery event, supports this row; an image of the state of the works supports the progress row. Stated reciprocally.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "ADDED ON DEEPENING, and it is the edge this row most owed, because the standing charge against this row is that receiving goods is merely a work_type step of building. The branch-root sibling already answers it from its own side, listing plant hire and materials delivery notes as belonging to plant-hire and to this row and noting that they appear in its own file only as residual examples. The discriminating evidence: a head-contract reference, a works measurement or a valuation cycle supports the project row; a deliver-to/invoice-to slot pair with received quantities supports this row. Reciprocal and non-contradicting.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "ADDED ON DEEPENING. That row carries PO-2026-0331.pdf as, in its own words, procurement's output, this row's call-off evidence, and an accounting document at once - where 'this row' is contract-administration. A site call-off against a materials schedule is a FOURTH reading of the same shape. The discriminating evidence: a reference pointing BACK at an executed agreement supports contract-administration; a release against a materials schedule for a named site, and above all the arrival evidence that follows it, supports this row. Named so the four-way is visible rather than quietly resolved.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "ADDED ON DEEPENING; the schema id is unwritten, so no row id is asserted. The schema anchor draws this seam already: construction_property holds the article's installation and approval at a named site, not its making. The discriminating evidence: a works order, a production batch record and a factory quality regime with no site anywhere on the page is manufacturing's; the same batch or heat number appearing on a certificate that travelled with a load to a named site is shared, and both should retrieve it. Authored one-way, and the reciprocal is owed.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-diary",
+      "signal": "ADDED ON DEEPENING, thin but real: a diary entry records that four loads of blockwork arrived, and a delivery note records what was in one of them. The discriminating evidence: a dated narrative of a day covering weather, labour and events supports the diary; a per-consignment document with quantities and a receipt signature supports this row. Neither should copy the other's facts across; the diary is corroboration, not evidence of a quantity.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The primary residual for this row, and it fits it better than any other in the family: an isolated delivery note or order confirmation with no accepted group is exactly this. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone certificate, waste transfer note or order that has a durable purpose but no delivery group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The correct home for a lone photographed note or pallet with no accepted delivery group - it is an image with no event association, not a document. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a scanned goods-received sheet whose numbers OCR badly, or a take-off whose job is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an unreadable carrier export or a damaged archive of photographed notes. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Delivery paperwork is mundane and still carries three things that are not: the printed names and signatures of the individuals who received goods, the site address (which for domestic work is a private person's home), and, on carrier proofs of delivery and on phone photographs of notes, precise geolocation. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and GPS metadata is on that list by name. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether the ORDER belongs in this row at all. The roster hint says the paper trail between a purchase order and a site, and that is how a site keeps it - the order and the note are compared to each other or neither is worth keeping. But business_operations.procurement-sourcing was authored to hold purchase orders, and carries its own open question about whether POs belong to the event or to the money. Three rows therefore have a claim on one document type, and the honest answer is that a construction site's call-off against a materials schedule is a different animal from a competitively sourced purchase order even though both print the letters PO. Where that line falls is Joseph's. Recorded reciprocally so the question is visible from either side. SECOND OPEN QUESTION, added on deepening: whether the LOGISTICS seam should be drawn on the key (consignment reference versus job reference, as this row and the schema anchor propose) or on custody (whoever holds the file). The key test is checkable from the bytes and is therefore preferred here; the custody test matches how a haulier and a site manager each experience the same document, and would put the carrier's copy and the site's copy of one POD in different families, which is arguably correct and arguably a duplicate-family problem. Recorded because the logistics schema is not yet written and its author must be able to disagree with a stated line rather than discover an assumed one."
+}

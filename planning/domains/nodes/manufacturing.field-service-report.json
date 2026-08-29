@@ -1,0 +1,499 @@
+{
+  "id": "manufacturing.field-service-report",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Field service reports",
+  "one_line": "The servicing party's record of work performed on someone else's installed equipment: a dispatched or contracted visit to a customer's site, closed by a description of work carried out, parts used, labour and travel time, an entitlement or chargeability position, an outcome status for the unit, and the customer's acceptance. Its anchor is not the word service and not an industry: it is a visit to a third party's serialised installed unit under an entitlement, held by the party who performed the work rather than by the party who operates the machine.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The manufacturing schema declares no field rows (PR-6; D1's deferral stands), so nothing here writes a domain fact. Detection exists so this material is recognised, kept under this row's sensitivity, and offered honestly for review. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "THE FINGERPRINT — the service-call closure structure, which is the one structure this row's node test rests on: a single call, visit or job reference; a CUSTOMER block naming an organisation or household that is NOT the holder, with that party's site address; a serialised or model-identified unit belonging to that party; an on-site time record (arrival and departure, or attendance hours plus travel); a DESCRIPTION OF WORK CARRIED OUT; PARTS USED with quantities; LABOUR TIME; an outcome status for the unit (returned to service, awaiting parts, follow-up required, no fault found); and a customer acceptance slot at the foot. The conjunction is the signal. No single member of it fires, and the words field service, service report or engineer never fire at all.",
+      "THE ENTITLEMENT STRUCTURE, which is this row's discriminator against an internally dispatched maintenance job: a contract, service agreement, service-level or warranty-coverage reference on the report, together with a covered-versus-chargeable split applied to labour, parts or travel. An internally dispatched job carries a cost centre, a requestor and an internal approver in that position instead. Coverage is READ from the slot and never CONCLUDED from a unit being recent, from the word warranty, or from a zero total.",
+      "A VISIT SEQUENCE ON ONE UNIT: two or more closure reports carrying the same unit serial at the same customer, distinguished by visit date and often by a contract counter (visit 2 of 4, PM3, annual). One in-service unit accumulating a maintained history in the holder's corpus is stronger evidence than any single report, and it is what distinguishes a service business's records from an isolated repair document.",
+      "THE MANY-CUSTOMER CORPUS SHAPE: one field-service-management application's generator footer, form layout and reference series stamped identically across reports addressed to MANY different customers at many different addresses. The holder is the common party across all of them and appears in the letterhead rather than the customer block. \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\"",
+      "A SCHEDULED CONTRACT-VISIT CHECKLIST: a task-by-task sheet with performed/not-performed marks, recorded readings, consumables replaced and an engineer signoff, bound to a named customer and unit and to a periodic visit slot rather than to a fault. This is the planned half of the same situation; a schedule of visits not yet performed is not this row.",
+      "A DISPATCH THREAD: an email whose labelled subject names a customer and a unit or fault and whose body assigns an engineer and an attendance window, with a completion report or signed sheet attached. Mail metadata alone is never enough; the labelled customer plus unit plus attendance assignment is what fires.",
+      "AN OCR-SURVIVING PAPER JOB SHEET: a scanned or photographed carbon-copy pad page where the three-block layout — work carried out, parts used, hours — and the signature footer survive visually even where handwritten labels do not.",
+      "AN ARCHIVE whose manifest binds a closure report, on-site photographs, a signed acceptance sheet and a parts slip to ONE call reference. The archive is inspected through its manifest without being unpacked to disk, and facts are not taken from unread members.",
+      "A PARTS-CONSUMPTION SLIP charged to a call reference with no stock balance of its own: quantities issued from van or boot stock against one job. A sheet that reconciles an on-hand position instead is a stores record, not this row."
+    ],
+    "needs_llm": [
+      "a report whose letterhead and customer block name the same corporate group — an in-house service company servicing sister plants — where vendor role and operator role are genuinely both true and the file may need to abstain rather than pick",
+      "a domestic single-appliance service sheet that is equally a trade's job sheet at a property: a serial and a home address both present, with no contract reference to break the tie",
+      "an unlabelled engineer's notebook or day-book page whose entries could be visits, internal maintenance tasks, or a personal to-do list",
+      "a checklist with recorded readings but no customer block, which may be a contract visit or the holder's own preventive maintenance",
+      "a multilingual field-service-management export whose slot labels are absent from the deterministic context catalogue",
+      "a no-fault-found attendance record, which may be a service visit, a warranty inspection preceding a claim, or a sales survey",
+      "a report that both closes a repair and recommends a permanent design or retrofit change, where the engineering role is asserted in prose rather than in a controlled change structure"
+    ],
+    "never_alone": [
+      "the words field service, service report, service visit, call-out, engineer, technician, attendance or site visit alone",
+      "a customer name, trading name, organisation name, customer address, household address or postcode alone — an organisation name is never-alone evidence and this row's subject is by definition somebody else's name",
+      "a serial number, model number, asset tag, call number, job number or reference-series token outside a labelled role slot",
+      "a CAPTURED SIGNATURE IMAGE alone. This is stated explicitly because it is the most tempting false discriminator in this neighbourhood: construction_property.trade-job withdrew the same claim, and construction_property.materials-delivery carries a received-by signature block for entirely different bytes. A signature proves that somebody accepted something, not what was accepted or by whom it was performed",
+      "an entitlement, warranty or contract WORD alone, and coverage must never be inferred from a unit's age, a zero total, or the absence of a price",
+      "an engineer's or technician's personal name alone; a named individual is a search and privacy observation and never a destination dimension",
+      "a source_type or extension alone; PDFs, spreadsheets, images, mail, calendars and archives occur in every neighbouring row",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "a parent folder called Service, Jobs, Customers, Field, Calls or Sites alone",
+      "missing EXIF as proof that an on-site photograph is a screenshot",
+      "an invoice, quotation or payment confirmation for a service call alone; that is a transaction record until a performed-work closure structure independently appears",
+      "a service manual, spare-parts catalogue or technical bulletin alone; instructions describe how a machine is serviced and evidence no visit at all"
+    ]
+  },
+  "proposed_context_terms": [
+    "work carried out",
+    "parts used",
+    "labour hours",
+    "travel time",
+    "on site",
+    "arrival time",
+    "departure time",
+    "call out",
+    "breakdown attendance",
+    "planned maintenance visit",
+    "visit number",
+    "service contract",
+    "under contract",
+    "chargeable",
+    "covered",
+    "no fault found",
+    "returned to service",
+    "awaiting parts",
+    "follow up visit required",
+    "customer signature",
+    "engineer signature",
+    "unit serial",
+    "installed at",
+    "recommendations"
+  ],
+  "work_types": [
+    "unplanned breakdown or corrective call-out closure report",
+    "scheduled or contracted preventive-maintenance visit report",
+    "inspection, condition survey or health-check visit at a customer site",
+    "modification, retrofit, upgrade or field-change execution record",
+    "no-fault-found or advisory attendance record",
+    "parts-used or van-stock consumption slip charged to a call",
+    "engineer attendance, labour and travel record against a call",
+    "customer acceptance, handover or satisfaction signoff for a visit",
+    "follow-up or return-visit request raised at closure",
+    "remote diagnostic or telephone-support record preceding an attendance",
+    "service-contract schedule of visits for one customer or unit"
+  ],
+  "grouping_reasons": [
+    "one service call across its closure report, on-site photographs, signed acceptance sheet, parts slip and the invoice raised from it",
+    "one installed unit across every visit in its service life, including across a change of address when the unit is relocated or leased on",
+    "one customer or service contract across the units it covers and the visits performed under it",
+    "one engineer's working day across several unrelated calls — a CONTAINER and never a subject; customer, unit and entitlement facts must not propagate between calls that merely share a day, a van or a route",
+    "duplicate and version families remain universal facts and never manufacture customer, unit, contract or coverage facts by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract because the manufacturing schema declares no canonical fields. The recommendation held as prose is customer, then installed unit, then the visit — and the important thing about it is that it is NOT a reordering of the schema default, it is a different first level. The manufacturing default recommends product then batch/lot then record type for production and quality records, and site then asset then record type for maintenance and calibration. Neither can be used here: there is no lot because the holder made nothing, and the schema's `site` is expressly the facility that PERFORMS production, which the holder does not have in these files — the only site present belongs to a third party. The natural top level is the canonical `client` key (role: \"the counterparty organization an engagement serves\", aliases include customer, destination_eligible), which the manufacturing schema does not currently carry; the second level reuses the schema's proposed `asset` in a different holder role, and the leaf reuses the sibling's proposed `work_order`. \"The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child\" — a visit report is unintelligible without the unit, and one customer's unit serials are only unique within that customer. Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Stated honestly, the leaf is nearly time-primary in practice, because visits on one unit are distinguished mainly by date; that is a leaf ordering and not a claim that the corpus is capture-based media. The user may reverse, flatten or decline any of this after R1c rules on fields.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "eml",
+      "ics",
+      "xml",
+      "json",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "SR-4471 Service Report - Acme Plant 2 - press PR-330 SN 88214.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "holder's letterhead at the head and a separate labelled Customer block naming Acme with the customer's site address",
+        "labelled unit model and serial slots",
+        "arrival and departure times, work carried out, parts used and labour hours blocks",
+        "service-contract reference with a covered/chargeable split",
+        "customer acceptance signature at the foot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "client (canonical, reuse recommended to R1c)",
+        "asset (schema proposal, vendor holder role)",
+        "work_order (sibling proposal, reuse)"
+      ],
+      "must_not_conclude": [
+        "that the customer's site is the holder's `site`",
+        "that coverage applied because a contract is referenced",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FS-20416 call closure - arrival 08-12 departure 11-40.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "single call reference repeated in header and footer",
+        "attendance and travel times itemised separately",
+        "parts issued from van stock with quantities and no stock balance",
+        "outcome status slot reads awaiting parts, follow-up visit required"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "work_order (sibling proposal, reuse)"
+      ],
+      "must_not_conclude": [
+        "that the unit was returned to service",
+        "a repair cost from a labour rate",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Contract PM visit 2 of 4 - chiller CH-02 - checklist.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "task rows with performed/not-performed marks and recorded readings",
+        "labelled customer and unit header",
+        "visit counter tied to a periodic contract rather than to a fault",
+        "engineer signoff row"
+      ],
+      "facts_legal": [
+        "file_type",
+        "client (canonical, reuse recommended)",
+        "asset (schema proposal, vendor holder role)"
+      ],
+      "must_not_conclude": [
+        "that the remaining two visits occurred",
+        "a calibration result from a recorded reading",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Field service report signed - scan 0043.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "photographed carbon-copy pad page",
+        "three-block layout for work carried out, parts and hours survives visually",
+        "signature footer present; handwritten slot labels largely illegible",
+        "customer name legible in print at the head, serial not legible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "client (canonical, possible only)"
+      ],
+      "must_not_conclude": [
+        "a unit serial that cannot be read",
+        "that acceptance was given because a mark appears in the signature box",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Chiller down at Meridian Tower - engineer attending today.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject names a customer and a failed unit",
+        "body assigns a named engineer and an attendance window",
+        "closure report attached as PDF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "client (canonical, reuse recommended)"
+      ],
+      "must_not_conclude": [
+        "the engineer's name as a destination dimension",
+        "that the fault was rectified because a report is attached",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Engineer schedule week 34.ics",
+      "source_type": "calendar",
+      "observations": [
+        "several same-day events whose SUMMARY carries a customer name and an address",
+        "durations are attendance slots rather than periods",
+        "no unit serial, no work-carried-out text"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that any visit took place",
+        "that calls sharing a day share a customer or a unit",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_3120.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a failed bearing on a shop floor",
+        "EXIF capture time and camera data, GPS present",
+        "no legible label, serial, asset tag or customer marker in frame"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates",
+        "location where Photos activates (CAPTURE role, never the customer's site as a subject fact)"
+      ],
+      "must_not_conclude": [
+        "customer, unit or call from visual appearance",
+        "the customer's site identity from GPS",
+        "that missing GPS would mean screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Visit pack FS-20416.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a closure report, four site photographs, a signed acceptance sheet and a parts slip sharing one call reference",
+        "mixed PDF, JPG and CSV members",
+        "archive itself carries no labelled slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "work_order (sibling proposal, possible from manifest only)"
+      ],
+      "must_not_conclude": [
+        "facts from unread members",
+        "that the photographs depict the unit named in the report",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Boiler service - 14 Elm Road - ecoTEC serial 0020188.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a residential address block and a named private individual",
+        "an appliance model and serial",
+        "work carried out, parts used and labour recorded",
+        "trade body membership logo in the footer; no service-contract or entitlement reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row from an appliance serial alone",
+        "a service contract because a manufacturer's brand appears",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Installation and Commissioning Report - chiller CH-02 - Tower B.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an engineer at a customer site, a unit serial, recorded tests and a customer signature — superficially identical to this row's fixture",
+        "setpoints against a specification, a witness-test column and a taking-over or handover statement",
+        "one-time event, filed as a member of an operation-and-maintenance handover pack",
+        "no fault, no entitlement position, no prior visit"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row from a signed on-site test sheet",
+        "an in-service unit history from a first acceptance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WO-8814 CNC-07 spindle alarm.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled work-order and equipment fields",
+        "internal requestor and cost-centre fields; no customer block and no entitlement reference",
+        "returned-to-service status approved by the holder's own maintenance supervisor"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row from a work-performed structure alone",
+        "a customer from an internal cost centre",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Invoice INV-9912 - service call FS-20416.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bill-to block, line items for labour, parts and travel, a total and payment terms",
+        "call reference quoted as a line-item narrative",
+        "no work-carried-out text, no arrival or departure time, no acceptance signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row from a quoted call reference",
+        "that the work described was performed as billed",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Site access - Meridian Tower plant room - alarm and key holder.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "customer premises named",
+        "plant-room access route, alarm procedure and key-holder contact details",
+        "kept alongside the visit pack because engineers need it to attend"
+      ],
+      "facts_legal": [
+        "file_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a service record because it sits in a visit folder",
+        "named key holders as folder dimensions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Service report SR-4471 - press at Acme Plant 2.pdf' — identical bytes, and that row's own phrasing of this seam is adopted rather than re-authored. THIS ROW owns the file when the holder is the SERVICING VENDOR and the machine belongs to somebody else: a customer block distinct from the letterhead, a contract/warranty/entitlement reference, a covered-versus-chargeable split, and a CUSTOMER acceptance signature. THAT ROW owns it when the holder OPERATES the machine and dispatched the job through its own maintenance function: an internal requestor, a cost centre, a plant location, and a returned-to-service approval signed by the holder. Discriminated by WHOSE SIGNATURE ACCEPTS the work and whether an entitlement position or a cost centre occupies the chargeability slot; a work-performed triple discriminates nothing and appears on both sides. Where the accepting party is unreadable the file goes to Review Later rather than being assigned by guess.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.warranty-claim",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Service Visit SV-4881 - AX410 leak.pdf', which can carry a customer's failure allegation, a serial, a diagnosis and parts replaced. THIS ROW owns PERFORMED WORK AT THE INSTALLED UNIT: attendance times, technician, work carried out, parts and labour, and a returned-to-service outcome recorded where the machine stands. THAT ROW owns ENTITLEMENT AND CLAIM DISPOSITION plus the return-and-investigation chain, where the unit or part travels back and a settlement is decided. Discriminated by whether the document CLOSES A VISIT or ADJUDICATES A CLAIM: a coverage reference on a closure report is a billing position, not a claim. RECIPROCAL: this row must not infer warranty coverage from a repair visit, and that row must not claim a service report merely because the repaired unit may still be under warranty.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.trade-job",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Boiler service - 14 Elm Road - ecoTEC serial 0020188.pdf' — a domestic appliance service sheet carrying BOTH a unit serial and a property address, produced by the same class of mobile job-sheet software. That row already authored this seam and its discriminator is adopted: an asset serial, an equipment model and a service contract support this row; a domestic or commercial property address and a trade support that row. NARROWED HERE, because on the shared fixture both halves are present: this row CEDES single-appliance work at a dwelling to that row and keeps the file only when the SUBJECT IS THE UNIT RATHER THAN THE PREMISES — a unit with a visit history that persists across a change of address (leased, relocated, or replaced in place), under a named service contract with a manufacturer or specialist servicer. A captured signature discriminates nothing and is never-alone on both sides. Where neither the unit history nor a contract is evidenced, the property wins.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Jobs 2026.xlsx', a service business's dispatch and job tracker — one row per call, with customer, engineer, date, status and value columns. BUSINESS_OPERATIONS owns it as the operating administration of a small company: a workload, a pipeline, a revenue position, a scheduling board. THIS ROW owns the individual closure record it points at, because that record evidences work performed on a specific third party's specific unit. Discriminated by whether the file is a REGISTER OF MANY JOBS with status and money columns, or the CLOSURE OF ONE JOB with a work-carried-out narrative and an acceptance; a tracker never acquires unit or entitlement facts from the reports it lists. Same seam as the customer contact export, which is a contacts corpus and not a service history.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Parts to site FS-20416.pdf' — a part number, a quantity and a customer address on both sides. LOGISTICS owns custody movement: a ship-to that differs from the bill-to, a carrier and tracking reference, a dispatch or delivery date and a received-by acknowledgement for the CONSIGNMENT. THIS ROW owns consumption at the machine: the same part recorded as fitted during an attendance, charged to a call, with no balance and no carrier. Discriminated by whether the document closes a MOVEMENT or records a FITMENT; a courier note for a spare part is logistics evidence even when the address is the same customer site the engineer attended.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "signal": "SAME FIXTURE BOTH SIDES: a field-modification instruction and the report of its execution — 'Field change FCO-118 - PR-330 guard interlock.pdf'. ENGINEERING owns the controlled instruction and its design authority: affected item, current and new revision, rationale, approvals and effectivity across the fleet. THIS ROW owns the single attendance at which the modification was carried out on one customer's unit: which serial, on what date, by whom, with what parts, accepted by whom. Discriminated by whether the document AUTHORISES a change across a population or RECORDS its performance at one installation; a report that recommends a design change in free text has not become an engineering change.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone visit report, checklist or acceptance sheet with durable purpose but insufficient customer-versus-holder role evidence, or no entitlement and no unit history, remains an independent record rather than being forced into a service history.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An invoice, quotation, card-payment confirmation or booking acknowledgement for a call proves a transaction and not performed work; it belongs in the receipt residual until a closure structure independently appears.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor job sheet, an in-house-service-company report where vendor and operator roles are both true, or a domestic appliance sheet contested with construction_property.trade-job should abstain rather than invent a customer, a unit or a coverage position.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "An on-site photograph with no legible unit, customer or call marker in its own evidence is an image; it may join a call's candidate group without receiving that call's facts.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "An access, alarm, key-holder or credential document kept alongside a visit pack so engineers can attend is a third party's premises-security record. It routes here rather than being previewed or treated as a service record because it happens to sit in a call folder.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An unreadable field-service-management export or a password-protected visit pack can be represented without inferring a customer or a unit from its filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "why": "Reciprocating the role split that row already authored, in the same terms and on the same handles. The same entity type — one job performed on one machine — split by HOLDER ROLE rather than by content, keyed on the same proposed `asset` and `work_order`. THIS SIDE holds the job as the SERVICING VENDOR files it: raised against a customer entitlement, performed on a third party's unit, closed by the customer's acceptance signature. THAT SIDE holds the same job as the asset OPERATOR files it: dispatched by the operator's own maintenance function against a cost centre, closed by the operator's returned-to-service approval. Shared fixture bytes: 'Service report SR-4471 - press at Acme Plant 2.pdf'. A vendor and an operator may each hold a copy of one visit, and neither copy should acquire the other's cost centre, contract or customer facts.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's exposure differs from the manufacturing schema default in WHOSE data it is, not merely in degree, and that inversion is the third leg of its node test. The default's sensitivity_why protects the holder's own commercial secrets — recipes, tolerances, yields, plant layouts — plus the holder's named workers. Here almost every fact in the corpus is about SOMEONE ELSE and the holder is only the custodian: a register of other parties' premises, their equipment, their fault and downtime histories, and frequently their access routes, alarm procedures and key-holder contacts. At volume that corpus functions as an access map to buildings the holder does not own, which is a different privacy object from a plant record, and the exposed parties cannot consent because they are not the user. Where the customers are households it additionally carries a private individual's home address, a captured signature image and a description of what is broken inside their home; 00 names the categories the moment they appear, a corpus that \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\". The holder's own field engineers are separately exposed: attendance times, travel and GPS-tagged site photographs make the corpus a movement record about named individuals. STATED HONESTLY: against the sibling manufacturing.maintenance-work-order this leg is weaker than against the schema default, because that row already named third-party service data in one clause of its own posture; the distinguishing part that survives is that for this row the third party is not one clause but the entire subject. This row assigns only the catalogue value potentially_sensitive; handling classes are P7's and none is set here. \"Privacy policy must be enforced before content reaches any model or external connector.\" Customer, occupier, key-holder and engineer names remain search and privacy observations and never destination dimensions, and an access- or credential-bearing member of a visit pack routes to Protected Records rather than being previewed.",
+  "open_question": "NJ-FSR-1: the canonical `client` key is destination_eligible with role \"the counterparty organization an engagement serves\" and aliases including customer, but the manufacturing schema proposes no such key and its `site` is expressly the facility that performs production. This row's recommended top dimension therefore has no home. R1c should either widen `client` onto manufacturing, or rule that a servicing corpus cannot have a customer level and must file by unit alone. NJ-FSR-2: the schema's proposed `asset` assumes the holder maintains or calibrates its own equipment; here the asset belongs to a third party and its serial is unique only within a manufacturer's series, not within the holder's corpus. R1c should decide whether the holder-role distinction on `asset` is a canonical role split or a per-row note. NJ-FSR-3: construction_property.trade-job's own open_question names the condition under which it falls — if its work-performed structure is conceded to this row. This memo declines that concession and cedes single-appliance work at a dwelling to that row instead, but the two rows cannot both be right about the boiler fixture and only R1c can settle which subject, unit or premises, governs. NJ-FSR-4: whether a chargeability or coverage position may ever be extracted at all, given that it is a commercial CONCLUSION read from a slot that the servicing party filled in its own interest; this row currently treats it as a detection structure only and proposes no field."
+}

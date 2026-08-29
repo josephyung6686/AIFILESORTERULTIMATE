@@ -1,0 +1,133 @@
+{
+  "id": "business_operations.user-research",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "User and customer research - REFUSED",
+  "one_line": "REFUSED. Interviews, usability sessions, diary studies and surveys are research methods and work types; users and customers are participant values. Their files belong to the business_operations default, a more specific existing situation, or a residual/protected home.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three template legs. Detection: guides, consent forms, transcripts, survey exports and findings decks identify methods or artifact shapes, not product user research; the same structures occur in academic, workforce, market, sales, support and meeting contexts. Product, user, customer, participant and research labels are values or never-alone business vocabulary. Delete those labels and document-type words and no unique structure remains. Dimensions: study then document function merely renames the schema default's project then document function; method is a work_type value, and participant-first would create a prohibited person collector. Privacy: raw responses can be highly sensitive, but P7 and the schema already protect them on file evidence. No leg differs from the schema default, so retaining this familiar label would promote values and work types into a node.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": ["None. Research-method structures recognize artifact types but do not distinguish a product-user situation from academic, workforce, market, sales, support or meeting uses."],
+    "needs_llm": ["No model routes files to this refused row. Bounded interpretation may choose an existing product project, requirements, market research, customer account, meeting, research schema or residual; “A model that cannot cite sufficient evidence must return unknown.”"],
+    "never_alone": [
+      "user, customer, research, interview, participant, usability, survey, persona, journey map, insight, finding or recommendation in a filename or heading alone",
+      "a discussion guide alone; moderators use the same warm-up, probes, tasks and wrap-up across several situations",
+      "a consent form alone; it proves sensitive human-subject material, not product purpose",
+      "a transcript, recording or meeting-note structure alone",
+      "a survey instrument or response export alone",
+      "a persona, journey map, affinity board or findings deck alone; these are synthesis work types",
+      "a product, participant, customer or organisation name alone",
+      "an extension or source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a download or recording session - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": ["P9 may join guides, consent, recordings, transcripts, notes and readouts into an evidence-backed product project without this label and without copying absent facts: “The graph does not automatically copy those missing facts onto sparse files.”"],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty because the row is refused and the schema declares no field rows. Study then document function is project then document function. Participant-first is rejected because “A folder should not become a collection point for everything produced by the same person or organization.”"
+  },
+  "file_kinds": {"source_types": [], "extensions": [], "never_alone": true},
+  "file_examples": [
+    {
+      "filename": "Checkout study - discussion guide v2.docx",
+      "source_type": "text_document",
+      "observations": ["warm-up, numbered prompts, probes, tasks and wrap-up", "product name and version token"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": ["activation of this refused row", "product purpose from method shape", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "P04 consent signed.pdf",
+      "source_type": "ocr",
+      "observations": ["printed name, email and signature", "recording, retention and withdrawal clauses"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["product rather than academic, workforce or market purpose", "a participant destination", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "P04_session_20260512.mp4",
+      "source_type": "audio_video",
+      "observations": ["screen-and-webcam recording", "participant code and date token"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": ["study facts from neighbouring files", "permission to transcribe externally", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "transcript_P04.vtt",
+      "source_type": "text_document",
+      "observations": ["timestamped cues and speaker labels", "speaker volunteers employer, city and bank", "no study title"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["activation from transcript shape", "an absent study fact", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "survey_responses_may.csv",
+      "source_type": "spreadsheet",
+      "observations": ["identifier, timestamp, email and question columns", "named free-text responses"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": ["whether respondents are customers, employees, panelists or academic participants", "low risk from table shape", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Checkout findings and recommendations.pptx",
+      "source_type": "presentation",
+      "observations": ["findings, quotations and recommended changes", "links to proposed backlog items"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a separate filing world from a synthesis work type", "accepted requirements", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Spec review - checkout notes.docx",
+      "source_type": "text_document",
+      "observations": ["attendees, agenda, decisions and actions", "named specification under review"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["user research because users are discussed", "generic meeting ownership over the named specification", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Interview notes - P07.docx",
+      "source_type": "text_document",
+      "observations": ["participant code, quotations, consent reference and date", "competitors and willingness-to-pay answers"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a distinct user-research node", "market research from topic alone", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Discovery call - Northwind Ltd.docx",
+      "source_type": "text_document",
+      "observations": ["speaker labels, needs questions, quotations and next steps", "customer and sales owner named"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["user research from interview shape", "a customer name as product-project fact", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Our 5 year plan.docx",
+      "source_type": "text_document",
+      "observations": ["objectives, initiatives, owners and measures", "customer interviews summarized as evidence"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": ["user research because research is cited", "participant facts from a summary", "a folder path"],
+      "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "For durable standalone guides and syntheses: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”", "provenance": "design"},
+    {"residual_template": "Review Later", "why": "For unresolved research-shaped files: “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”", "provenance": "design"},
+    {"residual_template": "Protected Records", "why": "For isolated consent, respondent and recording material: “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”", "provenance": "design"},
+    {"residual_template": "Unsupported or Encrypted", "why": "For unreadable or encrypted study material: “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”", "provenance": "design"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Consent forms, recordings, transcripts and respondent exports can expose identities, contacts, voices, faces and volunteered private facts. “Privacy policy must be enforced before content reaches any model or external connector.” “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Protection attaches through P7 and file evidence, not this refused node.",
+  "open_question": "NEEDS-JOSEPH: whether product/user research should remain discoverable as a controlled work_type vocabulary. Alternatives: retain the structurally duplicate node; rely on free-form values; or adjudicate a shared controlled work_type catalogue for interview, usability session, survey, diary study and synthesis artifacts (recommended, but outside this row)."
+}

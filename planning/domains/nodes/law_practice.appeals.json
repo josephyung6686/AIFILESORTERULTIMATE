@@ -1,0 +1,572 @@
+{
+  "id": "law_practice.appeals",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Appeals and the appellate record",
+  "one_line": "J-DEPTH placeholder template on the fieldless `law_practice` schema for a SECOND PROCEEDING WHOSE SUBJECT IS A FIRST ONE: the notice or application challenging an identified decision, the permission or leave stage, the compiled and certified record or appendix with its own independent pagination and index, the briefs and written cases that cite INTO that pagination instead of quoting, the appellate hearing and its judgment, mandate, remittal and costs. It differs from the `law_practice` default template in its detection signals, not in its fields: the schema's default fires on ONE exact matter reference repeated across artefacts plus one artefact separating a practitioner role from a client role, and this row's default requires that PLUS a TWO-TIER PROCEEDING-IDENTIFIER PAIR bound by an explicit below/above relation, PLUS a compilation apparatus (continuous record pagination over documents that already carry their own page numbers, an index mapping each member to a page range, and a designation or certification page) that no other row in the family produces. It is NOT activated by the word appeal, by an appellate caption, by a docket number, by a published opinion, by continuous pagination alone, or by the words affirmed, reversed or remanded; and it is NOT the trial file - a motion, an exhibit or a transcript keeps its own row's identity even after it is bound into the appendix. Its privacy default adds one rule the schema does not state: an appeal routinely produces a SEALED version and a PUBLIC REDACTED version of one filing, and the public half never licenses the sealed half. Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "project",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "THIS ROW MINTS NOTHING AND THE DECLINE IS THE POINT. The obvious candidates here - `appeal_reference`, `docket_number`, `case_below`, `record_cite` - are all the profession-in-a-key mint the `law_practice` schema already refused when it declined to mint `matter` and asked R1c to reuse canonical `project`. This row reuses that request unchanged and adds ONE observation R1c needs before it adjudicates, stated rather than smoothed: an appellate artefact does not carry one bounded-work reference, it carries an ORDERED PAIR of them - the proceeding below and the proceeding above - and the relation between them is the fact. A single-valued `project` string can hold either half but cannot hold the relation, and a file that names both is the family's single strongest signal. That is a CARDINALITY question about one canonical key, not a licence for a second key.",
+      "preferred_resolution": "Preference order: (a) R1c adjudicates canonical `project` once for the whole `law_practice` family exactly as the schema asks, and this row inherits it with no change; (b) if the ordered pair must be representable, express it as a relation between two accepted groups (P9's concern) rather than as a field on a file - the tier lineage is a group-to-group edge, not a value; (c) do NOT permit a per-template mint of an appeal-shaped identifier key. If none of the three is decided, this row stays fieldless and loses nothing, because the pair is used as ACTIVATION EVIDENCE, which needs no field to exist.",
+      "why": "Recorded so the 35 sibling template authors reuse the schema's single grouping key, and so the one place the family's evidence is genuinely a relation rather than a value is on the record before R1c decides."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED WHOLE AND NOT RESTATED AS A NEW CLAIM. Nothing in this row fires unless the `law_practice` schema's own default has already fired - an exact matter, file or engagement reference repeated across two or more artefacts, together with at least one artefact whose own labelled slots separate a practitioner or firm role from a client role. Every signal below is an ADDITION to that precondition, and none of them substitutes for it. The schema's deletion test governs here unchanged: delete every entity name and every document-type word, and if nothing structural survives, nothing fires.",
+      "THE TWO-TIER PROCEEDING-IDENTIFIER PAIR, and it is this row's whole distinguishing default. One heading zone carries TWO proceeding identifiers in a labelled below/above relation - an appellate docket or appeal number in the caption position and a separately labelled line naming the court, the case number and the dated decision it comes FROM (an on-appeal-from line, a decision-appealed slot, a lower-tribunal reference block). The schema's default asks for ONE reference repeated; this asks for TWO bound by a direction, and no other `law_practice` row produces it. Position is weighted for the reason 00 gives: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\". One identifier alone is struck by the schema's own never-alone rule and stays struck here.",
+      "A RECORD OR APPENDIX COMPILATION structure - the family's most distinctive artefact and one that exists nowhere else in the roster: a document carrying a CONTINUOUS INDEPENDENT PAGINATION overprinted across member documents THAT ALREADY CARRY THEIR OWN PAGE NUMBERS, together with an index mapping each member to a page range, a volume marker within a declared total, and a designation or certification page naming who compiled it and as of what date. The double pagination is the observation; the index-to-range mapping is what makes it a compilation rather than a bundle. Read through 00's table path, \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their\", and its archive path where the compilation arrives zipped.",
+      "A RECORD-CITATION APPARATUS inside a submission: a dense short-form citation pointing INTO that pagination and used in place of quoting - a token bound to a page or line range, repeated tens or hundreds of times, whose targets fall inside the range declared by a compilation this corpus also holds. A brief that cites a record it can point at is bound to that record; a brief citing nothing local is a downloaded exemplar until something else says otherwise.",
+      "AN APPELLATE-BRIEF GRAMMAR: a table of contents and a separate TABLE OF AUTHORITIES with page back-references, a statement of the issues or questions presented, a jurisdictional statement, a STANDARD OF REVIEW section, an argument keyed to numbered grounds, and a certificate of compliance stating a length. The standard-of-review section is the discriminating slot in that list and the reason the whole grammar counts: it is a labelled section that can only exist where a DECISION IS BEING REVIEWED, and it appears in no trial submission.",
+      "A NOTICE OR APPLICATION structure whose labelled SUBJECT IS A DOCUMENT, not a dispute: an appellant or applicant slot, a slot naming the judgment, order or decision appealed with its date of entry or of being drawn up, and a slot naming the court appealed to. This inverts the ordinary filing shape - a pleading is about parties and events, and this artefact is about another artefact - and that inversion is structural evidence rather than vocabulary.",
+      "A PERMISSION, LEAVE OR CERTIORARI stage structure: numbered grounds each stated AGAINST a passage of the decision below, paired with an order that grants or refuses on some grounds and not others. The ground-to-passage pairing is the signal; the words grounds and permission are not.",
+      "A RECORD-DESIGNATION or TRANSCRIPT-ORDER structure: a form pairing the proceeding below with the specific hearing dates or portions ordered, a reporter or transcription-provider slot, a payment or certification slot, and frequently a counter-designation column filed by the other side. The two-column designation and counter-designation shape is unique to record compilation.",
+      "A SEALED-AND-REDACTED VERSION PAIR: two files whose text is identical except for blacked-out or removed spans, carrying a caption line that itself labels the version (a public-redacted line on one, a confidential or filed-under-seal line on the other), with a sealing or motion reference tying them. The pair is one version_family and BOTH halves are evidence; the pair's existence is a privacy fact for this row, never a deduplication opportunity.",
+      "A DISPOSITION-AND-MANDATE structure: an appellate order or opinion that both disposes and DIRECTS A LOWER TRIBUNAL - a remittal, a remand with instructions, a mandate or a certificate of the result issuing to the court below - carrying both tier identifiers on its face. The direction-to-another-court slot is what separates it from any first-instance order.",
+      "AN ARCHIVE whose manifest, read WITHOUT unpacking, shows member paths encoding ONE appellate docket across volume-numbered members and a contiguous record-page or exhibit range - \"the normal scan should never extract archive contents to the filesystem\" - using what 00 says an archive yields: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\". Directory names are observations and become facts on no member.",
+      "AN EMAIL OR CALENDAR record whose structured slots carry the exact appellate docket and separate a practitioner, counsel, client or court role - a listing notification from an appellate registry, a hearing event whose organiser is the court and whose attendees separate counsel from client. A legal-sounding subject line, a court domain, or an event titled with a party name never fires."
+    ],
+    "needs_llm": [
+      "Deciding whether an appellate brief or judgment in the corpus is THE HOLDER'S FILED COPY or a DOWNLOADED EXEMPLAR. This family's exemplars are the most convincing in the entire roster because appellate courts publish the real thing: the bytes of a filed brief and the bytes of the same brief downloaded by a stranger are identical, and the only local discriminators are a counsel block naming the holder's side, a matter reference, and record citations whose targets exist in this corpus. Topic will not separate them - \"purpose answers what the file was for\" is the only test that works.",
+      "DECIDING THE SIDE, AND IT IS HARDER HERE THAN ANYWHERE ELSE IN THE FAMILY, because the roles REVERSE relative to the proceeding below: the party who won at first instance is the respondent above, the caption may or may not re-order the names, and a cross-appeal makes both parties both. The schema's abstention rule governs: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "Deciding whether a document is a MEMBER OF THE RECORD AS COMPILED or merely a trial-file document of the same name. The compiled record is frozen at certification; a motion filed below in the same matter, with the same reference, is a member only if the index says so. Matter-reference grouping actively misfires here and the model must not repair it by inference.",
+      "Separating an APPEAL from a post-judgment application in the SAME court - reconsideration, rehearing, setting aside, a new trial, a stay pending appeal, an application to correct the record. These carry the decision-appealed vocabulary and the deadline pressure without ever leaving the first tier, and only the second tribunal identifier separates them.",
+      "Separating a court or tribunal appeal from an INTERNAL, ADMINISTRATIVE OR COMMERCIAL appeal - a benefits or immigration first-tier objection, a tax objection letter, a planning or licensing representation, an insurance internal review, an academic grade appeal, a platform account appeal. All are called appeals and several have a decision, a reference and a deadline; none has a two-tier judicial identifier pair or a compiled record.",
+      "Recognising UNLABELLED PRACTITIONER PROSE about an appeal: an advice on prospects written as a letter, a file note of a conference on whether to appeal, a running-text email weighing grounds. 00 names exactly this class among the reasons rules are insufficient, since real collections contain unlabelled forms and unusual professional artifacts.",
+      "Interpreting jurisdiction-specific and multilingual appellate structures whose labelled roles no approved pattern covers - leave versus permission, appendix versus record versus core bundle, cassation and revision systems where the tier relation is stated differently. This row defines no court list, no tier catalogue and no jurisdiction rule, and jurisdiction is never a field or a dimension.",
+      "Deciding whether two proceedings are TIERS OF ONE DISPUTE or two separate matters, when the same parties, counsel and subject recur across a dispute, an appeal, an enforcement and a related action. Bridging by party name or subject similarity is forbidden regardless of what the model concludes.",
+      "Abstaining whenever the tier pair cannot be cited from the artefact itself: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "THE WORD APPEAL, AND EVERY TOKEN AROUND IT - appeal, appellant, respondent, grounds, leave, permission, review, affirmed, reversed, remanded, vacated, upheld, dismissed. This is the row's existential risk and it is struck first. `Spring Appeal Letter - final.docx` is a nonprofit fundraising letter; `Appeal against decision - PIP assessment.pdf` is a benefits objection; `Grade appeal - BUSIB 4300.pdf` is academic; `Appeal outcome - claim ref 88214.pdf` is an insurer's internal review. One English word carries four unrelated worlds and none of them is this row.",
+      "AN APPELLATE CAPTION, A COURT-OF-APPEAL OR SUPREME-COURT NAME, A CITATION, OR A PUBLISHED OPINION. The schema already struck the caption as `legal`'s signal rather than the practitioner's; the appellate caption is struck harder, because it is satisfied identically by a judgment anyone downloaded, and appellate judgments are the single most-downloaded legal document type there is.",
+      "A DOCKET, APPEAL, CASE OR RECORD NUMBER ALONE, AND SPECIFICALLY A SINGLE ONE. This row's default is a PAIR bound by a direction; one identifier is exactly the evidence the schema already struck, and a second identifier that is not labelled as the decision appealed from is two struck tokens, not a pair. Its digits are never a date: 00's narrow-date rule covers numbers that look like years but are other values.",
+      "CONTINUOUS PAGINATION, A STAMPED PAGE RANGE, OR A BATES-SHAPED TOKEN ALONE. This is the collision the row must survive inside its own family: `law_practice.discovery`'s production sets are stamped with continuous control numbers over member documents in exactly the same way. What separates a record from a production is the INDEX MAPPING MEMBERS TO RANGES plus a designation or certification page, never the stamp.",
+      "VOLUME NUMBERING - `Vol 3 of 6`, `Part 2 of 4`, `Bundle B` - ALONE. Hearing bundles, closing binders, due-diligence sets, discovery productions and scanned archives are all volume-numbered.",
+      "A STANDARD-OF-REVIEW PHRASE, A GROUNDS LIST OR APPELLATE ARGUMENT VOCABULARY IN RUNNING PROSE. A law-school problem question, a practice note, a bar-course sample brief, a CLE deck and a news article all contain them, and this family publishes its own teaching materials in enormous volume.",
+      "THE EXISTENCE OF A REDACTED VERSION, OR A CONFIDENTIAL, SEALED, PRIVILEGED OR SUBJECT-TO-PROTECTIVE-ORDER LABEL. Redaction happens in HR, insurance, procurement, journalism and regulatory filing. The label is preserved as a literal observation and the product decides no legal status, sealing scope, waiver or access right - and specifically, the existence of a public redacted version is NEVER evidence that the sealed original may be treated as public, sent to a model, or shown in a summary.",
+      "PUBLIC AVAILABILITY of a judgment, brief, docket or record as proof that the local copy, the surrounding matter, or a neighbouring member is low-sensitivity or eligible for a cloud prompt.",
+      "A LAW-FIRM, CHAMBERS, COURT, JUDGE, PRACTITIONER, CLIENT OR PARTY NAME ALONE, in any of this row's roles, and a PERSON'S NAME ALONE in any of them - inherited from the schema and not weakened. A judge's name is the most tempting variant here and the least informative: it appears on the decision below, on the panel above, in every citation, and in every practice note discussing either.",
+      "A DOCUMENT-TYPE WORD BESIDE A COURT OR PARTY NAME. The two-token escape route the schema closed stays closed: a document-type word names no entity and resolves nothing about the first entity's role.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including text_document, spreadsheet, email, calendar, archive, image, ocr and audio_video and every extension this row lists. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME OR FOLDER containing appeal, appellate, CA, SC, record, appendix, bundle, filed, sealed or final. Paths stay local, an existing folder supports review only, and a folder name is an unlabelled position.",
+      "AUTHOR, PRODUCER OR LAST-SAVED-BY METADATA naming a practitioner, a firm, a court system or a bundling tool. 00: \"It should avoid using authorship or creator identity as a destination dimension\", and appellate registries, e-filing portals and bundle software all write those slots.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE OR CURRENT-DIRECTORY MEMBERSHIP. 00: \"A session should never be treated as proof of topic\". A folder of judgments that arrived together in one research session is a session, not an appeal.",
+      "MATCHING PARTY NAMES, JUDGES, COUNSEL, CITATIONS, GROUNDS OR SUBJECT MATTER ACROSS TWO APPEALS. The same parties genuinely recur across tiers of ONE dispute, which is precisely why the model must not generalise the habit: recurrence across two different appeals is suppressed unless an exact explicit reference or a user decision authorises the link."
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of appeal",
+    "appellant's notice",
+    "grounds of appeal",
+    "permission to appeal",
+    "leave to appeal",
+    "on appeal from",
+    "decision appealed",
+    "date of judgment appealed",
+    "lower court",
+    "court below",
+    "appellant",
+    "appellee",
+    "respondent to the appeal",
+    "cross-appeal",
+    "record on appeal",
+    "designation of the record",
+    "counter-designation",
+    "joint appendix",
+    "core bundle",
+    "appeal bundle index",
+    "transcript order",
+    "reporter's certificate",
+    "appellant's brief",
+    "respondent's brief",
+    "reply brief",
+    "written case",
+    "skeleton argument",
+    "statement of issues",
+    "questions presented",
+    "jurisdictional statement",
+    "standard of review",
+    "table of authorities",
+    "certificate of compliance",
+    "word count certificate",
+    "oral argument",
+    "amicus curiae",
+    "intervener submission",
+    "stay pending appeal",
+    "expedited appeal",
+    "extension of time to appeal",
+    "supplemental record",
+    "affirmed",
+    "reversed",
+    "remanded",
+    "remitted",
+    "set aside",
+    "mandate",
+    "certificate of the result",
+    "petition for certiorari",
+    "public redacted version",
+    "filed under seal",
+    "appeal costs order"
+  ],
+  "work_types": [
+    "notice of appeal, appellant's notice and grounds of appeal",
+    "application for permission or leave to appeal and the order granting or refusing it",
+    "designation of the record, counter-designation and transcript order",
+    "record on appeal, joint appendix, core bundle and their indexes",
+    "appellant's, respondent's, reply and supplemental brief or written case",
+    "skeleton argument, speaking note and oral-argument preparation",
+    "table of authorities and the authorities bundle",
+    "appellate motion - stay, expedition, extension, supplementation, security for costs",
+    "amicus, intervener or third-party submission",
+    "appellate hearing transcript and oral-argument note",
+    "appellate judgment, opinion, order, mandate, remittal and certificate of result",
+    "appeal costs schedule, costs submission and costs order",
+    "further-appeal record - petition or application to a higher or supreme court",
+    "sealed and public-redacted version pair of one appellate filing",
+    "internal advice on prospects of appeal and the decision whether to appeal"
+  ],
+  "grouping_reasons": [
+    "ONE APPEAL FROM NOTICE TO MANDATE, joined by the exact appellate docket rather than by the matter reference: the notice, the permission stage, the designation and transcript order, the record, the briefs, the authorities, the hearing, the judgment, the costs and the mandate. Content-incoherent and purpose-coherent, which is 00's own licence for the group - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no party, decision, ground or outcome fact onto any member.",
+    "THE RECORD AS COMPILED - a FROZEN set fixed by its index and its certification date. This is the one place in the `law_practice` family where the schema's own grouping anchor MISFIRES: the trial-file documents and the appeal share one matter reference, so matter-reference grouping would silently swallow documents the record does not contain. Membership here comes from the INDEX, not from the shared reference, and \"It should not form a supported group when there is no valid anchor\".",
+    "ONE FILING ACROSS ITS SEALED AND PUBLIC-REDACTED VERSIONS - the universal version_family fact, supported by explicit version captions and by hashes, never by a `-final` or `-redacted` suffix. The pair is held as TWO members of one family and never collapsed to one: the redacted half is not a lesser copy of the sealed half, it is a differently-permissioned document, and deduplication would destroy the distinction the court drew.",
+    "TIER LINEAGE - one dispute across first instance, appeal and further appeal, joined ONLY by explicit below/above references that the artefacts themselves state. The tiers are kept as RELATED BUT SEPARATE proceedings rather than merged, because they have different parties in different roles, different records and different outcomes.",
+    "ONE SUBMISSION ACROSS ITS DRAFTS, redlines, counsel-marked copies and the as-filed version, supported by explicit revision markers or hashes.",
+    "A SHARED AUTHORITY OR SUBMISSION serving more than one appeal - one skeleton relied on in two linked appeals, one authorities bundle. 00: \"A file may validly belong to more than one accepted group\". Multi-membership, never a copied fact.",
+    "NO GROUP AT ALL is a valid and common outcome. A single downloaded judgment, a single brief with no local record, and a single advice on prospects each stand alone, and `legal`'s licence covers the sensitive singleton from the neighbouring side: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+    "NOT grouping reasons, stated so they are not reached for: shared party names across two different appeals; a shared judge, court, panel or standard of review; a shared authority cited in both; matching continuous pagination between a record and an unrelated production; and a download session of judgments."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY FOR THE SCHEMA'S THREE REASONS, WHICH THIS ROW DOES NOT RE-ARGUE: no field is declared to branch on (D1 as narrowed, PR-6), the material co-activates `legal`, one of 00's four safety domains - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - and a client or matter branch is itself a disclosure. WHAT THIS ROW ADDS TO THE SCHEMA'S PROSE RECOMMENDATION, AND IT IS ONE LEVEL: the schema recommends client (only where genuinely multi-client and explicitly approved), then MATTER, then DOCUMENT FUNCTION, then period. Under that order an appealed matter collapses, because the same function words recur AT EVERY TIER - there is a brief, a motion, an order, a transcript and a bundle at first instance and another of each on appeal, and flattening them into one function level puts two different documents with the same name in one folder and loses which decision each belongs to. So the recommendation held as prose here is matter, then PROCEEDING TIER, then function, then period, with the tier level named by the proceeding's own identifier and never by a party. The tier level earns its place by 00's own intelligibility argument - \"A work type such as Homework 3 is meaningful only after the course is known\" - since an appellant's brief, a grounds list or a supplemental appendix is unintelligible without knowing WHICH DECISION it attacks, and the matter alone does not say. The schema's third rule binds unchanged and matters more here than anywhere: a NAMED THIRD PARTY - an adverse party, an appellant, a witness whose evidence is in the record, a child in a family appeal, an accused - may never be a folder level, against \"The default posture must therefore be local-first and data-minimizing.\" NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" An appeal is the most time-scattered object in the family - the decision below, the notice, the record certification, the filing and the judgment can straddle years - and a year-first order would shred one proceeding across four folders. And whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "calendar",
+      "ocr",
+      "image",
+      "audio_video",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".7z",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".mp3",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Notice of Appeal - Hartley v Nash - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled appellant slot and a slot naming the judgment appealed with its date of entry",
+        "a separate labelled line naming the court appealed TO and the court the decision comes FROM, with that court's case number",
+        "a counsel block naming the holder's firm as acting for the appellant",
+        "the firm's matter reference in the footer, matching an opening record elsewhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and this template declares none either; `project` and `work_type` are proposals awaiting R1c",
+        "that a deadline exists, has been met, or is calculable. The product reads the date of the decision as a raw observation and performs NO time arithmetic on it whatsoever; appeal periods are jurisdiction-specific rules and this row states none",
+        "that the appeal was in fact lodged, accepted, in time, or competent - a notice is a document, not an event",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appellants Brief - No 24-1187 - AS FILED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table of contents and a separate table of authorities with page back-references",
+        "labelled sections for questions presented, jurisdiction, and STANDARD OF REVIEW before the argument",
+        "several hundred short-form citations of the shape JA-207 whose targets fall inside a page range declared by an appendix index in the same corpus",
+        "a certificate of compliance stating a length, and a counsel signature block naming the holder's firm"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any argument, ground, authority or characterisation of the decision below is correct, current, accepted or successful",
+        "that the brief is the holder's merely because it is well formatted. THE DISCRIMINATING EVIDENCE IS THE COUNSEL BLOCK PLUS RECORD CITES THAT RESOLVE LOCALLY - published briefs are byte-identical to filed ones and this corpus may hold either",
+        "the cited authorities as a reading list or a research group - they are argument content, and `law_practice.legal-research` owns the research file on its own evidence",
+        "a year fact from the digits in the docket number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Joint Appendix Vol 3 of 6 - JA-1041 to JA-1560.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a continuous overprinted pagination running across member documents that each retain their own original page numbers",
+        "a front index mapping each member - pleadings, exhibits, a transcript extract, an order - to a page range",
+        "a volume marker within a declared total and a designation-and-certification page naming the compiler and a date",
+        "the appellate docket in the header of every page and the lower-court case number on the index page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the members' own identities are replaced. A motion inside the appendix is still `law_practice.motions-and-briefs`' artefact, a deposition extract still `law_practice.depositions`', an exhibit still `law_practice.evidence-exhibits`'. THIS ROW OWNS THE COMPILATION AND ITS INDEX, NEVER THE MEMBERS",
+        "that a trial-file document sharing the matter reference is a member. Membership comes from the INDEX; the shared reference is exactly the anchor that misfires here",
+        "that continuous pagination proves an appeal - a discovery production is stamped the same way, and the index-to-range mapping plus the certification page is what separates them",
+        "any fact about a person named inside a member document; a compiled record is a multi-subject document and is bulk-sensitive as a whole",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Record designation and transcript order - 3 hearing days.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a two-column form pairing designated portions with a counter-designation column filed by the other side",
+        "labelled hearing dates and a reporter or transcription-provider slot with a fee and payment-received line",
+        "both proceeding identifiers in the heading zone",
+        "a certification line signed by the ordering practitioner"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the transcripts themselves belong to this row. `law_practice.hearing-transcripts` owns a transcript on its own evidence - reporter certificate, question-and-answer pagination, appearances; THIS ROW OWNS THE ORDER AND THE DESIGNATION, which is a compilation instruction",
+        "a finance fact from the fee and payment lines - there is no institution-and-account header and no issuer-and-billed-to block",
+        "that the designated portions are complete, agreed, or as ultimately transcribed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appellants Brief - PUBLIC REDACTED VERSION.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption line that itself labels the version as a public redacted version and references a sealing order",
+        "black rectangles over spans of text and two wholly removed pages noted in the index",
+        "an otherwise identical table of contents, authorities table and pagination to a second file in the same folder captioned as filed under seal",
+        "both proceeding identifiers unchanged in the heading zone"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THE SEALED VERSION MAY BE TREATED AS PUBLIC. This is the row's added privacy rule and the reason the pair is a signal rather than a nuisance: the existence of a public half is evidence that the other half was DELIBERATELY WITHHELD, so it raises the sealed file's protection and never lowers it. It is also not permission to send either half, a sample, or a summary to a cloud model: \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\"",
+        "that the two files are duplicates to be collapsed. They are two members of one version_family and both are kept",
+        "sealing scope, waiver, expiry, or any access or disclosure right, from the caption or from anything else",
+        "that redaction is evidence of this row - HR, insurance, procurement and regulatory documents are redacted constantly",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Skeleton - permission hearing - draft 4 - JW mark-up.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered grounds each stated against a paragraph number of the decision below",
+        "tracked changes and margin comments from a second initialled reviewer, and a note that a ground is to be abandoned",
+        "the matter reference in the header and the appellate docket in a draft caption",
+        "no filing stamp and no certificate of compliance"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "privilege or work-product status because the document is internal, unfiled, or marked up",
+        "that a ground was abandoned, argued, or refused - a draft records an intention, not an outcome",
+        "an authored_by or last-saved-by fact turned into a dimension - 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "that the reviewer's initials identify a person for storage, prompting or foldering",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appeal costs schedule - Hartley v Nash.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers: phase, fee-earner grade, hours, rate, disbursement, VAT, total",
+        "a header block carrying both proceeding identifiers and a statement-of-truth line",
+        "phases named for appellate stages - permission, record preparation, brief, hearing",
+        "no institution name, no account number, no invoice number and no billed-to block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is finance. The discriminating evidence is the proceeding-identifier header plus the ABSENCE of an institution-and-account header, exactly as the schema states the same test on its time-recording fixture. An issued bill with an issuer and a billed-to block IS finance's on its own evidence",
+        "that this displaces `law_practice.time-and-billing`. That row owns the matter-wide time and disbursement record; THIS is a schedule addressed TO A COURT about ONE proceeding, and its statement-of-truth line and phase columns are the difference",
+        "a fiscal_period or tax_year fact - neither key exists on this schema",
+        "that any figure is claimed, allowed, assessed, paid or payable"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Appeal - 41127-0006 - counsel availability and record deadline.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient roles crossing the solicitor-counsel boundary, plus a client address in copy",
+        "the exact appellate docket in the subject line",
+        "running prose weighing whether to appeal one ground, with no labelled sections",
+        "an attached draft grounds document referenced by exact filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a deadline fact, or any calculation, validation or reminder derived from a date mentioned in prose",
+        "that the client instructed, consented to, or authorised anything - the product infers no instruction, authority, consent or waiver",
+        "that a firm email domain or a legal-sounding subject would have fired this row without the exact docket and the labelled role crossing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-09-02 at 09.14.31 - CA efiling receipt.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in the image metadata and the platform's own screenshot filename shape",
+        "OCR of the frame shows a court e-filing portal confirmation with a submission identifier and the appellate docket",
+        "a browser chrome strip and a system clock are visible in the capture"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the filing succeeded, was accepted, or was timely - a receipt screen is a rendering, and the product decides no procedural outcome",
+        "that missing EXIF or browser-like dimensions would have proven screen origin; the POSITIVE screen evidence did, and its absence proves nothing",
+        "that the OCR text creates a docket fact independent of the row's precondition",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Smith v Jones - Court of Appeal - judgment.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an appellate caption, a panel of named judges, numbered paragraphs and a neutral citation",
+        "an on-appeal-from line naming the court below and its case number - THE TIER PAIR IS PRESENT",
+        "a publisher or court-website footer and a download-time creation date",
+        "no counsel block naming the holder's firm, no matter reference anywhere, and no local record for its citations to resolve into"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE COLLISION FIXTURE AND IT IS DELIBERATELY THE HARDEST ONE, because it satisfies the row's own headline signal - the two-tier identifier pair - and still must not fire. The schema's PRECONDITION is what refuses it: there is no matter reference repeated across artefacts and no artefact separating a practitioner role from a client role, so the schema never activated and no template of it can",
+        "that a neutral citation, a panel, or public availability is evidence of the holder's involvement in anything",
+        "that it joins a matter because it is cited in a local brief - a cited authority is argument content, not a member; `law_practice.legal-research` may hold it if an accepted research purpose exists",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Appeal against decision - claim ref 88214 - income protection.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a letter headed as an appeal against a decision, with a claim reference, a decision date and a stated deadline to respond",
+        "two named parties - the holder and an insurer - and a labelled grounds section",
+        "the holder is the correspondent and signs it personally; there is no practitioner block on either side",
+        "no court, no tribunal, no second proceeding identifier and no record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE SECOND COLLISION FIXTURE AND THE UNDER-FIRING ONE: every plain-English token of an appeal is present - the word, a decision challenged, grounds, a reference, a deadline - and it is an INSURER'S INTERNAL REVIEW of the holder's own claim. The discriminating evidence is the absent tier pair and the absent practitioner side; `legal.personal-legal-matters` owns the holder's own dispute and `finance` owns the claim record",
+        "any law_practice fact, and no client or our_firm value - the holder is not acting for anyone",
+        "that a claim reference is a proceeding identifier",
+        "a folder path, and specifically nothing recording the existence or subject of the holder's own health or income claim"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Motion for summary judgment - Hartley v Nash - FILED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a first-instance tribunal caption with one case number and no on-appeal-from line",
+        "a memorandum of points and authorities, a proposed order, and a certificate of service",
+        "the same matter reference as the appeal artefacts, in the same folder",
+        "a page range stamped on it in a second, overprinted pagination"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW, DESPITE THE OVERPRINTED PAGINATION AND THE SHARED MATTER REFERENCE. `law_practice.motions-and-briefs` owns it on its own evidence - a first-instance caption, a points-and-authorities structure and a proposed order - and it does not stop owning it when a copy is bound into the appendix. THE APPENDIX MEMBERSHIP LIVES ON THE COMPILATION'S INDEX, NOT ON THE MEMBER",
+        "that the shared matter reference makes it part of the appeal group; the record's index decides membership and this row concedes the reference is the misfiring anchor",
+        "that a standard-of-review or appellate word appearing in its argument re-tiers it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appeal bundle - 24-1187 - parts 1-4.zip",
+      "source_type": "archive",
+      "observations": [
+        "the archive header is readable and identifies a password-protected volume set",
+        "member paths are visible without extraction and repeatedly encode one appellate docket with volume and page-range markers",
+        "an unencrypted index member is listed but its contents cannot be read",
+        "total member count and uncompressed size are available from the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any fact from the member path names - directory names are observations and become facts on no member, and the archive is not extracted: \"the normal scan should never extract archive contents to the filesystem\"",
+        "that the filename or the docket-shaped token in it manufactures a proceeding, a client or a record",
+        "that the bundle can be inspected, sampled or summarised because the index member is unencrypted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: one PDF of the DECISION UNDER APPEAL - a first-instance order or judgment with a tribunal caption, ONE case number, numbered operative paragraphs and a seal or hand-down line - which is simultaneously a bound member of the compiled appendix and the instrument that governs the proceeding that produced it. Both rows want the same bytes and the catalogue already records that they do. DISCRIMINATOR, read off the item's OWN FACE and nothing around it: one proceeding identifier, no on-appeal-from line and no slot directing another court means the NEIGHBOUR's, and it does not stop being the neighbour's when a copy is bound in - appendix membership lives on the COMPILATION'S INDEX, never on the member. THIS ROW owns only the artefact whose own face carries the two-tier pair PLUS a direction addressed to a lower tribunal: the appellate disposition, mandate, remittal or certificate of the result. Item-by-item firewall the engine needs: on a first-instance order stamped with a record page number, the operative paragraphs and the single caption count wholly for the neighbour and the record pagination counts wholly for this row; neither token crosses, and the overprint never re-tiers the document.",
+      "design_cite": "§6.9: 'The user’s frozen tree should therefore include a policy for shared material'",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.motions-and-briefs",
+      "signal": "SAME FIXTURE BOTH SIDES: one written submission carrying a table of contents, a separate TABLE OF AUTHORITIES with page back-references, a CERTIFICATE OF COMPLIANCE stating a length, a caption with a case identifier and a counsel signature block. That exact combination is the neighbour's own headline deterministic signal - a table-of-authorities heading together with a captioned case identifier, and a certificate-of-compliance or word-count block co-occurring with a case identifier - and it is equally satisfied by an appellant's brief, so the brief-shaped grammar discriminates NOTHING and a bare edge here records only that both rows own briefs. DISCRIMINATOR: two slots that can exist only where a decision has already been made - a labelled STANDARD OF REVIEW section, and a heading zone carrying the two-tier identifier pair with an explicit on-appeal-from line. A first-instance application asks a court to decide something not yet decided and carries a prayer for relief, a moving party and a proposed order; this row's submission attacks a decision and states grounds AGAINST passages of it. THE HARD HALF, stated rather than smoothed: an appellate STAY, EXTENSION OF TIME or EXPEDITION application is a motion in every structural respect and an appellate artefact in tier, and this row claims it. The tier pair decides that case - never the word motion, never the presence of a prayer, and never which row's work_types list happens to name it.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.hearing-transcripts",
+      "signal": "SAME FIXTURE BOTH SIDES: one page-and-line numbered transcript whose cover names a court, a case identifier, a sitting date and a day marker, with a transcriber's or reporter's certificate. It competes TWICE: (a) the ORAL-ARGUMENT transcript of the appellate hearing is a hearing transcript whose sitting court merely happens to be the appellate one, and (b) a first-instance day's transcript is reproduced and re-paginated inside the record on appeal. DISCRIMINATOR: this row never owns a transcript on a transcript's own evidence - not even its own hearing's. Cover-plus-certificate-plus-page-and-line numbering is the NEIGHBOUR's structure and it owns every verbatim record in the corpus, at either tier. THIS ROW owns only the COMPILATION APPARATUS around one: the transcript ORDER and RECORD DESIGNATION form - a two-column designated / counter-designated table pairing the proceeding below with specific hearing dates or portions, a reporter or transcription-provider slot and a payment or certification line - and the record index entry mapping a transcript extract to a page range in the record's own continuous pagination. A designation NAMES hearing dates and contains no testimony; it is an instruction to compile, not a record. Firewall: if the item is what was said, the neighbour takes it whole; if it is the instruction to compile one or the index over one, this row takes it whole.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "SAME FIXTURE BOTH SIDES: one document carrying TWO overprinted numbering layers on top of its own original pagination - an exhibit designator applied when it was tendered, and a continuous record or appendix page number applied when it was compiled - sitting beside a table that closes over a numbering namespace. The two rows have almost the same two-leg shape (a token-bearing artefact plus an enumerating table), which is precisely why a bare edge is useless here. DISCRIMINATOR: WHICH namespace the table closes over, and what its columns are FOR. The NEIGHBOUR's exhibit schedule enumerates DESIGNATORS and carries a producing or offering party column and commonly an objection or offered / admitted column - it is a table about TENDERING, and its rows are about who put the item before a decision-maker. THIS ROW's index maps MEMBERS TO PAGE RANGES in one continuous pagination, accompanied by a volume marker within a declared total and a designation-or-certification page naming the compiler and an as-of date - it is a table about COMPILATION, and its rows are about where the item sits in a frozen set. Item-by-item firewall: the exhibit designator counts wholly for the neighbour even when the page bearing it is stamped JA-1041, and the record page range counts wholly for this row even when the member underneath is Exhibit 14. Neither row may read the other's token as its own second leg.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: one notice of appeal, appellant's notice or appellate submission in a proceeding the holder is personally a party to - the same caption, the same on-appeal-from line, the same TWO-TIER PROCEEDING PAIR, the same numbered grounds, the same deadline pressure. This row's headline signal DOES NOT DISCRIMINATE HERE, and conceding that is the whole value of the edge: a litigant in person produces an artefact carrying every deterministic signal this row lists, and the tier pair fires identically on it. DISCRIMINATOR is the SIDE, and it is supplied by the `law_practice` schema's precondition rather than by anything on the appellate face - an artefact whose own labelled slots separate a practitioner or firm role from a client role, plus a matter reference ALLOCATED BY THE HOLDER'S OWN FIRM and repeated across two or more artefacts. The neighbour's own selector is the mirror image: direct holder-role evidence inside the same file - the holder named as a party, the document addressed or served to the holder, or the holder's own completed signature block. The error is ASYMMETRIC and the asymmetry is the routing rule: this row over-firing writes practitioner apparatus and a client role onto a person's own dispute, so wherever the side cannot be cited the neighbour's safety-only protection runs and this row abstains.",
+      "design_cite": null,
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "CO-ACTIVATION ON DISJOINT EVIDENCE, checkable item by item. NAMED FIXTURE: one appellate judgment, sealed order or filed submission inside a matter. It carries `legal`'s own deterministic structure - a tribunal caption plus numbered operative paragraphs, or a bound party pair with an execution block - while THIS ROW activates on the two-tier identifier pair, the record-compilation apparatus and the schema's practitioner / client role precondition. FIREWALL: the caption and the operative paragraphs are `legal`'s evidence and are explicitly struck as never-alone on this row, so they are never double-counted here; the tier pair, the record index, the designation page and the sealed-and-redacted version caption are this row's and supply `legal` nothing. Order of operations is not negotiable whichever side wins placement - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "CO-ACTIVATION ON DISJOINT EVIDENCE, on one NAMED FIXTURE: the appeal costs schedule (`Appeal costs schedule - Hartley v Nash.xlsx` in this row's file_examples). Its phase / fee-earner-grade / hours / rate / disbursement / VAT columns sit under a header carrying BOTH proceeding identifiers and a statement-of-truth line, and that header and that statement are THIS ROW's evidence. `finance` activates on structure this row claims none of: an institution-and-account header, or an issuer-and-billed-to block with an invoice number. An issued bill IS finance's on finance's own evidence and this row does not contest it. FIREWALL: one money figure, one period label and one party name must never count for both sides - the proceeding-identifier header counts only here, the account or issuer header counts only there, and the presence of money is evidence for neither. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherits the schema's third-party claim and sharpens it twice. First, the compiled record is a MULTI-SUBJECT DOCUMENT by construction - it gathers, re-paginates and indexes the evidence of parties, witnesses, deponents and non-parties into one file, so it is bulk-sensitive as a whole even where each member would be modest alone, and the people in it never chose this filesystem. Second, this is the one part of the family where a genuinely public artefact sits beside a genuinely sealed one: appellate judgments and briefs are published, and the SAME appeal produces a filing that a court ordered withheld. The public half must never be read as licence for the sealed half, and public availability of a judgment is never evidence that the surrounding matter, the record, or a cloud prompt containing it is low-risk. The product records `potentially_sensitive` and decides nothing about sealing, privilege, waiver, reporting restrictions, anonymity orders or access rights; P7 owns handling policy and its class vocabulary.",
+  "open_question": "NJ-APP-1: an appellate artefact's defining evidence is an ORDERED PAIR of proceeding references (below, above) and canonical `project` is a single-valued string; R1c must decide whether the tier relation is a cardinality question on `project`, a P9 group-to-group edge, or nothing at all - this row mints no key either way. NJ-APP-2: the sealed-and-public-redacted pair is a version_family whose members must NOT be deduplicated and whose halves carry different protection; the contract has no way to say that two members of one family differ in sensitivity, and until it does the safe reading is that the whole family takes the stricter half. NJ-APP-3: the record's frozen membership comes from an index inside a document, which is the only place in this family where an anchor is a PARSED LIST rather than a repeated token - R1c and P9 must decide whether an index may establish membership at all, since the alternative (matter-reference grouping) is stated here as actively wrong. NJ-APP-4: appellate tier structures and their vocabulary are jurisdiction-specific; this row proposes context terms drawn from more than one system and defines no court list, tier catalogue or jurisdiction rule, and jurisdiction remains unavailable as a field or a dimension."
+}

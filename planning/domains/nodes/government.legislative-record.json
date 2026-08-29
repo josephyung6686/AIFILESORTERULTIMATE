@@ -1,0 +1,406 @@
+{
+  "id": "government.legislative-record",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Legislative and parliamentary records",
+  "one_line": "J-DEPTH placeholder template for the record a legislature keeps of its OWN business: a bill re-published at each named stage, amendments addressed to clause-and-line coordinates in one specific print of that bill, committee inquiry papers and evidence, recorded divisions naming every member's vote, and the verbatim column-numbered report of proceedings. It is not activated by a downloaded statute, by the words parliament, congress, council, bill, or motion, or by any formal-meeting furniture; it needs the chamber apparatus — a stage-endorsed instrument, a coordinate-addressed amendment, a roll-call division, or a sitting-dated verbatim transcript — plus evidence that the corpus holder is the legislature or a member's or committee's office. It differs from the government default template in its recognition unit (a coordinate-addressed version chain rather than a case reference) and in an inverted privacy rule: a member's recorded vote and spoken words are published by design, while inquiry submissions and pre-introduction drafting material are stricter than the schema default. It declares no field rows and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template signals on a fieldless schema. Nothing here licences a bill, stage, member, division, committee, or sitting fact. Every accepted signal must show BOTH the chamber apparatus AND that the corpus holder is the legislature, a committee office, a member's office, or a drafting or clerk's office — not a reader, a submitter, a lobbyist, or a regulated party.",
+      "a bill or draft instrument print carrying a long title, an enacting or resolving formula, consecutively numbered clauses or sections with marginal or side notes, and a stage endorsement line naming the print (as introduced, as amended in committee, as reported, as passed, engrossed, enrolled), where at least two prints of the same official bill identifier are present as a version family",
+      "an amendment paper, marshalled list, or amendment tracking sheet whose entries address coordinates in a named print — a clause or section number with a page and line number and a leave-out or insert instruction — and carry per-amendment numbers plus sponsoring-member names; the coordinate reference to a specific print is the decisive structure, not the word amendment",
+      "a division, roll-call, or recorded-vote record listing individual members by name with an aye/no/abstain or yea/nay/present value, a division or roll-call number, the question voted on, tellers or a presiding-officer line, and a totals-and-result line",
+      "a verbatim proceedings report (Official Report, Hansard, congressional record, council verbatim) with a sitting date, continuous column or page numbering, speaker attributions with interventions, and items of business that change topic within one file",
+      "a committee inquiry packet whose members share one inquiry reference and use inquiry-internal numbering — written evidence numbered in a submission series, oral evidence numbered by question, a report with numbered conclusions and recommendations, and formal minutes recording motions moved, amendments negatived, and divisions in committee",
+      "an order paper, order of business, notice paper, or calendar listing numbered items for one named sitting, with motions, questions for oral answer, and bills at named stages",
+      "a clerk's-office or committee-office email or calendar record whose structured sender, recipient, subject, attachment, event, and reference slots tie it to an already evidenced bill, inquiry, or sitting — an amendment tabling deadline, a sitting notice, a witness panel invitation; a legislature email domain alone never fires",
+      "a legislature or committee export or archive manifest whose paths repeatedly encode one bill identifier, inquiry reference, session, or sitting series, inspected without unpacking"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes may sit with the legislature, a member's office, a submitting witness, a lobbying or advocacy organisation, a government department preparing a response, a journalist, a law firm, or a citizen reader; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a legislature from a body that borrows its furniture: a company or charity board, a standards committee, a union conference, a student union council, a professional association's general meeting, or a model-parliament classroom exercise",
+      "recognising an unlabeled pre-introduction artefact — drafting instructions, an options note to a drafting office, a private member's draft — whose function is expressed only in prose and whose status is pre-decisional",
+      "deciding whether a document produced by the executive but filed inside a legislative packet (a government response to a committee report, a departmental memorandum on a bill, a statutory instrument laid before the chamber) is being held as legislative-proceedings material or as the department's own policy work",
+      "distinguishing a committee call for written evidence from an executive or regulator consultation when both publish a question set and receive named submissions",
+      "reading a municipal or devolved body that is administratively one organisation but acts in two capacities — legislative when it enacts an ordinance or by-law by reading and roll call, administrative when it delivers a service",
+      "judging whether an uncorrected transcript, embargoed report, or unpublished amendment draft is under a publication restriction, which the product must treat as unknown rather than resolved",
+      "abstaining whenever the chamber apparatus is absent: “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "the name of a legislature, chamber, committee, member, party, or presiding officer, or a legislature seal, crest, letterhead, or PDF producer string; the body may be the issuer, the subject, the addressee, a cited authority, or an employer",
+      "a bill, act, statute, ordinance, by-law, resolution, or motion downloaded for reading; publication by a legislature is not the legislature's custody, and an enacted law is the end of the process rather than a record of it",
+      "the vocabulary alone — bill, clause, amendment, reading, motion, division, quorum, hearing, testimony, session, sitting, whip, caucus, member, chair; every one of these words also occurs in a company board pack, a union rule book, a standards committee, and a students' union",
+      "an official bill-shaped or law-shaped token on its own (HB 2145, S.3746, Bill 42, SI 2026/418, Chapter 12) with no stage endorsement, coordinate-addressed amendment, division, or verbatim-proceedings structure; a bare identifier is a citation, not a proceeding",
+      "formal-meeting furniture on its own — an agenda with numbered items, attendance and apologies, minutes, proposer and seconder, carried or negatived; this is the shared shape of every governed body and belongs to the owner's own row",
+      "a submission, letter, or briefing addressed TO a committee or a member and held by its author; the author's copy is the author's advocacy, research, or business record",
+      "a constituent letter, casework file, or petition response held by a member's office merely because the legislature employs that member",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Parliament, Congress, Legislation, Bills, Committee, Hansard, or Council alone",
+      "a shared download session or browser batch that pulled twenty bill PDFs together; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is a capture of a chamber feed or a legislature portal; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "bill or draft instrument print at a named stage",
+    "explanatory notes, delegated-powers memorandum, or impact material accompanying a bill",
+    "amendment paper, marshalled list, grouping list, or amendment tracking sheet",
+    "motion, resolution, question for oral or written answer, or order paper item",
+    "division, roll-call, or recorded-vote record",
+    "verbatim proceedings report for one sitting",
+    "committee call for evidence, written evidence submission, or oral evidence transcript",
+    "committee report with numbered conclusions and recommendations, and its formal minutes",
+    "government or agency response to a committee report as filed in the proceedings",
+    "delegated legislation laid before the chamber, with its scrutiny and objection record",
+    "public petition to the legislature and its response record",
+    "member registers, declarations, and standards or privileges proceedings",
+    "budget, appropriation, or supply proceedings and their scrutiny papers",
+    "drafting instructions and pre-introduction drafting correspondence held by a drafting or clerk's office",
+    "session, sitting, and legislative calendar administration"
+  ],
+  "grouping_reasons": [
+    "one bill, linked by an exact official bill identifier repeated across prints, amendment papers, explanatory notes, divisions, and the proceedings columns that name it; the prints of that bill are a version family and the stage endorsement is the reading order",
+    "one amendment addressed by coordinate to one named print — clause, page, line — which is a stronger membership anchor than a shared bill name, because it names the print it can be applied to",
+    "one committee inquiry, linked by an exact inquiry reference across the call for evidence, numbered submissions, oral-evidence transcripts, the report, and the government response; members are content-incoherent but purpose-coherent, which the design treats as a first-class case: “The documents are content-incoherent but purpose-coherent.”",
+    "one sitting, linking the order paper, the verbatim report for that date, and the divisions taken that day; this is the only genuinely time-primary group in this row and it still does not make the row time-first",
+    "one session or legislature term as a browse container only, never as a fact copied onto a member",
+    "one legislature or committee export manifest, kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "no group is a valid outcome for a single downloaded bill, act, report, or transcript with no accepted proceeding anchor: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "a sparse member (Amendment 47.docx, Q1-Q88.docx, an untitled clause draft) may join a candidate group for local review without acquiring a bill, stage, committee, sitting, or member fact"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "PR-6 leaves the government schema fieldless, so no destination-eligible field exists and the only contract-compliant recommendation is an empty order — the same empty order the schema default carries. The template's difference is therefore carried entirely by detection signals and privacy rules, which CONNECTION.md lists as template properties alongside dimension order: “detection signals, recommended `dimension_order`, optional branch patterns, privacy rules, validation constraints”. If fields are ratified later, the natural first dimension is the proceeding anchor (the bill or inquiry), not time and not document function, because an amendment sheet or a numbered question set is unintelligible without the instrument it addresses. Stage is deliberately NOT proposed as a dimension or a field: a bill's stages are an authoritative ordering on the universal version-family relation that already exists, not a new fact, and turning stage into a folder level would scatter one bill across as-introduced and as-amended branches.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "email", "calendar", "audio_video", "image", "ocr", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".doc", ".rtf", ".txt", ".xml", ".html", ".xlsx", ".csv", ".eml", ".msg", ".ics", ".mp4", ".mp3", ".png", ".jpg", ".zip", ".7z"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Bill 42 - Housing Standards - as amended in Public Bill Committee.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "long title and enacting formula on page one",
+        "consecutively numbered clauses with marginal notes, and italic square-bracket markers where the committee changed the text",
+        "stage endorsement line naming this print and the date it was reported",
+        "same official bill identifier as an earlier as-introduced print already in the corpus"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the bill passed, is in force, or has legal effect", "a bill, stage, or session field on a fieldless schema", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Marshalled list of amendments - Bill 42 - Report Stage.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered amendments each naming a sponsoring member",
+        "entries of the form Clause 4, page 3, line 17, leave out from second 'the' to end of line 19 and insert",
+        "starred markers for amendments tabled since the previous print",
+        "grouping and selection annotations at the head"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that an amendment was moved, selected, agreed, or negatived", "that the named sponsors support the amendment's stated effect", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Division 214 - Bill 42 Third Reading - 2026-03-11.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per member with name, party, constituency or state, and an aye/no/abstain value",
+        "header cells naming the division number, the question, and the tellers",
+        "totals and a result line at the foot"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a named member's vote is a private personal record to be suppressed", "any member's political position beyond the one recorded question", "that the result changed the law", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Official Report 2026-03-11 columns 401-486.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sitting date in the running head and continuous column numbers in the margin",
+        "speaker attributions with interventions and presiding-officer directions",
+        "topic changes several times inside one file as the order of business advances",
+        "cross-references to bill clauses and to division numbers"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a single topic for the whole file", "that a speech is the speaker's own document", "that a quoted constituent named in debate is a casework subject held here", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Written evidence HSB0037 - anonymised at submitter request.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "inquiry reference and a submission number in a series on the cover",
+        "submitter block giving a name or the word withheld, plus an organisation or none",
+        "numbered paragraphs answering a published question set",
+        "a line stating whether the submitter asked for anonymity"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that anonymisation has already been applied to the bytes", "that publication of the inquiry makes this submission low-sensitivity", "the submitter's identity from surrounding submissions", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Oral evidence - uncorrected transcript - HC 812 - 2026-02-18.docx",
+      "source_type": "text_document",
+      "observations": [
+        "witness panel list and members present",
+        "questions numbered Q1 to Q88 with attributed answers",
+        "a caveat that the transcript is uncorrected and has not been approved by the witnesses"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the transcript is final or citable", "that the caveat has been lifted", "a witness's employment, health, or legal position from their answers", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Third Report of Session - conclusions and recommendations - with formal minutes.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered conclusions and recommendations in a closing chapter",
+        "formal minutes appendix recording motions moved, amendments proposed and negatived, and a division among members",
+        "list of witnesses and list of published written evidence with submission numbers"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the recommendations were accepted", "that the report binds anyone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Government response to the Committee's Third Report - CP 1194.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "departmental issuer block, not a committee one",
+        "structure is recommendation-by-recommendation, quoting each numbered recommendation and replying accept, accept in part, or reject",
+        "exact report reference in the title"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the department is the corpus holder", "that acceptance means implementation", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Order of business - 2026-03-11 - notices of motions and questions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered items for one named sitting",
+        "bills listed at named stages, motions with sponsors, questions for oral answer with member names",
+        "a business statement for the following week"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the listed business happened", "a sitting fact copied onto every file downloaded that day", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Drafting instructions - Bill 42 - clauses 12-19 - RESTRICTED - v7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a legislative drafting office by a sponsoring department or member's office",
+        "policy intent described in prose with alternatives left open and questions to the drafter",
+        "a restriction marking and a version number in the filename with earlier versions present"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that any drafted clause reflects settled policy", "that the restriction marking is a handling class the product may assign", "that the bill exists publicly yet", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Public Bill Committee sittings - Bill 42.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organiser is a committee clerk's office address",
+        "event titles carry the exact bill identifier and the sitting sequence",
+        "attendee list of committee members and a room location"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["attendance from invitation", "that the sittings took place", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Deadline for tabling amendments - Bill 42 Report Stage.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a table office or clerk's office role account",
+        "subject and body carry the exact bill identifier and the stage",
+        "attachment is the current amendment paper already present in the corpus"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a legislature email domain alone activates this row", "recipient roles beyond the structured slots", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Committee papers export - Session 2025-26.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists paths repeatedly encoding one inquiry reference and one bill identifier",
+        "mixed members: submissions, transcripts, report drafts, correspondence, a spreadsheet of witnesses",
+        "no access-control information in the manifest"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["member facts from the manifest paths", "that unpacking is safe or authorised", "that the whole archive is published material", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bill 42 - amendment tracker - our positions.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per amendment number with columns for sponsor, our position, lines to take, and target members",
+        "an owner column naming staff of a campaigning organisation",
+        "no clerk, table office, or chamber issuer block anywhere in the workbook"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that legislature-side custody exists", "that this row activates because the amendment numbers are real", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Housing Standards Act 2026 c.14 - consolidated text.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "chapter number, royal-assent or promulgation line, and a consolidated-text watermark",
+        "no stage endorsement, no amendment coordinates, no division, no proceedings columns",
+        "downloaded in a browser session alongside unrelated PDFs"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the enacted text is a record of the proceeding that produced it", "a proceeding group from the shared subject matter", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-03-11 at 15.02.11 - division result on the chamber feed.png",
+      "source_type": "image",
+      "observations": [
+        "exact display resolution and PNG software metadata support a screen-origin hypothesis",
+        "OCR yields a division number, a question, and vote totals",
+        "no camera EXIF"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["screen origin from missing EXIF alone", "that the OCR'd division belongs to an accepted proceeding group", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Embargoed report draft - do not circulate.7z",
+      "source_type": "opaque_binary",
+      "observations": [
+        "password-protected archive; no manifest readable",
+        "filename is the only evidence available"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that it contains a committee report", "that an embargo exists or has expired", "activation from the filename", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The schema's own default template already accepts a legislature packet as one authority-side workflow among ten, so the same bytes reach both. The split is the recognition unit and the privacy rule. This row requires the chamber apparatus — a stage-endorsed print, a coordinate-addressed amendment, a named-member division, or a column-numbered verbatim report — and treats recorded votes and spoken proceedings as published by design while treating inquiry submissions and pre-introduction drafting material as stricter than the default. Authority-side material that lacks the chamber apparatus, or that has a case reference rather than a proceeding chain, stays with the default template. Contested fixture: `Committee papers export - Session 2025-26.zip`, which the default template would hold as a generic authority export and this row holds only if the manifest paths encode a bill identifier or inquiry reference.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.policy-development",
+      "signal": "Executive policy work and legislative proceedings meet on the same instrument. Policy development owns the department's options papers, impact assessments, and ministerial briefings on a bill, and owns the government response as the department's own product. This row owns the same response when it is held inside the proceedings as the reply to a numbered set of recommendations, and owns drafting instructions only when they sit with the drafting or clerk's office. Contested fixture: `Government response to the Committee's Third Report - CP 1194.pdf` — the departmental issuer block pulls toward policy development, the recommendation-by-recommendation structure keyed to a committee report pulls here, and holder evidence decides.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.regulatory-rulemaking",
+      "signal": "Both file a proposal, received views, and a final instrument. Rulemaking's chain is a docket of DIFFERENT documents keyed to a proposal identifier and decided by the rulemaking body. This row's chain is one instrument RE-PUBLISHED at named stages and amended by coordinate. Contested fixture: a statutory instrument or delegated rule laid before the chamber — the made instrument plus its explanatory memorandum belongs to rulemaking; the scrutiny committee's report, the objection or annulment motion, and the division on it belong here.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-consultation",
+      "signal": "A committee call for written evidence and an executive consultation both publish a question set and receive named submissions. Consultation belongs to the body that will decide the proposal and keys its comments to a consultation identifier; this row's submissions are numbered in an inquiry series held by a body that reports rather than decides, and are published as an appendix to a report. Contested fixture: `Written evidence HSB0037 - anonymised at submitter request.pdf` — a consultation response with the same shape and an anonymity request goes to public consultation, and both sides must hold it protected either way.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.municipal-administration",
+      "signal": "A council is administratively one organisation acting in two capacities. Municipal administration owns service delivery, budgets as executed, and officer decisions. This row owns the same council's enactment record when the apparatus appears — an ordinance or by-law read on numbered occasions, an amendment moved against a numbered section, and a roll-call vote recorded by member name in the minutes. Contested fixture: `Council meeting packet 2026-03-11.pdf` — routine reports and officer recommendations are municipal administration; the ordinance readings and the roll call inside the same packet are this row, which is why membership must be evidenced per document rather than per packet.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.constituent-casework",
+      "signal": "A member's office holds both. Casework owns named-person correspondence, benefit and service problems, and the office's case references, and is protected by default. This row owns the office's copy of proceedings material. Contested fixture: `Constituent letter re Bill 42 - Ms A Rahman.pdf` — a named person writing about a bill is casework, not a legislative record, and the bill identifier in the subject line must not pull a personal letter into a published bill group.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "Formal-proceedings furniture is shared: agenda, numbered papers, motions, proposers, minutes, resolutions, and votes. Board governance owns that shape for any privately governed body. This row requires the state-side apparatus and public-legislature custody. Contested fixture: a board pack with a resolution and a recorded vote — it stays with board governance regardless of how statutory its language is, and conversely a committee's formal minutes recording a division among members stays here even though it looks exactly like board minutes.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.advocacy-campaign",
+      "signal": "A campaign's working file mirrors the proceedings it targets: bill trackers, amendment positions, draft clauses, briefings to members, and submissions to inquiries. Advocacy owns the author's copy and any document expressing a position to be taken. This row owns the legislature's copy. Contested fixture: `Bill 42 - amendment tracker - our positions.xlsx` — real amendment numbers and a real bill identifier, but a positions column and no clerk-side issuer, so it is advocacy on both sides of the boundary.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a downloaded bill, act, committee report, government response, or transcript is held for reading with no evidenced legislature-side custody and no accepted proceeding group",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone published proceedings artefact — an order paper, a division list, a single sitting's report — has durable value but no accepted proceeding group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Protected Records",
+      "when": "an inquiry submission, an anonymity or withholding request, a witness identity, pre-introduction drafting material, clerk-office correspondence, or a mixed legislature export lacks a safe accepted group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the file carries chamber-shaped structure but the holder role is unresolved — an uncorrected transcript, an unattributed amendment sheet, a tracker that may be clerk-side or campaign-side",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an embargoed or password-protected draft, a damaged proceedings export, or a legislature case-system binary yields no evidence beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The posture is mixed in both directions, which is itself the reason this row is not the schema default. Much of the corpus is published by design: a division names every member's vote and a verbatim report names every speaker, and the product must not suppress or re-privatise those as named-person records. Other parts are stricter than the schema default: inquiry submissions carry submitter identities and anonymity requests, oral transcripts are uncorrected until approved, reports and clause drafts may be embargoed until a publication moment, and drafting instructions are pre-decisional. Because published and restricted material sit in one packet, the mixed posture governs: the design requires that “Privacy policy must be enforced before content reaches any model or external connector,” and that “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” The product records only `potentially_sensitive`; it must never decide that an embargo has lifted, that anonymisation was applied, or that publication elsewhere makes the local copy safe.",
+  "open_question": "NEEDS-JOSEPH: (1) Publicity inversion — a recorded vote and a speech are named-person data that are public by design, but the schema's default is to protect named-person material; decide centrally whether a template may relax a schema-level privacy default, or whether the mixed packet must always dominate. (2) Embargo and correction status is time-bound and the catalogue has no concept of it; decide whether uncorrected or embargoed is a literal observation only (this row's assumption) or needs a representation. (3) If PR-6 is lifted, decide whether a bounded proceeding reference (bill or inquiry) may exist as a government field and whether it is destination-eligible; this row proposes no field and argues that legislative STAGE is an ordering on the universal version-family relation rather than a new field."
+}

@@ -1,0 +1,546 @@
+{
+  "id": "creative.submission-query",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Sending a made work out to someone who may say no",
+  "one_line": "The purpose-coherent packet a maker assembles to OFFER a work to a party who has not commissioned it - a query or covering letter with a named addressee, sample or partial material cut from the work, the reusable apparatus (statement, bio, CV, image list) that travels with every offer, the entry form or portal confirmation, the reply, and the ledger that records the same work going to many markets. Its anchor is an ADDRESSEE IN A SUBMITTED-TO ROLE, which is not a client: nobody here asked for the work, nobody is paying, and the counterparty's job is to decide. It is not the work itself (creative.book-manuscript, creative.short-form-writing), not the fulfilment of a commission already won (creative.deliverable-handoff, creative.client-engagement), not the standing portfolio kept for showing (career.portfolio-work-samples), and not an application for a job (career.recruiting). Placeholder launch on the fieldless creative schema: NO field rows, therefore NO serialized dimensions.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on everything below: these are DETECTION signals, never extraction licences. The creative schema declares no field rows, so activation here unlocks recognition, the sensitivity posture and the universal facts only. Nothing in this list writes a market, an addressee, a date sent or an outcome as a domain fact.",
+      "ADDRESSEE-PLUS-OFFER structure: a short document carrying a named recipient in a decision-making role (a block with a person, an organisation and often a postal address), a salutation, and a sentence that OFFERS an enclosed or attached work for that recipient's consideration. The offer sentence is the discriminating half. A letter with an addressee and no offer is correspondence; an offer with no addressee is a template.",
+      "ENCLOSURE-LIST-ANSWERING-A-REQUIREMENT structure: a line or list that enumerates what is being sent and states that it satisfies a stated requirement set - 'as your guidelines request, I enclose the first fifty pages, a one-page synopsis and a short bio'. This is the shape that makes a format-incoherent folder one act.",
+      "PURPOSE-COHERENT / CONTENT-INCOHERENT PACKET: a bounded set whose members are a letter, a sample of the work, a statement, a CV or bio, a numbered list of items and a form - documents that share no subject at all. 00 names this exact shape and this exact archive: 'A ZIP file named submission.zip may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague.'",
+      "RESPONSE structure: an inbound message or letter FROM the addressee that refers to the offered work by exact title and carries a decision - a declination, a request for more material, an acceptance, or a scheduling of terms. This row is the only creative situation that routinely files a decision the holder did not make.",
+      "LEDGER structure: a tabular record whose rows are one work sent to many recipients - columns in the shape (work, market or agent, contact, date sent, what was sent, response, date of response, notes). The ONE-TO-MANY fan-out is the signal; a single-row table is a note.",
+      "SUBMISSION-SYSTEM structure: a portal or manager confirmation carrying a submission identifier, a market name, a category and a date, usually arriving as an email or captured as a screen image. 00 lists the equivalents as measurable purpose clues: 'explicit application or submission language, a target institution, an existing user folder name, an application portal screenshot, a checklist or form, a bounded session'.",
+      "GUIDELINES-ANSWERED pairing: a downloaded requirement document (eligibility, fee, deadline, file specification, rights clause) PAIRED with a local set that satisfies it, matched by the market name and the deadline. The pairing is the signal. The guidelines document alone is reading material.",
+      "ENTRY-FORM structure: a labelled form with eligibility declarations, a fee line, a usage or exhibition rights grant, a work list, and a signature - the strictest-formatted and most machine-legible member of this world.",
+      "EXCLUSIVITY structure: an explicit statement of simultaneous or exclusive submission, an agreed reading period, or a withdrawal notice. No other creative situation carries this slot, because no other creative situation involves offering the same object to competing parties at once.",
+      "SAMPLE-CUT structure: a file whose stem matches a larger work in the same corpus but whose extent is a stated fraction ('_partial', '_first50pp', '_3tracks', '_10images', '_excerpt'), sitting beside a letter rather than beside the working files. The cut exists only because someone asked for a portion."
+    ],
+    "needs_llm": [
+      "Whether a packet offers a WORK or a PERSON. A gallery submission and a design-job application both contain a CV, a covering letter and a portfolio PDF. Only the letter's ask separates them, and it must be read, not guessed from the filename.",
+      "Whether an enclosed sample is a MEMBER of this packet or the standing portfolio artefact that lives with career and was merely attached. The same bytes can be both across time, and the row must not re-file the standing copy.",
+      "Whether a set of statement, bio, CV and image list is one submission or the reusable master apparatus from which many submissions are cut - 00's shared-material problem, where 'A transcript may be part of several application packets; a resume may support multiple recruiting processes'.",
+      "Whether an inbound declination refers to this offered work, to a different work sent to the same market, to a job application, or to an unrelated commercial refusal. Rejection prose is nearly identical across all four.",
+      "Whether an acceptance has ENDED this situation - a signed offer of representation, a contributor agreement or a schedule turns the world into an engagement or a published title, and the packet becomes historical rather than active.",
+      "Whether a folder of format-incoherent files is one submission or one afternoon of downloading market guidelines, which 00 forbids treating as proof: 'A session should never be treated as proof of topic'."
+    ],
+    "never_alone": [
+      "THE WORDS 'submission', 'query', 'entry' or 'application' IN A FILENAME OR FOLDER NAME. This row's own charge, and 00 makes the point against exactly this token: submission.zip is evidence because of its MEMBERS, 'even when the outer archive name is vague'. 'Query' additionally names a database artefact and a support ticket; 'entry' names a ledger line and a diary page.",
+      "AN ADDRESSEE BLOCK ALONE. Cover_letter_TEMPLATE.docx with [AGENT NAME] placeholders, a mail-merge source, a complaint letter, an invoice and a job application all carry a named recipient and a salutation. Without the offer sentence there is no submission.",
+      "A CV, RESUME OR BIO ALONE. It is career's standing material, it appears in every packet, and it belongs to none of them exclusively. 00 puts the resume on career's side of exactly this seam.",
+      "A PORTFOLIO PDF ALONE. The collision fixture of this row is Portfolio_2026.pdf and it is career.portfolio-work-samples' material by default; enclosure in one addressed act does not move it.",
+      "AN AGENCY, PUBLISHER, GALLERY, LABEL, FESTIVAL OR MAGAZINE NAME ALONE. The direct read-across of 00's warning: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.' A market name here appears as the addressee, as the maker's OWN existing representation, as a competitor named in a comparables paragraph, as a rights holder, as a printer, and as a subject merely depicted in the work.",
+      "A DOWNLOADED GUIDELINES OR OPEN-CALL PDF ALONE. Nobody addressed it to the holder, it is identical for every applicant in the world, and it proves only that the holder read something. It is Reading Inbox material until a local set answers it.",
+      "A REJECTION-SHAPED MESSAGE ALONE. 'Thank you for thinking of us, but it is not right for our list' is byte-shaped like a declined tender, a rejected job application, a refused permission request and a declined pitch. The exact-title reference to a work in the corpus is what makes it this row's.",
+      "A DEADLINE DATE, A FEE LINE, OR A SUBMISSION FEE RECEIPT ALONE. A fee receipt is a transaction; without the packet it answers it is Receipts and Confirmations material and independently finance evidence.",
+      "A BOUNDED DOWNLOAD SESSION READ AS A PACKET. 00: 'A tight download session alone is never sufficient: it is a retrieval clue that may bring the files together, but not proof of their shared purpose.'",
+      "THE ABSENCE OF A COMMISSION READ AS PROOF OF SUBMISSION. Absence selects nothing. Self-initiated work, personal experiments and abandoned drafts all lack a commissioner and none of them has been offered to anybody; this row needs a positively evidenced addressee.",
+      "AUTHOR METADATA OR A MAKER'S NAME ON THE LETTER. 'DOCX author metadata should remain supporting information only, because it may identify a prior editor, a document template, or a script rather than the meaningful subject or purpose of the file.' In a corpus whose owner IS the sender, sender identity carries no information at all."
+    ]
+  },
+  "proposed_context_terms": [
+    "query letter",
+    "covering letter",
+    "submission guidelines",
+    "open call",
+    "call for entries",
+    "unsolicited",
+    "simultaneous submissions",
+    "exclusive read",
+    "reading period",
+    "partial",
+    "full manuscript request",
+    "synopsis",
+    "comparable titles",
+    "sample pages",
+    "image list",
+    "artist statement",
+    "entry fee",
+    "juror",
+    "shortlist",
+    "longlist",
+    "declination",
+    "offer of representation",
+    "we regret",
+    "not right for our list",
+    "withdraw",
+    "resubmit"
+  ],
+  "work_types": [
+    "query or covering letter",
+    "synopsis or pitch summary",
+    "sample or partial cut from the work",
+    "artist or author statement",
+    "bio",
+    "CV or credits list",
+    "image or track list",
+    "entry form",
+    "submission guidelines answered",
+    "portal or system confirmation",
+    "response or decision letter",
+    "submission ledger",
+    "withdrawal or update notice",
+    "reference or recommendation letter",
+    "offer, contract or acceptance terms"
+  ],
+  "grouping_reasons": [
+    "one addressed offer - one letter, its enclosures and its reply, however format-incoherent the enclosures are",
+    "one market or addressee across several works offered to it over time",
+    "one work across all the markets it was sent to, which is the ledger's own axis",
+    "one submission round or open call with a shared deadline",
+    "one reusable apparatus set (statement, bio, CV, image list) that supplies many packets without belonging to any",
+    "an existing curated folder the maker already made and named - 'Existing curated folders and user-entered labels should influence retrieval because they represent the user’s vocabulary.'"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT AND ALSO BY A HOLE. Empty by contract because a dimension may only branch on a field the entry's schema declares, and the creative schema declares none. But this row has a second, sharper reason worth recording: EVEN IF the creative schema later adopts its four candidate keys (project, stage, artifact_type, client), this situation still could not serialize its own primary dimension, because its organizing anchor is an ADDRESSEE IN A SUBMITTED-TO ROLE and `client` is a COMMISSIONING role. A literary agent, a magazine editor, a juror and a festival programmer have commissioned nothing; recording them as `client` would assert a relationship that does not exist and would fuse a rejection with a paid job. The prose recommendation, offered and not taken: the addressee level first where the corpus offers work to more than one market, then the work, then the round or date sent, with artifact type deepest. That ORDER IS THE ROW'S DIFFERENCE from the creative default (client, project, stage, artifact_type): under the default, forty offers of one manuscript collapse into a single stage folder and the only fact that distinguishes them - who it went to - has nowhere to live. Not time-first: date sent matters, but the parent-context test governs, and a folder named 2026-03-14 is meaningless without knowing which work went where. Whatever lands remains a recommendation the user may reverse or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "presentation",
+      "audio_video",
+      "calendar",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".rtf",
+      ".txt",
+      ".md",
+      ".xlsx",
+      ".csv",
+      ".numbers",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".mp3",
+      ".wav",
+      ".mp4",
+      ".mov",
+      ".ics",
+      ".epub"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Query - Nightwork - Alderman Literary.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressee block naming a person, an agency and a postal address, above a dated salutation",
+        "one paragraph pitching a named work with a stated length and category, one comparables paragraph naming two other books, one short bio paragraph",
+        "a closing line stating what is enclosed and that it follows the agency's stated requirements",
+        "no scope, no fee, no deliverables list, no approval history"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the addressee is a client - nobody has commissioned anything",
+        "that the work exists in the corpus, or which local file it is, without an exact title match",
+        "an outcome, a date of response, or that the offer was ever sent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork_partial_50pp.docx",
+      "source_type": "text_document",
+      "observations": [
+        "continuous prose ending mid-chapter, sharing its stem with a much longer sibling file in the same corpus",
+        "a header carrying a title, an author name, a word count and a contact address - apparatus a working draft does not carry",
+        "extent stated in the filename as a fraction of a whole"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is the work itself rather than a cut made for one recipient",
+        "that its version_family link back to the full manuscript may be dropped because a packet claimed it",
+        "which market it was cut for, absent a letter naming both"
+      ],
+      "also_schema": "creative",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork - synopsis - 2pp.docx",
+      "source_type": "text_document",
+      "observations": [
+        "whole-plot summary in present tense including the ending, which no reader-facing blurb ever contains",
+        "shares a title token with the partial and the query but shares no prose with either",
+        "a purpose-coherent, content-incoherent member: it is about the work, not part of it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that it is a draft chapter, a treatment for production, or marketing copy",
+        "that its membership in a packet makes it a version of the manuscript"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Submissions tracker.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one sheet, header row reading work / agent or market / contact / date sent / what was sent / response / date / notes",
+        "dozens of rows for the same work against different recipients, with a response column of blanks, declinations and one request for the full",
+        "a second sheet listing closed markets and reading periods"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a row proves a local file exists for that submission, or the reverse",
+        "an acceptance, a relationship, or a representation status from a response cell",
+        "that the sheet is a finance record because it has a fee column"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Query - Nightwork.eml",
+      "source_type": "email",
+      "observations": [
+        "sender at an agency domain, recipient the corpus owner, subject line quoting the outbound subject",
+        "body refers to the work by exact title and declines it in two sentences, with an invitation to try elsewhere",
+        "no attachment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the decline is final, appealable, or informative about the work's quality",
+        "that the sender organisation now has any role other than addressee",
+        "that a same-agency message about a different matter belongs to this packet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "00's own named fixture. Manifest lists statement.pdf, CV.pdf, ten sequentially numbered JPEGs, image list.docx and a completed entry form - members that share no subject at all",
+        "outer name is vague; the members are the evidence",
+        "inspected without unpacking: 'the normal scan should never extract archive contents to the filesystem'"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a purpose from the archive name alone",
+        "that the enclosed images are a photo event, or that the CV is career material relocated here",
+        "that unpacking is warranted to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Aperture Open Call 2026 - guidelines.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "eligibility clauses, an entry fee line, a deadline, file specifications, an exhibition rights grant and a judging note",
+        "addressed to nobody; identical for every applicant on earth",
+        "downloaded, not authored"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a submission was made, prepared, or intended",
+        "that this is a brief - a brief is addressed to a maker who has been engaged; this is a public notice",
+        "that the rights clause binds any local work"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Artist Statement 500 words.docx",
+      "source_type": "text_document",
+      "observations": [
+        "first-person prose about a body of work, no addressee, no date, no market name",
+        "appears verbatim or near-verbatim inside several different packets across the corpus",
+        "00's shared-material shape: 'A transcript may be part of several application packets; a resume may support multiple recruiting processes'"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a single owning packet - it has several accepted memberships and no market-specific fact",
+        "that one packet may claim it as a primary home. 'It should abstain or ask the user to choose a primary home.'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 11.03.14 - submission confirmed.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in filename shape and pixel dimensions",
+        "OCR yields a market name, a submission identifier, a category and a date, in a portal chrome",
+        "00 names the portal screenshot as a measurable purpose clue"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "which local files were the ones uploaded",
+        "an acceptance from a confirmation - confirmation is receipt, not decision",
+        "screen origin from missing EXIF alone"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Image list - Aperture.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered rows: title, year, medium, dimensions, edition, price on request",
+        "byte-shaped exactly like an exhibition checklist or an edition inventory",
+        "sits beside a letter and a form rather than beside install shots or a press release"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a show exists, was scheduled, or took place",
+        "that the listed works exist as local files",
+        "an edition or sale fact from a price column"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Reference letter - M Patel - CONFIDENTIAL.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letterhead of a third party, addressed to a residency panel, written ABOUT the corpus owner",
+        "an explicit confidentiality legend",
+        "a member of the packet that the corpus owner did not write and may not be entitled to circulate"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the legend is a handling class - handling classes are P7's vocabulary",
+        "that the writer is a collaborator, employer or client",
+        "that packet membership authorises sending the content to a model or connector"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Portfolio_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "THE COLLISION FIXTURE. Twenty pages of finished exported work with captions, a contents page and a contact page; no working files anywhere near it",
+        "maintained and re-exported yearly; enclosed with several different outbound acts including a job application",
+        "identical bytes on both sides of the career seam"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that enclosure in one addressed packet moves it out of career.portfolio-work-samples",
+        "a market fact, a date sent, or an outcome from the file itself",
+        "that the depicted works belong to the packet"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Cover letter - Senior Designer - Studio Kettle.docx",
+      "source_type": "text_document",
+      "observations": [
+        "THE SECOND COLLISION FIXTURE. Addressee block, salutation, an offer paragraph, a closing enclosure line - byte-shaped identically to the query letter above",
+        "what is offered is the writer's availability and experience, not a made work",
+        "enclosures are a CV and a portfolio, the same two files that travel in a gallery submission"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a covering letter with enclosures is this row's material",
+        "that the recipient studio is a client or a market",
+        "that the portfolio's presence makes the packet creative"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nightwork - offer of representation - Alderman.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block, numbered clauses, a commission percentage, a term, a termination clause and an execution block",
+        "names the offered work by exact title",
+        "the document that ENDS this situation and starts another"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the agreement is executed, effective, or currently in force",
+        "any legal effect, obligation or right",
+        "that subsequent files with this agency are still submissions rather than an engagement"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FilmFreeway - entry receipt - SHORTFILM 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an amount, a payment method, a transaction identifier, a festival name and a submission category",
+        "independently a transaction record",
+        "its only link to a packet is the festival name and the date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that payment proves a submission was completed or accepted",
+        "that a shared festival name binds it to a particular local packet",
+        "a creative fact from a finance document"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Cover_letter_TEMPLATE.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the full letter apparatus with [AGENT NAME], [AGENCY] and [DATE] placeholders unfilled",
+        "no recipient, no work title, never sent",
+        "shares every structural signal this row has except the one that matters"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an addressee, a market, or a submission event",
+        "that structural similarity to a real query letter is evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Submission archive 2019-2023 - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "encrypted; no member list readable",
+        "a date range and the word 'submission' in the name and nothing else"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a purpose from the filename - 00: the system 'should not infer a purpose from their filename alone'",
+        "any market, work or outcome",
+        "that forcing it open is warranted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.recruiting",
+      "signal": "THE LOAD-BEARING COLLISION, and this row's own charge in edge form. SAME FIXTURES: a covering letter with an addressee block and an enclosure line, plus CV.pdf and Portfolio_2026.pdf. 00 treats the job-application packet as the archetype of purpose coherence, so both sides read as 'content-incoherent but purpose-coherent'. THE DISCRIMINATOR IS WHAT IS OFFERED, and it is readable only in the letter's ask: this row offers a MADE WORK for publication, exhibition, performance or sale, and the outcome is that the work is taken; career.recruiting offers the PERSON'S LABOUR, and the outcome is that the person is hired. RECIPROCAL: career must not claim a query letter merely because it encloses a CV, and this row must not claim a job application merely because it encloses a portfolio of creative work. Where the ask is unreadable - a bare CV and portfolio in a folder named for an organisation - neither activates and both abstain: 'Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.'"
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE BYTES: Portfolio_2026.pdf, and the creative schema anchor already assigns career the design_creative file_kind_owner role for 'a curated set of finished exports ... named for a submission', which is a direct claim on this row's material. THE DISCRIMINATOR IS STANDING VERSUS INSTANCE. Career holds the maintained, re-exported, addressee-free self-presentation artefact that exists whether or not anyone is being written to. This row holds ONE ADDRESSED ACT: a letter, a date sent, a named recipient, a reply. RECIPROCAL: this row may record the portfolio as an enclosure member without re-filing it or attaching a market fact to it, and career may not absorb the query letter, the synopsis, the entry form, the response or the ledger, none of which present the maker. Where a portfolio export sits alone with no letter, career wins by default and this row abstains."
+    },
+    {
+      "domain": "creative.deliverable-handoff",
+      "signal": "THE SIBLING COLLISION. SAME FIXTURE SHAPE: a dated zip of exports plus a covering note, sent to a named organisation. THE DISCRIMINATOR IS WHETHER THE RECIPIENT ASKED. A handoff FULFILS an existing commission: it is preceded by a round history, its note is a manifest checked against an agreed scope, and its counterparty is a `client` who is paying. A submission is an UNSOLICITED OR COMPETITIVE OFFER: there is no round history, the note pitches rather than reconciles, the enclosure is a sample rather than the whole of what was owed, and the recipient may simply decline. RECIPROCAL: handoff must not claim an offer because it is an export set with a note, and this row must not claim a delivery because a covering note names a recipient. A rejection letter can only exist on this side; a signed acceptance of delivery can only exist on that one."
+    },
+    {
+      "domain": "creative.client-engagement",
+      "signal": "SAME FIXTURE: a speculative pitch deck sent cold to a prospective commissioner, with a covering letter and sample work. It is genuinely outbound, genuinely unsolicited, and genuinely undecided. THE DISCRIMINATOR IS WHAT THE OFFER IS OF: a pitch offers CAPABILITY AND WORK NOT YET MADE, and if accepted becomes an engagement with a brief, a scope and a fee; a submission offers A WORK ALREADY MADE, and if accepted becomes a publication, an exhibition or a sale. RECIPROCAL: engagement must not claim a query letter because it is addressed to an organisation, and this row must not claim a proposal because it is unsolicited. Where a document does both - an illustrator offering finished pieces AND availability for commissions - it is one file with two readings and neither side may suppress the other."
+    },
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "THE CROSS-SCHEMA COLLISION, and the closest structural twin this row has anywhere. SAME FIXTURE: cover_letter_to_editor.docx, plus a submitted manuscript, plus a system confirmation, plus reviewer reports and a decision letter. That world files offers, responses and resubmissions exactly as this one does. THE DISCRIMINATOR IS WHAT IS SUBMITTED: a research artifact carrying an abstract, methods, references, co-authors and a target venue belongs to research; a work of authorship, image set, score, film or design offered to a market for publication, exhibition or sale belongs here. RECIPROCAL: research must not claim a literary or artistic submission because it has a cover letter and a decision letter, and this row must not claim a journal submission because it is a piece of writing being offered. Neither side may use the words 'submission', 'revise and resubmit' or 'editor' as proof, because both worlds use all three."
+    },
+    {
+      "domain": "creative.book-manuscript",
+      "signal": "RECIPROCATED AS ALREADY AUTHORED ON THAT SIDE. SAME FIXTURE: Nightwork_partial_50pp.docx. That row claims it as a compiled state of the work carrying a version_family relationship back to the full manuscript; this row claims it as a member of a purpose-coherent packet evidenced by a query letter, a synopsis and a tracking ledger. RECIPROCAL, in the words that row used and this row accepts: the packet reading must not delete the partial's version_family link, and that row must not absorb the query letter, the synopsis or the tracking spreadsheet, none of which are the work. The discriminator is the addressee, not the content."
+    },
+    {
+      "domain": "creative.short-form-writing",
+      "signal": "SAME FIXTURE: an essay or story file that is complete in itself and names an outlet. That row's own definition already includes pieces that 'have their own addressee or outlet', which is a claim on this row's anchor. THE DISCRIMINATOR IS THE PACKET, NOT THE PIECE: the piece belongs to short-form; the letter, the response, the fee receipt and the ledger row belong here, and the piece joins this row's group as a member without leaving its own. RECIPROCAL: short-form must not claim a query letter because it mentions a story, and this row must not claim an unaccompanied story because it names a magazine in its header."
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "SAME FIXTURE: ten sequentially numbered JPEGs inside submission.zip, carrying full EXIF make, model, capture time and GPS. That evidence alone proposes a deterministic capture event and a capture-year home, which would scatter one addressed offer across calendar folders. THE DISCRIMINATOR IS THE APPARATUS AROUND THE FRAMES: a numbered image list, an entry form, a statement and a letter. RECIPROCAL: a personal picture never acquires a market because it was resized to a submission specification, and this row never claims a capture event because ten files share a shoot date. Both readings may stand on the same frames where both are evidenced."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "research",
+      "signal": "00's own double-holding case, transplanted one world over and quoted exactly: 'A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.' The same shape here: a published paper, a conference abstract or a thesis chapter enclosed as a writing sample in a residency or fellowship packet is both a research artifact and a packet member. The evidence is disjoint - abstract, methods and references on one side; an addressee, an enclosure line and a deadline on the other - and neither reading may erase the other."
+    },
+    {
+      "domain": "career",
+      "signal": "The representation-seeking case, which is legitimately both and is why career is also listed as a collision on different files. A packet sent to an illustration agency, a literary agency or a talent agency asking for REPRESENTATION offers the maker's ongoing career (career) and consists entirely of samples of named works with a covering letter and a ledger row (this row). What must not happen is the double reading being used to smuggle a job application into a submissions branch, or a market's declination into an employment record."
+    },
+    {
+      "domain": "legal",
+      "signal": "An offer of representation, a contributor agreement, an exhibition loan form and an entry form's rights clause are operative instruments AND the record of what happened to one offered work. Disjoint evidence: a parties block, numbered clauses, defined terms and an execution block on one side; the named work, the addressee and the date sent on the other. Where the instrument carries the maker's personal details or a third party's signature the protective posture governs handling regardless of which reading places the file."
+    },
+    {
+      "domain": "finance",
+      "signal": "Entry fees, reading fees, contest fees and postage are real expenditures with issuers, amounts and dates, and a working maker's submission ledger often carries a cumulative fee column. Finance owns the transactional slots; this row may record the receipt as a packet member without converting an amount into a creative fact, and finance may not claim the ledger merely because one of its columns is money."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The principal fallthrough and the honest normal case, because most of this row's fixtures are readable, obviously purposeful, and unresolvable as to which act they belong to - an untitled covering letter, a partial with no letter, a declination naming a work the corpus does not contain. 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the durable, standing, packet-free members: the reusable artist statement, the image list, the submission ledger itself, a lone entry form. These have a real ongoing purpose and no owning act. 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The specific home of this row's commonest false positive: downloaded submission guidelines, open-call notices, market listings and agent wish-lists, which prove only that the holder read something. 'Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Entry fees, reading fees, contest fees and postage with no packet to attach to. 'Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Third-party reference letters written about the maker, tax and identity forms enclosed in sale packets, and signed agreements carrying personal details. 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Encrypted submission archives and portal exports in formats no approved extractor reads. 'Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Portal confirmations, tracker pages and market listings captured as screen images, which are a working habit here and mostly disposable. 'Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.'",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The creative schema's own posture is inherited (unpublished work, the client's confidence) but three of this row's four reasons are ITS OWN and are the third leg of its node test. (1) THE MAKER'S PERSONAL DATA TRAVELS IN EVERY PACKET. Unlike every other creative situation, whose files are about the work, this one always carries a postal address, a telephone number, a bio, sometimes a date of birth or nationality on an eligibility declaration, and on a sale packet a tax identification form. A delivery folder carries none of that. (2) THIRD-PARTY CONFIDENTIAL DOCUMENTS. Reference and recommendation letters are written ABOUT the corpus owner BY someone else, often under an explicit confidentiality legend, and the corpus owner may not be entitled to circulate them at all - so they cannot be treated as the holder's own material to send anywhere. (3) THE LEDGER IS A RECORD OF REFUSAL (marked INFERENCE). A tracker of forty declinations is a private account of failure in a way that no other creative artefact is; a maker who would happily show a delivery folder would not show this. (4) EXCLUSIVITY IS CONSEQUENTIAL. Simultaneous-submission status, reading-period agreements and withdrawal notices can carry real obligations, so their content must not be inferred, summarised or acted on. Against all four the schema's boundary sentence governs: 'Privacy policy must be enforced before content reaches any model or external connector.' This row assigns no handling class - those are P7's - and carries no safety-domain flag.",
+  "open_question": "Three, and the first is this row's real finding. (1) THE ADDRESSEE HAS NO KEY, AND `client` IS THE WRONG ONE. This situation's organizing anchor is an organisation in a SUBMITTED-TO role - an agent, an editor, a gallery, a jury, a label, a festival - and the creative schema's only counterparty candidate, `client`, is a COMMISSIONING role carrying `role_split_with: our_firm`. Recording a market as `client` would assert a paid relationship that does not exist and would fuse forty rejections with one job. The alternatives: (a) leave it unkeyed, as here - the row detects, protects and groups but can never branch on the only fact that distinguishes its members, which is a real functional loss; (b) let R1c widen `client` to a general counterparty key with a role value, which risks collapsing the very distinction 00 requires be modelled as distinct facets; (c) let R1c mint a third counterparty key beside `client` and `our_firm` for the submitted-to role, reusable by career.recruiting's employer and research.manuscript-publication's venue. NO KEY IS PROPOSED HERE, deliberately, following the schema anchor's own reasoning about the rights hole: minting one on a fieldless schema at the point of maximum temptation is the 574's mistake. (2) THE ACCEPTANCE BOUNDARY. When an offer is accepted, this situation ends and another begins - creative.publishing-title, creative.periodical-issue, creative.client-engagement or creative.exhibition. Whether the historical packet stays here, migrates, or is retained in both places is a real filing decision this row cannot make alone, and it determines whether a successful submission is findable years later. (3) ARTISTIC OPEN CALLS VERSUS RESEARCH FUNDING. A residency, fellowship or arts-council application is submission-shaped (addressee, packet, deadline, decision) but research.grants-funding holds the structurally identical academic case. This row claims the artist's side on the evidence that its enclosures are samples of finished work, a statement and a CV, while a research grant carries a principal investigator, an institutional signature, a budget justification and a programme code. If R1c judges that one row should hold both, it should be research.grants-funding widened, not this row - the funding world's structure is the more specific."
+}

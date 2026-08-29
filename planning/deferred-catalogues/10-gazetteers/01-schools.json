@@ -1,0 +1,276 @@
+{
+  "list_id": "gazetteer_schools",
+  "title": "10/01 — Schools, universities, and secondary schools",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P6 (injected) — never P5",
+  "consumer": "the caller-supplied gazetteer lookup injected at P6 fact-resolver construction. A hit is a ranked candidate for a field's value, entering §3.7's ranking with positional weighting; it is never a fact by itself and never activates a schema alone (CONNECTION.md section 4, activation step 2).",
+  "status": "seed",
+  "backs_fields": ["school", "target_university", "target_school"],
+  "backs_fields_note": "One entity list, several role-split fields. `school` (Academic) and `target_university` (College applications) are two fields over the same entity type — the §3.8 role split, the only licensed near-duplicate. VERIFIED against planning/domains/canonical_fields.json (R1a landed after this file was first drafted): all three keys resolve, and R1a's rows for exactly these three carry `gazetteer: \"schools\"`. R1a holds `target_school` as a key referenced by no schema, with a recorded recommendation (ROSTER.md NEEDS-JOSEPH) to fold it into `target_university` as a field-key alias; this gazetteer backs whichever keys survive that decision. The gazetteer never records role: which field a hit may fill is decided by that field's context rule, not by this list. check.py now asserts every backs_fields key resolves in the canonical table.",
+  "universe": "design_examples — v1 contains only institutions the design itself names or implies. A complete file would be one jurisdiction's official institution register (D4, ratified: one jurisdiction's gazetteers in v1, injected; WHICH jurisdiction is still open — see uncertain and RESEARCH.md NEEDS-JOSEPH). The dispatch prompt's example of a stated universe is accredited US degree-granting institutions; that phrase is the prompt's, not the design's.",
+  "match_rule": {
+    "matching": "word_boundary",
+    "why": {"source": "00", "section": "§3.7", "quote": "It should use word-boundary matching rather than substring matching."},
+    "adversarial": {"source": "00", "section": "§3.7", "quote": "names such as MIT can be found inside “submit,” and UNC can be found inside “uncertainty,” producing polished but completely false filing paths"},
+    "case_rule": "per alias: name aliases case-insensitive; acronym aliases case-sensitive (MIT is a school; German 'mit' is a preposition)",
+    "cjk_matcher_slot": "word-boundary semantics are Latin-script; CJK text has no delimiter word boundaries, so CJK aliases require a segmentation-aware matcher. The slot is named `cjk_matcher` and is unfilled in v1; the schema carries `script` per alias so CJK rows need no schema change. The design requires CJK OCR (§2.7: \"including CJK where required\"), so a Latin-only gazetteer silently misses CJK school names — recorded, not hidden."
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null,
+    "note": "§3.7 requires a minimum score and a minimum margin over the second-best candidate, and positional weighting per zone. The numbers are P6 deferred rows, injected. No number lives in this file."
+  },
+  "never_alone": {
+    "rule": "a school-gazetteer hit alone fills no field, activates no schema, and creates no group",
+    "cite": {"source": "00", "section": "§4.9", "quote": "A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization."}
+  },
+  "entries": [
+    {
+      "id": "sch-columbia",
+      "canonical": "Columbia University",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "Columbia University", "case_sensitive": false, "script": "Latin"},
+        {"alias": "Columbia", "case_sensitive": false, "script": "Latin", "ambiguous": true, "homonym": "hom-columbia"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "design",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§7.8", "quote": "Your Columbia University application has been submitted"},
+      "false_positive_risk": "high",
+      "example_true": "Columbia Essay.docx",
+      "example_false": "the Columbian Exchange",
+      "status": "seed",
+      "notes": "The design's most-worked school. The bare alias is the design's own six-way ambiguity example (see never_alone.cite) and is additionally a clean word-boundary hit inside 'British Columbia' and 'District of Columbia' — hom-columbia records both classes. High risk is priced in because the containment is contextual, not lexical."
+    },
+    {
+      "id": "sch-uchicago",
+      "canonical": "University of Chicago",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "University of Chicago", "case_sensitive": false, "script": "Latin"},
+        {"alias": "U Chicago", "case_sensitive": false, "script": "Latin"},
+        {"alias": "UChicago", "case_sensitive": false, "script": "Latin"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "design",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§2.8", "quote": "If a document says U Chicago, the raw observation remains exactly that wording, while a resolver may normalize it to University of Chicago and the user may later choose to display it as UChicago."},
+      "false_positive_risk": "low",
+      "example_true": "why I want to study at U Chicago",
+      "example_false": "Chicago winters are cold",
+      "status": "seed",
+      "notes": "The design's worked alias triple, verbatim. This row is the round-trip acceptance case: raw 'U Chicago' → canonical 'University of Chicago' → display 'UChicago'. Bare 'Chicago' is deliberately not an alias."
+    },
+    {
+      "id": "sch-washu",
+      "canonical": "Washington University in St. Louis",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "Washington University in St. Louis", "case_sensitive": false, "script": "Latin"},
+        {"alias": "Wash U", "case_sensitive": false, "script": "Latin", "ambiguous": true, "homonym": "hom-washington"},
+        {"alias": "WashU", "case_sensitive": false, "script": "Latin", "ambiguous": true, "homonym": "hom-washington"},
+        {"alias": "WUSTL", "case_sensitive": true, "script": "Latin"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "inference",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§2.1", "quote": "Wash U.docx may contain an unmistakable university application prompt"},
+      "false_positive_risk": "medium",
+      "example_true": "Wash U.docx",
+      "example_false": "the Washington Post",
+      "status": "seed",
+      "notes": "The design names only the string 'Wash U' (a filename). The expansion to Washington University in St. Louis is this row's inference — 'Wash U' conventionally names WUSTL — and hom-washington records the University of Washington confusion. Bare 'Washington University' is not an alias."
+    },
+    {
+      "id": "sch-duke",
+      "canonical": "Duke University",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "Duke University", "case_sensitive": false, "script": "Latin"},
+        {"alias": "Duke", "case_sensitive": false, "script": "Latin", "ambiguous": true, "homonym": "hom-duke"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "inference",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§4.4", "quote": "a Duke essay"},
+      "false_positive_risk": "medium",
+      "example_true": "my Duke supplemental essay",
+      "example_false": "Marmaduke",
+      "status": "seed",
+      "notes": "The design uses Duke as its conflicting-target-institution outlier ('identify whether any candidate has a conflicting institution, such as a Duke essay'). Expansion to the full name is inference."
+    },
+    {
+      "id": "sch-cornell",
+      "canonical": "Cornell University",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "Cornell University", "case_sensitive": false, "script": "Latin"},
+        {"alias": "Cornell", "case_sensitive": false, "script": "Latin", "ambiguous": true, "homonym": "hom-cornell"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "inference",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§5.2", "quote": "UChicago, Duke, Cornell, and Columbia-related groups"},
+      "false_positive_risk": "medium",
+      "example_true": "Cornell application checklist",
+      "example_false": "a Cornellian reunion",
+      "status": "seed",
+      "notes": "Named in the design's Applications canvas card. Expansion to the full name is inference; hom-cornell records the surname and the Cornell College (Iowa) collisions."
+    },
+    {
+      "id": "sch-georgetown-prep",
+      "canonical": "Georgetown Prep",
+      "entity_type": "secondary_school",
+      "aliases": [
+        {"alias": "Georgetown Prep", "case_sensitive": false, "script": "Latin"},
+        {"alias": "Georgetown Preparatory School", "case_sensitive": false, "script": "Latin"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "design",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§5.2", "quote": "course materials for Columbia, Georgetown Prep, and other study periods"},
+      "false_positive_risk": "low",
+      "example_true": "Georgetown Prep transcript",
+      "example_false": "Georgetown",
+      "status": "seed",
+      "notes": "The design's own example proves the `school` field takes secondary schools, not only universities — which is why this file is 'schools', not 'universities'. Bare 'Georgetown' is refused (ref-bare-georgetown): it collides with Georgetown University, which is not seeded, and with two place names."
+    },
+    {
+      "id": "sch-mit",
+      "canonical": "Massachusetts Institute of Technology",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "Massachusetts Institute of Technology", "case_sensitive": false, "script": "Latin"},
+        {"alias": "MIT", "case_sensitive": true, "script": "Latin", "ambiguous": true, "homonym": "hom-mit"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "inference",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§3.7", "quote": "names such as MIT can be found inside “submit,”"},
+      "false_positive_risk": "high",
+      "example_true": "MIT OpenCourseWare notes",
+      "example_false": "please submit the form",
+      "status": "seed",
+      "notes": "The design's canonical word-boundary case, kept as a live entry precisely so the adversarial assertion runs against a real row. The acronym is case-sensitive (German 'mit' is a preposition). hom-mit records the residual danger word-boundary cannot fix: 'MIT License' is a clean uppercase word-boundary hit in nearly every open-source repository — the context rule and never_alone are the containment, and a code file must not gain a school fact from its license header."
+    },
+    {
+      "id": "sch-unc",
+      "canonical": "University of North Carolina",
+      "entity_type": "university",
+      "aliases": [
+        {"alias": "University of North Carolina", "case_sensitive": false, "script": "Latin"},
+        {"alias": "UNC", "case_sensitive": true, "script": "Latin", "ambiguous": true, "homonym": "hom-unc"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "inference",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§3.7", "quote": "UNC can be found inside “uncertainty,”"},
+      "false_positive_risk": "high",
+      "example_true": "UNC admissions portal",
+      "example_false": "uncertainty principle",
+      "status": "seed",
+      "notes": "The design's second word-boundary case, kept live for the same reason as sch-mit. The UNC system has many campuses; the canonical here is the system name and campus-level rows are a universe question (unc-v1-universe). hom-unc also records the Windows 'UNC path' false friend."
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-bare-georgetown",
+      "refuses": "bare 'Georgetown' as an alias of any row",
+      "reason": "It would resolve to Georgetown Prep in this seed only because Georgetown University is absent — a resolution that is an artifact of the seed's size, not of evidence. It also names two places (Washington DC neighborhood, Guyana's capital). Until both institutions are rows with a recorded homonym, the bare string matches nothing.",
+      "example_false": "Georgetown"
+    },
+    {
+      "id": "ref-person-names",
+      "refuses": "any person-name gazetteer",
+      "reason": "Unbounded person-name lists are how MIT-in-submit happens at corpus scale, and authorship must not drive placement anyway.",
+      "design_cite": {"source": "00", "section": "§3.8", "quote": "It should avoid using authorship or creator identity as a destination dimension"}
+    },
+    {
+      "id": "ref-email-domains",
+      "refuses": "institutional email/web domains (columbia.edu) as aliases",
+      "reason": "A domain inside a URL or email address is catalogue 06's observation (url/email kinds), not a name match, and a broad university domain is the design's own example of a generic hub that must be suppressed rather than matched.",
+      "design_cite": {"source": "00", "section": "§4.3", "quote": "suppress generic hubs such as a personal email address or broad university domain"}
+    },
+    {
+      "id": "ref-generic-institution-words",
+      "refuses": "'University', 'College', 'School', 'Institute' as aliases of anything",
+      "reason": "Generic nouns; word-boundary matching does not save a word that is legitimately everywhere.",
+      "example_false": "State University of New York"
+    },
+    {
+      "id": "ref-unbounded-dump",
+      "refuses": "importing every university on earth (unfiltered Wikidata, a global scrape)",
+      "reason": "The dispatch brief forbids it and the validation procedure requires a stated universe. An unbounded list maximizes homonym collisions exactly where no context exists to resolve them. A complete v1 list is one jurisdiction's official register, injected (D4)."
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-v1-universe",
+      "question": "Which jurisdiction's official institution register backs this file in v1?",
+      "note": "D4 is ratified in shape — one jurisdiction's gazetteers, injected per deployment — but WHICH one is recorded as open ('design's examples are US, the catalogue authors wrote UK'). US candidates: the Dept. of Education's accreditation database (DAPIP) or IPEDS institution list; UK candidate: the OfS register. The design's own worked examples are US-shaped. Overlaps R5 (11-jurisdiction-values), which owns jurisdiction-varying form/court/statute values and explicitly not institution lists. NEEDS-JOSEPH."
+    },
+    {
+      "id": "unc-cjk-aliases",
+      "question": "Which CJK alias sets ship, and when is the cjk_matcher slot filled?",
+      "note": "§2.7 requires CJK OCR support and §5.2 shows a Chinese-application corpus ('an existing Chinese University Application Materials directory'), so CJK school names will appear in real evidence. The schema carries per-alias script today; the lists and the segmentation-aware matcher are unauthored. Guessing transliterations without a corpus would be padding. NEEDS-JOSEPH."
+    },
+    {
+      "id": "unc-secondary-schools",
+      "question": "What is the stated universe for secondary schools?",
+      "note": "Georgetown Prep proves the field takes them, but no clean single register exists across jurisdictions, and a user's own school is exactly the kind of value user-add carries. Likely resolution: user-add plus the jurisdiction register where one exists."
+    },
+    {
+      "id": "unc-programmes",
+      "question": "Are degree programmes (MBA, MSc, a named major) gazetteer content?",
+      "note": "The dispatch prompt's item 1 says 'Schools / universities / programmes'. A programme is not a value of `school` — it is plausibly a value of a field no seed schema declares. Gazetteering values for a field that does not exist would invent the field by the back door (§3.12: values auto-create, fields do not). Left out of v1; flagged for R1a."
+    },
+    {
+      "id": "unc-georgetown-university",
+      "question": "Seed Georgetown University so bare 'Georgetown' can be ranked instead of refused?",
+      "note": "The design never names Georgetown University; adding it would be pure proposal. Recorded because ref-bare-georgetown's refusal is only honest while the collision partner is absent."
+    }
+  ],
+  "homonyms": [
+    {
+      "id": "hom-columbia",
+      "alias": "Columbia",
+      "readings": ["Columbia University", "British Columbia", "District of Columbia", "Columbia, SC", "Columbia Sportswear", "Columbia Pictures", "the Space Shuttle Columbia"],
+      "resolution": "never alone; role context plus §3.7 ranking with positional weighting, or the match stays possible at most",
+      "notes": "'British Columbia' contains a clean word-boundary 'Columbia' — the matcher cannot and must not try to fix this; the design's six-role sentence is the containment contract."
+    },
+    {
+      "id": "hom-washington",
+      "alias": "Wash U",
+      "readings": ["Washington University in St. Louis", "University of Washington (colloquially 'UW', but confused in practice)"],
+      "resolution": "the full names disambiguate; the short forms resolve to WUSTL by convention and stay possible without context",
+      "notes": "Covers 'Wash U' and 'WashU'. Bare 'Washington University' is not an alias of anything."
+    },
+    {
+      "id": "hom-duke",
+      "alias": "Duke",
+      "readings": ["Duke University", "the noble title", "Duke Energy", "a given name / surname"],
+      "resolution": "never alone; application or academic context required"
+    },
+    {
+      "id": "hom-cornell",
+      "alias": "Cornell",
+      "readings": ["Cornell University", "Cornell College (Mount Vernon, Iowa)", "a surname"],
+      "resolution": "never alone; context required; if Cornell College ever becomes a row this alias must rank, not auto-resolve"
+    },
+    {
+      "id": "hom-mit",
+      "alias": "MIT",
+      "readings": ["Massachusetts Institute of Technology", "the MIT License (in nearly every open-source repository)", "German 'mit' (case rule excludes it)"],
+      "resolution": "case-sensitive match; never alone; a license header must not produce a school fact — academic/application context required"
+    },
+    {
+      "id": "hom-unc",
+      "alias": "UNC",
+      "readings": ["University of North Carolina (a multi-campus system)", "Windows UNC path (\\\\server\\share) in technical documents"],
+      "resolution": "case-sensitive match; never alone; technical-document context should out-rank the school reading under §3.7"
+    }
+  ]
+}

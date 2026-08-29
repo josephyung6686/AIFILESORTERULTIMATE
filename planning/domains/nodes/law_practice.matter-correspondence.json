@@ -1,0 +1,289 @@
+{
+  "id": "law_practice.matter-correspondence",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Matter correspondence and attendance notes",
+  "one_line": "REFUSED. \"Letters, emails and notes of calls and meetings exchanged in the course of one matter\" names two entries of the law_practice schema's own work_type enum (\"client instructions, attendance note and matter correspondence\"; \"counsel and third-party professional correspondence\") plus two SOURCE_TYPES (email, text_document). Its detection signals are the schema's deterministic signal 11 and needs_llm signal 5 restated; its dimension_order is the schema's empty order; its privacy posture is the schema's third-party posture, and nothing in it is stricter than the privilege-log rule the schema already carries. All three legs of the node test return identical-to-default. The coverage is absorbed by the law_practice schema itself, whose first grouping reason already names the correspondence as a member of the one-matter group, and by four named siblings for the correspondence classes that DO have their own structure.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of CONNECTION.md's node test against its own schema's default template, and fails them for three independent reasons.\n\nLEG 1 - DETECTION SIGNALS ARE NOT DIFFERENT, THEY ARE THE SAME SENTENCES. The law_practice schema's deterministic list already carries the whole of the correspondence half: \"AN EMAIL or CALENDAR record whose structured slots tie it to an ALREADY EVIDENCED matter: labelled sender and recipient roles crossing the practitioner-client or counsel boundary, a subject carrying the exact matter reference, an organizer and attendee set separating practitioner, client, counsel and tribunal.\" The schema's needs_llm list already carries the whole of the attendance-note half: \"Recognising unlabelled practitioner prose - an attendance note, a file note of a telephone call, a strategy email in running text, a handwritten-then-scanned advice note.\" A template whose signals are its parent schema's signals quoted back is the schema's default template with a narrower filename filter - the exact thing the schema itself warns 36 template authors against.\n\nLEG 2 - THE DIMENSION ORDER CANNOT DIFFER AND, IF IT COULD, THE ONE DIFFERENCE THIS ROW WOULD CLAIM IS FORBIDDEN. Under PR-6 the schema declares no fields, so dimension_order is [] here and [] on the default; identical by contract. The only substantive order this row could argue for is time_first, because a correspondence file is genuinely a chronological stream in practice - and the schema forecloses it family-wide on 00's own words, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" So the one axis on which this row is not a duplicate is an axis it is not permitted to occupy.\n\nLEG 3 - PRIVACY IS THE SCHEMA'S, NOT STRICTER. Correspondence bodies carry a third party's affairs, which is exactly the interest the schema was built to protect - it \"protects a THIRD PARTY's - a client, an adverse party, a witness, a deponent, an accused, a child - who never chose this filesystem and cannot consent.\" A mail thread is not more sensitive than the privilege log the schema already fixtures, which is a table of thousands of other people's correspondence metadata. Same posture, same sensitivity value, no new rule.\n\nAND THE ROW IS ALSO THE THING THE CHARGE NAMES DIRECTLY. \"Letters\" and \"emails\" are a medium; \"notes of calls and meetings\" is a document type; \"exchanged in the course of one matter\" is the schema's own matter anchor. Strip the medium, the document-type words and the anchor, and nothing structural survives - the deletion test the schema imports from business_operations.organisational-records. What is left of the attendance note after the strip is an artefact defined by ABSENCE: alone in this family it has no labelled slot, no caption, no execution block and no column set, and its only tie to a matter is a reference written in a corner. A row whose distinguishing property is that its files have no structure cannot supply detection signals; it can only inherit membership from an anchor established elsewhere, which is P9 grouping, not template activation.\n\nCONSEQUENCE, NOT A GAP. Refusing costs no coverage. The schema's first grouping reason already enumerates this material - \"ONE MATTER from opening to closure, joined by an exact repeated matter reference: the intake screen, the opening record, the engagement terms, the correspondence, the work product, the filings, the disclosure, the billing and the closure record\" - so a matter letter or attendance note is a member of a group the schema already licenses, on the schema's own activation. The correspondence classes that DO carry their own structure are already owned by siblings that were given them for that structure: instructions to and opinions from counsel (law_practice.opinions-advice, on the schema's two-professional-role front sheet), without-prejudice offer and settlement traffic (law_practice.settlement), first client instructions at the point of opening (law_practice.client-intake), and the engagement terms letter itself (law_practice.engagement-terms). What remains after those four is ordinary mail, and ordinary mail is a SOURCE_TYPE.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "STATED FOR THE REFUSAL RECORD, NOT AS THIS ROW'S RECOGNITION - the schema owns recognition and this row authors none. AN EMAIL, A LETTER OR A NOTE FROM A LAW-FIRM SENDER OR ON LAW-FIRM LETTERHEAD, ALONE. This is the token that makes the row look researchable and it discriminates nothing: a firm domain sends client mail, opposing-counsel mail, marketing newsletters, recruitment mail, invoices for the firm's own supplies, and mail to the firm's own lawyers about their own affairs. It is the schema's struck firm-name token wearing an envelope.",
+      "A DOCUMENT-TYPE WORD FOR A MESSAGE OR A NOTE - letter, email, correspondence, memo, note, attendance note, file note, telephone note, minute, RE:, FW:. These are the row's entire name and they are values of the schema's work_type enum. 00's own construction is that a work type is meaningful only after its parent is known: \"A work type such as Homework 3 is meaningful only after the course is known.\" An attendance note is Homework 3.",
+      "A FOLDER OR ARCHIVE MEMBER PATH NAMED Correspondence, Letters, Emails or Notes. This is the purest evidence that the id is a label rather than a node - the row's name is the name practitioners give a DRAWER, and 00 governs it: \"A session should never be treated as proof of topic.\" A drawer is a position, not a fact.",
+      "SOURCE TYPE email OR A .eml/.msg/.mbox EXTENSION. file_kind_plausible is constitutionally never-alone, and the row's medium half rests entirely on it.",
+      "A WITHOUT-PREJUDICE, PRIVILEGED, CONFIDENTIAL or SUBJECT-TO-CONTRACT LEGEND ON A MESSAGE. Preserved as a literal observation, never a legal status and never activation - and where it is genuine settlement traffic the anchor is law_practice.settlement's, not a correspondence row's.",
+      "A MATTER-SHAPED TOKEN IN A SUBJECT LINE, ALONE. Linkage after a labelled role is established, never before it, and never a date from its digits."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty for the same three reasons the schema's own order is empty - contract (PR-6 declares no fields, so no field can be branched on), safety (this material co-activates `legal`, and \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\"), and disclosure (a branch named for a client or a matter publishes the representation). The row's one candidate difference from the default order was time_first, and the schema forecloses it: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Whatever a future order becomes, it stays advisory - \"the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "email",
+      "text_document",
+      "ocr",
+      "image",
+      "archive",
+      "calendar"
+    ],
+    "extensions": [
+      ".eml",
+      ".msg",
+      ".mbox",
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true,
+    "note": "Recorded so the refusal is auditable, not to claim ownership. This list is a subset of the law_practice schema's own file_kinds and adds nothing to it - which is itself part of the refusal argument."
+  },
+  "file_examples": [
+    {
+      "filename": "RE 41127-0006 Hartley - your instructions on the without prejudice offer.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled headers separate a practitioner sender at a firm domain from a client recipient at a company domain",
+        "the subject carries an exact matter reference already evidenced by a matter-opening record elsewhere in the corpus",
+        "the body is running prose seeking a decision, and carries a WITHOUT PREJUDICE legend",
+        "one attachment named as a draft offer letter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT THIS ROW FIRES. IT IS THE REFUSAL'S FLAGSHIP FIXTURE: every observation on it is the law_practice schema's deterministic signal 11 word for word - labelled sender and recipient roles crossing the practitioner-client boundary, a subject carrying the exact matter reference. The schema already sees this file completely, and a template that adds nothing to what the schema sees is the schema's default template",
+        "that the WITHOUT PREJUDICE legend activates anything, or decides privilege, admissibility or waiver. Where the offer traffic is genuinely the subject, the anchor is law_practice.settlement's structural one, not a medium row's",
+        "any law_practice fact - the schema declares none, and this row proposes none",
+        "a folder path, and specifically not a Correspondence branch: the drawer name is the id under audit"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Attendance note - telephone attendance on client 14.05.2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "free running prose with no labelled slot, no table, no caption, no execution block and no column set",
+        "a matter reference typed once in a header line, and a fee-earner's initials at the foot",
+        "the text records what was said on a call and what the client decided",
+        "no addressee block, because nothing was sent"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT ABSENCE IS A DETECTION SIGNAL. This is the fixture that shows the row is defined by what its files LACK: alone in the law_practice family this artefact has no structure at all, so it cannot supply the schema's required \"STRUCTURE plus a LABELLED SLOT\" and can only inherit membership from an anchor proved elsewhere. The schema already books it under needs_llm - \"Recognising unlabelled practitioner prose - an attendance note, a file note of a telephone call\" - and 00 already books the class generally, since real collections contain \"unlabeled forms, unusual professional artifacts\"",
+        "that the matter reference in the header activates the schema by itself; an identifier supplies linkage only after a labelled role is established",
+        "privilege or work-product protection from the fact that the note is internal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Letter to Nash & Co - 41127-0006 - response to your letter of 2 May.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "firm letterhead, an addressee block naming another firm, a matter reference in the reference line",
+        "running prose responding to an earlier letter, with a fee-earner signature block",
+        "no tribunal caption, no party recital, no execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that inter-solicitor correspondence is a distinct organizational situation. It is the schema's two-role default expressed as a letter; the practitioner-to-practitioner pairing is signal 11's \"counsel boundary\" and the schema's counsel-instruction signal 9 owns the version of it that HAS a structure (an INSTRUCTING block paired with an INSTRUCTED block)",
+        "`legal` activation. Correctly, `legal`'s signals do not fire here - there is no bound party pair, no execution block and no caption - which is why the schema owns the file and no correspondence template is needed to explain it",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan_20260514_0003.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned sheet of handwriting; OCR yields partial text with a name, a time and the words rang back",
+        "no matter reference, no firm mark, no addressee, no date field the scanner did not write",
+        "the scan sits in the same directory as several matter documents"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a matter, a client or a representation from directory neighbours. 00: \"A session should never be treated as proof of topic\", and the schema's own rule strikes download-session, thread, archive and current-directory membership. This is the sparse-file case: it may join a candidate matter neighbourhood for review without any fact being written, because \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "that a hand-written note is this row's evidence. It is the emptiest instance of the emptiest class in the family, and the schema already routes it through needs_llm or abstention: \"A model that cannot cite sufficient evidence must return unknown.\"",
+        "a person fact from an OCR'd first name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ellis and Co - letter re my divorce - 5 May.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "law-firm letterhead and a matter reference allocated by that firm",
+        "the addressee block names the HOLDER personally; the letter reports progress and asks the holder for instructions",
+        "no time record, no attendance note, no intake screen produced by the holder anywhere in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THE UNDER-FIRING COLLISION, AND IT IS THE ONE THAT WOULD HAVE DONE MOST DAMAGE HAD THIS ROW LANDED: every token a correspondence row would key on is present - a firm sender, a matter reference, a client recipient, professional prose - and the holder is the CLIENT. `legal.personal-legal-matters` owns this file. A row named for the medium is precisely the row that cannot tell the two apart, because the medium is identical on both sides and only the SIDE differs",
+        "that a matter reference is practitioner-side evidence; it is allocated by some firm, and whose is a separate question the reference cannot answer",
+        "any law_practice fact",
+        "a folder path, and specifically nothing recording the existence or subject of the holder's own proceeding"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Minutes - partners meeting 2026-05-14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "attendee list of named partners, numbered agenda items, decisions and an actions table with owners and dates",
+        "items cover office lease renewal, PII renewal, a lateral hire and billing targets",
+        "firm letterhead; no matter reference and no client anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THE COLLISION FIXTURE IN THE OTHER DIRECTION. It is a note of a meeting, produced by lawyers, on law-firm letterhead - every word of this row's name is satisfied - and it is `business_operations.meeting-record`'s file, because the subjects are the attendees themselves and the firm is running ITSELF. The schema states this seam as needs_llm 4; the discriminating evidence is an exact matter reference plus a client role, and neither is present",
+        "that a firm's letterhead routes anything here. It is the schema's first struck token",
+        "that an actions table is a matter apparatus",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Correspondence.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest reads without unpacking and shows member paths under 41127-0006/Correspondence/ and 41127-0006/Attendance notes/",
+        "members are .msg, .pdf and .docx, several hundred, spanning eighteen months",
+        "no member filename carries a client name; the matter reference repeats in every path"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THAT A DRAWER IS A NODE. This fixture is the refusal in one file: the id's name is literally a directory name inside a matter export, and a directory name is an unlabelled position. The archive is the schema's own export signal, and the coherent professional families inside it are what the SCHEMA groups on, per its first grouping reason which names the correspondence as one member family among nine",
+        "any fact on any member from a member path. Directory names are observations and become facts on no member",
+        "that the archive should be unpacked to improve classification; the manifest is inspected intact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Instructions to Counsel and enclosures - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a front sheet pairing an INSTRUCTING SOLICITOR block with an INSTRUCTED COUNSEL block",
+        "a numbered index of enclosures and a statement of the questions on which advice is sought",
+        "the matter reference repeats in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row holds it because it is correspondence with a third-party professional. It has what this row's files do not - a THREE-SLOT STRUCTURE (two separately labelled professional roles plus a named advisee) which the schema records as deterministic signal 9, and which `law_practice.opinions-advice` was given the row for. The class of correspondence that has its own structure is already owned; what is left over is mail",
+        "privilege or work-product status from the word opinion or a privileged legend",
+        "any law_practice fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employment law update - May 2026 - Ellis and Co.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a firm marketing address; recipients are a bulk list with the holder in bcc",
+        "an unsubscribe footer and a regulated-profession footer",
+        "the body is legal commentary on recent cases, with citations",
+        "no matter reference, no client role, no instruction"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THE NEVER-ALONE TRIP. It is an email from a law firm, in legal vocabulary, with a regulated-profession footer - three of this row's most tempting tokens at once - and it is a newsletter. The schema strikes each of them individually and the combination adds nothing, because struck tokens do not sum",
+        "a matter or a representation from a citation or a case name; cross-matter bridging by subject or citation is suppressed",
+        "that a regulated-profession footer says anything about what the artefact records",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded even on a refusal, because the refusal must not downgrade anything. Matter letters, attendance notes and mail bodies describe a third party's affairs, and the schema that absorbs them is built on that exact interest - it protects someone \"who never chose this filesystem and cannot consent.\" The material co-activates `legal`, one of 00's four safety domains, and 00 licenses protection without a group: rare but sensitive legal documents \"may be surfaced as protected records even when they do not meet a normal group-size threshold.\" Only `potentially_sensitive` is available in this phase; P7 owns handling classes and none is assigned.",
+  "open_question": "Four items for R1c, none of which changes the refusal. (1) RECIPROCITY DEBT: `business_operations.meeting-record` names this id one-way in both its JSON and its memo - \"an attendance note of a client or counsel meeting\" - and that edge now dangles. Recommend R1c re-point it at the `law_practice` SCHEMA, whose needs_llm 4 already states the same seam from the other side (the firm running itself versus the firm running a matter); this row may not edit a neighbour. (2) If PR-6 lifts and `project` (the schema's declined-to-mint matter anchor) is adopted, re-test this id once: a correspondence row would still be a work_type value, so the expected answer is unchanged, but the test should be run rather than assumed. (3) A correspondence stream is the one artefact class in this family that is genuinely chronological in practice, and the schema forbids time_first family-wide. Joseph should decide whether the family's blanket prohibition is right, or whether a stream-shaped member may be ordered by period BELOW an anchor level - a question about the schema, not about this id. (4) Decide where a matter attendance note with no reference at all should sit when a matter neighbourhood exists but no anchor does: Protected Records (protective, but files an unproven association) or Review Later (honest, but leaves third-party prose outside the protected set). This row recommends Review Later for the unreadable and unanchored case and Protected Records once any accepted matter group is active, and flags that the two residuals have different safety consequences."
+}

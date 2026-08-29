@@ -1,0 +1,583 @@
+{
+  "id": "engineering.invention-disclosure",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Invention disclosures and technical patent material",
+  "one_line": "The holder-side technical record of a claimed invention: the disclosure form naming inventors and a conception date, the prior-art the inventors collected, the specification and claim drafts, the patent figures, and the office correspondence and docket that track one invention through filing. Its organizing entity is an invention and its patent family, not a configuration-controlled design item, and it activates on inventorship plus claim/prior-art/prosecution structure rather than on title blocks, revisions and requirement traces. It is not the attorney's prosecution matter file, not a third-party patent read for reference, and not the drawing package of the product the invention ends up inside. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps engineering fieldless, so this row writes no fields and no serialized dimension order.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "detection_signals": "The engineering default fires on a controlled-definition relation: a title block joining item, drawing number, revision and approval; stable requirement identifiers with verification method and status; a BOM parent/child structure; a technical data package manifest; an engineering change that names an affected revision. None of those structures is present on an invention disclosure record, and none of this row's structures is present in the default. This row fires on inventorship blocks with named inventors and contribution statements, a conception or first-reduction-to-practice slot, a public-disclosure or offer-for-sale slot, a known-prior-art citation list, numbered claim text introduced by a claims preamble, reference-numeral figures without a title block, and patent-office correspondence carrying an application, publication or docket identifier. The two signal sets are disjoint, so this is a different relation on the same schema rather than one more artifact type inside the default relation.",
+    "dimensions": "Serialized `dimension_order` is empty for the same PR-6 reason as the schema, so this leg cannot carry the node on its own and is not claimed to. The researched conditional order differs in kind from the schema's: the intelligibility parent here is the invention and its patent family, not `design_item`, because an invention frequently has no configuration-controlled item at disclosure time and one design item may embody several unrelated inventions; and the second level is prosecution status, which is a legal position before an office, not a design lifecycle gate. Recording that difference for R1c is the honest form of this leg at placeholder launch.",
+    "privacy": "The default engineering posture is proprietary and export-sensitive material. This row adds a rule the default never needs: unfiled invention material is novelty-critical, so its existence and content must not be surfaced remotely or in visible folder labels, and the catalogue must abstain from inventorship, patentability, prior-art materiality and any date computation. The engineering default is never required to abstain on who invented something."
+  },
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "invention_family",
+      "type": "string",
+      "example": "P-2026-0142 Regenerative Brake Actuator",
+      "why_no_existing_key": "No canonical key names the invention-plus-family entity that this material is organized by. `project` names an undertaking: one project can spawn several unrelated inventions and one invention outlives the project that produced it. `design_item` (itself only a proposal on the engineering schema) names a configuration item, and the engineering schema's own argument for it is that it identifies the item whose definition a file controls; an invention disclosure controls no definition and often precedes any item. `subject` is the academic course key, `repository` is a code container, `record_type` and `institution` are finance-scoped, and `version_family` is the universal version-graph key, not an entity. The family relation is also structurally real: a provisional, a non-provisional, a PCT record and national-phase records are different filings of one invention and must group without being versions of one another.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE. An office action, a claim draft or a figure sheet is unintelligible without knowing which invention it belongs to, matching 00's parent-makes-child-intelligible rule. It is not authorship and not an organization collector. Whether it may appear as a visible branch label is a separate privacy question raised in NJ-IDF-2.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled docket, application-number or disclosure-title slot can be direct. Otherwise validation requires an identifier co-occurring with a second holder-side structure such as an inventorship block, a claim set, a filing receipt addressed to the holder, or a docket row. R2 owns the identifier patterns; this row writes no regex and no threshold.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an invention-disclosure structure: a title-of-invention slot together with a named-inventor list and at least one of a conception date, first-reduction-to-practice date, prior-public-disclosure or offer-for-sale slot, known-prior-art list, or witness/signature block; the relation among the labelled slots is the signal, never the word `invention`",
+      "a specification structure carrying the conventional application sections (field, background, summary, brief description of the drawings, detailed description) followed by a numbered claim set introduced by a claims preamble; a technical report with numbered paragraphs is not a claim set",
+      "patent figure sheets: line drawings annotated with reference numerals keyed to a description, sheet-of-sheets numbering, and no title block, scale, tolerance or revision table; the absence of a title block is a positive discriminator here rather than a missing-metadata inference, because the presence of reference numerals plus sheet numbering is what is observed",
+      "patent-office correspondence: an office letterhead with an application or publication identifier, an examiner or examining-division name, a response period, and rejection or objection sections citing identified prior-art publications",
+      "an electronic filing receipt or acknowledgement listing an application identifier, a filing or receipt date, a confirmation identifier, and an itemized list of the documents submitted",
+      "a prior-art search or citation structure: a search strategy or classification list plus rows of publication identifiers with relevance annotations, held on the applicant side",
+      "an inventor instrument: an assignment of rights from named individuals to an assignee, an inventor declaration, or a recordation cover sheet naming the same invention title",
+      "a docket table whose rows carry docket identifier, jurisdiction, application identifier, filing date, status and next-action date across several filings of the same titled invention",
+      "an archive manifest exposing several of the above under one docket or application identifier, read without extracting members to disk",
+      "a parent folder named for a docket may raise plausibility only after one of the above structures is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a technical write-up is an invention disclosure, a design rationale for a controlled item, a research result, or a process-improvement write-up that its author never intended as an invention record",
+      "whether a patent document on disk is the holder's own filing, a cited reference the holder submitted, or a third-party patent downloaded to read",
+      "whether a dated and witnessed notebook page is being kept as conception evidence for a specific invention or is ordinary laboratory record-keeping",
+      "whether a drawing set is a patent figure set or a controlled engineering drawing set when the sheets have been exported without their frames",
+      "whether a source listing is repository content, an appendix filed with an application, or both",
+      "whether an email thread about deferring a publication concerns an invention filing or an unrelated embargo"
+    ],
+    "never_alone": [
+      "a patent office or registry name — USPTO, EPO, WIPO, JPO, Patent Center, Espacenet — is an organisation name and can never activate this row alone; a downloaded third-party patent carries the same names",
+      "the words patent, invention, claim, prior art, novel, disclosure, IP or intellectual property alone; every one of them appears in reading material, marketing copy, contracts and research prose",
+      "a publication or application-shaped number alone; a bare identifier proves neither holder side nor family membership, and 00 already forbids a bare number as proof",
+      "an inventor's or attorney's personal name alone; a person's name is never-alone evidence and appears identically on a third-party patent this person is cited in",
+      "a `.pdf` from a patent-office domain alone; extension and download origin are not purpose, and a download session is not a topic",
+      "the absence of a title block on a drawing, used alone, as proof that a drawing is a patent figure; the positive reference-numeral and sheet-numbering structure must be observed",
+      "a docket-shaped token in a filename or folder name alone, without one holder-side structure to confirm it"
+    ]
+  },
+  "work_types": [
+    "invention disclosure record",
+    "prior-art or novelty search report",
+    "draft specification",
+    "claim set or claim chart",
+    "patent figure sheet",
+    "provisional application package",
+    "non-provisional or national filing package",
+    "filing receipt or acknowledgement",
+    "office action",
+    "response or amendment draft",
+    "information disclosure or citation statement",
+    "inventor declaration",
+    "assignment or recordation record",
+    "published application copy",
+    "granted patent copy",
+    "docket and annuity record",
+    "trade-secret election record",
+    "defensive publication"
+  ],
+  "grouping_reasons": [
+    "one invention across its filings: a disclosure record, its drafts, figures, receipts, office correspondence and the docket rows that carry the same docket or application identifier",
+    "one priority chain: a provisional and the later filings that reference it by identifier, grouped as siblings of one invention rather than as versions of one document",
+    "one citation set: the references a holder-side citation statement enumerates, joined by exact publication identifier rather than by subject similarity",
+    "one disclosure event: the inventorship instruments, witness pages and signed forms that name the same invention title and inventor set",
+    "a sparse `FIG3.tif` may join an accepted invention neighbourhood without acquiring an invention, inventor, date or family fact; membership assembles context and does not propagate labels",
+    "never group by product name, technology topic, inventor name alone, employer name, or a shared download session"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "PR-6 leaves the engineering schema with no declared destination-eligible fields, so no order may be serialized. Subject to R1c, the researched order is invention_family -> prosecution status -> artifact role, which differs in kind from the schema default of project -> design_item -> lifecycle_stage -> engineering_artifact_type: the invention rather than the configuration item is the intelligibility parent, and prosecution status is a position before an office rather than a design gate. Time is not first: filing date, priority date, conception date, receipt date and filesystem date all differ in meaning and a date-first tree would scatter one invention. The recommendation is conditional and is deliberately not encoded before its keys are legal.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "code_structured",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".tif",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip",
+      ".txt"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Invention-Disclosure-Record_Regenerative-Brake-Actuator_2026-03-04.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for title of invention, inventors and their contributions, date of conception and date first reduced to practice",
+        "a known-prior-art list and a yes/no slot for prior public disclosure or offer for sale",
+        "a witness signature block dated after the inventor signatures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "who the legal inventors are; inventorship is a legal determination",
+        "that the invention is novel, patentable, or unencumbered",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IDF-2026-0142 disclosure memo.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose headed `Disclosure of Invention` with paragraphs on the problem, the approach and what is new",
+        "a docket-shaped token appears only in the filename",
+        "no signature block and no dates in the body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an invention family from the filename token alone",
+        "a conception date from the file modification time",
+        "domain fields before R1c"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Prior-Art-Search-Report_actuator_2026-03-19.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "search strategy section listing classification symbols and database queries",
+        "rows of publication identifiers with title, assignee, date and a relevance annotation",
+        "a searcher or search-provider identification block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any cited reference is material, invalidating, or blocking",
+        "a patentability outcome",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Provisional-Application_draft-v3_claims.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sections headed field, background, summary, brief description of the drawings and detailed description",
+        "a numbered claim set introduced by a claims preamble, with dependent claims referring back by number",
+        "tracked changes attributed to two authors"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the draft was filed, or on what date",
+        "claim scope, validity or infringement",
+        "that the second author's edits make this an attorney matter file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FIG1-FIG7_patent-drawings.pdf",
+      "source_type": "image",
+      "observations": [
+        "line drawings annotated with reference numerals and lead lines",
+        "sheet-of-sheets numbering in the margin",
+        "no title block, no scale, no tolerances and no revision table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "engineering.drawing-package membership; there is no controlled item, revision or approval",
+        "a revision from a filename suffix",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Office-Action_2026-05-12_App-18-123456.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "office letterhead with application identifier, examiner name and examining unit",
+        "rejection and objection sections citing identified prior-art publications",
+        "a stated period for response"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a response deadline or any computed date",
+        "that the rejection is correct, final, or fatal",
+        "that a practitioner represents the holder"
+      ],
+      "also_schema": "legal.practice-matter-file",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Electronic-Acknowledgement-Receipt_18-123456.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "application identifier, receipt date, confirmation identifier and applicant name in labelled slots",
+        "an itemized table of submitted documents with page counts and sizes",
+        "a machine-generated footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the application is pending, allowed or abandoned now",
+        "a priority date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Assignment_inventors-to-company_executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "named individuals assign rights in an identified invention title to a named assignee",
+        "signature and notarisation blocks",
+        "a recordation cover sheet with reel and frame identifiers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the assignment is valid, effective, or currently in force",
+        "employment terms; an assignment is not an employment record",
+        "inventorship from the signatory list"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Patent-Family-Docket.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for docket, invention title, jurisdiction, application identifier, filing date, status and next-action date",
+        "several rows share one invention title across jurisdictions",
+        "an annuity or renewal column with amounts"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any status row is current",
+        "a due date, a lapse, or a fee obligation",
+        "a finance record from the annuity column alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lab-notebook_p114_witnessed_2026-02-27.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed bound-notebook page with a printed page number and a dated entry",
+        "a `read and understood by` witness line with a second signature and date",
+        "a sketch with hand-written annotations"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a conception date or its legal effect",
+        "invention-family membership from the sketch subject alone",
+        "research.lab-notebook-protocols activation without protocol or experiment structure"
+      ],
+      "also_schema": "research.lab-notebook-protocols",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Hold the abstract until we file - actuator.eml",
+      "source_type": "email",
+      "observations": [
+        "an engineer and an IP contact discuss deferring a conference abstract until a provisional is on file",
+        "an exact docket token appears in the subject line",
+        "an attached abstract document is named in the message"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a filing occurred, or that a grace period applies anywhere",
+        "that the attached abstract is itself invention material",
+        "a legal advice relationship from an internal IP contact"
+      ],
+      "also_schema": "research.manuscript-publication",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IDS-and-cited-references.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a citation-statement form, a transmittal and a numbered set of reference copies",
+        "member names carry publication identifiers matching the form's rows",
+        "no member is extracted to disk to reach this reading"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the enclosed third-party references are the holder's own filings",
+        "materiality of any cited reference",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "US11234567B2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a granted-patent front page with bibliographic fields, an abstract, figures with reference numerals and a claim set",
+        "the named inventors and assignee do not match any holder-side instrument on disk",
+        "no docket, receipt, correspondence or citation-statement row references it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row's activation; identical structure to a holder's own granted patent",
+        "an invention family from the front-page identifier",
+        "research activation without an accepted project or reading relationship"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "BPA-210-001_Brake-Pedal-Assembly_RevC.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "border title block labelling assembly, drawing number, scale, revision, status and approver",
+        "dimensioned views with tolerance callouts and a revision table",
+        "no reference numerals keyed to a description and no claim text anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row's activation because the same product is the subject of a disclosure",
+        "engineering activation from `.dwg` alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Freedom-to-Operate-Opinion_counsel_privileged.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a practitioner letterhead addressed to a named client with a scope-of-opinion section",
+        "analysis of identified third-party claims and a concluding opinion paragraph",
+        "a confidentiality legend"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege, work-product protection or waiver",
+        "this row's activation; the artifact is practitioner advice, not the inventors' technical record",
+        "freedom to operate, infringement, or clearance"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Patent-portfolio-2026.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the archive is password protected and no member list can be read",
+        "the filename contains a portfolio-shaped word and a year",
+        "no other holder-side structure references it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "an invention, family, portfolio or sensitivity result from the filename",
+        "membership in any invention group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Both hold drawing sheets of the same product and both may be exported as PDF page sets. This row owns figures that carry reference numerals keyed to a written description and sheet-of-sheets numbering with no title block, revision or tolerance; the drawing package owns sheets whose title block joins an item, a drawing number, a revision and an approval. Fixture bytes: FIG1-FIG7_patent-drawings.pdf is this row even when it depicts assembly BPA-210, and BPA-210-001_Brake-Pedal-Assembly_RevC.dwg stays with the drawing package even when that assembly is the subject of the disclosure. Neither side may claim the other on product identity.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "signal": "A first working article is both a build record and, in patent language, a reduction to practice. This row owns evidence whose purpose is to establish what was conceived, by whom and when, against a claim; the prototype row owns the article's configuration, deviations and build results against the intended design definition. Fixture bytes: Lab-notebook_p114_witnessed_2026-02-27.jpg is this row when the page is a witnessed conception record and the prototype row when it records build steps and observed deviations; a single page can carry both and neither side infers the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "The whole prosecution correspondence set exists on both sides of the inventor/practitioner seam. This row owns the holder-side technical record where the holder is the inventor or applicant; the practice matter file owns the same correspondence when practitioner-side representation evidence is present. Fixture bytes: Office-Action_2026-05-12_App-18-123456.pdf is this row on an inventor's disk with a docket row and a filing receipt in the holder's name, and is legal.practice-matter-file inside a practitioner packet with an engagement record, a client block and a matter reference. Freedom-to-Operate-Opinion_counsel_privileged.pdf is always the legal side: practitioner advice is not the inventors' technical record.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.lab-notebook-protocols",
+      "signal": "Dated, signed, witnessed notebook pages are the shared evidence. The notebook row owns pages structured as protocol, procedure, run and observation within a research workflow; this row owns pages kept as conception or reduction-to-practice evidence for a claimed invention, which is visible as an invention title, a claim reference, a witness attestation tied to a disclosure, or docket linkage. Fixture bytes: Lab-notebook_p114_witnessed_2026-02-27.jpg belongs to whichever structure is actually observed, and a witness signature alone decides nothing because witnessing is ordinary practice in both worlds.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "A specification draft and a manuscript draft share sectioned technical prose, figures and a bibliography. The manuscript row owns venue, submission and authorship structure; this row owns claim sets, inventorship and office identifiers. Fixture bytes: an abstract attached to RE Hold the abstract until we file - actuator.eml is manuscript evidence, while the thread's docket reference and pre-filing hold are this row's evidence; the same technical content appears in both and neither may copy the other's facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A software invention filing may include a source-code appendix, and a repository may contain patent notices. Code activates on repository roots, manifests and source structure; this row activates on inventorship, claims and office identifiers. Fixture bytes: an `appendix-source-listing.txt` filed with an application is this row's member by docket reference and remains code's content by repository provenance; a repository is not invention material because its owner filed a patent.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "signal": "A novel process is often written up once and reused as both a shop instruction and an invention record. The work-instruction row owns step, operation, equipment, parameter and operator-signoff structure for execution; this row owns the same process described against a claim with inventors and a conception date. Fixture bytes: a `Process-Improvement-Writeup.docx` is manufacturing when its structure is steps and parameters for the line, and this row when it carries an inventorship block and a novelty statement; a trade-secret election record naming that process is this row on both readings.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "One document can be both the enabling technical description filed with an application and a manuscript prepared for a venue. Both relations are separately evidenced and neither is inferred from the other, following 00's abstract-that-is-also-an-application-document pattern.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A source listing can be repository content and a filed appendix at once, on repository evidence plus docket or receipt evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "signal": "A prototype record can truthfully be both a build record against the design definition and reduction-to-practice evidence for a claim, when both structures are present in the same file.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "Where the holder is both the technical author and the practitioner, one correspondence file can legally carry both the inventor-side technical record and the representation record. This is coactivation on two independently observed relations, not a merge of the two rows.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Unfiled disclosure records, draft claim sets, signed inventor instruments and pre-filing correspondence route here when no accepted invention group is active, because their content is novelty-critical and their filenames should not be exposed.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A lone filing receipt, recordation confirmation or granted-patent certificate in the holder's own name has durable meaning without a reconstructed family, and belongs here rather than activating this row from type words.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a document is plainly technical and plainly patent-adjacent but whether it discloses, searches, prosecutes, instructs or merely reports cannot be settled from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Third-party published applications and granted patents downloaded for reference route here when no holder-side instrument and no accepted research or invention association exists.",
+      "provenance": "design",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected portfolio archives and unreadable filing exports retain basic metadata without inferring an invention, a family or a sensitivity result from the filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Invention material carries a rule the rest of the engineering schema does not: before a filing exists, the description itself is the asset, and any external record of its content or existence can be adverse to the holder. The catalogue must therefore avoid remote summarisation and visible labelling of unfiled material, and must abstain from inventorship, patentability, prior-art materiality, priority validity and every date computation, all of which are legal determinations. Signed inventor instruments additionally carry personal names and signatures. This is a posture, not a handling class; P7 owns handling policy and 00's rule that privacy policy is enforced before any model or connector receives content still governs.",
+  "open_question": "NEEDS-JOSEPH NJ-IDF-1: is `invention_family` a real key, or should R1c widen `project` to cover it and accept that one project may then span unrelated inventions? NJ-IDF-2: may an invention or docket identifier appear as a visible folder label at all, given that the label itself can disclose that an unfiled invention exists? NJ-IDF-3: should prosecution status widen the proposed `lifecycle_stage`, or stay an observation only, given that a design gate and a legal position before an office are different things? NJ-IDF-4: with engineering fieldless, may this row author a `role_split` against legal.practice-matter-file naming the inventor and practitioner roles, or must the seam stay a mutex until both schemas declare keys? NJ-IDF-5: does a defensive publication or a trade-secret election record — material created to prevent a patent rather than obtain one — stay in this row, and if so should the row's name stop saying disclosure?"
+}

@@ -1,0 +1,477 @@
+{
+  "id": "legal",
+  "kind": "schema",
+  "schema_id": "legal",
+  "parent_id": null,
+  "name": "Legal records and matters",
+  "one_line": "Executed instruments, proceedings and counsel correspondence a person or small team holds - leases, agreements, deeds, wills, court filings, notices. One of 00's four SAFETY domains: it exists to be detected and protected before any cloud or automated placement decision, and under D1 as narrowed (PR-6) it declares NO field rows, so activating it legitimises the universal facts only and unlocks protection rather than a filing tree.",
+  "launch": "safety",
+  "provenance": "design",
+  "design_cite": "00 names this domain and its launch posture outright: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' 00 names its residual home: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials'. 00 names its anti-threshold surfacing rule: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' 00 names legal among the organizational situations the eventual template library covers: 'client engagements, research workflows, financial records, travel, legal matters, creative projects'.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an EXECUTED-INSTRUMENT structure: a document-kind token in a title or page-one heading zone (agreement, lease, deed, will, power of attorney, release) co-occurring with a signature-and-execution block - labelled signature, date-of-execution and party lines - in a late body zone. This copies the SHAPE 00 states for course codes ('a course-code pattern together with academic context') and applies it to a different pattern; the context terms here are PROPOSED, R6 owns the term patterns, and this row writes no regex",
+      "a PARTY-PAIR structure: a recital naming two bound parties in a heading or early body zone together with a covenant or consideration term in the same zone. Two named parties bound to each other is the discriminator that boilerplate a user merely downloaded does not have (PROPOSED terms; see never_alone for the boilerplate trap)",
+      "a NOTARIAL or ATTESTATION block: a labelled notary jurat, seal caption or witness block, read from a body zone or - for a scan - from an ocr zone. 00 routes the scan case: 'A file with no text should route directly to OCR'",
+      "a COURT or TRIBUNAL caption: a caption block naming a court or tribunal together with a matter-identifier slot and a filing or proceeding term, positionally weighted to the heading zone. The identifier's digits are never the evidence - see never_alone",
+      "a LABELLED FORM structure in a table zone: an official form whose cells carry party, date, and instrument-kind labels. 00: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs'",
+      "an ARCHIVE whose manifest lists an executed instrument beside its exhibits, schedules or supporting records, read without unpacking. 00's own manifest shape: an archive 'may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'",
+      "an EMAIL whose labelled subject slot carries an engagement or matter term beside an attachment name that is an executed instrument. 00's email extractor yields 'sender, recipients, subject, sent date' as structured slots and treats 'addresses and message content as potentially sensitive'; the source_type alone is never sufficient (see never_alone)",
+      "a CALENDAR event whose labelled SUMMARY slot carries a hearing, closing or signing term together with a tribunal or venue name. Calendar is a SOURCE_TYPE, so this fires on CONTENT only, per CONNECTION-EXAMPLES fixture 5"
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter that is legally operative without looking like an instrument - a plain letter terminating a tenancy, demanding payment, or revoking consent. It has no heading, no form field and often no signature block, and 00 names exactly this class among the reasons rules are insufficient: 'real file collections contain vague filenames, indirect language, multilingual documents, screenshots, unlabeled forms, unusual professional artifacts, and user-specific workflows that cannot be captured reliably by fixed patterns alone'",
+      "deciding whether instrument-shaped language is the HOLDER'S legal matter or boilerplate they merely saved (terms of service, EULA, privacy policy, an open-source licence). The vocabulary is identical on both sides; only the reading of who is bound separates them",
+      "an OCR'd screenshot of a court e-filing page, a government notice or a signature-service confirmation - deciding it is a proceeding record rather than a generic image. 00's worked parallel is admissions, a screenshot reading 'Your Columbia University application has been submitted'; this is the same shape with a tribunal or filing service in place of a school",
+      "whether a heterogeneous set of files is purpose-coherent as ONE matter or transaction - a closing packet holding a deed, a disclosure, a note and an ID copy. 00's own words for that condition: 'The documents are content-incoherent but purpose-coherent'",
+      "a multilingual or foreign-notarized instrument whose document kind has no recognisable labelled slot in the corpus language"
+    ],
+    "never_alone": [
+      "LEGAL BOILERPLATE VOCABULARY ALONE. A terms-of-service PDF, a EULA, a privacy policy or an open-source LICENSE file is written in instrument language and is not the holder's legal matter. The tempting false file is LICENSE.txt at a repository root: the discriminating evidence is structural and 00 already names it - the engine 'should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod'. Instrument vocabulary with no bound party pair and no execution evidence activates nothing",
+      "an ORGANIZATION or PERSON NAME ALONE, including a law-firm name in a letterhead or footer. 00's own ambiguity rule generalises: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - a firm name can equally be counsel, opposing counsel, a cited firm, a template producer, or an employer. Word-boundary matching is required either way: 00, 'It should use word-boundary matching rather than substring matching'",
+      "a BARE 4-DIGIT NUMBER read as a matter year, docket year or filing year. 00's narrow-date rule: filenames and documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. A docket identifier's digits are an identifier, not a date",
+      "a SOURCE_TYPE alone - text_document, email, calendar, archive, image or opaque_binary. file_kind_plausible is constitutionally never-alone, and '.pdf' is the canonical violation",
+      "a FORM-SHAPED LAYOUT alone. A fillable PDF with labelled fields is not evidence of a legal matter; 00's own residual example is a set of PDFs the user rejects because 'they are actually school forms'",
+      "the token 'signed', 'executed' or 'final' in a FILENAME alone, and a '-signed' suffix in particular. A filename is an unlabelled position; the execution block in the document is the evidence",
+      "AUTHOR or CREATOR METADATA naming a law firm or a document-assembly tool. 00: 'DOCX author metadata should remain supporting information only', and 'It should avoid using authorship or creator identity as a destination dimension'",
+      "DOWNLOAD-SESSION MEMBERSHIP that happened to bundle several official-looking PDFs. 00: 'A session should never be treated as proof of topic'",
+      "the ABSENCE OF EXIF on a photographed or scanned document read as proof it is a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+      "a FILENAME on an unreadable or encrypted file. 00: 'Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone'"
+    ]
+  },
+  "work_types": [
+    "lease or tenancy agreement",
+    "non-disclosure agreement",
+    "service or engagement agreement",
+    "employment or separation agreement",
+    "settlement or release",
+    "deed or title document",
+    "promissory note",
+    "will or trust instrument",
+    "power of attorney",
+    "advance directive",
+    "court filing",
+    "summons, notice or citation",
+    "judgment or order",
+    "affidavit or sworn declaration",
+    "notarized certificate",
+    "licence, permit or registration",
+    "correspondence from counsel",
+    "civil-status certificate"
+  ],
+  "grouping_reasons": [
+    "one MATTER across its filings, correspondence, exhibits and orders - one dispute, one case, one transaction. 00 lists the organizing reasons a coherent group may have as 'one course, project, application, recruiting process, photo event, or submission packet'; a matter is that same single-reason shape, named by extension rather than by 00 (provenance: inference)",
+    "one INSTRUMENT across its draft, redline and executed versions - the universal version_family fact, not a legal fact",
+    "one TRANSACTION PACKET whose members are content-incoherent and purpose-coherent - a closing packet holding a deed, a disclosure, a note and an ID copy. 00: 'The documents are content-incoherent but purpose-coherent'",
+    "a SHARED INSTRUMENT that belongs to more than one matter - one NDA covering two engagements. 00: 'A file may validly belong to more than one accepted group'. Multi-membership, never a copied fact",
+    "SURFACING WITHOUT A GROUP is explicitly licensed here and is the reason this domain does not need a group at all: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' A single lease with no neighbours is still protected material",
+    "NOT a grouping reason: shared instrument vocabulary across unrelated files. 00's stop rule stands - 'It should not form a supported group when there is no valid anchor'"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT AND BY SAFETY, not by refusal - and deliberately doubly so. First, by contract: a dimension may only branch on a field the same schema declares, and this placeholder declares none (D1 as narrowed; _CONTRACT rules 10 and 15; CONNECTION PR-6, under which the four placeholder schemas exist as kind-schema rows with an empty field list). Second, by safety: 00's launch instruction for this domain is detection and protection, not filing - 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed' - and CONNECTION activation step 5 states the consequence, that no deep template unlocks from safety activation. A folder tree whose branch labels are matter names is itself a disclosure: 00 makes the point for the neighbouring domain, 'A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.' What IS recorded, as prose only, for the day the field rows are decided: the four legal template rows on the roster (personal matters, estate planning, leases and agreements, practice matter file) are organizational SITUATIONS over this one vocabulary, and the parent dimension that would make a child intelligible is the matter or counterparty, because an instrument kind such as 'amendment' is meaningless without knowing which agreement it amends - exactly 00's argument that 'A work type such as Homework 3 is meaningful only after the course is known'. Not time-first: 00, 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Recommendation only; the user may reverse or flatten anything here, and today there is nothing to reverse.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "archive",
+      "email",
+      "calendar",
+      "spreadsheet",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".ics",
+      ".xlsx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Residential Lease Agreement - 214 W 92nd St - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading zone reads RESIDENTIAL LEASE AGREEMENT",
+        "early body recital names a landlord party and a tenant party bound to each other",
+        "labelled clauses: term, monthly rent, security deposit",
+        "late body signature block with two signature lines and a date of execution",
+        "a street address appears in the heading and in the property-description clause"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any legal-domain fact: this schema declares no field rows (D1 as narrowed), so activation legitimises the universal facts and protection only",
+        "location = 214 W 92nd St. location is the photos schema's capture field; a property address in a lease is a different role, and no legal field exists to hold it",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mutual NDA - Acme Corp - countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone reads MUTUAL NON-DISCLOSURE AGREEMENT",
+        "recital names two organizations as the bound parties",
+        "labelled clauses: confidential information, term, governing law",
+        "countersignature block with two dated signature lines",
+        "arrived beside an offer letter from the same organization"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any legal-domain fact - none is declared",
+        "a career-domain fact either: career is also a placeholder that declares no field rows today, so the also_holds join carries protection and co-activation, not fields",
+        "that the organization name alone activated anything; the bound-party pair plus the execution block is the evidence"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan 2026-04-02.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF with no extractable text layer, routed to OCR",
+        "ocr zone reads LAST WILL AND TESTAMENT in a page-one heading position",
+        "ocr region captures a notary jurat block and a seal caption",
+        "filename carries only the scanner's default date pattern and no subject token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any legal-domain fact - none is declared; what activation buys here is protection",
+        "creation_date read as the date of execution; the filesystem timestamp and the scanner's date pattern are not the instrument's date, and no field exists to hold one",
+        "that OCR text density alone made this a document scan rather than a screenshot; the heading position and the jurat block are the evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Summons - Small Claims - Docket 2026-SC-0412.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading zone carries a court caption naming a small-claims tribunal",
+        "a labelled matter-identifier slot reads 2026-SC-0412",
+        "body carries a response-deadline term and a service-of-process paragraph",
+        "producer metadata names a court case-management system"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a year fact of any kind from the 2026 inside the docket identifier - 00's rule covers exactly this: documents contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'",
+        "any legal-domain fact - none is declared",
+        "a folder path, and in particular not a matter-named branch: the branch label would itself disclose the matter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Closing Packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction to disk lists Deed.pdf, Promissory Note.pdf, Closing Disclosure.pdf, ID copy.jpg, Title Insurance Policy.pdf",
+        "outer archive name is vague; the manifest is what carries the evidence",
+        "uncompressed size and file count recorded from the archive header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any legal-domain fact - none is declared",
+        "that the members share a purpose because they arrived in one archive; 00 makes the manifest the evidence, and the packet reading is a candidate group for review",
+        "that the ID copy member is legal material - it is the identity neighbour's, and 00 already says an application packet legitimately contains an identity document; both memberships stand without either fact being copied",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-05-08 at 09.14.22.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "filename carries the platform's default screenshot pattern",
+        "ocr region reads a filing-confirmation line beside a tribunal name and a matter-identifier-shaped token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone (00's rule); the exact display resolution plus the filename pattern are what may support it, and conflicting signals abstain",
+        "any legal-domain fact - none is declared",
+        "a date fact from the digits in the identifier token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE Engagement letter - Harper matter.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a professional-services domain",
+        "labelled subject slot carries an engagement term and a matter name",
+        "thread identifier and one attachment name: Retainer Agreement.pdf",
+        "message body is prose advice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any legal-domain fact - none is declared",
+        "that source_type = email makes this legal on its own",
+        "a contact fact turned into a folder proposal - 00 keeps address-book data 'privacy-protected rather than used to create folder proposals', and 00 treats mail 'addresses and message content as potentially sensitive'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hearing - Courtroom 4B.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot carries a hearing term and a tribunal room",
+        "labelled start and end times, organizer address, two attendees"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar; the content in the SUMMARY slot is what fires, per the .ics fixture",
+        "any legal-domain fact - none is declared",
+        "an event fact in the photos sense; this is not a capture"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "letter to landlord.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose: no heading, no form field, no signature block",
+        "body states an intention to vacate on a named date and cites a clause number",
+        "DOCX author metadata names a document template producer",
+        "filename is lowercase and carries no instrument token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "deterministic activation - nothing labelled fires here; this is the needs_llm case and the model must cite the operative sentence or return unknown",
+        "a party fact from the DOCX author or producer metadata",
+        "any legal-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LICENSE.txt",
+      "source_type": "code_structured",
+      "observations": [
+        "body is a permissive software licence grant with a warranty-disclaimer paragraph in capitals",
+        "sibling files at the same directory level include package.json and a src directory",
+        "no named party pair, no signature line, no date of execution",
+        "no filename token beyond the word LICENSE"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "legal activation from instrument vocabulary alone - this is the collision fixture for this node, and the discriminating evidence is structural: 00 says the engine 'should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod'",
+        "a party fact from the copyright holder line - it is a name in a notice, not a party bound by an agreement",
+        "a folder path; the file belongs with its repository, which is the code neighbour's material, so no residual home is reached at all"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null
+    },
+    {
+      "filename": "Terms of Service.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading zone reads TERMS OF SERVICE",
+        "body carries clause numbering, a governing-law paragraph and a limitation-of-liability paragraph",
+        "no counterparty named beyond the publishing company; the reader is addressed as 'you'",
+        "no signature block; arrived in the same download session as three other PDFs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "download_session"
+      ],
+      "must_not_conclude": [
+        "that this is the holder's legal matter - boilerplate the user merely saved is the second tempting false file for this node, and the missing evidence is a bound party pair plus execution",
+        "a purpose fact from the download session - 00: 'A session should never be treated as proof of topic'",
+        "any legal-domain fact - none is declared"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2231.jpg",
+      "source_type": "image",
+      "observations": [
+        "photographed document, camera EXIF present",
+        "ocr zone reads PASSPORT / PASSEPORT beside an issuing-authority line and a document number",
+        "statutory-sounding language about the bearer appears in a small-print zone"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that issuing-authority and statutory language make this legal material - it is the identity neighbour's document (CONNECTION-EXAMPLES fixture 4), and one evidence item must not count for both sides of the collision",
+        "a photos-domain reading from the camera EXIF; 00 puts a scanned passport into 'a protected state immediately' and protection precedes any other path",
+        "a folder path, a cloud dossier, or any exposure of the filename in a model prompt"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mortgage Statement - Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer name in a labelled header cell",
+        "table rows labelled principal, interest, escrow, payment due",
+        "a labelled account-number slot and a statement-period slot",
+        "no party recital and no signature block"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "tax_year"
+      ],
+      "must_not_conclude": [
+        "that this is legal material because a mortgage is a legal instrument - the file is a periodic account record and belongs to the finance neighbour; this is the finance collision fixture, and the discriminating evidence is the labelled account/statement table versus an executed instrument's party pair and execution block",
+        "a tax_year from a bare 4-digit token; an explicit labelled year pattern is required",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate Documents (password protected).zip",
+      "source_type": "archive",
+      "observations": [
+        "archive header readable; member manifest is encrypted and could not be inspected",
+        "no uncompressed size available",
+        "filename carries the tokens Estate Documents"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a legal reading from the filename - 00: 'Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone'",
+        "that the archive should be forced open - 00: 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'",
+        "any legal-domain fact - none is declared, and nothing was read"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "identity",
+      "signal": "an official document bearing an issuing authority, a document number and statutory language reads as an instrument on both sides. The discriminating evidence is what the document DOES: an identity document establishes who a bearer is (issuing authority + bearer details + document number, no counterparty); a legal instrument records an obligation or a proceeding between named parties (party recital + execution or a tribunal caption). A passport, national ID or residence permit is identity's; one evidence item - the issuing-authority line - must never count for both. The pair also carries also_holds_with, so this signal exists to keep that one item from counting twice."
+    },
+    {
+      "domain": "finance",
+      "signal": "a mortgage, loan or brokerage relationship produces both an executed instrument and a stream of periodic records, and both carry the same institution name and account language. The discriminating evidence is structural: a labelled account-number, statement-period and balance table is the finance record; a party recital plus a signature-and-execution block is the legal instrument. The institution name alone discriminates nothing and activates neither. The pair also carries also_holds_with, so this signal exists to keep one item from counting twice."
+    },
+    {
+      "domain": "code",
+      "signal": "an open-source LICENSE or NOTICE file at a repository root is written in grant-and-warranty instrument language and is the single most common false positive this schema faces at corpus scale. The discriminating evidence is 00's own project-root marker - a sibling package.json, requirements.txt, Cargo.toml or go.mod - plus the absence of a named party pair and any execution evidence. Structural repository evidence is code's; instrument vocabulary with no bound parties is nobody's."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "career",
+      "signal": "an executed employment agreement, NDA or separation agreement is career material and legal material on one file, on disjoint evidence: the role and employer context is career's, the party recital and execution block is legal's. 00's privacy sentence names both in one corpus list - 'identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. The landed career node authors the same edge from its side, so this pair is reciprocal today. Both schemas are field-less placeholders, so the join carries co-activation and protection rather than fields. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "one closing or financing packet legally carries both fact sets: the finance schema's institution, account_type, record_type and tax_year from the disclosure and statement members, and the legal reading from the deed and note members. Same structure as 00's abstract that is Research and Applications at once - 'One file may hold facts from more than one domain without losing information.' Disjoint evidence, so this is not the collision above; the collision signal exists for the single shared institution name. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "signal": "a civil-status certificate (marriage, divorce decree, name change) both establishes a person's status for identity purposes and is an instrument of record; and 00 already licenses the packet case on the neighbouring side, since an application packet legitimately contains an identity document. Disjoint evidence activates both; neither is a merge. Both are field-less placeholders, so the join carries co-activation and protection. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "an advance directive, medical power of attorney or a settlement built on a medical record is a legal instrument whose content is medical information. 00's privacy sentence names 'medical information' and 'legal records' in the same corpus list, and CONNECTION PR-8 uses exactly this shape for the healthcare-insurance case, where the medical safety placeholder co-activates via also_holds_with and still writes no fields. Two safety placeholders co-activating means protection is applied twice over and no fields are written on either side. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Independent Records",
+    "Unsupported or Encrypted",
+    "Review Later",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's privacy sentence names this material directly: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. 00 also names the residual home in the same terms - Protected Records holds 'legal forms' among 'sensitive isolated material' - and states that such material 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. Only 00's phrase is asserted here; the handling class is P7's and is not set.",
+  "open_question": "Three questions this row records and does not resolve. (1) Which canonical field keys the legal schema gets when D1's narrowing lifts, and whether any of them can be reused rather than minted: 'institution' is scoped to a finance record issuer, 'client' is the counterparty half of the our_firm role split rather than a party of record, 'record_type' is a finance enum, and none of them holds a matter, a counterparty, or an instrument kind. Minting versus reusing is a decision about the product's shared vocabulary, so this row writes no field rows and no proposed_fields. (2) The natural role split for this domain - the party of record versus the counterparty, and counsel versus opposing counsel, which is exactly 00's shape in 'The system must separate roles that happen to contain the same entity type' and 'A consulting document may mention the author’s firm and the client organization' - cannot be authored while the schema declares no fields, because role_split lives between canonical field keys. It is owed with (1). (3) NJ-2 restated where it bites hardest: for legal material specifically, does detection-and-protection precede ANY field extraction, or does a small schema extract at launch under local-only rules? Finance answers this one way (its four fields extract at launch, PR-2); legal has no fields to extract either way today, so the roster is not blocked - but the answer decides whether the four legal template rows can ever carry dimensions, and a matter-named folder branch is itself a disclosure even when the files inside it are protected.",
+  "is_safety_domain": true
+}

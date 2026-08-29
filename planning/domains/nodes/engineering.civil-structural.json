@@ -1,0 +1,573 @@
+{
+  "id": "engineering.civil-structural",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Fixed-works design justified by code calculation",
+  "one_line": "The situation in which a fixed work — a building structure, a bridge, a retaining wall, a foundation, a drainage network, a temporary works scheme — is designed and its adequacy is JUSTIFIED by calculation against a named published design code, producing load takedowns, member and foundation checks with utilisation, mark schedules keyed to a structural grid, reinforcement and connection details, and sealed design certificates or assessments of existing structures. It is deliberately NOT the sector 'civil engineering': a civil or structural practice's letterhead, a discipline word and a design-code name are never-alone evidence. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps the engineering schema's fields empty, so this row writes no field rows and encodes no dimension order; it contributes detection signals, boundaries and a conditional order for R1c.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": "conditional",
+    "privacy_differs": true,
+    "why": "LEG 1 (signals) — the engineering schema's default template recognises a controlled definition by INTERNAL apparatus: a requirement identifier allocated to a design item, a title block, a design-authoritative BOM, a technical data package manifest, an engineering change with an affected item, a verification matrix. This row's discriminating structure is different in kind: the requirement is EXTERNAL and PUBLIC. A structural or civil calculation states a demand, states a capacity, and cites a clause of a published design code as the authority for the check; the design item is a mark on a structural grid rather than a part number; the schedule that plays the BOM's role is a bar-bending or member-mark schedule tied to one drawing of one fixed work; and the approval slot is a licensed engineer's seal with a registration number, not an internal approver. None of those five structures is named by the schema default, and each is true of files in this row's list. LEG 2 (dimensions) — CONDITIONAL, and stated as conditional rather than claimed. PR-6 forbids declared fields, so dimension_order is empty here exactly as it is on the schema row. The researched difference, for R1c: the schema default's design_item is stable across projects and can lead; a member mark is meaningless outside the one structure that contains it, so the intelligible parent here is the STRUCTURE, and the researched order is project → structure → engineering_artifact_type, with lifecycle_stage demoted because civil design gates (concept / preliminary / detailed / issued-for-construction) are already carried by the drawing issue status that construction_property.drawings-revisions owns. This row does not encode that order and does not mint `structure`; see NJ-CIVIL-1. LEG 3 (privacy) — the sensitivity REASON differs from the schema default's proprietary-IP-and-export-control reason. A sealed calculation carries a named individual's professional registration and signature image; a structural adequacy assessment of an occupied building names a real address and states that a member is unsafe; temporary works and critical-infrastructure records describe how a structure fails. That is third-party and safety exposure, not commercial confidentiality. The value stays potentially_sensitive; no handling class is assigned.",
+    "charge_answered": "The strongest case against this row is that it is an INDUSTRY LABEL — a discipline, like the sector names the 574 was built from — whose files are already held by engineering.drawing-package, engineering.simulation-analysis, engineering.bill-of-materials and construction_property.drawings-revisions. That case is defeated on one point only, and the row is narrowed to it: the calculation that justifies a fixed work against a published code is held by no neighbour, and a landed neighbour has already routed it here — construction_property.site-survey states that 'an analysis, a calculation, a design assumption or a proposed solution supports the engineering row; a record of what was found with no design step supports this row'. The sector reading is rejected inside the row itself: the practice-name rule is written into never_alone, and the row's name was changed from the discipline to the situation."
+  },
+  "fields": [],
+  "fields_note": "Empty by PR-6 and by the contract rule that a template references its schema's fields and never copies them. The legal set on a file this row recognises is whatever R1c licenses on the engineering schema (its proposals are project, design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline) plus the universals.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. Two keys were genuinely tempting and are parked as NEEDS-JOSEPH rather than minted. `structure` (the fixed work) would be a near-synonym of the schema's own unadjudicated `design_item` proposal, and minting a variant of a key that is still before R1c is the exact failure the brief names. `design_code` is not a field at all: one design is checked against several codes at once (a Eurocode suite is EN 1990 + 1992 + 1993 + 1997 simultaneously), so it is multi-valued and can never be a destination dimension; it is a search fact at most.",
+  "proposed_context_terms": [
+    "load takedown",
+    "load combination",
+    "characteristic load",
+    "ultimate limit state",
+    "serviceability limit state",
+    "utilisation",
+    "design capacity",
+    "clause",
+    "partial factor",
+    "grid reference",
+    "member mark",
+    "bar mark",
+    "shape code",
+    "cover",
+    "concrete grade",
+    "section size",
+    "bearing capacity",
+    "settlement",
+    "pile schedule",
+    "retaining wall check",
+    "return period",
+    "attenuation storage",
+    "temporary works design",
+    "design certificate",
+    "structural adequacy",
+    "as-designed"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only; it does not list these. Their presence is plausibility, never proof — the row's best false positive is a textbook containing every one of them.",
+  "recognition": {
+    "deterministic": [
+      "a calculation structure whose result rows place a computed demand and a computed capacity (or their ratio) beside a cited clause of a NAMED published design code for an identified member; the joint presence of the external clause and the utilisation figure is the signal, never a code name in a bibliography",
+      "a load takedown or load-combination table whose labelled columns are load cases — dead, imposed, wind, snow, seismic, surcharge — and whose rows accumulate factored combinations against an identified level, frame or element",
+      "a member, pile or foundation mark schedule keyed to a structural grid: mark, section or size, material grade, level or grid reference, and a governing drawing number in the same row",
+      "a reinforcement detail structure — bar marks with shape codes, diameters, spacings, cover notes and a concrete grade — referred to a member on a gridded plan or section",
+      "a design certificate or seal block naming a licensed or chartered engineer, a registration or licence number and an explicit scope of design responsibility, attached to a calculation for a fixed work",
+      "a geotechnical DESIGN structure: adopted design parameters attributed to a named ground investigation, capacity and settlement checks against those parameters, and a resulting foundation schedule — distinct from the factual investigation log the parameters came from",
+      "a hydraulic or drainage design structure: contributing catchment areas, a storm return period or design event, pipe or channel sizing, and an attenuation storage volume for a named site network",
+      "an assessment structure that states an EXISTING member's capacity against current or revised loading and records an adequacy verdict for a named existing structure",
+      "an archive or federated-model manifest exposing several of the above under one structure identifier without any member being extracted to disk",
+      "a scheme number in a title block or parent folder may raise plausibility only after one of the structures above is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a calculation justifies a real fixed work, is a worked example in teaching material, is a software validation case, or is an estimator's sizing check made to price a job",
+      "whether a drawing is design information belonging here or an issue/transmittal record belonging to construction_property.drawings-revisions, when the same sheet carries both a detail and a revision cloud",
+      "whether a steel drawing full of marks is a design connection detail or a fabricator's shop drawing produced under a works order",
+      "whether a geotechnical PDF reports findings, adopts design parameters, or does both in one document — the common case, and the reason this row and site-survey may both hold it",
+      "whether an assessment concerns a new designed work, an existing asset under a maintenance regime, or a defect dispute",
+      "whether a workbook's code references are the authority for its results or merely a reading list",
+      "whether a structure is being designed as a reusable product (a modular unit, a crane, a mast type) or as a one-off fixed work at a place"
+    ],
+    "never_alone": [
+      "the words civil, structural, engineer, design, beam, column, foundation, slab, culvert or drainage alone; a fabricator's shop drawing, an estimator's take-off, an architectural portfolio and a textbook all contain them",
+      "a design-code name or number alone — EN 1992, ACI 318, ASCE 7, IBC, BS 8666. Standards libraries, specifications, tender documents, insurance letters and marketing PDFs cite the same codes, and the standard document itself is engineering.standards-library",
+      "an engineering practice's, contractor's or client's name alone. A civil and structural consultancy's letterhead does not make its files this row; this is the industry-label refusal written as a rule, and it is the same defect 00 identifies for a university name",
+      "a member-, grid- or mark-shaped token alone (B12, C/4, PC-07, F3); the same shape is a part number, a room number, a parking bay, a seat, or a spreadsheet cell reference",
+      "a `.dwg`, `.dxf`, `.ifc`, `.rvt`, `.step` extension or a design_creative source_type alone; 00 requires extension to be a routing signal rather than an assumption about meaning",
+      "a revision token, issue status or IFC/for-construction stamp alone; the issue apparatus is construction_property.drawings-revisions' relation, not this row's",
+      "a site address or property name alone; a place is construction_property's relation and never a design step",
+      "a schedule of quantities alone; take-offs, bills of materials, procurement schedules and pick lists share the shape",
+      "a signature, seal or stamp image alone; certificates, letters, deeds and approvals across every domain carry one",
+      "absence of EXIF, or a screenshot-shaped image, as proof that a captured utilisation table is engineering evidence",
+      "a bounded download session; 00 states a 'download session alone is never sufficient'"
+    ]
+  },
+  "work_types": [
+    "design basis or design statement",
+    "load takedown and load-combination schedule",
+    "member design calculation",
+    "connection design calculation",
+    "foundation and geotechnical design report",
+    "retaining wall or earth-retention design",
+    "drainage or hydraulic design calculation",
+    "general arrangement drawing of a structure",
+    "reinforcement detail drawing",
+    "bar bending schedule",
+    "member or foundation mark schedule",
+    "temporary works design and check certificate",
+    "structural adequacy or capacity assessment of an existing structure",
+    "design certificate or sealed statement of design responsibility",
+    "technical query or RFI response carrying a design decision"
+  ],
+  "work_types_note": "These are candidate VALUES of the engineering schema's proposed engineering_artifact_type (or a widened canonical artifact_type), never child nodes. A discipline — civil, structural, geotechnical, drainage — is likewise a value, and specifically NOT a node; that is the whole content of this row's charge answer.",
+  "grouping_reasons": [
+    "one fixed work — a building structure, a bridge, a wall, a catchment — across its design basis, calculations, details, schedules and assessments",
+    "one check chain: load takedown → combinations → member check → utilisation → detail → schedule, even when it is spread across a workbook, a PDF calculation and a drawing",
+    "one member or foundation mark and the calculation, detail, schedule entry and technical query that resolve it",
+    "one temporary works scheme with its design, independent check certificate and removal sequence",
+    "a design and the ground investigation whose parameters it adopts, held as a link rather than by copying the investigation's facts onto the design or the design's facts onto the investigation",
+    "a sparse `beam_check.png` may join an accepted calculation neighbourhood without acquiring the scheme, the structure or the mark; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6, exactly as on the engineering schema row: no field of this schema is declared, so no machine-readable order may be encoded. The researched conditional order, for R1c only, is project → structure → engineering_artifact_type. It differs from the schema default (project → design_item → lifecycle_stage → engineering_artifact_type) in two places. First, the item level must be the fixed work, not a reusable configuration item: a member mark is unintelligible outside the structure that contains it, which is 00's parent-makes-child-intelligible rule applied one level higher than the schema default applies it. Second, lifecycle_stage is demoted out of the standing levels because the civil lifecycle gate is expressed as a drawing ISSUE STATUS that construction_property.drawings-revisions already owns; opening a level here would branch on a fact this row does not evidence and would scatter one structure's design across status folders. The user may reverse, remove, add or flatten any of this. Not time-first: nothing in this material is time-primary.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".xlsm",
+      ".csv",
+      ".docx",
+      ".dwg",
+      ".dxf",
+      ".ifc",
+      ".rvt",
+      ".pptx",
+      ".eml",
+      ".zip",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "1042-STR-CALC-001_Superstructure-Design_RevP2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a design basis section names the code suite adopted and the partial factors used",
+        "result rows pair a computed demand and capacity with a cited code clause and a utilisation figure for named member marks",
+        "a footer block records prepared-by, checked-by and approved-by with a chartered registration number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c licenses them",
+        "a lifecycle stage from the P2 suffix",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "1042-S-201_RevC_Ground-Floor-Slab-Reinforcement.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "plan and sections carry bar marks with shape codes, diameters, spacings and cover notes against a lettered/numbered grid",
+        "a general notes panel states concrete grade and the code the detailing follows",
+        "the title block carries a drawing number, a revision letter and an issue status"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from `.dwg` alone",
+        "the issue/transmittal relation that belongs to construction_property.drawings-revisions",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Bar-Bending-Schedule_1042-S-201_RevC.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are bar mark, type and size, number of members, number in each, total number, length, shape code and bending dimensions",
+        "a header cell names the governing drawing number and revision",
+        "no parent-assembly or child-part relation is stated anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a quantity schedule is a design-authoritative bill of materials",
+        "procurement or production facts",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Foundation-Design-Report_1042_Pile-Layout_RevB.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an adopted-parameters table attributes each design value to a named ground investigation and borehole",
+        "capacity and settlement checks are performed against those values and a pile schedule PC-01..PC-12 results",
+        "the same PDF reproduces two borehole logs as an appendix"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that reproducing a log makes this the investigation record",
+        "that adopting a parameter transfers the investigation's own facts onto this file",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Wind-Loading-ASCE7-22_Calc.xlsm",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled input cells hold risk category, exposure category and basic wind speed",
+        "formula cells reference clause numbers of the named standard in adjacent comment cells",
+        "outputs are design pressures per level; no project name, client or structure identifier appears anywhere in the workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a scheme or structure copied from a sibling file in the same folder",
+        "that the standard's name identifies the work",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Drainage-Design_1042_Catchment-2_Storage-Sizing.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "contributing areas and impermeability factors are tabulated per sub-catchment",
+        "a design storm and return period are stated and pipe sizes and gradients follow from them",
+        "an attenuation volume and a discharge rate limit are given for a named outfall"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the discharge consent apparatus is here — that is a permit record",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "TW-14_Propping-Scheme_Design-and-Check-Certificate_RevA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a scheme drawing, a prop load calculation and a stated erection and removal sequence appear together",
+        "a certificate page names the temporary works designer, an independent checker, a check category and a scope of design responsibility",
+        "signatures and a registration number are reproduced as images"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the construction-phase safety apparatus that belongs to construction_property.site-health-safety",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Structural-Adequacy-Assessment_St-Marys-Hall_Roof-Planks.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an existing named building and its address head the report",
+        "measured member dimensions and assumed material properties are checked against current loading, and one element's capacity ratio exceeds unity",
+        "a conclusion records an adequacy verdict and an occupancy recommendation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an existing-building assessment is a survey record without a design step",
+        "any handling class",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "1042_Structure_RevD.ifc",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a federated structural model whose header names the exporting application and a project short name",
+        "object names repeat the same member marks that appear in the calculation and the schedule",
+        "no member has been extracted and no view has been rendered"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from uninspected model contents",
+        "activation from `.ifc` alone",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "RE- Beam B12 utilisation with revised mezzanine loads.eml",
+      "source_type": "email",
+      "observations": [
+        "the body quotes a utilisation figure and a clause reference and asks for a revised check",
+        "an attached one-page calculation extract carries the same member mark",
+        "the subject line's mark-shaped token is the only structured evidence in the mail itself"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from the mark-shaped token in a subject line",
+        "a scheme from the sender's employer",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fabrication-Drawing_Assembly-B12_WO-8871.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "piece marks, weld symbols, bolt lists, hole positions and a steel grade appear on a shop sheet",
+        "the title block carries a works order number and a fabricator's job reference rather than a design responsibility statement",
+        "no code clause, no utilisation and no load case appears anywhere on the sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from piece marks that look exactly like member marks",
+        "that citing the design drawing number transfers the design step",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Eurocode-2-Worked-Examples-for-Beam-and-Slab-Design.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "every context term this row lists is present — load combinations, clause citations, utilisation figures, bar marks, shape codes",
+        "the worked structures are named Example 3.1 and Example 3.2 and have no address, client, scheme number or responsible engineer",
+        "front matter is a publisher, an ISBN and a chapter contents list"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from a complete set of context terms",
+        "a design step where the subject is instruction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "beam_check.png",
+      "source_type": "image",
+      "observations": [
+        "a cropped screenshot of a utilisation table with three rows and a red cell",
+        "no member mark, scheme number, code clause or title is visible in the crop",
+        "no EXIF is present; two accepted calculation PDFs sit in the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from an engineering-looking table",
+        "a structure or mark copied from neighbouring files",
+        "screenshot status from missing EXIF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.site-survey",
+      "signal": "Reciprocal, and that row wrote its half first: 'an analysis, a calculation, a design assumption or a proposed solution supports the engineering row; a record of what was found with no design step supports this row'. This side agrees on the same fixture bytes and adds the harder case: Foundation-Design-Report_1042_Pile-Layout_RevB.pdf reproduces borehole logs as an appendix and is still this row, because the operative structure is adopted parameters plus capacity checks plus a resulting schedule; a Ground-Investigation-Report with the same logs and no design step is theirs. Where one PDF genuinely contains both a factual log and a design recommendation, both hold on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.drawings-revisions",
+      "signal": "Same fixture on both sides: 1042-S-201_RevC_Ground-Floor-Slab-Reinforcement.dwg. This row owns the design CONTENT — bar marks, shape codes, cover, grade, grid — and the calculation that justifies it. That row owns the ISSUE APPARATUS — drawing register, revision sequence, issue status, transmittal, who received which revision when. A transmittal listing that same sheet is theirs and not this row's; a detail with no revision history is still this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "The collision fixture of this node: Fabrication-Drawing_Assembly-B12_WO-8871.pdf. Piece marks, steel grades, a drawing number and a revision make it look identical to design evidence. The discriminators are a works order or job reference in place of a design responsibility statement, and the total absence of a load case, a code clause and a utilisation. Execution against a definition — fabrication, erection, inspection, heat and NDT records — is manufacturing; the definition and its justification are this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "signal": "Same-schema sibling collision, fixture Wind-Loading-ASCE7-22_Calc.xlsm and any frame FE model. That row's relation is a numerical simulation run: model, mesh, solver, load case, post-processed result. This row's relation is compliance: a demand and a capacity reconciled against a cited clause of a published code for a fixed work. A frame analysis whose output feeds member checks is legitimately in both neighbourhoods; a mesh convergence study is only theirs; a hand or spreadsheet code check with no model is only this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Same-schema sibling collision on every drawing this row touches. That row is the discipline-neutral controlled drawing SET — title blocks, sheet numbering, register, package issue. This row is the fixed-work design and its calculation justification, of which drawings are one output. Fixture: the same rebar sheet is package evidence to that row and design evidence here; neither reading requires the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "Fixture: Bar-Bending-Schedule_1042-S-201_RevC.xlsx. That row keys on a parent-assembly to child-part relation with quantities and drawing revisions — a product structure. A bar schedule has no parent assembly: it is a per-drawing, per-member quantity take-off under a published bending-shape catalogue. This row concedes any schedule that does state a parent/child product structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.process-plant-design",
+      "signal": "Fixture: a pipe rack or a plant support structure. Process apparatus — P&ID, line list, equipment schedule, stream data — is that row; the structure that carries it, designed by load takedown and member check, is this row. Both may hold on one plant package because both relations are explicitly evidenced.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "signal": "Fixture: any file whose most conspicuous string is a design-code designation. The published standard, code handbook or design manual itself is that row. This row's files CITE codes as the authority for a result about a specific work. This is the reason 'a design-code name alone' is on never_alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.planning-application",
+      "signal": "Fixture: the structural calculation appended to a submission pack. An application reference, a validation letter, a consultee response or an officer's report supports that row; the calculation deliverable itself supports this row. The same seam construction_property.site-survey already declared against that row, stated identically here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "Fixture: beam_check.py, a script that performs the same code checks. A repository root, a manifest, a test suite and source structure activate code; a produced calculation with a design responsibility statement activates this row. A design office's calculation script is code even though its employer designs bridges — the mirror of the practice-name never_alone rule.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Fixture: a capacity study of a structural product. Knowledge-producing work with a venue, citations and generalisable claims is research; an adequacy verdict on a named existing structure at an address is this row. The tell is whether the object is a proposition or a work.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "construction_property",
+      "signal": "Schema-level, per the contract's restriction on this edge. A fixed-work design is frequently also a site record: the rebar sheet is issued for construction under a contract, the adequacy assessment concerns a managed property, the temporary works certificate belongs to a site file. Both relations are separately evidenced — a design step on one side, a property or instruction on the other — and neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "Schema-level. A precast or structural steel package can carry a design definition and a fabrication execution record in one bundle; the works order and the code check are disjoint evidence and both may be true.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Schema-level. An instrumented structure or a monitored trial can both verify a design assumption for a named work and produce generalisable knowledge with its own project and artifact facts.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A sealed calculation, a design certificate or a standalone assessment with durable meaning but no reliably evidenced structure or accepted project belongs here rather than activating from discipline words.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The correct home for the ambiguous technical workbook: Wind-Loading-ASCE7-22_Calc.xlsm is recognisably a code check and identifies no work, so whether it designs, checks, prices or teaches cannot be settled from its own evidence. 00 requires that 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Native analysis and BIM containers — proprietary frame-analysis models, IFC and vendor model files — retain basic metadata without filename-only purpose inference.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Where the row's context terms are all present but the subject is instruction rather than a work — the worked-examples fixture. Context terms are not evidence.",
+      "provenance": "design",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The cropped utilisation screenshot with no mark, scheme or title visible, which must not borrow facts from the accepted calculations beside it.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is DESIGNER against INDEPENDENT CHECKER — both named, both registered, both signing the same temporary works certificate. There is no canonical key for either role, authorship is never a destination under 00, and minting a producer-side key to solve one template's problem is precisely the move that generated thousands of private field names. It is recorded in the temporary works fixture's observations instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The reason differs in kind from the engineering schema default's proprietary-IP and export-control reason, which is what carries leg 3 of the node test. Sealed calculations and design certificates reproduce a named individual's signature image and professional registration number. Adequacy assessments name a real address and an occupancy and may state that a member is unsafe — third-party exposure with consequences for people who are not the file's owner. Temporary works, bridge, tunnel and dam records describe how a structure fails. This is not a new handling class and does not make the row a safety launch; 00's binding rule stands that privacy policy is enforced before any model or connector receives content.",
+  "open_question": "NEEDS-JOSEPH NJ-CIVIL-1: the intelligible parent here is the STRUCTURE (one bridge of three in a scheme; one block of six on a site), which the engineering schema's proposed `design_item` may or may not be meant to cover. Alternatives: (a) widen `design_item` to include one-off fixed works — recommended, and the reason no key was proposed here; (b) mint `structure` as a separate key, which immediately creates two near-synonyms before either is adjudicated; (c) collapse structures into `project`, which loses the level that makes a member mark intelligible. NJ-CIVIL-2: `design_code` is a real and highly discriminating fact but is multi-valued per design, so it can be a search fact and can never be a dimension — confirm that a multi-valued fact may exist as a non-destination fact at all, or the row must drop it entirely. NJ-CIVIL-3: does a structural adequacy assessment of an occupied third-party building route to Protected Records by default, given that it names an address and an occupancy and states an unsafe verdict? This row says yes when inactive; that is a stronger default than any sibling applies and should be confirmed rather than assumed. NJ-CIVIL-4: engineering.civil-structural and engineering.process-plant-design both claim structures inside plants; if R1c prefers one claimant, this row concedes the process apparatus entirely and keeps only the load-path justification."
+}

@@ -1,0 +1,635 @@
+{
+  "id": "engineering.simulation-analysis",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Simulation studies and their solver models",
+  "one_line": "A computed prediction of physical behaviour together with the idealised model that produced it: a solver deck or case dictionary declaring mesh, material model, boundary conditions and load cases; the result database it wrote; and the study report that reduces those results to a margin against a named requirement. The relation is model + load case + solver run + post-processed result, not approval of a definition. It is not a discipline name, not the word simulation, and not the CAE file extensions: an as-designed CAD container is engineering.cad-model, a code-clause compliance check for a fixed work is engineering.civil-structural, a physical test on a real article is engineering.verification-validation, a process flowsheet is engineering.process-plant-design, and a statistical or financial Monte Carlo run is not engineering at all. Placeholder row (J-IND, researched at J-DEPTH): PR-6 leaves fields empty and dimension_order empty; the researched order and the one proposed key are exposed for R1c rather than encoded.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": "conditional",
+    "privacy_differs": true,
+    "why": "LEG 1 (signals) — the engineering schema's default template recognises a controlled definition by APPROVAL apparatus: a title block with a revision and approval slot, requirement rows with allocation and verification-method columns, a design-authoritative BOM parent/child relation, a technical data package manifest, an engineering change naming an affected item, a verification matrix binding requirement identifiers to a configuration-under-test. Every one of those structures says the same thing — somebody signed this. This row's discriminating structures say something else: somebody COMPUTED this, and the answer is only as good as the idealisation. The four structures are (a) a solver deck or case dictionary in which node/element or mesh definitions co-occur with material cards, boundary-condition cards, a load or step block and a solver control block; (b) a solver-written result container whose stem matches a deck and whose contents are unreadable without the solver; (c) a study report whose sections are model description, defeaturing and assumptions, mesh and convergence, material properties with a cited source, boundary conditions and load cases, results, and a margin table; (d) a mesh or discretisation sensitivity table in which the independent variable is element count or cell count and the dependent variable is the answer itself. None of the four appears in the schema default's deterministic list, and every one of them is true of files in this row's list. The schema default's nearest clause — an analysis package whose labelled inputs include a model/configuration identifier and whose conclusion compares calculated margins against named requirements — covers only (c), the report, and covers it by its conclusion; it is blind to the deck, the result container, the idealisation and the convergence evidence, which are the majority of the bytes and the whole of the retrieval problem. LEG 2 (dimensions) — CONDITIONAL, and stated as conditional. PR-6 forbids declared fields, so dimension_order is empty here exactly as it is on the schema row. The researched difference, for R1c: the schema default's third level is lifecycle_stage and its fourth is engineering_artifact_type, and both misbehave on this corpus. lifecycle_stage does not partition it — one item accumulates a static, a modal, a thermal and a drop study inside a single gate, and the same load case is rerun at every gate, so a gate level scatters one study's history and merges four unrelated studies. engineering_artifact_type does not partition it either: it collapses to one value across the whole corpus and opens a folder with a single child. The researched order is project -> design_item -> study_type -> (deck | model | result | report), and the level that carries the discrimination is the physics of the study, which the schema default has no key for. LEG 3 (privacy) — the sensitivity REASON differs from the schema default's proprietary-IP-and-export-control reason. A simulation result is a written statement of how, where and at what load a product fails: peak stress locations, fatigue life, crash and occupant-injury predictions, thermal runaway onset, blast and ballistic response. An adverse margin is the single most discoverable artifact an engineering organisation holds, and it describes a hazard to third parties rather than a commercial secret. Case archives additionally carry solver licence files and cluster or scheduler credentials that are not design content at all. The value stays potentially_sensitive; no handling class is assigned.",
+    "charge_answered": "The strongest case that this row should not exist has five parts and a landed neighbour already made one of them. (i) It is a WORK_TYPE VALUE. The engineering schema's own work_types[] contains 'analysis model or calculation' and 'simulation report'; the brief is explicit that work types are values of a field and never nodes. (ii) It is a DUPLICATE OF ITS SCHEMA'S DEFAULT TEMPLATE. engineering.invention-disclosure.research.md states of this id and engineering.requirements-specification that 'Both are the schema default's home ground', and the schema default's deterministic list already contains an analysis-package clause. (iii) It is a DOCUMENT TYPE — 'the FEA report' sits in the same class as 'the invoice'. (iv) It is a TOOL AND FILE-FORMAT row wearing a discipline's name: FEA and CFD are software categories, and .inp, .odb, .cas, .nas, .rst are extensions, which 00 forbids as meaning. (v) It is a LIFECYCLE STAGE, the phase between design and test. Parts (i), (iii), (iv) and (v) are defeated by the same fact: this row's evidence is not a word, a type or an extension but a RELATION that the schema default does not name — an idealisation joined to a load case joined to a run joined to a post-processed answer. The deck and the mesh carry that relation with no report present and no type word anywhere; the convergence table carries it with no design item named; and the report is the only member of the four that the type reading even reaches. Part (ii) is the serious one and is defeated narrowly and reciprocally rather than broadly: the schema default owns the report's CONCLUSION, which is why this row concedes BPA-210_FEA_Loadcase-3_RevA.pdf as a shared fixture and does not claim exclusivity over it, while the deck, the mesh, the result container and the convergence study are held by no neighbour and by no clause of the default. Two landed siblings have already routed material here on exactly that basis: engineering.cad-model states that 'simulation-analysis owns the defeatured, meshed, load-and-boundary-condition model and the study that produced it', and engineering.civil-structural states that this row's 'relation is a numerical simulation run: model, mesh, solver, load case, post-processed result' and that 'a mesh convergence study is only theirs'. The row is narrowed to what those two sentences describe, and the tool reading, the extension reading and the word reading are each written into never_alone so the node cannot activate on them."
+  },
+  "fields": [],
+  "fields_note": "Empty by PR-6 and by the contract rule that a template references its schema's fields and never copies them. The legal set on a file this row recognises is whatever R1c licenses on the engineering schema (its proposals are project, design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline) plus the universals file_type, creation_date, language, duplicate_family, version_family and sensitivity_status.",
+  "proposed_fields": [
+    {
+      "key": "study_type",
+      "type": "enum",
+      "example": "linear static structural",
+      "why_no_existing_key": "No canonical key names the physics a computation asserts. The engineering schema's unadjudicated engineering_artifact_type is orthogonal, not synonymous: it separates a drawing from a calculation from a requirement, and on this corpus it resolves to one value for every file, so it cannot discriminate a deck from a report from a result and cannot discriminate a modal run from a thermal run at all. Canonical work_type is the academic schema's key and its values are syllabus/homework/lecture. Canonical artifact_type belongs to research and code with values manuscript, figure, dataset, notebook, model; its 'model' value means a trained or analytical model, not an idealisation with boundary conditions, and widening it would collide with the same widening engineering already asks for. Canonical stage is a research workflow position. lifecycle_stage, the schema's own proposal, is a gate and does not partition this corpus. The physics of the study is the fact a person retrieves by ('where is the thermal work on the pedal assembly') and it is the only level at which this corpus branches more than once.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE, below project and design_item. A load case number, a mesh size or a margin is unintelligible until both the item and the physics are known, which is 00's parent-makes-child-intelligible rule. It is single-valued per file in a way load_case is not, and it is not authorship, not an organisation collector and not a file format.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct only where a labelled analysis-type, study-type or solution-sequence slot exists in a report header or a solver control block. Otherwise validation requires a physics term co-occurring with one of this row's structural signals — a step or solution-type card inside a deck that also carries boundary-condition cards, a report section heading for boundary conditions and load cases, or a convergence table whose independent variable is element or cell count. A physics word in a filename alone stays possible. R2 owns patterns; this row writes no regex and no threshold.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "proposed_fields_note": "One key only. `load_case` was the more obvious candidate and is deliberately NOT proposed: a single linear static run routinely sweeps a whole matrix of load combinations, so the fact is multi-valued per file and can never be a destination dimension — the same objection engineering.civil-structural used to refuse `design_code`. It is parked as NJ-SIM-2. `solver` and `mesh_size` were rejected outright: a solver name is a vendor string that would make a tool the organising principle, which is this row's own charge against itself, and a mesh size is a parameter, not a fact about what a file is. No variant of the schema's four unadjudicated keys was minted.",
+  "proposed_context_terms": [
+    "boundary condition",
+    "load case",
+    "load step",
+    "mesh",
+    "element size",
+    "element type",
+    "node count",
+    "cell count",
+    "material model",
+    "yield strength",
+    "modulus",
+    "constraint",
+    "fixed support",
+    "applied load",
+    "solver",
+    "solution sequence",
+    "convergence",
+    "residual",
+    "iteration",
+    "time step",
+    "turbulence model",
+    "y plus",
+    "von Mises",
+    "principal stress",
+    "deflection",
+    "mode shape",
+    "natural frequency",
+    "factor of safety",
+    "margin of safety",
+    "pressure drop",
+    "heat flux",
+    "defeatured",
+    "idealisation",
+    "assumptions and limitations",
+    "post-processing",
+    "correlation to test"
+  ],
+  "recognition": {
+    "deterministic": [
+      "a solver input deck in which discretisation cards (node/grid definitions, element or cell definitions) co-occur with material cards, boundary-condition or constraint cards, and a load, step or solution-control block. The co-occurrence is the signal; a file of node coordinates alone is a point cloud and a file of material properties alone is a datasheet",
+      "a case-directory dictionary structure in which a solver application name, a mesh specification, a set of boundary-condition patches and a run-control block appear as labelled entries referring to one named geometry. This is the CFD form of the same relation and reads as code_structured on disk",
+      "a study report whose section structure joins an idealisation or defeaturing statement, a mesh description, material properties with a cited source, a boundary-condition and load-case definition, and a results section ending in a margin, factor or comparison against a named requirement or target. The margin alone is not the signal — the idealisation-plus-load-case-plus-result chain is",
+      "a discretisation sensitivity table in which the independent variable is element count, cell count or element size and the dependent variable is the reported answer, with an asymptotic or extrapolated value stated. No other engineering row produces a table whose subject is the reliability of its own numbers",
+      "a solver-written result container whose stem matches a deck present in the same neighbourhood and which reads as opaque_binary. It is this row's evidence only through the deck; alone it is an unreadable file and nothing more",
+      "a model-to-test correlation table placing a computed quantity and a measured quantity for the same named quantity side by side with an error column. This activates this row on the computed side and engineering.verification-validation on the measured side; neither is inferred from the other",
+      "a load-case or load-combination matrix that enumerates named cases with their applied conditions for one identified item, referenced by a deck or a report in the same neighbourhood",
+      "an archive manifest exposing a deck, a mesh, a result container and a report under one item or study, read without extracting members",
+      "parent-folder context naming a study, an item or a load case may raise plausibility only after one of the structures above is present in a file's own evidence; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a report's computed answer is a prediction about a designed item's behaviour or a code-compliance verdict for a fixed work, when the demand-versus-capacity language is identical and only the cited authority differs",
+      "whether a spreadsheet titled as a study is a numerical simulation post-process, a statistical capability study on measured parts, a financial scenario run, or a research parameter sweep",
+      "whether a three-dimensional container is an as-designed definition, a defeatured analysis idealisation of the same item, or a rendering asset, when the exchange format is shared and the stem is shared",
+      "whether a case or run directory is principally a repository artifact under source control or a simulation case whose dictionaries happen to be text",
+      "whether a physics-solver run supports a design decision, a failure investigation, a research claim, or a visual effect",
+      "whether an unlabelled contour or streamline image is a post-processed result of a study present in the corpus, a screenshot of somebody else's, or an illustration copied from a standard or a paper"
+    ],
+    "never_alone": [
+      "the word simulation, model, study, run, analysis, solver, mesh or convergence alone. Every one of them is ordinary vocabulary in statistics, finance, machine learning, visual effects, epidemiology and project planning; monte_carlo_npv_simulation.xlsx trips exactly this rule and is not this row",
+      "a CAE extension alone — .inp, .odb, .cas, .dat, .rst, .nas, .msh, .vtk, .foam. 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning', and several of these stems are shared with unrelated formats",
+      "a solver, tool or vendor name alone. A row that activates on a product name is a tool row, which is the charge this node had to defeat; a licence file, an installer, a tutorial dataset and a training deck all carry the same name",
+      "a margin, factor-of-safety, utilisation or pass/fail figure alone. A hand calculation, a code-clause check, a physical test report, a manufacturing capability study and a certification submission all end in one",
+      "a mesh or nodes-and-elements file alone, with no material, boundary-condition or load evidence anywhere in the neighbourhood. That is a discretised geometry and its correct outcome is abstention",
+      "a contour, streamline, deflected-shape or convergence-history image alone. The plot is the most reproduced artifact in this world and travels into slide decks, papers, marketing pages and standards",
+      "a design item or part number alone. The schema row already states that a part or drawing number can be a stock code, an asset tag, a site drawing or an invoice reference, and every neighbour on this schema shares the same identifier",
+      "a physics term alone — thermal, modal, fatigue, drop, aerodynamic. These are values, and they appear in test plans, requirements, marketing copy and job descriptions",
+      "a company, consultancy or laboratory name alone. An analysis house's name on a report is role-ambiguous in exactly the way 00 identifies for a university name",
+      "absence of EXIF on a contour image. 00 states the system 'must not mistake the absence of EXIF for proof that an image is a screenshot', and it is equally not proof that an image is a solver output",
+      "a bounded download session alone. 00 is explicit that a session is not evidence of topic; a batch of solver tutorials downloaded in one sitting is not a study"
+    ]
+  },
+  "work_types": [
+    "linear static structural analysis",
+    "nonlinear or contact analysis",
+    "modal or vibration analysis",
+    "fatigue and durability analysis",
+    "thermal or thermal-stress analysis",
+    "buckling analysis",
+    "explicit dynamics, drop or crash analysis",
+    "internal flow CFD",
+    "external aerodynamic CFD",
+    "conjugate heat transfer",
+    "multiphysics or coupled analysis",
+    "electromagnetic or signal-integrity simulation",
+    "kinematic or multibody dynamics",
+    "tolerance stack or variation simulation",
+    "mesh or discretisation sensitivity study",
+    "parameter sweep or design-of-experiments run",
+    "optimisation or topology study",
+    "model-to-test correlation study"
+  ],
+  "work_types_note": "Values of the proposed study_type key (and, for the last three, of a run-purpose reading of it). None is a child node. R1a is not asked for a node per physics; the 574's mistake was exactly this list rendered as a tree.",
+  "grouping_reasons": [
+    "one study: its deck or case, its mesh, its material cards, its result containers, its post-processed images and its report, across the reruns that supersede each other",
+    "one design item's accumulated predictions across physics, so that a thermal result and a structural result about the same part are retrievable together",
+    "one load case rerun across revisions of the same item, which is the change-impact question a simulation corpus is actually asked",
+    "one correlation exercise joining a computed prediction to a measured result, preserving the link rather than copying the test's configuration facts onto the model",
+    "a sparse run_042_convergence.png may join an accepted study neighbourhood without acquiring design_item, study_type or any load-case fact; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6, exactly as on the schema row: this template may only branch on fields its schema declares, and the engineering schema declares none. The researched order, conditional on R1c, is project -> design_item -> study_type -> engineering_artifact_type-as-leaf, and it differs from the schema default by replacing lifecycle_stage with the physics of the study. The reason is evidential: a gate level scatters one study's rerun history across gates while merging four unrelated physics inside one, and the artifact-type level collapses to a single value on this corpus and opens a folder with one child. Optional branches: (a) load case as a leaf under study_type where a labelled load-case slot genuinely exists and is single-valued; (b) study_type omitted entirely for a single-physics corpus, returning to the schema default; (c) no design_item level for a methods or benchmark corpus that belongs to no item, which should more often fall through than be filed. revision_or_baseline stays metadata: a rerun supersedes rather than reissues, and revision folders would fragment one study. The user may reverse, remove, add or flatten any of this. No order is silently encoded before its keys are legal.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "code_structured",
+      "opaque_binary",
+      "design_creative",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "filesystem"
+    ],
+    "extensions": [
+      ".inp",
+      ".nas",
+      ".bdf",
+      ".dat",
+      ".odb",
+      ".rst",
+      ".op2",
+      ".cas",
+      ".h5",
+      ".msh",
+      ".vtk",
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".png",
+      ".step",
+      ".zip",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210_Static_LC3_v04.inp",
+      "source_type": "text_document",
+      "observations": [
+        "ASCII deck: a node block, a tetrahedral element block, a material card naming a modulus and a yield value, a constraint card fixing a face, a distributed-load card, and a static step block with a solution control",
+        "header comment lines name an item identifier and a load-case label",
+        "no title block, no approval slot, no revision table anywhere in the file"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "revision_or_baseline from the _v04 suffix; a filename version token is an observation and 00 keeps it possible",
+        "that the header comment's item string is confirmed by itself — it is confirmed by co-occurring with the discretisation, material, constraint and load cards",
+        "that the file is source code because it is plain text with keyword lines"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "BPA-210_Static_LC3_v04.odb",
+      "source_type": "opaque_binary",
+      "observations": [
+        "unreadable proprietary result container; extraction yields size, hash and timestamps only",
+        "stem is identical to a deck present in the same directory"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item or study_type from the stem alone; the deck supplies them and the linkage is a grouping relation, not a copied fact",
+        "that the file is encrypted or damaged; it is a format with no local extractor"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "BPA-210_FEA_Loadcase-3_RevA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sections: model description, defeaturing and assumptions, mesh statistics, material properties with a cited source, boundary conditions and load cases, results, margin of safety table, conclusion",
+        "the margin table's rows cite a requirement identifier of the same stem family as the requirements document in the corpus",
+        "an approval signature block on the last page"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "engineering_artifact_type",
+        "lifecycle_stage",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the cited requirement identifier makes this a requirements artifact; a computed answer citing a requirement is not the requirement",
+        "exclusivity — this is the shared fixture the engineering schema's own default template already lists, and this row claims it only alongside the default, not instead of it",
+        "that the signature block makes the report a released baseline; a rerun supersedes it rather than reissuing it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPA-210_mesh_1p5mm.nas",
+      "source_type": "text_document",
+      "observations": [
+        "GRID cards and second-order tetrahedral element cards only; no material, constraint or load cards in the file",
+        "stem matches an as-designed CAD container in a sibling directory",
+        "geometry visibly differs from that container: small fillets and fastener holes are absent"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is the design definition because the stem matches one; it is an idealisation and engineering.cad-model has already conceded it on those bytes",
+        "study_type — a bare mesh states no physics",
+        "activation from the discretisation alone; without material, boundary-condition or load evidence in the neighbourhood this file abstains"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "controlDict",
+      "source_type": "code_structured",
+      "observations": [
+        "a dictionary file with labelled entries for a solver application name, start and end time, time step, write interval and write control",
+        "sits in a directory tree whose siblings hold boundary-condition field files and a mesh specification",
+        "no extension at all; the parent tree is under version control"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a repository root makes this a code artifact only; the code and simulation claims rest on disjoint evidence and may both hold",
+        "that the absence of an extension means the file is unsupported; 00 treats extension as a routing signal, not as meaning",
+        "study_type from the application name alone; the boundary-condition and mesh siblings are what confirm it"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Mesh-Convergence-Study_intake-duct.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: refinement level, cell count, peak reported quantity, percentage change from previous level, extrapolated value",
+        "a chart plotting the reported quantity against cell count and flattening",
+        "no design item identifier anywhere in the workbook; the geometry is named only in prose"
+      ],
+      "facts_legal": [
+        "study_type",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item; the workbook names no identifier and this row does not invent one from a neighbouring study",
+        "that it is a capability or statistical study because it contains a distribution of numbers and a chart",
+        "a threshold at which convergence is declared; this row states no numbers"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CFD_intake-duct_report_2026-05-02.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides carry contour and streamline images, a boundary-condition summary table, a turbulence-model line and a pressure-drop table with a target column",
+        "a slide headed assumptions and limitations",
+        "speaker notes name a rerun that supersedes an earlier deck"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "engineering_artifact_type",
+        "lifecycle_stage",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a deck presented at a review makes the file a design-review package; a stage-gate deck's structure is decisions and actions, not idealisation and results",
+        "that the contour images are independently this row's evidence; extracted alone they are pictures"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Simulation-Model-Validation_DVT07-vs-FEA.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: gauge location, measured microstrain, predicted microstrain, percentage error",
+        "a header block naming a physical test article and a deck version",
+        "a conclusion row stating that the model is accepted for the load range"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the measured column's test-article configuration facts belong to the model, or that the model's mesh facts belong to the test",
+        "a single owner; this file is the seam with engineering.verification-validation and both readings hold on disjoint columns"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SIM_BPA-210_Baseline-C.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction lists a deck, a mesh, a material card library, two result containers and a report",
+        "manifest also lists a solver licence file and a job submission script"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "engineering_artifact_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "member facts extracted onto the archive as if they were its own; the manifest is the evidence and members are not unpacked",
+        "revision_or_baseline as a dimension from the Baseline-C token; it stays a searchable fact",
+        "that the licence file and submission script are design content"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 at 14.11.07.png",
+      "source_type": "ocr",
+      "observations": [
+        "exact display resolution, PNG, software metadata present, no camera EXIF",
+        "OCR yields a solver GUI's window furniture, a legend, a stress-component abbreviation and a maximum value",
+        "no item identifier, no load-case label, no boundary-condition text"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item or study_type from a legend and a number",
+        "that this file belongs to a study present in the corpus rather than to a colleague's, a tutorial's or a vendor's",
+        "screenshot status from missing EXIF; 00 says the system 'must not mistake the absence of EXIF for proof that an image is a screenshot', and here the display-resolution and software-metadata signals are what support it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "run_042_convergence.png",
+      "source_type": "image",
+      "observations": [
+        "a plot of a decreasing quantity against an iteration axis, axis labels only, no title, no legend text",
+        "sits beside two files this row has accepted",
+        "no EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item, study_type or a run identity copied from the accepted neighbours; the neighbourhood groups the file and supplies it nothing",
+        "that a decreasing residual curve is a solver residual rather than a training loss, an optimisation objective or a decay measurement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "LOT-24-081_Cpk-Study.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the word Study in the filename, a histogram, an upper and lower specification limit, a capability index and a pass verdict",
+        "a lot identifier and a measurement-device reference",
+        "no mesh, no boundary condition, no material model, no load case, no solver"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row activates; its inputs are measured parts, not an idealisation, and every structure this row keys on is absent",
+        "study_type from the word Study"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "monte_carlo_npv_simulation.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the words simulation, trials, iterations and convergence appear in sheet names and headers",
+        "columns are discount rate, revenue scenario and net present value; a percentile summary block",
+        "a chart of a cumulative distribution"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row activates on the vocabulary it shares with a solver run; there is no physical quantity, no idealisation and no design item",
+        "engineering plausibility from the presence of an engineering project name in the workbook"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ LC3 rerun with updated bushing modulus.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender, recipients, subject and sent date; a body naming a load case, a material property change and a rerun request",
+        "an attachment name matching a deck present on disk"
+      ],
+      "facts_legal": [
+        "project",
+        "design_item",
+        "study_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the mail is itself a study; it is correspondence about one and joins the study's group",
+        "that addresses or body text may be exposed; 00 requires mail addresses and content to be treated as potentially sensitive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.cad-model",
+      "signal": "Reciprocal, and that row wrote its half first: 'This row owns the as-designed geometry; simulation-analysis owns the defeatured, meshed, load-and-boundary-condition model and the study that produced it.' This side agrees on the same fixture bytes. BPA-210-001_RevC.STEP is theirs as the design definition and is mine only as a named input recorded inside a study; BPA-210_mesh_1p5mm.nas is mine even though its stem matches theirs, because element cards without a title block are an idealisation and not a definition. The harder case this side adds: a defeatured native part saved beside the deck is mine, and a mesh exported for a rendering pipeline is neither of ours.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.civil-structural",
+      "signal": "Reciprocal, and that row wrote its half first: 'That row's relation is a numerical simulation run: model, mesh, solver, load case, post-processed result. This row's relation is compliance: a demand and a capacity reconciled against a cited clause of a published code for a fixed work.' This side agrees on the same fixtures and states them identically: Wind-Loading-ASCE7-22_Calc.xlsm is theirs, a mesh convergence study is mine, and a frame FE model whose output feeds member checks legitimately sits in both neighbourhoods. The tell is whether the authority for the answer is a cited published clause or the idealisation itself.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "Same-schema sibling collision on the sharpest seam in this world. Fixture on both sides: Simulation-Model-Validation_DVT07-vs-FEA.xlsx. That row owns evidence about a physical article — requirement identifier, method, procedure, configuration-under-test, measured result, pass or fail. This row owns evidence about a computation — idealisation, mesh, boundary conditions, load case, solver run, predicted result. The correlation workbook holds both on disjoint columns and neither side may copy the other's facts across the error column. A verification matrix whose method column says analysis references this row without becoming it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "signal": "Fixture on both sides: BPA-210_FEA_Loadcase-3_RevA.pdf and its margin table citing SYS-REQ-042. That row keys on rows of stable requirement identifiers with allocation, rationale, verification-method and verification-status columns. This row keys on a computed answer that cites one such identifier. A citation is not a declaration: the report never becomes requirements evidence, and a requirements table never becomes this row's evidence because it names analysis as a verification method.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.process-plant-design",
+      "signal": "Conceded boundary, and the concession matters because a process simulation is unambiguously a simulation. A steady-state or dynamic flowsheet is structured as unit operations, streams, component lists and a mass and energy balance; it has no mesh, no boundary-condition patches and no discretisation sensitivity. Fixture: a flowsheet export with a stream table is theirs; a CFD study of one vessel's internals inside the same plant package is mine, and both hold on a package that explicitly contains both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.risk-analysis-fmea",
+      "signal": "Fixture: a DFMEA whose detection column cites an analysis result. That row's structure is failure-mode rows with cause, effect, control and ranking columns. This row's structure is an idealisation and a computed answer. A DFMEA does not become this row by citing predictions, and a study does not become that row by listing failure modes in a conclusion.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "The collision fixture of this node: LOT-24-081_Cpk-Study.xlsx. It carries the word Study, a distribution, a chart, an index that reads like a margin and a pass verdict, and it sits in the same organisation's folders. It is theirs unconditionally. The discriminator is the input: measured parts from a lot with a device reference, versus an idealisation with a mesh, a material model and boundary conditions. Neither side has a fixture the other should take.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.failure-analysis",
+      "signal": "Fixture: an FEA rerun performed to reproduce a field fracture. That row owns the failed article, the fracture evidence and the root-cause investigation structure; this row owns the model built to reproduce it. Both hold when the investigation report contains a genuine study section with its own idealisation; only that row holds when the report merely quotes a stress figure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Fixture on both sides: controlDict and its case tree under version control, plus a solver-driver script. A repository root, a manifest, a test suite and source structure activate code; a solver application entry beside boundary-condition fields and a mesh specification for a named geometry activate this row. The mirror rule is the one engineering.civil-structural stated against code: a script that runs simulations is code even when its employer designs hardware, and a case directory is a study even when git tracks it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "Fixture: a parameter sweep of a material model with contour figures and an error analysis. That row's object is a proposition — a generalisable claim, often with a venue and citations. This row's object is a named design item's behaviour under a stated load case. A benchmark study against a published validation case with no design item is theirs; the identical solver output applied to BPA-210 is mine.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "Fixture: monte_carlo_npv_simulation.xlsx. It shares this row's entire surface vocabulary — simulation, run, trials, iterations, convergence, distribution — and none of its structure. It is theirs. This is the reason the word simulation heads this row's never_alone list.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.3d-asset",
+      "signal": "Fixture: a cloth, smoke or rigid-body simulation cache beside a scene file. Both worlds call it a simulation, both solve physics, both write large caches from a solver. That row owns a solve whose output is an image sequence, evidenced by a scene graph, lights, materials and a render setup. This row owns a solve whose output is a number compared against a requirement. A visual-effects cache never becomes engineering evidence because a stress-like colour ramp appears in it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.stage-gate-review",
+      "signal": "Fixture: CFD_intake-duct_report_2026-05-02.pptx presented at a gate. That row's structure is decisions, actions, exit criteria and attendance for a named review; this row's is idealisation, mesh, boundary conditions and results. A deck built from study slides is this row's until the review apparatus appears in the file itself; a review pack that merely embeds a contour image is theirs.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "code",
+      "signal": "A version-controlled case tree or a parametric solver driver is genuinely a repository artifact and genuinely a study; the two claims rest on disjoint evidence — repository root and manifest on one side, solver application and boundary-condition fields for a named geometry on the other. Fixture: controlDict. Restricted to the engineering schema row's declared co-activation set.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "One study can both verify a named design requirement and produce a generalisable claim submitted to a venue. Fixture: a correlation study published as a conference paper. The design-item facts and the venue facts remain independently evidenced; neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "A model built to reproduce a field failure carries execution evidence about a real failed part and design-prediction evidence about an idealisation in one document, when the report genuinely contains both structures. Restricted to the engineering schema row's declared co-activation set.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The default outcome for this row, and deliberately so. A deck, a convergence table or a results workbook is plainly technical and plainly computed, but whether it defines, checks, verifies, researches or merely forecasts is frequently undecidable from the file's own evidence. Abstention is correct here far more often than activation.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Solver result containers, proprietary case databases and job archives with no local extractor keep metadata-only indexing rather than acquiring a purpose from a filename stem.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone study report, certificate of analysis or one-off calculation with durable meaning but no reliably evidenced design item or accepted project belongs here rather than activating from physics words.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A captured solver window with no item, load case or boundary-condition text is a screenshot of somebody's screen, not a study.",
+      "provenance": "design",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "An unlabelled contour, streamline or residual plot detached from any accepted study.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is argued rather than assumed. The split this material most wants is PREDICTED behaviour against MEASURED behaviour of one design item — this row versus engineering.verification-validation. It is not a role_split, because a role_split requires the two sides to carry different field keys for the same entity, and both sides would carry the same design_item. There is no canonical key for the predicting-versus-measuring role, and minting one to serve a single template is the move that produced thousands of private field names in the overnight pass. The seam is expressed where it belongs: as a collision on a shared fixture, with the disjoint-columns rule written into that fixture's must_not_conclude.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A simulation result is a written statement of how, where and at what load a product fails: peak stress locations, fatigue life, thermal runaway onset, crash and occupant-injury predictions, blast and ballistic response. An adverse margin is the most discoverable artifact an engineering organisation holds and it describes a hazard to third parties, which is a different exposure from the schema default's proprietary-design and export-control reason. Case archives additionally carry solver licence files and cluster or scheduler credentials that are not design content at all, and correspondence in this world routinely quotes both, which 00 already requires to be handled as potentially sensitive on the mail side. This assigns no handling class; 00's binding rule that privacy policy is enforced before any model or connector receives content is unchanged.",
+  "open_question": "NEEDS-JOSEPH NJ-SIM-1: is study_type a new key, or should the engineering schema's proposed engineering_artifact_type be widened to carry physics as well as artifact role? Widening produces one key doing two orthogonal jobs and makes a deck and a report indistinguishable; a new key adds a fifth unadjudicated engineering proposal. NJ-SIM-2: load_case is the fact users actually name and is multi-valued per file, so it cannot be a destination dimension — is it a search-only fact, a leaf permitted where a single-valued labelled slot exists, or nothing at all? NJ-SIM-3: does a rerun of the same load case belong in version_family with the deck it supersedes, or is superseding-by-rerun a distinct relation that version_family cannot express? NJ-SIM-4: where a physical test and its correlated model appear in one document, does the recommendation of dual activation with disjoint facts hold, or should one side be made primary?"
+}

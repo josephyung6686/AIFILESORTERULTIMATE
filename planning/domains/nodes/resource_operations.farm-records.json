@@ -1,0 +1,709 @@
+{
+  "id": "resource_operations.farm-records",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Agriculture and farm records",
+  "one_line": "The operator-side record of running fields, crops, livestock and farm inputs through a season: field and herd registers, cultivation and treatment logs, yields, movements, subsidy evidence and assurance inspections. It differs from the resource_operations default by requiring a biological production unit and its seasonal husbandry or traceability relation, while keeping the schema's authority, measured-output and period roles fieldless pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "node_test": {
+    "distinct_field_set": false,
+    "why": "This is a template, not a second schema. The resource_operations anchor already provides the fieldless default and its broad signals for authorised sources, operating units, measured output and reporting period. The farm situation earns a separate template only if its own-file evidence requires a field/block, crop or livestock unit, husbandry or input activity, seasonal production record, or traceability relation; those are organizational situations and values, not newly licensed fields. The recommended farm order would be site or holding → field, block or herd → crop, livestock or output stream → reporting period → record type, but it remains prose because PR-6 leaves the resource_operations schema without fields. Privacy differs in practice where farm records join named operators, land parcels, animal identifiers, veterinary medicines and subsidy or assurance status; that is a safety posture for the template, not a new handling class. If R1c finds that biological-unit detection and privacy are not materially different from the resource default, this row must be collapsed into the default rather than preserved for the legacy label."
+  },
+  "recognition": {
+    "deterministic": [
+      "a field or crop-plan register with labelled holding or farm, field or block identifier, crop or variety, season or crop year, area, planned activity and input or harvest schedule; a field name or crop word without the register relation is insufficient",
+      "a livestock, herd or flock register whose rows join a holding or enterprise to animal, batch or group identifiers, species or breed, birth or acquisition, movement, treatment, breeding or sale events, and a date or status; one ear-tag-shaped token alone is not enough",
+      "a cultivation or input-application log with labelled field or block, crop, product or treatment, application date, quantity or rate, operator or machine record, withholding or safety interval, and completion or approval state",
+      "a harvest, yield or production return that joins a named field, crop or livestock group to an operating period, area or headcount, harvested or produced quantity, unit, grade or destination, and a declaration or traceability reference",
+      "a farm-to-lot traceability record linking seed, feed, fertiliser, veterinary medicine or other input batch to a field, crop, animal group, treatment date and resulting harvest, sale or withdrawal record; an invoice line or product name alone is not this relation",
+      "an operator-side subsidy or stewardship claim whose form joins the applicant's holding to eligible fields, crops, animals or land measures, claim period, declared activity and supporting maps or registers; a funder's award or assessment without farm-production evidence is government grant administration",
+      "an assurance or certification inspection packet with a farm or holding, production system, inspected fields or animal groups, evidence checklist, findings, corrective action and closeout or renewal state; an abstract audit policy or generic compliance checklist is not farm evidence",
+      "a farm water, nutrient, waste or environmental operating record that joins an authority or permit condition to a field, storage or application point, measured use or result, operating period and action; an authority's permit register without operator-side use is government material",
+      "a geospatial or structured farm export whose manifest, layers or tables identify field boundaries or blocks and join them to crop, land use, season, herd area or management activity; a generic rural map with no operating relation is not enough",
+      "an archive manifest that groups field plans, livestock registers, treatment logs, yield returns, claims and inspection evidence under one holding, season or assurance cycle; the archive is inspected through its manifest without unpacking",
+      "a calendar event or email that carries an exact holding, field, herd, treatment, inspection or delivery reference and a bounded farm workflow may join an accepted group, but the communication format alone does not activate this template"
+    ],
+    "needs_llm": [
+      "whether a spreadsheet of acres, tonnes, stock or costs is an operator's production record, a finance return, a logistics ledger, a government statistics table, a market report or a business forecast when labels are weak",
+      "whether a permit, subsidy form or assurance certificate is held as the farmer's operating evidence, as a government issuer-side case, as a commercial certification audit, or only as reference material",
+      "whether a field, block, plot, holding or farm name identifies an operating production unit, a property transaction, an engineering survey, a cited location or a delivery destination",
+      "whether a crop, species, animal, feed, fertiliser or medicine name is an output, an input, an inventory item, cargo in transit, a veterinary record, a research topic or a market subject",
+      "whether an unlabelled treatment, spray, feeding or grazing note records a farm activity or is a consultant recommendation, a product instruction, an engineering maintenance note or a general agronomy article",
+      "whether a livestock movement file is an operator's herd traceability record, a government movement declaration, a logistics consignment record, or a veterinary clinical record; custody and labelled roles matter",
+      "whether two field maps or two yield workbooks describe one version family, one seasonal group, or unrelated farms that happen to share a field label",
+      "whether an OCR-poor scan of a farm book preserves enough labelled relation among holding, field or animal group, activity and period to activate, rather than falling through to Review Later",
+      "whether a drone image, audio walkthrough or geospatial layer is an operational farm observation, an engineering survey, a property inspection, or a photo/media item; image and capture metadata never settle purpose alone",
+      "whether an email or calendar item is merely a delivery, appointment or receipt confirmation or is an operational member of an accepted farm, field, herd, treatment or inspection group",
+      "whether a multilingual subsidy, assurance, veterinary or traceability form can be read using local context terms without treating a translated guess as a validated farm fact"
+    ],
+    "never_alone": [
+      "the words farm, agriculture, rural, field, crop, livestock, herd, flock, cattle, dairy, grain, harvest, yield, soil, pasture, grazing, fertiliser, pesticide, veterinary, subsidy, assurance or traceability alone",
+      "a holding, farm, estate, field, plot, block, parcel, paddock, barn, shed, woodland or rural address name alone; the same names occur in property, engineering, government, logistics and market records",
+      "a crop, species, breed, animal, feed, fertiliser, pesticide, medicine, seed, timber or commodity name alone; it may be an input, output, product, cargo, invoice line, research topic or cited example",
+      "a permit, licence, grant, claim, quota, assurance certificate, audit, inspection or scheme word or identifier alone; issuer-side government, business compliance and reference files use the same vocabulary",
+      "an animal ear tag, herd number, field code, plot number, batch identifier, permit number, subsidy reference or other identifier-shaped token outside a labelled role and operating relation",
+      "an acreage, headcount, weight, yield, price, application rate, chemical concentration, rainfall value, coordinate, map, chart or time series alone",
+      "a year, season, quarter, crop cycle or date in a filename alone; filesystem creation time and a bare date do not establish the period the operation is about",
+      "a source_type or extension alone, including spreadsheet, PDF, CSV, XML, JSON, GIS, image, OCR, email, calendar, video, archive or opaque binary",
+      "a parent folder called Farm, Agriculture, Crops, Livestock, Fields, Operations, Production, Rural, Compliance or Subsidies alone",
+      "membership in one portal download, upload, inspection visit or fieldwork session alone; 00 says: \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\"",
+      "camera EXIF, GPS, drone dimensions, dense OCR or absence of EXIF alone; 00 says: \"However, the system must not mistake the absence of EXIF for proof that an image is a screenshot.\"",
+      "a blank form, product label, generic agronomy guide, animal photograph or map screenshot with no labelled operator-side relation"
+    ]
+  },
+  "proposed_context_terms": [
+    "holding", "farm assurance", "field block", "paddock", "crop year", "rotation", "sowing", "planting", "cultivation", "spray record", "input application", "fertiliser", "agrochemical", "withdrawal period", "grazing", "herd register", "flock register", "ear tag", "animal movement", "medicine register", "calving", "lambing", "feed batch", "harvest return", "yield map", "grain lot", "milk record", "traceability", "stewardship claim", "eligible area", "cross-compliance", "assurance inspection", "corrective action", "water abstraction", "nutrient plan", "manure storage", "field boundary"
+  ],
+  "work_types": [
+    "holding, enterprise or farm register",
+    "field, block, paddock or crop-plan register",
+    "crop rotation, sowing, planting or cultivation plan",
+    "fertiliser, pesticide, spray or other input-application log",
+    "livestock, herd, flock or animal-group register",
+    "animal movement, breeding, feeding or treatment record",
+    "veterinary medicine and withdrawal-period register",
+    "harvest, yield, milk, egg or other production return",
+    "input-to-output lot traceability and chain-of-custody record",
+    "water, nutrient, waste, soil or environmental operating record",
+    "subsidy, stewardship or eligible-area claim with farm evidence",
+    "assurance, certification or farm inspection packet and corrective action",
+    "field-boundary GIS, drone survey or operational map",
+    "seasonal farm archive, export or year-end reconciliation"
+  ],
+  "grouping_reasons": [
+    "one holding or farm enterprise across field plans, herd registers, input logs, production returns, claims and assurance evidence; group membership never copies the holding label as a fact",
+    "one field or block across rotation, sowing, spray, irrigation, soil, harvest and traceability records for a stated operating season",
+    "one crop, livestock group or production lot across input batch, treatment, withdrawal, harvest, sale and recall evidence",
+    "one animal group or movement chain across register, transport declaration, veterinary treatment, quarantine, breeding and sale records, with identifiers retained as local evidence",
+    "one subsidy or stewardship claim across maps, eligible-area schedules, declarations, supporting production records, correspondence and inspection response",
+    "one assurance cycle across inspection checklist, photographs, sample or laboratory evidence, nonconformity, corrective action and renewal decision",
+    "one operational asset or environmental condition across a farm register, measured use, maintenance, inspection and response record",
+    "a sparse image, email, calendar event or delivery note may join an accepted field or holding group without receiving farm, field, crop, animal or period facts from neighbours",
+    "duplicate and version families remain universal relationships; a revised crop plan is not a new field merely because its filename has a revision suffix"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because resource_operations is a PR-6 placeholder and declares no legal destination fields. Subject to R1c, the farm situation recommends holding or site → field/block or herd/flock → crop, livestock group or output stream → reporting period → record type, with an asset or lot branch only where it is actually the stable operating subject. A field-led alternative suits crop work; a herd-led alternative suits livestock records. Operating authority, measured quantities, animal identifiers, chemical rates, prices, locations and claim numbers remain evidence/search values, not authored dimensions. This is not time-first: 00 states, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The recommendation is editable because 00 states, \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".geojson",
+      ".shp",
+      ".tif",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".mp4",
+      ".zip",
+      ".dwg",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Farm-12_Crop-Plan_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook header names one holding, field and block identifiers",
+        "rows join crop or variety to season, acreage, rotation, planned sowing, input and harvest activities",
+        "a notes sheet records operator review and a revision date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "farm, field, crop or reporting-period facts before R1c licenses resource fields",
+        "a crop year from the filename alone",
+        "that a planned activity occurred or that an input was applied",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Herd-Register_Red-Hill_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns label holding, species, group, animal or batch identifier, birth or acquisition, movement and status",
+        "treatment and withdrawal sheets link medicine, date and animal group",
+        "the register includes a last-reviewed marker but no proof that every status is current"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an animal or owner identity as a destination fact",
+        "that an animal movement was accepted by a government registry",
+        "veterinary diagnosis or medicine efficacy from the register",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Field-12_Soil-and-Fertiliser-Log.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "headers label field block, crop, application date, product, rate, unit and operator",
+        "rows include soil-test values, planned and completed applications, and a harvest or withdrawal note",
+        "no supplier invoice, customer account or government submission receipt appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that planned rows were completed",
+        "that a product rate is safe or legally compliant",
+        "a chemical, field or crop fact before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Animal-Movement-Declaration_Red-Hill_2026-04-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form labels consignor holding, destination, species, animal-group identifiers, movement date and declaration",
+        "a transport or receiving acknowledgement is visible",
+        "the document contains an authority reference but does not by itself establish who owns the bytes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a government registry accepted the declaration",
+        "that all animals in a neighbouring herd register moved",
+        "a veterinary diagnosis or current animal status",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Harvest-Yield-Return_Field-12_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet identifies a holding, field, crop and operating season",
+        "rows join harvested area, load or lot identifier, weight, grade, storage or buyer destination and reconciliation notes",
+        "a declaration block distinguishes estimated from recorded quantities"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every quantity is saleable output",
+        "a buyer or payment record from a destination column",
+        "that the yield is independently verified",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Subsidy-Claim_2026_Field-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "form identifies a claimant holding, eligible field schedule, crop or stewardship activity and claim period",
+        "map and declaration pages are attached",
+        "a funder receipt or assessment reference appears but no payment outcome is shown"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the claim was approved or paid",
+        "that the eligibility area is a verified farm fact",
+        "a government award or payment from the claim form alone",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Farm-Assurance-Inspection_Red-Hill_2026-06.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "inspection form names one holding, production system, inspected fields or animal areas and visit date",
+        "checklist rows cite evidence, findings, corrective actions and a renewal or closeout state",
+        "assessor and certification-body blocks are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the farm passed or remains certified from a checklist alone",
+        "that an assessor's finding is a government enforcement decision",
+        "that every corrective action was completed",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Water-Abstraction-Permit_Farm-12.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing-authority block and labelled permit reference appear with a farm or holding",
+        "authorised abstraction point, seasonal or annual condition and monitoring requirements are listed",
+        "no operator meter series or completed farm use return appears in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the permit is currently in force or that its conditions were met",
+        "operator-side abstraction use from the authority instrument alone",
+        "a government permit fact copied into a farm field",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Irrigation-Pump-Commissioning-Pack_Field-12.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists pump datasheet, as-built irrigation layout, test results, settings and handover certificate",
+        "field and equipment references repeat across members",
+        "archive is inspected through its manifest without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the pump is an operating farm asset rather than an engineering handover",
+        "that the design drawing is an operational crop or irrigation log",
+        "facts from one member filename onto all archive members",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Crop-Yield-Photos_Field-12_2026-08-17.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF supplies capture time and device metadata",
+        "OCR or image review sees a field marker and harvested crop or load context",
+        "the image has no labelled yield quantity or farm-register identifier beyond the visible marker"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a crop, field or harvest fact from a marker or image context alone",
+        "that the photograph is a production return",
+        "that missing EXIF would prove a screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Vet-Visit-Ewes_2026-04-03.eml",
+      "source_type": "email",
+      "observations": [
+        "native sender and recipient fields identify a veterinary practice and farm mailbox",
+        "subject and body cite an animal group, visit date, treatment recommendation and follow-up",
+        "no complete herd register or clinical record attachment is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a veterinary diagnosis or treatment outcome from correspondence alone",
+        "a herd or animal fact copied from an accepted group",
+        "that an appointment email is a complete medicine register",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Spraying-Schedule_Field-12.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary names a field and planned spray activity",
+        "start time, location, organiser and recurrence metadata are present",
+        "the event has no completion confirmation, product register or crop record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the spray occurred or was compliant",
+        "a field or crop fact from a calendar title alone",
+        "that a calendar file extension activates a farm domain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Field-Boundaries_North-Block_2026.geojson",
+      "source_type": "code_structured",
+      "observations": [
+        "feature properties label field or block identifiers, land-use or crop values and an observation or survey date",
+        "geometry supplies boundaries and coordinates",
+        "the file contains no operator declaration, harvest result or entitlement record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a boundary is legally owned, eligible or currently cultivated",
+        "a crop or season fact beyond the labelled property value",
+        "that coordinates become a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nutrient-and-Runoff-Compliance-Return_Field-12.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet identifies a holding, field, crop, reporting period and regulated return",
+        "rows join nutrient application, soil or runoff parameter, result, unit, action and supporting sample reference",
+        "submission or authority-review fields appear beside the operator's production and corrective-work entries"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every measured result is an authority finding or an operator conclusion",
+        "that a parameter, unit or exceedance word alone activates either farm or government",
+        "that the submission was accepted or the field complied",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Farm-Solar-and-Crop-Operations_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook combines field and crop schedules with a separate solar-installation output sheet",
+        "crop sheets join fields, inputs and harvest while the energy sheet joins generator, export intervals and availability",
+        "holding and operating-period labels repeat across the sheets"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that solar output is a crop or livestock fact",
+        "that a field name makes generation the farm template's output stream",
+        "that all workbook sheets share one record type or one period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Farm-Records-Export_Red-Hill_2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists crop plan, herd register, input log, harvest return, movement declaration and assurance report",
+        "member paths repeat a holding name and season but span documents, spreadsheets and images",
+        "the archive is inspected without extracting its contents to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every archive member concerns the same field, herd, claim or period",
+        "farm facts from member filenames without reading member evidence",
+        "permission to unpack or send animal, medical or subsidy material to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Irrigation-Layout_RevC_Field-12.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "CAD layers show pipes, valves, pump tags, design flow and field boundary geometry",
+        "title block carries revision, designer and project references",
+        "no crop plan, completed operation, yield or farm register appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a live irrigation activity or crop fact from the field boundary",
+        "farm operations from an engineering design file",
+        "that a revision is a new operating season",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Crop-Plan-Scan_Field-12.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a handwritten field heading, crop name, planting notes and dates from a photographed notebook page",
+        "the page is partial and some columns are unreadable",
+        "no reliable holding identifier or completion status survives the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "validated field, crop or seasonal facts from partial OCR",
+        "that missing EXIF proves a screenshot or scan origin",
+        "that unreadable rows are absent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Farm-12_Production-and-Cashflow_FY2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook combines crop and livestock quantities with sales, costs, loan and cashflow sheets",
+        "holding and fiscal-year labels appear on the cover",
+        "no clean separation exists between operating production and financial statements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every sheet belongs to farm operations rather than Finance or business planning",
+        "a tax year or account type from an operating sheet alone",
+        "that one holding label activates every workbook member",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Farm-Portal-Submission-Receipt.bin",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filesystem signature identifies an opaque or encrypted portal download",
+        "filename contains a holding-like token and a submission word",
+        "no form fields, manifest, farm relation or receipt content is readable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a subsidy, assurance, permit or farm fact from the filename",
+        "that the portal accepted a submission",
+        "that an opaque file should be opened or moved to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "SAME FIXTURE BYTES: `Subsidy-Claim_2026_Field-12.pdf`. Direction one — resource_operations.farm-records owns the applicant-side production relation: the holding, eligible field or animal group, declared crop or stewardship activity, supporting map or register, and the farm's operating evidence for the claim period. Direction two — government.grant-programme-administration owns the funder-side programme lifecycle: scheme rules, application intake, eligibility assessment, award or refusal, payment authorisation, monitoring and recovery. The same claim packet may carry both structures, but a scheme name, grant reference, holding name or claim period alone discriminates neither; the farm row must not take an award notice without farm-production evidence, and the government row must not take a crop plan merely because it is attached to a claim.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "SAME FIXTURE BYTES: `Water-Abstraction-Permit_Farm-12.pdf`. Direction one — resource_operations.farm-records owns an operator-side farm record only when the permit is joined to field or storage use, abstraction measurements, irrigation activity, compliance return or a completed farm workflow. Direction two — government.permit-licensing owns the issuing-authority instrument: application, decision, conditions, effective area, variation, renewal, suspension or revocation. The authority name, permit number, farm address and condition schedule alone do not allocate custody; this row must not claim an issuer-side permit from a farmer's reference copy, and the government row must not claim field use from the instrument alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "SAME FIXTURE BYTES: `Nutrient-and-Runoff-Compliance-Return_Field-12.xlsx`. Direction one — resource_operations.farm-records owns the operator's field, crop, nutrient application, soil or runoff measurements and corrective work as part of running the holding. Direction two — government.environmental-regulation owns the authority-side return intake, permit-condition assessment, sampling or enforcement case. A parameter, unit, field name, permit reference or exceedance word alone supports neither direction; the farm row must not take an authority inspection or notice without operator-side production evidence, and the government row must not take a farmer's input log merely because it reports a regulated parameter.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BYTES: `Farm-Assurance-Inspection_Red-Hill_2026-06.pdf`. Direction one — resource_operations.farm-records owns the inspected holding's field, crop, livestock, treatment, traceability and corrective-operation evidence. Direction two — business_operations.compliance-audit owns the audit programme, control objective, assessor finding, nonconformity, remediation owner, evidence request and closure record. An audit checklist, certification body, farm name, finding or renewal date alone does not allocate the file; this row must not take a generic internal audit, and compliance-audit must not take a field register merely because an auditor reviewed it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "SAME FIXTURE BYTES: `Irrigation-Pump-Commissioning-Pack_Field-12.zip`. Direction one — resource_operations.farm-records owns an operating farm relation only when the installed pump or irrigation asset is tied to completed field use, water application, production monitoring or an operating register. Direction two — engineering.commissioning-handover owns controlled design identity, inspection and test results, settings, as-built records, punch-list closure and acceptance of the installed system. A pump tag, field address, flow value, drawing or handover word alone does not allocate the bytes; this row must not take a design or commissioning pack merely because it names a farm, and engineering must not take a completed crop or irrigation log merely because it names the commissioned pump.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.renewable-generation",
+      "signal": "SAME FIXTURE BYTES: `Farm-Solar-and-Crop-Operations_2026.xlsx`. Direction one — resource_operations.farm-records owns field, crop, livestock, input and harvest relations, including a farm's solar installation only where it is incidental to the holding's operation. Direction two — resource_operations.renewable-generation owns a generation installation, generator or export meter, production intervals, availability, curtailment, incentive and energy-settlement relation. A solar-farm name, energy quantity, export column, season or site name alone allocates neither direction; this row must not take generator performance merely because the installation sits on agricultural land, and renewable-generation must not take a crop or herd return merely because the workbook also records electricity.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone crop plan, herd register, treatment note, yield return or durable farm notice with no accepted holding, field, herd or seasonal group remains meaningful without forcing an unlicensed resource hierarchy.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A readable field map, quantity workbook, OCR scan or mixed operational record whose farm, engineering, government, finance or business role cannot be established from its own evidence is partly understood and should remain unresolved.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Farm records can expose named landholders, addresses, animal identifiers, veterinary medicines, chemical applications, subsidy status and commercially sensitive yields. When no deeper group is accepted, the protected residual preserves safety without creating a destination dimension.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated portal receipt, delivery acknowledgement, inspection appointment or animal-movement confirmation without the underlying farm register or operating chain is a transaction or confirmation, not proof of this template.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A field, animal, crop or machinery photograph with no legible operating relation and no accepted farm group remains an unassociated image; EXIF, GPS and OCR cannot manufacture the farm fact.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "An agronomy guide, subsidy guidance note, public market report, general animal-care article or regulator publication with no evidence of use in one holding's workflow is reference material rather than a farm record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An encrypted portal export, proprietary farm-system database or unreadable scan is represented safely from metadata and cannot activate from a farm-shaped filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Farm records can join identifiable people and businesses to land parcels, farm addresses, animal or herd identifiers, veterinary medicines, chemical applications, production volumes, subsidy claims, assurance findings and commercial buyers. Those relations can reveal private land use, regulated treatment, animal health and business performance. Recognition should therefore use labelled structures and bounded excerpts; raw identifiers, coordinates, quantities, medicine details and claim references remain local and are not destination fields. This row assigns no handling class and does not infer protection policy beyond the catalogue's potentially_sensitive value.",
+  "open_question": "NEEDS-JOSEPH NJ-FARM-1: should farm records remain a template on the broad resource_operations schema, or should R1c collapse crop, livestock, forestry and fisheries situations into a smaller neutral operating-source template once the schema fields are adjudicated? NJ-FARM-2: should the eventual canonical vocabulary reuse the anchor's proposed `site`, `asset`, `output_stream`, `reporting_period` and global `record_type`, or license a privacy-safe field/block or biological-unit role for farm records? This row proposes no private synonym. NJ-FARM-3: when one subsidy claim or assurance packet contains both operator production evidence and a government or business audit lifecycle, should R1c lift schema-level coactivation for resource_operations↔government and resource_operations↔business_operations, or require separate evidence records without a coactivation edge? Templates cannot author `also_holds_with`. NJ-FARM-4: should animal identifiers, veterinary details, land coordinates and subsidy references remain search-only even after fields are licensed, or may a user-confirmed private tree expose selected values? NJ-FARM-5: can a farm image or GIS boundary be admitted to a farm group only through an exact holding/field anchor, or should user-accepted field context be sufficient when the image itself has no readable label?"
+}

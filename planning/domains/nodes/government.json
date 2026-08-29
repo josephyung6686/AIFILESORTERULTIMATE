@@ -1,0 +1,396 @@
+{
+  "id": "government",
+  "kind": "schema",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Government and public administration",
+  "one_line": "J-DEPTH placeholder schema for records kept on the public authority's own side of exercising, developing, administering, or accounting for public functions. It is not activated by a government name, public-sector industry, legal or regulatory vocabulary, or receipt of an authority-issued document. Its distinct default is role-structural and privacy-bearing: an evidenced public body acts as legislature, regulator, decision-maker, programme administrator, records holder, statistical authority, election administrator, or citizen-casework office; submissions and named-person case material are protected by default. It declares no government field rows and no folder dimensions under PR-6, so activation unlocks only recognition, safety posture, universal facts, and child-template consideration.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are schema-activation signals, not licences to write government facts. The schema has no field rows. Every accepted signal must evidence the holder or producer in an authority-side role, not merely name a public body.",
+      "a legislature-produced bill packet with an official bill identifier repeated across a bill text, amendment sheet, committee paper, vote record, or proceedings transcript, plus an issuing-legislature block or official publication structure; a downloaded enacted law alone is excluded",
+      "a regulator-side rulemaking packet with a proposal or consultation identifier repeated across notice, supporting analysis, received comments, response-to-comments, and final instrument, where sender, recipient, publication, or case-management slots show that the corpus holder is the rulemaking body",
+      "an authority-side decision record with labelled applicant or regulated-party slots, an application or case reference, a decision status, reasons, and an authorized-officer or office block; the same decision held only by its recipient does not satisfy the role precondition",
+      "a public procurement record whose issuer block is a public contracting authority and whose structured notice, requirement, bid-receipt register, evaluation, approval, or award slots show buyer-side custody; a bidder's copy or a supplier's tender response alone is business_operations",
+      "a public-body governance cycle carrying an authority or statutory-body name, meeting date, agenda or committee identifier, attendance or apologies, numbered papers, and a minute, resolution, or decision section; a private company, charity, union, standards body, or member association with the same furniture is excluded by owner role",
+      "an official-statistics production packet with an authority-side survey or census instrument, collection-round identifier, methodology, disclosure-control or access documentation, and publication or data-release structure; a downloaded statistics report alone is reading material",
+      "an election-administration packet with an administering-office block and operational structures such as nomination receipt, polling-station allocation, ballot-account, count reconciliation, result declaration, or incident log; campaign material and a voter's registration confirmation are not authority-side records",
+      "an authority case-management export or archive manifest whose paths repeatedly encode one public programme, case, consultation, procurement, election, or records-request workflow and whose system or custodian metadata identifies the public office; manifests are inspected without unpacking",
+      "a public-office email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment, event, and reference slots tie it to an already evidenced authority-side workflow; an official email domain alone never fires"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes may sit with the issuing authority, an applicant or regulated entity, a lawyer, a journalist, a researcher, or a citizen; interpretation may use only a bounded local dossier and must abstain when custody or purpose is unresolved",
+      "separating a public authority from a government contractor, state-owned commercial entity, private accreditor, charity, standards body, political campaign, or membership association when branding and statutory language overlap",
+      "distinguishing operative authority work from public legal or policy reference material, a classroom exercise, a corporate compliance copy, or a lobbying submission; topic and public-sector vocabulary do not establish the producer's function",
+      "recognizing an unlabeled internal options paper, ministerial or executive briefing, case note, inspection narrative, or response analysis whose function is expressed only in prose",
+      "deciding whether a mixed packet is authority-side administration or only a recipient-side collection of notices, permits, filings, receipts, identity records, and correspondence",
+      "determining whether a redacted disclosure bundle is an authority's public-records workflow or a research or legal reading packet after identifiers have been minimized",
+      "interpreting multilingual public-administration forms or records whose labelled role vocabulary is not covered by deterministic structure rules",
+      "abstaining whenever the evidence cannot cite an authority-side role; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a government department, regulator, municipality, legislature, court, public school, archive, museum, or official-looking seal alone; the entity may be issuer, counterparty, subject, employer, cited authority, research venue, or service provider",
+      "a .gov-style domain, government email address, coat of arms, logo, letterhead, footer, PDF producer string, or metadata author alone",
+      "legal, policy, regulatory, compliance, public-interest, civic, election, procurement, permit, licence, grant, or statistical vocabulary alone",
+      "a law, regulation, judgment, government report, official statistics release, meeting minutes, consultation paper, or tender notice downloaded for reference; publication by government is not authority-side custody",
+      "an authority-issued permit, licence, tax notice, benefit letter, identity card, visa, voting confirmation, filing acknowledgement, or registry extract held by the recipient",
+      "a corporation's regulatory return or a charity's grant report merely because it is addressed to a regulator or funder; counterparty value does not activate this schema",
+      "a person's civil-status, immigration, identity, property, benefit, tax, health, education, or voter record merely because a public body issued it; identity, legal, finance, medical, academic, or Protected Records owns the personal record",
+      "a public-sector employer name on a person's resume, payslip, contract, or calendar; government as industry or employer is not this schema",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Government, Council, Public, Regulatory, Compliance, Civic, or Policy alone",
+      "a shared download session or browser batch; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is an authority portal screenshot; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "policy options paper, impact assessment, briefing, consultation, response analysis, or decision record",
+    "bill, amendment, committee paper, evidence submission, vote record, or proceedings transcript",
+    "proposed rule, supporting analysis, public comment, response to comments, final instrument, or guidance",
+    "public-body agenda, committee report, budget, performance report, minute, resolution, or public notice",
+    "grant call, received application, assessment, award, monitoring report, or closure record on the funder side",
+    "procurement notice, specification, received bid, evaluation, approval, award, or contract-management record on the buyer side",
+    "planning application, permit or licence case, inspection, enforcement record, reasons, decision, variation, suspension, or revocation on the deciding side",
+    "information request, search record, disclosure schedule, redaction record, refusal, review, or appeal response on the records-holder side",
+    "census or survey instrument, collection record, methodology, quality report, statistical output, disclosure-control record, or microdata-access record",
+    "election registration operations, nominations, polling logistics, ballot accounting, count reconciliation, declaration, or incident record",
+    "constituent, ombudsman, complaint, benefit, or service casework held by the public office",
+    "public education, accreditation, cultural-service, museum, library, archive, or records-management administration where the body sits inside the state",
+    "intergovernmental agreement, programme design, implementation, monitoring, evaluation, or public-accountability report"
+  ],
+  "grouping_reasons": [
+    "one evidenced authority-side proceeding or decision lifecycle, linked by an exact bill, rulemaking, consultation, application, permit, case, request, procurement, election, or programme reference",
+    "one public-body governance cycle, linking agenda, numbered papers, meeting record, decisions, actions, and publication copy without copying a body or meeting fact onto sparse members",
+    "one received-submissions packet whose members may be content-incoherent but share an explicit call, notice, docket, competition, or consultation identifier",
+    "one official-statistics collection and release cycle, while published outputs and restricted microdata retain different access boundaries",
+    "one citizen or regulated-party case, but only inside a protected, locally processed group with exact case anchors and no cross-person semantic joining",
+    "one authority export or archive manifest, kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "duplicate and version families remain universal relationships; repeated bill, policy, guidance, form, or decision versions do not acquire new government facts from neighborhood context",
+    "no group is a valid outcome for a standalone public notice, report, law, permit, or confirmation; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves this placeholder schema with no fields, and a template cannot branch on undeclared fields. The world still has structure, but it remains prose until canonical adjudication: authority-side function or bounded proceeding/case/programme first, then an exact reference or cycle, then work type; named people must not become the organizing dimension. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "contacts",
+      "code_structured",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".jpg",
+      ".mp3",
+      ".mp4",
+      ".zip",
+      ".xml",
+      ".json"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Rulemaking 2026-14 - Response to Comments and Final Instrument.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover and running headers repeat one rulemaking identifier",
+        "labelled sections summarize comments received and the authority's response",
+        "signature block names an authorized regulator-side office"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["any government field because the schema declares none", "that the rule is valid, operative, applicable, or complied with", "a jurisdiction field or folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Council Housing Committee - Agenda Pack - 18 August 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "public-authority committee name and meeting date on cover",
+        "numbered agenda and indexed reports",
+        "one appendix contains named residents and addresses"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that every municipal agenda is non-sensitive", "resident identity as a government destination dimension", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Tender Evaluation Panel - IT Service 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "buyer-side authority block and procurement reference",
+        "sheets for received bids, declared interests, evaluation, approval, and award recommendation",
+        "supplier prices and evaluator names appear in labelled cells"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the highest score legally wins", "contract validity", "supplier or authority as a stored government fact"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Permit Case PL-2026-184 - Officer Report and Decision.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled applicant, site, consultation, assessment, reasons, and decision sections",
+        "case reference repeats in header and decision block",
+        "authorized officer block shows deciding-authority role"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that permission is valid or current", "property ownership", "legal advice", "any government field"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FOI 26-041 - Search Schedule and Redaction Log.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "records-request reference repeated across sheets",
+        "custodian, search location, document, exemption-note, redaction, and review columns",
+        "requester and third-party names appear in cells"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that any exemption is lawful", "that redaction is sufficient", "that disclosure is authorized", "requester identity as a folder level"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Census 2026 - Enumerator Training and Collection Manual.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "official-statistics programme and collection round in slide titles",
+        "slides define field operations, instrument handling, escalation, and confidentiality",
+        "presenter notes contain operational examples"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["respondent identity", "that the manual is current", "a statistical result", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Election Count Reconciliation - North District.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled polling-station and ballot-account columns",
+        "administering office and election event appear in a structured header",
+        "rows reconcile issued, unused, spoiled, received, and counted ballots"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["voter choices", "that the count is certified or correct", "a district or event field", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Casework 8841 - consent and agency chase.eml",
+      "source_type": "email",
+      "observations": [
+        "public-office mailbox in sender and recipient slots",
+        "case reference in subject and attachment name",
+        "message discusses a named person's problem, authorization, and contact with an agency"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["the person's identity as a destination fact", "that consent is valid or sufficient", "legal merit or entitlement", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Inspection visit - Licensing Case LC-1198.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary and description repeat a licensing case reference",
+        "organizer is an authority inspection office and attendees include regulated-party contacts",
+        "location and attachment URI are present"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that an inspection occurred", "compliance or violation", "a licence status", "participant identity as a folder level"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consultation responses export - transport strategy.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest paths group invitation, received responses, consent records, analysis, and outcome files",
+        "one consultation identifier repeats in member names",
+        "export metadata identifies a public-body consultation system"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["respondent identity or consent status", "that every member may be disclosed", "facts inferred from unread members", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 - Grants portal assessment.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin metadata and window chrome support a screenshot hypothesis",
+        "OCR sees programme, application reference, assessor, score, and recommendation labels",
+        "no authority-side custody is established by the image alone"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the holder is the funder", "that the assessment is final", "an applicant fact", "screen origin from absent EXIF alone"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Annual Return 2026 - Example Holdings - filing acknowledgement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registry name and filing reference in a receipt-like header",
+        "company identifier, filing period, and received timestamp in labelled slots",
+        "the local file is held with the company's own records"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["government activation from the registry name", "authority-side custody", "that the entity is compliant or in good standing", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Passport Renewal - application and appointment confirmation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "passport authority branding and applicant-facing instructions",
+        "appointment and application references in labelled slots",
+        "personal identifiers and travel-document details"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["government activation merely because a public authority issued it", "authority-side custody", "citizenship or identity facts under this schema", "a folder path"],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Community Association AGM Minutes 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "agenda, attendance, quorum, resolutions, and officer signatures",
+        "the owner is a private membership association",
+        "a municipal grant and local authority are mentioned in the treasurer's report"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["government activation from governance structure", "public-authority status from a grant relationship", "a folder path"],
+      "also_schema": "nonprofit",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Supreme Court judgment - Example Agency v Example Ltd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court caption, neutral-citation-shaped identifier, reasons, and orders",
+        "a government agency appears as a party",
+        "the copy is a public download held in a reading folder"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["government activation from a public party", "authority-side administration", "legal advice or applicability", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Citizen case management backup.gdb",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filename suggests a case-management database",
+        "format is indexed but unreadable by an approved extractor",
+        "no manifest or content evidence is available"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that it contains citizen cases", "government activation from filename", "that it is safe to upload or unpack", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "The same rule, order, permit, enforcement, disclosure, hearing, court, and casework bytes occur in both worlds. Government requires authority-side administration or decision custody; Legal covers a person's legal record or a practitioner's matter and public legal material. Government as party, issuer, or cited authority alone does not decide the edge.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations",
+      "signal": "The same procurement, policy, budget, audit, filing, compliance, contract, and meeting shapes occur on both sides. Government requires an evidenced public authority exercising or administering a public function; a company filing with, selling to, regulated by, or mentioning that authority remains the company's operating record.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit",
+      "signal": "Minutes, grants, consultation responses, advocacy, elections, standards, accreditation, public-service delivery, and statutory language overlap. Government requires owner or custodian evidence for a public authority; a charity, campaign, union, faith body, standards body, accreditor, or membership association remains private-association material unless its public-body status is independently evidenced.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone notice, public report, confirmation, permit, licence, published decision, or civic document has durable value but no authority-side workflow or accepted neighboring group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Protected Records",
+      "when": "a personal, legal, identity, casework, submission, regulated-party, election, restricted-data, or other sensitive record lacks a safe accepted domain group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a public law, judgment, policy, official-statistics release, report, consultation, or guidance document is held for reading rather than as authority-side work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document looks official or administrative but the holder role, public-body status, or operational purpose cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an encrypted archive, database, damaged export, unknown binary, or inaccessible case system cannot yield evidence beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Public availability is not the schema default. Authority-side holdings may contain citizen casework, identity and contact data, complaints, submissions, unsuccessful bids, evaluator declarations, investigations, enforcement, restricted statistics, ballots or election operations, security material, and pre-decisional work. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Published laws and reports can be low-risk bytes, but their presence cannot lower the posture of a mixed authority packet.",
+  "open_question": "NEEDS-JOSEPH: Keep the schema fieldless for this pass. If PR-6 is later lifted, adjudicate a minimal role-safe vocabulary centrally rather than in children: whether an authority-side owner/custodian concept, bounded proceeding/programme/case reference, and document function may exist; whether any may be destination-eligible; and how display labels remain redacted for named-person casework. Also decide whether public-authority status comes only from deployment-specific gazetteers or may be user-confirmed for hybrid and quasi-public bodies."
+}

@@ -1,0 +1,564 @@
+{
+  "id": "engineering.industrial-design",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Industrial design: appearance definition, CMF and appearance models",
+  "one_line": "The evidence that decides and controls how an identified product LOOKS and FEELS: concurrently-captioned concept option sets and their downselect, photoreal renders and design-intent surfaces, colour-material-finish specifications binding a named appearance variant to a colour standard, material, texture and gloss, the approved master or limit sample that standardises that appearance, and appearance-model records. It is not the engineering schema's default template with prettier work types: the engineering default recognises controlled dimensional and functional definition (title blocks, requirement identifiers, BOMs, verification matrices), and an appearance decision fires none of those signals. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps `fields` empty; one appearance-variant key is exposed to R1c rather than minted.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": true,
+    "privacy_differs": true,
+    "why": "LEG 1 — signals. Every one of the engineering schema's ten deterministic signals keys on controlled dimensional/functional definition: a drawing title block with a drawing number and revision, requirement identifiers with verification methods, a technical data package manifest, an engineering-change structure with current/replacement revisions, a design-authoritative BOM, an analysis comparing margins to requirements, a verification matrix, a prototype configuration reconciliation. `CMF_Colourway-Matrix_v3.xlsx` and `Appearance-Approval_Master-Sample-MS-014.pdf` fire NONE of them, and would be routed to a residual by the default template. This row supplies signals the default does not have: a colour-standard-plus-material-plus-texture-plus-gloss binding to a named appearance variant of an identified part, and a master/limit sample record naming the property it standardises. LEG 2 — dimensions. The schema's researched default is project -> design_item -> lifecycle_stage -> engineering_artifact_type. Appearance work is not lifecycle-gated in the same way and, decisively, its variants are CONCURRENT SIBLINGS THAT ALL SHIP rather than a revision chain that supersedes: Graphite and Sand are not Rev B and Rev C of each other. The researched order here is project -> design_item -> colourway -> engineering_artifact_type. Both machine orders are [] because PR-6 leaves the engineering schema with no declared destination-eligible fields; the difference is recorded as a conditional recommendation, not silently encoded. LEG 3 — privacy. Engineering's stated concern is proprietary definition, export control and safety analysis. This row's concern differs in KIND twice over: a single render discloses the entire unreleased appearance of a product in a way no stress calculation does, so image egress is the exposure and not text; and appearance corpora routinely contain THIRD-PARTY rights-encumbered material - purchased HDRIs and textures, licensed typefaces on a packaging render, and mood-board photographs that are other people's copyrighted images. Rights encumbrance is not confidentiality and is absent from the engineering schema's sensitivity rule."
+  },
+  "fields": [],
+  "fields_note": "Empty by PR-6: the engineering schema declares no fields, and a template may only branch on a field its own schema declares. This row references the engineering schema's proposed roles (design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline) and does not re-declare them.",
+  "proposed_fields": [
+    {
+      "key": "colourway",
+      "type": "string",
+      "example": "Graphite",
+      "why_no_existing_key": "No canonical key names a concurrent appearance variant of one identified item. `version_family` and the engineering schema's proposed `revision_or_baseline` both denote SEQUENTIAL control in which a later member supersedes an earlier one; a colourway is the opposite relation - Graphite, Sand and Sage coexist, ship together, and each has its own master sample and its own approval. `design_item` names the item, not its appearance variant, and demoting a colourway into the item identifier would make one product read as three products. `work_type`, `artifact_type` and the schema's proposed `engineering_artifact_type` are kinds of document, not which variant a document governs. `media_type` and `record_type` belong to photos and finance respectively.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE and placed after design_item. A render, a CMF row, a master-sample record and an approval are unintelligible without knowing which variant they govern, which is the same parent-makes-child-intelligible relation 00 uses for a course and its homework. It is not authorship and not an organisation collector. R1c should note the counter-argument: if a corpus has one variant, this dimension opens a branch with a single child and should collapse.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A labelled colourway/variant/finish-name slot in a CMF table, an appearance-approval header or a render slate can be direct. Otherwise a colour-name-shaped token needs confirmation by a co-occurring colour-standard reference, material and finish binding for the same part. A bare colour word in a filename stays possible: `sand.jpg` is a beach far more often than a colourway. R2 owns any pattern; no regex or threshold is written here.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a colour-material-finish structure whose rows are named appearance variants and whose columns bind, for one identified part or item, a colour-standard reference, a material or substrate, a finish or texture process, and a gloss or sheen slot; the joint binding is the signal, never a colour-standard-shaped token on its own",
+      "a master, limit or boundary sample record that carries a labelled sample identifier, names the property it standardises (colour, grain, gloss, weave), names the part or item it governs, and carries an approval or approver slot",
+      "an appearance-approval structure that adjudicates LOOK against a named approved standard - colour match, texture/grain, gloss level, split-line appearance - and is explicitly not a dimensional or functional inspection",
+      "an option-set structure presenting concurrently captioned alternatives (Direction A/B/C, Option 1..n, Theme 1..n) for one identified item, in which no member supersedes another, accompanied by a downselect statement, a scoring grid against design criteria, or an explicitly open decision",
+      "a render whose embedded metadata or slate names a rendering engine, scene, camera rig or pass rather than a physical camera body, and whose filename or slate carries an appearance-variant token that also appears in a CMF structure for the same item",
+      "design-intent surface language - continuity class between surfaces, highlight or zebra analysis, draft applied for texture, parting-line and split-line appearance - tied to an identified design item, as distinct from tolerance and geometric-dimensioning language",
+      "a texture or finish application specification joining a supplier texture code to a named part face, a draft requirement and an application area",
+      "an appearance-model or looks-like-model record that names the model type and reconciles what it does and does not represent about production appearance, distinct from a functional prototype configuration record",
+      "an archive manifest exposing several of the above under one item and one set of appearance variants, without extracting members to disk",
+      "a folder or document naming a design discipline, studio or CMF function may raise plausibility only after one of the above structures is present; it never fires this template by itself"
+    ],
+    "needs_llm": [
+      "whether a colour-standard token governs a moulded or finished part surface (this row) or printed artwork on a substrate (graphic design and print production)",
+      "whether an image set is a concurrent option set awaiting downselect or a sequential revision chain in which the last member supersedes",
+      "whether a photoreal render is an appearance decision record for an unreleased item, a marketing or launch asset, or an architectural or interior visualisation",
+      "whether a grip, reach or comfort study is appearance-and-form human-factors evidence for an identified design item, generalizable research, or product-discovery user research with no design item at all",
+      "whether a surface model is the appearance definition or the released engineering geometry, when the same container holds both",
+      "whether a board of reference imagery belongs to an accepted project as a design input or is saved visual inspiration with no project relationship",
+      "whether an appearance approval was issued by the design authority establishing the standard or by a supplier submitting production parts against it"
+    ],
+    "never_alone": [
+      "the words design, industrial design, ID, concept, sketch, render, CMF, finish, colour or material alone; every token is common in marketing, interiors, fashion, print, graphics and DIY",
+      "a colour-standard-shaped token alone. Packaging artwork, brand guidelines, interior finish schedules, paint-shop receipts and knitting patterns all carry one, and this is the same never-alone defect 00 identifies for a university name",
+      "a 3D, render or design extension, or the design_creative source_type, alone. 00 requires an extension to be a routing signal and not an assumption about meaning",
+      "a studio, agency, design consultancy, supplier or colour-house name alone; an organisation name never activates a template",
+      "a mood board or a page of reference imagery alone. Saved visual inspiration is a residual, not an appearance decision, and it is usually somebody else's copyrighted photography",
+      "a photograph of a physical object alone; product photography, site progress photos, marketplace listing shots and ordinary personal photos are visually identical",
+      "captions of the form A/B/C or Option N alone; option-shaped naming appears in commercial proposals, quotes, A/B tests, survey instruments and exam papers",
+      "absence of EXIF alone as proof that an image is a render. 00 already forbids missing EXIF as screenshot proof and the same defect applies here",
+      "a bounded download session alone; a session is not proof of topic",
+      "a part or item number alone; it can be a stock code, a purchase line, an asset tag or an arbitrary number",
+      "the presence of an appearance model photograph alone as proof of a design item; the item must be evidenced independently and must never be copied from a neighbouring file"
+    ]
+  },
+  "proposed_context_terms": [
+    "colourway",
+    "colour standard",
+    "master sample",
+    "limit sample",
+    "boundary sample",
+    "colour match",
+    "gloss level",
+    "sheen",
+    "texture code",
+    "grain",
+    "draft for texture",
+    "soft touch",
+    "anodised finish",
+    "surface finish specification",
+    "class A surface",
+    "continuity",
+    "highlight analysis",
+    "split line",
+    "parting line",
+    "design intent",
+    "form study",
+    "ideation",
+    "design direction",
+    "downselect",
+    "appearance model",
+    "looks-like model",
+    "works-like model",
+    "appearance approval",
+    "CMF"
+  ],
+  "work_types": [
+    "concept sketch sheet",
+    "ideation or exploration board",
+    "design direction or option set",
+    "downselect or design decision record",
+    "form study",
+    "design-intent surface model",
+    "photoreal render",
+    "turntable or animation output",
+    "CMF specification or colourway matrix",
+    "colour standard reference record",
+    "texture or grain application specification",
+    "surface finish specification",
+    "master, limit or boundary sample record",
+    "appearance approval record",
+    "appearance or looks-like model record",
+    "ergonomics or human-factors form study",
+    "industrial design brief",
+    "CMF or design language guideline"
+  ],
+  "work_types_note": "These are candidate VALUES of the engineering schema's proposed engineering_artifact_type (or a widened canonical artifact_type), never child nodes. A specialised roster row would be justified only where its situation changes signals, dimensions or privacy - which is exactly the argument this row had to win.",
+  "grouping_reasons": [
+    "one identified design item's appearance definition across sketches, option sets, surfaces, renders, CMF specification and approvals",
+    "one downselect: the concurrently captioned options considered, the criteria applied, the decision, and the direction carried forward",
+    "one colourway across its render, its CMF row, its master sample record and its appearance approval",
+    "one appearance model build with its review photographs and the deviations it does not represent",
+    "a bare IMG_0142.jpg may join an accepted appearance-review neighbourhood without acquiring design_item or colourway facts; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding PR-6: the engineering schema declares no destination-eligible fields, so no machine-readable order may be written. Subject to R1c admitting the schema's proposed keys and this row's `colourway`, the researched order is project -> design_item -> colourway -> engineering_artifact_type. It differs from the schema's default (project -> design_item -> lifecycle_stage -> engineering_artifact_type) at the third level and the reason is evidential rather than aesthetic: appearance corpora carry a labelled variant slot far more reliably than a lifecycle gate, and the variants are concurrent siblings rather than a supersession chain, so the level is fillable where lifecycle_stage would open branches the facts cannot fill. Where a corpus has exactly one colourway the level should collapse rather than produce a single-child branch. Project and item precede time under 00's document-domain rule. The user may reverse, remove, add or flatten any of this.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "design_creative",
+      "audio_video",
+      "archive",
+      "opaque_binary",
+      "email"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".key",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".psd",
+      ".ai",
+      ".svg",
+      ".stp",
+      ".step",
+      ".igs",
+      ".3dm",
+      ".obj",
+      ".blend",
+      ".ksp",
+      ".mp4",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "BPA-210_CMF-Specification_Colourway-Matrix_v3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header names one part identifier and a design authority",
+        "rows are named appearance variants; columns bind a colour-standard reference, a resin or substrate, a texture or finish process, a gloss slot and a master-sample identifier",
+        "an approval column carries approver and date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c licenses them",
+        "a printed-artwork colour specification from a colour-standard token",
+        "that v3 in the filename is the controlled revision",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Appearance-Approval_BPA-210_Graphite_Master-Sample-MS-014.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sample identifier and the property it standardises: colour, grain and gloss",
+        "names the part and the appearance variant it governs",
+        "signature block records the design authority accepting the sample as the standard, and names two boundary samples as the acceptable range"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a supplier production-part submission from the word approval",
+        "a dimensional inspection result",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Concept-Sketches_Round-2_Directions-A-C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "three captioned directions presented side by side for one named item, with no supersession language between them",
+        "a criteria grid scores each direction against stated design intent",
+        "a closing page records that the decision is open pending review"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that Direction C supersedes Direction A",
+        "a lifecycle stage from the word Round",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Render_BPA-210_Sand_Front-3q_4K.png",
+      "source_type": "image",
+      "observations": [
+        "embedded metadata names a rendering engine, a scene file and a pass rather than a camera body",
+        "filename carries a variant token that also appears as a row in the CMF matrix for the same item",
+        "no EXIF camera information is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "render status from missing EXIF alone",
+        "capture_year or camera_information as photo facts",
+        "a marketing launch asset without campaign evidence",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "BPA-210_Class-A-Surfaces_RevB.stp",
+      "source_type": "opaque_binary",
+      "observations": [
+        "neutral geometry container with no readable title block",
+        "an accompanying release note discusses surface continuity, highlight analysis and draft applied for texture",
+        "filename carries a revision-shaped suffix"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from a CAD extension alone",
+        "the revision from the filename suffix",
+        "that surface geometry is the appearance decision rather than its carrier",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "MT-11020_Texture-Application_BPA-210-Upper-Shell.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier texture code mapped to a named part face and an application area",
+        "a draft-angle requirement is stated as a condition of the texture",
+        "a gloss range and a reference plaque number appear"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a supplier catalogue code is a standards-library entry when it is applied to one named part",
+        "a tooling or moulding execution record",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Appearance-Model-Review_2026-03-11_IMG_0142.jpg",
+      "source_type": "image",
+      "observations": [
+        "EXIF names a phone camera and a capture timestamp",
+        "the frame shows a hand-finished object on a review table beside printed boards",
+        "no item identifier, variant name or approval text is legible in the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "camera_information",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "design_item or colourway copied from neighbouring accepted files",
+        "that a photograph of an object is an appearance decision",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Grip-Study_Handheld-Rig_Reach-Envelope.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "reports hand-span and reach measurements across a participant set",
+        "conclusions recommend a maximum girth and a thumb-reach zone for a named item's form",
+        "a participant consent and anonymisation statement is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "research activation merely because participants were measured",
+        "product-discovery user research when the object is a named item's form",
+        "identifiable participants from an anonymised study",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "ID-Handoff_BPA-210_Appearance-Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a CMF matrix, three variant renders, a surface release note, a texture application sheet and two appearance approvals",
+        "member names repeat one item identifier and three variant tokens",
+        "members have not been extracted to the filesystem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from uninspected member contents",
+        "that a handoff archive is a released technical data package",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Moodboard_Nordic-Minimal.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a grid of photographs of other companies' products, materials and interiors",
+        "colour swatches appear with no material, finish or part binding",
+        "no item identifier, no variant to be produced, no approval and no attribution"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a CMF specification from swatches",
+        "that collected imagery is the user's own work",
+        "an accepted project from a stylistic title",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "PPAP_Appearance-Approval_Supplier-Vertex_PSW-2201.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "identifies a supplier, a part submission warrant number and a production run",
+        "colour, grain and gloss are recorded as conforming to an already-approved master sample",
+        "disposition is a submission acceptance for production, signed by a supplier quality function"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that appearance language makes this the appearance decision record",
+        "that the supplier established the standard it is conforming to",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Packaging_Dieline_Pantone-2985C.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "artboard carries a dieline, bleed marks, fold lines and a print spot-colour list",
+        "the colour-standard token binds ink to a printed substrate, not a moulded part",
+        "a printer name and a print run note appear"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a CMF specification from a shared colour-standard token",
+        "engineering activation from a design extension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.cad-model",
+      "signal": "Both hold surface and solid geometry for the same item. This row owns the appearance DECISION and the properties that make a surface an appearance: continuity, highlight quality, draft for texture, split-line appearance. cad-model owns the geometry container as the controlled definition of form and fit, with its release identity, revision and downstream consumers. Same fixture bytes: BPA-210_Class-A-Surfaces_RevB.stp is cad-model when it is the released geometry deliverable carrying a release identity; it is industrial-design evidence only through the appearance intent stated about it, and the .stp never activates either row from its extension.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.material-specification",
+      "signal": "Both bind a material to a part. material-specification owns performance properties - grade, strength, flammability, chemical resistance, compliance - as the reason a material is selected. This row owns material as an appearance carrier, inseparable from colour, texture and gloss. Same fixture bytes: MT-11020_Texture-Application_BPA-210-Upper-Shell.pdf sits here because the texture and gloss are the subject and the draft angle is a condition of achieving them; a resin datasheet stating tensile modulus for the same shell is material-specification even when it names a colour.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "signal": "Both record physical articles built before production. prototype-build owns configuration and functional deviation - what this article is, how it differs from the intended design, what it may be used to test. This row owns appearance models whose declared purpose is to represent look and feel and which explicitly do not represent function. Same fixture bytes: a looks-like model record belongs here; a works-like rig with a bill of deviations belongs to prototype-build; one article that is both carries both records and neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.graphic-design-project",
+      "signal": "Colour-standard tokens are the shared evidence and the most common misfire in both directions. This row binds a colour standard to a moulded or finished part with a material, texture and gloss. Graphic design binds a colour standard to ink on a substrate, with dielines, bleed, trapping and a print specification. Same fixture bytes: Packaging_Dieline_Pantone-2985C.ai is graphic design even though the identical Pantone number may appear in the product's CMF matrix; the CMF matrix does not become graphic design because it names an ink-shaped code.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.uiux-product-design",
+      "signal": "The phrase product design names both worlds and neither row may take it as evidence. uiux-product-design owns screens, flows, components and interaction states in a design tool. This row owns physical form, colour, material and finish. Same fixture bytes: a device render composited with a screen mockup is this row's evidence for the enclosure and uiux evidence for the interface; the shared file activates on whichever structure is actually present, and the discipline word activates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "signal": "Appearance approval language appears on both sides and the direction of authority is what separates them. This row holds the document that ESTABLISHES the appearance standard - the master or limit sample and its acceptance by the design authority. supplier-qualification holds a supplier's submission demonstrating conformance TO that standard for production parts. Same fixture bytes: PPAP_Appearance-Approval_Supplier-Vertex_PSW-2201.pdf is supplier-qualification; Appearance-Approval_BPA-210_Graphite_Master-Sample-MS-014.pdf is this row, and the second is the reference the first cites.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.user-research",
+      "signal": "Both hold studies of people handling things. user-research owns discovery whose object is a user need, a market or a behaviour, with no identified design item. This row owns human-factors studies whose conclusions constrain a named item's form. Same fixture bytes: Grip-Study_Handheld-Rig_Reach-Envelope.pdf is this row because its recommendations are a girth and a reach zone for a named item; the same participant set interviewed about why they carry a device at all is user-research.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "Anthropometry, materials science and perception studies are genuine research and genuine design input. Research organises knowledge production by project, stage, artifact, lab and venue and its object is generalizable knowledge. This row's object is an identified item's appearance. Same fixture bytes: the grip study holds both when it is written for publication and also constrains the item; an anthropometric reference table cited by the study is research alone and must not acquire a design_item fact by proximity.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing",
+      "signal": "A texture application sheet or a master-sample record is simultaneously an appearance standard and an input to production and inspection; both relations are separately evidenced and neither is inferred from the other. This is a subset of the engineering schema row's declared also_holds set and does not widen it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "A human-factors or perception study can produce generalizable knowledge and constrain a named item's form in one document, on disjoint evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "A design review or downselect deck can carry a governed commercial decision and an appearance decision in one file.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Reference Clips",
+      "why": "Mood boards, collected product references, material photographs and saved inspiration with no item, variant or approval binding belong here rather than activating an appearance-decision template from imagery alone. This is the single most common false positive on this row.",
+      "provenance": "design",
+      "design_cite": "Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A lone render or a lone photograph of an object, with no accepted project or evidenced item, must not acquire design facts from its neighbours.",
+      "provenance": "design",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a board, deck or option set is clearly deliberate design material but whether it decides an appearance, sells a proposal, or advertises a finished product cannot be established from its own evidence.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone finish specification, colour standard certificate or approval sheet with durable purpose but no reliably evidenced item or accepted project belongs here rather than firing on type words.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Proprietary 3D, rendering-scene and design-tool formats are frequently unreadable; they retain basic metadata and must not have purpose inferred from filenames.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "manufacturing.inspection-record",
+      "why": "The same physical entity - one master or limit sample - carries two roles. Here it is the approved appearance standard, identified by the property it standardises and the design authority that accepted it. On manufacturing.inspection-record the same sample is an acceptance limit against which produced parts are judged, identified by the inspection it governs. Different field roles, one entity; the sample identifier alone activates neither side.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two distinct exposures, only one of which the engineering schema already states. First, appearance leaks differently from technical leak: a single render or appearance-model photograph of an unreleased product discloses the whole product to anyone who sees the image, where a stress calculation discloses almost nothing without context - so the exposure surface here is IMAGE content and thumbnails, not text. Second, and absent from the engineering schema's rule, appearance corpora routinely contain third-party rights-encumbered material: purchased HDRIs and texture libraries, licensed typefaces embedded in packaging renders, and mood-board photographs that are other people's copyrighted images. Rights encumbrance is not confidentiality and is not covered by proprietary or export-control reasoning. Human-factors studies may additionally carry participant data. This assigns no handling class; 00's binding rule that privacy policy is enforced before any model or connector receives content still governs.",
+  "open_question": "NEEDS-JOSEPH NJ-IDS-1: is `colourway` a real destination-eligible key, or should a concurrent appearance variant be modelled as a value of the engineering schema's proposed engineering_artifact_type, or as a search-only fact with no folder level? NJ-IDS-2: the engineering schema row's also_holds_with does not include `creative`, yet industrial design genuinely co-activates with creative work on renders, packaging application and brand-driven design language. Should R1c add `creative` to the engineering schema's also_holds set, or should every such file be adjudicated as a collision as this row currently does? NJ-IDS-3: where does the appearance definition of a bespoke interior fit-out or a facade element sit - this row, creative.interior-design, or construction_property - when the item is not a reproducible product? NJ-IDS-4: should a downselect option set be represented as a first-class grouping relation (concurrent siblings) distinct from version_family's supersession relation, since the whole variant/option axis of this row depends on that distinction?"
+}

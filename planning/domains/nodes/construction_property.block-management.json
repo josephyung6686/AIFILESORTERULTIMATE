@@ -1,0 +1,468 @@
+{
+  "id": "construction_property.block-management",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Block and estate management",
+  "one_line": "Running a multi-occupied building or estate ON BEHALF OF its owners, as a professional appointment: the service charge budget and the apportionment schedule that splits it between units, the demands and the year-end reconciliation, the buildings insurance placed for the whole block, the contractors and cyclical works, the statutory safety regime the building is under, the consultation notices major works require, and the meeting and leaseholder correspondence that surrounds all of it. The anchor is a BUILDING under a management appointment with a per-unit apportionment, and the discriminating structure against the residents' own side is the WHOLE apportionment table plus an agency recital, never the fact that a firm is involved. Absorbs the legacy row prop.block-management. Placeholder row (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an APPORTIONMENT structure: a schedule whose rows are the UNITS of one building and whose columns are a percentage or share and a demanded amount, summing to a budget for that building. This is the row's primary signal and it exists nowhere else on the roster — it is the shape of splitting one building's cost between many owners. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a SERVICE-CHARGE CYCLE structure: a budget for a service-charge year, demands issued against it per unit, and a year-end reconciliation or certified accounts comparing budget to actual for the same building.",
+      "a RESERVE or SINKING FUND structure: a fund balance carried between years against a schedule of anticipated cyclical works — a forward liability held for a building rather than for an entity.",
+      "a MAJOR-WORKS CONSULTATION structure: a notice of intention or estimates notice to all leaseholders describing proposed works, inviting observations within a stated period, and a subsequent notice of estimates with contractor quotations attached.",
+      "a BLOCK-WIDE COMPLIANCE structure: recurring inspection and assessment records covering the WHOLE building — fire risk assessment, fire door and alarm inspections, asbestos register, lift examination, water hygiene, emergency lighting — scheduled and repeated rather than issued once.",
+      "a MANAGEMENT-APPOINTMENT structure: a management agreement or letter of appointment naming a freeholder, management company or residents' company as client and a managing agent as appointee, with a fee and a term. NOTE the limit, stated here so it is not over-read: this document exists on the residents' side too, as the association's own contract with its manager, so it locates the SITUATION and does not by itself decide the SIDE.",
+      "an AGENCY-RECITAL structure — the row's discriminator against the residents' own side, and a party-role structure rather than an organisation name. A demand, notice or letter issued by one named party expressly FOR AND ON BEHALF OF a different named party who is the landlord or the company, so that three roles are occupied at once: a client in whose name the document speaks, an appointee who signs it, and a leaseholder, contractor or insurer it is addressed to. The residents' own side has two roles, not three: the association issues in its own name to its member. The schema row licenses this shape by name — a client party in a role slot is evidence of an instruction — and it is readable in the bytes. It is decisive WHERE PRESENT and absent from most compliance and insurance material, so it is a discriminator and not a gate.",
+      "a WHOLE-DENOMINATOR direction on the money: the schedule holds EVERY unit of the building and the shares sum across it, and any arrears or demand run is the issuer's copy covering all units. One unit's own statement of what that unit owes is the reciprocal shape and is the residents'-side row's, not this one's.",
+      "a BLOCK-POLICY structure: a buildings insurance schedule naming the whole block, a reinstatement sum insured and a schedule of units, rather than a single dwelling's cover.",
+      "a UNIT-BASED CORRESPONDENCE structure: a ledger or run of correspondence keyed to unit numbers within one building — arrears, breaches, consents, alterations, sublet notifications.",
+      "a building name or address in a labelled slot together with a unit schedule or a service-charge year. Neither half fires alone.",
+      "parent-folder context naming a block, an estate or a service-charge year — a clue only, never firing alone.",
+      "a calendar entry whose SUMMARY names an AGM, a directors' meeting or a site inspection for a named block, with a recurrence rule. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT fires; calendar is a SOURCE_TYPE, not a domain."
+    ],
+    "needs_llm": [
+      "a letter to leaseholders that could be a routine notice, a consultation, a demand, a breach allegation or the opening of a dispute — the difference changes both the group and the sensitivity posture.",
+      "minutes that could be a residents' association meeting, a management company board meeting or an AGM, which decides whether the residents' side or the professional side owns them.",
+      "deciding whether the holder is the managing agent, a director of the residents' company, or one leaseholder keeping their own copies — the same demand and the same minutes reach all three.",
+      "an insurance schedule that could cover a block, a single flat's contents, or a landlord's portfolio."
+    ],
+    "never_alone": [
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A building name is worse than an ordinary address here, because Harbour Works is simultaneously the block, the managing agent's client, dozens of leaseholders' home addresses and a contractor's site.",
+      "a firm, practice, contractor, agency or authority name alone — same reasoning, same sentence. A managing agent's name is on every document in the folder including documents about other blocks.",
+      "a unit number alone. a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a demand, invoice or money figure alone. a money figure alone. Quotations, valuations, appraisals, service charges, rents, offers and appraisals all carry amounts, as does every other roster schema that touches money.",
+      "a document-type word alone (certificate, drawing, schedule, survey, valuation, report, plan, lease). Each is a work_type VALUE that appears in several worlds; the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types. 'Budget', 'accounts', 'minutes', 'insurance' and 'inspection' each appear in three or four other roster rows.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+      "a download session alone. “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "service charge",
+    "service charge year",
+    "apportionment",
+    "percentage share",
+    "demand",
+    "on account",
+    "balancing charge",
+    "reconciliation",
+    "certified accounts",
+    "reserve fund",
+    "sinking fund",
+    "cyclical works",
+    "major works",
+    "notice of intention",
+    "observations",
+    "notice of estimates",
+    "consultation",
+    "leaseholder",
+    "lessee",
+    "freeholder",
+    "landlord",
+    "management company",
+    "residents' management company",
+    "right to manage",
+    "managing agent",
+    "management agreement",
+    "AGM",
+    "directors",
+    "ground rent",
+    "arrears",
+    "breach",
+    "forfeiture",
+    "licence to alter",
+    "consent to sublet",
+    "buildings insurance",
+    "sum insured",
+    "reinstatement",
+    "fire risk assessment",
+    "fire door",
+    "asbestos register",
+    "lift examination",
+    "water hygiene",
+    "emergency lighting",
+    "communal",
+    "demised",
+    "common parts"
+  ],
+  "work_types": [
+    "management agreement or letter of appointment",
+    "service-charge budget and apportionment schedule",
+    "service-charge demand and statement of account",
+    "year-end reconciliation or certified service-charge accounts",
+    "reserve fund statement and cyclical works plan",
+    "consultation notice of intention or estimates",
+    "contractor quotation, order and specification for communal works",
+    "block buildings insurance schedule, renewal or claim record",
+    "fire risk assessment and recurring safety inspection record",
+    "asbestos, lift, water hygiene or emergency lighting record",
+    "AGM notice, minutes and directors' meeting record",
+    "leaseholder correspondence, consent, arrears or breach record",
+    "handover pack from a previous agent or developer"
+  ],
+  "grouping_reasons": [
+    "ONE BUILDING across everything — this row's primary group and an unusually durable one: the block outlives every agent, every director and every leaseholder, and its records are handed from agent to agent.",
+    "one SERVICE-CHARGE YEAR for one building: the budget, the demands, the actuals and the certified accounts. Purpose-coherent across members with nothing in common — “The documents are content-incoherent but purpose-coherent.”",
+    "one MAJOR-WORKS PROJECT and its consultation: the notice of intention, the observations, the estimates notice, the quotations, the award and the works record. This group straddles this row and construction-project and is a genuine case of one group fitting two situations.",
+    "one compliance regime across its recurrences: this year's fire risk assessment beside the previous three.",
+    "one UNIT across its correspondence — a group about a household inside a building, which is why the row's sensitivity is set where it is and why a unit is not a comfortable folder level.",
+    "one repeatedly re-issued demand run, joined by duplicate_family; block software regenerates the same PDFs, and “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "no group at all is valid: a single insurance schedule with nothing around it is a standalone record. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two blocks' budgets do not merge because the same agent produced both from the same template."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the BUILDING first — the family default and the strongest case for it anywhere in this family, since a block's records are the one thing that survives every change of agent, director and owner. Then the FUNCTION (service charge / compliance / insurance / works / meetings / correspondence), and then — uniquely in this family — a SERVICE-CHARGE YEAR level under the service-charge branch only, because that branch genuinely cycles annually and nothing else here does. Explicitly NOT a unit level: a unit is a household, and a unit level would put a real person's home into a folder name for the convenience of filing their arrears. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "calendar",
+      "presentation",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour Works - service charge budget 2026 - apportionment.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of units with percentage shares and demanded amounts summing to a budget",
+        "cost lines for communal services",
+        "a service-charge year in a header cell"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that a budget spreadsheet is a business_operations budget; the per-unit apportionment against one building is the discriminating evidence",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Demand - Flat 12 - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a demand naming a unit, a leaseholder and an amount on account",
+        "a statement of account with arrears brought forward",
+        "a managing agent's letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "anything that would put a leaseholder's name or unit into a folder name",
+        "that a demand is a receipt; nothing has been paid",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of intention - roof renewal.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a notice to all leaseholders describing proposed works",
+        "an invitation to make observations within a stated period",
+        "a building name and a date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a works description makes it a construction-project document; the consultation apparatus is this row's and the works record becomes that row's later",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fire risk assessment - Harbour Works - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an assessor identifier and a dated assessment of communal areas",
+        "a numbered schedule of findings with priorities and target dates",
+        "the same document existing for the three previous years"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a recurring assessment is a one-off certificate — this is part of why this family refused a certificate row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Buildings insurance schedule 2026-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a policy number, a period and a premium",
+        "a sum insured for reinstatement of the whole block",
+        "a schedule listing every unit"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a personal insurance record; the block-wide sum insured and the unit schedule discriminate against a single dwelling's cover",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "AGM minutes 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "attendance, apologies, a numbered agenda and resolutions",
+        "named directors and named leaseholders",
+        "a building name in the heading"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a governance-cycle shape makes it a business_operations board record; the building and the leaseholders are the discriminating evidence, and the residents' own side is finance.hoa-residents-association",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Arrears report.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of units with named leaseholders, balances, ageing and recovery status",
+        "solicitor referral flags in one column",
+        "no building name anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a building fact from the surrounding folder; folder context never fires alone",
+        "anything at all that reaches a model path before classification — “Privacy policy must be enforced before content reaches any model or external connector.”",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Handover pack from previous agent.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming leases, insurance history, accounts, compliance records and a unit schedule",
+        "members spanning fifteen years",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any member from the manifest",
+        "that the pack's age makes it inactive; a block's history is live material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lease - Flat 12 Harbour Works.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "party recitals, a demise, a term of years, a ground rent and service-charge covenants",
+        "an execution and registration block",
+        "an apportionment percentage stated in a schedule"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the instrument; legal.leases-agreements owns the executed agreement and protects it first, while the apportionment percentage inside it is what this row reads",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual Assessment Statement - Unit 4B.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled assessment account for ONE unit: charges, payments and a balance",
+        "issued by a named association in its own name, with no on-behalf-of recital",
+        "a management company's footer at the bottom of the page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row holds it. THE COLLISION FIXTURE, and it is the landed finance.hoa-residents-association row's own fixture 1, named here on purpose so the same bytes are argued from both sides. It is a single member's own statement — one numerator, not the whole denominator — and the association issues it in its own name",
+        "a management appointment from the footer; a management company's name is never-alone on both schemas and inverts nothing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Communal cleaning quote.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a contractor's quotation for a recurring service",
+        "a building address and a monthly price",
+        "no apportionment and no consultation reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a management appointment from a contractor's quote; without apportionment or consultation apparatus this is an ordinary supplier document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "THE reciprocal boundary of this row, and the one it had to earn or refuse on. The same building, the same money, the same meetings, seen from two sides. WHAT IS EXPLICITLY NOT THE DISCRIMINATOR: that a firm does the work rather than the residents. A managing agent's name, a management company's name and an association's name are all organisation names, which are never-alone on both schemas, and a row supported only by them could never activate. The landed row says so from its side — it holds that a management-company name does not invert who the record belongs to, and leaves the producer as an observation only. TWO STRUCTURAL DISCRIMINATORS ARE OFFERED INSTEAD, both readable in the bytes. (1) THE DENOMINATOR. This row's characteristic artefact is the WHOLE apportionment table — every unit of one building, shares summing across it, against that building's budget — and an arrears or demand run in the issuer's direction covering all units. The landed row's characteristic artefact is one member's assessment account: one unit, that unit's charges, payments and balance. Whole table versus single row is a property of the document, not of who holds it. (2) THE AGENCY RECITAL. A document that speaks expressly for and on behalf of a landlord or company names three roles — client, appointee, addressee — where an association issuing in its own name names two. Decisive where present; absent from most compliance and insurance material, so it discriminates and does not gate. WHAT COUNTS FOR NEITHER: a building name, a unit, an assessment amount, a budget, a reserve schedule, a set of minutes, and the presence of a management agreement, which both sides hold. THE HONEST LIMIT, and it is not smoothed: a residents' management company that self-manages a single block holds the whole table too and has no agency recital anywhere. On that corpus these two rows are not separable by evidence, and the correct outcome is co-activation or abstention, never a silent pick — “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” That case and the resident-director case are NJ-CP-8.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.service-charge",
+      "signal": "The closest sibling on the roster and the one this row most nearly IS. Same agent, same building, same year, same apportionment schedule — that sibling names the apportionment as its own primary signal and it is right to. The split authored on both sides is by FUNCTION: that row is the money cycle (budget, demands, the estimate-then-reconcile pair over a named accounting year, certified accounts, balancing charges), this row is everything else the appointment produces (the appointment itself, contractors and cyclical works, the block-wide compliance regime, the insurance placement, the meetings and the unit correspondence). Each has an independent signal the other does not claim — the estimate-then-reconcile pair there, the recurring block-wide compliance regime and the unit-correspondence ledger here — so both clear the node test separately. But the split is NOT how a holder files, because one folder holds both, and the sibling raised the merge as NJ-CP-17. This edge states it reciprocally and does not resolve it: the merge is Joseph's, and no research is lost either way. Where a single file is genuinely both — the budget with its apportionment is the named case — the correct outcome is co-activation, not a pick.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "A residents' management company is a real company with real directors, and its AGM produces a notice, an agenda, attendance, resolutions and minutes — the governance-cycle structure the landed business_operations row detects on. The discriminating evidence is the SUBJECT: a meeting about one building's service charge, works and compliance, attended by its leaseholders, supports this row; a meeting about an organisation's own strategy, budget and statutory standing supports board-governance. A quorum, a resolution and a set of minutes count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "Major works to a block are genuinely both, and the consultation-to-completion sequence crosses the line mid-way. The discriminating evidence: consultation notices, observations, apportionment of the cost between leaseholders and reserve-fund drawdown support this row; the contract sum, instructions, valuations against measured works and the final account support construction-project. The same roof renewal produces both sets, which is why this is a per-evidence-item mutex and not a claim about the works.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "A block policy and a firm's own insurance file share every labelled slot: policy number, period, insured, sum insured, premium. The discriminating evidence is the INSURED SUBJECT — a whole building with a reinstatement sum and a schedule of units supports this row; the managing agent's own professional indemnity or employers' liability supports finance.insurance-corporate. A carrier name and a policy number count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "A mixed-use block has commercial units, and service charge runs through both. The discriminating evidence is whose lifecycle the document serves: a block-wide budget, apportionment and communal compliance regime supports this row; one occupier's lease, its rent review, its schedule of condition and its dilapidations supports commercial-lease. A service-charge line appears in both.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's, tenant's or leaseholder's identity, or a commercially confidential figure, the protective home is correct. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members — a delivery note, a hire confirmation, a fee invoice with nothing around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exotic here: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Standards, guidance notes, market reports and saved technical PDFs accumulate heavily in this world and are not instruction records. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The setting is the schema default, but the GROUND differs from the schema default and that difference is leg 3 of this row's node test. The family's stated ground is that the material names a real person's home and who is in it — one instruction, one property, one household exposed. Here the exposure is EN MASSE and STRUCTURAL: a single ordinary working file, the arrears schedule, is a list of every household in one building with what each of them owes, and the apportionment schedule is a roster of every unit. The unit of exposure is a whole population at a single postal address rather than one client. The second ground has no analogue in the family default at all: the compliance half is a complete safety, plant and access description of an occupied residential building. Two grounds and both are about people who are not the user. First, the material is a per-household financial record of everybody in a building: who is in arrears, who has been referred to solicitors, who has breached their lease, who has asked consent to sublet. It is keyed to unit numbers, which are home addresses. Second, the compliance half is a complete safety and access description of a residential building, which is material that should not leave the machine casually. 00's corpus sentence covers the first — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — and 00 is direct that “Privacy policy must be enforced before content reaches any model or external connector.” The handling class is P7's and is not set here.",
+  "open_question": "Four. (1) NJ-CP-8, widened in the deepening pass and genuinely undecidable from here. This row's boundary with the landed finance.hoa-residents-association rests on two structures — the whole apportionment denominator and the agency recital — and BOTH fail on the same corpus: a residents' management company that self-manages one block issues the whole table in its own name and files no on-behalf-of recital anywhere. The resident DIRECTOR is the acute form of it, holding the professional record and their own leaseholder copies inseparably and legitimately. For both, the honest outcome is co-activation or abstention, never a silent pick, and the reciprocal edge is owed on the landed row. (2) NJ-CP-17, raised by construction_property.service-charge and seconded here without resolution: should these two rows merge? One agent, one building, one folder, split by function only. Stated on both sides; Joseph's. (3) Whether a UNIT should ever be a destination dimension. This row says no, on the ground that a unit is a household; an agent would say yes, because their filing is unit-keyed. That is a real conflict between usability and 00's collector prohibition, and it is Joseph's, not this row's. (4) Inherits NJ-CP-1."
+}

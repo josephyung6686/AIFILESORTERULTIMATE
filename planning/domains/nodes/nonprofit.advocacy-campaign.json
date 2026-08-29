@@ -1,0 +1,295 @@
+{
+  "id": "nonprofit.advocacy-campaign",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Advocacy and public campaigning",
+  "one_line": "REFUSED. An organised effort to change a decision or policy is a PURPOSE and a work_type value, not a filing structure. Every artefact the row was given - strategy, briefings, submissions, media and public materials, supporter mobilisation, outcome - is either byte-for-byte a business_operations.go-to-market / strategy-plan / meeting-record structure with different nouns, a regulator filing already owned by business_operations.corporate-regulatory-filings, a creative asset already owned by creative.ad-campaign / content-marketing, a register already owned by the nonprofit schema's donor-and-supporter and membership structures, or a grant report already owned by the nonprofit schema's restricted-grant lifecycle. Critically, it evidences NO non-exchange party, which is the entire precondition of the nonprofit schema: a campaign has no funder-grantee relation, no donor, no member, no volunteer and no named beneficiary in its own right. It therefore fails the schema's activation precondition AND duplicates its schema's default template AND is an enumerated value of the schema's own work_types list. Coverage routes to the named neighbours and to five residual templates.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the node test, each independently fatal. (1) VALUE, NOT NODE. The nonprofit schema anchor already enumerates \"campaign, advocacy and lobbying record where a registration or disclosure structure exists\" inside its own `work_types[]`. CONNECTION section 2 closes this: a value is not a roster node, and section 2 forbids \"never a schema per work type\". `advocacy campaign` is what a campaign plan's own purpose field would say; it is `Homework 3`, not `academic`. (2) NO STRUCTURE OF ITS OWN - it duplicates its schema's default template AND a landed neighbour's. The nonprofit schema's default is a two-role NON-EXCHANGE relation (money or labour given without commensurate return, or service to a named non-paying person) carrying a purpose restriction, a register of persons, or a gift-and-tax declaration. A campaign has none of those parties. Its actual artefacts carry a DIFFERENT structure that is already owned elsewhere: a campaign strategy deck's section grid (objectives, target audiences, messaging, channels, timeline, metrics) is business_operations.go-to-market's grid with `decision-maker` substituted for `buyer`; a lobbying registration or quarterly activity return is registrant-to-regulator, which is business_operations.corporate-regulatory-filings' whole node; a consultation response is a respondent-side instrument against government.public-consultation; placards, social kits and press assets are creative.ad-campaign and creative.content-marketing; a supporter or petition-signature export is the register structure the nonprofit schema already claims for its donor-and-supporter and membership templates; a campaign funded by a restricted grant reports through the schema's grant lifecycle on the grant reference, not on the campaign. Nothing is left over. (3) NO DISTINCT PRIVACY RULE OR DIMENSION ORDER. Its supporter lists and named-official meeting notes are exactly the third-party exposure the parent schema already argues at maximum strictness, and it declares no field, so its `dimension_order` is empty for the same PR-6 reason as every sibling. Detection signals, dimensions and privacy rules are all identical to or weaker than the schema default, which is precisely the condition CONNECTION section 2 refuses. The row's only residue - the word `campaign` and a political-rather-than-commercial target audience - is a topic and an audience, and topic is not purpose and audience is not structure. Refusing is cheaper than inventing: an activated advocacy node would pull every corporate go-to-market plan in the corpus onto the nonprofit schema on the word `campaign` alone.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "The token `campaign`, `advocacy`, `coalition`, `mobilise`, `petition`, `rally`, `march`, `manifesto` or `call to action` in a filename, title or page-one heading. This is the row's central failure: the identical token set sits on `Campaign plan - Q3 product launch.pptx` (a commercial go-to-market deck) and on `Campaign strategy - Right to Repair.docx`. The word names a purpose, and 00 warns that purpose evidence is only strong when it comes from a form, a packet or an explicit user structure - \"Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or\" packet. A campaign word standing alone has neither.",
+      "A charity, union, church, NGO or pressure-group name, a charitable registration number, a 501(c)(3) or CIC designation, or a mission statement anywhere on the page. The parent schema already states this: tax status is a field value, not a structure, and 00 gives the general form of the error - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" An organisation name is never-alone evidence, and this row's entire proposed identity rests on it.",
+      "A named politician, minister, official, legislator, department or bill number appearing in a document. A company's public-affairs team, a law firm's regulatory practice, a journalist's notes and a citizen's letter all carry the same names. The person named is a value, and naming a decision-maker does not create a non-exchange relation.",
+      "A political, environmental, rights-based or social-justice TOPIC, however unambiguous. Topic is not purpose (00's application-packet passage is the design floor: \"The documents are content-incoherent but purpose-coherent.\"), and a document about a policy is not a record of an effort to change it.",
+      "A section grid of objectives, audiences, messaging, channels, timeline and metrics. This is a document TEMPLATE shape shared with go-to-market, marketing, PR and internal strategy planning. Structure that is common to a neighbour cannot discriminate against it.",
+      "A press release, embargo line, media list, coverage log, placard artwork, social asset kit or campaign brand guideline. These are creative-production structures whose owners are landed; the political content of the message does not relocate the asset.",
+      "A petition, sign-up, action-alert or supporter-CRM export considered on its own. A list of named people with contact details is a register - the nonprofit schema's register structure or Protected Records - and never proof that a campaign node should exist. The register is the evidence; the campaign is the label on it.",
+      "A download session, a shared folder path, or co-location with other campaign-worded files. 00 forbids treating a download session as a topic, and CONNECTION forbids format-only activation; a folder called `Campaign` is a user's label, not a fact."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "No grouping axis survives that is not already a neighbour's. A campaign group would be formed by a repeated CAMPAIGN NAME, and a campaign name is exactly the never-alone organisation/label evidence above - it merges a company's product campaign with a charity's policy campaign whenever the words coincide, and it merges two unrelated coalitions that both call themselves `Right to Repair`.",
+    "Where a real group exists in this material, a landed neighbour already forms it on stronger evidence: one GRANT from call to closure on a repeated grant reference (the nonprofit schema's own axis, when a campaign happens to be grant-funded); one go-to-market MOTION on the launch or programme identifier; one CONSULTATION on the consultation's own reference and closing date; one REGISTRATION PERIOD on the registrant identifier and quarter; one CREATIVE JOB on the brief and revision chain.",
+    "The stop rule that kills the row: 00 requires that \"The graph does not automatically copy those missing facts onto sparse files.\" A campaign name read off a strategy deck must not be copied onto the press release, the invoice, the placard or the signature export sitting beside it - and once it cannot be copied, the only thing binding the packet together is the user's own folder, which is a user structure and not a node."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty, and on a refused row it is empty twice over. First for the contract reason every nonprofit sibling shares: a dimension may only branch on a field the same schema declares, and this placeholder schema declares none (PR-6). Second, and decisively: even if fields existed there is no ORDER here that differs from the schema default paragraph or from business_operations.go-to-market's. The order a campaign corpus wants is organisation, then the initiative, then the period, then the document function - which is the parent schema's own recommended prose with `the grant, the restricted fund, the appeal` replaced by `the campaign`, i.e. a value substitution inside an existing order. That is the exact shape CONNECTION section 2 names as not-a-node. Not time-first, for 00's stated reason - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" - and campaign periods are content periods, never capture dates. Any campaign level that did land would also risk 00's own validator failures: it would \"use an author or organization merely as a collector\" in a single-campaign corpus and \"create meaningless one-child levels\".",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "image",
+      "archive",
+      "contacts"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".png",
+      ".zip",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Campaign strategy - Right to Repair - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "headings read Objectives, Target audiences, Key messages, Channels, Timeline, Success measures",
+        "a named organisation in the footer with a charity registration number",
+        "a table of named legislators with a column headed Ask",
+        "version token v3 in the filename"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a nonprofit schema fires - no funder, donor, member, volunteer or named beneficiary appears anywhere in the file",
+        "that `campaign = Right to Repair` is a fact rather than an observed string",
+        "a folder path",
+        "that the charity registration number in the footer relocates the document"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Campaign plan - Q3 product launch.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "headings read Objectives, Target audiences, Key messages, Channels, Timeline, Success measures - the same grid as the fixture above",
+        "a slide of named accounts with a column headed Ask",
+        "a company logo in the master slide"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the shared grid discriminates the two files - THE COLLISION FIXTURE: nothing structural separates them, only the identity of the target audience and the presence or absence of pricing and revenue slides, and audience identity is a value",
+        "that a nonprofit schema could ever be safely activated by this shape"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LD-2 Q2 2026 lobbying activity report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots read Registrant Name, Client Name, Reporting Period, Income, Lobbying Issue Codes, Houses and Agencies contacted",
+        "a filing identifier and a certification signature block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is advocacy evidence - the structure is registrant-to-regulator, a periodic statutory disclosure, which is business_operations.corporate-regulatory-filings' whole relation",
+        "that a charitable registrant makes the return a nonprofit-schema record"
+      ],
+      "also_schema": "business_operations.corporate-regulatory-filings",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Consultation response - waste strategy - FINAL.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a consultation title and closing date reproduced on page one",
+        "numbered Question 1..Question 24 headings with free-text responses beneath each",
+        "a respondent block naming an organisation and a contact"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the respondent's charitable status activates a nonprofit schema - the same instrument is filed by companies, trade bodies, councils and individuals with identical structure",
+        "that the consultation's own reference is a campaign fact"
+      ],
+      "also_schema": "government.public-consultation",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Petition signatures export - 2026-07-14.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers Name, Email, Postcode, Signed at, Marketing opt-in",
+        "one row per named person, many thousands of rows"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a campaign node is needed to hold it - this is a REGISTER of named third parties, the structure the nonprofit schema already claims for its supporter and membership rows",
+        "that opt-in status is consent for any processing by this product",
+        "a folder level named after any signatory"
+      ],
+      "also_schema": "nonprofit",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Press release - embargoed 00-01 12 Aug 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an embargo line, a dateline, a boilerplate About block, a press-contact block with a mobile number",
+        "quoted statements attributed to a named spokesperson"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that political subject matter moves a press release off its production structure - creative.content-marketing owns this artefact whatever the message argues"
+      ],
+      "also_schema": "creative.content-marketing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Campaign social kit - placards and story frames.zip",
+      "source_type": "archive",
+      "observations": [
+        "member paths encode sizes and platform names, a colours-and-type PDF, layered source files",
+        "a manifest readable without unpacking"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the archive is opened - it is inspected by manifest only",
+        "that a slogan inside an asset creates a campaign fact on the archive"
+      ],
+      "also_schema": "creative.ad-campaign",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Meeting note - 2026-06-03 - Cllr Adeyemi.docx",
+      "source_type": "text_document",
+      "observations": [
+        "Attendees, Apologies, Discussion, Actions and Owner headings",
+        "a named elected official and a dated commitment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that meeting a politician is a distinct filing structure - the artefact is a meeting record and business_operations.meeting-record holds it",
+        "that the official's stated commitment is a fact about any outcome"
+      ],
+      "also_schema": "business_operations.meeting-record",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grant report - GT-2024-118 - campaign outcomes - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots read Grant Reference, Funder, Period, Agreed outcomes, Achieved, Expenditure against cost headings",
+        "the word campaign appears throughout the narrative"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the campaign narrative is the structure - the repeated grant reference and the outcome-against-agreement reconciliation are, and those belong to the nonprofit schema's restricted-grant lifecycle",
+        "that a campaign row is needed for grant-funded advocacy"
+      ],
+      "also_schema": "nonprofit",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Save Elm Street Library - public meeting flyer.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a date, a venue, a time and a single call-to-action line",
+        "no organisation, no author, no register, no counterparty"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the absorbed legacy row civic.community-organising rescues this file - a flyer with no second party is a standalone document with a durable purpose and no broader group, which is precisely a residual case",
+        "that the campaign name on the flyer joins it to anything else"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Public affairs agency retainer - invoice 2026-041.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer, bill-to, invoice number, period, line items reading strategy counsel and media relations, VAT and total"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that campaign line-item wording makes an invoice advocacy evidence - it is an exchange (value for value), which is the exact relation the nonprofit schema excludes by construction"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Coalition briefing - clause 12 - for MPs.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an issue summary, three numbered Asks, an evidence section with citations, logos of several organisations along the foot",
+        "a contact box"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that multiple charity logos create a non-exchange relation - a logo strip is a set of organisation names, the canonical never-alone evidence",
+        "that a briefing is distinguishable from a position paper, a white paper or a sector report by structure alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The principal home for this row's coverage once it is refused, because the characteristic advocacy artefact is a standalone document with a real purpose and no group: a flyer, a briefing, a consultation response, a lobbying registration copy, a strategy deck with nothing around it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The second home, and it absorbs most of the material a campaign folder actually accumulates - other organisations' position papers, sector research, model briefings, press cuttings, think-tank reports, the coalition briefing fixture above. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The correct home for this row's defining ambiguity, which the collision fixture demonstrates: a campaign-shaped plan whose SIDE is unresolved - commercial go-to-market or political advocacy - is partly understood and not placeable. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Named because the one genuinely dangerous file in the family is a supporter, signatory or member list carrying names, addresses and a political affiliation inferable from the fact of signing, and a stray copy must not be moved or exposed. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed\" in model prompts.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The isolated transactional members of this world - an agency invoice, a venue booking for a rally, a printing receipt for placards, a donation-platform confirmation for a campaign appeal. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded even though the node is refused, because the refusal must not downgrade the material it routes away. Two grounds, neither of which is distinct enough to save the row. First, a supporter, signatory or petition list is a register of named third parties whose political affiliation is disclosed by the mere fact of the record's existence - which is the third-party-exposure argument the parent nonprofit schema already makes at full strength for donor, member and beneficiary registers, so it is inherited, not distinct. Second, meeting notes naming officials and internal strategy about opponents can harm identifiable people if exposed, and 00's default posture applies unchanged - \"The default posture must therefore be local-first and data-minimizing.\" Because the posture is identical to the schema default rather than stricter than it, the privacy leg of the node test also fails, which is why this value is stated here and no handling class is assigned; P7 owns that.",
+  "open_question": "Three. (1) NJ-AC-1, the respondent seam that R1c must settle whichever way this refusal goes: a consultation response, a written submission to a committee, and a petition delivered to an authority are RESPONDENT-side instruments, and the landed government rows (public-consultation, legislative-record, policy-development) were written from the authority side. Alternatives: (a) government.public-consultation names the respondent copy as also-holding and takes it, (b) it stays with business_operations.corporate-regulatory-filings where a registration exists and Independent Records where none does. This row recommends (a) and cannot enact it. (2) NJ-AC-2, the lobbying-register fork: business_operations.corporate-regulatory-filings should be confirmed as owning LD-1/LD-2, EU Transparency Register and consultant-lobbyist entries for CHARITABLE registrants as well as corporate ones, so that this refusal leaves no orphan. If R1c instead judges lobbying disclosure to be a distinct relation, the correct home is a template on business_operations, never on nonprofit. (3) NJ-AC-3, reversal condition: this refusal would be wrong if J-IND later requires a row per absorbed legacy id regardless of structure, since civic.community-organising is absorbed here. The alternatives are (a) accept the refusal and record the legacy id as covered by business_operations.meeting-record plus Independent Records plus Reading Inbox, which is this row's recommendation, or (b) re-open the row with a discriminator nobody has yet found. The parent schema's own NJ-NP-4 reached the same conclusion independently and asked for refusal rather than invention."
+}

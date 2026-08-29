@@ -1,0 +1,698 @@
+{
+  "id": "legal.practice-matter-file",
+  "kind": "template",
+  "schema_id": "legal",
+  "parent_id": null,
+  "name": "Law-practice matter files",
+  "one_line": "A gist-level professional placeholder for one practitioner-side representation or matter: the engagement record, client communications, filings, docket notices, discovery, evidence, internal work product, calendars, billing, and transfer or closure packet. It recognizes the representation workflow and protects the packet without turning a client, party, matter, case number, practice area, date, document kind, or legal conclusion into a Legal fact or folder level.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a signed engagement or representation record whose labelled addressee and counsel blocks distinguish a client from a legal practitioner or firm, whose own heading and scope section describe legal services for one matter, and whose fee and signature sections complete the practitioner-client workflow. A law-firm name, a fee clause, the word engagement, or two signatures separately establish nothing",
+      "a client-and-matter assessment whose own labelled slots identify a prospective or current client, a matter description or identifier, a responsible practitioner, a conflict or risk review, and a recorded review action. This is evidence of a professional intake workflow; any compliance-risk label remains raw source evidence and never becomes this product’s sensitivity classification",
+      "a court filing carrying a tribunal caption, case or docket identifier, filing kind, filed stamp or electronic document identifier, and a counsel block that explicitly names the holder or holder’s firm as representative. A public pleading downloaded for reading has the same caption and filing structure, so the representation link is required for this template",
+      "an electronic-filing notice in labelled email slots whose sender is a court system, whose subject or body names a case and docket event, and whose body records the filed item plus a document or docket link sent to the holder’s practitioner account. The link is evidence only and is never followed automatically",
+      "a saved docket sheet whose table carries one case identifier and repeated dated event rows, joined to the practitioner-side packet by an exact filed-document identifier, notice identifier, or explicit representation record. A docket sheet standing alone is a court record, not proof that it is the holder’s matter",
+      "a discovery, deposition, exhibit, or expert-report artifact whose own caption and labelled record structure identify a proceeding and whose exact case or matter identifier matches an independently evidenced practitioner-side anchor. The match supports reviewable packet membership; it copies no client, party, issue, or legal conclusion onto the artifact",
+      "an internal memorandum or work note whose own header labels a client or matter reference and whose sections distinguish facts supplied, issues, research, analysis, tasks, or strategy, together with a producer marker for the holder’s practitioner team. The structure supports this workflow but does not establish privilege, work-product protection, correctness, or legal effect",
+      "a client or counsel email whose labelled sender and recipient roles cross the practitioner-client or counsel boundary, whose subject carries an exact matter reference, and whose attachments or body name a concrete filing, request, advice record, or transaction document. Addresses and message content remain local; a thread, subject token, or attachment name alone is insufficient",
+      "a matter time or billing workbook whose labelled sheets and columns pair one exact matter identifier with timekeeper, task, duration, expense, rate, or invoice roles and whose issuer and billed-to blocks distinguish the practitioner from the client. The accounting structure activates Finance on its own evidence; it supports this template only through the separately evidenced representation workflow",
+      "a calendar event whose labelled summary, organizer, attendee, location, and identifier slots tie a hearing, deposition, signing, closing, or client meeting to one exact case or matter reference already supported by the event itself. Calendar source type, a date, or a legal-sounding summary alone never fires",
+      "a matter-system export whose manifest, read without unpacking, includes an export index and several coherent professional families such as engagement, correspondence, pleadings, discovery, evidence, research, billing, and closure, all tied by one explicit matter identifier. Directory names are observations and do not become facts on members"
+    ],
+    "needs_llm": [
+      "whether a court filing, agreement, or correspondence packet is the practitioner holder’s client matter or the holder’s own personal legal record. The same bytes can appear on either side; a local model may interpret explicit role language, but a firm name, party name, or current folder never resolves the holder’s role",
+      "whether a two-organization engagement letter or statement of work is a legal representation for this template or a consulting engagement for career.consulting-client-engagement. Scope, fees, confidentiality, deliverables, and signatures occur on both; explicit counsel, representation, legal-services, tribunal, or legal-work-product structure must carry the legal side",
+      "whether a public opinion, pleading, statute, article, or precedent copy is active matter research or merely saved reading. An exact citation from an independently anchored matter note or an explicit matter-system reference may support membership; topic similarity and citation vocabulary do not",
+      "whether sparse notes, a calendar item, an attachment, or a time entry belongs to a matter whose rich anchors live elsewhere. The outcome may be context-supported membership for review; it never writes the anchor’s client, matter, party, or case identifier as a fact on the sparse file",
+      "whether an OCR capture is an e-filing receipt, client portal, evidence image, public court page, or unrelated screenshot. Positive screen-origin evidence activates Photos independently and never weakens Legal protection",
+      "whether a mixed matter export contains files governed by different access restrictions or different clients. The model may propose a local review boundary from manifest evidence but may not infer privilege, confidentiality, sealing, waiver, or authorization and may never use semantic similarity to bridge matters",
+      "whether a billing record is merely a Finance file that references a client or also belongs in the accepted professional matter packet. The invoice or time sheet keeps its Finance facts; matter membership depends on an exact identifier or explicit reference and copies nothing",
+      "whether two drafts, redlines, signed copies, filed copies, and court-stamped copies form one version or derivation family. Similar names and dates are insufficient; exact hashes, explicit revision markers, filing identifiers, or user confirmation must support the relationship",
+      "whether an unfamiliar, multilingual, or jurisdiction-specific professional artifact belongs to a representation workflow when no approved pattern covers its labels. The route is local interpretation or abstention; this gist-level placeholder defines no jurisdiction catalogue and no legal rule"
+    ],
+    "never_alone": [
+      "the words lawyer, attorney, solicitor, counsel, legal, matter, case, client, privileged, confidential, work product, advice, claim, dispute, contract, filing, discovery, or evidence. Public material, personal records, consulting work, invoices, policies, training, and software all use the same vocabulary",
+      "a law-firm, practitioner, client, adverse-party, court, regulator, expert, or witness name by itself. Letterheads, citations, public filings, directories, biographies, and correspondence can carry the same name in different roles",
+      "a case number, docket number, matter number, invoice number, exhibit label, document number, or Bates-shaped token. An identifier supplies linkage only after its own labelled role and anchor are established; digits never establish a date",
+      "a court caption, filed stamp, legal citation, pleading title, or published opinion by itself. Public court material and saved research have the same observations and may have no representation relationship to the holder",
+      "a source type or extension alone, including text_document, email, archive, spreadsheet, calendar, image, ocr, audio_video, PDF, DOCX, EML, MSG, ZIP, XLSX, CSV, ICS, PNG, JPG, MP4, or HTML",
+      "a filename or folder containing a client name, matter, case, legal, litigation, closing, confidential, final, signed, filed, or privileged. Paths stay local, existing folders support review only, and neither may activate Legal or write a fact",
+      "author, creator, producer, or last-saved-by metadata naming a practitioner or firm. Document templates, scanners, court systems, prior editors, and outside counsel can write those slots",
+      "membership in one email thread, download session, calendar series, transfer batch, archive, current directory, or shared workspace. These relationships retrieve candidates but do not prove topic, representation, or member facts",
+      "a date, deadline-shaped phrase, hearing time, calendar alarm, or four-digit number. The product neither calculates legal deadlines nor interprets a date as operative, satisfied, missed, or jurisdictionally valid",
+      "public availability, a public docket, a published filing, or a public court opinion as proof that the local copy or its surrounding matter context is low sensitivity or eligible for a cloud prompt",
+      "a confidential, privileged, attorney-client, work-product, sealed, restricted, or subject-to-protective-order label. The product preserves the literal observation and does not decide legal status, scope, waiver, access, or disclosure rights",
+      "the absence of EXIF, mobile dimensions, PNG format, dense OCR, or a browser-like layout as proof of an e-filing screenshot. Positive screen-origin evidence belongs to Photos and the content still needs its own anchor",
+      "a transcript-shaped dialogue, expert opinion, medical record, client identity document, or personal-data table merely because it sits inside a matter packet. Its own schema evidence and protection remain independent, and the group copies no label",
+      "matching party names, subject matter, citations, or semantic similarity across two matters. Cross-matter retrieval is suppressed unless an exact explicit reference or user decision authorizes the relationship",
+      "file count, archive size, split-part numbering, a familiar export layout, or a long time span as proof that a bundle is one matter or safe to inspect",
+      "an encrypted, password-protected, malformed, unsupported, or inaccessible file whose only professional clue is its name. It is not forced open and gains no client or matter purpose from metadata"
+    ]
+  },
+  "work_types": [
+    "engagement, retainer, scope, or fee record",
+    "client intake, conflict, or matter-risk assessment",
+    "client instructions and correspondence",
+    "counsel and third-party correspondence",
+    "pleading, petition, motion, or written submission",
+    "court order, judgment, or tribunal notice",
+    "docket sheet or electronic-filing notice",
+    "discovery request, response, or production log",
+    "native production or exhibit set",
+    "deposition or hearing transcript",
+    "witness interview or preparation note",
+    "expert report or expert correspondence",
+    "legal research memorandum or precedent packet",
+    "internal analysis, strategy, or task note",
+    "contract, transaction, or closing document",
+    "closing checklist, binder, or completion packet",
+    "hearing, deposition, signing, or client calendar",
+    "matter budget, time entry, expense, or invoice",
+    "matter transfer, closure, or client-file delivery record",
+    "matter-system export, backup, or archive",
+    "audio, video, image, or other evidentiary material"
+  ],
+  "grouping_reasons": [
+    "one explicitly opened representation or matter, anchored by a signed engagement or intake record and an exact matter identifier. The anchor supports a candidate packet; it does not create client, matter, party, or document facts on members",
+    "one filed-document family: draft, signed version, exhibits, filed copy, court-stamped copy, docket entry, and electronic-filing notice linked by an exact document or filing identifier rather than similar names",
+    "one discovery or production set whose request, response, production index, native archive, and exhibit references carry one explicit production identifier. The archive stays intact and manifests are inspected without unpacking",
+    "one deposition, hearing, witness, or expert package linked by an exact proceeding, transcript, recording, or exhibit identifier. A shared person name and date never establish the package",
+    "one transaction or closing packet whose index names exact instruments, signatures, checklists, deliveries, and completion records. Purpose coherence is a reviewable membership decision and creates no Legal purpose fact",
+    "one matter export whose index, manifest, and member paths use one explicit export and matter identifier. The export remains a shallow protected packet unless the user approves a different representation",
+    "one document across draft, redline, signed, filed, and amended versions, supported by hashes, explicit revision markers, or version_family evidence rather than final-style suffixes",
+    "a sparse note, calendar event, email, invoice, or attachment may join a bounded matter neighborhood when an anchor names its exact identifier or path. Membership may exist while the sparse file retains only universal or independently activated schema facts",
+    "no ordinary group is also valid: one engagement letter, filing notice, strategy note, or expert report may remain a protected record when no reliable matter packet forms"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract, J-IND scope, and privacy. Legal is a D1 and PR-6 fieldless safety placeholder, so this template cannot branch on client, firm, party, counterparty, counsel, matter, case identifier, practice area, jurisdiction, stage, date, tribunal, or document kind; none is a Legal field. J-IND authorizes gist-level professional recognition now and defers full industry depth, so this row does not recreate practice areas, litigation phases, transaction types, or the dozens of sibling schemas from the overnight catalogue. A visible client or matter label can itself disclose the existence and subject of a representation. The present recommendation is therefore one shallow, redacted, user-approved matter packet or representation without automatic internal depth. If Legal fields are later ratified, the organizing anchor would ordinarily precede document function and time, but that remains prose rather than a serialized dimension. This is not time-first: filing time, event time, document date, receipt time, and filesystem creation time have different meanings, and year-first branching would scatter one representation. Any later branch requires explicit user review under the privacy policy and the frozen destination tree.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "archive",
+      "spreadsheet",
+      "calendar",
+      "ocr",
+      "image",
+      "audio_video"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".html",
+      ".eml",
+      ".msg",
+      ".mbox",
+      ".zip",
+      ".xlsx",
+      ".csv",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".wav"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Engagement Letter - Acme Holdings v Beta Trading - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading identifies an engagement for legal services",
+        "a labelled addressee block names Acme Holdings while a separate counsel and firm block names the practitioner",
+        "labelled sections describe scope, communications, fees, and expenses",
+        "signature page carries separate client and practitioner signature blocks",
+        "a labelled internal matter reference repeats in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "client, our_firm, matter, case, scope, fee arrangement, or document kind as a Legal fact; the Legal schema declares none",
+        "that the engagement is valid, current, complete, enforceable, or broad enough for any task",
+        "a Finance fact from a fee section that describes future billing rather than an issued financial record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client and Matter Risk Assessment - Acme Holdings - 2026-08-17.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form slots identify a client, matter description, responsible practitioner, and reviewer",
+        "separate sections record conflict, identity, source-of-funds, geographic, service, and delivery considerations",
+        "a review-action slot and review date are filled",
+        "the form carries the practitioner firm’s template footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a P7 sensitivity outcome or handling class from the source form’s compliance-risk language",
+        "a client, matter, jurisdiction, risk, or approval Legal fact; the schema declares none",
+        "that the assessment is legally required, sufficient, accurate, current, or applicable outside its source jurisdiction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Complaint - Acme Holdings v Beta Trading - FILED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading zone carries a tribunal caption and names opposing parties",
+        "a labelled case identifier appears in the caption",
+        "the document title identifies a complaint and the body contains numbered allegations and requested relief",
+        "a counsel block names the practitioner firm and a court-generated filing mark identifies the submitted copy"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a public filing is the holder’s practice matter without independent representation evidence",
+        "a year from digits inside the case identifier",
+        "that any allegation, defense, requested remedy, filing status, or legal position is true, successful, current, or advice",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of Electronic Filing - Motion to Compel.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot identifies a court electronic-filing service",
+        "subject and body carry one case identifier and docket-event description",
+        "body records the filer, filed document, entry text, recipients, and a document link",
+        "an attachment name corresponds to the filed motion"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "permission to follow the document link, reuse an access token, authenticate, download, or serve anything",
+        "that the linked filing says what the notice summary says without inspecting the independently authorized local copy",
+        "client, party, matter, service, deadline, or filing-effect facts copied from the email to its attachment",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Docket Sheet - Acme Holdings v Beta Trading.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading carries a court name, case caption, and case identifier",
+        "a chronological table lists docket entries, filed-document numbers, dates, descriptions, and links",
+        "party and counsel sections appear outside the event table",
+        "the document was saved from a public case-access system"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that public access makes the local copy, the access history, or its surrounding matter context non-sensitive",
+        "that every docket row is accurate, operative, final, or part of the holder’s representation",
+        "a client, case, outcome, deadline, tribunal, or document-type Legal fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Requests for Production - Set One.docx",
+      "source_type": "text_document",
+      "observations": [
+        "caption names a tribunal, parties, and case identifier",
+        "page-one heading identifies a first set of document requests",
+        "body contains defined terms, instructions, and numbered requests",
+        "signature block identifies counsel and a service section names recipients"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the request was served, answered, complied with, objected to, or legally sufficient",
+        "a case, client, request set, service, deadline, or phase Legal fact",
+        "that a nearby complaint supplies facts to this file when its own caption is missing or contradictory",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deposition Transcript - Jordan Lee - Confidential.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page carries a proceeding caption, witness name, session date, and transcript provider",
+        "body preserves page and line numbers with labelled question and answer turns",
+        "exhibit markers refer to separately numbered documents",
+        "the cover and footer carry a confidentiality label"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege, confidentiality, sealing, admissibility, accuracy, or disclosure rights from the title or label",
+        "that a transcribed statement is true, an admission, a finding, or a Legal fact",
+        "speaker identities or exhibit relationships beyond the transcript’s labelled observations",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Expert Report - Dr Mira Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title page identifies an expert report and carries a case caption",
+        "author section describes qualifications and materials reviewed",
+        "body has methodology, assumptions, analysis, and opinion sections",
+        "appendices list exhibits and source materials"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the author is qualified, independent, correct, retained, accepted, or persuasive",
+        "a medical, scientific, financial, or legal conclusion from the report’s opinion sections",
+        "Research project or artifact_type from report structure alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Production 2026-08-01 - Exhibits and Native Files.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest is read without extraction to disk",
+        "manifest lists a production index, numbered PDF sets, native spreadsheets, exported emails, and exhibit images",
+        "member names share one explicit production identifier and bounded document ranges",
+        "some members carry macro-capable or proprietary extensions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member content, privilege, confidentiality, responsiveness, authenticity, or completeness from manifest paths",
+        "permission to unpack, execute, render active content, convert proprietary members, or send the manifest remotely",
+        "that one production label copies a case, party, subject, or document kind onto every member",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case Strategy and Witness Notes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "internal memorandum header carries a client and matter reference",
+        "headings separate supplied facts, open questions, research, witness notes, options, and next tasks",
+        "comments and tracked changes name members of the practitioner team",
+        "filename contains no court identifier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege or work-product status merely because the document is internal or calls itself strategy",
+        "that supplied facts, witness notes, research, options, or next tasks are true, complete, approved, or legal advice",
+        "authored_by, client, matter, strategy, or phase as a Legal fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Settlement authority - Acme Holdings matter.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient slots cross a client domain and practitioner firm domain",
+        "subject carries an exact matter reference and a settlement-related term",
+        "body contains instructions and figures in free prose",
+        "reply chain names opposing counsel and an attachment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the sender had authority, that an offer was made or accepted, or that any amount or instruction is operative",
+        "a Finance fact from currency values in correspondence",
+        "client, opposing counsel, matter, settlement, or authority facts copied onto the attachment or thread members",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme v Beta - Hearings and Depositions.ics",
+      "source_type": "calendar",
+      "observations": [
+        "VEVENT summary carries a proceeding reference and event-kind phrase",
+        "UID and description repeat one exact matter or case identifier",
+        "organizer and attendee slots distinguish practitioner, client, court, and third-party addresses",
+        "start, end, location, recurrence, and alarm data remain separate labelled calendar fields"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a legal deadline, required attendance, service, adjournment, completion, jurisdictional rule, or reminder action",
+        "creation_date from DTSTART or an operative event date from the filesystem timestamp",
+        "Legal activation from calendar source type or an event-kind phrase alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Matter Time and Billing - Acme Holdings.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook has labelled Time Entries, Expenses, Matter Budget, and Invoice sheets",
+        "columns include matter reference, date, timekeeper, task narrative, duration, rate, and amount",
+        "issuer block names the practitioner firm and a separate billed-to block names Acme Holdings",
+        "formula cells aggregate duration, expenses, and invoice totals"
+      ],
+      "facts_legal": [
+        "file_type",
+        "institution",
+        "record_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a Legal client, matter, phase, task, or practitioner fact from the spreadsheet; Legal declares none",
+        "tax_year from an entry or invoice date",
+        "that billed time, rates, expenses, totals, payment status, or work descriptions are accurate, owed, approved, or recoverable",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Matter Export - Acme Holdings v Beta Trading.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest is inspected without unpacking and includes a root matter index",
+        "index labels a client, matter identifier, responsible team, export identifier, and export time",
+        "member paths include engagement, correspondence, pleadings, discovery, evidence, research, billing, and closure families",
+        "some paths expose people, organizations, medical topics, account details, and litigation strategy"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any Legal fact from the export index; the schema declares none",
+        "that directory labels or the root index supply facts, access rights, confidentiality status, or safe summaries to members",
+        "permission to unpack the archive, show member paths, create previews, or send a complete matter dossier to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client passport copy.jpg",
+      "source_type": "image",
+      "observations": [
+        "image shows a passport identity page with portrait and document layout",
+        "OCR contains bearer and issuing-authority labels",
+        "manifest evidence from a matter export names the exact member path",
+        "no in-file observation names a legal representation or matter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "Legal activation, client status, a matter, purpose, or representation from matter-group membership",
+        "any Identity field; Identity is also a fieldless placeholder and the OCR remains protected evidence",
+        "that the matter index copies its client, matter, or directory labels onto this image",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-18 at 14.42.07 - E-Filing Receipt.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence includes an exact display resolution, capture-software metadata, and a screenshot filename pattern",
+        "OCR region shows a court portal, case identifier, filing event, and receipt identifier",
+        "OCR also exposes a logged-in account name and a document link",
+        "no camera scene evidence appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "media_type from missing EXIF alone; positive screen-origin observations support the Photos fact",
+        "a Legal matter, party, client, filing effect, or submission status from OCR without the representation anchor",
+        "permission to follow the link, expose the account name, or send raw pixels and OCR to a cloud model",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Deposition Video - Jordan Lee.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container metadata yields duration, codec, creation time, and an embedded title",
+        "embedded title carries a witness name and proceeding-shaped reference",
+        "no subtitle or caption track exists",
+        "no explicit privacy and compute policy authorizes transcription"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any spoken content, testimony, speaker identity, admission, transcript, or legal conclusion",
+        "Legal activation from the filename, container, witness name, or proceeding-shaped token alone",
+        "permission to transcribe, upload, sample, summarize, or generate a preview without the required policy",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acme Market Entry - Statement of Work - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page distinguishes a consulting firm in a prepared-by block and Acme in a prepared-for block",
+        "sections describe scope, deliverables, fees, milestones, acceptance, and confidentiality",
+        "signature page carries countersigning organization blocks",
+        "no counsel role, legal-services scope, tribunal structure, matter-system marker, or legal work product appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this law-practice template from client, engagement, confidentiality, fees, or signature structure",
+        "a Legal reading from a governing-law, dispute, indemnity, or limitation clause inside a consulting agreement",
+        "that consulting vocabulary weakens the third-party confidentiality boundary",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Summons - Small Claims - my apartment.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court caption and case identifier appear in the heading",
+        "the holder is named as an individual party in the service block",
+        "body contains response instructions and hearing information",
+        "no engagement record, practitioner role, internal matter identifier, work product, or law-practice export structure appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this practitioner-side template from a court caption, case number, response instruction, or legal vocabulary",
+        "that counsel listed elsewhere in the caption is the holder’s firm or that the holder has representation",
+        "a response deadline, legal obligation, outcome, or advice",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Supreme Court Opinion - Example Holdings v Example Agency.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "official opinion header carries a court, caption, date, and case identifier",
+        "body contains legal citations, procedural history, analysis, and disposition",
+        "browser download metadata identifies a public court source",
+        "no client, holder-firm, matter-system, engagement, annotation, or explicit research reference appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this practice-matter template from a court caption, citations, legal analysis, or official source",
+        "Research project or Legal matter membership without an explicit active relationship",
+        "jurisdiction as a field or destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Client Matter Archive - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive header identifies password-based encryption",
+        "manifest and member contents are unavailable to the approved scanner",
+        "filename contains client, matter, and archive terms",
+        "basic filesystem metadata and content hash remain available locally"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template, a client, matter, purpose, practice area, confidentiality status, or member family from the filename",
+        "permission to brute-force, request credentials, force open, unpack, upload, or convert the archive",
+        "that an inaccessible archive is empty or contains the professional material its name suggests",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "The same summons, order, agreement, correspondence, and court download can sit in a practitioner’s client file or in an individual’s own records. The discriminator is the holder’s evidenced role and workflow: a signed engagement or representation record, practitioner-side client and matter assessment, firm matter-system identifier, counsel work product, or filing notice delivered to the holder’s practitioner account supports this row; the holder named as a party with no practitioner-side anchor supports personal legal matters. A court caption, party name, legal term, or current folder decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "Both situations produce engagement letters, statements of work, client correspondence, deliverables, invoices, confidentiality language, and two-organization signature blocks. Explicit counsel or representation roles, a legal-services scope, tribunal or docket structure, legal-practice matter-system provenance, or internal legal research and strategy supports this row; a prepared-for and prepared-by consulting pair with scope, milestones, deliverables, and acceptance structure supports the consulting engagement. Client name, fee language, confidentiality clauses, and signatures decide neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A practitioner’s time sheet, invoice, expense report, matter budget, and client ledger are both matter-workflow members and Finance-shaped operational records. The discriminator for the evidence item is structural: labelled issuer, billed-to, invoice, payment, line-item, time, rate, expense, or reconciliation slots support bookkeeping; a representation anchor, filing, discovery artifact, client instruction, or legal work-product structure supports the professional matter. An exact matter reference may support packet membership but never converts the financial record into a Legal fact, and a client name or amount counts for neither side.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognized engagement record, filing, work note, transcript, client correspondence, identity copy, or matter packet when no accepted professional group or approved branch exists. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a readable professional-looking document whose practitioner role, active representation, or neighboring workflow remains unresolved, including a consulting-style statement of work with no legal anchor. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected matter archive, inaccessible practice database, malformed production, or unknown binary. The filename never supplies a client or matter purpose. 00: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The inactive home for a public opinion, legal article, practice guide, report, or precedent copy with no explicit client, matter, research project, or accepted professional relationship. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The inactive fallback for a positively evidenced screen capture whose OCR does not establish a practitioner-side matter or another accepted workflow. Account names, identifiers, and links remain redacted. 00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A professional matter packet can combine another person’s or organization’s instructions, identity records, communications, financial information, medical records, allegations, witness material, discovery, expert work, strategy, legal research, credentials, access links, settlement positions, and billing across a long representation. Client-confidential is the catalogue default for this situation, but the product does not infer privilege, work-product protection, sealing, waiver, disclosure rights, or any jurisdictional legal status. Legal protection and P7 classification precede every model and placement path. Paths, filenames, matter identifiers, client and party names, firm names, addresses, correspondence, complete text, OCR, transcripts, docket history, manifests, member paths, hashes, links, access tokens, group memberships, financial values, images, audio, and raw evidence remain local. Public availability of one filing does not make the local matter context safe to disclose. Shared UI redacts names, previews, excerpts, thumbnails, docket entries, and member lists under user policy. This row assigns only potentially_sensitive and does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Four decisions remain outside this gist-level row. First, D1 and PR-6 leave Legal with no fields: if that changes, Joseph must decide whether a matter identifier, client, holder firm, party, counterparty, counsel role, practice area, tribunal, phase, document kind, or operative date may be stored at all. This row proposes none. The canonical client and our_firm pair describes an engagement role but is not referenced by Legal; project and artifact_type are Research and Code fields, institution and record_type are Finance fields, purpose remains College-applications-scoped, and jurisdiction is never a field or dimension. Second, Joseph must decide whether a client-named or matter-named physical branch is acceptable, since its label discloses a representation even when its contents are protected; today the recommendation is a shallow redacted packet with no automatic depth. Third, R1c and P9 must decide how an exact matter, filing, production, transcript, or manifest reference records membership without copying client, case, party, or subject labels onto members, and how cross-matter retrieval barriers are represented. Fourth, P7 and the user policy must own the distinction among public court material, client-confidential information, privilege, work product, sealing, protective orders, and disclosure consent. This catalogue records literal observations and abstains; it must not convert any of those legal statuses into its own vocabulary."
+}

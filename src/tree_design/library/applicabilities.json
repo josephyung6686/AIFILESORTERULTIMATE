@@ -1,0 +1,1989 @@
+{
+  "applicabilities": [
+    {
+      "applicability_id": "ap.academic.coursework",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "term",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.coursework"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "My school"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "Semester"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Course"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of work"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.coursework",
+        "memo:planning/domains/nodes/academic.coursework.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.continuing-education",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.continuing-education"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "Course provider"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Course"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of course material"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.continuing-education",
+        "memo:planning/domains/nodes/academic.continuing-education.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.online-course",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.online-course"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "Course platform"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Course"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of course material"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.online-course",
+        "memo:planning/domains/nodes/academic.online-course.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.study-abroad",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.study-abroad"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "Host university"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Course"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of work"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.study-abroad",
+        "memo:planning/domains/nodes/academic.study-abroad.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.standardized-testing",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.standardized-testing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Test"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Practice, sitting or score"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.standardized-testing",
+        "memo:planning/domains/nodes/academic.standardized-testing.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.teaching",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record.third-party",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "term",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.teaching"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "Semester I taught"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Course I taught"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of teaching material"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.teaching",
+        "memo:planning/domains/nodes/academic.teaching.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.homeschool",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record.household",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "term",
+        "subject",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.homeschool"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "School year"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "subject",
+          "label": "Subject we studied"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of schoolwork"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.homeschool",
+        "memo:planning/domains/nodes/academic.homeschool.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.transcripts-credentials",
+      "applicability_version": 1,
+      "template_id": "def.institution-issued-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.transcripts-credentials"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "School that issued it"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of record"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.transcripts-credentials",
+        "memo:planning/domains/nodes/academic.transcripts-credentials.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.k12-schooling",
+      "applicability_version": 1,
+      "template_id": "def.household-school-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "term",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.k12-schooling"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "My child's school"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "School year"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of school record"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.k12-schooling",
+        "memo:planning/domains/nodes/academic.k12-schooling.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.recommendation-letters",
+      "applicability_version": 1,
+      "template_id": "def.evaluative-letters",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "term",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.recommendation-letters-written"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "Letter season"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of letter material"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:academic.recommendation-letters-written",
+        "memo:planning/domains/nodes/academic.recommendation-letters-written.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.academic.iep-plans",
+      "applicability_version": 1,
+      "template_id": "def.protected-plan-record",
+      "template_version": 1,
+      "uses_schema": "academic",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "school",
+        "term"
+      ],
+      "detection_signal_refs": [
+        "recognition:academic.iep-accommodation-plans"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "school",
+          "label": "School that wrote the plan"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "term",
+          "label": "Plan year"
+        }
+      ],
+      "exclusions": [
+        "work_type as a folder level"
+      ],
+      "provenance": [
+        "row:academic.iep-accommodation-plans",
+        "memo:planning/domains/nodes/academic.iep-accommodation-plans.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.1",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.code.notebooks-experiments",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "code",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:code.notebooks-experiments"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Experiment"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of file"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:code.notebooks-experiments",
+        "memo:planning/domains/nodes/code.notebooks-experiments.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.2",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.code.pkm-vault",
+      "applicability_version": 1,
+      "template_id": "def.preserved-root",
+      "template_version": 1,
+      "uses_schema": "code",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:code.pkm-vault"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Vault"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:code.pkm-vault",
+        "memo:planning/domains/nodes/code.pkm-vault.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.2",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.code.dotfiles-environment",
+      "applicability_version": 1,
+      "template_id": "def.container-artifact",
+      "template_version": 1,
+      "uses_schema": "code",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "repository",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:code.dotfiles-environment"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "repository_instance",
+          "field_ref": "repository",
+          "label": "Dotfiles repo"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of config"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:code.dotfiles-environment",
+        "memo:planning/domains/nodes/code.dotfiles-environment.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.2",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.applications.undergraduate-packet",
+      "applicability_version": 1,
+      "template_id": "def.addressee-packet",
+      "template_version": 1,
+      "uses_schema": "college_applications",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "target_university",
+        "application_cycle",
+        "application_document_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:applications.undergraduate-packet"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "target_university",
+          "label": "Where I applied"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "application_cycle",
+          "label": "Application round"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "application_document_type",
+          "label": "Part of the application"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:applications.undergraduate-packet",
+        "memo:planning/domains/nodes/applications.undergraduate-packet.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.applications.graduate-professional",
+      "applicability_version": 1,
+      "template_id": "def.addressee-packet",
+      "template_version": 1,
+      "uses_schema": "college_applications",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "target_university",
+        "application_document_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:applications.graduate-professional"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "target_university",
+          "label": "Program I applied to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "application_document_type",
+          "label": "Part of the application"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:applications.graduate-professional",
+        "memo:planning/domains/nodes/applications.graduate-professional.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.applications.scholarship-fellowship",
+      "applicability_version": 1,
+      "template_id": "def.addressee-packet",
+      "template_version": 1,
+      "uses_schema": "college_applications",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "target_university",
+        "application_cycle",
+        "application_document_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:applications.scholarship-fellowship"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "target_university",
+          "label": "Funder I applied to"
+        },
+        {
+          "role_ref": "cycle_period",
+          "field_ref": "application_cycle",
+          "label": "Award round"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "application_document_type",
+          "label": "Part of the application"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:applications.scholarship-fellowship",
+        "memo:planning/domains/nodes/applications.scholarship-fellowship.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.applications.k12-admission",
+      "applicability_version": 1,
+      "template_id": "def.addressee-packet.household",
+      "template_version": 1,
+      "uses_schema": "college_applications",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "target_university",
+        "application_document_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:applications.k12-admission"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "target_university",
+          "label": "School we applied to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "application_document_type",
+          "label": "Part of the application"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:applications.k12-admission",
+        "memo:planning/domains/nodes/applications.k12-admission.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.applications.purpose-packet",
+      "applicability_version": 1,
+      "template_id": "def.purpose-packet",
+      "template_version": 1,
+      "uses_schema": "college_applications",
+      "purpose_profile_ref": {
+        "purpose_profile_id": "pp.application-submission",
+        "purpose_profile_version": 1
+      },
+      "allowed_fields": [
+        "purpose"
+      ],
+      "detection_signal_refs": [
+        "recognition:applications.purpose-packet"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "purpose_anchor",
+          "field_ref": "purpose",
+          "label": "What it was for"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:applications.purpose-packet",
+        "memo:planning/domains/nodes/applications.purpose-packet.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.3",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.personal-records",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.personal-records"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Bank or provider"
+        },
+        {
+          "role_ref": "account_kind",
+          "field_ref": "account_type",
+          "label": "Kind of account"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.personal-records",
+        "memo:planning/domains/nodes/finance.personal-records.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.investment-brokerage",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.investment-brokerage"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Broker or custodian"
+        },
+        {
+          "role_ref": "account_kind",
+          "field_ref": "account_type",
+          "label": "Kind of account"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.investment-brokerage",
+        "memo:planning/domains/nodes/finance.investment-brokerage.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.insurance-corporate",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.insurance-corporate"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Insurer"
+        },
+        {
+          "role_ref": "account_kind",
+          "field_ref": "account_type",
+          "label": "Line of coverage"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.insurance-corporate",
+        "memo:planning/domains/nodes/finance.insurance-corporate.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.insurance-personal",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.insurance-personal"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Insurer"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.insurance-personal",
+        "memo:planning/domains/nodes/finance.insurance-personal.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.insurance-healthcare",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.insurance-healthcare"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Health plan"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.insurance-healthcare",
+        "memo:planning/domains/nodes/finance.insurance-healthcare.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.crypto-assets",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.crypto-assets"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Exchange or wallet"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.crypto-assets",
+        "memo:planning/domains/nodes/finance.crypto-assets.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.cap-table-equity",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.cap-table-equity"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Company"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of paperwork"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.cap-table-equity",
+        "memo:planning/domains/nodes/finance.cap-table-equity.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.hoa-residents-association",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.hoa-residents-association"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Association"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.hoa-residents-association",
+        "memo:planning/domains/nodes/finance.hoa-residents-association.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.receipts-expenses",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.receipts-expenses"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Who I bought from"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of receipt"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.receipts-expenses",
+        "memo:planning/domains/nodes/finance.receipts-expenses.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.student-financial-aid",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.student-financial-aid"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "School or lender"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of aid document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.student-financial-aid",
+        "memo:planning/domains/nodes/finance.student-financial-aid.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.subscriptions-utilities",
+      "applicability_version": 1,
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.subscriptions-utilities"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Service provider"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of bill or notice"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.subscriptions-utilities",
+        "memo:planning/domains/nodes/finance.subscriptions-utilities.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.payroll-received",
+      "applicability_version": 1,
+      "template_id": "def.issuer-period-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "tax_year",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.payroll-received"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Employer"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "tax_year",
+          "label": "Year it covers"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of pay document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.payroll-received",
+        "memo:planning/domains/nodes/finance.payroll-received.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.tax-filings",
+      "applicability_version": 1,
+      "template_id": "def.period-scoped-filing",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "tax_year",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.tax-filings"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "scope_period",
+          "field_ref": "tax_year",
+          "label": "Filing year"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of tax document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.tax-filings",
+        "memo:planning/domains/nodes/finance.tax-filings.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.loans-mortgage",
+      "applicability_version": 1,
+      "template_id": "def.loan-kind-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "account_type",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.loans-mortgage"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "account_kind",
+          "field_ref": "account_type",
+          "label": "Kind of loan"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of loan document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.loans-mortgage",
+        "memo:planning/domains/nodes/finance.loans-mortgage.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.small-business-bookkeeping",
+      "applicability_version": 1,
+      "template_id": "def.function-first-book",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_type",
+        "account_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.small-business-bookkeeping"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of bookkeeping document"
+        },
+        {
+          "role_ref": "account_kind",
+          "field_ref": "account_type",
+          "label": "Kind of account"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.small-business-bookkeeping",
+        "memo:planning/domains/nodes/finance.small-business-bookkeeping.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.travel.bookings-confirmations",
+      "applicability_version": 1,
+      "template_id": "def.function-then-issuer",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_type",
+        "institution"
+      ],
+      "detection_signal_refs": [
+        "recognition:travel.bookings-confirmations"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of booking"
+        },
+        {
+          "role_ref": "issuing_org",
+          "field_ref": "institution",
+          "label": "Who I booked with"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:travel.bookings-confirmations",
+        "memo:planning/domains/nodes/travel.bookings-confirmations.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.household-property",
+      "applicability_version": 1,
+      "template_id": "def.group-scoped-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.household-property"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of home document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.household-property",
+        "memo:planning/domains/nodes/finance.household-property.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.finance.vehicle-records",
+      "applicability_version": 1,
+      "template_id": "def.group-scoped-record",
+      "template_version": 1,
+      "uses_schema": "finance",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:finance.vehicle-records"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "record_type",
+          "label": "Kind of vehicle document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:finance.vehicle-records",
+        "memo:planning/domains/nodes/finance.vehicle-records.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.4",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.camera-events",
+      "applicability_version": 1,
+      "template_id": "def.capture-time-events",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "capture_year",
+        "event"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.camera-events"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year I took them"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Occasion"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.camera-events",
+        "memo:planning/domains/nodes/photos.camera-events.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.drone-captures",
+      "applicability_version": 1,
+      "template_id": "def.capture-time-events",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "capture_year",
+        "event"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.drone-captures"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year I flew"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Flight"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.drone-captures",
+        "memo:planning/domains/nodes/photos.drone-captures.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.home-video",
+      "applicability_version": 1,
+      "template_id": "def.capture-time-events.third-party",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "capture_year",
+        "event"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.home-video"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year I recorded them"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Occasion"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.home-video",
+        "memo:planning/domains/nodes/photos.home-video.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.messenger-export",
+      "applicability_version": 1,
+      "template_id": "def.capture-time-events.third-party",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "capture_year"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.messenger-export"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year of the chat"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.messenger-export",
+        "memo:planning/domains/nodes/photos.messenger-export.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.social-media-export",
+      "applicability_version": 1,
+      "template_id": "def.capture-time-events.third-party",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "capture_year",
+        "event",
+        "media_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.social-media-export"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year I posted them"
+        },
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Occasion"
+        },
+        {
+          "role_ref": "capture_kind",
+          "field_ref": "media_type",
+          "label": "Photos or videos"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.social-media-export",
+        "memo:planning/domains/nodes/photos.social-media-export.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.family-archive",
+      "applicability_version": 1,
+      "template_id": "def.capture-time-events.third-party",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "event",
+        "capture_year"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.family-archive"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Occasion"
+        },
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year it was scanned"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.family-archive",
+        "memo:planning/domains/nodes/photos.family-archive.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.screenshot-captures",
+      "applicability_version": 1,
+      "template_id": "def.capture-kind-led",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "media_type",
+        "capture_year"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.screenshot-captures"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_kind",
+          "field_ref": "media_type",
+          "label": "Screenshots or recordings"
+        },
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year I took them"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.screenshot-captures",
+        "memo:planning/domains/nodes/photos.screenshot-captures.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.photos.scanned-documents",
+      "applicability_version": 1,
+      "template_id": "def.capture-kind-led.document",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "media_type",
+        "capture_year"
+      ],
+      "detection_signal_refs": [
+        "recognition:photos.scanned-documents"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "capture_kind",
+          "field_ref": "media_type",
+          "label": "How it was captured"
+        },
+        {
+          "role_ref": "capture_time",
+          "field_ref": "capture_year",
+          "label": "Year it was scanned"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:photos.scanned-documents",
+        "memo:planning/domains/nodes/photos.scanned-documents.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.travel.trip-photos",
+      "applicability_version": 1,
+      "template_id": "def.occasion-place",
+      "template_version": 1,
+      "uses_schema": "photos",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "event",
+        "location"
+      ],
+      "detection_signal_refs": [
+        "recognition:travel.trip-photos"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "occasion_anchor",
+          "field_ref": "event",
+          "label": "Trip"
+        },
+        {
+          "role_ref": "place",
+          "field_ref": "location",
+          "label": "Where we went"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:travel.trip-photos",
+        "memo:planning/domains/nodes/travel.trip-photos.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.5",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.lab-notebook-protocols",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "lab",
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.lab-notebook-protocols"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "holder_institution",
+          "field_ref": "lab",
+          "label": "My lab"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Study"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of bench record"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.lab-notebook-protocols",
+        "memo:planning/domains/nodes/research.lab-notebook-protocols.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.ethics-compliance",
+      "applicability_version": 1,
+      "template_id": "def.subject-work-record.third-party",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.ethics-compliance"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Study"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of ethics document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.ethics-compliance",
+        "memo:planning/domains/nodes/research.ethics-compliance.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.reading-library",
+      "applicability_version": 1,
+      "template_id": "def.reading-shelf",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.reading-library"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Topic"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of reading"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.reading-library",
+        "memo:planning/domains/nodes/research.reading-library.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.dataset-analysis",
+      "applicability_version": 1,
+      "template_id": "def.research-lineage",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.dataset-analysis"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Study"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of file"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "How far along it is"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.dataset-analysis",
+        "memo:planning/domains/nodes/research.dataset-analysis.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.thesis-dissertation",
+      "applicability_version": 1,
+      "template_id": "def.research-lineage",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.thesis-dissertation"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Thesis"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of material"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Draft stage"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.thesis-dissertation",
+        "memo:planning/domains/nodes/research.thesis-dissertation.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.grants-funding",
+      "applicability_version": 1,
+      "template_id": "def.research-workflow-split",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.grants-funding"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Grant"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Proposal or award"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.grants-funding",
+        "memo:planning/domains/nodes/research.grants-funding.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.manuscript-publication",
+      "applicability_version": 1,
+      "template_id": "def.submission-to-venue",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "venue",
+        "stage"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.manuscript-publication"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Paper"
+        },
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "venue",
+          "label": "Journal I submitted to"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where it is in review"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.manuscript-publication",
+        "memo:planning/domains/nodes/research.manuscript-publication.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.research.conference-presentation",
+      "applicability_version": 1,
+      "template_id": "def.venue-bundle",
+      "template_version": 1,
+      "uses_schema": "research",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "venue",
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:research.conference-presentation"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "venue",
+          "label": "Conference"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Study"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of presentation material"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:research.conference-presentation",
+        "memo:planning/domains/nodes/research.conference-presentation.research.md",
+        "51-LAUNCH-TEMPLATE-DRAFT.md §5.6",
+        "53-HUMAN-SENSE-CHECK.md §4 — the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    }
+  ]
+}

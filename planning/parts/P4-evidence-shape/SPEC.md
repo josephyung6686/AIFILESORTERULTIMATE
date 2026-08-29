@@ -631,8 +631,14 @@ their gate; P6, P7 and P8 may assume it passed.
    as empty"*, and its metadata-level rows — *"at minimum filename, format, dimensions or canvas
    properties, embedded metadata"* — are what "indexed" means. A rule forbidding them would make an
    indexed PSD indistinguishable from a file nobody opened, which is the conflation §2.4 forbids.
-   `metadata_only` runs likewise carry the metadata-level rows §2.9's basic filesystem extraction
-   produces.
+   **`metadata_only` carries ZERO observations from the stopping extractor** — settled 2026-08-20,
+   because this sentence and the SPEC's own worked example 19 said opposite things and six extractors
+   would have run the gate. Example 19 is the frozen reading: the run records the deliberate stop and
+   emits nothing, while the file stays indexed through its `filesystem` observations (example 11),
+   which P3 already produced and P5 re-emits under O5. Keeping the metadata rows on the *stopping*
+   run instead would put §2.9's basic filesystem record in two homes and make `complete`-with-zero,
+   `unsupported` and `metadata_only` indistinguishable — the three states §2.4 and §2.9 require be
+   told apart.
 10. Every observation with a non-null `text_span` has a `text_units` row on the same `run_id` whose
     `container_path` equals the observation's, and RAW-1 holds against that row's `text` (D12).
 11. `signal_tier` is null unless the observation is one of §2.6's image-hierarchy signals; where
@@ -795,7 +801,17 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    `analysis_tier ∈ filesystem | native | ocr | llm`. P5 owns the vocabulary and writes the first three;
    P8 writes `llm`. A value outside the four is rejected. `source_type` remains a different field.
 
-2. **Is an observation owned by the content hash or by the file record?** §2.8's field list contains
+2. ~~**Is an observation owned by the content hash or by the file record?**~~ **Settled — ratified
+   2026-08-20: the CONTENT HASH owns the observation.** Two file records with the same content hash
+   share one observation set, and a fact derived on one applies to the other. The file identifier stays
+   on the observation as §2.8 requires, but it is a way in, not the owner — which is why P4's contract
+   was buildable either way. This follows §2.1's *"read each file once per content version"* and §8.2's
+   same-content-new-path rule, and it means a duplicate is never re-extracted. Consequences to carry:
+   P5 re-extracts per content version, not per path; P6 attaches facts to the hash; P11's §6.9
+   multi-home file has one evidence set with several homes.
+
+   *The original, now-superseded wording is kept below for provenance. It describes the question as
+   unsettled; it is settled. Nothing in the paragraph that follows is in force.* — §2.8's field list contains
    both. §2.1 says the engine should *"read each file once per content version"*; §8.2 says *"If the
    same content appears at a new path, the system recognizes it as the same file version."* Together
    those imply one observation set per content hash, shared by every duplicate file — but §2.8 still
@@ -805,7 +821,7 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    P11 (§6.9 multi-home files).* P4's contract carries both fields, so it is buildable either way — but
    only one answer is correct.
 
-3. **Do observations and facts share one reliability vocabulary?** §2.8 puts a "reliability state" on
+3. ~~**Do observations and facts share one reliability vocabulary?**~~ **Settled — ratified 2026-08-20. See *Ratified decisions* at the end of this file; that table is what is in force. The original wording follows.** **One vocabulary: §3.13's six, with extractors stamping only `direct` | `possible`.** §2.8 puts a "reliability state" on
    the observation; §3.13 defines six reliability states for *file facts*. The design never says they
    are the same vocabulary. P4 reuses §3.13 and restricts extractors to `direct` and `possible` (D11)
    because the field is mandatory and must have a domain — but this needs P6's confirmation, and if P6
@@ -821,13 +837,13 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    `(run_id, container_path)`, so either answer is implementable. *Threatens P7 (where the class is
    stored) and P8 (what unit it redacts).*
 
-5. **May a user author or correct an observation directly?** §8.7 enumerates user actions and none is
+5. ~~**May a user author or correct an observation directly?**~~ **Settled — ratified 2026-08-20. See *Ratified decisions* at the end of this file; that table is what is in force. The original wording follows.** **No — a user corrects the FACT at P6, never `raw_value`; a better pass supersedes.** §8.7 enumerates user actions and none is
    "correct an extracted value"; §3.13's `user_confirmed` is a fact state; §2.8 forbids overwriting raw.
    Unsettled: whether a user who sees an OCR misread can write a corrected observation (with what
    `extractor_name` and what reliability state), or whether the only route is a user-confirmed fact at
    P6. *Threatens P6 (§3.13 semantics) and P7 (§8.4's "reclassify a file as private").*
 
-6. **What `completeness` does a source that is not on this machine carry?** macOS "Optimize Mac
+6. ~~**What `completeness` does a source that is not on this machine carry?**~~ **Settled — ratified 2026-08-20. See *Ratified decisions* at the end of this file; that table is what is in force. The original wording follows.** **A ninth value, `dataless`, carrying zero observations.** macOS "Optimize Mac
    Storage" leaves a Finder entry whose bytes are not local; hashing or opening it triggers a
    download, which [`../../11-ops-runtime.md`](../../11-ops-runtime.md) §5 forbids. None of the eight
    values fits: `deferred` is budget exhaustion (§8.6), `unreadable` is encrypted-or-damaged (§2.5,
@@ -835,3 +851,27 @@ settled by **M14**: `observation_key`. *Does the observation carry §2.6's signa
    not-downloaded source, so P4 does not invent a ninth value here. Until this closes, P3 records the
    detection and no `extraction_runs` row is written for such a file. *Threatens P3 (detection),
    P5 (the writer of runs), and §8.6's progress line, which cannot name the category without it.*
+
+---
+
+## Ratified decisions — 2026-08-20 (second session)
+
+Joseph's answers to this plan's NEEDS JOSEPH list. Each is binding; the PLAN was made to
+follow, and its guards were updated rather than left asserting a superseded reading.
+
+| ID | Decision | Consequence in the contract |
+|---|---|---|
+| **A1** | Conformance **rule 8 keys on four fields**, not three: `content_hash`, `extractor_name`, `extractor_version`, `config_fingerprint`. | Rule 8's three-field sentence is unsatisfiable as written — `observation_key` includes `extractor_name`, so two extractors could never produce one identical set. `REPLAY_KEY_FIELDS` carries the four §3.4 names. **Rule 8's text should gain the fourth name.** |
+| **A2** | A span into a **filename** does require a `text_units` row. | Keeps exactly one way to resolve a citation. Cost is one small row. |
+| **A3** | A run with **zero observations may still keep its text units**. | Otherwise §8.5's *"did the expected text appear?"* has nothing to query. `check_run` constrains units by run and address, never by count. |
+| **A4** | A routed-but-stopped run carries `analysis_tier: native`. | Which extractor was routed is the fact §2.4 wants preserved: *"an empty extraction result is different from an extractor that does not yet exist."* |
+| **B4** | The §8.6 context budget gets **P1's sixteenth ceiling key**, `evidence.context_window`, **and** goes in the run's `config` so it is fingerprinted. | A ceiling outside the fingerprint makes two runs at different context widths look identical to §3.4's cache key and §8.5's replay — a silent wrong answer. P4 still holds no number: the value arrives as data. |
+| **B8** | **Done-means 5 is amended.** The nineteen worked examples cover the zones and source types the table reaches, not "all 14". | The five missing zones (`path`, `header_footer`, `link`, `annotation`, `reference_list`) and `contacts` are authored **when P5 actually extracts those formats**, from real output. P4 stays the owner of the shape; P5 supplies the first honest instance. Inventing them now would have six extractor authors building against a fabrication. |
+| **C1 (OQ3)** | **One reliability vocabulary.** §3.13's six, and extractors may stamp only `direct` \| `possible`. | Confirms what D11 and conformance rule 3 already implement. **P6's SPEC must state it** so nobody grows a seventh enum. A PDF heading must not be born `validated`. |
+| **C2 (OQ4)** | **Not yet ratified — P7 decides.** Direction of travel: **file class as default, observation-level override.** | §8.4's excerpt redaction needs per-observation granularity; a file-only class cannot send page 1 to a model while holding back page 3. P4 added no privacy field, so both remain addressable. Must be settled **before P7's schema.** |
+| **C3 (OQ5)** | **No — a user corrects a fact, never an observation.** | §8.7 lists no "correct an extracted value"; §3.13's `user_confirmed` is a fact state; §2.8 forbids overwriting `raw_value`. A better OCR pass **supersedes** (new row, old readable) per §8.2. A second way to mint evidence would fight RAW-2. |
+| **C4 (OQ6)** | **Settled — a ninth `completeness` value: `dataless`.** | None of the eight meant "the bytes are not on this machine": `deferred` is budget, `unreadable` is damage, `unsupported` is a missing extractor. The word is `dataless` because P1 (`DatalessFileRefused`), P3 (`scan_agent.dataless`) and `11-ops-runtime.md` §5 already use it — coining `not_local` beside them would be two vocabularies for one concept. It carries **zero observations** and P2's count line gained `runs_dataless`. |
+
+**Also settled here:** `metadata_only` carries **zero** observations from the stopping extractor
+(rule 9's note and worked example 19 disagreed; example 19 is the frozen reading), and the file
+stays indexed through its `filesystem` observations.

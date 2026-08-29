@@ -1,0 +1,398 @@
+{
+  "id": "research.dataset-analysis",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Datasets and analysis work",
+  "one_line": "The situation where a project's evidence is tabular: raw and cleaned data files, the codebook that defines their columns, the notebooks and scripts that transform them, and the results tables and figure-source files those produce.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends the named Research schema — \"Research files may use project, stage, artifact type, lab, and venue\" — into one organizational situation. The evidence this situation runs on is 00's own format coverage: spreadsheets yield \"workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\", and structured-text files yield \"notebook cell types, package manifests, schema keys, repository markers, and project-root signals\". The situation is not named as a template in 00; the row is inference, not design.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "why": "The Research schema's default order is 00's own \"a Research template may define project → stage → artifact type\" (carried on research.json; the roster row that would have restated it, research.project-workspace, was refused for exactly that reason). This node differs on all three limbs of the node test.\n\nDETECTION — none of this situation's signals is the schema's. The schema row's deterministic signals are prose-artifact structures: an abstract heading, a manuscript title block, numbered protocol steps, a submission-lifecycle term, a venue gazetteer hit. This template fires on structure that has no prose at all: a header row of column names over repeated same-typed rows, sheet names that read as a pipeline, a column-name-plus-definition-plus-units table (a codebook), notebook cell types beside a cell that names a data file, a script that reads a table and writes a results file. A file can satisfy every signal here and contain no sentence.\n\nDIMENSIONS — artifact_type rises above stage, inverting the schema default's last two levels. Justification is in template.why; the short form is that one dataset's raw, cleaned, codebook and results forms are the axis a person navigates, and they persist across stages, so stage-first splits one dataset's lineage across sibling folders.\n\nPRIVACY — different rule, not a stronger version of the same one. The schema row's sensitivity is about unpublished work and editorial correspondence. Here the exposure is mechanical: the extraction that makes a dataset legible is the one that lifts \"visible cell values\" into evidence, and a participant table's cell values are person-level rows. This template's added rule is that sheet names and column headers are the dossier material and cell rows of a person-shaped table are not — 00: \"It should not send full documents where a short heading or OCR excerpt is enough to resolve the question\", and \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\"\n\nThe roster also makes this row file_kind_owner of spreadsheet, and the refused research.project-workspace node routed its own results_batch07.xlsx fixture here."
+  },
+
+  "fields": [],
+  "fields_note": "Empty by contract, not by omission. A template references its schema's fields and never copies the list (CONNECTION.md section 3, _CONTRACT rule 12). The legal fields on a file this template fits are the Research schema's — project, stage, artifact_type, lab, venue, plus authored_by as a search field — as declared on research.json. dimension_order below names only fields that schema declares.",
+
+  "proposed_fields": [
+    {
+      "key": "dataset_name",
+      "type": "string",
+      "example": "the label a project gives one collection of tabular files and their derivatives — the token that a raw file, its cleaned form, its codebook and its results tables all carry",
+      "destination_eligible": false,
+      "role_split_with": [],
+      "reliability_ceiling": "possible",
+      "provenance": "proposal",
+      "why_no_existing_key_works": "One project routinely produces several distinct datasets, and their derivatives interleave. `project` is the project and does not separate them. `artifact_type` separates raw from cleaned from results but is orthogonal — every dataset has all three. `version_family` is the universal draft-family fact computed from stem and content, and a cleaned table is not a version of the raw table: it is a different object with a different column set derived from it. `subject` is the academic key (D6) and means a course. So the join handle that actually groups a dataset's derivatives has no canonical key. Recorded as a proposal only.",
+      "not_a_dimension": "Deliberately kept out of dimension_order. A template may only branch on a field its schema declares (_CONTRACT rule 8's second half, checked across uses_schema for templates), and the Research schema does not declare this key. Adding it to the Research schema is R1c's or Joseph's decision, not this node's — see open_question. Until then a dataset's derivatives are held together by P9 grouping, not by a folder level."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "a tabular structure — a header row of column names over repeated same-typed rows, or sheet names that read as a pipeline (raw, clean, merged, analysis) — co-occurring with a project-identifier token in the filename, in a labelled cell, or in a codebook that names the same columns. 00's spreadsheet yield is what supplies both halves: \"sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\"",
+      "a labelled slot in a structured source naming the project or the dataset — a cell under a Project or Dataset header, a notebook metadata field — which is 00's \"labeled form field\" direct-fact path",
+      "a codebook or data dictionary document whose body is a column-name, definition, units and allowed-values table, where those column names also appear as the header row of a table file in the corpus",
+      "notebook structure read as structure, not as prose: 00's structured-text yield gives \"notebook cell types, package manifests, schema keys, repository markers, and project-root signals\", and this template fires when a cell names a data file that exists in the corpus and a later cell writes a results or figure file",
+      "an analysis script that reads a tabular file and writes a results or figure file, where the repository-marker check has already run and found nothing above it — the check runs first because 00 puts that evidence on the code side: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\"",
+      "an archive manifest whose members combine a data file, a codebook and an analysis script, read without unpacking — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+      "a project-identifier token matched at word boundaries with positional weighting in the filename, a sheet name, or a labelled cell — 00: \"It should use word-boundary matching rather than substring matching.\""
+    ],
+    "needs_llm": [
+      "whether a workbook of numbers with no project token and no codebook is a research dataset, a budget, a bookkeeping ledger, or a personal tracker — 00's own residual surfacing names this pile: \"14 spreadsheets and presentations with unclear purpose\", and lists \"a spreadsheet with unclear purpose\" among the genuinely independent files",
+      "whether a results table is an interim exploratory output or the reported final one, where no labelled slot and no lifecycle term says so — the stage question restated for tabular material",
+      "whether an OCR'd table or chart image shows this project's own results or a table copied out of a paper the holder is reading",
+      "whether a column vocabulary is participant-level human-subjects data or instrument readings — a privacy conclusion before it is an organizational one, and one that column names alone frequently cannot settle",
+      "whether a notebook with no project token and no repository marker belongs to this project's analysis, to the code side's experiment tracking, or to neither"
+    ],
+    "never_alone": [
+      "a spreadsheet source_type, or a .csv / .xlsx / .ipynb extension, alone — 00 treats the extension as \"a routing signal rather than an assumption about meaning\", and bookkeeping ledgers, wearable exports, contact exports and app data dumps are all tabular. Fixtures: Q1_expenses_2026.xlsx and health_export_2026.csv both satisfy 'has a header row and repeated rows' and neither is this template's",
+      "a header row of generic column names (id, date, value, name) alone — a generic column vocabulary is the tabular equivalent of the high-frequency hub 00 warns about, and it discriminates nothing",
+      "the words data, dataset, analysis or results in a filename alone",
+      "a bare four-digit number in a filename or a column (run07, plate 2026) read as a year, term or project id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a notebook file alone — a downloaded tutorial notebook has notebook cell types and analysis imports and is reading material. Fixture: pandas_tutorial.ipynb",
+      "membership in a bounded download session shared by several data files — 00: \"A session should never be treated as proof of topic\"",
+      "a filename alone on an unreadable instrument or binary data file — 00: \"the system should not infer a purpose from their filename alone\". Fixture: Run07_platereader.raw"
+    ]
+  },
+
+  "work_types": [
+    "raw dataset",
+    "cleaned dataset",
+    "data dictionary",
+    "codebook",
+    "sample manifest",
+    "analysis notebook",
+    "analysis script",
+    "results table",
+    "summary statistics output",
+    "figure source data",
+    "model output",
+    "calibration file",
+    "instrument export",
+    "query or extraction spec"
+  ],
+  "work_types_note": "These are VALUES of the Research schema's artifact_type field, discovered at runtime — 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" None of them is a roster node and none licenses a child schema or a child template.",
+
+  "grouping_reasons": [
+    "one dataset and its derivatives: the raw table, the cleaned table, the codebook that defines their columns, and the notebook that produced the second from the first",
+    "one analysis run: a script or notebook, the input table it names, and the results and figure-source files it writes, sharing a run token or a write path",
+    "one instrument batch: exported tables carrying the same batch or plate token, whose calibration file sits beside them",
+    "a sparse results table or table screenshot whose column vocabulary matches a project's codebook joins that project's neighbourhood as a context-supported member and acquires no project fact — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+
+  "template": {
+    "dimension_order": ["project", "artifact_type", "stage"],
+    "why": "A recommendation for one situation, not a filesystem: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" project stays first for 00's stated reason — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and because a column vocabulary is unintelligible without the project whose measurements it holds, which is the parent-makes-the-child-intelligible rule 00 states as \"A work type such as Homework 3 is meaningful only after the course is known\". The difference from the schema's default order is the next level: artifact_type rises above stage. Data work's primary axis is lineage — raw, cleaned, codebook, analysis, results — and one dataset keeps all of those forms while its stage moves from exploratory to reported. Putting stage above artifact_type therefore splits one dataset's raw table from the cleaned table derived from it whenever the exploratory pass and the final pass touch the same data, which is the ordinary case. lab and venue are legal facts here and are deliberately not dimensions: a lab is constant across the whole branch, and a dataset has no venue until a manuscript claims it, which is research.manuscript-publication's situation and not this one. The stage leaf is the level most likely to be flattened by a user whose project has one analysis pass — 00 asks the canvas to warn when a level \"creates excessive depth, or creates a large number of tiny folders\" and to \"recommend flattening when a dimension does not materially improve retrieval\", and the branch counts each split would create are shown before the user commits.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "code_structured",
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [".csv", ".tsv", ".xlsx", ".ods", ".ipynb", ".py", ".R", ".sql", ".json", ".parquet", ".dta", ".sav", ".docx", ".png", ".zip", ".raw"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "PVA-RDP_participants_raw.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads sample_id, age, site, consent_date, contact_email over repeated same-typed rows",
+        "the project token appears in the filename",
+        "a codebook document in the same corpus defines the same column names"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any participant value as a field value — those rows are protected content, not facts",
+        "a term or capture year from the consent_date column",
+        "that the personal columns make this a contacts export; contacts is a source_type and this file's evidence is a project-scoped measurement table"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "codebook_PVA-RDP_v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading reads Data Dictionary",
+        "the body is a table of column name, definition, units and allowed values",
+        "the project token appears in the title and in the filename",
+        "core properties record an author string"
+      ],
+      "facts_legal": ["project", "artifact_type", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the v2 suffix — a version suffix is a version_family signal, not a workflow position",
+        "the defined column names as facts about this file; they are evidence that links it to the tables that carry them",
+        "a destination dimension from authored_by"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "clean_and_merge.ipynb",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook cell types present: markdown cells over code cells",
+        "a markdown cell names the project token",
+        "a code cell reads participants_raw.csv and a later cell writes participants_clean.parquet",
+        "no package manifest and no repository marker in any directory above it"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "repository — no repository marker was found, and repository is the code schema's structural fact",
+        "programming_language as a folder level; it is not destination-eligible on the canonical row",
+        "that the notebook file type alone made this template plausible"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "analysis/model_fit.py",
+      "source_type": "code_structured",
+      "observations": [
+        "a package manifest and a repository marker sit at the directory root above it",
+        "the module docstring names the project token",
+        "it reads a results table and writes a figure file"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this template takes the evidence item when the repository markers are the stronger structural evidence — 00: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\"",
+        "that carrying code facts drops the research facts; both are kept on disjoint evidence"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "results_batch07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names batch07, calibration, notes",
+        "a labelled cell reading Project above the project token",
+        "a header row over sample-shaped columns: sample_id, replicate, reading",
+        "a bare four-digit run number repeated in a column"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "tax_year or record_type — spreadsheet is a source_type, not a finance signal",
+        "a term or capture year from the four-digit run number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Plate07_export_2026-03-11.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads well, sample_id, od600 over repeated rows",
+        "an instrument name and a firmware string in the first lines above the header",
+        "a date token in the filename",
+        "a protocol document and a dated notebook page sit in the same folder"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the sibling protocol document — that is neighbourhood context, not this file's own evidence",
+        "that this template takes the item when the dated experiment-record neighbourhood is the stronger evidence; that is research.lab-notebook-protocols",
+        "a year from the plate number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-03-11 at 14.22.png",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF; PNG at an exact display resolution",
+        "an OCR region shows a table whose column names match a project codebook in the corpus",
+        "no project token is visible anywhere in the image"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: the system \"must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "project from the matching column names; the match is a retrieval link into the project neighbourhood, not a fact on this file",
+        "whether the table is this project's output or one copied from a paper being read — 00: \"conflicting signals should lead to abstention rather than an invented classification\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "analysis_bundle.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists data_clean.csv, codebook.docx, run_analysis.R and a figures directory",
+        "one member name carries the project token",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence",
+        "that the outer archive name means anything on its own",
+        "stage from the presence of a figures directory"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Q1_expenses_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names Q1, vendors",
+        "header row reads date, vendor, amount, category with currency formatting",
+        "an institution-shaped organization name in a header cell",
+        "no project token, no codebook, no analysis file names it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this template from tabular structure alone — the discriminating evidence is a ledger vocabulary plus an institution or account name, which puts the item on finance.small-business-bookkeeping",
+        "project from the quarter token",
+        "a residual home while the finance schema is still plausible; residual is the complement of reliable domain association, not a tiebreak"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "health_export_2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads date, steps, heart_rate, source_device over very many repeated rows",
+        "an app-generated filename and an export banner line",
+        "no project token, no codebook, no analysis file names it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a personal device export is a research dataset — the discriminating evidence is a project identifier or a codebook, and this file has neither; the item belongs to medical.wearable-health-exports",
+        "artifact_type from the tabular structure alone",
+        "any cloud prompt containing its rows — 00: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "pandas_tutorial.ipynb",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook cell types present; imports of an analysis library",
+        "cells read a sample dataset shipped with the library",
+        "no project token; downloaded in a bounded session beside two other tutorial files"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the download session — 00: \"A session should never be treated as proof of topic\"",
+        "artifact_type from the notebook file type alone",
+        "that analysis-library imports are project evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Run07_platereader.raw",
+      "source_type": "opaque_binary",
+      "observations": [
+        "no dedicated extractor; safe metadata-only indexing",
+        "filename carries a run number and an instrument word",
+        "size and timestamps only"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project or artifact_type from the filename — 00: \"the system should not infer a purpose from their filename alone\"",
+        "a year from the bare run number",
+        "an empty extraction result — 00: \"The system should never silently treat an unsupported format as an empty document\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "code.notebooks-experiments",
+      "signal": "One evidence item — a notebook carrying analysis-library imports and a project token — supports both, because project and artifact_type are one canonical key each, referenced by both schemas. The discriminator is structural and belongs to code: a repository root, a package manifest, or a run-directory layout above the file counts for that template; a notebook whose named inputs and outputs are this project's data files, and whose neighbourhood is a codebook and a results table, counts here. Fixtures: clean_and_merge.ipynb (here, no repository marker) against analysis/model_fit.py (code, repository marker above it).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.lab-notebook-protocols",
+      "signal": "An instrument-exported table supports both templates on the same schema. The discriminator is what the file is a record OF: a dated experiment record tied to a protocol and a sample identity is lab-notebook material; a table that is an input to or an output of an analysis — named by a codebook, read by a script, or written beside a results file — is this template's. Fixture: Plate07_export_2026-03-11.csv sits on the lab-notebook side while its only neighbourhood is a protocol and a dated notebook page.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Tabular structure supports both, and the roster makes both templates owners of spreadsheet evidence, so the source_type discriminates nothing. The discriminator is the column vocabulary plus its anchor: a ledger vocabulary (date, vendor, amount, category) beside an institution or account name is bookkeeping; a measurement or observation vocabulary anchored by a project identifier or a codebook is this template's. Finance is a safety domain, so on a genuine tie its protection path runs regardless of which side takes the item. Fixture: Q1_expenses_2026.xlsx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.wearable-health-exports",
+      "signal": "An app-generated CSV of timestamped measurements satisfies every structural signal this template has. The discriminator is the anchor again: a device- or account-generated export with no project identifier, no codebook and no analysis file naming it is the wearable export; a research dataset carries one of those three. Medical is a safety domain and its protection path runs before any model or placement path either way. Fixture: health_export_2026.csv.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by omission: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. The roster's own one_line_hint for this id calls it a strong also_holds candidate with the code schema, and that co-activation is real — a project's analysis notebook legitimately carries repository and programming_language from repo markers and project, stage and artifact_type from its data neighbourhood — but the edge belongs on research.json and code.json, where it is already authored on both sides. Recorded here as the also_schema value on the analysis/model_fit.py fixture, and flagged for R1c in the research notes.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" This situation produces that file in quantity, and 00's own residual surfacing screen names the pile — \"14 spreadsheets and presentations with unclear purpose\" — and lists \"a spreadsheet with unclear purpose\" among the genuinely independent files. Fixtures: results_batch07.xlsx with no recoverable project, Plate07_export_2026-03-11.csv, the table screenshot.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00: this residual holds \"password-protected archives, unreadable documents, damaged files, and unknown formats\", and the format rule behind it is 00's own — \"disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved\". Instrument binaries and proprietary data containers are the ordinary case here. Fixture: Run07_platereader.raw.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A participant-level table with no accepted project association has no safe deeper home. 00 puts this residual under a local-only rule: it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: PVA-RDP_participants_raw.csv with no resolvable project, health_export_2026.csv.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "A downloaded tutorial or example notebook, and a data file pulled from a public repository to look at, are reading material with \"no active research, course, or project association\" in 00's own words for this residual. Fixture: pandas_tutorial.ipynb.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Not because analysis is private, but because the extraction that makes this situation legible is the one that exposes people. 00's spreadsheet extractor yields \"visible cell values\", and in a participant table those values are person-level rows; the same file is simultaneously the project's most useful evidence and its most sensitive content. 00 requires that \"raw sensitive values should remain local\" and that the system \"should not send full documents where a short heading or OCR excerpt is enough to resolve the question\", which for this template means sheet names and column headers are dossier material and person-shaped cell rows are not. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Two linked forks about what this situation is allowed to branch on, both of which decide someone's real folder structure and neither of which this node may settle. (1) One project usually holds several datasets, and the key that would separate them does not exist — see proposed_fields.dataset_name. Should the Research schema gain such a key so a dataset can be a folder level, or is a dataset a P9 group only, held together by evidence and never by a folder? (2) If it does become a level, the lineage question follows immediately: does a cleaned table and the results derived from it live under the dataset it came from, or under the analysis that produced it? The two answers give different trees for identical facts, and 00's position is only that the facts do not change when the view does."
+}

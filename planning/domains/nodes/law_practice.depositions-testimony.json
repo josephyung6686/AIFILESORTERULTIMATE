@@ -1,0 +1,581 @@
+{
+  "id": "law_practice.depositions-testimony",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Depositions, examinations and witness testimony",
+  "one_line": "The file of ONE named individual's own sworn or attested evidence, taken outside a courtroom and recorded so that it can be quoted back word for word: the notice or subpoena that compelled the person, the certified verbatim transcript with its page-and-line addressing, the audio or video recording of the examination, the exhibits marked on the person during it, the errata sheet on which that person corrects their own recorded words, and the designations that later cite into it by coordinate. It also absorbs the legacy row law.witness-statements: a signed witness statement or proof of evidence is the drafted, non-verbatim form of the same thing, one person's own attested account, anchored on the person rather than on the matter. The row exists because its activation structure is NOT the schema's practitioner-and-client pair - the anchoring slot is a THIRD professional role, a reporter, notary, commissioner or examining officer who attests an oath and signs, and the person whose words are recorded is usually neither the practitioner nor the client - and because its privacy rule is specific to it: a certified transcript is a full verbatim record of one compelled non-party, and it ships with an alphabetical WORD INDEX, a machine-readable concordance of every name and term spoken. It does NOT hold the tribunal's own record of a hearing (law_practice.hearing-transcripts), written interrogatories and requests (law_practice.discovery), the schedule that spans several examinations (law_practice.evidence-exhibits), the expert's instruction and report (law_practice.expert-materials), or a notarised affidavit, whose jurat is `legal`'s own deterministic signal. Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "subject_of_record",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "ENDORSEMENT OF AN EXISTING PROPOSAL, NOT A MINT. `clinical_practice` proposed `subject_of_record` for the person a record is ABOUT as distinct from the person who holds it; `nonprofit` adopted it rather than minting `beneficiary`; the `law_practice` schema adopted it too and named the deponent as its example. This row is the PARADIGM CASE and is recorded so R1c can weigh the strongest instance rather than the average one: a deponent is compelled by a notice or subpoena, is frequently a NON-PARTY with no relationship to the holder, to the holder's client or to the litigation at all, and the entire artefact is that one person's verbatim words. `client` cannot hold them (they are often adverse, or on no side), `our_firm` cannot, `subject` is a topic key and not a person, and minting `deponent`, `witness`, `examinee` or `affiant` would be four names for one concept that already has one. The row explicitly DECLINES to mint any of those four.",
+      "preferred_resolution": "Adjudicate as ONE key with `clinical_practice`, `nonprofit` and the `law_practice` schema. This row adds one condition and no fork: `destination_eligible` must be FALSE, and the reason belongs on the key rather than on each template, because a folder named for a deponent writes a compelled non-party's identity into the filesystem where every later process reads it - against 00's \"The default posture must therefore be local-first and data-minimizing.\" This row's own dimension recommendation is built around that ban (see template.why), so if the key is adopted as destination-eligible the recommendation here must be read as overriding it.",
+      "why": "The deponent is the field-shaped hole under this row's entire privacy claim, and the one person in the law_practice family who has no canonical key and no consent."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION AND THE ROW'S WHOLE ARGUMENT. These are activation signals, not licences to write law_practice facts - the schema declares none. The discriminating structure is a CERTIFIED VERBATIM EXAMINATION RECORD, and it is a FOUR-SLOT structure that is deliberately NOT the schema's default pair. The schema's default requires (i) a matter reference repeated across artefacts and (ii) an artefact whose labelled slots separate a PRACTITIONER role from a CLIENT role. This row fires on neither: its anchoring slot is a THIRD professional role - a reporter, stenographer, notary, commissioner or examining officer - attesting that they administered an oath to a NAMED INDIVIDUAL, and the individual is usually neither the practitioner nor the client. A transcript served by opposing counsel may carry no reference of the holder's firm anywhere and still be unambiguously this row's. Apply the schema's deletion test unchanged: delete every entity name and every document-type word - the certificate slot, the oath attestation, the page-and-line addressing and the errata columns all survive, which is why this is a node and not a filename filter.",
+      "AN OFFICER'S CERTIFICATE: a signed block in which a person who is NOT a party and NOT counsel attests that they administered an oath or affirmation to a named individual, that the examination took place on a stated date at a stated place, that the pages are a true and correct record of the testimony, and that they have no interest in the outcome, together with their own commission, licence or registration reference and a date of signature. The three labelled professional roles on one page - officer, examining counsel, defending counsel - plus a fourth non-professional role, the person examined, is a role structure no other roster row produces. Read through 00's direct-fact path, a labelled form field.",
+      "AN APPEARANCES BLOCK WITH NO BENCH: a header listing who was present and in what capacity - counsel for each party, the reporter, a videographer, an interpreter, the deponent - and NO judicial officer, NO bench line, NO clerk and NO ruling. The ABSENCE of the tribunal here is not the row's evidence on its own (a row defined only by an absence would be refused); it is the discriminator applied AFTER the certificate slot has already fired, and it is the single thing that separates this row from `law_practice.hearing-transcripts` on identical-looking bytes.",
+      "PAGE-AND-LINE VERBATIM BODY: pages numbered on a two-axis coordinate system, line numbers running down the left margin, alternating `Q.` and `A.` prefixes, colloquy and objection interjections attributed by surname, and frequently a CONDENSED or four-up rendering of the same pages. Page-and-line addressing is what makes the artefact QUOTABLE, and it is the reason every downstream artefact in this family points INTO the file by coordinate rather than by paragraph. Numbered clauses, numbered paragraphs and numbered requests are other rows' structures and are not this one.",
+      "AN ERRATA, CORRECTION OR READ-AND-SIGN SHEET, and this is the row's most distinctive slot: a table whose columns are page, line, the words as recorded, the words as changed, and the reason for the change, signed and dated BY THE PERSON WHOSE WORDS THEY ARE. It is a record of one individual amending a record of themselves, and no pleading, order, exhibit schedule, expert report, discovery response, investigation note or hearing transcript in this roster produces it - a witness cannot correct a court's transcript this way, because the record belongs to the court. A read-and-sign WAIVER, a one-line slot stating that signature was waived, is the same slot in its negative form and counts equally.",
+      "A NOTICE OR SUBPOENA DIRECTED AT A NAMED NATURAL PERSON: an instrument compelling one individual to attend and answer orally at a stated date, time and place, naming the officer before whom the examination will be taken, and optionally attaching a schedule of documents that person must bring. The discriminator against `law_practice.discovery` is the DIRECTION AND THE OBJECT: a demand aimed at a PARTY to produce documents or answer in writing is discovery's; a demand aimed at a PERSON to appear and speak is this row's, and the attached schedule does not move it.",
+      "A DESIGNATION, COUNTER-DESIGNATION or CITE TABLE: a table whose columns are page-from, line-from, page-to, line-to, offering party, objection and ruling. It is structurally a table of COORDINATES INTO ANOTHER FILE and it is the clearest external proof that the page-and-line system is this family's real structure. The designation table is this row's; the trial bundle it is being prepared for is `law_practice.trial-preparation`'s.",
+      "A PROCEEDING RECORDING: an audio or video file whose extraction yields, per 00, \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present, and—only under an explicit privacy and compute policy—speech-to-text transcripts.\" The examination is announced on the record at the head of the recording by the officer or videographer, and the file is usually one of several numbered media segments covering one day. This row is the only one in the law_practice family whose PRIMARY artefact family includes a recording, which is why 00's speech-to-text clause is a live constraint here and nowhere else in the family: the recording must not be transcribed to improve classification.",
+      "AN UNCERTIFIED ROUGH or REALTIME FEED: a plain-text or ASCII stream carrying the Q-and-A body and provisional page-and-line numbering, marked rough, uncertified, unedited or not for citation. It is the same examination before the certificate exists, and it belongs here as a version_family member of the certified transcript - supported by explicit revision or certification markers, never by a `-final` suffix.",
+      "A WITNESS STATEMENT, PROOF OF EVIDENCE or DECLARATION, which is how this row absorbs the legacy `law.witness-statements`: continuous first-person prose in numbered paragraphs, headed with the maker's name and address-for-service, exhibiting documents by an initials-and-number marker, and closing with a STATEMENT OF TRUTH or declaration block signed and dated by the maker. It is NOT verbatim and has no reporter, but it is the same underlying structure this row is built on - ONE NAMED INDIVIDUAL'S OWN ATTESTED EVIDENCE, SIGNED BY THAT INDIVIDUAL, ANCHORED ON THE PERSON RATHER THAN ON THE MATTER - and the signed statement of truth is the attestation slot in its self-administered form. Where a NOTARIAL JURAT is present instead, the document is an affidavit and `legal`'s own deterministic signal has fired; see collides_with.",
+      "AN ALPHABETICAL WORD INDEX bound at the back of a certified transcript: a concordance mapping every proper name and substantive term spoken to its page-and-line occurrences. It is a strong structural signal AND the row's sharpest privacy hazard simultaneously, and it is detected in order to be protected: it is the most extractable structure in the file and the one that must never be read as a source of facts, entities or prompt content.",
+      "AN EXAMINATION-PACKAGE ARCHIVE whose manifest, read WITHOUT unpacking, shows member paths encoding ONE person's name or examination reference across coherent members - a certified transcript, a condensed rendering, a word index, an exhibits folder, numbered media segments, an errata sheet. 00: \"However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.\" Member paths are observations and become facts on no member."
+    ],
+    "needs_llm": [
+      "SEPARATING AN OUT-OF-COURT EXAMINATION FROM THE TRIBUNAL'S OWN RECORD OF A HEARING. This is the row's sharpest over-firing risk and it is `law_practice.hearing-transcripts`' whole node from the other direction. Both are reporter-produced verbatim Q-and-A with page-and-line numbering and a certificate. The deciding evidence is a JUDICIAL PRESENCE in the header or body - a bench line, a presiding officer, rulings on objections made in the moment, opening and closing addresses - together with the presence or absence of an errata slot the witness may sign. Neither the word transcript nor a reporting company's footer decides anything.",
+      "DECIDING WHETHER A SIGNED WITNESS STATEMENT REALLY BELONGS WITH SWORN EXAMINATIONS AT ALL. The roster directs the legacy absorption and this row performs it, but the seam is genuinely thin and is surfaced rather than smoothed (see open_question): a statement is drafted, often by the practitioner, and only signed by the maker, whereas a deposition is the maker's own unedited words. The model must not treat drafting authorship as the test, because 00 forbids the destination use of that slot and because both artefacts carry the same producer metadata.",
+      "SEPARATING AN EXAMINATION FROM AN INVESTIGATION INTERVIEW. `law_practice.investigation` holds interview records that are also one person's account of events, and they defeat topic-based separation completely. The discriminators are structural: an investigation note is taken BY the investigator, is usually a summary rather than verbatim, has no oath, no officer, no page-and-line coordinates and no slot in which the interviewee corrects and signs. Where an interviewee HAS signed a verbatim record under an attestation, the two rows genuinely contest the file and the model should abstain rather than guess.",
+      "DECIDING WHETHER THE HOLDER IS PRACTITIONER-SIDE AT ALL. A certified transcript is served on every party and downloaded by non-parties; the same bytes sit in the practitioner's matter file, in the deponent's own records, in an expert's working set and in a journalist's folder. The schema's default pair is absent from the file itself, so this row's activation says nothing about the holder's role, and the model must not infer one. Where the holder appears to BE the deponent, `legal.personal-legal-matters` is the more specific home.",
+      "RECOGNISING AN EXAMINATION IN AN UNLABELLED OR JURISDICTION-SPECIFIC FORM - an examination for discovery, an examination under oath on an insurance claim, a statement taken under caution, a commission or letters-rogatory examination abroad, a taped interview transcribed by a secretary, a scanned and OCR'd stenographic original. Local interpretation or abstention only. This row defines no jurisdiction catalogue and no procedural rule, and jurisdiction is never a field or a dimension here.",
+      "SEPARATING AN OPERATIVE EXAMINATION FROM A TRAINING OR PUBLISHED EXEMPLAR. Advocacy courses, bar review providers, reporting companies and trial-skills programmes all publish complete sample transcripts with real-looking certificates. Topic will not separate them - purpose is the only test that works - and the exemplars in this family are unusually convincing because the profession publishes its own.",
+      "DECIDING WHETHER SEVERAL VOLUMES, DAYS, MEDIA SEGMENTS AND A ROUGH DRAFT ARE ONE EXAMINATION OR SEVERAL. A person may be examined twice in one matter, once in each of two related matters, and once as a fact witness and once as a corporate representative. Bridging by the person's name alone is forbidden however confident the model is - that is a privacy rule as much as an accuracy one.",
+      "ABSTAINING WHENEVER THE CERTIFICATE-OR-ATTESTATION SLOT CANNOT BE CITED. 00: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\" and \"A model that cannot cite sufficient evidence must return unknown.\""
+    ],
+    "never_alone": [
+      "A PERSON'S NAME ALONE, IN ANY OF THIS ROW'S ROLES - deponent, witness, examining counsel, defending counsel, reporter, videographer, interpreter, expert. This is the strictest instance of the schema's general rule and it is struck first, because this row's entire privacy claim is that a NAMED INDIVIDUAL is the anchor: a bare name is simultaneously the least discriminating evidence in the corpus and the most dangerous thing to act on. `Jordan Lee.pdf` establishes nothing.",
+      "THE WORD DEPOSITION, TESTIMONY, EXAMINATION, TRANSCRIPT, WITNESS, DEPONENT, AFFIANT, SWORN, UNDER OATH, ERRATA, DESIGNATION or STATEMENT, ALONE OR IN COMBINATION. This is the charge this row had to answer and it is conceded in full: these are document-type words and the schema's own `work_type` enum already carries \"witness statement, proof of evidence and deposition or hearing transcript\" as a single VALUE. A row whose only evidence is that vocabulary IS the schema's default template with a narrower filename filter, and would deserve refusal. The row stands on the certificate-and-errata STRUCTURE or it does not stand.",
+      "A DOCUMENT-TYPE WORD BESIDE A PERSON'S NAME. `Deposition of Jordan Lee.pdf` is two struck tokens, not a structure, and it is exactly the escape route `business_operations.organisational-records` closed: a document-type word names no entity and resolves nothing about the first entity's role. It cannot tell you whether the person was examined, whether the file is the transcript or a summary of it, or whether the holder was in the room.",
+      "A COURT REPORTER'S, STENOGRAPHY BUREAU'S, TRANSCRIPTION-SERVICE'S or LEGAL-VIDEO COMPANY'S NAME, LOGO, COVER PAGE, FOOTER, ORDER FORM or WATERMARK. This one is true of the row's own collision fixtures: a bar-review sample transcript, a published hearing transcript and a licensed transcript of a public inquiry all carry the same branded cover, and a reporting company is exactly the kind of organisation 00's role-ambiguity reasoning covers - it appears as the producer of this examination, as the producer of somebody else's, as a vendor the firm is a customer of, and as a template author.",
+      "A COURT CAPTION, CASE NUMBER, DOCKET NUMBER, PROCEEDING IDENTIFIER, EXHIBIT STICKER, BATES-SHAPED TOKEN, VOLUME NUMBER, TAPE NUMBER or PAGE-AND-LINE COORDINATE, ALONE. A caption is `legal`'s signal and is satisfied by any public filing; a coordinate is an ADDRESS and supplies linkage only once the file it addresses has been established. Their digits are never a date.",
+      "A SWORN, UNDER-OATH, PENALTY-OF-PERJURY, CONFIDENTIAL, ATTORNEYS-EYES-ONLY, SEALED or SUBJECT-TO-PROTECTIVE-ORDER LEGEND. The product preserves the literal observation and decides nothing about oath validity, perjury, admissibility, confidentiality designation, waiver, sealing or disclosure rights - and specifically, such a legend is not evidence that this row applies, since it is stamped on productions, expert reports and commercial exhibits constantly.",
+      "AN ALPHABETICAL WORD INDEX OR CONCORDANCE READ AS A SOURCE OF ENTITIES. It is accepted as a structural signal and refused as a source of facts, prompt content or folder levels, in the same breath. It is the most extractable structure in the file and every name in it belongs to someone who did not choose this filesystem.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including audio_video and every media extension this row lists. A long .mp4 is not an examination and an examination is not a medium: `file_kind_plausible` is constitutionally never-alone, and a recorded deposition, a recorded webinar, a recorded interview and a recorded hearing are the same bytes to a container sniffer.",
+      "A DURATION, A SEGMENT COUNT, A TAPE LABEL or ANY RECORDING METADATA. Duration is what 00 says the extractor yields; it is not what the recording is of, and speech-to-text is not available to close the gap except \"only under an explicit privacy and compute policy\".",
+      "A FILENAME OR FOLDER containing depo, deposition, transcript, testimony, witness, statement, errata, volume, final or signed. Paths stay local, an existing folder supports review only, and a folder name is an unlabelled position.",
+      "AUTHOR, CREATOR, PRODUCER or LAST-SAVED-BY METADATA naming a reporter, a transcription tool, a firm or a practitioner. 00: \"It should avoid using authorship or creator identity as a destination dimension\", and a witness statement's producer metadata names the practitioner who drafted it, not the person whose evidence it is - which is precisely the fact this row must not confuse.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE or CURRENT-DIRECTORY MEMBERSHIP. 00: \"A session should never be treated as proof of topic\". A transcript, an exhibit set and three media segments that arrived together are a delivery, not necessarily one examination.",
+      "MATCHING PERSON NAMES, SUBJECT MATTER, DATES or SEMANTIC SIMILARITY ACROSS TWO EXAMINATIONS OR TWO MATTERS. Cross-examination and cross-matter bridging is suppressed unless an exact explicit reference or a user decision authorises it. One person may be examined in several unrelated matters and joining those files would build a dossier on them that no one asked for.",
+      "PUBLIC AVAILABILITY of a transcript, a filed excerpt or a televised examination as proof that the local copy, the examination around it, or the deponent's other testimony is low-sensitivity or eligible for a cloud prompt."
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of deposition",
+    "subpoena",
+    "subpoena duces tecum",
+    "examination for discovery",
+    "examination under oath",
+    "deponent",
+    "witness",
+    "sworn",
+    "affirmed",
+    "duly sworn",
+    "oath administered",
+    "reporter's certificate",
+    "certificate of officer",
+    "certified transcript",
+    "stenographer",
+    "court reporter",
+    "notary public",
+    "commissioner for oaths",
+    "appearances",
+    "also present",
+    "videographer",
+    "interpreter",
+    "on the record",
+    "off the record",
+    "examination",
+    "cross-examination",
+    "re-examination",
+    "redirect",
+    "objection",
+    "instructed not to answer",
+    "colloquy",
+    "page and line",
+    "condensed transcript",
+    "mini-script",
+    "word index",
+    "concordance",
+    "rough draft",
+    "realtime",
+    "uncertified",
+    "not for citation",
+    "errata sheet",
+    "errata",
+    "correction sheet",
+    "read and sign",
+    "signature waived",
+    "deposition designation",
+    "counter-designation",
+    "page-line citation",
+    "deposition summary",
+    "deposition excerpt",
+    "witness statement",
+    "proof of evidence",
+    "statement of truth",
+    "declaration",
+    "declarant",
+    "jurat",
+    "exhibit marked",
+    "marked for identification",
+    "volume",
+    "day one",
+    "corporate representative",
+    "designated representative"
+  ],
+  "work_types": [
+    "notice of deposition or examination",
+    "subpoena or summons to a named individual, with or without a document schedule",
+    "scheduling, cancellation and re-notice correspondence for an examination",
+    "rough draft, realtime or uncertified transcript feed",
+    "certified verbatim transcript, by volume or day",
+    "condensed or four-up rendering of a transcript",
+    "alphabetical word index or concordance to a transcript",
+    "audio or video recording of an examination, by segment",
+    "exhibit marked on a deponent during an examination",
+    "errata, correction or read-and-sign sheet, and signature waiver",
+    "deposition summary, digest or key-testimony note",
+    "designation, counter-designation and objection-and-ruling table",
+    "witness statement, proof of evidence or signed declaration",
+    "witness statement exhibit bundle referenced by initials-and-number",
+    "interpreter certification and translated transcript",
+    "reporter or transcription-service invoice and order form",
+    "examination-package export or delivery archive"
+  ],
+  "grouping_reasons": [
+    "ONE EXAMINATION OF ONE PERSON, joined by an exact examination reference or by the certificate's own attested date-and-place pair: the notice, the rough draft, the certified volumes, the media segments, the marked exhibits, the word index and the errata sheet. This is the row's primary anchor and it is deliberately NOT the matter reference the schema's default uses - a transcript served by another party may carry none. Content-incoherent and purpose-coherent, which is 00's licence for the group: \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership; it copies no person, party, matter or date fact onto any member.",
+    "ONE TRANSCRIPT ACROSS ITS RENDERINGS - rough draft, certified, condensed, word-indexed, OCR'd scan - as the universal version_family fact, supported by hashes, certification markers or explicit revision markers. A `-final` or `-signed` suffix never establishes it.",
+    "ONE EXAMINATION AND THE ARTEFACTS THAT ADDRESS INTO IT BY COORDINATE: a designation table, a summary keyed to page-and-line, a brief quoting page-and-line. The coordinate is an exact explicit reference and is the strongest join this row has. The designation table joins the transcript without becoming it, and without acquiring the deponent as a fact.",
+    "ONE EXAMINATION SERIES within one matter where several volumes or days share one examination reference. Two examinations of the same person in the same matter are joined ONLY by an exact reference, never by the shared name.",
+    "A WITNESS STATEMENT AND ITS EXHIBIT BUNDLE, joined by the initials-and-number exhibit marker the statement itself defines. The marker is defined inside the statement, which is why it is an explicit reference and not a filename convention.",
+    "NO GROUP AT ALL is a valid and common outcome. A single certified transcript with nothing around it is still protected material, and `legal`'s licence covers it from the neighbouring side: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+    "NOT grouping reasons, stated so they are not reached for: the deponent's name recurring across matters; a shared reporting company; a shared examination date; a shared court caption; a shared delivery archive; and the general stop rule, \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - a dimension may only branch on a field the same schema declares, and `law_practice` declares none under PR-6 - and empty a second time because this row's material co-activates `legal`, a safety domain whose protection runs before any placement decision. THE RECOMMENDATION HELD AS PROSE, AND IT IS WHERE THIS ROW DIVERGES FROM ITS SCHEMA'S DEFAULT, WHICH IS LEG 2 OF THE NODE TEST. The schema's default recommendation is: client (only if the corpus spans several AND the user approved a client-named branch), then MATTER, then DOCUMENT FUNCTION, then period last. Two of those four levels break here. FIRST, the natural anchor of this row is not the matter - it is the DEPONENT, one named natural person, and the schema's default template already bans a named third party from ever being a folder level, however strong the grouping axis. For every other template in the family that ban is a side constraint on a usable structure; here the ban lands on the row's own primary anchor, so this row must state a substitute rather than inherit a recommendation. The substitute is: MATTER, then EXAMINATION FUNCTION as a single level holding the whole examination package together, then the EXAMINATION DATE, with the deponent held as a grouping key that is never written into a path. SECOND, that promotes period from last to third, and the row states plainly why that is not a violation of 00's ordering rule rather than hiding it: the examination date is not a capture date and not a filesystem date - it is the attested date on the officer's certificate, it is the only thing that separates Volume II of one person's second examination from Volume II of their first, and it is doing WITHIN-MATTER discrimination rather than acting as a top level. 00's rule is about the top level - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" - and the matter still comes first, so `time_first` is FALSE and no sibling may read this as licence to claim the photos exception. THIRD, function must follow the matter because a child is unintelligible without its parent: 00's own argument is \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\", and an errata sheet, a Volume II or a designation table is meaningless without the examination and the matter it belongs to. A FOURTH RULE BINDS ONLY THIS ROW: the media segments must not be split from the transcript into a media branch by source_type. Splitting a package by file kind is the one placement that would break the coordinate relationship the whole family is built on, and it is the placement a naive extension-driven tree produces first. And whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "audio_video",
+      "ocr",
+      "image",
+      "archive",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".txt",
+      ".ptx",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".mp4",
+      ".mov",
+      ".mp3",
+      ".wav",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".eml",
+      ".zip",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Deposition Transcript - Jordan Lee - Volume II - CERTIFIED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a reporter's certificate block attesting that an oath was administered to a named individual, with a commission reference, a signature and a date",
+        "an appearances block listing counsel for each party, the reporter and a videographer, with no bench line and no judicial officer",
+        "line-numbered pages with alternating Q. and A. prefixes, objections attributed by surname",
+        "in-body exhibit references and an alphabetical word index bound at the back",
+        "a volume marker in the header and a matter caption on the cover page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none; and no subject_of_record value, which is a proposal awaiting R1c",
+        "that the caption makes this `legal`'s primary material. A caption on a transcript cover is a served heading, not an executed instrument and not a filed pleading; `legal` co-activates on the caption and takes nothing away, and its safety posture runs first",
+        "the word index as a source of entities, facts or prompt content - it is read as a structural signal and refused as a source, in the same breath",
+        "that the testimony is true, complete, admissible, uncontradicted, or that any objection was sustained",
+        "a folder path, and specifically not a branch named for the person examined"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lee - errata sheet - signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned table whose columns are page, line, as-recorded wording, changed wording and reason for change",
+        "a signature and date block completed by the person whose testimony it is, not by counsel",
+        "a preprinted footer from the reporting company",
+        "the deponent's name and the examination date repeated in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a correction is effective, timely, permitted, or that the original wording is superseded. The product records that a correction slot was completed and decides nothing about its effect",
+        "that the reporting-company footer is evidence of anything - it is a never-alone token shared with training exemplars and hearing transcripts",
+        "a signature or identity fact about the signer; a handwritten name is not an identity record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of Deposition - Jordan Lee - 2026-03-14 - with Schedule A.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption, then an instrument compelling a NAMED INDIVIDUAL to attend at a stated date, time and place",
+        "a line naming the officer before whom the examination will be taken",
+        "a certificate of service to counsel of record",
+        "an attached Schedule A listing categories of documents the individual must bring"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that Schedule A moves the file to `law_practice.discovery`. THE DISCRIMINATOR IS DIRECTION AND OBJECT, NOT THE PRESENCE OF A DOCUMENT LIST: a demand aimed at a PARTY to produce documents or answer in writing is discovery's; a demand aimed at a PERSON to appear and speak orally is this row's, and an attached schedule rides along with the person",
+        "that the examination took place, was not vacated, or was not re-noticed",
+        "a date fact from digits inside the case number",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lee depo 2026-03-14 - segment 2 of 3.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "container, codec, duration and creation time are readable from the header",
+        "an embedded title tag carrying a person's surname and a segment number",
+        "no captions or subtitle track present",
+        "three sibling segments with contiguous creation times and one transcript in the same delivery"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the CONTENT of the recording. 00 states what this extractor may yield - \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present, and—only under an explicit privacy and compute policy—speech-to-text transcripts.\" - and this row is the only one in the law_practice family where that clause is live. Speech-to-text must not be run to improve classification",
+        "that a long .mp4 is an examination. A recorded webinar, a recorded interview, a recorded hearing and a recorded deposition are identical to a container sniffer; the file joins this row through the delivery's transcript and certificate, not through its own bytes",
+        "a person fact from the embedded title tag",
+        "that the media may be split into a media-typed branch away from its transcript - see template.why, fourth rule",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Lee depo - rough draft - realtime.txt",
+      "source_type": "text_document",
+      "observations": [
+        "an ASCII stream with provisional line numbering and Q. and A. prefixes",
+        "a header line reading rough draft - uncertified - not for citation",
+        "no certificate block, no signature, no word index",
+        "substantially the same text as the certified volume delivered later"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that the absence of a certificate excludes it from this row. It is the same examination before certification, and it joins the certified volume as a version_family member on explicit certification markers and near-duplicate evidence - never on a name-and-date filename match",
+        "that the rough text may be quoted, cited or treated as the record",
+        "a page-and-line coordinate as stable - provisional numbering is renumbered on certification, so a designation table must not be resolved against this file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Designations and counter-designations - Lee - with objections.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers: page from, line from, page to, line to, offering party, objection, ruling",
+        "several hundred rows, all coordinates into one transcript",
+        "a second sheet repeating the exercise for a different deponent",
+        "no narrative text, no caption, no certificate"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a table of coordinates is `law_practice.trial-preparation`'s merely because designations are prepared for a hearing. The DISCRIMINATING EVIDENCE IS WHAT THE ROWS ADDRESS: these rows address page-and-line inside a transcript, which is this row's structure. A bundle index, a chronology or a running order addresses documents and events, which is trial-preparation's. The word designation on the file decides nothing",
+        "that the second sheet lets the workbook claim both examinations as one group - it is a multi-membership case, not a bridge between two deponents",
+        "that any objection was sustained, overruled or preserved",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exhibit 12 - Lee depo - text messages.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a physical exhibit sticker rendered on page one reading Lee Ex. 12 with a date",
+        "a production identifier range stamped in the footer",
+        "the underlying content is a screenshot sequence of a personal messaging thread",
+        "the transcript in the same delivery marks the same exhibit number at a stated page and line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the exhibit unconditionally. THE SEAM IS ALREADY AGREED FROM THE OTHER SIDE: `law_practice.evidence-exhibits` wrote that where the only closing artefact is one transcript's own exhibit index the anchor is the EXAMINATION and this row is the more specific home; where a separate schedule spans several examinations or joins a deposition series to a trial series, that row holds it. This row takes the single-examination case only",
+        "that the Bates range promotes it to `law_practice.discovery` - a production identifier records where the document came from, not what it is now",
+        "that exhibit membership erases the host material's own evidence; a messaging thread, a photograph or a medical record keeps its own schema's facts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Witness statement - Priya Raman - signed.docx",
+      "source_type": "text_document",
+      "observations": [
+        "continuous first-person prose in numbered paragraphs, headed with the maker's name",
+        "documents exhibited by an initials-and-number marker defined in the body",
+        "a statement-of-truth block signed and dated by the maker",
+        "no reporter, no oath administered by an officer, no page-and-line numbering, and producer metadata naming a practitioner"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that drafting authorship decides the row. The producer metadata names the practitioner who typed it, and 00 forbids that slot as a destination dimension - \"It should avoid using authorship or creator identity as a destination dimension\". The attestation slot is the evidence: the statement of truth is signed by the MAKER",
+        "that this is an affidavit. IT IS NOT, AND THE SEAM MATTERS: where a NOTARIAL JURAT is present instead of a statement of truth, `legal`'s own deterministic signal has fired and `legal` is the primary holder - the same prose, one different block",
+        "any law_practice fact - none is declared",
+        "a folder path, and specifically not a branch named for the maker"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Transcript - Hartley v Nash - Day 4 - 2026-06-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a court caption and a BEFORE THE HONOURABLE bench line in the header zone",
+        "line-numbered pages with Q. and A. prefixes, interleaved with rulings, submissions and a short judgment extract",
+        "an approved-transcriber stamp and a tribunal transcript reference",
+        "no errata sheet, no read-and-sign slot and no officer's oath certificate anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE PRIMARY COLLISION FIXTURE AND THE ROW CONCEDES IT: every surface signal matches - a reporter-produced verbatim Q-and-A body, page-and-line numbering, a certificate-shaped stamp, a legal caption. THE DISCRIMINATING EVIDENCE IS THE BENCH: a judicial presence line plus in-line rulings, and the ABSENCE of an errata slot the witness may sign, because a court owns its own record and a witness cannot amend it. `law_practice.hearing-transcripts` is the home",
+        "that the presence of witness testimony inside it splits the file - the file is one artefact and the tribunal's record does not become several",
+        "that the word transcript, or a reporting company's footer, decides anything on either side",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sample deposition transcript - advocacy course materials.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a complete transcript-shaped document with a certificate block, appearances and page-and-line numbering",
+        "the caption names an obviously fictional matter and the cover carries a training provider's branding",
+        "annotation callouts in the margin teaching examination technique",
+        "no matter reference, no errata, no exhibits and no delivery around it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation. THE STRUCTURE IS COMPLETE AND THE PURPOSE IS WRONG, which is the one thing topic cannot separate: the profession publishes its own realistic exemplars, and every structural signal this row relies on is reproduced faithfully in them. The teaching annotations and the absence of any surrounding examination package are the discriminators, and where they are absent the correct outcome is abstention",
+        "sensitivity_status as protected material - uniquely among this row's fixtures there is no real person's testimony in it, which is why its residual is Reading Inbox and not Protected Records",
+        "a person fact from a fictional caption",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Investigation interview note - A. Okafor - grievance.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a narrative summary of what one named individual said, written in the third person by the investigator",
+        "a date, an attendee list and a note that the meeting was not recorded",
+        "no oath, no officer, no page-and-line numbering, no signature by the person interviewed",
+        "the file sits with a terms-of-reference document and a findings draft"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. It is one person's account, which is the entire surface similarity, and `law_practice.investigation` owns it: the record was taken BY the investigator, is a summary rather than verbatim, has no attestation slot and no coordinate system, and the person interviewed never signed it. Where an interviewee HAS signed a verbatim record under an attestation the two rows genuinely contest the file and abstention is correct",
+        "that the surrounding terms-of-reference and findings draft may be pulled into an examination package",
+        "any finding, allegation or outcome as established",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lee depo package - transcript exhibits and media.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest is readable without unpacking and shows member paths under one person-named root",
+        "members include a certified PDF, a condensed rendering, a word-index PDF, an exhibits folder, three numbered media files and an errata scan",
+        "uncompressed size and file count are available from the header",
+        "no password is set"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "anything requiring extraction. 00: \"However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.\" The manifest is inspected in place",
+        "a person fact, a matter fact or a date fact from the member paths - a directory name is an unlabelled position and the person-named root is exactly the token this row strikes first",
+        "that arriving in one archive proves one examination: \"A session should never be treated as proof of topic\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deposition of Dr Mira Patel - expert - Volume I.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a full certificate, appearances and page-and-line body identical in structure to any other examination",
+        "the body works through the deponent's own report page by page and lists the materials she considered",
+        "her report and her instruction letter sit in the same folder",
+        "a fee-and-engagement passage is examined on the record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the expert content moves the transcript to `law_practice.expert-materials`. THE SEAM IS BY ARTEFACT, NOT BY PERSON: that row owns the instruction letter, the report, the materials-considered list and the expert correspondence; this row owns the EXAMINATION of the expert, on its certificate. The same person appears on both sides and their name settles neither",
+        "that the report becomes this row's because it was examined on, or that the transcript becomes that row's because an expert spoke",
+        "that any opinion is correct, current, accepted or admissible",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.hearing-transcripts",
+      "signal": "SAME FIXTURE BOTH SIDES: `Transcript - Hartley v Nash - Day 4 - 2026-06-02.pdf` — a reporter-produced verbatim Q-and-A document with page-and-line numbering, a certificate-shaped stamp and a caption, which is every surface signal this row has. THIS ROW OWNS the out-of-court examination: an OFFICER'S OATH CERTIFICATE, an appearances block with NO judicial presence, and an ERRATA or READ-AND-SIGN slot the person examined may complete. THE NEIGHBOUR OWNS the tribunal's own record: a bench or presiding-officer line, in-line rulings on objections, an approved-transcriber or tribunal transcript reference, and NO errata slot, because a court owns its record and a witness cannot amend it. DISCRIMINATED BY the bench line together with the errata slot — never by the word transcript, never by the reporting company's footer, and never by whether witness testimony appears inside, which it does on both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Notice of Deposition - Jordan Lee - 2026-03-14 - with Schedule A.pdf` — a served demand with a caption, a certificate of service and an attached schedule of documents, which reads as a production request. RECIPROCAL AND ALREADY AGREED FROM THE OTHER SIDE: that row recorded a deliberate cession of oral discovery to this one, because in one procedural tradition a deposition IS discovery. THIS ROW OWNS demands DIRECTED AT A NAMED NATURAL PERSON to attend and answer orally, and everything the examination produces; the attached document schedule rides along with the person. THE NEIGHBOUR OWNS demands directed at a PARTY to answer in writing or produce — interrogatories, requests for admission, requests for production — plus the review log, the privilege log and the production set. DISCRIMINATED BY the direction and object of the demand, and on the exhibits by whether the closing evidence is a production identifier range (neighbour) or an examination exhibit sticker plus a transcript coordinate (this row). The word discovery on either file decides nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "SAME FIXTURE BOTH SIDES: `Exhibit 12 - Lee depo - text messages.pdf` — a document carrying an exhibit sticker, a production range and a transcript coordinate at once. RECIPROCAL AND ALREADY CONCEDED FROM THE OTHER SIDE, which wrote that where the only closing artefact is one transcript's own exhibit index the anchor is the EXAMINATION and this row is the more specific home. THIS ROW OWNS the exhibit marked on one deponent during one examination, and that examination's own internal exhibit index. THE NEIGHBOUR OWNS a designator-plus-schedule pairing that SPANS several examinations, or joins a deposition series to a trial series. DISCRIMINATED BY the scope of the closing schedule — one examination or many — not by the presence of an exhibit sticker, which both sides have.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.trial-preparation",
+      "signal": "SAME FIXTURE BOTH SIDES: `Designations and counter-designations - Lee - with objections.xlsx` — a working table built for a hearing, which is the neighbour's whole purpose. THIS ROW OWNS it because of WHAT THE ROWS ADDRESS: page-from, line-from, page-to, line-to are coordinates INTO a transcript, and the coordinate system is this row's structure. THE NEIGHBOUR OWNS compilations that address documents and events — bundle indexes, chronologies, outlines, running orders, cross-examination plans — even when they quote testimony. DISCRIMINATED BY whether the table's key is a transcript coordinate or a document or event reference. A deposition SUMMARY keyed to page-and-line is this row's; a cross-examination plan that merely cites testimony is the neighbour's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.expert-materials",
+      "signal": "SAME FIXTURE BOTH SIDES: `Deposition of Dr Mira Patel - expert - Volume I.pdf` — a certified examination transcript that is almost entirely about an expert's own report and the materials she considered, sitting in a folder with that report and her instruction letter. THIS ROW OWNS the EXAMINATION, on its officer's certificate and its errata slot. THE NEIGHBOUR OWNS the instruction letter, the report, the materials-considered list, the CV and the expert correspondence. DISCRIMINATED BY the artefact, never by the person: the same expert appears on both sides, so the shared name is the least useful evidence in the pair. The report does not become this row's because it was examined on, and the transcript does not become the neighbour's because an expert spoke.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.investigation",
+      "signal": "SAME FIXTURE BOTH SIDES: `Investigation interview note - A. Okafor - grievance.docx` — one named individual's account of events, recorded in a bounded enquiry, which is exactly what this row claims to hold. THIS ROW OWNS a record ATTESTED BY THE PERSON WHOSE WORDS THEY ARE: an oath administered by an officer, or a signed statement of truth or declaration, plus verbatim capture with a coordinate system. THE NEIGHBOUR OWNS the investigator's own record — a summary written in the third person, unsigned by the interviewee, with no oath, no coordinates and no correction slot — together with the terms of reference, the evidence log and the findings. DISCRIMINATED BY who attested the record. Where an interviewee HAS signed a verbatim record under an attestation, the rows genuinely contest the file and abstention is the correct outcome, not a coin toss.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Witness statement - Priya Raman - signed.docx` in its affidavit form — identical first-person numbered prose, identical exhibiting convention, differing in ONE BLOCK at the foot. THIS ROW OWNS the statement closed by a STATEMENT OF TRUTH or a declaration the maker signs for themselves. THE NEIGHBOUR OWNS it once a NOTARIAL JURAT is present — sworn before a named commissioner or notary, with seal and commission reference — because a notarial block is `legal`'s own deterministic signal, `legal` is one of 00's safety domains, and its protection runs first. DISCRIMINATED BY the attestation block alone. The same concession runs across every captioned fixture in this row: a caption on a transcript cover co-activates `legal` and this row takes nothing away.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Deposition Transcript - Jordan Lee - Volume II - CERTIFIED.pdf` sitting in a corpus where the holder IS Jordan Lee. Nothing inside the file changes: the certificate, the appearances and the word index are identical, and this row's activation structure is a THIRD-ROLE officer attestation that says nothing about whose filesystem it lands in. THIS ROW OWNS the examination as a practitioner-side matter artefact, where practitioner-side apparatus exists around it. THE NEIGHBOUR OWNS the holder's own testimony in the holder's own proceeding, where the surrounding corpus is a client-care letter, correspondence addressed to the holder and no matter apparatus the holder produced. DISCRIMINATED BY the surrounding corpus and never by the transcript, which is why this row's own recognition states that activation here settles no holder role.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The protected person here is usually NOT the holder and usually NOT the holder's client. A deponent is compelled by a notice or subpoena, is frequently a non-party, and the artefact is a complete verbatim record of everything they said under examination — which routinely includes their address, employment history, medical history, finances and family relationships, elicited by an adversary and preserved word for word. Three properties make the posture specific to this row rather than inherited from the schema. FIRST, the WORD INDEX: a certified transcript ships with an alphabetical concordance of every proper name and substantive term spoken, which makes the file the most machine-extractable dossier on a private individual in the whole law_practice family, and it is detected in order to be protected — never read as a source of entities, facts or prompt content. SECOND, the RECORDING: this is the only row in the family whose primary artefact set includes audio and video of a real person, and 00 permits speech-to-text \"only under an explicit privacy and compute policy\", so no transcription may be run to improve classification. THIRD, CROSS-EXAMINATION BRIDGING: one person may be examined in several unrelated matters, and joining those files by their name would assemble a testimony history on them that nobody asked for, so name-based bridging is suppressed as a privacy rule and not only as an accuracy rule. Any confidentiality, attorneys-eyes-only, sealed or protective-order legend on the file stays a literal observation; the product decides no legal status. And nothing here may reach a remote model by default — 00: \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" P7 owns handling classes; this row assigns none.",
+  "open_question": "Four, none of them smoothed. (1) NJ-DEP-1, THE ABSORPTION SEAM, and it is the row's weakest joint: the roster directs this row to absorb the legacy `law.witness-statements`, and it does, on the argument that a deposition and a signed witness statement are both ONE NAMED INDIVIDUAL'S OWN ATTESTED EVIDENCE, anchored on the person rather than on the matter, with the statement of truth standing where the oath certificate stands. The honest counter-argument is that a statement is DRAFTED BY THE PRACTITIONER and only signed, so it is work product with a signature, and its natural neighbour is `law_practice.trial-preparation` or the matter file rather than a verbatim examination. Alternatives for R1c: (a) keep the absorption as written, which is this row's recommendation, because the attestation slot and the person-anchor are what activation actually uses; (b) split witness statements out to their own row, which this row opposes as a document-type split; (c) route statements to `law_practice.trial-preparation` and let this row hold only certified examinations, which would leave the legacy id homeless where no hearing is in prospect. (2) NJ-DEP-2, THE EXAMINATION ANCHOR HAS NO KEY. This row's primary grouping anchor is an EXAMINATION — one person, one sitting, several volumes and media segments — and there is no canonical key for it. The row deliberately declines to mint `examination_id`, `deposition_id`, `proceeding_ref` or `transcript_id`, and asks R1c whether the anchor is (a) an instance of the schema's `project` reuse at a finer grain, (b) a grouping-only construct that needs no key at all, which is this row's own reading under PR-6, or (c) a genuine gap. It must not be resolved by 36 template authors independently. (3) NJ-DEP-3, THE PERIOD LEVEL. This row's recommendation promotes the examination date above the schema default's period-last rule, on the argument that it is a within-matter discriminator between volumes of the same person's examinations and not a top level. If R1c judges that this contradicts \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\", the fallback is to drop the date level entirely and let version_family and explicit volume markers carry the separation — the row does NOT ask for `time_first: true` under any reading. (4) NJ-DEP-4, THE WORD INDEX AS A PRODUCT-WIDE PROBLEM, raised here because this row meets it first but not only here: an artefact that ships with a machine-readable concordance of the people named inside it is a category no design document addresses, and the same shape occurs on a privilege log, a bundle index and a transcript. Options: (a) a corpus-wide rule that a concordance-shaped structure is never an entity source, which this row assumes and cannot enact alone; (b) a P7 handling decision; (c) leave it per-row, which will produce eleven inconsistent versions of it."
+}

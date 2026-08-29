@@ -184,7 +184,18 @@ bundle_manifest
   bundle_id
   created_at
   corpus_form               snapshot | metadata_safe                        §8.5
-  source_scan_ref           the P3 scan and exclusion set it was captured from   §1.1
+                            **metadata_safe does not round-trip file identity**
+                            (ratified 2026-08-20). It carries hashes but no bytes,
+                            and P1 records a `files` row only by hashing bytes it
+                            opened (R1) — so a metadata_safe replay reproduces
+                            exclusion verdicts, cache verdicts and curation signals,
+                            and writes no `files` row. The alternative was a P1
+                            entry point that records identity from a supplied hash,
+                            rejected because a second way to mint identity is how R1
+                            stops being a single rule.
+  source_scan_ref           P3's published `scan_run_id` (P3 OQ16, closed
+                            2026-08-20). Before it closed this was an opaque handle
+                            P2 stored and never joined on.                    §1.1
   pinned_plan_version       plan id + version                                §8.5 "tree versions", §8.8
   policy_settings                                                            §8.5
     privacy_mode            one of the four §8.4 operation modes

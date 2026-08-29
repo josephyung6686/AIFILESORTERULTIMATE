@@ -1,0 +1,467 @@
+{
+  "id": "logistics.warehouse-ops",
+  "kind": "template",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Warehouse and depot operations",
+  "one_line": "The record of goods while they are standing still and under one facility's control: what stock identifier, in what quantity, moved from which location inside the building to which other location, at what time, on whose task — goods-in reconciliation, put-away, stock-on-hand by location, cycle counts and adjustments, picking and packing, staging, and the damage, shortage, quarantine and hold records that broke the flow. Its anchor is not a consignment and not a building: it is an INTERNAL, LOCATION-KEYED MOVEMENT OF STOCK with no counterparty and no acknowledgement by a second party. The consignment identity does not survive the building — one inbound pallet leaves in many outbound consignments, and one bin holds stock from many receipts — which is why this is a different retrieval spine rather than a stage of the schema's. Placeholder row; declares no field rows under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an INTERNAL LOCATION-KEYED MOVEMENT structure — the family fingerprint and the whole case for this row: a stock identifier (SKU, part, batch, lot or serial) + a quantity + a structured INTRA-FACILITY location (aisle-bay-level-bin, zone, dock door, staging lane, quarantine cage) + a movement verb from the internal closed vocabulary (receive, put away, replenish, move, pick, pack, stage, book out, count, adjust, scrap) + an internal task, wave or licence-plate reference. What is DIAGNOSTIC is what is missing beside what is present: no second party in a counterparty role, no carrier undertaking, no place of delivery, no acknowledgement by a receiving counterparty — only an operative signoff and a system timestamp. The word warehouse, depot, stock or WMS never fires this",
+      "a RECEIVING RECONCILIATION structure: one inbound reference carrying TWO quantities against the same line — expected or advised against actually received — plus a discrepancy or reason code (short, over, damaged, wrong item) and a put-away destination. The two-quantity reconciliation against a location is precisely what separates a goods-in record from the delivery note the driver handed over, which carries one quantity and a signature",
+      "a COUNT-VARIANCE structure: system quantity beside counted quantity per location, with a variance, a recount pass, a counter or team reference and an adjustment reason code — and, discriminatingly, NO unit cost, extended value, retail price or margin column and no ownership or period-end premise",
+      "a PICK structure whose rows are ordered by LOCATION rather than by order or customer: a wave, batch or route-through-the-building reference, a location-sequenced walk, quantity per line, and short-pick, substitution or unable-to-locate exception codes. The ordering by location is the signal, in the same way the schema holds that ordering by drop is what makes a run sheet a run",
+      "a HOLD or QUARANTINE structure binding one batch, lot or licence-plate to a named hold LOCATION with a reason and a release or disposition signoff, where the quantity keeps its identity and does not leave the facility. A hold that decides FITNESS rather than PLACE is the neighbour's — see collisions",
+      "a LICENCE-PLATE or pallet-identifier structure: one opaque pallet, tote or handling-unit id carrying a mixed set of SKUs and quantities through a timestamped sequence of internal locations. The mixing is load-bearing evidence — a handling unit whose contents came from several inbound references and will leave on several outbound ones cannot be described by a consignment key",
+      "a WMS export or integration payload whose labelled segments name receipt advice, inventory adjustment, stock status, location, handling unit, wave or pick-confirmation events scoped to one facility; a structured export is inspected as structure, not as a format"
+    ],
+    "needs_llm": [
+      "a scanned supplier delivery note carrying a handwritten shortage or damage annotation and a goods-in stamp, where the annotation is the only thing that turns a counterparty's receipt into this row's receiving-exception record",
+      "an unlabelled spreadsheet of item codes and quantities that may be a stock-on-hand report, a valuation, a purchase-order line set, a bill of materials or a production plan",
+      "a photograph of racking, a pallet or a crushed carton with no legible bin or handling-unit label in frame and no accepted group around it",
+      "a goods-received note at a factory door, which is a custody receipt against a consignment, a lot acceptance against incoming quality, and a put-away trigger in the same bytes — recorded as all its readings rather than resolved",
+      "a returns-processing sheet, which may be a customer entitlement record or a depot movement record depending on which columns carry the weight (entitlement, refund and reason-for-return against location, condition grade and putback)",
+      "a hold or quarantine notice that may be a quality disposition or a storage disposition, where both readings are present and the signing role is the only clue",
+      "a location-coded stock sheet from a facility that is also a shop's stockroom, where the same bin vocabulary serves a retailer's own owned stock",
+      "a spares-store issue note, which reads identically whether the store is a warehouse serving customers or a maintenance crib serving a plant"
+    ],
+    "never_alone": [
+      "the words warehouse, depot, stock, inventory, goods-in, put-away, pick, pack, dispatch, fulfilment or WMS alone. The tempting false file this rule exists to trip is `Warehouse lease - Unit 4 Avonmouth.pdf`, which carries the strongest of those words in its filename and is a property instrument with no stock, no quantity and no movement in it",
+      "a site, depot or building name alone — this row's own recommended FIRST dimension is not its activation evidence. A depot is equally the place a run sheet was printed, a walkaround check was signed, a customs file was kept and a shift rota was posted, and none of those is this row's",
+      "a bin-shaped code alone, e.g. `A-12-03-B`. The same hyphenated alphanumeric shape is a part number, a drawing reference, a room number, a seat allocation, a policy clause and a case-citation stub. It fires only inside a labelled location slot beside a stock identifier and a quantity",
+      "a SKU, part number, batch, lot, serial or pallet-identifier token alone, outside a labelled quantity-and-location structure",
+      "a quantity or units column alone — every order, invoice, valuation, bill of materials, recipe and production plan has one",
+      "a timestamped movement or audit log alone, with no stock identifier and no location; that shape is a system log in every domain",
+      "an operative's name, initials or badge id in a signoff column as proof of anything beyond a signoff, and never as a destination",
+      "a supplier, carrier or courier brand name alone; the same organization is a payee on an invoice, a vendor on a purchase order and a mention in prose",
+      "a source_type or extension alone; spreadsheets, scans, photographs, XML exports and archives occur in every neighbouring schema",
+      "a parent folder called Warehouse, Stock, Inventory, Depot, Operations or Fulfilment alone",
+      "a download session alone: `00` — “A session should never be treated as proof of topic”",
+      "missing EXIF as proof that a damage photograph is a screenshot, or present GPS as proof that a capture coordinate is the facility the stock was held in",
+      "INVERTED RULE: a unit-cost, extended-value or retail-price column is not weak evidence for this row, it is evidence AGAINST it — a valued count is a stocktake and belongs to the neighbour"
+    ]
+  },
+  "work_types": [
+    "goods-in receipt, receiving reconciliation and discrepancy note",
+    "put-away, location-assignment and replenishment record",
+    "stock-on-hand by location and stock-status report",
+    "cycle count, recount and stock-adjustment record",
+    "pick list, pick wave and short-pick or unable-to-locate exception",
+    "pack note, carton-content list and outbound label record",
+    "staging and load manifest at the outbound lane",
+    "damage, shortage, quarantine, hold and disposal record",
+    "returns and RTV processing record at the depot",
+    "handling-unit or pallet build and breakdown record",
+    "labour, task and throughput record for the facility",
+    "stock-loss or shrinkage investigation file"
+  ],
+  "grouping_reasons": [
+    "one inbound receipt across its scanned delivery note, its two-quantity reconciliation, its put-away tasks and any damage or shortage record",
+    "one handling unit or pallet identifier across receipt, put-away, movement, pick and staging",
+    "one count cycle across the variance sheet, the recount pass and the adjustment authorisation",
+    "one hold across the notice, the quarantine-location record and the release or disposal",
+    "one facility across its goods-in, movement, count and exception records for a period",
+    "a sparse damage photograph may join an accepted receipt or hold group by neighbourhood without this row activating from the image itself, and no location, stock-identifier or quantity fact is copied onto it",
+    "duplicate and version families remain universal facts and never manufacture a site or record_type fact by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract: a template may only branch on a field the same entry's schema declares, and the `logistics` placeholder declares none. The recommendation is held as prose and is stated AS A DIFFERENCE from the schema's default template, which reads: the carrier or trading counterparty ONLY where the corpus genuinely spans more than one → the custody subject (the consignment or container; or, in the fleet and dispatch branches, the vehicle, the depot or the working day) → the document function → time only as a leaf. THIS ROW RECOMMENDS `site` → `record_type`, with time only as a leaf, and differs on two levels rather than renaming one. (1) The counterparty level is SUPPRESSED OUTRIGHT, not made conditional. A put-away task list, a cycle-count variance sheet and a stock-on-hand report name no carrier and frequently no supplier either; opening a counterparty level here opens a branch the facts cannot fill, and a level most of the corpus cannot enter is worse than no level. (2) `site` is PROMOTED to the first level rather than sitting as one option inside the default's custody-subject slot, and it is promoted for an evidential reason, not a tidiness one: a bin code is only meaningful relative to a building, the same code `A-12-03-B` exists in every facility an operator runs, and so the facility is the parent dimension that makes the child intelligible — `00`: “a parent dimension should provide the context required to understand the child”. Equally deliberate is what is NOT a level: the custody subject in a warehouse is the stock identifier at a location, and this row declines to make either a dimension — a bin code is a machine coordinate that would open thousands of branches no human browses, and a SKU is this row's worst never_alone token. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A receipt, its put-away, its shortage note and the count that later found the missing pallet straddle weeks, and a time-first order scatters exactly the files an investigation needs together. Optional branches: (a) drop the `site` level entirely for a single-facility corpus, leaving `record_type` alone — see NJ-WH-2; (b) a period leaf under `record_type` for the report-shaped subset (stock-on-hand, count cycles) that is genuinely periodic. No level may be built from an operative's name, a supplier's name or a bin coordinate — see `sensitivity_why`.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "ocr",
+      "image",
+      "code_structured",
+      "email",
+      "archive",
+      "filesystem"
+    ],
+    "extensions": [
+      "xlsx",
+      "csv",
+      "pdf",
+      "jpg",
+      "png",
+      "xml",
+      "json",
+      "edi",
+      "eml",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Goods in 2026-04 Depot B.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: date, inbound reference, supplier, item code, description, qty advised, qty received, variance, handling-unit id, put-away bin, received-by initials",
+        "two quantity columns reconciled against one inbound reference, with a reason code on the variant rows",
+        "no unit cost, extended value, retail price or tax column anywhere in the sheet",
+        "bin values share a repeated aisle-bay-level-bin shape"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a valuation of the stock, or that the facility owns it — there is no cost column and no ownership premise",
+        "a consignment fact copied onto every row because one inbound reference appears in a column",
+        "that the supplier column is a carrier; the party who sold the goods and the party who moved them are different roles"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Put-away tasks 2026-04-14 AM - Depot B.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows: task id, handling-unit id, from-location (dock door 4), to-location (A-12-03-B), item code, quantity, completed timestamp, operative id",
+        "every row's from- and to-location is inside one building; there is no place of delivery and no second party anywhere in the file",
+        "no signature, stamp or acknowledgement slot — only a system-completed timestamp"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a consignment, carrier or consignee fact — none is present, and this is the purest demonstration that this row's evidence has no counterparty",
+        "that `operative id` licenses a person dimension or a person key",
+        "a bin code as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pick wave 4417 - pick list.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header: wave 4417, facility, release time; body rows sequenced by pick location, each with item code, quantity, tote id",
+        "footer block lists several outbound order references the wave will satisfy",
+        "exception column carries short-pick and unable-to-locate codes"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a consignment fact from the footer's order references — the wave crosses many outbound consignments and belongs to none of them; this is the hinge against `logistics.shipment`",
+        "that the ordering is by customer; it is by location, which is the discriminating observation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Cycle count variance 2026-W16 - Zone C.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: bin, item code, system qty, counted qty, variance, recount qty, adjustment reason, authorised-by",
+        "scoped to one zone of one facility for one week",
+        "no unit cost, no extended value, no period-end or ownership premise stated anywhere"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a stock valuation, or that this is a period-end count for accounts — the missing value column is the discriminator against `retail_hospitality.stocktake` and it is missing deliberately",
+        "that `authorised-by` is a destination"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Depot B - goods in note scan 2026-04-12.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "scanned counterparty delivery note with printed line items and one quantity column",
+        "handwritten annotation across the foot: “2 cartons short — DM”, plus a received-into-stock stamp with a bin written beside it",
+        "OCR recovers the printed header cleanly and the annotation poorly"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the printed note alone activates this row — without the annotation and the goods-in stamp it is the counterparty's delivery evidence and belongs to `logistics.shipment` or `construction_property.materials-delivery`",
+        "a quantity fact from an illegible handwritten figure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Quarantine hold notice - batch 24B117.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "binds one batch and a quantity to a named quarantine location, with a hold reason and a release/disposition signoff block",
+        "carries both a storage disposition (move to quarantine cage, block from pickable stock) and a fitness disposition (pending quality decision)",
+        "quantity does not change identity and never leaves the facility"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the quality decision is this row's — fitness is `manufacturing`'s and this row holds only the placement of the goods",
+        "a consignment fact; a hold has no carrier and no destination"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_20260414_0917.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a crushed carton on a shrink-wrapped pallet at a pick face; racking uprights and a partly obscured bin label in frame",
+        "EXIF capture datetime present; no GPS; no legible reference recoverable from the label",
+        "sits in the same folder as two other frames of the same pallet"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a site, bin, item or quantity fact from an illegible label or from the folder's name",
+        "that the absence of GPS proves anything, or that a present coordinate would be the facility the stock was held in"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "WMS_stock_adjustments_20260414.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled segments name facility, adjustment type, handling unit, location, item, quantity delta and posting timestamp",
+        "no party, price or destination element exists in the schema of the payload",
+        "inspected as structure; the format is not the evidence"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a structured export is more reliable than a scan because it is structured — the slots are what count",
+        "an ownership or valuation fact from a quantity delta"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Loading manifest - trailer T4402 2026-04-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "staging lane and load sequence on the upper half; carrier name, trailer registration, seal number and a place of delivery on the lower half",
+        "lists handling units built in this facility and the outbound consignment references they were booked to",
+        "signed by both a loader and a driver"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row owns it outright — this is the CHANGEOVER document, and the moment a carrier undertaking, a trailer under that undertaking and a place of delivery appear, `logistics.shipment` has the stronger claim",
+        "a consignee address fact as anything but a search-and-privacy fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pick accuracy and units per hour - April 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are named individuals with badge ids; columns are lines picked, units per hour, errors, accuracy percentage and a ranking",
+        "scoped to one facility and one month",
+        "no stock identifier, no location and no movement — the quantity here measures a worker, not goods"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an operative, picker or team dimension — this file is the whole reason this row's privacy rule exists, and it is the one file in the list whose subject is a person",
+        "that a productivity number is a stock fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Stock valuation 2026-03-31.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: item code, description, location, quantity on hand, unit cost, extended value, provision for obsolescence",
+        "dated to a period end and headed with an ownership premise (“stock owned at 31 March”)",
+        "location column is present and bin-shaped — which is exactly why it is tempting"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a bin-shaped location column makes this a warehouse movement record — THIS IS THE COLLISION FIXTURE; the unit-cost and extended-value columns and the ownership premise make it `retail_hospitality.stocktake`'s, and no movement, from-location or task reference exists anywhere in it",
+        "a site fact for this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Warehouse lease - Unit 4 Avonmouth.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the word Warehouse is the strongest token in the filename",
+        "body is a lease: demised premises, term, rent review, repairing covenant, schedule of condition",
+        "no item code, no quantity, no location code, no movement anywhere in the document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a building word activates a movement row — this is the never_alone trip file; it belongs to `construction_property.commercial-lease`",
+        "a site fact merely because a facility is named"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "logistics.shipment",
+      "signal": "The sharpest seam in the schema and a same-schema mutex. Both rows hold documents about the same physical goods, and the tempting reading is that this row is merely the middle stage of that row's consignment. It is not, and the reason is evidential: THE CONSIGNMENT IDENTITY DOES NOT SURVIVE THE BUILDING. One inbound pallet is broken into item lines that leave in many outbound consignments, and one bin holds stock accumulated from many receipts, so no consignment key can retrieve a put-away task or a count variance. The test is which key indexes the record: an EXTERNAL key (consignment, waybill, container, carrier, place of delivery) indexes into a carrier's network of movements and is that row's; an INTERNAL key (handling unit, bin, wave, task, adjustment) indexes into one facility's stock and is this row's. Same fixture bytes on both sides: `Loading manifest - trailer T4402 2026-04-14.pdf` is carried here as a changeover document and conceded to `logistics.shipment` the moment a carrier undertaking and a place of delivery appear; `Pick wave 4417 - pick list.pdf` is claimed here even though its footer names outbound order references, because those references are many and the wave belongs to none of them. `Depot B - goods in note scan 2026-04-12.pdf` runs the other way: without the goods-in stamp and the shortage annotation it is that row's delivery evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "The schema anchor stated this seam from above — a valuation, unit-cost or retail-price column and an ownership premise mark a stocktake, while a bin-location, put-away, pick and book-out sequence marks a custody log — and this row CONFIRMS it from below with the same fixture pair rather than merely inheriting it: `Cycle count variance 2026-W16 - Zone C.xlsx` here, written with the valuation columns deliberately absent, against `Stock valuation 2026-03-31.xlsx` there, which is carried here as the negative fixture. The reciprocal this row adds, and offers to R1c, is the return direction: this row must NOT take a period-end valuation merely because it carries a bin-shaped location column, and a location column is not custody evidence. The deeper reason the two rows are not one is a premise difference — a stocktake counts what a business OWNS in order to value it, and a warehouse record moves goods that are frequently somebody else's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.spare-parts",
+      "signal": "A spares store is a warehouse by every physical description: bins, item codes, quantities, issue notes, min-max levels, cycle counts. The bytes of an issue note are near-identical. The discriminator is what the store EXISTS TO SERVE, and it is readable: a spares store's demand documents point INWARD at equipment — an asset or plant identifier, a maintenance work order, a failure code — and its issues are consumed rather than dispatched; this row's demand documents point OUTWARD at an order, a wave and a staging lane, and its stock leaves the building intact. Where an issue note names a work order and an asset, `manufacturing.spare-parts` keeps it; where it names a wave and a handling unit, this row keeps it; where it names neither, neither row should fire and `Independent Records` holds it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "Holds, batches and goods-received notes. The schema anchor's quantity-identity test is inherited and sharpened for the static case: that test asks whether a quantity changes identity (transformation, manufacturing's) or changes holder (movement, logistics'), but a quarantine hold does NEITHER — the goods stand still and keep their identity while a decision is made about them. The added test for this row is which decision the document records: FITNESS (accept, reject, rework, concession, disposition against a specification) is manufacturing's; PLACE (move to quarantine, block from pickable stock, release back to the pick face, scrap out of the location) is this row's. `Quarantine hold notice - batch 24B117.pdf` is the same bytes on both sides and commonly records both decisions on one page, so it is also written under `also_holds_with` rather than won.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "The word inventory is doing dangerous work across the roster. An IT asset register has an item, a serial, a quantity, a location and a movement history, which satisfies a careless reading of this row's fingerprint almost exactly. The discriminator is whether the items are FUNGIBLE STOCK or IDENTIFIED ASSETS IN USE: this row's rows are quantities of interchangeable units in a storage location awaiting despatch, and that row's rows are individually identified devices assigned to named holders and in service. A laptop in a stockroom awaiting issue is genuinely contested; where an assignee, a build state or a support-lifecycle date appears, that row keeps it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "The building versus what happens to goods inside it. A depot's shift rota, forklift-operator training matrix, racking inspection certificate, site security procedure, cleaning schedule and utilities record are facilities and workplace records that happen to be filed under a warehouse's name; none of them contains a stock identifier, a quantity or a movement. `Warehouse lease - Unit 4 Avonmouth.pdf` is the fixture written here as a negative, and its true home is `construction_property.commercial-lease` rather than either of us — which is itself the point: three rows are tempted by the word warehouse and only one of them is about goods.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.ecommerce-ops",
+      "signal": "Fulfilment sits on the boundary. An order-management export listing orders, statuses and despatch dates is that row's; a wave, a pick walk and a pack bench record is this row's. The discriminator is whether the record is keyed on the CUSTOMER ORDER or on the FACILITY'S WORK. A merchant's despatch report that lists orders shipped is order management with a warehouse fact in it; a pick list that satisfies many orders in location order is warehouse work with order references in it. Same tempting bytes: a despatch report carrying both order numbers and a picker column.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "Reciprocal at one remove, and worth stating because that row wrote its seam against the schema rather than against this template. Its discriminator is the KEY — a job or plot reference indexes into one works instruction — and this row endorses it and adds that a builders' merchant's own depot records are NOT that row's: a merchant's goods-in reconciliation, bin locations and cycle counts are this row's evidence even though every outbound note it produces is that row's. Same fixture family: `DN-448120 - Marsh Lane.pdf` (theirs, job-keyed, signed at a site) against `Goods in 2026-04 Depot B.xlsx` (this row's, location-keyed, no job anywhere).",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing",
+      "signal": "A quarantine hold notice records a storage disposition and a fitness disposition in the same bytes, and a goods-received note at a factory door is a put-away trigger and a lot acceptance at once. Each schema activates from its own slots; a lot-quality fact is never copied onto a put-away task, nor a location fact onto a genealogy sheet, merely because the files group. `00`: “One file may hold facts from more than one domain without losing information.”",
+      "provenance": "design"
+    },
+    {
+      "domain": "photos",
+      "signal": "A damage or condition photograph taken at a pick face is a capture with EXIF and a business record of the state of goods. It is written here as an image whose site and stock facts must come from an accepted group and never from the frame, so the double reading costs nothing.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The fallthrough that keeps this row honest for an ordinary person's corpus. A parcel-locker collection slip, a self-storage unit receipt, a “your order has been picked” notification and a click-and-collect confirmation all carry warehouse vocabulary and prove a transaction, not a custody movement. They must land here rather than manufacture a depot out of somebody's online shopping.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone goods-in sheet, hold notice or stock report with a durable purpose but insufficient location, movement or facility evidence remains an independent record rather than being forced into a facility it cannot evidence. `Stock valuation 2026-03-31.xlsx` and `Warehouse lease - Unit 4 Avonmouth.pdf` route here if their own rows do not take them.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The worker-facing subset: pick-accuracy and units-per-hour reports, a movement log carrying an operative column, a short-pick exception attributed to a named picker, a stock-loss investigation naming a suspected employee, and CCTV stills of a pick face. `00`: “Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A racking, pallet or damaged-carton photograph with no legible label and no accepted group is an image, and inventing a bin or a facility for it from a folder name is exactly the failure `never_alone` exists to prevent.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor scanned goods-in note whose printed header survives but whose handwritten shortage annotation does not should abstain rather than guess whether a receipt was clean or exceptional — the annotation is the whole difference.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A WMS database dump, a proprietary scanner-terminal export or an oversized or password-protected operations archive can be represented without inferring a facility or a purpose from a filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "same_entity_type": "person",
+      "this_domain_field": "none — an operative, picker, counter or authoriser appears only as a signoff observation and this row proposes NO person key and NO person dimension",
+      "neighbour": "business_operations.organisational-records",
+      "neighbour_field": "the same individual as an employee, with a personnel file, a contract and a performance record",
+      "why": "`00`: “The system must separate roles that happen to contain the same entity type.” The same name is a task signoff here and a record subject there, and only one of those may ever anchor a folder. The split is stated as a refusal on this side precisely because `Pick accuracy and units per hour - April 2026.xlsx` is filable-looking and person-keyed, and because `00` warns that “A folder should not become a collection point for everything produced by the same person or organization”.",
+      "provenance": "design"
+    },
+    {
+      "same_entity_type": "organization",
+      "this_domain_field": "none — the supplier named on a goods-in note is evidence of where stock came from and gets no key here",
+      "neighbour": "business_operations.vendor-management",
+      "neighbour_field": "the standing supplier relationship with that same organization",
+      "why": "This mirrors the schema anchor's carrier/vendor split one level down. A goods-in reconciliation names a supplier, a carrier and sometimes a freight forwarder on one page; this row keys on the facility and the movement and takes none of the three as a destination, which is what stops a depot's records collapsing into a folder per trading partner.",
+      "provenance": "inference"
+    },
+    {
+      "same_entity_type": "place",
+      "this_domain_field": "site — the facility whose stock and locations these are (reused from the schema's proposal, not re-proposed)",
+      "neighbour": "photos",
+      "neighbour_field": "location — where an image was captured",
+      "why": "A damage photograph's GPS coordinate is a capture location and is never proof of the facility the stock was held in; the same photograph may equally have been taken at head office from a returned pallet. This is the same role split the schema raised in its open questions, restated here because this row's image fixture is where it actually bites.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row inherits the family principle — THE CONSIGNEE IS A PARTY, NEVER A FOLDER — but its own exposure is INVERTED relative to its siblings, and that inversion is one of the three legs on which the node survives. The consignment siblings leak the counterparty: a consignee's home address, a signatory's surname, a signature image, a doorstep photograph of a private dwelling. A put-away task, a bin report and a cycle count leak almost none of that; they name a bin, a quantity and a company. What they leak instead is THE FIRM'S OWN WORKERS. A pick-accuracy or units-per-hour report is individual performance measurement; an operative column on a movement log is a minute-by-minute record of one named worker's day inside a building, arriving through a QUANTITY column rather than through the tachograph's location column but doing the same thing; a short-pick exception attributed to a named picker is a conduct record; a stock-loss or shrinkage investigation names a suspected employee and often attaches CCTV stills. ROW PRINCIPLE, stated as a rule and not a caution: THE OPERATIVE IS A SIGNOFF, NEVER A FOLDER — no operative, picker, counter, investigator or subject name may be a destination dimension, and those are search-and-privacy facts only. A second, non-personal rule follows from the same instinct: a BIN CODE IS NOT A FOLDER either. It is a machine coordinate, it would open thousands of branches no human browses, and a directory tree that publishes a facility's internal layout is a physical-security disclosure as well as an unusable tree. Commercially, a stock-on-hand report discloses a business's holdings and a shrinkage file discloses its losses, both of which are ordinary confidential material. This row assigns no handling class; P7 owns those.",
+  "open_question": "NEEDS-JOSEPH NJ-WH-1: is the INTERNAL-KEY test the right seam against `logistics.shipment`, or should this coverage be folded into that row as a set of `work_type` values? This is the charge the row was written against and it must be adjudicated, not assumed. The case for folding: goods-in, put-away, pick, pack and dispatch are five of the schema anchor's own enumerated work types, and work types are values. The case against, which this row makes: a consignment key cannot retrieve a put-away task or a count variance, because the consignment identity is destroyed at receipt and rebuilt at despatch, so folding would place records into a spine that has no key for them. Alternatives: (a) keep this row on the internal-key test, as written; (b) fold into `logistics.shipment` and accept that inside-the-building records fall through to `Independent Records` whenever no consignment reference is present, which is most of them; (c) narrow this row to the exception subset only (damage, shortage, quarantine, hold) and let routine movement logs fall through — which would make it a row defined by exceptions and, in this project's terms, a row defined by absence. NJ-WH-2: does the recommended `site` → `record_type` order survive a single-facility corpus? Most real corpora have one depot, in which case the first level collapses to a constant and the recommendation becomes a one-level order on `record_type` alone — which is arguably no longer distinguishable from the schema default's third level. Alternatives: (a) `site` is emitted only where the corpus genuinely spans more than one facility, exactly as the default treats the carrier level, and the single-facility case is a one-level template; (b) `site` is always emitted for stability across future growth; (c) the row's order is stated as `record_type` alone with `site` as an optional parent, which is the honest inversion of (a). This row recommends (a) but does not consider it settled. NJ-WH-3: who owns worker-performance and shrinkage-investigation records? This row holds them today under a no-person-dimension rule, but their subject is a person, not stock, and they may belong to an HR row instead. Alternatives: (a) this row does not fire on them at all and they route to `Protected Records` or `business_operations.organisational-records`; (b) this row holds them with the operative rule as written, on the ground that they are facility-scoped operational records; (c) they wait on the schema's own unresolved question about whether a record-SUBJECT person may ever be a destination dimension, which is the same question and should be answered once globally rather than twice locally. NJ-WH-4: `site` and `record_type` are REUSED from the `logistics` schema row's proposals and are not re-proposed here; if R1c splits, renames or rejects either, this row's recommended order and eight `facts_legal` lines must change with it. Until R1c answers, this placeholder correctly declares `fields: []`, `proposed_fields: []` and `dimension_order: []`."
+}

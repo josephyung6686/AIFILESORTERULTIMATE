@@ -1,0 +1,403 @@
+{
+  "id": "law_practice.conflicts-check",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Conflicts screening and information barriers",
+  "one_line": "The PRE-MATTER and CROSS-MATTER half of the practice apparatus: the record of searching the firm's own client and matter population before it agrees to act, the decision that came out of that search, and the internal access barrier erected when the answer was 'only conditionally'. Its characteristic artefacts are the two the `law_practice` default template structurally cannot see: (i) a screen whose client slot is PROSPECTIVE and which therefore has no matter reference yet - the record may be of a matter that never came into existence - and which cites two or more UNRELATED matter references in a labelled search-result slot, inverting the schema's own cross-matter suppression rule; and (ii) an information-barrier record whose two labelled roles are PRACTITIONER versus PRACTITIONER (a screened matter against a named list of the firm's own personnel who must not reach it), so the schema's second activation leg - a practitioner role separated from a client role - never fires on it at all. It is NOT activated by the words 'conflict', 'conflict of interest', 'independence', 'wall' or 'screen', which corporate governance, audit, procurement and HR use identically, nor by a firm name beside any of them. Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "THE PROSPECTIVE-CLIENT SCREEN STRUCTURE, and it is this row's primary signal because it is the one place in the family where the schema's own first activation leg - an exact matter reference repeated across two or more artefacts - is ABSENT BY DESIGN. A form or export whose own labelled slots pair (a) a PROSPECTIVE, PROPOSED or ENQUIRING CLIENT slot with (b) a SEARCHED-PARTIES list holding two or more names in other roles (counterparty, target, related entity, beneficial owner, opposing party), (c) a SEARCH-RESULT slot returning either a nil return or rows that cite existing client or matter references, and (d) a DECISION slot naming an approver and a date. Read through 00's direct-fact path, \"a labeled form field\", and its table path, \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" The searched-parties list is a LIST, not a bound party pair, which is why neither `legal` nor the `law_practice` default fires on it.",
+      "THE INFORMATION-BARRIER STRUCTURE, and it is the signal that most clearly cannot be reached from the schema default. A memo, notice, undertaking or access record whose labelled slots name (a) a SCREENED matter or engagement, (b) a list of SCREENED or EXCLUDED PERSONNEL who are the holder's OWN colleagues, (c) an ACCESS RESTRICTION instruction directed at systems, files or physical storage, and (d) an EFFECTIVE DATE or a screen-lift date. Its two labelled roles are practitioner-against-practitioner, so the schema's default second leg - a labelled practitioner role separated from a labelled client role - does not fire, yet nothing else in the catalogue can hold it. Provenance: inference.",
+      "THE CROSS-MATTER CITATION INVERSION, stated as its own signal because it is a rule reversal rather than a new token. Everywhere else in this family, two matter references appearing near each other is suppressed evidence - the schema's never_alone strikes \"MATCHING PARTY NAMES, SUBJECT MATTER, CITATIONS or SEMANTIC SIMILARITY ACROSS TWO MATTERS\". On a conflicts artefact the cross-matter match is the DOCUMENT'S OWN DECLARED CONTENT, sitting inside a labelled hit or result slot that the document itself supplies. The product reads the slot; it never performs the match. A file that merely happens to mention two matters, with no result slot and no decision slot, does not qualify and remains suppressed.",
+      "A CONDITIONAL-CLEARANCE PAIR: a decision slot whose value is qualified (cleared subject to a screen, cleared subject to consent, cleared subject to supervision) plus a separate artefact carrying the barrier structure above and referencing the same screened matter. Two artefacts, one screening episode. Provenance: inference.",
+      "A DECLINED OUTCOME with a reason slot and no subsequent matter reference anywhere in the corpus - the structural fingerprint of a screening record that terminated rather than opening a file. This is the shape that most needs its own row: the `law_practice` default would look for the matter that follows and find nothing.",
+      "A SCREENING REGISTER: a spreadsheet or table whose repeated rows each carry a date, a prospective or proposed client, searched parties, an outcome and an approver. One row per screening episode, many episodes, no single matter reference governing the sheet. Multi-subject by construction, which drives the sensitivity posture below."
+    ],
+    "needs_llm": [
+      "Deciding whether an unlabelled prose memo that discusses whether the practice may act is a screening record or an internal opinion about a client's own conflict of interest - the second is `law_practice.opinions-advice` and its subject is the client's position, not the firm's ability to act.",
+      "Reading an OCR'd practice-management search screen to determine whether the visible table is a conflicts search result, a client list, a matter list or a time report, when the on-screen column headers are the only structure available.",
+      "Separating a barrier record from an ordinary IT access-permission ticket when the ticket names a matter code and a list of people but carries no screening or ethical-wall language and no effective date.",
+      "Judging, on a combined new-matter-opening form, whether the dominant labelled structure is the intake collection or the conflicts search and decision, when the form carries both and neither is decisive."
+    ],
+    "never_alone": [
+      "THE WORD 'CONFLICT', 'CONFLICT OF INTEREST', 'COI', 'INDEPENDENCE', 'CHINESE WALL', 'ETHICAL WALL', 'SCREEN' or 'BARRIER', alone or beside a firm name. This is the row's existential risk and it is struck first: corporate boards, audit and assurance practices, procurement panels, grant committees, journal editors, universities and HR departments all run declarations under exactly these words. The tempting false file `Board conflict of interest declaration - 2026 - all directors.pdf` trips this strike on every token it carries and still is not this row's evidence.",
+      "A LAW-FIRM, CHAMBERS, PRACTITIONER or CLIENT NAME ALONE, inherited unchanged from the schema and read across from 00's \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "A DECLARATION OR ATTESTATION STRUCTURE ALONE - a signed statement that the signatory has no relevant interest. That is a personal attestation about the DECLARANT, and it is the shape of an auditor's independence declaration, a director's annual return and a reviewer's disclosure. This row needs a SEARCH over a client or matter population, or an access restriction over named personnel; a bare self-declaration has neither.",
+      "A LIST OF PERSONNEL NAMES ALONE, or a list of party names alone. A name list is the least discriminating structure in this world and simultaneously the most disclosive, and an access-control export, a distribution list, a team roster and a witness list all produce one.",
+      "A MATTER, CLIENT, FILE or ENGAGEMENT NUMBER ALONE, and specifically the presence of TWO of them. Two identifiers near each other is the exact pattern the schema suppresses; only a labelled result or hit slot supplied by the document itself lifts the suppression.",
+      "A 'CLEARED', 'NO HITS', 'NIL RETURN', 'APPROVED', 'PASSED' or 'DECLINED' TOKEN ALONE. An outcome word is a value; it appears on credit decisions, security clearances, code review gates, visa outcomes and building inspections.",
+      "A SOURCE TYPE or EXTENSION ALONE, including every extension this row lists. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME or FOLDER containing conflicts, screening, wall, barrier, intake or new-matter. A path is an unlabelled position; an existing folder supports review only.",
+      "DOWNLOAD-SESSION, MAILBOX-FOLDER or ARCHIVE MEMBERSHIP - a conflicts mailbox folder is a session, not a screening record. 00: \"A session should never be treated as proof of topic\".",
+      "AUTHOR OR LAST-SAVED-BY METADATA naming a risk-and-compliance team, a general counsel or a practice-management tool. 00: \"It should avoid using authorship or creator identity as a destination dimension\"."
+    ]
+  },
+  "proposed_context_terms": [
+    "conflict search",
+    "conflict check",
+    "conflicts clearance",
+    "clearance certificate",
+    "searched parties",
+    "related parties searched",
+    "nil return",
+    "no conflict identified",
+    "potential conflict identified",
+    "conflicted out",
+    "declined to act",
+    "informed consent to act",
+    "information barrier",
+    "ethical screen",
+    "screened personnel",
+    "screened from",
+    "access restricted matter",
+    "screen effective date",
+    "screen lifted",
+    "undertaking not to disclose",
+    "prospective client",
+    "proposed retainer"
+  ],
+  "work_types": [
+    "conflict search request",
+    "conflict search result or hit report",
+    "nil-return clearance certificate",
+    "conditional clearance subject to screen or consent",
+    "declined or conflicted-out record",
+    "informed consent to act record",
+    "information barrier or ethical screen memo",
+    "screened personnel list",
+    "screen undertaking or acknowledgement",
+    "system access restriction record",
+    "screen lift or release record",
+    "conflicts and screening register entry",
+    "conflicts escalation or partner review note"
+  ],
+  "grouping_reasons": [
+    "ONE SCREENING EPISODE, joined by an exact repeated prospective-client or screening-reference token: the search request, the result, the decision, the barrier memo, the undertakings and the lift record. Content-incoherent and purpose-coherent. The episode is the group; it is NOT the matter, and it may exist where no matter ever did.",
+    "THE SCREENING REGISTER AND ITS SUPPORTING PAPER, joined by an exact register row reference. Membership does not copy the register's outcome, approver or party names onto the member document.",
+    "ANTI-GROUPING RULE, and it is the one that distinguishes this row's grouping behaviour from every sibling's. A barrier record must NOT be pulled into the matter packet it screens, even where an exact matter reference invites it. The record's whole content is that named personnel must not reach that matter; filing it inside that matter's neighbourhood places it on the wrong side of its own barrier and hands its screened-personnel list to whoever opens the matter. Where the schema default says 'join by exact matter reference', this row says 'note the reference, do not join'. Provenance: inference."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - the schema declares no field rows under PR-6 and a dimension may only branch on a field the same schema declares - but the PROSE RECOMMENDATION this row holds is not the schema's, and that difference is the second leg of its node test. The schema's default prose is: client where the corpus spans more than one and the user approved it, then matter, then document function, then period. This row INVERTS the top of that order and suppresses two of its levels affirmatively rather than conditionally. (1) THE MATTER LEVEL IS WRONG HERE, not merely ineligible. A cleared screen that never became an engagement has no matter to sit under; a hit report's decisive content names a DIFFERENT client's matter, so filing it under the prospective matter writes an unrelated client's identity into that folder; and a barrier record filed inside the matter it walls off defeats itself. (2) THE PROSPECTIVE-CLIENT LEVEL IS WORSE THAN THE CLIENT LEVEL THE SCHEMA ALREADY SEEDS INELIGIBLE, because the schema's client level at least names someone the practice acts for, whereas a screening branch would name people the practice REFUSED, and a declined enquirer's name in a visible path is a disclosure with no representation behind it to justify it. It is also exactly 00's \"create meaningless one-child levels\" in the ordinary case, since most screens produce a single document. (3) WHAT IS LEFT, held as prose only: FUNCTION FIRST - the screening record as a standalone register-shaped administrative area rather than a per-client tree - then PERIOD, because a screening episode genuinely is dated and the register is genuinely chronological, and then nothing further. This is the closest any row in this family comes to earning a time level, and it still does not earn `time_first`: the function level must come first because a bare year folder of screening documents is unintelligible, on 00's own rule that a work type \"is meaningful only after the course is known\" read across. NOT TIME-FIRST for the same reason the schema gives: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" (4) NAMED THIRD PARTIES - a searched counterparty, an existing client surfaced by a hit, a screened colleague - may NEVER be a folder level, against \"The default posture must therefore be local-first and data-minimizing.\" And whatever lands is a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Conflict search request - Hartley acquisition - 2026-08-11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slot 'Prospective client' with a value and NO matter or file number anywhere on the page",
+        "labelled block 'Parties to be searched' listing a target company, a vendor, two related entities and a beneficial owner, each with a role label",
+        "labelled slots 'Requested by' with a practitioner name and role, and 'Date requested'",
+        "no execution block, no notarial block, no tribunal caption, no bound party pair"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a matter exists, or that a retainer was accepted",
+        "that any searched party is adverse to the holder or to anyone",
+        "that the prospective client is a client"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Conflict search result - Hartley - 3 POTENTIAL MATCHES.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled result table with columns 'Matched name', 'Matched in', 'Existing client', 'Matter reference', 'Match type', 'Disposition'",
+        "three rows citing matter references that share no token with the prospective engagement",
+        "footer slot 'Reviewed by' plus a date",
+        "cross-matter citation appears INSIDE a labelled result slot supplied by the document itself"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a conflict exists, that the practice may or may not act, or that any match is real",
+        "that the cited existing matters are related to each other or to the prospective one",
+        "that the named existing clients are parties to this engagement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Conflicts clearance certificate - 2026-1147 - CLEARED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled 'Search outcome: nil return', 'Cleared by' with a name and role, 'Date', 'Conditions' left blank",
+        "a newly allocated matter reference appears for the first time, in an 'Allocated file reference' slot",
+        "this is the artefact family the `law_practice` schema anchor already carries as its own fixture (`Conflict search - Hartley acquisition - CLEARED.pdf`); the schema uses it to ACTIVATE, this row uses it to place, and the two uses do not conflict"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the clearance is valid, current, correctly performed, or still in force",
+        "that a nil return means the file is low-sensitivity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Information barrier memo - Project Kestrel - screened personnel.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled 'Screened matter' with a reference, 'Screened personnel' listing seven of the holder's own colleagues by name and team",
+        "labelled 'Access restrictions' naming a document-management workspace, a shared drive path and a physical storage room",
+        "labelled 'Effective from' with a date and 'Review date'",
+        "NO client role slot: the two labelled roles on the page are practitioner and practitioner"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the barrier is effective, adequate, compliant, or currently in force",
+        "that any screened person did anything wrong",
+        "that this file belongs inside the screened matter's group"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screen undertaking - J Okonkwo - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "undertaking prose plus a completed execution block with a signature, printed name, date and a witness line",
+        "labelled 'Screened matter' reference and 'I confirm I will not access' clause",
+        "the execution block is `legal`'s own instrument signal and it fires here"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the undertaking is binding, enforceable, or has been complied with",
+        "that this row displaces `legal` on a file carrying an execution block"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Conflicts and screening register 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row 'Date | Prospective client | Searched parties | Outcome | Screen required | Approver | Notes'",
+        "many rows, each a distinct screening episode, several marked DECLINED with a free-text reason",
+        "no single matter reference governs the sheet",
+        "multi-subject list: each row names people or organisations unconnected to the others"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any row's outcome is correct or current",
+        "that the declined enquirers have any relationship with the holder",
+        "that a row's party names may be surfaced in a prompt or a path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Conflict check - Meridian v Hartley - can we act.eml",
+      "source_type": "email",
+      "observations": [
+        "sender in a risk-and-compliance role, recipient a named practitioner, internal-only recipient list",
+        "quoted request naming a prospective client and two parties to search; reply body carries a result line naming one existing client and one existing matter reference",
+        "no attachment; the result is prose in the body rather than a labelled slot"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a conflict exists or that the practice declined",
+        "that the mailbox folder the message sits in is evidence of anything"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-08-11 at 09.14.22 - conflicts search no results.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: display-resolution dimensions, an operating-system screenshot filename pattern, no camera metadata",
+        "OCR recovers a search field, a party-name box and a results pane reading 'no matching records'",
+        "the surrounding application chrome is a practice-management tool, not a court or public site"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that missing EXIF proves screen origin - the positive display evidence does",
+        "that a nil-return screen is a clearance record, or that it was retained deliberately"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Conflicts and screens - Q3 export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists request forms, result reports, certificates, barrier memos and a register extract",
+        "member names carry mixed prospective-client tokens with no single matter reference",
+        "manifest readable without unpacking"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that every member shares one screening episode",
+        "that the archive should be unpacked solely to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Independence declaration - Meridian audit engagement - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "THE COLLISION FIXTURE. Labelled 'Engagement', 'Declarant', 'I confirm I hold no financial interest', 'Relationships disclosed', signature, date",
+        "carries the words independence, conflict of interest, engagement, declaration and a professional-firm footer - every token this row's never_alone strikes",
+        "what it does NOT carry: any search over a client or matter population, any result or hit slot, any clearance authority separate from the declarant, any access-restriction instruction",
+        "its subject is the DECLARANT's own interests; this row's subject is a prospective client and the firm's existing population"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that professional-firm vocabulary makes this a legal conflicts screen",
+        "that a signed declaration is a search result"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Board conflict of interest declaration - 2026 - all directors.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SECOND COLLISION FIXTURE, governance side. A table of directors, declared outside directorships, related-party interests, and a company-secretary sign-off",
+        "matches on 'conflict of interest', a name list, a sign-off and a date",
+        "no prospective client, no searched-parties slot, no result slot, no screened-personnel access restriction; the subjects are the organisation's own officers declaring to the organisation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a name list plus a conflict word is this row's structure",
+        "that the holder is a practitioner because a corporate secretary signed"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Conflicts export - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "archive header readable, member list encrypted, no manifest recoverable",
+        "the filename is the only evidence and it is a struck token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the archive contains screening records, or any party, outcome or sensitivity result"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.client-intake",
+      "signal": "THE SIBLING COLLISION, and it is the sharpest one because the two situations share a single physical form in most practices. The competing fixture named identically on both sides is `New Matter Opening Form - Hartley - 2026-08-11.pdf`, which carries an intake half (identity verification, source-of-funds, scope of instructions, contact details collected FROM the prospective client) and a conflicts half (searched-parties list, search result, clearance decision by a separate approver). THE BOUNDARY IN BOTH DIRECTIONS: intake owns the artefact when the decisive labelled structure collects information FROM or ABOUT the prospective client for the practice's own record; this row owns it when the decisive labelled structure is a SEARCH over the practice's existing client and matter population, or an ACCESS RESTRICTION over named personnel. Intake asks 'who is this person and what do they want'; this row asks 'may we act, and if only conditionally, who inside the firm must be kept out'. Where a single form carries both halves and neither dominates, the honest outcome is Review Later rather than a coin-flip between two siblings. Provenance: inference."
+    },
+    {
+      "domain": "legal",
+      "signal": "The safety-domain collision, conceded in the same terms the schema anchor concedes it. `legal` activates on an EXECUTED-INSTRUMENT structure (a bound party pair plus an execution or notarial block); the competing fixture is `Screen undertaking - J Okonkwo - signed.pdf`, which has exactly that shape - one firm, one signatory, a signature block. IN BOTH DIRECTIONS: where the execution block fires, `legal` holds the file on `legal`'s own evidence and its protection runs first, and this row retains only recognition and episode grouping over it; where there is no execution block - the request, the result, the certificate, the register, the barrier memo - `legal`'s signals do not fire at all and this row is uncontested. The conflicts screen is, structurally, `legal`'s negation: a searched-parties LIST rather than a bound party PAIR. Provenance: inference."
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "The professional-services collision. The competing fixture named on both sides is `Independence declaration - Meridian audit engagement - 2026.pdf`. Audit, assurance, consulting and advisory practices run independence and conflict checks whose vocabulary is indistinguishable from this row's. IN BOTH DIRECTIONS: Career holds the artefact when it is a DECLARANT-CENTRED attestation about the signatory's own interests in one engagement, or when the surrounding evidence is consulting-shaped (prepared-for and prepared-by roles, deliverables, milestones, acceptance); this row holds it when the artefact records a SEARCH over a client and matter population with a result slot, or an internal access barrier with a screened-personnel list, and the surrounding corpus carries the practitioner-client role separation the `law_practice` schema requires. A professional-firm footer decides nothing on either side. Provenance: inference."
+    },
+    {
+      "domain": "business_operations.organisational-records",
+      "signal": "The governance collision. The competing fixture named on both sides is `Board conflict of interest declaration - 2026 - all directors.pdf`, and a gift-and-hospitality register or a related-party interests register raises the same problem. IN BOTH DIRECTIONS: business_operations holds the artefact when the declaring subjects are the ORGANISATION'S OWN officers, employees or committee members disclosing interests TO the organisation, with no prospective external client and no search over a matter population; this row holds it when the artefact screens a PROSPECTIVE EXTERNAL ENGAGEMENT against existing engagements, or restricts internal access to a specific screened matter. The neighbour's own deletion test governs both sides: delete every entity name and every document-type word, and if only a name list and the word 'conflict' survive, nothing fires anywhere. Provenance: inference."
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "The personnel collision, and it bites specifically on the barrier half of this row. The competing fixture named on both sides is `Screened personnel - Project Kestrel - access list.xlsx`: a list of named employees with an access instruction is also the shape of a disciplinary restriction, a secondary-employment approval, a suspension record or a systems-access review. IN BOTH DIRECTIONS: HR holds it when the artefact's subject is the EMPLOYMENT RELATIONSHIP - conduct, capability, terms, sanction, grievance - and the restriction is about the person; this row holds it when the artefact's subject is a SCREENED MATTER and the restriction exists to protect a client relationship rather than to address the employee. A screened-personnel list carries no adverse implication about anyone on it, and the product must not let the HR reading attach one. Provenance: inference."
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "The blank-form collision, small but real. A blank conflicts questionnaire or an unfilled barrier-memo template lives in the practice's know-how bank, and its slots are structurally identical to a completed screen's - which is precisely this row's signal. IN BOTH DIRECTIONS: precedent-bank holds the artefact when the party, date, outcome and approver slots are EMPTY BY DESIGN across the whole document; this row holds it when those slots carry values. A single filled example inside an otherwise blank template pack does not flip it. Provenance: inference."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "A signed screen undertaking or a signed consent-to-act is simultaneously an executed instrument on `legal`'s own evidence and a member of a screening episode here. Both readings are legitimate on one file; `legal` is a safety domain and its protection runs first, and this row adds only the episode association. Provenance: inference."
+    },
+    {
+      "domain": "photos",
+      "signal": "A screen capture of a practice-management conflicts search carries positive screen-origin evidence and activates the screenshot situation independently of whether OCR recovers a search result. Neither reading erases the other, and the image's own capture facts stay Photos'. Provenance: inference."
+    },
+    {
+      "domain": "hr",
+      "signal": "A screened-personnel list is genuinely about named employees and may legitimately carry an HR reading in a corpus where the holder also runs the practice's people records. Coactivation, not membership: the HR reading must never import an adverse inference, and this row's reading must never copy the screened matter's reference onto a personnel record. Provenance: inference."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary residual and the cheap error, because the characteristic isolated file here is a document naming third parties who never chose this filesystem - a searched counterparty, an existing client surfaced by a hit, a declined enquirer, a screened colleague. A stray search result, a lone certificate, a register page or a barrier memo belongs in the protective home when no screening episode is confidently assembled. 00 names the residual and licenses the posture: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the readable professional artefact whose holder role or purpose is genuinely unresolved - the independence declaration, the board conflict register, the combined intake-and-conflicts form where neither half dominates, the conflicts email with no attachment. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" This is the correct destination for every collision this row loses rather than a forced sibling choice.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For the password-protected conflicts export, the practice-management binary and the malformed register, without manufacturing a party, an outcome or a sensitivity result from a filename. 00: \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and the third leg of this row's node test, because it is stricter than the `law_practice` default in three specific ways the default cannot express. FIRST, PLURAL DISCLOSURE. The schema's rule is that the existence of ONE representation is disclosive. A hit report discloses SEVERAL at once: it names the prospective engagement AND cites existing clients and matter references from unrelated files, so one document read in one context leaks a second and third representation that context had no business seeing. SECOND, THE NON-CLIENT. A declined or conflicted-out record is about a person or organisation that never became a client at all - someone whose only trace in this filesystem is that the practice refused them. The schema's argument protects clients, adverse parties, witnesses and deponents; it does not reach the declined enquirer, and the declined enquirer is the most exposed subject in this row because there is no representation to justify holding anything about them. THIRD, THE COLLEAGUE. A screened-personnel list names the holder's own colleagues as excluded from something, which is employment-adjacent exposure sitting inside a legal packet where no HR safeguard is watching, and which a careless reader will read as an adverse inference it does not carry. Compounding all three: the register is a MULTI-SUBJECT LIST whose exposure scales with row count, and 00's data-minimisation rule governs the whole row - \"The default posture must therefore be local-first and data-minimizing.\" The product records no legal conclusion: it does not decide whether a conflict exists, whether a screen is adequate, whether consent was informed, whether a clearance is current, or whether any professional rule was met. Compliance-risk wording on a form stays a raw observation and never becomes this product's classification; handling classes are P7's.",
+  "open_question": "NJ-CC-1: whether a screening episode that produced a DECLINED outcome should be retained in the catalogue at all, or represented only as an unopened protected item. The alternatives are (a) index it like any other episode, accepting that a refused enquirer's identity enters the graph, or (b) recognise it, mark it protected, and never surface its party names in any prompt, path, summary or search result - a narrower posture than Protected Records currently implies. NJ-CC-2: whether P9 may record the exact matter reference that a barrier record names, given that the reference is the linkage that makes the record useful and simultaneously the linkage that would place it inside the matter it screens; the alternatives are a suppressed one-way edge that the matter side cannot traverse, or no edge at all with the barrier record left standalone. NJ-CC-3 (reciprocal with law_practice.client-intake): whether the combined new-matter-opening form is one artefact assigned by dominant structure, or an artefact both siblings legitimately recognise, which the closed edge vocabulary cannot express between two templates on one schema."
+}

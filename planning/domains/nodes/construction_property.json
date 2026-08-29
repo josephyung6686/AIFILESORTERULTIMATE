@@ -1,0 +1,598 @@
+{
+  "id": "construction_property",
+  "kind": "schema",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Construction, trades and property (the professional record of a site, a job and a building)",
+  "one_line": "The working record of people whose OCCUPATION is building, certifying, valuing, selling, letting or managing real property for others: the priced job, the site under construction, the design information it is built from, the statutory approvals that let it happen, the appraisal that decided it would, and the letting, sale and block management of the finished building. Its anchor is a PROPERTY OR SITE joined to an INSTRUCTION — a job, a lease, a listing, a scheme, a managed block — and a document whose function sits inside that instruction's lifecycle. It is deliberately the PROFESSIONAL side of property: the householder's own records of their own home belong to finance.household-property, and an executed instrument held as the holder's own agreement belongs to the protected legal side (legal.leases-agreements). Placeholder schema row (J-IND, written to J-DEPTH): it recognises the situation and writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). It is the schema row for 27 template siblings, and the default template, the vocabulary and the seams stated here are what each of those siblings must differ from to have a node at all.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "property",
+      "type": "string",
+      "example": "the site, premises, plot, block or unit the record is about — 18 River Court, Plot 4 Kilnfield, Unit 3B Harbour Works",
+      "why_no_existing_key": "This is the single most load-bearing unheld concept in the family, and every row on this schema wants it. No canonical key holds THE THING BUILT OR MANAGED. `location` is the photos-schema key for where an image was captured and it carries a capture reading, not a subject reading — a site photograph's `location` and the property the file is ABOUT are the same string with different meanings, and folding them would make a progress photo taken from the pavement opposite file itself under the pavement. `institution` is the finance-side counterparty a record is held with; `venue` is a research publication venue; `client` is the counterparty person or organisation, not the asset; `project` is the closest relative and is discussed below but names the JOB, not the address it happens at, and one property carries many jobs across decades while one job may span several plots. An address string is also exactly the multi-role token 00 warns about — read “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” across to a postal address, which appears as the site, the sender's registered office, the agent's branch, the surveyor's own office, a comparable transaction and a neighbour's objection. That is an argument for a careful ceiling, not for having no key.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE. It is a place and a subject, not a person and not an author, so 00's own prohibition — “A folder should not become a collection point for everything produced by the same person or organization.” — does not reach it, and it is the level every practitioner in this family actually asks for first. The countervailing point is stated rather than hidden: in a corpus that is one household's own single home it degenerates into a one-child vanity level, which is precisely why THAT corpus belongs to finance.household-property and not here. A residential address is also identifying, so a property level surfaces an occupier's address in a folder name; the sensitivity setting on this row and P7's classification are where that is answered, not the eligibility flag.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "An address read out of a labelled slot — a title block's project-address field, a certificate's installation address, a lease's premises recital, a listing's property line — is a labelled structure a P4 extractor could reasonably read as `direct`. Pinned at `possible` for the schema as a whole because in free text and in filenames an address is the ambiguous token described above. A `validated` ceiling would need an address-plus-role rule family — a postal-address pattern co-occurring with a role term in the same labelled zone, the same pattern-plus-context SHAPE 00 uses for the academic course code. R2 owns the pattern and R4 owns any gazetteer; this row writes neither.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "instruction",
+      "type": "string",
+      "example": "the job, matter, scheme, listing or managed block a document belongs to — Job 2431 Kilnfield Phase 2, the letting of Unit 3B, the management of Harbour Works",
+      "why_no_existing_key": "Proposed with a live alternative, and R1c should feel free to take the alternative. The alternative is to REUSE the canonical key `project`: fields are global tokens, `project` already exists, and a construction contract is a project by any ordinary reading. That reuse is this row's own preference for the construction-project and development-appraisal rows and it is recorded as such. The reason a separate key is nevertheless proposed is that half this family's instructions are NOT projects and calling them projects would be a stretch that shows up as a bad folder name: a tenancy, a sale instruction, a portal listing and a standing block-management appointment are engagements with a start, a fee and an end, not projects with a stage and an artifact. If R1c decides `project` stretches far enough, this proposal should be dropped rather than shipped beside it — a near-duplicate of a canonical key is the exact defect D6's ratification exists to kill, and 00 is explicit that “The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.” Two spellings of one concept is the failure; one key doing honest double duty is not.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE if it survives at all. It is the container that makes every other document intelligible — a valuation number, a variation, a revision or a viewing note means nothing above the job or letting it belongs to, which is 00's own reason for putting a course above a homework number. It should sit above time: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A job or instruction reference is usually a short alphanumeric token, and a bare token is the weakest kind of evidence there is — 00 says of the sibling case that filenames and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers or ZIP codes. It reaches `direct` only from a labelled slot (a title block's project field, a valuation's contract reference, a letter's Our Ref line) and stays `possible` everywhere else. `validated` would need a reference-pattern-plus-context rule family that R2 owns.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the practice, contractor, agency or managing agent whose own working record this is",
+      "why_no_existing_key": "NOT a new proposal — this row REUSES the `organization` key already proposed by the landed business_operations schema row rather than minting a construction-flavoured variant, and it should be adjudicated once, there, for both. The need is identical: the custody question of whose record a file is. It bites here because one machine routinely holds the same job's papers in two roles — a builder's own copy and the client's copy of the same valuation. This row adds one datum for R1c: the same false-eligibility argument applies, since inside a single practice's corpus an organisation level is the collector level 00's own template validator rejects (“use an author or organization merely as a collector”).",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE, following the business_operations row's reasoning unchanged. This row does not reopen it.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "As business_operations proposed it. A firm name is the multi-role token of “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” read across to a company.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a title-block structure: a drawing sheet or model export whose border zone carries a project or site name, a drawing-number-shaped token, a revision designator, a scale, a status word and an originator — several labelled slots in one bordered zone. This is the family's strongest single structure and it exists nowhere else in the roster; the revision designator alone is not it.",
+      "a priced-works structure: a line-item table whose rows are described works or trades and whose columns are quantity, unit, rate and amount, with a preliminaries or provisional-sum block — a quotation, a bill of quantities, a cost plan, a valuation. It is distinguishable from an ordinary invoice by the works description and the measured quantity, not by the presence of money. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a site-address-plus-instruction pair: a document carrying a postal address or plot identifier in a labelled subject or premises slot TOGETHER with a job, contract, matter or instruction reference in a labelled reference slot. Neither half is sufficient (see never_alone); the co-occurrence is what says a professional instruction exists about a specific property.",
+      "an authority-decision structure: a decision notice, approval, consent, or inspection record whose issuing body is a planning, building-control or statutory inspection authority, carrying an application reference, a decision word and a numbered conditions schedule. R4 owns the gazetteer of authority names; this row writes none.",
+      "a certified-declaration structure: a signed statement that a described installation or works at a described address complies with a named standard or scheme, carrying an installer or certifier registration slot and an issue date. The word certificate is not the signal; the address-plus-scheme-plus-declaration triple is.",
+      "a periodic-payment-against-works structure: an application for payment, an interim valuation, a payment notice or a final account, keyed to a contract reference and a valuation number, showing works executed to date less previously certified. The 'to date, less previously certified' shape is peculiar to this world.",
+      "a marketing-particulars structure: a property description with a price or rent line, a tenure or term line, a room or accommodation schedule with dimensions, a floor-plan image and agency branding, frequently as a portal export.",
+      "an apportionment structure: a schedule whose rows are units or leaseholders in one building and whose columns are a percentage or share and a demanded amount, attached to a budget for that building.",
+      "a site-photograph set: many images from a small number of days, sharing camera metadata and a GPS cluster, whose OCR or filenames carry a job or plot reference. “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” The photo-event half is the photos schema's; what makes it also this schema is the job reference, and neither half is assumed from the other.",
+      "parent-folder context naming a job number, a site or street address, a plot, a block, or a drawing register — treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone.",
+      "an email whose labelled subject slot carries a job or property reference and whose attachment-name slot names a drawing number, a valuation, a certificate, a schedule or a set of particulars.",
+      "a calendar entry whose labelled SUMMARY names a site visit, an inspection, a viewing, a handover or a site meeting and whose LOCATION slot resolves to a site address. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT is what fires; source_type = calendar contributes only as a file-kind signal.",
+      "an archive whose manifest names a drawing issue sheet, a tender pack, a data room, a handover or O&M manual, or a listing pack — manifest names read without extraction."
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter about a site that could be a client instruction, a contractor's claim, a neighbour's objection or a surveyor's advice, with no reference line and no letterhead.",
+      "a photograph of a wall with no caption: an as-built record, a defect, a survey of an existing condition, or somebody's phone picture of their own kitchen — the image alone does not say which, and a wrong guess files a private home photo in a professional job.",
+      "a spreadsheet of costed lines that could be a builder's quotation, a developer's appraisal, an owner's budget or an accountant's cost report, where no header names the world.",
+      "a document that reads as a lease, a licence, a heads of terms or a memorandum, where which one it is decides whether the protected legal side or the estate-management side is the honest home.",
+      "deciding which SIDE of a transaction the holder is on when a document reads identically from both — the discriminator is a role, and roles live in prose more often than in slots."
+    ],
+    "never_alone": [
+      "a postal address or a street name alone. This is the family's constitutional never-alone and the single most important line on the row: an address is the site, the sender's registered office, the agent's branch, a comparable, a neighbour, or merely a place mentioned. It is 00's own reasoning about a university name read across: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a firm, practice, contractor or agency name alone — same reasoning, same sentence.",
+      "a document-type word alone: certificate, drawing, schedule, survey, valuation, report, plan. Every one of them is a work_type VALUE that appears in several worlds, and the landed finance.household-property row carries title, inspection, warranty and completion certificate as its own work types. A row supported only by such a word can never clear activation.",
+      "a bare 4-digit number alone — 00: file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. In this world they are also plot numbers, drawing numbers, valuation numbers and unit numbers.",
+      "a source_type or extension alone. A .dwg, .rvt, .ifc or .pdf makes this schema plausible and proves nothing — 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+      "an image without EXIF alone. “the system must not mistake the absence of EXIF for proof that an image is a screenshot” A stripped site photograph is still a site photograph and a screenshot of a portal is not one.",
+      "a download session alone. “A session should never be treated as proof of topic”",
+      "a money figure alone. Quotations, valuations, appraisals, service charges, rents and offers all carry amounts, and so does every other schema on the roster that touches money."
+    ]
+  },
+  "proposed_context_terms": [
+    "site",
+    "plot",
+    "premises",
+    "dwelling",
+    "unit",
+    "block",
+    "scheme",
+    "phase",
+    "drawing number",
+    "revision",
+    "scale",
+    "issued for construction",
+    "for information",
+    "superseded",
+    "title block",
+    "as-built",
+    "specification",
+    "schedule of works",
+    "bill of quantities",
+    "preliminaries",
+    "provisional sum",
+    "contract sum",
+    "variation",
+    "instruction",
+    "application for payment",
+    "interim valuation",
+    "previously certified",
+    "retention",
+    "final account",
+    "practical completion",
+    "handover",
+    "defects",
+    "snagging",
+    "making good",
+    "planning permission",
+    "decision notice",
+    "conditions",
+    "building regulations",
+    "inspection",
+    "completion certificate",
+    "tenure",
+    "freehold",
+    "leasehold",
+    "ground rent",
+    "service charge",
+    "apportionment",
+    "demised",
+    "rent review",
+    "schedule of condition",
+    "dilapidations",
+    "break",
+    "asking price",
+    "guide price",
+    "viewing",
+    "offer",
+    "particulars",
+    "floor plan",
+    "gross development value",
+    "build cost",
+    "residual land value",
+    "profit on cost",
+    "appraisal",
+    "viability"
+  ],
+  "work_types": [
+    "quotation, estimate, tender or priced bill",
+    "survey, measured survey or condition report",
+    "drawing, model, sheet or issue register entry",
+    "specification, schedule of works or method statement",
+    "contract, subcontract, order or appointment",
+    "instruction, variation, change order or claim",
+    "site diary, progress report, meeting minute or site photograph set",
+    "application for payment, interim valuation, payment notice or final account",
+    "planning or building-regulations application, decision notice or condition discharge",
+    "inspection record, statutory approval or completion certificate",
+    "installation or compliance certificate and test record",
+    "defect, snagging or making-good record",
+    "handover pack, as-built information or operating and maintenance manual",
+    "appraisal, cost plan, cashflow or viability assessment",
+    "valuation, appraisal report or comparable evidence",
+    "marketing particulars, floor plan, photograph set or portal listing",
+    "offer, memorandum of sale, heads of terms or letting record",
+    "lease, tenancy, licence, rent review or dilapidations record",
+    "service-charge budget, apportionment schedule, demand or reconciliation",
+    "association or block meeting record and leaseholder correspondence"
+  ],
+  "grouping_reasons": [
+    "one INSTRUCTION end to end — one job from award to final account, one letting from instruction to move-in, one scheme from appraisal to sale. This is the family's primary group and it is purpose-coherent long before it is content-coherent: “The documents are content-incoherent but purpose-coherent.”",
+    "one PROPERTY across time and across instructions — a building's history of works, approvals, certificates and lettings, which is the group a surveyor and a conveyancer actually want and which spans decades and owners.",
+    "one issue of design information: the drawings, the transmittal or issue sheet, and the covering note that went out together on one date.",
+    "one valuation cycle: the application, the notice, the certificate and the payment.",
+    "one site visit: the diary entry, the photographs taken that day, the meeting minute and the instruction that came out of it. This is the group most likely to tempt a job reference onto an unlabelled photograph, and that is exactly what must not happen — “The graph does not automatically copy those missing facts onto sparse files.” A sparse image may sit in the neighbourhood as a context-supported member without receiving a fact.",
+    "one repeatedly re-exported drawing or pack, joined by the universal duplicate_family and version_family facts rather than by any construction fact — “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "no group at all is a valid outcome. A single stray certificate or decision notice is an ordinary standalone record and 00's residual library exists precisely for it: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply as written: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two sites' papers in one folder do not merge, and neither do two owners' copies of the same building's history."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and this schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a judgement that the world has no shape — it has an unusually clear one, and it is recorded here as PROSE for whoever answers the open_question, and as THE FAMILY'S DEFAULT that the sibling template rows on this schema follow unless they say otherwise. The recommendation, held as prose: the PROPERTY or SITE first, then the INSTRUCTION that concerns it (the job, the letting, the scheme, the block), then the DOCUMENT FUNCTION, with a period level only where the situation genuinely cycles (a service-charge year, a rent-review cycle). Property before instruction rather than the reverse, because a building outlives every job done to it and is the level a practitioner returns to years later; the sibling rows whose life is a single job may honestly reverse the first two, and 00 permits exactly that. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "design_creative",
+      "ocr",
+      "email",
+      "calendar",
+      "presentation",
+      "archive",
+      "opaque_binary",
+      "audio_video",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".dwg",
+      ".dxf",
+      ".rvt",
+      ".ifc",
+      ".skp",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".pptx",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "2431-A-102 Rev C - Ground Floor Plan - ISSUED FOR CONSTRUCTION.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a bordered title-block zone carrying a project name, a site address, a drawing-number-shaped token, a revision designator, a scale and a status word",
+        "a sheet border and a north point rather than paragraphs",
+        "a filename repeating the drawing number and revision"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "a property or instruction as a stored fact; both are proposed keys awaiting R1c",
+        "that Rev C supersedes Rev B without the register that says so",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Valuation 07 - Kilnfield Phase 2 - application for payment.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a works line-item table with quantity, rate and amount columns",
+        "a gross-to-date row, a less-previously-certified row and a retention row",
+        "a labelled contract reference and a valuation number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is a finance-schema record; the works description and measured quantity are the discriminating evidence",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2231.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "a GPS point clustered with forty other images from the same two days",
+        "no text in the filename and no OCR text yet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a job or property fact copied from the other files in the cluster — “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that it is a site photograph rather than a personal one; the EXIF cluster proves a photo event, not a professional instruction",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Decision Notice - 24-01187-FUL - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an issuing authority's letterhead and an application-reference-shaped token",
+        "a decision word and a numbered schedule of conditions",
+        "a site-address block in a labelled slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the holder is the authority rather than the applicant; that is the government boundary and needs role evidence",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Lease Agreement - 18 River Court - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "party recitals, a grant of occupancy, a term, a rent and an execution block",
+        "numbered covenants and a defined-terms block",
+        "a premises address in a recital"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this schema owns it; the landed legal.leases-agreements row already claims this exact fixture and the instrument is safety material first",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Kitchen Remodel - Bright Plumbing - Invoice 7841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an issuer block, a transaction identifier, item rows and a total",
+        "a service address matching the holder's own home",
+        "no job reference and no works measurement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a construction instruction; the landed finance.household-property row already claims this fixture and the absence of a job reference is the discriminating evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 11.42.18.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR text showing a portal page with a property address, a price and a reference",
+        "screen-shaped pixel dimensions and no camera EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the absence of EXIF proves anything — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "a property fact from a portal page that may be a comparable, a competitor's listing or idle browsing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Handover pack - Harbour Works.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing as-built drawings, certificates, test records, warranties and an operating manual",
+        "members of mixed formats including .dwg and .pdf",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any member from the archive name",
+        "that every member belongs to this schema; a warranty and a certificate may equally be the building owner's household record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Site meeting - Kilnfield - 12 March.ics",
+      "source_type": "calendar",
+      "observations": [
+        "a SUMMARY naming a site meeting and a scheme",
+        "a LOCATION slot carrying a site address",
+        "attendee slots resolving to contractor and consultant domains"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that source_type = calendar activates anything; it is a file-kind signal only and calendar is a SOURCE_TYPE, not a domain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Model.rvt",
+      "source_type": "design_creative",
+      "observations": [
+        "a proprietary format recorded as indexed-but-unreadable",
+        "filename carrying no reference of any kind",
+        "a parent folder named after a job number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a job fact from the parent folder alone; folder context never fires alone",
+        "that an unreadable file is empty — “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Building Regulations Completion Certificate - 18 River Court.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a building-control body's letterhead, an application-reference-shaped token and a completion declaration",
+        "a property address in a labelled slot",
+        "held in a folder beside a mortgage statement, a home insurance schedule and a boiler warranty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a professional instruction. This is THE collision fixture for this schema: the address is present, the reference token is present, the authority structure is present, and every deterministic signal short of the instruction pair is satisfied — and it is still a householder's own record of their own home, which the landed finance.household-property row already claims (it lists completion and compliance certificates among its own work types). The discriminating evidence is the neighbourhood: no job reference, no fee or appointment, no client party, no works measurement, and a custody in which the holder is the owner rather than the instructed party.",
+        "that the word certificate discriminates anything — it is a work_type VALUE that appears in several worlds",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.household-property",
+      "signal": "THE reciprocal boundary of this whole family, and the landed row states its half already. The same document types exist on both sides — title, survey, inspection, warranty, improvement invoice, completion certificate — and the shared evidence item is the property address, which must count for neither. The discriminating evidence is WHOSE INSTRUCTION it is: a professional instruction reference, a fee or appointment, a client party, a works measurement or a title block supports this schema; a householder's own ownership, occupation, taxation and maintenance record of their own home, held with no instruction around it, supports finance.household-property. Where the role does not settle, neither activates: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "Stated reciprocally with the landed row, which already names the tenancy-packet fixture. The operative INSTRUMENT — party recitals, covenants, consideration, execution block — is legal material and legal is a safety domain, so it protects first (“Finance, identity, medical, and legal material should be implemented first as safety domains”). What this schema holds is the ESTATE-MANAGEMENT lifecycle around the instrument: the rent-review memorandum, the schedule of condition, the dilapidations schedule, the apportionment, the licence to alter. Premises address, rent amount and a signature block are shared observations and decide nothing. Where a file is both, it is both — see also_holds_with.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "An organisation's own premises records overlap this schema exactly: a lease of the office, a fit-out project, a facilities contractor, a compliance inspection. The discriminating evidence is whether the property is the SUBJECT OF AN INSTRUCTION for someone (this schema) or merely the place the organisation happens to occupy while running itself (business_operations, and specifically its facilities-workplace row). A fit-out with a contract sum, drawings and valuations is this schema even when the occupier runs it; a desk-booking policy is not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "A planning or building-control document looks identical from both sides. The discriminating evidence is which side the holder is on: an issuing or deciding authority's letterhead, case reference and statutory power supports government (and specifically government.planning-application and government.permit-licensing); an applicant's or agent's submission, its acknowledgement and the conditions it must discharge supports this schema. The application reference appears on both copies and discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.architectural-visualisation",
+      "signal": "A rendered view and a drawing sheet are both design output about the same building, and both arrive as design_creative files with a project name. The discriminating evidence is the TITLE BLOCK and its status and revision apparatus — construction information is issued, superseded and built from; a visualisation is a persuasive image with a brief, a round of amends and a deliverable handoff. A project name and a .skp or .pdf count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "Site photographs and personal photographs are the same bytes from the same phone on the same day. “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” — but a photo event is not a professional instruction. A job or plot reference in OCR or a labelled slot, or membership of a set attached to a diary entry, supports this schema; a GPS cluster and a camera model alone support only a photo event. The clustering must not become the fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "Not yet written, so this row states its half of the seam so that schema's author has something to write against. A delivery note, a consignment record, a purchase order and a haulage confirmation are logistics documents by structure — consignor, consignee, consignment reference, quantities, a signature on receipt. They become this schema's evidence only when they are keyed to a SITE and an INSTRUCTION: a delivery addressed to a plot against a job reference, signed by a site manager, filed against a contract. The shared evidence item is the delivery note itself, and it discriminates nothing on its own. This row STOPS at the site gate: what happened to the goods before they arrived — the carrier, the route, the fleet, the warehouse — is not this schema's, and construction_property.materials-delivery holds only the site-facing half.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "Also not yet written. Fabricated and offsite-manufactured building components produce documents that read as both: a shop drawing, a fabrication schedule, a works order, a material test certificate, a factory production control record. The seam this row proposes: where the document is about MAKING THE ARTICLE — a production run, a batch, a works order, a factory quality regime — it is manufacturing's; where it is about INSTALLING OR APPROVING THAT ARTICLE AT A NAMED SITE UNDER AN INSTRUCTION — a shop drawing carrying a project title block and a revision status, a test certificate attached to a handover pack — it is this schema's. Plant hire sits on the same seam and this row keeps only the hired-onto-a-site half. The shared evidence item is a material or test certificate; it names a standard on both sides and decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "signal": "The nearest schema by structure rather than by subject: a drawing set under revision control, with a title block, a status word and an issue register, is engineering's own anchor as much as it is this family's. The discriminating evidence proposed here is the SUBJECT OF THE INSTRUCTION — a fixed property or site, with a postal address or plot identifier in a labelled slot, and a lifecycle running through statutory approval, construction, valuation and handover. A drawing set for a product, a machine, a vessel or a system that has no site is engineering's. A structural engineer's calculation package for a named building is genuinely both, on disjoint evidence.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "finance",
+      "signal": "Common and on disjoint evidence: a valuation certificate is a payment record and a works record at once; an appraisal carries a funding structure; a service-charge reconciliation is an account. finance is a safety schema, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). AUTHORED ONE-WAY HERE: the landed finance rows do not name construction_property, and R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "A signed building contract, a lease, a collateral warranty or a party-wall award is one file under two schemas on disjoint evidence — the execution structure for legal, the works and property apparatus for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither. One-way here; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "A site photograph set is legitimately a photo event AND a professional record on disjoint evidence: camera EXIF and a GPS cluster for photos, a job reference and a diary entry for this schema. Neither half may be assumed from the other. One-way here; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "A contractor's own running record is both: a subcontract sits in a contract register (business_operations contract administration) and in a job file (this schema), on disjoint evidence. One-way here; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "An applicant's copy of a decision notice is an authority record and a project record at once when the holder is genuinely both (a council developing its own housing). Disjoint evidence, both true. One-way here; R1c owes the reciprocal.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The commonest honest home for a standalone certificate, decision notice, warranty or approval with no accepted job or property group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for a real-looking site or property document whose property, instruction or side is unresolved — frequent in this world, where a reference token and an address are often all there is. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members: a materials delivery note, a plant hire confirmation, a supplier invoice with no job around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary here rather than exotic: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single site or property photograph with no event, job or set around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Portal captures, listing screenshots and phone photographs of a drawing pinned to a wall are the tempting false files of this schema and belong here when nothing else fires.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Standards, guidance notes, market reports and saved technical PDFs accumulate heavily in this world and are not job records. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where the material carries an occupier's identity, a leaseholder's arrears, a tenant's references or a commercially confidential appraisal, the protective home is the correct one. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "business_operations",
+      "why": "00's own role-split pair, and this family is where it bites hardest because the same job file exists in three custodies at once: the client who commissioned the works, the professional who was instructed, and the contractor who carried them out. Two of those three roles have keys and the third does not, which is the same gap the landed business_operations row records for `supplier`. This row does not mint a key to close it; it records the gap for R1c.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Three grounds, stated conservatively. First, the material routinely names a real person's home and who is in it: an occupier's address, a tenant's references and arrears, a leaseholder's correspondence, photographs of the inside of somebody's house taken to sell it. Second, 00's own corpus sentence names material this schema carries as a matter of course — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Third, and as inference: much of this world is confidential to a THIRD party (a client's appraisal, a tenant's financials, a building's security-relevant layout), so the exposed party is often not the user and cannot consent. That argues for the cautious setting. The handling class is P7's and is not set here.",
+  "open_question": "Four, and the first is this family's own NEEDS-JOSEPH. (1) NJ-CP-1: does `property` become a canonical key? Every row on this schema wants it, no canonical key holds it, and its absence is why all eight rows in this family recommend dimension orders in prose and declare none. It is the clearest field-shaped hole this pass found outside `fiscal_period`. (2) NJ-CP-2: does the construction JOB reuse the canonical `project` key, or does this family need `instruction`? This row's own preference is reuse where the instruction really is a project and a separate key only if lettings, sales and standing appointments cannot honestly be called projects — but shipping both would be the near-duplicate defect D6 exists to kill, so R1c must pick one. (3) NJ-CP-3: the professional-versus-householder line drawn against the landed finance.household-property row is drawn on INSTRUCTION, not on document type. It is defensible and it was drawn by this pass, not by 00 — a self-builder and a landlord with four flats sit exactly on it. (4) NJ-CP-4: this row does NOT carry is_safety_domain and should not, since 00 names four safety domains and construction is not among them; but occupier addresses and tenant records are personal data by any ordinary reading, so the substitute mechanism that forces P7 ahead of a model path for third-party personal material has to be named somewhere — the same gap the landed business_operations row records. (5) NJ-CP-5: the logistics and manufacturing seams are drawn HERE, one-way, because neither schema is written yet. Materials, plant and offsite fabrication sit exactly on them, and this row's proposed line — the site gate for goods, the article-versus-installation split for fabrication — was drawn by this pass and not by 00. Whoever writes those two schemas may reasonably draw it elsewhere; R1c owes the reciprocal either way. (6) The progress-photos consistency item: this family contains ONE row recognised by capture metadata rather than by document structure, and the landed creative.raw-photo-catalogue row has since argued with it and agreed. The schema-level question left open is whether a placeholder schema whose default recognition is documentary may host a capture-based template at all, or whether that row's honest home is a co-activation with photos. This row's position is that it may, because a template exists precisely where its DETECTION SIGNALS differ from the schema default — but the position is stated so it can be overruled once rather than 27 times."
+}

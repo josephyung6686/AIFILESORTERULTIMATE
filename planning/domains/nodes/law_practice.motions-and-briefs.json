@@ -1,0 +1,461 @@
+{
+  "id": "law_practice.motions-and-briefs",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Interlocutory applications and written submissions",
+  "one_line": "THE REQUEST-AND-ARGUMENT APPARATUS a practitioner files to obtain an order: a labelled relief-sought or orders-sought slot, a numbered argument carrying a self-referential TABLE OF AUTHORITIES with page back-references, a labelled LENGTH ATTESTATION, a RETURN-DATE slot that schedules the determination of the document carrying it, an explicit BRIEFING-SEQUENCE cross-reference naming another filing by its own filing identifier, and an enclosed PROPOSED ORDER - an instrument-shaped document bearing a live caption whose judicial execution block is deliberately BLANK. Not a document-type word, not a length, not a lifecycle stage: the roster hint's 'short of the final outcome' framing is EMPIRICALLY WRONG and this row repairs it (see NJ-MB-1), because a summary-judgment motion is dispositive and a post-trial motion follows the final outcome, yet both carry the identical apparatus. The row exists on ONE leg of the node test and concedes the other two: its DETECTION SIGNALS are additive to and disjoint from the schema's eleven defaults, none of which covers a filed submission; its dimensions are empty for the schema's own three reasons and differ in nothing; its privacy posture is the schema's, unchanged. The apparatus is precisely what `legal` cannot see - `legal` fires on a bound party pair, a notarial block or a tribunal caption, and a back-reference table, a word-count attestation, a return date and a blank judicial signature line are none of the three. The caption on the same page IS `legal`'s, is conceded whole, and its safety protection runs first.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED WHOLE AND NOT RESTATED AS A NEW CLAIM. Nothing below fires unless the `law_practice` schema's own two-leg default has already fired - an exact matter, file or engagement reference repeated across two or more artefacts, together with at least one artefact whose own labelled slots separate a practitioner or firm role from a client role. Every signal in this list is an ADDITION to that precondition and none substitutes for it. The schema's deletion test governs unchanged: delete every entity name and every document-type word, and if nothing structural survives, nothing fires. This row was written to survive that test, and what survives it is the six-item apparatus below - never the word motion, never the caption, never a filename.",
+      "A LABELLED RELIEF-SOUGHT OR ORDERS-SOUGHT SLOT: a heading zone or enumerated block whose own label announces what the tribunal is being asked to ORDER, followed by discrete numbered requests written in the imperative or the subjunctive. This is the row's primary operative structure and it is read through 00's direct-fact path, \"a labeled form field\": the label is on the page, and what it labels is a request rather than an allegation. A prayer running in prose at the foot of an assertion document is NOT this slot - that is the pleadings pattern, which is refused and falls to `legal`.",
+      "AN ENCLOSED PROPOSED ORDER: a separate document, or a separately paginated tail section, that is instrument-shaped - a caption, decretal paragraphs, an ordering formula - and whose EXECUTION BLOCK IS BLANK: an unnamed judicial signature line, an empty date line, sometimes a bracketed judge placeholder. This is the family's most discriminating single artefact because it is a THREE-WAY inverse: `legal` fires on a bound party pair PLUS execution and this document has execution deliberately empty; `law_practice.orders-and-judgments` owns the same instrument once it is signed, dated, entered and sealed; `law_practice.precedent-bank` owns unexecuted instruments that carry NO caption and NO live proceeding. Blank execution PLUS a live caption is a combination no other row in the roster produces.",
+      "A TABLE OF AUTHORITIES WITH PAGE BACK-REFERENCES: a table whose rows are citations - cases, statutes, rules, secondary sources, usually sectioned under those headings - and whose right-hand column is a set of page numbers pointing back into the SAME document. It is a self-referential index, which is a structure rather than a subject: a bibliography, a reading list and a research memo's authorities list all cite, but none of them indexes its own pages. Read through 00's table path, since the row's evidence is the table-like region itself and not the citations in it. On its own it is never-alone; it fires only beside a captioned proceeding identifier.",
+      "A LABELLED LENGTH ATTESTATION - a certificate of compliance, a word-count or page-count certificate, a statement of length - carrying a COUNT in a labelled slot and co-occurring with a captioned case identifier. STATED CAREFULLY BECAUSE A LENGTH IS ON THE REFUSAL LIST: the row does not claim documents by how long they are and a word count is a value, not a node. What is evidence here is the ATTESTATION SLOT - a labelled assertion, made to a tribunal, that a limit was observed - which no other artefact in this family or its neighbours produces at all.",
+      "A RETURN-DATE OR NOTICE-OF-HEARING SLOT ON THE DOCUMENT'S OWN FACE: labelled date, time, and court or judge location, stating when THIS document will be determined. It is structurally unlike a diary entry and must not be confused with one: the schema's key-date signal is a PORTFOLIO TABLE over many matters with an owning-practitioner column, and this is a single forward-looking slot inside one filed instrument. The product calculates, validates and acts on no date; the slot is evidence of the artefact's kind and nothing else.",
+      "A BRIEFING-SEQUENCE CROSS-REFERENCE: a labelled slot or title line identifying, by its own FILING IDENTIFIER - docket entry number, filing date, application notice number - the document this one answers or replies to. Two documents by ADVERSARIAL authors bound into one operative exchange is a relation no version_family or matter anchor expresses. Where present it is also this row's grouping anchor; where absent, a shared caption never substitutes for it.",
+      "A SUPPORTING SWORN OR VERIFIED STATEMENT BOUND TO A REQUEST: a declaration or affidavit whose own header states that it is made IN SUPPORT OF a named request, with a jurat or statement-of-truth block and, commonly, tabbed exhibits. The binding phrase in the header is the evidence. THE EXHIBITS ARE NOT THIS ROW'S - `law_practice.evidence-exhibits` owns each exhibit on its own tab and its own document nature, and this row owns only the statement's binding header, exactly as `law_practice.appeals` owns a record index without owning its members.",
+      "A NON-US EQUIVALENT SET, recorded so the row does not become a jurisdiction-shaped artefact of one court system: an APPLICATION NOTICE pairing an order-sought slot with a hearing-length estimate and a with-notice or without-notice marker, a SKELETON ARGUMENT with numbered submissions and an authorities bundle index, and a DRAFT ORDER annexed. The apparatus is the same six items under different labels. This row defines no court list, no jurisdiction catalogue and no procedural rule; where the labelled slots are not recognisable, the route is local interpretation or abstention.",
+      "AN ARCHIVE whose manifest, READ WITHOUT UNPACKING, shows member paths encoding one request package - a request document, a memorandum, a supporting declaration, exhibit members, a proposed order, a certificate of service - under one repeated matter or docket reference. Member paths are observations and become facts on no member; the certificate of service member is `law_practice.court-filing-record`'s on its own evidence and this row does not claim it."
+    ],
+    "needs_llm": [
+      "DECIDING WHETHER THE APPARATUS BELONGS TO A LIVE MATTER OR TO A TEACHING COPY. This is the row's sharpest over-firing risk and its collision fixture: the profession publishes its own model motions, and a Trial Advocacy or CLE exemplar carries a caption, a relief slot, a numbered argument and a table of authorities - every structural item this row claims. Only 00's purpose test separates them, since \"purpose answers what the file was for\", and the operative discriminator is the schema precondition: a real matter reference recurring across artefacts, and a counsel block naming the holder's own firm.",
+      "SEPARATING A REQUEST DOCUMENT FROM AN ASSERTION DOCUMENT when the labels are unhelpful, which is common in unlabelled or translated practice. A statement of case asserts the parties' own allegations and closes on a prayer; a request document asks the tribunal to order something and argues for it. Where neither the relief slot nor the assertion structure is legible, the model abstains and the caption alone carries the file to `legal`.",
+      "SEPARATING THIS ROW FROM `law_practice.appeals` WHERE THE TIER IS THE ONLY DIFFERENCE. An appellate stay, extension-of-time or expedition application is a request document in every structural respect; the landed neighbour claims it on the two-tier proceeding-identifier pair and this row concedes it. The model must read the heading zone for a second, lower proceeding identifier and an on-appeal-from line, not the word motion.",
+      "SEPARATING THE FILED SUBMISSION FROM THE INTERNAL RESEARCH THAT BECAME IT. Ninety per cent of the text can be identical. Only the apparatus differs - caption, relief slot, authorities table, attestation - and where a draft carries none of it yet, `law_practice.legal-research` holds it and this row does not.",
+      "DECIDING WHETHER A PROPOSED ORDER IS AN ENCLOSURE OR A PRECEDENT. A blank-execution instrument with a caption is this row's; a blank-execution instrument with bracketed placeholders where parties belong and no live proceeding is `law_practice.precedent-bank`'s. A firm that keeps a caption-bearing standard-form order in its know-how bank defeats the test on the bytes alone, and the model must abstain rather than guess.",
+      "ABSTAINING WHENEVER THE MATTER-AND-ROLE PRECONDITION CANNOT BE CITED, however complete the apparatus looks. A downloaded public filing satisfies every structural item on this list and establishes nothing about the holder; correct abstention is the successful outcome here and the row is written to make abstention easy rather than to maximise capture."
+    ],
+    "never_alone": [
+      "THE WORDS MOTION, APPLICATION, BRIEF, MEMORANDUM, SUBMISSION, PETITION, OPPOSITION, RESPONSE, REPLY, SKELETON or ORDER. These are the row's own subject matter and they are struck FIRST, because a row justified by a document-type word is the schema's default template with a narrower filename filter. They are values of `work_type`, not evidence.",
+      "A TRIBUNAL CAPTION, A PARTY PAIR, A CASE OR DOCKET NUMBER, OR A FILED STAMP. The caption is `legal`'s deterministic signal, is satisfied identically by a public filing anyone downloaded, and is the exact evidence on which the sibling `law_practice.pleadings` was REFUSED. This row concedes it whole and claims nothing from it; the caption is a precondition-adjacent context for the apparatus, never the apparatus.",
+      "A TABLE OF AUTHORITIES, CITATION TABLE, BIBLIOGRAPHY OR AUTHORITIES BUNDLE INDEX ALONE. A casebook, a law-review article, a practice note, a student paper and a research memo all carry citation tables. The signal is the self-referential page back-reference CO-OCCURRING with a captioned proceeding identifier, and neither half fires by itself.",
+      "A WORD COUNT, PAGE COUNT OR LENGTH STATEMENT ALONE. A length is not a node and not a fact here. Manuscripts, dissertations, grant applications and editorial submissions all attest to length.",
+      "A HEARING DATE, RETURN DATE, TIME OR COURTROOM ALONE, in any source type including `calendar`. A date is a date; the schema's diary signal is a portfolio table and this row's signal is a labelled slot inside a filed instrument. Neither is satisfied by an `.ics` event or a filename containing a date.",
+      "A BLANK SIGNATURE LINE ALONE. Every unexecuted draft in every domain has one. It is evidence only in combination with a LIVE caption, which is what separates an enclosed proposed order from a precedent-bank standard form.",
+      "A LAW-FIRM, COURT, JUDGE, COUNSEL, PARTY or CLIENT NAME, A PRACTISING-CERTIFICATE OR BAR REFERENCE, A PRACTICE-AREA WORD, OR ANY COMBINATION OF THEM. Inherited from the schema unchanged and not re-argued: a role name cannot carry a schema and cannot carry a template either.",
+      "A CONFIDENTIAL, PRIVILEGED, SEALED, UNDER-SEAL, EX-PARTE or WITHOUT-PREJUDICE LABEL. Preserved as a literal observation. The product decides no legal status, no sealing, no service, no notice adequacy and no procedural validity, and specifically an under-seal marking is not evidence that this row applies.",
+      "PUBLIC AVAILABILITY OF THE FILING ON A DOCKET as proof that the local copy, its neighbours, its folder label or its surrounding matter context are low-sensitivity or eligible for a cloud prompt.",
+      "A FILENAME OR FOLDER containing motion, brief, application, filings, pleadings, proposed, draft or final, and DOWNLOAD-SESSION, THREAD OR CURRENT-DIRECTORY MEMBERSHIP. A folder named Motions is an unlabelled position; a session is not a proceeding.",
+      "AUTHOR, CREATOR, PRODUCER OR LAST-SAVED-BY METADATA naming a practitioner, a firm or a brief-assembly or citation tool. 00: \"It should avoid using authorship or creator identity as a destination dimension\", and litigation-support software writes those slots on exemplars and live filings alike.",
+      "A SOURCE TYPE OR EXTENSION ALONE. `file_kind_plausible` is constitutionally never-alone and every extension this row lists is shared with material that has nothing to do with it."
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of motion",
+    "application notice",
+    "relief sought",
+    "orders sought",
+    "wherefore",
+    "moving party",
+    "applicant",
+    "respondent to the application",
+    "memorandum of points and authorities",
+    "points and authorities",
+    "skeleton argument",
+    "written submissions",
+    "statement of grounds",
+    "in support of",
+    "in opposition to",
+    "in reply to",
+    "declaration in support",
+    "affidavit in support",
+    "table of authorities",
+    "authorities relied upon",
+    "bundle of authorities",
+    "certificate of compliance",
+    "word count",
+    "statement of length",
+    "hearing date",
+    "return date",
+    "time estimate",
+    "with notice",
+    "without notice",
+    "ex parte",
+    "order to show cause",
+    "interim relief",
+    "interlocutory",
+    "proposed order",
+    "draft order",
+    "minute of order",
+    "it is hereby ordered",
+    "separate statement",
+    "statement of disputed facts",
+    "meet and confer",
+    "docket entry"
+  ],
+  "work_types": [
+    "notice of motion or application notice with an enumerated relief request",
+    "memorandum of points and authorities or written submission in support",
+    "skeleton argument and outline of submissions",
+    "opposition, answering or responsive submission",
+    "reply or rejoinder submission",
+    "declaration, affidavit or witness statement made in support of a request",
+    "separate statement or statement of disputed facts served with a request",
+    "table of authorities and authorities bundle index",
+    "certificate of compliance or length attestation",
+    "proposed, draft or minute order enclosed with a request",
+    "without-notice, ex parte or urgent interim application and its declaration of urgency",
+    "order to show cause and its supporting papers",
+    "request package archive or document-assembly output"
+  ],
+  "grouping_reasons": [
+    "ONE REQUEST PACKAGE: the request document, its memorandum or submission, its supporting declaration, its separate statement, its authorities table and its proposed order, joined by ONE explicit relief request and, where present, one filing or docket-entry identifier. Content-incoherent and purpose-coherent, which is 00's own licence for such a group - \"The documents are content-incoherent but purpose-coherent.\" The package anchor supports candidate membership and copies no party, relief, date or outcome fact onto any member.",
+    "ONE BRIEFING SEQUENCE: the moving submission, the opposition and the reply, joined ONLY by an explicit cross-reference naming another filing by its own filing identifier. This is the row's strongest grouping anchor precisely because it is authored by ADVERSARIAL parties, so no authorship or firm signal can produce it accidentally.",
+    "ONE DOCUMENT ACROSS ITS DRAFTS AND ITS FILED COPY - the universal version_family fact, supported by hashes or explicit revision markers, never by a `-final` suffix and never by a filed stamp, which belongs to `law_practice.court-filing-record` as its own evidence.",
+    "NOT GROUPING REASONS, STATED BECAUSE THE MISFIRING ANCHOR HERE IS OBVIOUS AND SEDUCTIVE: a SHARED CAPTION groups nothing. Every filing in a proceeding carries it, including the pleadings, the orders, the discovery instruments and the transcripts, none of which are this row's; a caption-joined group is a proceeding, not a package. Equally excluded: a shared hearing date, a shared party or judge name, a shared practice area, a common firm, a download session, and a folder named for a document type. 00 governs: \"It should not form a supported group when there is no valid anchor\".",
+    "NO GROUP AT ALL is a valid and common outcome. A single opposition brief with no package around it is still protected material and still routes to Protected Records."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY FOR THE SCHEMA'S THREE REASONS, WHICH THIS ROW INHERITS AND DOES NOT RE-ARGUE: no field is declared to branch on (D1 as narrowed, PR-6, _CONTRACT rules 10 and 15); the material co-activates `legal`, and 00 states \"Finance, identity, medical, and legal material should be implemented first as safety domains\", so no deep template unlocks from safety activation; and the natural dimensions of this world - a client and a matter - are themselves disclosures. THIS ROW CONCEDES THE SECOND LEG OF THE NODE TEST IN FULL AND SAYS SO PLAINLY: its recommended order does not differ from the schema's default, and it would not differ if PR-6 lifted. Held as prose, the schema's recommendation is the client only where the corpus spans more than one AND the user has explicitly approved a client-named branch, then the matter, then the document function, then the period last - and THIS ROW IS ONE VALUE AT THE FUNCTION LEVEL, not a level of its own. Function must follow the matter for 00's own reason, \"A work type such as Homework 3 is meaningful only after the course is known\": an opposition is unintelligible without the request it opposes, and the request is unintelligible without the matter. NOT TIME-FIRST: filing time, hearing time, document date and filesystem time mean four different things here and nothing in this world is capture-based. The two additions this row would make if fields ever landed are prohibitions rather than dimensions - a HEARING OR RETURN DATE may never become a level, because it is the one date in this family the product is most likely to be asked to act on and it must not be structurally privileged, and a NAMED THIRD PARTY may never become one, because an emergency application names a child.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "archive",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".odt",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".xlsx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Notice of Motion and Motion to Compel Further Responses - Set One - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption with a party pair and a case identifier, and a counsel signature block naming the holder's firm as attorneys for a named party",
+        "a labelled NOTICE slot stating a hearing date, time and department, followed by an enumerated ORDERS SOUGHT block of four discrete requests",
+        "a memorandum of points and authorities with numbered argument headings and a table of authorities whose right column carries page back-references into the same document",
+        "a meet-and-confer declaration bound in, and a separate proposed order as the final section with an unnamed judicial signature line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and this row proposes none of its own",
+        "that this row displaces `legal`. The caption and party pair are `legal`'s deterministic signal, `legal` is a safety domain and its protection runs first; this row co-activates on the apparatus - the orders-sought slot, the back-referencing authorities table, the proposed order - which `legal` does not read at all",
+        "that any relief was granted, opposed, heard, withdrawn, mooted or is current; that the hearing occurred; or that any authority cited supports what the argument says it supports",
+        "a date fact from the digits in the case identifier, and no folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "[PROPOSED] Order Granting Motion to Compel - 41127-0006.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the same caption and case identifier as the request it accompanies, in the same heading layout",
+        "numbered decretal paragraphs in ordering language and an IT IS SO ORDERED formula",
+        "the execution block is a blank rule with no judge name, no date and no seal; a bracketed placeholder sits where a judicial officer's name belongs",
+        "no clause numbering, no drafting notes, no optional-clause alternatives and no firm template version marker"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "`law_practice.orders-and-judgments`. THIS IS THE ROW'S CLEANEST DISCRIMINATING FIXTURE: the neighbour owns this instrument the moment it is signed, dated, entered or sealed, and this copy has none of the four. Blank execution plus a live caption is this row's; filled execution is the neighbour's, on the same document family and often the same lineage",
+        "`law_practice.precedent-bank`. The precedent bank's inverse-recognition signal is an instrument with bracketed PARTY placeholders and NO live proceeding; this document names real parties in a real caption and leaves only the JUDICIAL slot empty. The two empties are in different places and that is the whole test",
+        "`legal` activation on the execution block - there is no execution, and a bracketed judge placeholder is not a party fact",
+        "that the order was or will be made, entered, or in these terms; and no folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Memorandum in Opposition to Defendant's Motion for Summary Judgment - DE 143.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a title line naming the document it answers together with that document's docket entry number and filing date",
+        "a separate statement responding paragraph-by-paragraph to a numbered fact list, with record citations in a right-hand column",
+        "a table of authorities and a certificate of compliance stating a word count",
+        "tracked changes and comment balloons from two internal reviewers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is confined to interlocutory or non-dispositive material. THIS FIXTURE EXISTS TO FALSIFY THE ROSTER HINT: summary judgment disposes of the case, yet the apparatus is identical. The row is defined by the apparatus, not by where in a lifecycle the document sits - see NJ-MB-1",
+        "that the referenced docket entry number licenses fetching, following or resolving anything, or that the referenced document exists locally",
+        "an authored_by fact from the tracked-changes reviewers, and no dimension from authorship: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "that any disputed fact is disputed, material, supported or true"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Skeleton argument - application to strike out - 41127-0006 - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered submissions under issue headings, with an authorities bundle index appended as a two-column table of citation to bundle tab",
+        "a front sheet naming the court, the claim number, the hearing date and a time estimate, and a with-notice marker",
+        "an annexed draft order in minute form with a blank judicial signature line",
+        "the firm's matter reference in the footer of every page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the row is jurisdiction-shaped. This fixture exists so the apparatus is recognised under a second court system's labels; the row defines no court list, no jurisdiction catalogue and no procedural rule, and jurisdiction is never a field or a dimension",
+        "a time or duration fact from the time estimate - it is an estimate of a hearing, not a property of the file",
+        "that the authorities bundle index makes this `law_practice.evidence-exhibits`' artefact; that row owns tabbed exhibit material, and an index of published authorities contains no evidence at all",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Declaration of R Okafor ISO Motion for Preliminary Injunction - Exhs A-M.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a header stating that the declaration is made IN SUPPORT OF a named request in a named proceeding",
+        "numbered averments, a jurat and a signature over a printed name and date",
+        "thirteen tabbed exhibits follow, each with its own exhibit cover sheet, comprising emails, invoices and a photograph",
+        "an exhibit index precedes the tabs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the exhibits. IT OWNS THE BINDING HEADER AND NOTHING PAST IT: each exhibit is `law_practice.evidence-exhibits`' on its own tab and its own document nature, and an exhibited invoice retains its own finance evidence. The firewall is the same one `law_practice.appeals` draws around a record index - the compilation is one row's, the members are their own",
+        "privilege, work-product protection, admissibility, or that any averment is true, current or accepted",
+        "that a sworn statement makes this `law_practice.depositions-testimony`' - that row's structure is a page-and-line verbatim record with a reporter's certificate, and a declaration has neither",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ex parte application for interim residence order - urgent - 41208-0002.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a without-notice marker and a labelled declaration of urgency stating why the other side was not given notice",
+        "an orders-sought block requesting interim relief, and an annexed draft order with a blank judicial line",
+        "a supporting statement narrating the circumstances of a named child, including a school, an address and a medical history",
+        "a face-page marking reading heard in private"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row's privacy posture differs from the schema's. IT DOES NOT, AND THE ROW CONCEDES THE THIRD LEG OF THE NODE TEST HERE: the schema already protects a named third party who never chose this filesystem, and this fixture is the schema's own rule at its sharpest rather than a new rule. The row rests on the FIRST leg only",
+        "any fact about the child, the address, the school or the medical history as a stored value, as prompt content, or as a folder level - a named third party may never become a path segment",
+        "that a heard-in-private or without-notice marking is a handling class, a sealing decision, or a statement about who may see the file - the product preserves the literal observation and decides no legal status",
+        "urgency as a product behaviour of any kind"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sample Motion in Limine - Trial Advocacy Institute - annotated model.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a full caption with plainly fictional party names and a case identifier in a placeholder format",
+        "an orders-sought block, a numbered argument, a table of authorities with page back-references, and a certificate of compliance - every structural item this row claims",
+        "a course provider header, a session number, and margin callouts explaining why each drafting choice was made",
+        "no matter reference anywhere in the file, and a signature block reading Instructor rather than a firm"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE REQUIRED COLLISION FIXTURE AND IT DEFEATS EVERY ONE OF THE ROW'S OWN SIGNALS SIMULTANEOUSLY. What discriminates it is not the apparatus - the apparatus is perfect - but the SCHEMA PRECONDITION failing entirely: no matter reference recurring across artefacts, and no artefact separating a practitioner role from a client role. 00's purpose test is the only one that works, \"purpose answers what the file was for\", and the margin callouts state that purpose out loud",
+        "that the fictional party names are parties, or that the placeholder case identifier is a proceeding",
+        "sensitivity_status as protected material - there is no client, no matter and no third party in the file, which is why its residual is Reading Inbox and not Protected Records",
+        "`law_practice.precedent-bank` either, without that row's own evidence; a teaching exemplar is not a firm know-how artefact merely because both are unexecuted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Motion for extension of time to file opening brief - 24-1187.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an orders-sought slot, a short argument, a certificate of compliance and a proposed order - this row's apparatus, complete",
+        "the heading zone carries an appellate docket number AND a separately labelled line naming the court, case number and dated decision the matter comes from",
+        "a certificate of service listing opposing counsel",
+        "the same matter reference as the trial-file material in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THE UNDER-FIRING CONCESSION, MADE TO A LANDED NEIGHBOUR ON ITS OWN TERMS: `law_practice.appeals` claims the appellate stay, extension and expedition application on the TWO-TIER PROCEEDING-IDENTIFIER PAIR, and this row does not contest it. The apparatus is real here and is simply not decisive; the tier pair decides, never the word motion and never which row's work_types list happens to name it",
+        "that the shared matter reference makes this a member of a package in this row - the shared reference is the misfiring anchor on both sides",
+        "that the certificate of service is this row's; it is `law_practice.court-filing-record`'s transmission evidence",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Research memo - can we compel the Set One responses - 41127-0006.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a matter reference in the header and sections separating question, authorities, analysis, risk and recommendation",
+        "roughly ninety per cent of its text reappears verbatim in the filed memorandum of points and authorities",
+        "no caption, no orders-sought slot, no table of authorities, no certificate and no proposed order",
+        "an internal producer marker for the practitioner side"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. `law_practice.legal-research` owns it, and the discriminator is the ABSENCE of the entire apparatus rather than a difference of topic. Textual overlap with a filed submission is not evidence: were topic sufficient, this row would swallow every research memo in the corpus",
+        "that a version_family link to the filed document promotes it - a version relation joins bytes, it does not transfer a row",
+        "privilege or work-product protection from the internal producer marker or from any label on the page",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Motion package - 41127-0006 - MTC - for filing.zip",
+      "source_type": "archive",
+      "observations": [
+        "the archive header is readable and the manifest is inspected without unpacking",
+        "member paths encode one package: a request document, a memorandum, a supporting declaration, thirteen exhibit members, a proposed order and a certificate of service",
+        "one matter reference repeats across the member paths",
+        "one member is a password-protected sub-archive of native files"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any fact on any member from a member path - directory and member names are observations, and the normal scan does not extract archive contents to the filesystem",
+        "that the package anchor copies the request, the relief, the matter or a date onto its members; the anchor supports candidate membership only",
+        "that the certificate-of-service member or the exhibit members are this row's - they are `law_practice.court-filing-record`'s and `law_practice.evidence-exhibits`' respectively, on their own evidence",
+        "a purpose for the password-protected sub-archive from its name; it routes to Unsupported or Encrypted without forced inspection"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.pleadings",
+      "signal": "SAME FIXTURE BOTH SIDES: a court-captioned, numbered-paragraph, counsel-signed document filed in `Hartley v Nash` and sitting in the same folder as the amended statement of case - caption, party pair, paragraph numbering and signature block are identical on both, and the neighbour authored this edge from its side in the same words. THIS ROW OWNS the document only where the APPARATUS is present: a labelled orders-sought slot addressed to the tribunal, an argument with a self-referential table of authorities, a length attestation, or an enclosed blank-execution proposed order. THE NEIGHBOUR OWNS a document whose numbered paragraphs assert the parties' own allegations or responses and close on a prayer for final relief - EXCEPT THAT THE NEIGHBOUR IS REFUSED, so that pattern counts toward `legal` on the caption's own evidence and toward nothing here. The discriminating evidence is therefore the apparatus versus the assertion structure, and where neither is legible the shared caption supports `legal` alone.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.appeals",
+      "signal": "SAME FIXTURE BOTH SIDES: `Motion for extension of time to file opening brief - 24-1187.pdf`, and one written submission carrying a table of contents, a table of authorities with page back-references, a certificate of compliance and a captioned counsel signature block. The neighbour authored this edge first and this row adopts its discriminator without weakening it. THE NEIGHBOUR OWNS the file wherever the heading zone carries the TWO-TIER PROCEEDING-IDENTIFIER PAIR - an appellate docket number in caption position plus a separately labelled on-appeal-from line naming the court, case number and dated decision below - or a labelled STANDARD OF REVIEW section. THIS ROW OWNS it only at a single tier, where the document asks for something not yet decided. THE HARD HALF, conceded rather than smoothed: an appellate stay, extension or expedition application carries this row's complete apparatus and still goes to the neighbour, because the tier pair decides and the apparatus is not decisive there. Second competition: a first-instance motion reproduced INSIDE a record on appeal stays this row's, because appendix membership lives on the compilation's index and never on the member.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: `[PROPOSED] Order Granting Motion to Compel - 41127-0006.docx` and the signed order that later issues from it - same caption, same decretal paragraphs, frequently the same lineage of bytes. THIS ROW OWNS the copy whose EXECUTION BLOCK IS BLANK: unnamed judicial signature line, empty date, no seal, no entry stamp, and enclosed with a request. THE NEIGHBOUR OWNS the copy once ANY of signature, judicial name, entry date or seal is present. Discriminated by the execution block alone, never by the word PROPOSED or DRAFT in the filename, which appears on both when a firm names its file copy of the signed order after the draft it submitted.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Motion to Compel Production - FILED 2026-08-20.pdf`, which recites the neighbour's numbered requests at length; the neighbour authored this edge from its side. THIS ROW OWNS the argument-and-relief apparatus - orders-sought slot, numbered argument, table of authorities, meet-and-confer declaration, proposed order - and owns the motion whole even though most of its page count is quoted demands. THE NEIGHBOUR OWNS the demand instrument and the responses themselves, which are served rather than filed and carry no argument structure, together with the review log, the withholding schedule and the load file. A protective-order APPLICATION is this row's; the order that issues on it is `law_practice.orders-and-judgments`'; neither row claims the other's.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.court-filing-record",
+      "signal": "SAME FIXTURE BOTH SIDES: one PDF of the filed motion bearing an electronic-filing stamp header across page one and a certificate of service on its last page. The neighbour's memo already states the split from its side - the document that was filed is not its evidence, because nothing in the document's body records a transmission. THIS ROW OWNS the body and its apparatus. THE NEIGHBOUR OWNS the stamp, the submission identifier, the timestamp, the certificate of service and the notice-of-electronic-filing email, and owns them even when they are printed on this row's page. Discriminated by whether the item records a REQUEST or a TRANSMISSION; a filed stamp is never this row's evidence and never promotes a draft.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.legal-research",
+      "signal": "SAME FIXTURE BOTH SIDES: `Research memo - can we compel the Set One responses - 41127-0006.docx`, whose text is roughly ninety per cent identical to the filed memorandum of points and authorities and which sits in the same matter folder. THIS ROW OWNS the version carrying the apparatus - caption, orders-sought slot, table of authorities with page back-references, length attestation. THE NEIGHBOUR OWNS the version carrying the internal research grammar - question, authorities, analysis, risk, recommendation - and no apparatus at all. Discriminated by the presence of the apparatus, NEVER by topic, citation overlap, semantic similarity or a version_family link, all of which are satisfied identically on both sides.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.precedent-bank",
+      "signal": "SAME FIXTURE BOTH SIDES: an unexecuted instrument-shaped document with a blank signature line, held in a firm that keeps caption-bearing standard forms in its know-how bank. THIS ROW OWNS it when a LIVE CAPTION with real parties and a real case identifier sits above a blank JUDICIAL slot - the empty is in the tribunal's place and the parties are filled. THE NEIGHBOUR OWNS it when the PARTY recital carries bracketed placeholders, drafting notes or optional-clause alternatives and no live proceeding exists - the empty is in the parties' place. Discriminated by WHERE THE EMPTY SLOT IS, and the residuals differ with it: this row's copy is protected material, the neighbour's has no client, matter or third party in it and routes to Reading Inbox. Where both patterns appear on one file the model abstains rather than guesses.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES, INHERITED FROM THE SCHEMA AND RESTATED ONLY WHERE THIS ROW MAKES IT SHARPER: `Notice of Motion and Motion to Compel Further Responses - Set One - 41127-0006.pdf`. `legal` IS HELD BY the document's own face - the tribunal caption, the party pair, the case identifier - which is a safety-domain signal whose protection runs first and which this row concedes whole and takes nothing from. THIS ROW IS HELD BY items `legal` does not read: the labelled orders-sought slot, the self-referential authorities table, the length attestation, the return-date slot, the briefing-sequence cross-reference and the blank-execution proposed order. That disjointness is the entire reason this row survives the node test where the sibling `law_practice.pleadings` did not: a statement of case's evidence is exhausted by the caption, and this row's is not. Neither side may copy the other's items, and a file carrying only the caption activates `legal` alone.",
+      "design_cite": null,
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "IDENTICAL TO THE SCHEMA'S, AND THE ROW SAYS SO RATHER THAN MANUFACTURING A DIFFERENCE TO STRENGTHEN ITS OWN CASE. The material names parties, and an emergency residence application, a motion in limine and a motion to seal narrate the intimate circumstances of people who never chose this filesystem - but that is the schema's third-party protection at its sharpest, not a new rule, and this row rests on the detection leg alone. 00 places the material inside the safety perimeter directly: \"Finance, identity, medical, and legal material should be implemented first as safety domains\". Two observations are recorded because they are specific to this row and easy to get wrong. First, THIS FAMILY IS THE MOST PUBLIC-LOOKING MATERIAL IN THE SCHEMA - most of it sits on a public docket - and public availability of a filing is never evidence that the local copy, its neighbours or its folder label are low-sensitivity or eligible for a cloud prompt. Second, THE MOST SENSITIVE DOCUMENTS HERE ARE THE ONES ASKING FOR PROTECTION: a motion to seal or for a protective order must recite in full the very material it asks the tribunal to withhold, so an application's sensitivity is frequently inverse to the outcome it seeks. No handling class is assigned; that is P7's.",
+  "open_question": "NJ-MB-1 THE ROSTER HINT IS FALSIFIED BY THE EVIDENCE AND R1c MUST CHOOSE A REPAIR. The name and hint define the row by a LIFECYCLE POSITION - 'short of the final outcome' - which is one of the shapes a node may not be, and the evidence contradicts it twice over: a summary-judgment motion is dispositive and a post-trial or enforcement motion follows the final outcome, yet both carry the identical apparatus, while an appellate extension application is interlocutory in the same sense and belongs to `law_practice.appeals` by the neighbour's own claim. Alternatives: (a) redefine on the apparatus and rename accordingly, which is this row's recommendation and what its JSON implements; (b) keep the interlocutory framing, which splits one apparatus across two homes and leaves dispositive motions with no owner; (c) refuse the row, which forfeits the six-item apparatus to `legal`'s caption and abandons two landed neighbours' edges. NJ-MB-2 SIBLING SYMMETRY, RAISED AGAINST THIS ROW BY NAME. `law_practice.pleadings` was refused and its own open_question states that the argument 'appears to reach' this row, `law_practice.appeals` and `law_practice.orders-and-judgments`. This row's answer, offered for adjudication rather than asserted as settled: the refusal reaches any row whose evidence is EXHAUSTED BY THE PROCEEDING-RECORD FACE, and it does not reach a row whose evidence is an apparatus `legal` cannot read. On that test pleadings falls, this row and appeals stand, and orders-and-judgments must be examined on the execution block. R1c should confirm or overturn the test as a family-wide rule rather than row by row. NJ-MB-3 A CONTRACT INCONSISTENCY THIS ROW CANNOT RESOLVE. `also_holds_with` is schema-to-schema only under CONNECTION section 5, so this template leaves it empty - but the landed sibling `law_practice.pleadings`, also a template, places the schema `legal` there. One of the two is wrong. The intent this row would have recorded is exactly the disjoint-evidence coactivation described in its `legal` collides_with entry; R1c should normalise the convention across the family and, if templates may express coactivation, move that entry. NJ-MB-4 A DEFERRAL THAT NOW POINTS HALF AT NOTHING. `law_practice.court-filing-record` defers the filed document itself to `law_practice.pleadings` and this row jointly. This row accepts its half. The pleadings half must be redirected - to `legal` on the caption's evidence, or to `legal.practice-matter-file` - and only R1c may edit that neighbour. NJ-MB-5 WHO OWNS AN UNEXECUTED INSTRUMENT. The proposed order sits between this row, `law_practice.orders-and-judgments` and `law_practice.precedent-bank`, and the where-is-the-empty-slot test above is an inference, not a design ruling. Alternatives: (a) the enclosure-of-a-live-filing test as written; (b) give every unexecuted instrument to the precedent bank, which would be simpler and would misfile the enclosure; (c) give it to orders-and-judgments as a draft-of relation, which would put a document that has no legal effect in the row whose whole subject is legal effect."
+}

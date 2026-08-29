@@ -1,0 +1,246 @@
+{
+  "id": "clinical_practice.protocol-guideline",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Clinical protocols, pathways, and guidelines - REFUSED",
+  "one_line": "REFUSED. Protocol, guideline, pathway, order set, SOP, and safety alert are document genres or work_type values, not one organizational situation. The apparently distinctive controlled-document apparatus - owner or issuer, version, approval, effective date, review date, and applicability scope - is the same apparatus already used by business_operations.policy-handbook and appears across research, government, compliance, and operational document sets. Clinical topic and a health-sector issuer are values, not situations. Real files route by purpose: adopted local governance to policy-handbook or practice-administration, teaching use to teaching-material, authority-facing submissions to corporate-regulatory-filings, audit evidence to compliance-audit, published reading to Reading Inbox, and completed person-specific forms to patient-chart or Protected Records. Absorbs and retires med.clinical-protocol-guideline rather than rebuilding a document-type taxonomy.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three template-node legs. (1) DETECTION: no signal is unique. The strongest candidate, a filled owner-or-issuer/version/effective/review control block, is already business_operations.policy-handbook's sector-neutral discriminator. Scope blocks are ordinary policy apparatus; numbered recommendations, decision branches, evidence grades, and blank slots describe genres and formats; an authority name remains role-ambiguous. Clinical vocabulary and a health issuer only supply topic and issuer values. (2) DIMENSIONS: clinical_practice declares no fields, so dimension_order must be empty; even in prose, authority -> document -> version is the schema default's situation/function ordering plus universal version_family grouping. “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Issuing body and specialty are values: “The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.” (3) PRIVACY: the genre has no stable rule. A published guideline is reading; an adopted policy is operational; a consultation draft may identify reviewers; a completed order set is a patient chart; an audit copy inherits its evidence pack. Blank-versus-completed is a file-state judgement handled by the receiving situation and P7, not a unique protocol-node rule. Keeping the row would duplicate policy-handbook for clinical topic values, steal SOPs from practice-administration, and create a genre bucket spanning different purposes.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None. Every candidate structure either identifies a sector-neutral controlled document already covered by business_operations.policy-handbook, identifies another purpose-specific situation, or merely identifies a document genre."
+    ],
+    "needs_llm": [
+      "No model routes a file to this refused row. The bounded judgement is which live purpose owns the bytes: adopted organizational rule, practice administration, teaching material, authority-facing filing, audit evidence, research protocol, patient record, or unattached reading. “A model that cannot cite sufficient evidence must return unknown.”",
+      "blank versus completed remains a necessary file-level judgement for order sets, checklists, and proformas. A completed form about a named person must be protected and considered by clinical_practice.patient-chart; an apparently blank scan whose handwriting OCR may have missed must remain unknown.",
+      "adopted versus downloaded remains a purpose judgement. A control block may identify the issuer but does not show that the holder's organization adopted the copy or is governed by it.",
+      "authoring or consultation use versus operational use remains a purpose judgement. Tracked changes, reviewer comments, a consultation deadline, or a board pack can move identical text into project, governance, or meeting situations."
+    ],
+    "never_alone": [
+      "the words protocol, guideline, pathway, policy, procedure, SOP, standard, order set, bundle, checklist, or safety alert; these are document genres or work_type values used in many situations",
+      "a filled owner, issuer, version, effective-date, approval-date, or review-date slot, alone or as a control block; it proves controlled-document shape, not a clinical organizational situation",
+      "a labelled scope, applies-to, intended-audience, population, exclusion, or supersedes block; policy handbooks, research protocols, technical standards, regulator guidance, and teaching material share it",
+      "numbered recommendations, decision branches, evidence grades, reference lists, imperative language, or a flow diagram; they identify presentation form and genre, not holder purpose",
+      "clinical vocabulary, condition names, medicine names, specialty names, or a health-sector logo; topic and issuer do not answer what the file was for",
+      "the absence of a named person; it may mean population material, a blank template, de-identification, redaction, cropping, or failed OCR",
+      "a version token or similarity to another edition; version_family is universal and groups editions without creating a domain template",
+      "a filename, extension, source_type, parent folder called Guidelines or Protocols, or membership in one intranet download session"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored for the refused row. P9 may still group versions through version_family or group materials through a live purpose-specific situation. “The graph does not automatically copy those missing facts onto sparse files.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and independently by contract because clinical_practice declares no fields. Issuer and specialty are values, document is a work type, version_family is universal, and function-before-time is already the schema default.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Sepsis pathway v4.2 - ratified 2026-01.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover control block naming owner, approver, version, effective date, and review date",
+        "a scope block naming adult inpatients",
+        "numbered decision branches and escalation criteria",
+        "no evidence in the bytes that the holder's organization adopted this copy"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "activation of this refused row",
+        "an organizational situation from clinical topic plus a controlled-document block",
+        "that the holder is governed by the document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Infection prevention SOP - local approved copy.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a local organization logo and document owner",
+        "filled approval, effective, and review slots",
+        "normative clauses binding staff",
+        "a distribution register showing this is the adopted copy"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "activation of this refused row",
+        "that clinical subject matter overrides the sector-neutral controlled-policy situation",
+        "any clinical_practice fact because the schema declares no fields",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Practice protocol review register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated rows of document title, owner, current version, approval date, and next review date",
+        "practice-level committees and services in labelled columns",
+        "no patient rows",
+        "overdue-review status cells"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "activation of this refused row",
+        "that a practice-administration register becomes a new situation because its members are protocols",
+        "facts copied from a register row onto a governed document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grand rounds - applying NICE NG51.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "learning objectives and an intended learner level",
+        "slides quoting numbered recommendations",
+        "case questions and answer-reveal slides",
+        "a session date and presenter block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of this refused row from quoted guideline content",
+        "that an issuer's recommendation is the product's ranking or instruction",
+        "that a teaching deck is an adopted policy",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Sepsis screening tool - COMPLETED - BROWN A.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "the same versioned layout used by a blank pathway tool",
+        "handwritten observations, decisions, and a signature",
+        "a patient label naming a third person",
+        "OCR misses handwriting while preserving the printed footer"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of this refused row",
+        "membership in the blank tool's version_family because the footer matches",
+        "that missing OCR text proves the form is blank",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Companies House filing guidance.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an authority letterhead and publication reference",
+        "instructions about how a class of entities should file",
+        "numbered requirements and worked examples",
+        "no entity identifier, submission reference, or acknowledgement"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": [
+        "activation of this refused row or corporate-regulatory-filings",
+        "a filing obligation held by the user",
+        "that issuer identity determines purpose",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "ISMS evidence request 07 - antimicrobial policy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a controlled policy with owner, version, effective date, and review date",
+        "an evidence-request cover sheet naming an audit control and request number",
+        "reviewer annotations about sufficiency",
+        "the policy bytes also exist independently outside the evidence pack"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation of this refused row",
+        "that clinical topic defeats the audit-evidence purpose of this copy",
+        "that pack membership copies audit facts onto the independent policy copy",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "guidelines_library_backup.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest mixing published PDFs, local SOPs, teaching slides, blank forms, and one completed return",
+        "member filenames repeat protocol and guideline words",
+        "some members are encrypted or opaque",
+        "the archive has no single governed-document identity"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "one domain or situation for all members",
+        "that a manifest proves a member is blank, safe, or adopted",
+        "topic facts copied across members",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For an unattached published guideline, regulator guidance, standard, or saved protocol that is reading rather than an active situation. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For an adopted or locally authored standalone controlled document when no accepted operational group exists. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For unresolved adopted-versus-downloaded, blank-versus-completed, or authoring-versus-operational purpose. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "When a pathway, order set, checklist, consultation draft, or audit copy carries a named person's information. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For an encrypted guideline library, proprietary order-set export, damaged scan, or unreadable member.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Conservative so refusal cannot weaken P7. The genre has no stable sensitivity: published guidance may be public, while completed forms, reviewer comments, circulation lists, and audit evidence may identify patients or staff. That variability supports refusal. The live receiving situation and file-level detection decide protection; no protocol label licenses model exposure. This assigns only potentially_sensitive, not a handling class.",
+  "open_question": "NJ-CP-PG-1: R1c should retire this id and preserve protocol/guideline/pathway/SOP/order-set/safety-alert as work_type values on receiving situations. If a sector-neutral controlled-document situation is needed, policy-handbook already supplies the candidate and should be generalized there; cloning it per sector recreates a topic taxonomy. NJ-CP-PG-2: decide whether blank-versus-completed form state needs a universal observation: a local deterministic detector protects completed clinical forms before purpose classification, while bounded LLM review must run after P7; neither needs this node. NJ-CP-PG-3: decide whether P9 needs an adopted-copy relation. version_family joins editions but cannot establish that the holder's organization adopted a published guideline; an adopted-by relation would answer that without turning issuer names into nodes."
+}

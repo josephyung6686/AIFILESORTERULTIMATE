@@ -1,0 +1,556 @@
+{
+  "id": "creative.journalism-reporting",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Journalism and reporting (a story and the material it was built from)",
+  "one_line": "One reported story held together with the material it was built from - interview recordings and their transcripts, a reporter's notes, records obtained from a public body, background reading, a claim-by-claim fact-check apparatus, a run of drafts under a slug, and the piece as published. The unit is the STORY, and the row exists because this world is the one place in `creative` where a large part of the corpus was OBTAINED rather than AUTHORED, is attributed to named people who are not the maker and who may be at risk, and gets MORE dangerous at publication rather than less. Placeholder row (J-IND, written to J-DEPTH): the `creative` schema declares NO field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so this row recommends NO folder dimensions and its recommendation is held as prose. It accepts the node test on limb one (detection signals) and limb three (privacy rules), and CONCEDES limb two.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "material_role",
+      "type": "enum",
+      "why_no_existing_key": "The row's whole organizational claim is that obtained material and authored output must not sit on the same folder level, and no canonical key expresses that axis. `work_type` and `record_type` answer WHAT a document is (transcript, draft, spreadsheet) and both an interview transcript and a draft are legitimate values of either, so neither separates them. `stage` answers where the WORK is in its own revision history, and it is orthogonal: an interview recording and a published piece can both be final. `purpose` answers what the file was for, and both halves are for the same story, so it does not discriminate either. `artifact_type` is the schema's deepest optional level and describes the output, not its inputs. The candidate values are `obtained`, `authored`, `published`. STRICTLY CONTINGENT: while the `creative` schema declares no field rows this key can neither be declared nor branched on, so this is a candidate for R1c to adjudicate only if option (b) of NJ-R1a-1 lands. It is filed as a proposal, not a request.",
+      "destination_eligible_if_adopted": true,
+      "provenance": "proposal"
+    },
+    {
+      "key": "people",
+      "type": "string",
+      "why_no_existing_key": "NOT A MINT AND NOT A REQUEST - `people` is already canonical and this entry exists only to record a PROHIBITION against it, which is the sharpest concrete consequence of this row's privacy argument. Named people are the densest evidence in this corpus (a source in a recording stem, a signatory on an obtained record, a name in a notes file beside a phone number), so `people` is exactly the key an extractor would reach for here. It must never become destination_eligible on this row: a folder named for a confidential source publishes that source to anyone who opens the disk, to a backup, and to any future dossier that carries paths. R1c should record the prohibition rather than the field.",
+      "destination_eligible_if_adopted": false,
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This row's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised as reporting material, kept local where the sensitivity posture says so, and offered as one story rather than scattered by format across audio, spreadsheet, scan and prose. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "an ATTRIBUTED-CAPTURE RUN: two or more audio_video files whose stems each pair a person-shaped name with a date and a role token (`Interview`, `Call`, `Briefing`, `OTR`, `background`), where the NAMES DIFFER between members and the members converge on one shared slug or folder elsewhere in the neighbourhood. The run is the signal, not the single file. One named recording is a podcast guest, a voice memo or a lecture; a set of DIFFERENTLY named recordings gathered around one non-person stem is a reporting set, because a story interviews several people about one subject and a podcast episode interviews one person about several.",
+      "a SPEAKER-TURN TRANSCRIPT WITHOUT MEETING APPARATUS: a text document of alternating speaker labels and timecodes, one date, typically two voices, where one voice asks and the other answers - and which lacks the four things a meeting transcript always has (an agenda, an attendee roster, action items, and a recurring cadence token in the stem such as `Weekly` or `Standup`). 00 already licenses the extractor to surface the raw half of this - audio and video files \"should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\" - and it gates the rest, permitting speech-to-text transcripts \"only under an explicit privacy and compute policy\". The gating clause is doing real work here: for most of this corpus the transcript IS the only readable interior, which is precisely why it must not be produced by default.",
+      "an OBTAINED-RECORDS STRUCTURE: a covering letter that names a disclosure statute and a request reference number, together with a bundle of documents the corpus owner plainly did not author - other organisations' letterheads, other people's signatures, scan-origin pages that are OCR-only, and visible redaction. This shape is ABSENT from the `creative` schema's default signal set, which is linked assets, layers and artboards, revision rounds, briefs and delivery sets. A schema whose default detectors are all about authored working files has no detector at all that fires on a scanned disclosure bundle, and that gap is limb one of this row's node test.",
+      "a VERIFICATION APPARATUS: a spreadsheet or table whose columns pair ASSERTIONS with CITATIONS and a small status vocabulary (`checked`, `sourced`, `unverified`, `cut`), and whose rows reference a same-slug draft by paragraph or line number. 00 licenses the read - spreadsheets \"should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful\" - and the discriminator is the pairing of a claim column with a citation column, which is a document whose structure IS the work indexed against its own evidence. No other `creative` sibling files such a thing.",
+      "a SLUG-AND-PLACEHOLDER STRUCTURE: a short lowercase hyphenated stem repeated across a same-stem draft run in one format (`vega-water-01_draft_v2`, `_v3`, `_v4`), where the SAME stem also appears on non-prose members of the neighbourhood, plus in-body placeholder tokens (`TK`, `TKTK`) that mark facts not yet confirmed. The slug crossing the format boundary is the load-bearing half: a version family inside one format is the universal signal 00 already collects (\"duplicate and version-family signals\"), whereas a slug that binds a `.docx` run to an `.m4a` set and a `.xlsx` check is this row's.",
+      "an EMBARGO STRUCTURE: a finished-shaped piece or a release document carrying a stated publication moment in the FUTURE relative to the file's own timestamps, often with the word `embargo` or `hold until` in a labelled slot. It is the only place in this family where a document declares that its own contents are confidential until a named instant, and it is why the protection here is time-shaped rather than status-shaped."
+    ],
+    "needs_llm": [
+      "WHETHER A NAMED PERSON IS A SOURCE OR A PARTICIPANT-AS-PRODUCT. This is the single most consequential judgement on the row and no deterministic signal settles it, because the filenames are identical. The evidence the model should be handed is whether the same name ALSO appears in a published-shaped artifact of the same neighbourhood - show notes, cover art, an episode title, a cast list, a masthead. If it does, the identity is the product and the neighbour (`creative.podcast-episode`, `creative.film-production`) is right. If the working material names a person whom the published piece does not name, or generalises the person to a role - a city engineer who asked not to be named - which is an illustrative construction here and not a quotation, the protection posture below applies. The model must be able to return uncertain: \"the LLM must be able to say that a group is coherent while still marking particular members as uncertain.\"",
+      "WHETHER AN OBTAINED BUNDLE IS MATERIAL FOR A WORK OR THE RECORD OF A MATTER THE PERSON IS PARTY TO. A disclosure response addressed to the corpus owner about the corpus owner is `legal` or `government.public-records-foi`; the same bundle requested about a third party, sitting beside a draft and a fact-check, is this row's raw material.",
+      "WHETHER A FOLDER OF OTHER PEOPLE'S ARTICLES IS BACKGROUND FOR A STORY OR A READING PILE. This is the commonest false positive in the whole row and it must resolve to Reading Inbox by default; only an explicit binding to a live slug moves it here.",
+      "PURPOSE-COHERENCE ACROSS A FORMAT-INCOHERENT SET. This is 00's own shape applied to a story instead of an application: \"The documents are content-incoherent but purpose-coherent. A content-similarity system will tend to split them; a human may intentionally keep them together because they were submitted as one application package.\" A story's material is audio, spreadsheet, scan, screenshot and prose; every content-similarity method available will scatter it, and a purpose reading is the only thing that holds it together.",
+      "WHETHER A DRAFT RUN'S SUBJECT MAKES IT REPORTING AT ALL, when the material set is absent. Reporting cannot be inferred from a piece's topic, and a prose draft about a water utility is not journalism because it is about a water utility."
+    ],
+    "never_alone": [
+      "AN OUTLET OR PUBLICATION NAME ALONE - a masthead in a PDF footer, `Guardian` or `ProPublica` in a stem, a rights line on page one. This is 00's institution-name prohibition in this world's clothing, and it is the row's most dangerous false positive because a masthead appears on every news article any person has ever downloaded to read. It trips `Guardian_opinion_2024-11-03.pdf` saved by a reader, which is Reading Inbox and not this row.",
+      "A PERSON'S NAME IN A FILENAME ALONE. It trips the collision fixture `Interview - Dr. Alan Ross - 2026-01-18.m4a` sitting in a podcast folder, and it equally trips `Ross, Alan - resume.pdf`, which is `career.recruiting`. A name plus a date plus a role token still needs the RUN and the convergence before this row may fire.",
+      "AN EXTENSION ALONE. `.m4a`, `.wav`, `.docx` and a scan-shaped `.pdf` are all wide open. 00 is explicit that the engine \"should treat the file extension as a routing signal rather than an assumption about meaning\".",
+      "THE WORD `interview` ALONE. It trips `interview prep - Acme PM role.docx`, which belongs to `career.recruiting` and is about being interviewed rather than interviewing.",
+      "VISIBLE REDACTION ALONE. Black bars are equally the signature of a litigation disclosure (`legal.practice-matter-file`) and of a bank statement a user redacted before sending it on. Redaction proves sensitivity, never provenance.",
+      "A DOWNLOAD SESSION OF NEWS PDFs AS PROOF OF A STORY. 00: \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\" An afternoon of saving articles is a reading session.",
+      "A BYLINE MATCHING THE CORPUS OWNER ALONE. That fact is authorship, and 00's rule that authorship is not a filing destination applies unchanged; a person's name on a piece tells you who wrote it, not that a reporting apparatus exists.",
+      "A TRANSCRIPT SHAPE ALONE. Speaker labels and timecodes are produced in bulk by meeting tools; without the missing-apparatus test above, a transcript is `business_operations.meeting-record`."
+    ]
+  },
+  "proposed_context_terms": [
+    "on the record",
+    "on background",
+    "off the record",
+    "embargo",
+    "records request",
+    "fact-check",
+    "byline",
+    "dateline",
+    "standfirst",
+    "nut graf",
+    "TK",
+    "correction",
+    "right of reply",
+    "no comment",
+    "spokesperson"
+  ],
+  "work_types": [
+    "pitch or assignment",
+    "interview recording",
+    "interview transcript",
+    "reporter's notes",
+    "obtained record or disclosure response",
+    "background reading",
+    "fact-check apparatus",
+    "draft",
+    "editor's revision",
+    "published piece or tearsheet",
+    "correction or update",
+    "source agreement or consent note",
+    "embargoed release",
+    "story dataset",
+    "commissioning or rate agreement"
+  ],
+  "grouping_reasons": [
+    "one story slug across obtained material and authored output, however format-incoherent the members are",
+    "one interview session - a recording, its transcript and the notes taken at it, sharing a person and a date",
+    "one records request and the bundle that came back against its reference number",
+    "one draft run and the editor's marks on it",
+    "the published piece and the material that supports each of its claims, resolved through the fact-check apparatus",
+    "one commissioning relationship across several stories for the same outlet",
+    "an existing folder the reporter already made and named for the story"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT, exactly as on the schema anchor: a dimension may only branch on a field the same entry's schema declares (D6, _CONTRACT rule 8) and `creative` declares none (D1 as narrowed, rules 10 and 15, CONNECTION PR-6). The recommendation is therefore prose, and this row CONCEDES limb two of the node test in the literal contract sense - it cannot differ on a dimension list that does not exist. What it records for R1c is that its prose recommendation is NOT the schema default. The default held on `creative.json` is client where the corpus genuinely serves more than one client, then project, then stage, then artifact_type. This row recommends: project (the STORY) first, then a split on the PROVENANCE of the material (obtained / authored / published), with stage demoted beneath the authored branch only. The reason is the parent-context test - \"a parent dimension should provide the context required to understand the child\" - and it cuts the opposite way here from everywhere else in the family. `Round 2` is unintelligible without the project, so stage sits under project on every sibling. But an interview recording and a draft are not two stages of one thing; one is input and one is output, and putting them on a shared stage level files a source's recording as though it were a revision of the story. That is what the roster hint means by \"the source material must not be filed like the output.\" Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" - and a story's material spans the request that was filed months before the interview that happened after the draft was started. The provenance level is unexpressible until NJ-R1a-1 resolves; see `proposed_fields.material_role`. Whatever order lands, `people` must never open a level here.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "audio_video",
+      "text_document",
+      "spreadsheet",
+      "ocr",
+      "image",
+      "archive",
+      "email",
+      "calendar",
+      "contacts",
+      "filesystem",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".m4a",
+      ".wav",
+      ".mp3",
+      ".mov",
+      ".mp4",
+      ".txt",
+      ".vtt",
+      ".srt",
+      ".docx",
+      ".rtf",
+      ".md",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".tif",
+      ".zip",
+      ".eml",
+      ".ics",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Interview - Marisol Vega - 2026-03-04.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "duration, container and codec metadata and a creation time are readable; the interior is not, because no captions or subtitle track is present",
+        "stem pairs a person-shaped name with an ISO date and the role token `Interview`",
+        "four sibling recordings in the same folder carry the same stem pattern with DIFFERENT person names and dates within one fortnight",
+        "a same-stem `.txt` sits beside it with a later filesystem timestamp",
+        "no show-notes, cover-art or episode-numbered file anywhere in the neighbourhood"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the named person is the author, a client, or a cast member",
+        "a speech-to-text transcript, which 00 permits only \"under an explicit privacy and compute policy\" and which here is the act that turns an opaque file into a disclosable one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Interview - Marisol Vega - 2026-03-04.txt",
+      "source_type": "text_document",
+      "observations": [
+        "alternating speaker labels with timecodes; two voices, one asking and one answering",
+        "no agenda block, no attendee roster, no action-item list, and no cadence token in the stem",
+        "contains the phrase `off the record` mid-document, after which the speaker labels continue",
+        "shares its stem exactly with the recording beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the transcript is a meeting record because it has speaker turns",
+        "that the `off the record` marker may be ignored because the file is plain text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FOIA 2026-0412 response - City Water Dept.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "page one is a covering letter on a public body's letterhead naming a disclosure statute and the reference `2026-0412`",
+        "pages two onward are scan-origin with no text layer; OCR yields other organisations' letterheads and two signatures that are not the corpus owner's",
+        "several passages are covered by solid black rectangles",
+        "the reference number also appears in the stem of a spreadsheet in the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the corpus owner is a party to whatever the records describe",
+        "that redaction alone identifies the domain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "notes_2026-03-04_vega.md",
+      "source_type": "text_document",
+      "observations": [
+        "fragmentary prose with bare timestamps and two-letter initials as line prefixes",
+        "contains two phone-number-shaped strings and one street address",
+        "contains the tokens `OTR` and `check w/ dept`",
+        "shares a date and a name fragment with the recording and transcript"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that free-text contact data may be surfaced because the file is a Markdown note rather than a VCF; 00 keeps contact material \"privacy-protected rather than used to create folder proposals\" and the format does not change that",
+        "a person fact promoted to a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "vega-water-01 fact check.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one sheet; column headers read para, claim, source, status, checker",
+        "the status column draws on a small closed vocabulary - checked, sourced, unverified, cut",
+        "the source column holds short references naming the recordings and the disclosure bundle in this folder",
+        "the stem carries the same hyphenated slug as a run of prose drafts"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a claim-and-citation table is a research bibliography or a budget",
+        "that the referenced source names may be copied onto the files they cite"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "vega-water-01_draft_v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "tracked changes and margin comments by a second named person",
+        "in-body placeholder tokens `TK` and `TKTK` appear three times",
+        "three same-stem siblings carry earlier version tokens",
+        "the slug also appears on a spreadsheet and on a published-shaped PDF in the neighbourhood",
+        "a wordcount-shaped number sits in a labelled slot at the head of the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a stage of `final` from a version token; the schema anchor holds that token as its standing counter-example",
+        "that the second commenter is a client",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "pitch - lead pipes - Vega.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a named editor at a named outlet",
+        "carries a proposed wordcount, a proposed delivery date and a paragraph arguing why the piece matters now",
+        "no deliverables list, no fee schedule and no signature block",
+        "the subject phrase recurs in the slug used across the folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the outlet named in the salutation is a client; the pitch may never have been accepted and an addressee is not a relationship",
+        "purpose = commission without an acceptance, an assignment or a rate in evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Guardian_lead-pipes_published_2026-05-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a masthead, a byline matching the corpus owner, a dateline and a standing rights line",
+        "laid out in columns with a page-number furniture block, i.e. a page taken from an issue rather than a manuscript",
+        "the slug in the stem matches the draft run and the fact-check spreadsheet",
+        "no working file of any kind shares its interior structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the masthead identifies the domain; an outlet name alone is never-alone evidence and is the row's commonest false positive",
+        "purpose = portfolio from the finished appearance alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "IMG_4471.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF make, model, capture time and GPS are present; capture time falls inside the same afternoon as an interview recording in the neighbourhood",
+        "the frame is a rectangular sheet of paper photographed at an angle under indoor lighting, hand-held, with a hand at one corner",
+        "OCR of the frame yields a letterhead and a table",
+        "six near-identical frames of the same sheet sit beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information",
+        "capture_year",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that a document photographed by hand is a scan; the EXIF and the hand-held geometry belong to `photos` and must not be dropped",
+        "that GPS may travel outward because the image is 'just a document'; 00 keeps GPS local"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "source list - DO NOT SEND.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read name, role, phone, last contact, status",
+        "the status column carries values including `anon`, `declined`, `hostile`",
+        "the stem carries an explicit instruction from the user in capitals",
+        "no slug, no date, no other structure binding it to any one story"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the row may activate on this file alone; it names people and nothing else, and a person's name is never-alone evidence",
+        "that the filename may be quoted into any dossier, which is the exact case Protected Records exists for"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "records_request_2026-0412.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction: eighteen scan-shaped PDFs, one CSV, one covering letter, and a folder name repeating the reference number",
+        "member names are mixed in kind - a spreadsheet, correspondence and page scans - which is the format-incoherent, purpose-coherent shape",
+        "no member is a working file of any creative format"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "member facts read as though the members were on disk; 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Interview - Dr. Alan Ross - 2026-01-18.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "THE COLLISION FIXTURE. Stem morphology is IDENTICAL to this row's first example - person name, ISO date, role token `Interview`",
+        "the folder also holds `episode_047_master.wav`, `ep047_shownotes.md` and `cover_art_ep047.png`",
+        "the guest's name appears inside the show-notes file and inside the cover-art filename's neighbourhood, i.e. in artifacts intended to be published",
+        "no obtained records, no fact-check apparatus and no slug crossing formats"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is active; the discriminator is that the named identity here is the PRODUCT, published deliberately, whereas a source's identity is what must not leave the machine",
+        "any creative fact - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "2026-03-04 Weekly Standup transcript.txt",
+      "source_type": "text_document",
+      "observations": [
+        "SECOND COLLISION FIXTURE. Alternating speaker labels and timecodes, exactly as this row's transcript example",
+        "an attendee roster of six names at the head, an agenda list, and a trailing action-item block with owners",
+        "the cadence token `Weekly` in the stem, and eleven same-shaped siblings at seven-day intervals",
+        "no interview, no story slug, no obtained material"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is active; the four apparatus features and the recurring cadence are what a reporting transcript never has",
+        "any creative fact - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.podcast-episode",
+      "signal": "THE ROW'S SHARPEST COLLISION, because the competing bytes are morphologically identical. SAME FIXTURE: `Interview - Dr. Alan Ross - 2026-01-18.m4a`. THIS ROW claims a named interview recording only inside an ATTRIBUTED-CAPTURE RUN of differently-named recordings converging on one non-person slug, with obtained material or a fact-check apparatus present. THE PODCAST ROW claims it where the neighbourhood holds an episode-numbered master, show notes, cover art or a feed export - published artifacts in which the guest's identity deliberately appears. RECIPROCAL: this row must not claim a podcast's guest recording because the stem looks like an interview, and the podcast row must not claim a reporter's source recording because it is an `.m4a` of a named person - the privacy consequences run in opposite directions, since one row publishes the name and the other exists to withhold it."
+    },
+    {
+      "domain": "creative.short-form-writing",
+      "signal": "SAME FIXTURE: `vega-water-01_draft_v4.docx` and its version run. THE SHORT-FORM ROW owns a piece of prose whose entire corpus is authored - drafts, an editor's marks, an export. THIS ROW owns the same draft run only where an OBTAINED material set resolves the same slug: recordings of people who are not the author, a disclosure bundle, a claim-and-citation apparatus. RECIPROCAL: this row must not claim a prose draft because its subject is newsworthy - topic is not provenance - and the short-form row must not swallow the material set as though the recordings were background files of a piece of writing, because that is precisely the filing the roster hint forbids."
+    },
+    {
+      "domain": "creative.creative-brief",
+      "signal": "SAME FIXTURE: `pitch - lead pipes - Vega.docx`. A brief structure is one of the `creative` schema's OWN default detectors, so the brief row has first claim on a standalone commissioning instrument carrying an addressee organisation, a deliverables list and a deadline. THIS ROW claims the pitch only as the HEAD of a material set that already exists around it, and notes that a pitch is weaker than a brief in a specific way: it is unaccepted by default and names an outlet that may never have replied. RECIPROCAL: the brief row must not read an unanswered pitch as a live commission, and this row must not activate on a pitch alone, which falls through to Independent Records."
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE: `Guardian_lead-pipes_published_2026-05-02.pdf`. This is the family's load-bearing collision inherited from the schema anchor, sharpened here. THIS ROW claims the published piece as the OUTPUT of one story, discriminated by the slug binding it to a draft run and a fact-check. CAREER claims the same bytes as self-presentation - a curated set of finished pieces with no working files, ordered for showing, sitting beside a resume or a clips list. RECIPROCAL: career must not absorb the material set behind a clip, and this row must not claim a clips folder that contains nothing but tearsheets. Where a lone tearsheet has neither, neither fires: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    },
+    {
+      "domain": "creative.periodical-issue",
+      "signal": "SAME FIXTURE AGAIN: `Guardian_lead-pipes_published_2026-05-02.pdf`. The periodical row assembles an ISSUE - a run of pages, a flatplan, a contents list, several bylines, one date of publication. This row assembles a STORY - one byline, one slug, and the material behind it. RECIPROCAL: this row must not claim the whole issue because one page in it is the owner's, and the periodical row must not claim a story's material set because its output landed in an issue. The discriminator is whether the neighbourhood holds MANY bylines or one."
+    },
+    {
+      "domain": "government.public-records-foi",
+      "signal": "SAME FIXTURE: `FOIA 2026-0412 response - City Water Dept.pdf` and `records_request_2026-0412.zip`. The government row holds the disclosure process from the AUTHORITY's side - the request log, the exemption reasoning, the response as an administrative act. THIS ROW holds the same bundle from the REQUESTER's side, as raw material for a work, and only where a story slug, a draft or a fact-check apparatus resolves it. RECIPROCAL: this row must not claim an authority's own disclosure file, and the government row must not claim a reporter's obtained bundle merely because it carries a statute and a reference number. Where neither structure is present, the covering letter is a standalone document with a durable purpose and no group - Independent Records."
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "SAME FIXTURE: the redacted pages inside `FOIA 2026-0412 response - City Water Dept.pdf`. A litigation disclosure bundle in a matter file has the identical surface - a covering letter, third-party documents, visible redaction - which is why REDACTION ALONE is on this row's never_alone list. The matter row is discriminated by a matter reference, parties, a court or tribunal identifier and correspondence between representatives; this row by a story slug and an authored output. RECIPROCAL: the matter row must not claim a journalist's obtained records, and this row must not claim a lawyer's disclosure bundle because a reporter could have wanted it."
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "SAME FIXTURE: `2026-03-04 Weekly Standup transcript.txt` against `Interview - Marisol Vega - 2026-03-04.txt`. Both are speaker-labelled, timecoded plain text produced by the same class of tool. The discriminator is APPARATUS AND CADENCE: an agenda, an attendee roster, action items with owners and a recurring interval token belong to the meeting record; a single date, two voices, one asking, and no apparatus belong here. RECIPROCAL: this row must not claim a standup because it has speaker turns, and the meeting row must not claim an interview because a transcript is a transcript."
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "SAME FIXTURE: `IMG_4471.HEIC` and its six near-identical frames. The photos row claims the family on capture-origin evidence and the repeated-frame structure, and it is RIGHT about the capture facts - EXIF, GPS and camera information are its own and must not be dropped. THIS ROW claims the same frames as obtained material only where the OCR content resolves against a request reference or a slug already present. RECIPROCAL: this row must not manufacture a story from a hand-held photograph of a sheet of paper, and photos must not lose the frames' capture evidence because a story claims them. Listed here as a collision AND below as an `also_holds_with` at the schema level, because the same bytes can be claimed wrongly or held legitimately by both, on disjoint evidence."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "creative.book-manuscript",
+      "signal": "MIRRORS the edge that row already wrote against this one, using the same fixture it named: `Interview - Marisol Vega - 2026-03-04.m4a` is this row's source material AND a member of a long-form reported book's source set at the same time. The evidence is disjoint - a compile container, a chapter run and a book apparatus on one side; an attributed-capture run, obtained records, a fact-check apparatus and an outlet relationship on the other - so the two do not compete for the same evidence item. That row states the protective difference as sources who spoke under an expectation versus subjects who never took part at all; this row accepts that framing and adds only that where a file is both, the STRICTER posture governs, because a wrong disclosure here is not recoverable. Neither reading may suppress the other's."
+    },
+    {
+      "domain": "legal",
+      "signal": "A source agreement, a contributor contract, a pre-publication legal read with counsel's marginalia, a right-of-reply letter and a takedown or correction demand are legally operative instruments AND part of one story's record. This is 00's stated shape - \"One file may hold facts from more than one domain without losing information\" - and the evidence is disjoint: a numbered clause set, defined terms, a parties block and an execution block on one side; the story slug and the material set on the other. Neither reading may drop the other's facts."
+    },
+    {
+      "domain": "photos",
+      "signal": "A photograph or video shot to run WITH the piece is legitimately both a capture and reporting material, on disjoint evidence: EXIF make, model, capture time and GPS on one side; a slug, a caption sheet and a delivery to the outlet on the other. The `photos` schema is already on the `creative` schema row's own `also_holds_with`, so this is an inherited co-holding narrowed to this row's fixture `IMG_4471.HEIC` rather than a widening of the schema's edges."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "THE MOST IMPORTANT FALLTHROUGH THIS ROW HAS, and the one that carries its whole privacy argument when the row does not fire. A lone recording of a named person, a notes file full of phone numbers, or `source list - DO NOT SEND.xlsx` with no story around it must not be sorted at all. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" The final clause is the operative one here, because in this world THE FILENAME IS THE SENSITIVE VALUE - the source's name is in the stem - and a residual that merely moves the file while quoting its name into a dossier has already caused the harm."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the standalone document with a durable purpose and no story to attach it to: an unanswered pitch, a covering letter from a public body with no bundle behind it, a rate agreement for a piece never written. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" The clause \"no broader group\" is the exact test - these files are not junk, they simply have no story."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For the row's COMMONEST false positive, which is a folder of other people's articles. A reporter's disk holds far more saved journalism than made journalism, and a masthead is never-alone evidence precisely because of this. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" Nothing moves out of here into this row without an explicit binding to a live slug."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the partly-legible middle: a transcript with no apparatus and no interview shape, a draft run whose slug resolves to nothing, a fact-check-looking spreadsheet with no citation column. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" This is where the two collision fixtures land if their own rows also decline them."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For the password-protected or oversized material set, which is common in this world because obtained bundles arrive that way. 00 requires the safe behaviour rather than the curious one: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open or allowed to become decompression-bomb risks.\""
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "our_firm",
+      "other_domain": "business_operations",
+      "why": "Inherited from the schema anchor and given this row's own discriminator. The OUTLET is the same entity type in two roles, and this world puts the name on the page either way: a masthead on the published PDF, a salutation on the pitch, a footer on a rate agreement. It is `client` when a commissioning instrument or a rate exists and the corpus owner is freelance; it is `our_firm` when the owner is on the masthead's staff, in which case 00's rule governs - \"The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client\" - and `our_firm` stays destination-ineligible, because filing a staff reporter's whole corpus under their own employer's name is the collector level 00's validator rejects. Where neither instrument is present, an outlet name alone settles nothing and is on the never_alone list."
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is limb three of the node test and the strongest single reason the row exists. The `creative` schema's own posture protects UNPUBLISHED WORK - a campaign before launch, a manuscript before submission, a cut before release - and that protection EXPIRES at publication. Here it INVERTS: publication of the piece is the moment the source material becomes most dangerous, because that is when the people named in it become findable, and the protection never expires at all. Three concrete consequences follow that no sibling needs. (1) THE FILENAME IS THE SENSITIVE VALUE. A stem reading `Interview - <person> - <date>` discloses a source before any interior is read, so this row cannot let filenames or paths into an outbound dossier; 00's line is exactly the protection - \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" - and Protected Records repeats it as \"must not cause filenames or content to be exposed in model prompts\". (2) TRANSCRIPTION IS AN ACT, NOT A READ. For most of this corpus a speech-to-text pass is the only way to see inside, and 00 gates it - transcripts are yielded \"only under an explicit privacy and compute policy\" - so the default here is an opaque, indexed, unread file rather than a convenient one. (3) THE ERROR IS IRREVERSIBLE. 00: \"Revocation cannot necessarily retract data already sent to an external provider, so the product must communicate that distinction clearly.\" A leaked campaign is embarrassing and a leaked source may be unemployed, prosecuted or worse, and the maker cannot consent on their behalf. Against all of it: \"Privacy policy must be enforced before content reaches any model or external connector.\" This row does NOT carry is_safety_domain - that flag stays with 00's four - and it assigns no handling class, which is P7's vocabulary.",
+  "open_question": "Five. (1) NJ-JR-1, LIMB TWO IS CONCEDED AND THE PROVENANCE LEVEL IS UNEXPRESSIBLE. This row's only dimension claim is that obtained material and authored output must not share a level, and that claim needs `material_role`, which needs the `creative` schema to declare fields at all. Alternatives: (a) keep the row on limbs one and three and hold the recommendation as prose, as written here; (b) if option (b) of NJ-R1a-1 lands, R1c adjudicates `material_role` as a template-level key; (c) R1c decides the split is really a residual-versus-domain routing rule rather than a dimension, in which case Protected Records carries it and the template says nothing. (2) NJ-JR-2, THE PODCAST DISCRIMINATOR IS AN LLM JUDGEMENT, NOT A SIGNAL. `Interview - <name> - <date>.m4a` is byte-for-byte ambiguous between this row and `creative.podcast-episode`, and the discriminator - whether the identity appears in a published artifact - is a neighbourhood judgement. Alternatives: (a) accept the LLM judgement with abstention as the default, as written; (b) require the attributed-capture RUN as a hard precondition so a single named recording can never activate this row; (c) route all lone named recordings to Protected Records unconditionally and let the user pull them back. Option (c) is the safest and the most annoying. (3) NJ-JR-3, WHO OWNS THE OBTAINED BUNDLE. `government.public-records-foi` and `legal.practice-matter-file` both have real claims on `FOIA 2026-0412 response - City Water Dept.pdf`. This row's discriminator is requester-side-with-a-story, which is a claim about context and not about the document. R1c should confirm the reciprocal wording from those two rows' sides; if either states an unconditional claim, this row narrows to the fact-check apparatus and drops the obtained-records detector to a needs_llm. (4) NJ-JR-4, IS `people` PROHIBITED HERE OR EVERYWHERE. This row asserts that `people` must never be destination-eligible on it. The same is arguably true of `creative.commissioned-shoot` (model releases), `creative.film-production` (cast lists) and `creative.theatre-production`. Alternatives: (a) record the prohibition on this row only; (b) raise it to the `creative` schema, where it would bind all 41 siblings; (c) treat it as a P7 handling question and out of scope here. This row does not decide it. (5) NJ-JR-5, THE OVERLAP WITH `creative.book-manuscript`'s NJ-BM-1. That row already flagged that its subject-protection argument may be indistinguishable from this row's source-protection argument. This row's position is that they are distinguishable - a source CHOSE to speak under an expectation and can be betrayed, a subject never took part - but that is an inference from the material and not a design quote. If R1c judges them the same, this row keeps the node on limb one and the inversion argument in `sensitivity_why` reduces to the strongest instance of an inherited posture rather than a difference in kind."
+}

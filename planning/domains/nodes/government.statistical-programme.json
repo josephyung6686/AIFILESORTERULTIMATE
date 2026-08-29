@@ -1,0 +1,565 @@
+{
+  "id": "government.statistical-programme",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Census and official statistics programmes",
+  "one_line": "J-DEPTH placeholder template on the fieldless government schema for the producing side of an official statistics programme: the instrument and its field period, the methodology that makes the numbers defensible (sampling design, edit and imputation, weighting), the collection round's operational records, the scheduled release with its disclosure-control and pre-release-access apparatus, and the restricted unit-record product that sits behind the same programme identifier. It is not activated by statistical vocabulary, by a statistics office's name, by a downloaded release, by a table of numbers, or by holding a completed return. Its distinct job against the government default is a cycle-shaped grouping anchor (instrument plus reference period, not a case or proceeding reference) and an inverted privacy rule: this is the one authority-side world whose headline artefact is deliberately published, so the published bulletin must never be allowed to lower the posture of the microdata, the completed returns, or the pre-release access register held beside it.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below is template-activation evidence on an already-plausible government schema. This row declares no fields, so a fired signal unlocks recognition, grouping candidacy, privacy posture and residual routing only. No signal licenses a programme, round, respondent or table fact.",
+      "an instrument document combining numbered questions with routing or skip instructions, a named collection round or field period, and an issuing statistical-authority block: the questionnaire, not a form that merely asks questions",
+      "a methodology artefact whose section headings name sampling design, stratification, frame coverage, non-response adjustment, edit and imputation, or weighting and calibration, and which repeats an exact instrument or round identifier that appears on another accepted member",
+      "a disclosure-control record naming cell suppression, perturbation, rounding rules, primary and secondary suppression, or output checking, scoped to a named table set of the same programme",
+      "a release-calendar entry or pre-release-access register carrying pre-announced release dates plus an embargo statement, held by the producing body rather than received as a subscriber notice",
+      "a microdata product accompanied by a variable dictionary or codebook and an end-user licence, secure-access condition, or safe-setting rule issued by the named producing authority",
+      "a quality or methodology report organised as coverage, response, sampling error, revision and comparability sections against a named output series",
+      "a revision notice or correction statement that names a previously published release of the same series and states what changed",
+      "a completed return carrying BOTH a statutory-authority-to-collect statement and a confidentiality pledge addressed to the respondent — this is instrument evidence, but it fires the role check below before it fires this row",
+      "ROLE CHECK, required on any return, schedule or completed instrument: this row is the COLLECTING authority's side. The same bytes on the respondent's side belong to the respondent's own row (a library service, a company, a household). Absent evidence of which side holds the file, the file does not activate this row."
+    ],
+    "needs_llm": [
+      "separating an instrument from an ordinary numbered form: a permit application, a benefits claim and a satisfaction questionnaire all carry numbered questions, so the model must find the field period plus a methodology or collection sibling before calling it an instrument",
+      "reading a confidentiality pledge closely enough to tell a statutory statistical collection from a commercial or internal survey when both are unbranded — the pledge names a legal collection power and a statistical-purpose-only restriction; a commercial one names a client and a fieldwork agency",
+      "deciding whether a table is a scheduled release or an ad-hoc extract produced to answer an information request, when the release-calendar reference is absent and only the table survives",
+      "resolving the collector/respondent role slot on a return that carries an authority letterhead at the top and the holder's own totals in the body",
+      "judging whether a numbers-bearing spreadsheet is a statistical output at all, or an operational management report that happens to aggregate — the discriminator is a methodology or disclosure-control sibling, not the presence of aggregation",
+      "reading an archive manifest well enough to see whether a transfer packet mixes published tables with unit records, which changes the posture of the whole packet"
+    ],
+    "never_alone": [
+      "the words census, survey, statistics, questionnaire, respondent, sample, weighting, or microdata alone; a genealogy census transcript, a customer-satisfaction form, an employee engagement survey and a commercial brand tracker all carry them",
+      "a national or municipal statistics office name, seal, logo, letterhead, PDF producer string, or .gov-style domain alone; the anchor already bars public-body names, and publication by a statistical authority is not authority-side custody",
+      "a downloaded statistical bulletin, dataset, table, chart or open-data CSV held for reference; this is the single most common false positive in this world and it is Reading Inbox material, not a programme member",
+      "a batch of releases pulled in one download sitting; “A session should never be treated as proof of topic”",
+      "a .sav, .dta, .sas7bdat, .csv, .xlsx or .por extension, or a source_type of spreadsheet, alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning” and a proprietary statistical binary is a tool artefact, not a role",
+      "a table of percentages, a weighted column, a confidence-interval column, a chart, or a data dictionary alone; analysts, marketers and researchers all produce these",
+      "a folder named Census, Statistics, Survey, Data, Microdata, or a statistics-agency acronym alone",
+      "a screenshot of a statistics portal or release page; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”, and a portal screenshot is Photos evidence that may coactivate, never programme membership",
+      "a completed return or filled schedule alone, without evidence of which side holds it; the collecting authority and the responding body hold the same bytes",
+      "a historical census schedule, transcript or index; an ancestor's household schedule is a family-history artefact with no live instrument, round, release calendar or access regime attached",
+      "a four-digit year or a reference-period-shaped token alone, and a bare survey acronym alone; the anchor's bare-number rule applies unchanged",
+      "an academic paper, working paper or article that analyses official statistics; citing a series is not producing it"
+    ]
+  },
+  "proposed_context_terms": [
+    "sampling frame",
+    "stratification",
+    "primary sampling unit",
+    "response rate",
+    "non-response adjustment",
+    "edit and imputation",
+    "weighting and calibration",
+    "coefficient of variation",
+    "disclosure control",
+    "cell suppression",
+    "output checking",
+    "reference period",
+    "field period",
+    "collection round",
+    "release calendar",
+    "pre-release access",
+    "embargo",
+    "revision policy",
+    "microdata",
+    "unit record",
+    "end-user licence",
+    "safe setting",
+    "statistical purposes only",
+    "PROPOSAL NOTE: none of these terms appears in 00. 00 names only the academic context floor (syllabus, lecture, credits, instructor, semester). These are offered as a candidate methodology-term family for R2 to adjudicate, and none of them is deterministic evidence on its own; each must co-occur with a named instrument or round."
+  ],
+  "work_types": [
+    "instrument: questionnaire, schedule, diary, interview module, or online form specification, with version and field period",
+    "respondent or interviewer guidance: field procedures manual, respondent letter, help notes, translation set",
+    "sampling and frame work: sampling design specification, frame or register maintenance record, coverage assessment",
+    "collection operations: fieldwork progress record, response chasing log, collection incident record, mode-change record",
+    "received return: completed schedule, uploaded return, or bulk respondent submission on the collecting side",
+    "processing rules: edit and imputation rule set, coding and classification instruction, derived-variable specification",
+    "estimation: weighting and calibration specification, variance estimation note, seasonal adjustment record",
+    "quality: quality report, methodology note, coherence and comparability assessment, user-needs review",
+    "output: statistical bulletin, table set, open-data release, visualisation or dashboard release package",
+    "correction: revision notice, scheduled revision, error correction statement",
+    "confidentiality: disclosure-control record, suppression log, output-checking decision",
+    "release governance: release calendar, pre-release access register, embargo notice",
+    "microdata: unit-record product, codebook or variable dictionary, anonymisation record",
+    "microdata access: application, end-user licence, secure-setting accreditation, project approval, output clearance",
+    "programme design: consultation on question content, harmonisation standard adoption, classification change record"
+  ],
+  "grouping_reasons": [
+    "one instrument plus one collection round or reference period, linked by an exact instrument, wave, round or series identifier repeated across otherwise content-incoherent members: a questionnaire, an interviewer manual, an imputation rule set, a weighting spec, a quality report and a table set share almost no vocabulary and are still one thing",
+    "one release cycle across draft tables, disclosure-control decision, embargoed bulletin, published bulletin and revision notice, while the anchor's rule that published outputs and restricted microdata retain different access boundaries is preserved inside the group rather than flattened",
+    "one microdata product and its access apparatus: unit-record file, codebook, licence, project approval and output-clearance record, kept as a protected sub-neighbourhood even when the same programme's bulletin is public",
+    "one series across rounds is a browse relationship, not one group; the 2025 and 2026 rounds of the same survey are separate collection cycles that share a series name, and merging them would copy a round fact",
+    "a sparse member such as Table 3.xlsx or questionnaire_final.docx may join an accepted round neighbourhood without acquiring a programme, round or reference-period fact from its neighbours",
+    "duplicate and version families of an instrument or bulletin remain universal relationships; v3 and v4 of a questionnaire do not acquire new government facts from sitting together",
+    "no group is a valid outcome for a single downloaded release; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, not by indifference: PR-6 leaves the government schema fieldless and a template may only name fields its schema declares, so this row's recommended order stays prose until canonical adjudication. The order this world wants is programme or instrument first, then collection round or reference period, then work type. That differs from the government default's prose order, which puts a bounded proceeding or case reference first: a statistical programme has no case, its organising anchor is a recurring cycle, and the same instrument recurs across rounds so instrument-before-round is what keeps a round intelligible. Time is not first even though the round is temporal, because a reference period is a programme label rather than a calendar coordinate, and because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A respondent, household, address or business name must never become a dimension at any depth. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "opaque_binary",
+      "archive",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "filesystem",
+      "code_structured"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".sav",
+      ".dta",
+      ".sas7bdat",
+      ".por",
+      ".xml",
+      ".json",
+      ".zip",
+      ".eml",
+      ".ics",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "National Household Survey 2026 - questionnaire - adult module v4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered questions with explicit routing instructions between them",
+        "a header block naming the issuing statistical authority, the field period and a version",
+        "a respondent burden statement and a confidentiality pledge restricting use to statistical purposes"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a programme or round fact — the government schema declares no fields",
+        "that the authority name in the header activates the schema by itself",
+        "that any respondent exists or was contacted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "LFS 2026 - sampling design and frame coverage specification.docx",
+      "source_type": "text_document",
+      "observations": [
+        "section headings naming stratification, primary sampling units, frame coverage and non-response adjustment",
+        "the same survey acronym and round token that appear on the questionnaire",
+        "internal review sign-off block naming a methodology division"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that methodology vocabulary alone activates this row without the shared round identifier"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Interviewer manual - field procedures - 2026 round.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "instructions addressed to field staff on contact attempts, refusal conversion and proxy rules",
+        "an exact round token matching the instrument",
+        "no numbered questions of its own"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is HR training material because it instructs staff"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Edit and imputation rules - business module - 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rule rows pairing a variable name with an edit condition and an imputation method",
+        "a sheet of derived-variable definitions",
+        "the round token in the workbook title row"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a spreadsheet of rules is code or a dataset"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Quality report - National Household Survey 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sections for coverage, response, sampling error, revision and comparability",
+        "an output series name repeated from the bulletin",
+        "a published-document layout with a release reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that being published makes it non-programme reading material when it sits inside an accepted round"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Disclosure control log - suppressed cells - regional tables 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows pairing a table and cell reference with a suppression reason and a secondary-suppression consequence",
+        "an output-checking decision column with reviewer initials",
+        "the table-set name repeated from the release package"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the suppression labels are handling classes — P7 owns handling policy"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Release calendar and pre-release access list - Q3 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "pre-announced release dates against series names",
+        "a register of named individuals and roles granted sight of figures before publication, with an embargo statement",
+        "an approval signature row"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the calendar half being public lowers the posture of the named-individual register in the same workbook"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "NHS2026_microdata_EUL_v1.sav",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a proprietary statistical-package binary with an embedded variable dictionary",
+        "a sibling codebook PDF naming the same product version",
+        "a filename token indicating an end-user-licence tier of the same programme"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the file is safe to send to a model because the programme's bulletin is public",
+        "that unit records are anonymous because the product name says so"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Secure access agreement - project SRS-2026-118 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an applicant and institution block, an approved-project description and a signed undertaking",
+        "safe-setting conditions and an output-clearance requirement",
+        "the producing authority's microdata service named as counterparty"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the researcher's copy of this agreement is the authority's record"
+      ],
+      "also_schema": "research.ethics-compliance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Census 2026 - completed return - 12 Rowan Close.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "the instrument's question numbering with handwritten or typed answers",
+        "a household address and named persons in the roster grid",
+        "a statutory-authority-to-collect statement in the footer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder is the collecting authority — a household keeping its own copy is the respondent",
+        "any person, address or household fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual return - public library statistics 2025-26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "the collecting authority's prescribed workbook structure with locked definition notes",
+        "service-level counts filled in by the responding service",
+        "a submission deadline and a return reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the collecting authority holds it — this is the shared fixture with government.library-administration and the role slot decides"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Statistical bulletin - Consumer Prices - August 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published release layout with a release date and a series name",
+        "headline figures, charts and a methodology link",
+        "no internal identifiers and no draft markings"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that holding it is producing it — downloaded alone this is reading material and this row must not fire"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Brand Tracker Wave 12 - questionnaire and weighting note.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered questions with routing, a wave token, and a weighting and quota section",
+        "a commissioning client block and a fieldwork agency block",
+        "no statutory collection power and no statistical-purposes-only pledge"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that instrument-plus-methodology structure alone proves an official statistics programme"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "1911 Census - Yorkshire - Smith household - schedule.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed or scanned historical enumeration schedule with a household grid",
+        "an archive reference stamp and a transcription note added by the holder",
+        "no instrument version, field period, release calendar or access condition anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the word Census activates this row",
+        "that an archive reference makes the holder an archive"
+      ],
+      "also_schema": "photos.family-archive",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FOI 2026-0412 - response - unpublished regional breakdown.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "an information-request reference repeated in the sheet header and the covering letter",
+        "an ad-hoc table produced to answer the request, with a note that it is not a National Statistic",
+        "a disclosure schedule listing what was withheld"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an ad-hoc extract is a scheduled release"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Pre-release access - CPI August figures - EMBARGOED.eml",
+      "source_type": "email",
+      "observations": [
+        "an internal sender and a named recipient list matching the pre-release register",
+        "an embargo time and a warning line",
+        "an attached draft bulletin"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that recipient names become facts",
+        "that the attachment may be sent to a model because the final bulletin will be public"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Census2026_secure_transfer.zip",
+      "source_type": "archive",
+      "observations": [
+        "password protection prevents member listing",
+        "the filename carries a programme-shaped token and nothing else is readable",
+        "filesystem metadata only"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the filename creates a programme, round or microdata fact",
+        "that it should be unpacked to strengthen recognition"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - release calendar page.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in dimensions and capture metadata",
+        "OCR recovers series names and dates from a portal page",
+        "no producing-side identifiers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that missing EXIF would have proved screen origin",
+        "that OCR of a public calendar makes the holder the producer"
+      ],
+      "also_schema": "photos.screenshot-captures",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Staff engagement survey 2026 - questionnaire.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered attitude items with a Likert scale and an anonymity assurance",
+        "the holder is a statistics agency, so the agency name is present",
+        "distribution is to employees, and there is no sampling frame or weighting section"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a statistics agency running a survey makes it official statistics"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.library-administration",
+      "signal": "Shared fixture: Annual return - public library statistics 2025-26.xlsx. Reciprocating the edge that row already authored. This template holds the workbook on the COLLECTING authority's side, where it sits beside the definitions guidance, the chasing log and the resulting table set. The library row holds the identical bytes on the RESPONDENT side, where the holder is the service reporting about itself. Nothing in the file discriminates; only the role slot does, and when the slot is unevidenced neither row fires.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.market-research",
+      "signal": "Shared fixture: Brand Tracker Wave 12 - questionnaire and weighting note.docx against National Household Survey 2026 - questionnaire - adult module v4.pdf. Structurally the same object: numbered instrument, wave token, sampling or quota design, weighting, fieldwork operations, respondent-level data. The discriminators are the statutory collection power and the statistical-purposes-only pledge on one side, and a commissioning client plus fieldwork agency on the other. The market-research row declined this edge on the ground that official statistics are a cited SOURCE for it; that is true of the published bulletin and false of the instrument, which is where the collision actually lives. Recorded as an asymmetric edge for R1c.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-health-administration",
+      "signal": "Shared fixture: a population health data collection. A designed sample with an instrument, a field period and a weighting specification is this row's; a notifiable-disease or administrative surveillance count assembled from operational case reporting is the public-health row's, even when it is published weekly with charts. The seam is designed collection versus administrative by-product, not the subject matter, and a health survey and a surveillance report can carry near-identical output pages.",
+      "design_cite": null
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "Shared fixture: NHS2026_microdata_EUL_v1.sav with its codebook. Held by the producing authority as the curated product it licenses and disclosure-controls, it is this row's. The identical download inside an analyst's working project, with derived files and analysis scripts around it, is the dataset-analysis row's; secondary use is not production. Both sides must keep the protected posture, which is why the seam matters for routing rather than for safety.",
+      "design_cite": null
+    },
+    {
+      "domain": "hr.engagement-survey",
+      "signal": "Shared fixture: Staff engagement survey 2026 - questionnaire.docx held by a statistics agency. An employer surveying its own workforce is HR's regardless of whether the employer is a statistical authority; a household, business or population collection run under statistical authority is this row's. The trap is that the agency's name and survey vocabulary are present on both, which is exactly why the agency name is in never_alone.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-records-foi",
+      "signal": "Shared fixture: FOI 2026-0412 - response - unpublished regional breakdown.xlsx. A table produced on demand under an information-request reference, with a disclosure schedule and a refusal or redaction record, is the FOI row's even though a statistician produced it. A table announced on a release calendar, disclosure-controlled under the programme's own rules and carrying a revision policy, is this row's. The same statistician, the same source data, two different workflows.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "Shared fixture: a compelled business survey return, for example an annual business survey workbook. On the responding company's side it is one more compelled return with a reference and a deadline, which is the filings row's. On the collecting side it is a received return inside a collection round, which is this row's. The filings row declined this edge, holding that government.public-authority-record already carries the which-side discriminator; this side records it explicitly because the fixture is byte-identical and the generic authority row does not name the instrument.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "research.ethics-compliance",
+      "signal": "Shared fixture: Secure access agreement - project SRS-2026-118 - signed.pdf. One file, two legal schemas: it is the microdata service's access record and simultaneously the researcher's approval-and-undertaking record. Coactivation, not a mutex; neither side may copy the other's facts, and both must keep it protected.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-consultation",
+      "signal": "Shared fixture: a consultation on census question content or on a classification change. The consultation document and its response corpus are the consultation row's own grouping evidence; the same document is also a programme-design record for the instrument it will change. Legally both, and the response corpus never migrates here.",
+      "design_cite": null
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "Shared fixture: Screenshot 2026-08-19 at 09.14.22 - release calendar page.png. Positive screen-origin evidence activates Photos while OCR may surface programme text. Coactivation only; the screenshot never becomes programme membership, and absence of EXIF proves nothing.",
+      "design_cite": null
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a downloaded statistical bulletin, table set, quality report, open-data extract or methodology note is held for reading with no evidenced producing-side workflow — the dominant outcome for this world's most common file",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Protected Records",
+      "when": "a completed return, unit-record file, pre-release access register, embargoed draft or named-respondent contact record lacks a safe accepted group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone official notice with durable value and no round — a compulsion or requirement-to-respond notice, a statistics-designation letter, an interviewer identity authorisation, or a historical enumeration schedule kept as a document",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "when": "a respondent's submission acknowledgement or reference-number confirmation for a completed return is held with nothing else",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the file is plainly statistical work but the collector-versus-respondent role slot, or the official-versus-commercial provenance, cannot be settled safely from the evidence present",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a password-protected transfer archive, an unreadable proprietary statistical binary, a damaged export or an inaccessible collection-system dump yields no evidence beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherits the schema posture and sharpens it in a specific direction. This is the one authority-side world whose flagship artefact is deliberately published, which creates the opposite risk from the rest of the government schema: a folder containing a public bulletin, a public quality report and a public release calendar also contains completed returns naming households, a unit-record file, a pre-release access register naming individuals and an embargoed draft. The published half must never be allowed to set the posture of the mixed packet, and disclosure-control labels found inside a file are literal observations, never handling classes — P7 owns handling policy. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Because a respondent identity may be a household address, a business name or a person, no respondent-derived token may become a display label or a folder level at any depth.",
+  "open_question": "NEEDS-JOSEPH. (1) 00 contains no occurrence of statistic, census, survey or microdata, so this row is a proposal derived from the government anchor rather than a design reading; confirm that a J-DEPTH placeholder may stand on anchor-derived reasoning alone, or downgrade it. (2) The collector-versus-respondent role slot decides several fixtures and cannot be expressed without a field; either accept that both sides stay dark when the slot is unevidenced (the position taken here), or license one role-safe holder concept centrally when PR-6 lifts. (3) Three neighbours declined edges this row asserts (business_operations.market-research, business_operations.corporate-regulatory-filings) or declined an edge this row also declines (government.elections-administration); R1c should resolve the two asymmetries rather than let the first-written side win. (4) Decide whether the methodology term family in proposed_context_terms belongs to R2 as a term-pattern rule or is dropped, given that 00's only stated context floor is academic."
+}

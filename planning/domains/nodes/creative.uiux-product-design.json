@@ -1,0 +1,261 @@
+{
+  "id": "creative.uiux-product-design",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "UI and UX product design",
+  "one_line": "A software-product interface design lifecycle in which research and requirements become flows and wireframes, an interactive prototype is tested with users, findings drive revisions, and an approved design is handed to implementation; interface topic or a design-tool file alone is insufficient.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are recognition signals, not extraction licences. The creative schema declares no field rows, so this template writes no creative facts and no folder dimensions.",
+      "a research-to-design packet that joins a research plan or interview synthesis to named user needs, journeys, task flows, or acceptance criteria and then to a wireframe or screen inventory; a research PDF without a design artifact is not enough",
+      "a wireframe structure with repeated screen or state identifiers, navigation paths, annotations, and interaction notes, paired with an interactive prototype or linked screen set whose links resolve to those states",
+      "a usability-test structure that identifies a participant or test session, task script, observed result or issue, and a reference to the exact screen, flow, or prototype state; a generic survey or product analytics export does not qualify alone",
+      "a revision chain in which findings or review comments cite a screen/flow version and a later prototype, annotated wireframe, or decision log records the response; FINAL or v2 tokens alone are not approval",
+      "a product-design handoff structure containing approved screen or component references, interaction/state specifications, accessibility notes, and an implementation-facing handoff or acceptance record; a static mockup without product context remains ordinary creative work",
+      "a design-system library structure with named components, variants, states, usage guidance, and links to product screens, where the library governs an interface rather than being a downloaded UI kit or isolated visual asset",
+      "a product backlog or decision record that explicitly links a user problem or requirement to a flow, prototype, test result, and disposition; generic project status without interface evidence belongs to project delivery"
+    ],
+    "needs_llm": [
+      "deciding whether a research document is discovery for an interface, market research, academic research, or a general product strategy record when the title is broad",
+      "matching an unlabelled screenshot, board, or prototype link to a product and lifecycle stage when the file contains only screen copy and no project identifier",
+      "deciding whether a Figma, Sketch, XD, Framer, or presentation artifact is a working prototype, a static presentation, a portfolio case study, a downloaded template, or a handoff copy",
+      "distinguishing usability evidence from stakeholder preference: a participant task, observed outcome, and cited interface state are stronger than a comment saying that a screen feels confusing",
+      "deciding whether a component library is the product team's governed design system or a stock asset library, based on variants, usage rules, ownership, and links to product screens",
+      "separating a product requirement from a general software ticket when the ticket mentions a page or button but has no user problem, flow, screen reference, or acceptance evidence",
+      "deciding whether an approved screen is approved for research, visual direction, engineering implementation, or release; the lifecycle event must remain unknown when the approver and artifact are not identified"
+    ],
+    "never_alone": [
+      "a design_creative source type or .fig, .sketch, .xd, .framer, .proto, .pdf, .png, or .pptx extension alone",
+      "the words UX, UI, product, screen, wireframe, prototype, usability, user journey, design system, component, approved, or handoff alone",
+      "a product, company, app, brand, or team name without a role-bearing interface lifecycle and an identified design artifact",
+      "a screenshot or screen-shaped image without positive evidence of a software interface, product context, or design-work relationship; missing EXIF is not proof of a screenshot",
+      "a Figma/Sketch/Adobe XD file with frames or artboards but no evidence that it is an authored product-design work rather than a template, presentation, or portfolio case study",
+      "a component name, colour token, typography specimen, or icon set alone; these may be stock assets, brand identity material, or implementation code",
+      "a usability survey, analytics dashboard, support ticket, or interview transcript alone; research becomes this template's evidence only when tied to interface tasks or states",
+      "a Jira, Linear, Trello, or project-status export alone; implementation planning and governance are not product design without linked flows, prototypes, tests, or handoff material",
+      "a FINAL, v1, v2, approved, release, or sign-off filename token alone",
+      "a bounded download session, shared folder, prototype URL, or same-day cluster of files alone; transport and co-occurrence do not establish topic or lifecycle",
+      "author metadata, a designer's name, or a parent folder named Product, UX, Design, or Research as a destination-bearing fact"
+    ]
+  },
+  "proposed_context_terms": [
+    "user research",
+    "discovery",
+    "interview synthesis",
+    "user need",
+    "persona",
+    "journey map",
+    "task flow",
+    "user flow",
+    "wireframe",
+    "screen inventory",
+    "prototype",
+    "interaction state",
+    "usability test",
+    "test script",
+    "participant",
+    "finding",
+    "severity",
+    "design decision",
+    "design critique",
+    "component",
+    "variant",
+    "design token",
+    "accessibility",
+    "handoff",
+    "acceptance criteria"
+  ],
+  "work_types": [
+    "research plan",
+    "interview guide or transcript",
+    "research synthesis",
+    "journey map or task flow",
+    "wireframe",
+    "screen specification",
+    "interactive prototype",
+    "usability test script",
+    "usability findings",
+    "design critique",
+    "decision log",
+    "component or design-system library",
+    "accessibility review",
+    "approved design",
+    "engineering handoff",
+    "implementation acceptance record"
+  ],
+  "grouping_reasons": [
+    "one product problem or feature from discovery through approved interface handoff",
+    "one research study and the flows, prototypes, findings, and decisions it informs",
+    "one screen or flow across wireframe, prototype, test, revision, and approval versions",
+    "one product release or feature increment's design decisions and implementation handoff",
+    "one governed component or design-system library and the product screens that consume it",
+    "one usability session or test round tied to exact prototype states",
+    "one accepted design package across design-tool sources, exports, specifications, and handoff notes"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The creative schema is a launch placeholder with no declared fields, so this template may not serialize project, stage, artifact_type, or client as dimensions. If R1c adopts the schema's existing proposals, the recommended conceptual order is project or product → stage → artifact_type, with screen/flow and test-round values nested as runtime values; time is not first because research, design, testing, approval, and implementation dates are different clocks.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["design_creative", "text_document", "presentation", "spreadsheet", "image", "email", "archive", "opaque_binary"],
+    "extensions": [".fig", ".sketch", ".xd", ".framer", ".pdf", ".pptx", ".docx", ".csv", ".png", ".jpg", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Checkout Discovery Synthesis.pdf",
+      "source_type": "text_document",
+      "observations": ["headings identify interview themes, user needs, checkout tasks, and open design questions", "a feature or product name is repeated across the synthesis and a linked flow"],
+      "facts_legal": [],
+      "must_not_conclude": ["a validated user segment", "a product requirement merely from a research theme", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Checkout Task Flow v03.fig",
+      "source_type": "design_creative",
+      "observations": ["named frames show cart, address, payment, error, and confirmation states", "connectors and annotations describe task transitions and unresolved questions"],
+      "facts_legal": [],
+      "must_not_conclude": ["that every frame is implemented", "that v03 is approved", "a product name from a frame label alone"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Mobile Checkout Wireframes.pdf",
+      "source_type": "presentation",
+      "observations": ["each page is labelled with a screen/state identifier", "callouts specify empty, loading, error, and success behavior"],
+      "facts_legal": [],
+      "must_not_conclude": ["interactive behavior from a static PDF", "usability approval from a review date", "that the depicted product is the corpus owner's software"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Checkout Prototype Review - Round 2.pdf",
+      "source_type": "text_document",
+      "observations": ["annotations cite prototype screen IDs and task failures", "comments are attributed to a review or test session and list follow-up decisions"],
+      "facts_legal": [],
+      "must_not_conclude": ["participant identity beyond what is labelled", "severity or resolution unless explicitly recorded", "approval of the final product"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Usability Test Script - Checkout.docx",
+      "source_type": "text_document",
+      "observations": ["tasks ask a participant to complete checkout actions", "success criteria reference named prototype states and expected observations"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the test occurred", "that a participant completed a task", "that the script is product evidence without a linked design artifact"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Checkout Usability Findings.csv",
+      "source_type": "spreadsheet",
+      "observations": ["rows contain task, observed result, issue, screen/state reference, and disposition columns", "the sheet points back to a prototype or test session"],
+      "facts_legal": [],
+      "must_not_conclude": ["a causal product metric from a qualitative row", "a user identity from a participant code", "that a disposition was implemented"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Checkout Components v2.fig",
+      "source_type": "design_creative",
+      "observations": ["components have named variants and states", "usage guidance and links point to product screens or handoff references"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the library is governed by the product team from component names alone", "that every consuming screen uses the current variant", "a design-system field or folder dimension"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Checkout Design Handoff - Approved.pdf",
+      "source_type": "text_document",
+      "observations": ["screen IDs, interaction states, accessibility notes, and implementation references are enumerated", "approval text identifies the artifact or revision being handed to engineering"],
+      "facts_legal": [],
+      "must_not_conclude": ["that implementation shipped", "legal acceptance or release approval", "that an adjacent repository contains the corresponding build"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "checkout-ui-assets.zip",
+      "source_type": "archive",
+      "observations": ["manifest mixes design source, exported screens, tokens, handoff PDF, and a README", "member names include screen/state references but archive purpose is not itself proof"],
+      "facts_legal": [],
+      "must_not_conclude": ["facts for archive members without inspecting each member", "approval from the word final", "that source files were delivered rather than bundled for backup"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-08-18 at 14.20.png",
+      "source_type": "image",
+      "observations": ["image appears to show an app screen but has no positive screen-capture metadata", "OCR may expose button labels and a product name"],
+      "facts_legal": [],
+      "must_not_conclude": ["that it is a design artifact rather than a user screenshot", "a product or project from visible branding alone", "that absent EXIF proves screenshot origin"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Product App - UI Case Study.pdf",
+      "source_type": "text_document",
+      "observations": ["polished narrative presents selected screens, outcomes, and the designer's role", "source files and test records are not present"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the PDF is the working product-design record", "research findings from retrospective claims", "implementation ownership from a byline"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "src/components/Checkout/Button.tsx",
+      "source_type": "code_structured",
+      "observations": ["source tree and component imports show implementation code", "comments may reference design tokens or screen names"],
+      "facts_legal": [],
+      "must_not_conclude": ["that the implementation file is a design artifact", "design approval from a comment", "a design-system library from component code alone"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "code.software-project",
+      "signal": "The same checkout screen names, component names, and tokens can occur in a repository. A Figma handoff belongs here when design states, research/test evidence, and approval are present; source-tree/build/dependency evidence belongs to code, and neither side copies the other's facts."
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "The same polished screen exports or case-study PDF can be either a working product-design record or a portfolio sample. Design files and research/test lineage belong here; a retrospective presentation whose purpose is demonstrating the maker's skill belongs to career."
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "A screen-shaped PNG can be a captured product screen or an authored design export. Positive capture evidence and chronology support photos; linked flows, prototype states, review/test findings, or handoff evidence support this template."
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "Durable design exports, specs, or handoff documents lacking reliable product-lifecycle evidence remain standalone records."},
+    {"residual_template": "Review Later", "why": "Ambiguous prototypes, feedback, and screen images whose origin or lifecycle cannot be resolved need human review."},
+    {"residual_template": "Temporary Screenshots", "why": "Sparse screen captures without positive authored-design evidence are safely treated as screenshots."},
+    {"residual_template": "Reading Inbox", "why": "General UX articles, research reports, and reusable test templates are reference material rather than product work."},
+    {"residual_template": "Unsupported or Encrypted", "why": "Opaque proprietary design archives without a readable manifest or preview cannot safely establish the lifecycle."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased product concepts, user research notes, participant references, accessibility findings, internal strategy, credentials in prototypes, and implementation handoff details may be sensitive. This is a local-first recognition posture, not a handling class or a conclusion that every interface file is restricted.",
+  "open_question": "NEEDS-JOSEPH: whether the eventual creative schema should adopt the existing canonical project, stage, artifact_type, and client proposals for product-design templates. Option A (recommended): adopt the shared keys and keep screen, flow, component, test-round, and approval labels as values or retrieval facets. Option B: defer all creative fields and retain recognition-only placeholder rows through placement. No option licenses a product_name, screen_id, user_segment, usability_score, or approval_status field in this row."
+}

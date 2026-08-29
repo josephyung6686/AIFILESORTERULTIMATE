@@ -1,0 +1,512 @@
+{
+  "id": "business_operations.facilities-workplace",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Facilities and workplace management",
+  "one_line": "The physical workplace as an administered thing: premises and space records, floor plans and desk allocation, planned and reactive maintenance, access control and keys, workplace services and their suppliers, moves and fit-outs, and the statutory site checks that keep a place lawfully occupiable. The anchor is a SITE and its running record — the occupier's operational view of a building — which is what separates it from owning, letting, or constructing that building. Absorbs the legacy row ops.facilities-workplace. The discriminator against that family is the one its own landed anchor states: this row is OCCUPATION of the holder's own premises with no instruction around it, where construction_property is INSTRUCTED work about a property that is not necessarily the instructed party's. Placeholder row: it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity or internal unit whose premises this site record concerns",
+      "why_no_existing_key": "SECONDING, NOT MINTING. This row proposes no key of its own. It seconds the `organization` proposal already carried by the landed `business_operations` schema row — the same key `construction_property` seconds with the instruction that it “should be adjudicated once, there, for both”, and that `business_operations.it-asset-inventory` seconds a third time. R1c must count this as a fourth signature on ONE decision, never as a competing proposal. The fact this row would need is CUSTODY of the occupation — whose workplace this is — and `our_firm` (authorship), `client` (counterparty), `institution` (the finance-side holder), `school`, `lab` and `venue` all name other roles.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Seconded as FALSE, and this row has a site-specific reason of its own that the schema could not state: the level a facilities corpus actually wants above everything is the SITE, not the entity. A multi-site single-entity corpus gets one meaningless child from `organization` and loses nothing — both of 00's validator failures at once, “create meaningless one-child levels” and “use an author or organization merely as a collector”, plus “A folder should not become a collection point for everything produced by the same person or organization.” The user may still add it: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Seconded unchanged at `possible`, with one facilities-specific reason it cannot be raised: the entity name most reliably present on this row's files is the CONTRACTOR's or the certifying body's — the maintenance firm on a PPM export header, the assessor's practice on a fire risk assessment, the alarm company on a keyholder sheet — not the occupier's. A rule reading the strongest entity token would systematically name the supplier as the holder. Landlord letterheads on recharge paperwork make it worse, because that name is the neighbour family's party."
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "the management period a maintenance programme, inspection cycle or occupancy review belongs to",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Same key, same single adjudication as above; the schema row's argument — that an entity's management calendar is not a jurisdiction's `tax_year`, and that reusing `tax_year` would quietly assert it is — is adopted in substance. This row's own reason: a PPM programme year and an inspection cycle are periods of a maintenance calendar, and their boundaries are set by service intervals and certificate validity, which no statutory year governs. A five-yearly electrical condition report and an annual gas check share a site and share no period.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Seconded as TRUE and explicitly NOT FIRST. The reason is sharper here than on the schema: this row's natural top level is a site and its second is an asset, and a certificate is unintelligible above the asset it certifies — exactly 00's reason for putting a course above a homework number. Putting a year first would scatter one lift's examination history across calendar folders: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Seconded, but this row asks R1c for `possible` rather than the `validated` its siblings seconded, and says why rather than smoothing it: the date token most characteristic of this row's files is a NEXT-DUE date — a forward-looking obligation, not a period the document belongs to. A rule family that read a next-due date as a fiscal period would file a February 2026 certificate under 2027. Until that separation is demonstrated, this row cannot support the higher ceiling, and it records the divergence from its siblings deliberately."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a space-record structure: a floor or area identifier crossed with an area measure, a use or department allocation, and a capacity or desk count — a plan, a schedule, or both together.",
+      "a planned-maintenance structure: an asset or plant item (lift, boiler, HVAC unit, fire alarm panel) crossed with a service frequency, a last-service date, a next-due date and a contractor. The asset-and-next-due pairing is the most characteristic table in the row. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a reactive-works structure: a helpdesk or job log with a location slot, a fault description, a priority, an attending contractor and a completion record.",
+      "a statutory-check structure: a site inspection or test certificate with a labelled premises address, a test date, a next-due date and a competent-person or engineer identification — fire risk assessment, electrical installation condition report, water hygiene, lift examination, gas safety.",
+      "an access structure: a card, key, or fob register listing holders against zones and issue and return dates, or a door-schedule and alarm-code record. This structure is simultaneously the row's most characteristic and its most sensitive.",
+      "an occupancy-services structure: a cleaning, catering, security, or reception specification or schedule keyed to a site, with hours and service standards.",
+      "a move or fit-out structure: a dated migration plan naming departments, floors, phases and a cutover date — which is a project shape wearing a facilities subject.",
+      "parent-folder context naming a site, a building, or a floor, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating the OCCUPIER's running record from the OWNER's, the LANDLORD's and the BUILDER's. A lease, a service-charge demand, a snagging list and a maintenance schedule can all name one address, and the property and construction families own three of those four.",
+      "separating a workplace record from a HOUSEHOLD one. A boiler service certificate, an alarm code note and a floor plan are identical artifacts in a home, and for a home-based business they are genuinely one file.",
+      "separating a facilities safety record from an employee safety record. A fire risk assessment is the premises'; an accident book entry is a person's, and belongs with the hr family under a stricter posture.",
+      "unlabelled facilities prose: a note about a leak, an email about parking, a memo about desk allocation with no address and no asset.",
+      "a purpose-coherent site file whose members are individually unremarkable — a plan, a certificate, three invoices, a contractor method statement and a spreadsheet of keys. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a street address alone. An address appears on a lease, a delivery note, a customer record, a letterhead and a personal document equally, and reading it as a site is the tempting false conclusion for this row.",
+      "facilities vocabulary alone — site, premises, maintenance, access, workplace, inspection. Property listings, insurance guidance, hotel operations material and saved supplier brochures are dense in it.",
+      "a certificate-shaped PDF alone, which is equally an insurance certificate, a compliance certificate, a trade qualification or a personal credential.",
+      "a floor-plan-shaped drawing alone. A plan is architectural, estate-agency, construction and facilities material equally, and the drawing itself does not say which.",
+      "a date-shaped token read as a next-due date without a labelled slot.",
+      "a company, charity, or regulator gazetteer hit alone. 00 states the ambiguity for a university — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — and a company name is worse, appearing as employer, customer, supplier, competitor, regulator, and as the letterhead of a document that is merely ABOUT the holder. Stated as inference; 00 writes that sentence about a university, not a company.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+    ]
+  },
+  "proposed_context_terms": [
+    "site",
+    "premises",
+    "building",
+    "floor",
+    "zone",
+    "net internal area",
+    "desk allocation",
+    "space plan",
+    "occupancy",
+    "planned preventative maintenance",
+    "PPM",
+    "reactive maintenance",
+    "helpdesk",
+    "work order",
+    "job number",
+    "asset register",
+    "plant",
+    "statutory inspection",
+    "fire risk assessment",
+    "emergency lighting test",
+    "electrical installation condition report",
+    "water hygiene",
+    "legionella",
+    "lift examination",
+    "access control",
+    "fob",
+    "key register",
+    "alarm code",
+    "permit to work",
+    "method statement",
+    "risk assessment",
+    "RAMS",
+    "contractor",
+    "cleaning specification",
+    "fit-out",
+    "churn move",
+    "cutover",
+    "keyholder",
+    "door schedule",
+    "desk booking",
+    "next service due",
+    "condition report"
+  ],
+  "work_types": [
+    "floor plan or space allocation schedule",
+    "occupancy or desk-booking record",
+    "asset and plant register",
+    "planned maintenance schedule",
+    "reactive work order or helpdesk log",
+    "statutory inspection or test certificate",
+    "fire, water, or electrical safety record",
+    "access card, fob, or key register",
+    "alarm, door, or security configuration record",
+    "contractor permit to work, method statement, or risk assessment",
+    "workplace services specification or schedule",
+    "utilities and consumption record",
+    "move, churn, or fit-out plan",
+    "site incident or repair log",
+    "supplier invoice or quotation for site works",
+    "site induction or workplace handbook material"
+  ],
+  "grouping_reasons": [
+    "one site over time: its plans, certificates, maintenance schedule, works history and services. The strongest reason here and the one most likely to tempt an address label onto an unrelated PDF, which is exactly what must not happen. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one asset across its service history, joined by an asset identifier rather than by filenames.",
+    "one works occurrence: the request, the quotation, the permit, the attendance record and the invoice — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one inspection cycle: the assessment, the actions, the remedial works and the re-inspection.",
+    "one move or fit-out from plan to cutover.",
+    "no group at all is a valid outcome: a single boiler service certificate is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two sites' records in one folder do not merge, and a home address mixed with a workplace address is the commonest real instance."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the site or building, then the asset, area, or service it concerns, then the document function, with the year only where the corpus really cycles annually. A next-due certificate is unintelligible above its asset, which is 00's own reason for putting a course above a homework number. Note that a site level is a genuine location and a location is not the collector 00's validator rejects — “use an author or organization merely as a collector” Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "design_creative",
+      "email",
+      "archive",
+      "calendar",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".dwg",
+      ".eml",
+      ".zip",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PPM schedule - Fleet House 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "an asset column naming lifts, AHUs and a fire panel",
+        "service frequency, last-service and next-due columns",
+        "a contractor column",
+        "a header naming a building and an address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a site fact copied onto any other file naming the same address",
+        "that a next-due date is a durable fact this row may store — the proposed keys do not exist",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fire Risk Assessment - Fleet House - Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled premises address and an assessment date",
+        "an assessor's name and competency statement",
+        "a findings table with risk ratings, actions and target dates",
+        "a review-due date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a safety judgement of the product's own from a findings table; the ratings are raw observations",
+        "which row owns it: the same document is the occupier's record and, where the holder is the landlord, the property family's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Access card register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows naming individuals against card numbers, zones, issue dates and return dates",
+        "a column of contractor and visitor holders",
+        "a sheet listing door groups"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that a facilities spreadsheet is impersonal: this one names people and states which doors they can open, which is both personal data and a security control",
+        "a people fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Alarm and keyholder details.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a list of alarm codes, keysafe locations and out-of-hours keyholder phone numbers",
+        "a site address in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that this is ordinary administrative material: it is an authentication secret, and 00 requires the immediate protected transition for such material — “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”",
+        "that it may be summarised or sent to a model by default — “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Floor 3 - space plan rev C.pdf",
+      "source_type": "design_creative",
+      "observations": [
+        "a scaled plan with desk positions, room names and a title block",
+        "a revision letter and a drawn-by initial set",
+        "a department colour key"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation from a drawing format alone — “treat the file extension as a routing signal rather than an assumption about meaning”",
+        "that a plan with a title block is a construction drawing: the discriminator is a desk-and-department allocation, not the drawing furniture",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Commercial lease - Fleet House - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block naming a landlord and a tenant",
+        "a term, rent review and repairing-obligation clause set",
+        "a plan annexed at the back",
+        "an execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a lease is the property family's instrument even though it names the same site — the discriminator is the tenure relationship, not the address",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Boiler service certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an engineer's registration number and a service date",
+        "an appliance make, model and location",
+        "a next-service-due date",
+        "an address that is a residential one"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "which world it belongs to: this artifact is identical in a workplace and a household, and for a home-based business it is genuinely both — the address is the only clue and it is not decisive",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "a phone photograph of a water-damaged ceiling tile",
+        "EXIF capture timestamp, camera model and GPS coordinates present",
+        "no OCR run and no accompanying text"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "camera_information",
+        "location"
+      ],
+      "must_not_conclude": [
+        "a site or a defect fact from a photograph with no report around it",
+        "that GPS metadata may be used freely: 00 names GPS metadata among the material the corpus holds and this row treats it cautiously",
+        "a screenshot conclusion from any image property — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Cleaning specification - 2026 tender response.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a service specification with hours, frequencies and standards per area",
+        "a supplier's branded cover and pricing schedule",
+        "a site address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "which row owns it: a tender response is procurement's artifact, the resulting schedule is this row's, and the same PDF is both",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "office-move-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing plans, department schedules, contractor RAMS and a cutover timetable",
+        "the archive is not encrypted"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a purpose fact from the manifest alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.tenancy-management",
+      "signal": "The load-bearing collision on this row. Occupier and landlord records name one address and share inspections, works and service records. The discriminator is the one the neighbour family's own landed anchor states, and this row adopts it rather than the tenure handle drawn at gist depth: that family is INSTRUCTED work about a property, this row is OCCUPATION of the holder's own premises with no instruction around it. Tenure evidence — a lease, a rent demand, a service-charge apportionment, a dilapidations schedule, a tenant-management framing — remains the practical handle and supports the property row; the occupier's own space plan, asset register, maintenance schedule and access records support this row. The address discriminates nothing and is never-alone on both sides. Provenance: inference, reciprocated by construction_property.research.md.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "The instrument version of the same confusion, and the neighbour names it as the collision most likely to fire on a real corpus because most holders of these files are the tenant. Reciprocated in the neighbour's own words: the question is whether a document MANAGES THE LEASE (review, break, licence, dilapidations, recharge — that row) or MANAGES THE WORKPLACE (desk allocation, access passes, cleaning rotas, moves, the maintenance calendar — this row). Settled between the two rows: an occupier's maintenance and inspection calendar built OUT OF a lease is this row's, because derivation is not ownership. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.block-management",
+      "signal": "Common-parts maintenance, statutory inspections and contractor management are byte-identical. The discriminating evidence: a leaseholder or resident body, a service-charge budget, or a demised-versus-common-parts framing supports block management; a single occupier's own workplace supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "A fit-out is a construction project and a facilities move at once. The discriminating evidence: a works contract, valuations, variations and a snagging list support the construction row; a department migration plan, desk allocation and a cutover date support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "Safety is split here on WHO is at risk. The discriminating evidence: material identifying employees — an accident report, an occupational health record, a personal DSE assessment — is the hr row and must be protected before any model path; an assessment of the PREMISES supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "Asset registers overlap almost completely, and a door-access system is both an IT asset and a facilities control. The discriminating evidence: a device, licence, or endpoint identifier supports the IT row; a fixed plant item tied to a building supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "Cleaning, security and maintenance contracts are administered as contracts and consumed as services. The discriminating evidence: a register entry, a notice date and an obligation tracker support contract administration; the operational schedule, job log and site record supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.store-operations",
+      "signal": "A trading premises' opening checks, cleaning rotas and maintenance logs are this row's shape in a sector with its own trading rules. The discriminating evidence is a trading, licensing, or guest-facing anchor, which supports the sector row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "For a home-based holder the same boiler certificate, alarm record and floor plan are household material. The discriminating evidence is whether the record concerns a workplace occupied by an organisation or a dwelling occupied by a household, and for a home office it is genuinely undecidable — abstention is the correct outcome: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.” Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The landed legal row holds the executed instrument itself — party recitals, covenants, consideration, execution block — and legal is a safety domain that protects first, which is why this row's own lease fixture carries also_schema “legal” and a Protected Records fall-through. This row must never take an instrument because it names the premises it manages; that row must never take a PPM schedule or an access register because a lease obliges the occupier to keep them. Shared fixture: `Commercial lease - Fleet House - executed.pdf`, which is legal's and construction_property's and is listed here only as the file that must NOT fire this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-health-safety",
+      "signal": "Both worlds hold method statements, permits to work and contractor risk assessments, and a contractor attending an office produces byte-identical paperwork to one attending a site. The discriminator is instruction again: that row is the safety record OF A JOB under a principal contractor or designer, with CDM apparatus — construction phase plan, F10, principal-designer appointment — around it; this row is the occupier's standing regime for premises it runs, with no project around it. The gist pass deliberately left this unedged on the grounds that hr.workplace-health-safety already carried a who-is-at-risk discriminator; that was a different discriminator answering a different question, and the edge is added here. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Access registers, keyholder details and alarm codes are authentication material, and site incident records name individuals; the protective home is correct for them. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The commonest home for a standalone certificate, inspection report or service record with no site file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a site-shaped document whose address, tenure, or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated works invoices, delivery notes and supplier confirmations with no job around them. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "Site condition and defect photographs with no report, group, or project association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Supplier brochures, saved specifications and model policies are the tempting false files of this row. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "CAD files, proprietary building-management exports and password-protected site packs are ordinary here and are safest represented without moving. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Most of this row is dull and a small, identifiable part of it is not. Access card registers, keyholder lists and alarm codes are authentication material — 00 requires exactly that class to be protected at once: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” — and its corpus sentence names both credentials and GPS metadata among what the corpus holds: “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”, which reaches this row through site photographs. Site incident and access records also name individuals, including contractors and visitors who are not the user. Because the sensitive members are indistinguishable from the dull ones by filename, the cautious setting is the honest one for the row as a whole. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Two, and the first is now much narrower than the gist pass left it. (1) The occupier-versus-owner boundary with the construction_property family was drawn at gist depth on TENURE, by this row alone. That family has since landed at full depth and states the seam itself as INSTRUCTION, ceding “an organisation's occupation of its own premises as part of running itself” to this row explicitly; this pass adopts the neighbour's discriminator and demotes tenure to the practical handle, so the boundary is now reciprocal rather than unilateral. What remains open is the residue the instruction test does not reach: an OWNER-OCCUPIER, who is uninstructed on both sides and holds both sets of records for one address, and for whom the split still produces two rows for one folder. R1c should say whether that case abstains or co-activates. (2) The workplace-versus-household boundary is genuinely undecidable for a home-based holder, and it is not an edge case in a personal-file product — it may be the majority case. This row's provisional posture is abstention rather than a guess from the address, and whether that is acceptable, or whether a home-office situation deserves its own recognition, is Joseph's call."
+}

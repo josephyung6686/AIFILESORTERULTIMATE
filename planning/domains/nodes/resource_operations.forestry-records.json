@@ -1,0 +1,288 @@
+{
+  "id": "resource_operations.forestry-records",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Forestry and woodland records",
+  "one_line": "The forestry situation on the resource_operations schema: a recurring woodland-management record set linking an owned, leased or licensed forest estate to compartments, silvicultural treatments, felling permissions, harvest output and restocking or environmental obligations. The useful organizing subject is the estate or woodland site and then its compartment or management unit; permit, harvest, sale and monitoring documents are record_type values, not child schemas. This is a placeholder because the anchor schema's PR-6 field deferral leaves all destination fields for R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": "conditional",
+    "privacy_differs": true,
+    "why": "LEG 1 — SIGNALS. The resource_operations default covers many operator records joining a source or site, authority, operating unit, measured output and period. Forestry narrows that relation to a managed woodland estate: a compartment or stand register, a silvicultural cycle, an approved felling boundary or a restocking obligation must connect the management unit to timber volume, species/age treatment, biodiversity observation or harvest sale evidence. A timber word, a tree photograph, a land map or a permit copy alone is not enough. LEG 2 — DIMENSIONS, conditional because PR-6 forbids serializing fields. The anchor's provisional default is site -> operating_authority -> output_stream -> reporting_period -> record_type. Forestry is normally compartment-led: site -> asset/compartment -> record_type, with reporting_period below recurring inventories or harvest returns and operating_authority only where several felling licences or tenure instruments genuinely divide the estate. Output_stream is usually a value such as sawlog, pulpwood, fuelwood or biomass, not a standing level. That differs from a generic measured-output tree and keeps a compartment's management plan, inventory, harvest and restocking history together. LEG 3 — PRIVACY. Forest boundaries, precise compartments, protected habitat observations, access tracks, planned felling windows, timber reserves, contractor details and sale prices can reveal commercial, ecological or security-sensitive information. Those risks are more concentrated than an ordinary land record, so this template remains potentially_sensitive and does not authorize public exposure or a handling class.",
+    "charge_answered": "The strongest objection is that forestry is only a work_type value under resource_operations, and that the anchor already names farms, forests, compartments, harvests, environmental monitoring and timber-like output. The row survives only because the file set forms a distinct long-lived woodland-management relation: an estate is subdivided into compartments; plans and inventories establish treatment and standing stock; felling permissions constrain intervention; harvest returns reconcile extracted timber; and restocking, habitat and closure records carry the obligation forward. If a corpus contains only isolated timber invoices, a generic land map or one environmental paper without that relation, this row should be refused in favour of the schema default or a residual."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a woodland management plan or compartment register with labelled estate or woodland, compartment/stand/unit identifier, species or age class, silvicultural treatment, rotation or intervention status, and management-period or review fields",
+      "a felling licence, harvest approval or coupe authorization whose labelled holder/operator, woodland or compartment, permitted boundary or volume, species, conditions and effective period are joined; a government decision copy without operator-side activity remains a government candidate",
+      "a forest inventory or stocking survey with labelled compartment/stand, plot or stocking unit, species, diameter/height or age-class measurements, basal area or volume, and survey date; a tree measurement table without a forest-management relation is not sufficient",
+      "a harvest or extraction return that joins a named compartment/coupe to felling date, product class, volume or weight, load/yard reference and reconciliation to a sale, haulage or restocking obligation",
+      "a timber sale, stumpage or roundwood settlement schedule that identifies the woodland/coupe or harvest batch and reconciles measured timber classes to purchaser, scale ticket, price or payment terms; an ordinary invoice without a woodland extraction relation is not enough",
+      "a restocking, replanting or regeneration return with labelled harvested compartment, species or planting treatment, area, planting date, survival/inspection result and outstanding obligation or closeout status",
+      "a forest environmental or biodiversity monitoring series tied to a compartment, protected feature or permit condition, with sampling point, species/habitat or parameter, date, method, result and action/exceedance fields",
+      "a GIS or map packet whose manifest or labelled map elements join estate boundary, compartment/coupe identifiers, roads or extraction blocks to a management plan, licence or harvest schedule; a map image alone cannot establish the operational relation",
+      "an archive manifest exposing a coherent estate packet with management plan, compartment register, felling permission, harvest return, sale schedule and restocking or monitoring members; the archive is inspected by manifest and not unpacked to disk"
+    ],
+    "needs_llm": [
+      "whether an unlabeled woodland prose report is an operator's management record, a consultant ecological study, a government public-land report or a general reference publication",
+      "whether a licence or permission copy belongs to the woodland holder's operating dossier, the authority's issuer-side licensing case, a planning application or a scanned reference packet",
+      "whether a map depicts an active compartment/coupe operation, a conservation boundary, a property survey, a proposed engineering road or a public recreation map when labels are incomplete",
+      "whether a spreadsheet of tree species, areas and volumes is a forest inventory, a carbon or biodiversity study, a timber-market analysis or a public statistical table when the role labels are weak",
+      "whether an email or calendar item describes a felling operation, a contractor procurement meeting, a regulator inspection, a public consultation or an unrelated site visit",
+      "whether OCR-poor field sheets preserve enough relation between compartment, treatment and measured result to activate this situation",
+      "whether a mixed archive contains one estate or several unrelated land records, and which members can be grouped without copying estate or compartment facts"
+    ],
+    "never_alone": [
+      "the words forest, forestry, woodland, timber, tree, logging, felling, coupe, compartment, stand, sawlog, pulpwood, replanting or restocking alone",
+      "a permit, felling licence, lease, concession, quota, harvest authorization or licence number alone",
+      "a species, crop, tree name, timber grade, volume, area or carbon figure alone",
+      "an estate, farm, property, reserve, park, woodland, compartment, plot, road or place name alone",
+      "a map, boundary, coordinate, aerial photograph, vegetation index, tree image or survey chart alone",
+      "a contractor, buyer, sawmill, landowner or authority name alone",
+      "a source_type or extension alone; a spreadsheet, GIS export, PDF, image, email, calendar event or ZIP occurs in every neighbouring situation",
+      "a parent folder named Forest, Land, Estates, Operations, Harvest, Environment or Timber alone",
+      "membership in one download, portal or scan session alone; a session is only a weak review clue",
+      "absence of EXIF as proof that a woodland image is a screenshot, field survey or operational record"
+    ]
+  },
+  "proposed_context_terms": [
+    "woodland management plan", "forest management unit", "compartment", "stand", "coupe", "felling licence", "harvest approval", "silviculture", "rotation", "thinning", "clearfell", "coppice", "stumpage", "roundwood", "sawlog", "pulpwood", "cordwood", "timber volume", "stocking survey", "restocking", "replanting", "regeneration", "reforestation", "biodiversity", "habitat condition", "forest road", "haul route", "chain of custody"
+  ],
+  "work_types": [
+    "estate or woodland management plan",
+    "compartment, coupe or stand register",
+    "forest inventory and stocking survey",
+    "felling licence, harvest approval or coupe authorization",
+    "silvicultural treatment, thinning or rotation record",
+    "harvest, extraction or timber-volume return",
+    "scale ticket, load reconciliation or timber traceability record",
+    "stumpage, standing-timber sale or roundwood settlement",
+    "replanting, regeneration or restocking return",
+    "forest-road or extraction-access operation record",
+    "biodiversity, habitat or environmental monitoring report",
+    "closure, rehabilitation or compliance response"
+  ],
+  "work_types_note": "These are values of the resource_operations schema's proposed record_type/output roles, never child nodes. Species, timber grades, treatment names, licence forms and jurisdiction-specific return names are values discovered at runtime. A sale invoice, calendar event or contractor message does not become forestry evidence merely because it contains one of those words.",
+  "grouping_reasons": [
+    "one woodland estate or management unit across its plans, tenure evidence, compartment registers, inventories, felling permissions, harvest returns and restocking obligations",
+    "one compartment or coupe across management prescriptions, pre-harvest inventory, approval, extraction records, sale reconciliation and post-harvest regeneration checks",
+    "one reporting period's standing-stock or harvest series across field sheets, scale tickets, returns, monitoring and operator submission material",
+    "one environmental or biodiversity obligation across the permit condition, sampling plan, field observation, laboratory result, exceedance and corrective response",
+    "one timber transaction across the measured harvest, load/scale record, buyer schedule, settlement and payment confirmation",
+    "a sparse field image, email or calendar event may join an accepted estate or compartment group without receiving its site, asset or authority facts; grouping never copies labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract because resource_operations declares no legal field rows. Subject to R1c licensing the anchor's proposals, forestry's recommendation is site/estate -> asset/compartment -> record_type, with reporting_period inserted for recurring inventory, harvest or monitoring series and operating_authority inserted only where several licences, tenures or obligations divide the same estate. This differs from the schema default site -> operating_authority -> output_stream -> reporting_period -> record_type: forestry is compartment-led, output classes are normally values, and a long-lived management unit makes the plan-to-harvest-to-restocking chain intelligible. It is not time-first; the design says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders;\" Quantities, species, coordinates, prices, permit conditions and habitat results remain content/search evidence, never folder dimensions. The user may reverse, remove or flatten any eventual order.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["filesystem", "text_document", "spreadsheet", "image", "ocr", "email", "calendar", "archive", "code_structured", "design_creative", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".xml", ".json", ".geojson", ".shp", ".tif", ".png", ".jpg", ".eml", ".ics", ".zip", ".las", ".dwg"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Northwood-Estate_Management-Plan_2026-2045.pdf",
+      "source_type": "text_document",
+      "observations": ["title and contents label a woodland management plan", "tables join estate compartments to species, age classes, prescribed treatments and review periods", "maps and appendices identify access and conservation constraints"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["site, asset or reporting_period before R1c licenses anchor proposals", "that every mapped boundary is an operating compartment", "that a plan proves current felling activity", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwood-Compartment-Register_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["columns label compartment, stand, area, species mix, age class and treatment", "rows include inventory status and next review", "workbook contains a summary sheet and a compartment detail sheet"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["estate or compartment facts on sparse exports without labelled headers", "that a timber quantity is harvested output rather than standing stock", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Felling-Licence_FL-2026-017_Coupe-C12.pdf",
+      "source_type": "text_document",
+      "observations": ["licensing instrument labels holder, issuing authority, coupe C12, permitted operation, conditions and effective dates", "schedule limits species and permitted volume", "no evidence in the file alone that harvesting has begun"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["operator activity from permission alone", "that the issuer-side case and holder-side record are the same role", "site or authority destination fields before R1c", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "C12_PreHarvest-Inventory_2026.csv",
+      "source_type": "spreadsheet",
+      "observations": ["headers identify compartment C12, plot, species, diameter class, height and volume estimate", "survey date and plot identifiers are explicit", "rows distinguish standing stock from planned removal"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that estimated volume was sold or removed", "a licence from a compartment code alone", "site facts copied from the management plan", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "C12_Harvest-Return_July-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["return labels compartment, felling dates, product class, measured load volume and destination", "declaration block identifies operator and reporting period", "rows reconcile sawlog, pulpwood and residue totals"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a destination yard is the forest site", "that product class is a folder dimension", "a government submission from a declaration block alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "C12_Timber-Sale-and-Scale-Reconciliation.pdf",
+      "source_type": "text_document",
+      "observations": ["schedule identifies harvested coupe C12, purchaser, scale tickets, timber grades and settlement lines", "measured loads reconcile to the harvest return", "commercial prices and payment terms are present"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["finance bookkeeping from price and payment terms alone", "procurement ownership from purchaser name alone", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "C12_Restocking-and-Regeneration-Return_2027.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["sheet labels harvested compartment, planting area, species, planting date and inspection result", "survival and remedial-treatment columns are explicit", "return references the prior felling authorization"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the return is a planting invoice", "that a species value is an output stream without the management relation", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwood-Biodiversity-Monitoring_Compartment-C12_2026.pdf",
+      "source_type": "text_document",
+      "observations": ["report ties sampling points and habitat features to C12 and a licence condition", "tables identify observation date, indicator species, method and result", "conclusion records an action and follow-up date"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["regulator-side surveillance from a limit or condition alone", "a public-land record from conservation vocabulary alone", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwood-Coupe-Boundaries-and-Haul-Routes.geojson",
+      "source_type": "code_structured",
+      "observations": ["structured feature properties label estate, compartment and haul-route identifiers", "geometry contains boundaries and access tracks", "file has no harvest quantities or authority status"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["active felling from geometry alone", "that every polygon is an asset or legal boundary", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Felling-Window-and-Inspection.ics",
+      "source_type": "calendar",
+      "observations": ["event title proposes a felling-window inspection", "event contains a location, organizer and attendees", "no licence, compartment register or measured operation is attached"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["forestry activation from calendar source_type or event title alone", "that the inspection occurred", "site or authority facts copied from an accepted group", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Re_Felling-Licence-Condition-Query.eml",
+      "source_type": "email",
+      "observations": ["sender and recipient roles identify an operator and an authority contact", "body discusses a licence condition, inspection and proposed compartment visit", "no attached return or accepted estate anchor is present"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that the sender's role proves the domain", "that a proposed visit proves a harvest", "that message text can be exposed in a general summary", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Northwood-Forestry-Records.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists management plan, compartment register, licence, harvest return, scale sheets and restocking report", "members cover more than one compartment and reporting period", "archive remains unextracted"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one compartment or period for the whole archive", "facts from one member copied to all members", "that a filename proves the archive's content", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_8172.jpg",
+      "source_type": "image",
+      "observations": ["camera EXIF and capture time are present", "image shows a forest track and felled logs", "no readable compartment, licence or scale identifier appears"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["forestry operation from scene appearance alone", "compartment or harvest facts from neighbouring files", "that missing EXIF would prove a screenshot", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Scanned-Coupe-C12-Felling-Condition.pdf",
+      "source_type": "ocr",
+      "observations": ["OCR recovers partial headings for coupe, licence condition, retained habitat and replanting", "scan contains handwritten inspection marks", "several identifiers and dates are unreadable"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["unreadable identifiers or dates as direct facts", "that OCR text proves the issuing authority", "a folder path"],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.civil-structural",
+      "signal": "Direction one — resource_operations.forestry-records owns the operating woodland relation when a forest-road or haul-route file ties an active compartment/coupe, felling or extraction schedule to actual access use, measured harvest or restocking obligations. Direction two — engineering.civil-structural owns the controlled civil design or as-built work when alignment, loads, structures, revisions, calculations and acceptance of a road, bridge or culvert are the governing evidence, whether or not the road serves a forest. SAME FIXTURE BYTES: `Northwood-Forest-Road-Culvert-Design-and-Harvest-Access.pdf`. The forestry operations schedule and compartment-to-haul-use appendix support this row; the title block, structural calculations and as-built acceptance support engineering. A forest name, road map or drawing extension alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "Direction one — resource_operations.forestry-records owns the post-commissioning operational record when a harvesting or timber-processing asset is tied to a forest compartment, extraction run, measured output or environmental obligation. Direction two — engineering.commissioning-handover owns the witnessed equipment/system acceptance, installed-instance reconciliation, test results and transfer act, even when the equipment will operate in a woodland. SAME FIXTURE BYTES: `Northwood-Harvester-Handover-and-First-Coupe-Run.pdf`. The first-coupe production and compartment reconciliation support this row; the acceptance tests, serial reconciliation and transfer signatures support engineering. A machine name or pass/fail table alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "Direction one — resource_operations.forestry-records owns the holder/operator-side felling instrument when the same permission is joined to an active estate, compartment, harvest return or restocking obligation. Direction two — government.permit-licensing owns the authority-side application, representations, assessment, decision, register, renewal or enforcement case, whether or not an operator's copy is attached. SAME FIXTURE BYTES: `Felling-Licence_FL-2026-017_Coupe-C12.pdf`. Holder-side operating references and the linked C12 harvest packet support this row; authority intake, assessment, decision and register evidence support government. Licence wording, issuer letterhead or an identifier alone allocates neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.parks-public-lands",
+      "signal": "Direction one — resource_operations.forestry-records owns an operator's managed woodland record when a reserve or public-land compartment is tied to felling, harvest measurement, tenure conditions and restocking. Direction two — government.parks-public-lands owns the public-land stewardship, access, reservation, recreation, conservation and land-management programme administered for the public estate, even where it mentions forestry operations. SAME FIXTURE BYTES: `Public-Forest-C12-Management-and-Access-Plan.pdf`. The operator's compartment treatment and harvest/replanting schedules support this row; public-land boundary, access policy and stewardship programme sections support government. A park name, public ownership or conservation map alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "Direction one — resource_operations.forestry-records owns an operator-prepared habitat, water or biodiversity return when it ties observations and corrective action to a managed compartment, felling condition and restocking obligation. Direction two — government.environmental-regulation owns the authority-side received return, inspection, surveillance, assessment, enforcement or regulatory decision across operators and sites. SAME FIXTURE BYTES: `Northwood-Annual-Forest-Condition-Return_2026.xlsx`. Compartment rows, operator declaration and management-action columns support this row; receipt, officer review, inspection and enforcement columns support government. An environmental parameter, limit or regulator name alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "Direction one — resource_operations.forestry-records owns the operational harvest, inventory or environmental content that joins a woodland/compartment to measured timber, treatment or condition evidence. Direction two — business_operations.corporate-regulatory-filings owns the compelled submission wrapper: obligation, deadline, filing reference, declaration, acknowledgement, exception or penalty trail, regardless of which operational schedule supplied the numbers. SAME FIXTURE BYTES: `Northwood-Forest-Annual-Return-and-Submission.xlsx`. Compartment inventory and harvest reconciliation support this row; cover-sheet filing control, declaration and receipt support business_operations. A reporting year, authority name or spreadsheet extension alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Direction one — resource_operations.forestry-records owns a timber-sale or harvesting record when the evidence joins a specific compartment/coupe to measured extraction, timber classes, sale output and post-harvest obligations. Direction two — business_operations.procurement-sourcing owns the buyer-side sourcing event: tender, supplier comparison, award, purchase terms, bid evaluation and procurement approvals, whether the commodity is standing timber or a harvesting service. SAME FIXTURE BYTES: `C12-Timber-Harvest-Tender-and-Scale-Schedule.pdf`. Measured coupe output and scale reconciliation support this row; tender responses, evaluation and award controls support business_operations. A supplier, price or timber grade alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "Direction one — resource_operations.forestry-records owns the performance evidence tying a woodland compartment to felling quantities, timber quality, access restrictions, regeneration and measured completion. Direction two — business_operations.contract-administration owns the ongoing administration of the signed harvesting or timber-sale agreement: clauses, notices, variations, insurance, payment certification, disputes and obligations register. SAME FIXTURE BYTES: `Northwood-C12-Harvesting-Agreement-and-Performance-Pack.pdf`. Compartment harvest measurements and restocking performance support this row; clause tracking, notices, variations and certification support business_operations. A signed contract or payment line alone supports neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone management plan, licence copy, certificate or durable notice with no accepted estate/compartment relation remains an independent record.", "provenance": "design", "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."},
+    {"residual_template": "Review Later", "why": "A readable map, spreadsheet, field sheet or mixed packet whose operator, compartment, authority role or operational relation cannot be settled needs review rather than an invented forestry fact.", "provenance": "design", "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."},
+    {"residual_template": "Unsupported or Encrypted", "why": "An unreadable GIS/database container, protected archive or damaged scan cannot establish estate, compartment or harvest purpose from its filename.", "provenance": "design", "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."},
+    {"residual_template": "One-Off Images", "why": "A lone woodland photograph, aerial image or field snapshot without an independently evidenced operational group remains an unassociated image.", "provenance": "design", "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."},
+    {"residual_template": "Protected Records", "why": "Timber contracts, exact boundaries, harvest plans, account-bearing settlements and habitat-sensitive observations may require protected local treatment when no safe accepted group exists.", "provenance": "design", "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Precise forest boundaries, compartment identifiers, planned felling windows, timber reserves, prices, contractor details, access routes and protected-habitat observations can be commercially sensitive, ecologically sensitive or security-relevant. This template assigns no handling class and does not make raw locations, quantities, names or conditions destination dimensions.",
+  "open_question": "NEEDS-JOSEPH NJ-FOREST-1: should R1c license `site` plus `asset` for estate/compartment and a neutral `record_type` across forestry, farming and fisheries, or retain a distinct operating-unit key because a compartment is a management unit rather than a generic equipment asset? NJ-FOREST-2: should operating_authority be destination-eligible for felling licences and public-land tenures, given retrieval value versus disclosure of concession and habitat boundaries? NJ-FOREST-3: when a timber sale packet contains measured harvest, purchaser contract and payment records, should the forestry and Finance/business-operation groups coactivate independently, with the same fixture bytes retained in both, or should one side own the packet by user policy?"
+}

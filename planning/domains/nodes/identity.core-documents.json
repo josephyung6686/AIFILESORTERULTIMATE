@@ -1,0 +1,729 @@
+{
+  "id": "identity.core-documents",
+  "kind": "template",
+  "schema_id": "identity",
+  "parent_id": null,
+  "name": "Core identity documents",
+  "one_line": "A safety-only template for passports, government identity cards, birth and citizenship evidence, civil-status records retained as identity evidence, and privacy-protected contact exports. It recognizes enough structure to protect the material, writes no identity fields, proposes no folder dimensions, and falls through to Protected Records when no deeper user-accepted group exists.",
+  "launch": "safety",
+  "provenance": "design",
+  "design_cite": "00: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.\" It also states: \"Contact formats such as VCF should yield names, organizations, email addresses, phone numbers, and address-book metadata, but should normally be privacy-protected rather than used to create folder proposals.\"",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a machine-readable passport or travel-document data-page structure with an issuing authority and document type, a portrait or signature region, labelled bearer attributes, labelled issue or expiry slots, and a machine-readable zone. The structure is the signal; a country name, portrait, date or identifier alone is not",
+      "a government photo-identity card structure with a named issuing authority, a labelled credential class, a portrait, labelled bearer attributes and a labelled document identifier or validity slot. A reverse-side barcode or machine-readable block corroborates the card but never proves the document type alone",
+      "a certified birth-record structure with a registry or vital-record authority, a certificate heading, labelled registrant and birth-event slots, registrar or informant roles, and a seal, stamp or certification block. One name, one date of birth or one seal is insufficient",
+      "a citizenship or naturalization certificate structure with a named authority, a certificate title, a labelled person-identification block, a citizenship or naturalization statement, and an issuance, seal or signature block",
+      "a government tax or social-identifier card whose own heading identifies the credential and whose issuer, holder-name and identifier slots appear together in the card structure. A name beside a long number on a tax return, payroll form or account statement is not this situation",
+      "a vCard container confirmed from content: a BEGIN:VCARD boundary, a version property, a formatted-name property and a matching END:VCARD boundary. RFC 6350 supplies the container grammar; the .vcf extension is only a routing clue",
+      "a multi-card address-book export with repeated complete vCard containers, or a structured contact export whose header cluster separates person-name fields from email, telephone, organization or address fields. The concrete CSV header catalogue is a later detector responsibility; one Name or Email column is never sufficient",
+      "an independently recognized core identity attachment inside a native email record. Attachment evidence can protect the enclosing message; the subject line, sender address and attachment filename cannot establish the document on their own"
+    ],
+    "needs_llm": [
+      "an angled, cropped, damaged, multilingual or partially legible card whose OCR lacks clear labels. Every case in this list is protected before interpretation and is eligible only for a local model or a model path explicitly permitted by user policy; it is never a default cloud dossier",
+      "distinguishing a civil-status certificate retained as current identity evidence from the same certificate retained as genealogical or historical research. The file's own use and accepted group context matter, but context must not copy a holder fact onto it",
+      "distinguishing a government identity credential from a professional licence, healthcare coverage card, vehicle registration, academic credential or financial record when all carry a name, issuing organization, identifier and validity date",
+      "a screenshot of a digital identity wallet or mobile credential. OCR and visible issuer/document structure can justify protection, but a screenshot cannot establish cryptographic validity or current status",
+      "a contacts CSV or scanned directory with non-standard headings, where the model must decide whether it is an address-book export, a CRM report, an event roster or an employer directory without exposing its rows outside the permitted model boundary",
+      "a mixed archive or packet containing an identity copy beside application, onboarding, loan, family-history or immigration records. The model may judge packet membership from a bounded local dossier but may not turn the packet's purpose into an identity fact"
+    ],
+    "never_alone": [
+      "a person's full name, home address, date of birth, portrait or signature. Bank statements, school records, insurance cards, professional licences and ordinary correspondence carry the same observations",
+      "a document-number-shaped, licence-number-shaped, tax-number-shaped or national-identifier-shaped token. Opaque numbers require their labelled slot and document structure",
+      "the words passport, identity, ID, licence, certificate, citizenship, contact or address book in a filename or body passage. Certificate is especially ambiguous across academic awards, professional licences, share certificates and cryptographic files",
+      "a government, registry, motor-vehicle authority, consulate or other issuer name. The organization can be a cited authority, employer, insurer, lender or correspondent; its labelled role is required",
+      "a seal, watermark, hologram, barcode, QR code, machine-readable characters or card-shaped rectangle by itself. Generic forms, tickets, membership cards and product packaging can share those visual items",
+      "source_type or extension alone: PDF, image, OCR, contacts, spreadsheet, email, archive, .vcf, .csv and .zip are routing signals, not identity evidence",
+      "a vCard extension without a confirmed container, or one FN, Name, Email, Phone or Organization field without the surrounding contact-export structure",
+      "missing EXIF, missing text layer, dense OCR or scanner metadata as proof that an image is an identity-document scan",
+      "a parent folder named IDs, Important Documents or Contacts, or membership in a bounded download or scanning session. Context can retrieve the file for review but cannot activate the template or create a fact",
+      "an issue date, expiry date or four-digit token. It cannot establish the document type, current status, holder or destination"
+    ]
+  },
+  "work_types": [
+    "passport book or passport card",
+    "national identity card",
+    "driver licence or government photo ID",
+    "birth certificate or consular birth record",
+    "citizenship or naturalization certificate",
+    "tax or social identifier card",
+    "civil-status or name-change record retained as identity evidence",
+    "mobile or digital identity record",
+    "identity photograph attached to an accepted credential group",
+    "single vCard",
+    "multi-card address-book export",
+    "contact CSV export",
+    "address-book backup or transfer record"
+  ],
+  "grouping_reasons": [
+    "one credential across its front and back, rescans, photographs and corrected copies, joined through universal duplicate_family and version_family evidence rather than an identity field",
+    "one user-confirmed holder's protected document set. A repeated name is a retrieval clue only; this field-less template cannot write a holder fact or create a holder-named branch",
+    "one civil record and its certified copies or translations, with the translation remaining a related file rather than proof that either copy is authentic or current",
+    "one identity document as a protected member of an accepted application, onboarding, loan, legal or immigration packet without copying the packet's purpose or institution onto the document",
+    "one address-book export and its manifest, revisions or transferred copy, without creating a group or folder for every person or organization inside it",
+    "one sensitive record by itself. Core identity evidence does not need a large group before it is surfaced for protection"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The identity schema intentionally declares no fields under D1 and PR-6, so there is no legal destination dimension to serialize. The empty order is also the safety recommendation: activation protects the record but does not unlock a deep filing tree, and contact exports are expressly excluded from folder proposals. A document-type or holder level would recreate fields the catalogue has deferred and would disclose the branch contents through the path itself. The user may attach a record to an already accepted protected group or create their own structure later; this node recommends no automatic depth and is not time-first.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "contacts",
+      "spreadsheet",
+      "email",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".heic",
+      ".tif",
+      ".vcf",
+      ".csv",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Passport - biodata page.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page heading and document code identify a passport issued by a named authority",
+        "portrait and signature regions",
+        "labelled bearer-name, nationality, birth-date, document-number and expiry slots",
+        "machine-readable zone at the page edge"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field because the schema declares none",
+        "that the passport is authentic, unrevoked or current merely because the scan is legible",
+        "a holder-named or document-type folder path",
+        "that raw identifiers or the portrait may appear in a general summary or model prompt"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "passport scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF has no extractable text layer and is routed to OCR",
+        "OCR recovers a passport heading, labelled bearer slots and a machine-readable zone",
+        "producer metadata names a scanner driver rather than a person"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "identity from the absent text layer or scanner metadata",
+        "authored_by from the producer string",
+        "any identity-domain field or folder path",
+        "cloud-model eligibility from the fact that OCR succeeded"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_2231.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF, capture time and GPS are present",
+        "OCR region contains a passport heading and labelled identity-document slots",
+        "the frame is filled by one travel-document data page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "capture_year",
+        "camera_information",
+        "location",
+        "media_type",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a photo-event destination from the genuine EXIF",
+        "a trip, event, issuing jurisdiction or holder-address fact from capture GPS; the legal Photos location fact remains only the camera capture location",
+        "a holder or document-number fact",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "driver-licence-front-back.heic",
+      "source_type": "image",
+      "observations": [
+        "two card faces photographed in one frame",
+        "front carries a named issuing authority, portrait, credential class and labelled bearer slots",
+        "reverse carries a machine-readable block and class restrictions",
+        "camera EXIF is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information",
+        "media_type",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a vehicle registration from the authority name or licence token",
+        "identity from the number or portrait alone",
+        "that the licence is current or valid",
+        "a per-holder folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Certified Birth Certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "certified-copy heading and named registry authority",
+        "labelled birth-event, registrant, parent and informant slots",
+        "registrar signature and seal or stamp",
+        "certificate issue information is distinct from the recorded birth event"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "identity from a name and date of birth without the registry structure",
+        "that the holder is the file owner or is living",
+        "that a scan is an authentic certified original",
+        "any identity-domain field or folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Certificate of Naturalization.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "certificate title and government authority",
+        "labelled person-identification block with portrait and signature",
+        "citizenship statement, certificate number, issue date, seal and authority signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a nationality or document-number fact because the schema declares no such field",
+        "current legal status from a scan alone",
+        "that legal co-activation permits raw content to leave the protected boundary",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Social Security Card.jpg",
+      "source_type": "image",
+      "observations": [
+        "government issuer and card title",
+        "holder name and labelled identifier in the card's own layout",
+        "signature and restriction text",
+        "no account, balance, payroll or tax-period structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "finance merely because the identifier is used on tax and payroll records",
+        "a tax_year, account_type or institution fact",
+        "that the number may be normalized into a new identity field",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mobile Driver Licence Wallet.png",
+      "source_type": "image",
+      "observations": [
+        "software metadata and display-shaped dimensions support a screenshot reading",
+        "visible issuer, credential title, portrait and labelled bearer fields",
+        "no verifiable digital signature or issuing-source response is available from the pixels"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "cryptographic validity or current status from the screenshot",
+        "a general screenshots destination merely because the capture origin is a screen",
+        "any identity-domain field",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Alice Chen.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "complete vCard container with begin, version, formatted-name and end properties",
+        "labelled telephone and email properties",
+        "single card rather than a full address-book export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a person-named folder or contact group",
+        "that the contact is the user, owner, author or subject of nearby documents",
+        "identity activation from the .vcf extension alone",
+        "new fields for the person's name, email or telephone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "contacts-backup.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "repeated complete vCard containers",
+        "formatted names, organizations, telephone numbers, email and postal-address properties",
+        "revision and category properties on some cards",
+        "a second export in the same accepted transfer set repeats stable card identities while some revision properties advance"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "one group or folder per contact, organization, email domain or category",
+        "that a shared organization makes the export an employment or academic file",
+        "that a revision date is a destination year",
+        "that rows may be summarized in a cloud dossier"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contacts Export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header cluster separates given and family names from email, telephone, organization and address columns",
+        "repeated person-shaped rows",
+        "no account, transaction, attendance or case-state columns"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "contacts from one Name or Email header alone",
+        "institution from organization-column values",
+        "a CRM, event roster or employee directory without its own discriminating structure",
+        "any folder proposal or new contact field"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Identity Copy Request.eml",
+      "source_type": "email",
+      "observations": [
+        "native sender, recipient, subject and body slots",
+        "body requests a copy of an identity document",
+        "attachment manifest names a passport image that is independently recognized from its content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "issuing authority from the sender address",
+        "a passport from the subject line or attachment filename alone",
+        "an application, employment or loan purpose without independent evidence",
+        "that the message or attachment can enter a default cloud prompt"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Core Identity Documents.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists passport-biodata.pdf, birth-certificate.pdf and contacts.vcf",
+        "outer archive name is identity-shaped but is not content evidence",
+        "members are inspected through the manifest without unpacking to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a holder, document type or purpose from member filenames",
+        "that every member is readable, authentic or about one person",
+        "that the archive may be unpacked automatically",
+        "a folder path from the manifest"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ID card scan.jpg",
+      "source_type": "image",
+      "observations": [
+        "identity-card structure is visible in the file itself",
+        "curated application-packet context contains a portal record, checklist, transcript and personal statement",
+        "the ID carries no target institution or application-cycle label"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "purpose, target_university or application_cycle copied from packet neighbors",
+        "that packet membership removes protection",
+        "an identity-domain field",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Nursing License 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "person name, professional licence number, issue and expiry slots and board seal",
+        "heading states authorization to practise a profession",
+        "no travel, nationality, civil-registry or government identity-card structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "core identity from a name, photo, authority, number and expiry alone",
+        "that the professional licence is a government photo ID",
+        "any identity-domain field",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Insurance Card Front.jpg",
+      "source_type": "image",
+      "observations": [
+        "insurer and plan name",
+        "member identifier and group number",
+        "coverage and copay labels",
+        "person name but no government credential title or bearer-photo structure"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "core identity from the name-plus-number pair",
+        "document type from the card-shaped image alone",
+        "a folder path",
+        "that the insurance structure weakens its protection requirement"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle Registration Card.jpg",
+      "source_type": "image",
+      "observations": [
+        "motor-vehicle authority and registration heading",
+        "vehicle identifier, make/model and plate slots",
+        "registered-owner name and address",
+        "no credential class, bearer portrait or person-identity function"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "core identity from the government card, owner name, address or identifier",
+        "a driver licence from the authority name",
+        "tax_year from the registration year",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Official Transcript with ID Photo.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school registrar and official transcript heading",
+        "student name, date of birth and photograph",
+        "course, grade and award tables",
+        "no function of establishing civil identity"
+      ],
+      "facts_legal": [
+        "school",
+        "work_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "core identity from the photograph, seal, name or date of birth",
+        "a national identifier from a student number",
+        "that protection permits identity fields",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Family Scan Batch.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest combines family photographs with a birth certificate and an old passport image",
+        "members share scanner metadata and batch-style filenames",
+        "the civil records carry independent document structure while the photographs do not"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that one scanning run makes every member a family photograph",
+        "that an old document is genealogical rather than current identity evidence without holder/use context",
+        "identity facts copied from one member to another",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Passport Copy - WhatsApp.jpg",
+      "source_type": "image",
+      "observations": [
+        "platform-shaped filename and stripped camera metadata",
+        "OCR recovers travel-document heading, labelled bearer slots and machine-readable zone",
+        "export context identifies a conversation but not why the copy was sent"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that stripped metadata proves a screenshot or generic messenger-media destination",
+        "a relationship or purpose from the conversation alone",
+        "that messenger packaging permits a preview or cloud dossier",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Name Change Order.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court caption and order heading",
+        "labelled former and new names",
+        "judge signature and filing stamp",
+        "the instrument records a proceeding while also supporting later identity use"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every legal order is a core identity document",
+        "a current-name fact because the identity schema declares none",
+        "that legal co-activation removes the protected boundary",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "visa-application-packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names a passport copy, application form, appointment confirmation and supporting certificate",
+        "the passport member is a core document while the outer packet expresses an immigration workflow",
+        "member contents are not unpacked during manifest inspection"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a passport alone activates an immigration workflow",
+        "a packet purpose copied onto the passport member",
+        "that the archive may be opened automatically",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "A transcript, diploma or academic credential can carry a person's name, date of birth, photograph, seal and identifier. Academic attestation is established by a school, course/grade or award structure; core identity is established by a document whose own function is to prove civil identity or status. A name, seal, photograph or number proves neither side alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.purpose-packet",
+      "signal": "An identity copy is a common member of an application packet. The ID's own structure establishes only the protected core document; submission forms, portal records, checklists and accepted packet context establish the application situation. Packet purpose must not be copied onto the ID, and protection remains first whichever group holds it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "A professional licence and a government identity credential can both be authority-issued cards or certificates with a person's name, portrait, identifier, seal and validity slots. A profession, board and authorization-to-practise structure make the career-credential situation; a civil identity or government bearer-credential function makes this situation. The shared visual items and labelled number/date slots decide neither side alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "A candidate passport or identity page collected under a work-authorization request is the shared evidence item. A requisition, candidate record and employer authorization workflow make the employer-side hiring situation; the government's credential structure makes the core-document situation. The holder's name or document number does not decide the branch.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "Employee onboarding and right-to-work files can embed or reproduce government identity evidence. An employer form, employment role and onboarding workflow make the employment-record situation; a standalone government credential whose own purpose is to identify the person makes this situation. An identity-number slot alone counts for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-healthcare",
+      "signal": "A coverage card and a government identity card both pair a person's name with an identifier and issuer. Plan, member, group and coverage labels make the insurance situation; an issuing-authority, credential-title and bearer-identity structure make this situation. A name beside a number or a card-shaped image discriminates nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "Loan and closing packets can contain identity scans, and loan applications can carry national identifiers in labelled slots. Lender, debt, amount and repayment structure make the loan situation; a credential whose own function is identifying a person makes this situation. A name or identifier is shared evidence and proves neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "A driver credential and a vehicle registration can both be government-issued cards carrying a name, address, authority and opaque identifier. A credential identifies or authorizes a person; a registration or title identifies a vehicle and records ownership, registration or lien status. Authority and owner details prove neither template alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.camera-events",
+      "signal": "A phone photograph of a passport or identity card carries genuine camera EXIF, capture time and sometimes GPS. Those capture observations cannot decide its destination when OCR establishes a protected identity document. Document structure makes this situation; scene/event evidence makes the camera-event situation, and protection precedes placement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.family-archive",
+      "signal": "A birth certificate or old passport scanned with family photographs shares scanner metadata, batch filenames and session context with the surrounding images. Civil-document structure in the member makes this situation; scene/person-history evidence and accepted archive context make the family-photo situation. The scan batch cannot sweep a protected record into a photo branch.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.messenger-export",
+      "signal": "A sent identity image can arrive as a stripped, platform-named JPEG inside a messenger export. Conversation packaging makes the messenger situation; identity-document wording and labelled bearer structure in the image make this situation. The send context cannot lower protection or establish why the document was shared.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "A passport or identity-card scan is genuinely a captured document, so scan geometry and OCR support both readings. Scanner/capture structure makes the scanned-document situation; core identity wording and labelled bearer slots make this situation. When the latter appears, the capture reading cannot become the file's proposed home.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "A digital identity wallet or credential portal can be retained as a screenshot whose display metadata and software slots genuinely prove screen origin. Visible issuer, credential title and bearer structure make this protected situation; screen-origin evidence makes the screenshot situation. Screen origin cannot override identity protection or prove cryptographic validity.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.immigration-visa",
+      "signal": "A passport copy or citizenship certificate can sit inside a visa or immigration packet. The core document's own issuer-and-bearer structure makes this situation; application, permit, entry-record or adjudication structure makes the immigration situation. A passport alone does not establish an immigration workflow, and packet purpose is not copied onto it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.credentials-passwords",
+      "signal": "The words identity, credential, key and certificate collide across civil documents and authentication material. A government issuer, bearer and civil-status structure makes this situation; a key block, password-manager schema, recovery-code set or encrypted credential container makes the credentials situation. Certificate wording alone activates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "Birth, naturalization and name-change records can both establish identity/status and record a legal act or order. A document designed to prove who the bearer is makes this situation; a proceeding caption, party roles and operative order make the personal-legal situation. Both schemas may remain protected, but one seal, authority name or person name must not count twice.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Core identity documents and address-book exports are exactly the isolated personal material this residual exists to protect. When no deeper user-accepted group exists, the safe broad home remains local and must not expose filenames or contents through model prompts.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This template contains direct identity evidence and contact graphs: bearer names, birth data, portraits, signatures, government identifiers, home addresses, contact methods and civil-status information. Safety activation therefore precedes any model or placement path, raw values remain local, and general summaries require redaction. The catalogue assigns only potentially_sensitive; it does not assign any P7 handling class or copy that vocabulary into the node.",
+  "open_question": "The template deliberately leaves three product decisions open. May a protected identity area expose any default folder depth when the branch names themselves disclose document kinds or holder roles? If D1's field deferral ever lifts, should identity gain any stored fields at all, given that document numbers and civil attributes are among the corpus's sharpest raw values? May a local model inspect ambiguous protected documents by default, or must every model use require an explicit per-policy authorization? Until those decisions are made, this row remains field-less, dimension-less and closed to default cloud prompting."
+}

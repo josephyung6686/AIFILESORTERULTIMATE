@@ -1,0 +1,8 @@
+[
+  {"run_id": "run-ocr-1", "container_path": [{"kind": "page", "index": 4}],
+   "unit_locator": "page=4", "text": "recovered page four text",
+   "length": 24, "truncated": false},
+  {"run_id": "run-native-1", "container_path": [],
+   "unit_locator": "", "text": "the whole syllabus text",
+   "length": 23, "truncated": false}
+]

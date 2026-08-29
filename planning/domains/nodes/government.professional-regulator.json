@@ -1,0 +1,498 @@
+{
+  "id": "government.professional-regulator",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Professional regulation (regulator side)",
+  "one_line": "The record kept by a body that maintains a register of named individual practitioners and controls their entry to and conduct within a profession: registration applications and qualification verification, the register entry and its status history, renewal runs, continuing-competence and revalidation audit, and complaint, investigation and fitness-to-practise adjudication against a named registrant. It is not activated by a regulator's name, by licensing vocabulary, or by a credential held by its own subject. It differs from the government default by three structures the default has no signal family for — a persistent status-bearing register of natural persons, a periodic competence audit over one person's career, and a quasi-judicial proceeding whose respondent is that person — and by one privacy rule the schema default does not imply: the same named person sits simultaneously in a lawfully published statutory list and in a protected conduct or health case file. Declares no fields and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema. None of them licenses writing a government fact, a registrant identity, a case outcome, or a regulatory status. Every accepted signal must evidence the holder as the REGULATING body, not as the regulated person, an employer verifying a credential, a complainant, or a reader.",
+      "a register-entry record keyed by a registration or registrant reference that carries a STATUS HISTORY with effective dates across a closed status set (registered, conditions of practice, undertakings, suspended, lapsed, restored, voluntarily removed, erased or struck off), on an issuing-body block. A single certificate stating one current standing, held by its subject, is excluded — that is the holder-side row",
+      "a registration application record with BOTH an applicant identity block AND a primary-source qualification-verification result slot AND a decision-maker or assessor sign-off slot. The applicant's own copy carries the form and the outcome letter but not the verification result and not the sign-off",
+      "a renewal-run or fee-reconciliation table whose column headers span MANY registrants — registration number, renewal due, declaration received, fee status, lapse action. This is a batch operation and can only exist on the administering side; 00's spreadsheet extraction surfaces exactly these slots: “sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells”",
+      "a continuing-competence or revalidation audit structure: a sampling stratum or selection basis, a claimed activity total per registrant, a verifier or reviewer slot, and an outcome from a remediation ladder (compliant, further evidence required, referred). A single practitioner's own CPD log has the claims and none of the sampling, verification, or referral apparatus",
+      "a complaint or fitness-to-practise case reference repeated across two or more of: complaint receipt, triage or case-examiner note, investigation report, notice to registrant, hearing listing, determination — together with a NAMED NATURAL PERSON in the regulated-party position and a staff investigator, case examiner, or presenting-officer role. A firm, premises, or institution in that position is not this row",
+      "a panel determination structure: panel composition, findings of fact, an impairment or misconduct finding, a sanction drawn from a statutory ladder ending in removal from the register, a publication direction, and an appeal route. This composite is the strongest single signal in the file list",
+      "an interim-order or restriction record made before a substantive hearing, naming the registrant, the restriction, the review interval, and the ordering panel",
+      "casework email whose labelled sender slot resolves to the regulator's own casework address, whose labelled subject slot carries an exact case reference, and whose recipients include the registrant or the registrant's representative; the same notice forwarded into the registrant's own mailbox is the holder-side artefact",
+      "a hearing-listing calendar whose events carry case references and panel or legal-assessor participants, held by the listing office",
+      "an archive manifest listing either continuing-competence portfolio members (reflective statements, activity certificates, employer confirmations) against one registrant reference, or a case-bundle index against one case reference, read WITHOUT unpacking. 00 licenses manifest-as-evidence: a ZIP “which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague”",
+      "a published register extract or sanction notice held ALONGSIDE the corresponding internal case or register material; the extract alone is public reference and is excluded"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes may sit with the regulator, the registrant, the registrant's employer, a complainant, a representative, a journalist, or a researcher. A renewal notice, a certificate, and a published determination are the same bytes on all of those disks",
+      "separating a STATUTORY regulator from a voluntary membership association, a private certifying body, or a trade institute when both publish a register, issue registration numbers, run renewals, maintain a code of conduct, and expel members for misconduct. Statutory status is rarely stated on the document and cannot be verified locally; abstain rather than guess",
+      "distinguishing regulation of a NAMED PERSON from permission granted to a business, premises, installation, vehicle, or activity when both use grant, refuse, vary, suspend, revoke, inspection, and enforcement vocabulary",
+      "recognising an unlabelled triage rationale, case note, investigator narrative, or registration-assessment reasoning that expresses its function only in prose",
+      "deciding whether a document about a registrant's health is regulator-held case evidence or that person's own medical record, and abstaining when custody is unresolved",
+      "deciding whether an inspection or standards report about a PROGRAMME or INSTITUTION is professional-entry accreditation or person-level regulation, when the same standards vocabulary appears in both"
+    ],
+    "never_alone": [
+      "a registration number, membership number, PIN-shaped token, or registrant reference alone. The trade-body membership certificate in the file list carries one and is not this row",
+      "a regulator, board, council, college, institute, or licensing-authority name alone; the body may be issuer, employer, complainant's target, cited authority, letterhead on the holder's copy, or a gazetteer hit in a footer",
+      "registration, licence, renewal, CPD, revalidation, code of conduct, misconduct, impairment, suspension, or struck-off vocabulary alone",
+      "a certificate, renewal notice, or good-standing letter held by the person it names — a standing stated about oneself is the holder-side credential row, not the regulating record",
+      "a person's name plus a profession. A name is never a case; identity evidence must not be read as regulatory subject-hood",
+      "a public register extract, published sanction notice, or regulator guidance downloaded by an employer, verifier, or member of the public; publication by a regulator is not regulator-side custody",
+      "a parent folder named Registration, Licensing, FTP, Discipline, Regulator, Compliance, or Professional Standards alone",
+      "a file extension or source_type alone; 00 says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a dense-text image with no EXIF as proof of a regulator-portal capture; the system “must not mistake the absence of EXIF for proof that an image is a screenshot”",
+      "a shared download session or browser batch that pulled several registry pages; “A session should never be treated as proof of topic”",
+      "an inspection or standards report whose subject is a premises, programme, or institution, even when practitioners are named inside it"
+    ]
+  },
+  "work_types": [
+    "registration application, qualification and identity verification, character or good-standing check, admission or refusal decision",
+    "register entry, status change, annotation, restoration, voluntary removal, and register publication",
+    "annual or periodic renewal declaration, fee record, and lapse or removal for non-renewal",
+    "continuing-competence or CPD audit selection, portfolio review, verification, and remediation record",
+    "revalidation or periodic re-licensure return with third-party or responsible-officer confirmation",
+    "registration examination or assessment administration record",
+    "complaint receipt, triage, and case-examiner or screening decision",
+    "investigation record, witness statement, expert or health assessor report, and case bundle",
+    "interim order, restriction, and review record",
+    "fitness-to-practise hearing listing, determination, sanction, publication direction, and appeal response",
+    "action against unregistered practice or protected-title misuse",
+    "register verification enquiry and response to an employer, another regulator, or an overseas authority"
+  ],
+  "grouping_reasons": [
+    "an exact registration or registrant reference repeated across a register entry, an application record, a renewal-run row, an audit selection row, and a portfolio manifest",
+    "an exact case reference repeated across a complaint receipt, triage note, investigation report, notice, hearing-diary event, and determination",
+    "a named renewal run or audit cycle identifier binding one batch operation across its selection, correspondence, and outcome files",
+    "an export manifest from a registration or case-management system whose members form coherent registration, renewal, audit, and casework families",
+    "MEMBERSHIP NEVER COPIES FACTS. A sparse member (an unlabelled witness statement, a scanned annexe, a photograph exhibit) may join a bounded case group through a bundle index without acquiring a registrant, case, allegation, outcome, or date fact of its own",
+    "cross-case grouping by registrant name, profession, allegation type, or semantic similarity is suppressed. Names and allegation language recur across unrelated cases, and a merged view would itself assert a pattern the product cannot support"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract. PR-6 leaves the government schema fieldless, and a template cannot branch on undeclared fields. The prose recommendation, held for R1c: the bounded proceeding or register cycle comes first, then function, then work type. Time is not first because “project, function, or subject usually comes before time” for document and record domains. This row adds one constraint the schema default only states generally and that matters most here: the registrant's NAME must never become a visible branch label, because on this row a branch label would itself publish an allegation about a named person before any finding. Any later order stays editable — “the user can reverse, remove, add, or flatten dimensions”.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "archive",
+      "image",
+      "ocr",
+      "audio_video",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".mp3",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Register Entry - PR-2019-004821 - Hall, Devika - status history.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a registrant reference token repeated in the header and in each row",
+        "a dated status table moving through registered, conditions of practice, and restored",
+        "an issuing-body block and a register-maintenance footer",
+        "an admission-route line naming a qualification and an awarding body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any government fact - the schema declares none",
+        "that the person is currently fit, unfit, or entitled to practise",
+        "that a status shown here is still current at read time",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Application for Registration - PR-2026-01188 - Nwosu, Adaeze - qualification evidence.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled applicant identity, date-of-birth, and address slots",
+        "a primary-source verification result slot naming the awarding body contacted",
+        "a character and criminal-record declaration block",
+        "an assessor sign-off slot with a decision and a date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an identity fact about the applicant; identity data inside a case does not become an identity record here",
+        "that the declaration is truthful or the qualification genuine",
+        "that a refusal or approval shown here is final or unappealed"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Renewal Run 2026-Q2 - registrants due - fee reconciliation.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers reading registration number, renewal due, declaration received, fee status, action",
+        "many hundreds of rows, one per registrant",
+        "a lapse-action column with a closed value set"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a finance fact; the fee column is regulator revenue and belongs to whichever finance row a separate activation supports, not to this one",
+        "that a registrant whose row says lapsed has actually been removed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CPD Audit 2026 - sample selection and outcomes.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a sampling-stratum column and a selection-basis note",
+        "claimed activity totals per registrant reference",
+        "a verifier column and an outcome column reading compliant, further evidence required, or referred"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a referred registrant has committed misconduct",
+        "that the claimed totals are accurate",
+        "a competence judgement of any kind"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CPD Portfolio - PR-2019-004821 - submitted 2026-03-02.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing reflective statements, activity certificates, and an employer confirmation",
+        "one registrant reference repeated across member names",
+        "no casework, no recruiting, and no coursework members"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any fact about an individual member from the manifest alone",
+        "that the portfolio was accepted",
+        "an academic fact from the activity certificates inside"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Complaint FTP-2026-0142 - Ms R Okoye about Registrant PR-2014-002233.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a complainant identity block distinct from a regulated-party block",
+        "a named natural person in the regulated-party position with a registrant reference",
+        "a free-text allegation narrative and a triage-receipt stamp"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the allegation is true, admitted, or within the regulator's remit",
+        "any fact about the complainant beyond a literal observation",
+        "that a complaint reference is a finding"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case Examiner Decision - FTP-2026-0142 - no further action.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a two-examiner decision block with reasons",
+        "an exact case reference matching the complaint",
+        "a stated route of review for the complainant"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the registrant was exonerated or that the complaint was unfounded",
+        "that the decision closes the matter permanently"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Investigation Report - FTP-2025-0899 - investigator bundle index.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a staff investigator role block",
+        "a numbered exhibit and witness-statement index",
+        "a chronology section and an outstanding-enquiries section"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that any exhibit named in the index is present on this disk",
+        "that the chronology is factually established",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Statement - witness 2 - unsigned draft.docx",
+      "source_type": "text_document",
+      "observations": [
+        "first-person narrative with no case reference, no registrant name, and no header",
+        "a filename matching an entry in the FTP-2025-0899 bundle index"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a case, registrant, allegation, date, or outcome fact copied from the bundle it sits beside",
+        "that the statement is adopted evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Health Assessor Report - Registrant PR-2011-000714 - confidential.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an instructing-party block naming the regulator and an instruction question",
+        "clinical history, examination, and opinion sections about a named registrant",
+        "an assessor qualification block and a case reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a clinical conclusion, a diagnosis, or a fitness judgement",
+        "that a health condition implies impairment",
+        "that the report may be summarised in any group view"
+      ],
+      "also_schema": "medical.personal-health-records",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fitness to Practise Panel - FTP-2025-0899 - determination and sanction.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "panel composition and legal-assessor block",
+        "findings of fact, an impairment finding, and a sanction section",
+        "a publication direction and a stated appeal period"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the sanction is in force, spent, appealed, or overturned",
+        "that a publication direction makes this file or its neighbours low sensitivity",
+        "a legal-effect conclusion of any kind"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of Hearing - FTP-2025-0899.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolving to a regulator casework address",
+        "an exact case reference inside the labelled subject slot",
+        "recipients including the registrant and a representative",
+        "an attachment naming a notice and a hearing date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the hearing took place or produced any outcome",
+        "a contact fact about the recipients",
+        "that a forwarded copy in the registrant's own mailbox is this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FTP Hearing Diary - Panel 3 - September 2026.ics",
+      "source_type": "calendar",
+      "observations": [
+        "events carrying exact case references in their summaries",
+        "panel members and a legal assessor among attendees",
+        "a hearing-centre location and a listing-office organizer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a listed case was heard, adjourned, or decided",
+        "a contact fact about panel members",
+        "a deadline calculation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Public Register Extract - registered practitioners as at 2026-08-01.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns reading name, registration number, status, qualification, town",
+        "an as-at date and a publishing-body header row",
+        "no case, complaint, or assessment columns"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that these are public-low bytes that lower the posture of the packet around them",
+        "a contact or identity fact about any listed person",
+        "that a status shown is current now",
+        "that the same extract on an employer's disk is this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Institute of Facilities Managers - Membership Certificate 2026 - M-88214.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a membership number, a grade of membership, and a validity year",
+        "an institute crest, a code-of-conduct reference, and a renewal line",
+        "no statutory basis, no protected title, and no register-status apparatus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a membership number is a registration reference",
+        "that a voluntary institute is a statutory regulator",
+        "any government activation from institute vocabulary alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Food Business Registration - Riverbend Cafe - approval FBR-2026-0771.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a granting-authority block, a reference token, and a conditions schedule",
+        "grant, vary, suspend, and revoke vocabulary identical to a registration decision",
+        "the regulated party is a business at a named premises, not a natural person"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that shared grant-and-revoke vocabulary makes this professional regulation",
+        "that a named proprietor inside the document is the regulated party"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - my registration renewed.png",
+      "source_type": "image",
+      "observations": [
+        "screen-origin metadata and a screenshot-shaped filename",
+        "OCR text showing a portal confirmation, a registration number, and a next-renewal date",
+        "first-person filename phrasing"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that OCR of a registration number activates this row",
+        "that the holder is the regulator; the confirmation is addressed to the registrant",
+        "screenshot origin from missing EXIF or dense text alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Registrant Case Archive - PR-2014-002233 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive; no manifest is readable",
+        "the filename carries a registrant-reference-shaped token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a registrant, case, allegation, or outcome fact from the filename",
+        "that the archive should be opened or moved to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.permit-licensing",
+      "signal": "The shared fixtures are the grant-or-refuse decision letter and the enforcement notice, which read the same on both sides. That row's regulated unit is a business, premises, installation, activity, or vehicle, keyed by a permission reference tied to a place or an operation. This row's regulated unit is a NAMED NATURAL PERSON, keyed by a registrant reference that persists across the person's whole career, and it carries three structures that row's file list cannot produce: a status-bearing register of persons, a periodic continuing-competence audit of the same person, and a fitness-to-practise adjudication with a sanction ladder ending in removal from the register. `Food Business Registration - Riverbend Cafe - approval FBR-2026-0771.pdf` is the fixture that falls that way; `Fitness to Practise Panel - FTP-2025-0899 - determination and sanction.pdf` is the fixture that falls this way. Provenance: inference. See NJ-1 - if R1c judges those three structures insufficient, the honest outcome is to delete this row into that one, not to keep both thin.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "The shared fixture is one renewal notice and one registration certificate - the same bytes, two disks. That row is the holder's own standing: a certificate or notice ABOUT the person who keeps it, with an issue-and-expiry pair as its structural signature. This row is the register that issued it: the entry with a status history, the renewal RUN covering many registrants, and the audit that samples them. A file stating one current standing about its own keeper is never this row; a file listing or deciding the standing of others is never that row. `Screenshot 2026-08-19 at 09.14.22 - my registration renewed.png` and `Institute of Facilities Managers - Membership Certificate 2026 - M-88214.pdf` both fall that way. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "The shared fixture is `Institute of Facilities Managers - Membership Certificate 2026 - M-88214.pdf` and its renewal ledger. A voluntary professional institute publishes a member list, issues membership numbers, runs annual renewals, maintains a code of conduct, and expels members - vocabulary indistinguishable from a statutory register. The discriminator is a protected title or statutory entry control plus a fitness-to-practise apparatus with an external appeal route, not the presence of a member list. Statutory status is usually not stated on the document; see NJ-2 - abstain to Review Later rather than guess. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.licensure-credentialing",
+      "signal": "The shared fixture is a revalidation return with a responsible-officer confirmation. That row is the practitioner's own authority to practise and the packets assembled to prove it to employers, hospitals, and payers - a holder-side and employer-facing artefact. This row is the regulator receiving, sampling, and deciding on the same return. `CPD Audit 2026 - sample selection and outcomes.xlsx` is only ever this row, because sampling across registrants cannot exist on the practitioner's side. Note for R1c: `clinical_practice.practice-administration` records that `clinical_practice.licensure-credentialing` is refused and routes personal credentials to `career.credentials-licenses`; if that refusal stands, this edge should be retargeted there and the `career.credentials-licenses` edge above already carries the discriminator. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.education-accreditation",
+      "signal": "Reciprocates the edge that row already states toward this one. The shared fixtures are a criterion-keyed inspection report and a sanction letter. That row's subject is an institution or programme assessed by peer volunteers on a cycle against a published standards edition; this row's subject is a named individual practitioner assessed by staff investigators and panels. A report naming a programme as the reviewed party is not this row even when it discusses the practitioners it produces; a case naming a person as the regulated party is not that row even when the person's training programme is criticised. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.regulatory-submission",
+      "signal": "The shared fixture is the response letter to a regulator's notice and the enclosure bundle behind it - identical bytes, opposite custody. That row is the regulated professional or firm preparing and sending what the regulator asked for, and filing what comes back. This row is the regulator issuing the notice, receiving the response into a case, and deciding on it. The discriminator is the direction of the labelled sender and recipient slots relative to the holder, plus the presence of triage, investigation, or panel apparatus that only the deciding side generates. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "`Health Assessor Report - Registrant PR-2011-000714 - confidential.pdf` is legally both: regulator-held case evidence and health information about an identified person. This is 00's abstract-that-is-also-an-application shape, not a collision - neither schema erases the other, and the medical reading must not be suppressed merely because the file sits in a case bundle. Coactivation grants no clinical conclusion and no impairment inference on either side. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "recognised registration, renewal, audit, complaint, investigation, health-evidence, hearing, or determination material about a named person has no accepted regulator-side group. This is the principal fallback for this row, and it is the default for every fixture whose regulated party is a natural person.",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone certificate, membership record, register extract, permission notice, or confirmation has durable value but no regulator-side workflow - the voluntary-institute certificate, the premises registration, and the downloaded register extract all land here.",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document is plainly professional-regulatory in shape but the holder role, the statutory versus voluntary question, or the regulated-party role is unresolved - including the unsigned witness statement and any institute-versus-regulator ambiguity under NJ-2.",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a case archive, register export, or case-management binary cannot be read, and its filename must not be allowed to manufacture a registrant, case, or outcome.",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row carries the schema's posture plus one rule the schema default does not imply. The same named person appears simultaneously in a lawfully PUBLISHED statutory register and in a PROTECTED conduct, health, or investigation file, and the two are keyed by the same reference. So: a published register extract or sanction notice must never lower the posture of a mixed packet around it; the registrant's name must never become a visible branch or group label, because an allegation-bearing label discloses the allegation before any finding; and health, complainant, and witness material must not enter remote prompts or group summaries. 00 requires that “Privacy policy must be enforced before content reaches any model or external connector” and that “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Handling classes are P7's; none is assigned here.",
+  "open_question": "NJ-1: whether the register, competence-audit, and fitness-to-practise structures are enough to keep this row distinct from `government.permit-licensing`, or whether person-regulation is a value of that row's subject. NJ-2: how a statutory regulator is distinguished from a voluntary professional institute when the document states no statutory basis. NJ-3: whether a published sanction notice or register extract may ever be treated as low-risk while its case packet is protected - P7 owns this. NJ-4: how P9 records registrant-keyed and case-keyed membership without exposing a name or an allegation in any label. NJ-5: whether `clinical_practice.licensure-credentialing`'s recorded refusal stands, which would retarget this row's edge to `career.credentials-licenses`."
+}

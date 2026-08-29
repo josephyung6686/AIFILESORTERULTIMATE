@@ -1,0 +1,328 @@
+{
+  "list_id": "academic_context_terms",
+  "title": "12/01 — Academic context terms (the §3.5 context check's vocabulary)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P6 (injected) — Task 10's `Rule.required_context_terms` and `context_check(before, after, terms)`",
+  "consumer": "P6 Task 10 (src/facts/rules.py, injected — never module-level per the P6 plan's injection discipline) and CONNECTION.md section 4 step 1, where deterministic activation evaluates pattern-plus-context rules of exactly this shape. The terms are matched against the P4 `context_before` / `context_after` window around a course-code-shaped candidate.",
+  "match_field": "the surrounding-context window of an observation (P4 `surrounding context`), never the candidate value itself. A context term is context: it is not a value, it fills no field, and it never produces a fact of its own.",
+  "normalization_for_matching": "case-insensitive (P6 SPEC N-6: the §3.5 context check matches a term regardless of the case it appears in) AND word-boundary (P6 SPEC: a case-insensitive match is not a substring match, so `semester` must not match inside a longer word). Multi-word terms match as a contiguous word-bounded phrase inside one text unit; a phrase never matches across a sentence-terminating punctuation mark, so \"...the problem. Set aside...\" does not contain the term \"problem set\".",
+  "field_key_note": "The fact these terms gate is the academic field whose ratified stored key is `subject` (D6, ratified 2026-08-21, recorded in _CONTRACT.md rule 8 and DECISION-BRIEF.md). `course` is the design's prose name for the same concept and survives inside quotations only. The adversarial fixture A03 spells the field `course`; it predates the ratification and is cited here as an acceptance constraint on values, not on the key.",
+  "design_cites": [
+    {
+      "cite": "00 (§3.5 in 01's rendering)",
+      "quote": "BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”"
+    },
+    {
+      "cite": "00 (§3.13)",
+      "quote": "A validated fact was found by a deterministic rule and passed contextual checks, such as a course-code pattern appearing beside “lecture,” “syllabus,” or “semester.”"
+    },
+    {
+      "cite": "00 (§3.3)",
+      "quote": "identifying explicit course-code context"
+    },
+    {
+      "cite": "00 (§3.7)",
+      "quote": "It should use word-boundary matching rather than substring matching."
+    }
+  ],
+  "rules": [
+    "**The floor is design and closed against removal.** The five floor terms are the design's own list and are required. P6's plan treats the list as required-and-extensible (PLAN-SKELETON Task 10, injected; its D5 note reads the design's 'such as' as a floor, not a closed set). Removing or weakening a floor term is editing the design.",
+    "**Extensions are proposal and never alone.** Every non-floor term carries `never_alone: true`: an extension term by itself never satisfies the §3.5 context check. It contributes only when a floor term is also present in the window, or under the injected `extension_context_policy` slot (which combinations of extension terms, if any, suffice without a floor term — a policy Joseph sets; this file states no policy).",
+    "**A context term fills no field.** Several floor and extension terms are also plausible *values* of the deferred `work_type` enum (syllabus, lecture, homework, midterm, problem set). That enum is a separate deferred item (P6 SPEC Deferred: allowed value sets for enum-like fields) and is not authored here. This file authors context duty only.",
+    "**Word boundaries survive case-insensitivity.** `accredits` does not satisfy `credits`; `lecturer` does not satisfy `lecture`; `semesterly` does not satisfy `semester`. This is the same discipline that keeps `MIT` out of \"submit\" and `UNC` out of \"uncertainty\" (A01, A02).",
+    "**No numbers.** No term carries a weight, score, distance, or window size. The context-window extent is P4's; every threshold downstream is an injected slot."
+  ],
+  "entries": [
+    {
+      "term_id": "ctx-syllabus",
+      "term": "syllabus",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "floor",
+      "never_alone": false,
+      "provenance": "design",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["syllabi", "syllabuses"],
+      "variants_provenance": "inference — plural inflections of the design literal; the literal alone misses \"all syllabi are posted\"",
+      "false_friend": {
+        "description": "A United States Supreme Court opinion opens with a section titled Syllabus (a headnote, prepared by the Reporter of Decisions). A downloaded court opinion PDF therefore contains the floor term while being a legal document, not coursework. The course-code pattern requirement carries the defense: a court syllabus has no co-occurring course-code-shaped candidate.",
+        "example_false": "SUPREME COURT OF THE UNITED STATES — Syllabus — No. 22-451"
+      },
+      "rationale": "First of the design's five literals, and the strongest: the design's own walking fixture is the filename Syllabus BUSIB 4300 Spring 2026.pdf. P4's skeleton fixture 1 carries `context_before: \"Syllabus — \"` with a capital S, which is why the check is case-insensitive (P6 SPEC N-6, B8(a)).",
+      "design_cite": "00 §3.5",
+      "example_true": "Syllabus — BUSIB 4300",
+      "example_false": "syllabusless"
+    },
+    {
+      "term_id": "ctx-lecture",
+      "term": "lecture",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "floor",
+      "never_alone": false,
+      "provenance": "design",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["lectures"],
+      "variants_provenance": "inference — the plural appears in real course material (\"all lectures are recorded\") and the design's own grouping example is the file Lecture 08.pdf",
+      "false_friend": {
+        "description": "Public lecture series (museums, TED-style events) and the scolding sense (\"got a lecture about it\") use the same word outside coursework. `lecturer` does not match — word boundary — even though a lecturer is academic; adding `lecturer` is an open extension question (see uncertain).",
+        "example_false": "a lecturer at the museum"
+      },
+      "rationale": "Second design literal.",
+      "design_cite": "00 §3.5",
+      "example_true": "Lecture 8: PHYS 1401 waves",
+      "example_false": "the lecturer arrived"
+    },
+    {
+      "term_id": "ctx-credits",
+      "term": "credits",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "floor",
+      "never_alone": false,
+      "provenance": "design",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["credit hours", "credit"],
+      "variants_provenance": "inference — real syllabi write \"3 credit hours\" and \"credit\" in the singular; the bare singular is riskier (credit card, credit score) and is listed as a variant for Joseph's review, not asserted",
+      "false_friend": {
+        "description": "The highest false-friend load on the floor: film and game closing credits, account credits, tax credits (a Form 1040 mentions child tax credits), and credit-card statements all carry the word. The defense is structural: the term is only consulted when a course-code-shaped candidate exists, and catalogue 02's stoplist keeps FORM 1040 from being that candidate.",
+        "example_false": "closing credits roll at the end of the film"
+      },
+      "rationale": "Third design literal. Kept at floor strength because the design puts it there; the false-friend load is documented, not used to demote it.",
+      "design_cite": "00 §3.5",
+      "example_true": "BUSIB 4300 — 3 credits",
+      "example_false": "the bank accredits the account"
+    },
+    {
+      "term_id": "ctx-instructor",
+      "term": "instructor",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "floor",
+      "never_alone": false,
+      "provenance": "design",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["instructors"],
+      "variants_provenance": "inference — plural inflection",
+      "false_friend": {
+        "description": "Driving instructor, fitness instructor, flight instructor, ski instructor: the word names a role in many non-academic services. A driving-school receipt with an invoice number shaped like a course code is the realistic collision; catalogue 02's shape limits and §3.7's margin carry the defense.",
+        "example_false": "your driving instructor will meet you at the DMV"
+      },
+      "rationale": "Fourth design literal.",
+      "design_cite": "00 §3.5",
+      "example_true": "Instructor: Prof. Okonkwo — PHYS 1401",
+      "example_false": "instructorless"
+    },
+    {
+      "term_id": "ctx-semester",
+      "term": "semester",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "floor",
+      "never_alone": false,
+      "provenance": "design",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["semesters"],
+      "variants_provenance": "inference — plural inflection",
+      "false_friend": {
+        "description": "The safest floor term: essentially all uses are academic. Residual risk is metaphorical (\"a semester's worth of drama\") and German loan contexts where Semester is also the standard word (which is a hit, not a false friend).",
+        "example_false": "semesterly"
+      },
+      "rationale": "Fifth design literal.",
+      "design_cite": "00 §3.5",
+      "example_true": "Spring semester enrollment for BUSIB 4300",
+      "example_false": "semesterly billing"
+    },
+    {
+      "term_id": "ctx-homework",
+      "term": "homework",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "extension",
+      "never_alone": true,
+      "provenance": "proposal",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["homeworks"],
+      "variants_provenance": "proposal — non-standard plural common in course sites",
+      "false_friend": {
+        "description": "Daft Punk's 1997 album is titled Homework — a tagged music file or a review carries the word with no coursework anywhere. Business idiom \"do your homework\" appears in due-diligence documents. Both are why this term is never_alone.",
+        "example_false": "Daft Punk — Homework (1997) track listing"
+      },
+      "rationale": "The design's own worked sparse file is HW 3.pdf whose content says only equations and the phrase Homework 3 — the word marks homework-ness (a work-type clue), not a course. As context it may support a course-code candidate elsewhere in the window, but never alone.",
+      "design_cite": "00 §4.1",
+      "quote": "A file named HW 3.pdf may contain only equations and the phrase “Homework 3,”",
+      "example_true": "Homework 3 — due Friday (PHYS 1401)",
+      "example_false": "homeworkless"
+    },
+    {
+      "term_id": "ctx-midterm",
+      "term": "midterm",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "extension",
+      "never_alone": true,
+      "provenance": "proposal",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["midterms", "mid-term"],
+      "variants_provenance": "proposal — plural and hyphenated forms both occur",
+      "false_friend": {
+        "description": "Midterm elections. A saved news article \"2026 midterm election forecast\" carries the word beside plenty of four-digit numbers. never_alone plus the course-code shape (an election year is a bare year, which catalogue 02 refuses as a course and catalogue 04 refuses as a date) carries the defense.",
+        "example_false": "the 2026 midterm elections"
+      },
+      "rationale": "Midterm Practice.pdf is one of the design's grouping-example course files, so the word is real course vocabulary; the election sense is why it cannot be floor.",
+      "design_cite": "00 §4.3",
+      "example_true": "Midterm Practice — PHYS 1401",
+      "example_false": "midtermish"
+    },
+    {
+      "term_id": "ctx-problem-set",
+      "term": "problem set",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "extension",
+      "never_alone": true,
+      "provenance": "proposal",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["problem sets", "pset", "psets"],
+      "variants_provenance": "proposal — `pset` is live student vocabulary (MIT and elsewhere) but is also a Unix ps flag-ish token; kept as a variant for review",
+      "false_friend": {
+        "description": "Two hazards. (1) The phrase must not be assembled across a sentence boundary: \"...describes the problem. Set aside an hour...\" contains `problem` and `set` but not the term — the phrase-matching rule above forbids it. (2) Chess problem sets and competitive-programming contest problem sets are genuinely problem sets that are not university coursework; never_alone keeps them from validating a course on their own.",
+        "example_false": "we understood the problem. Set the timer and begin"
+      },
+      "rationale": "Problem Set 2.pdf and Problem Set 4.pdf are the design's own grouping-example filenames; the phrase is core course vocabulary.",
+      "design_cite": "00 §4.3",
+      "example_true": "Problem Set 4 (BUSIB 4300)",
+      "example_false": "a problematic setting"
+    },
+    {
+      "term_id": "ctx-office-hours",
+      "term": "office hours",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "extension",
+      "never_alone": true,
+      "provenance": "proposal",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": ["office hour"],
+      "variants_provenance": "proposal — singular occurs in schedules",
+      "false_friend": {
+        "description": "Every business, clinic, and government office publishes office hours. A dentist's appointment letter (\"our office hours are 9–5\") is the everyday collision, and such letters carry reference numbers shaped like course codes more often than syllabi do. Firmly never_alone.",
+        "example_false": "our office hours are Monday to Friday, 9am to 5pm"
+      },
+      "rationale": "Standard syllabus vocabulary (instructor office hours) — but the phrase alone is closer to a business-document signal than an academic one.",
+      "design_cite": "00 §3.5 (extension of the floor; the design's list is introduced with 'such as')",
+      "example_true": "Office hours: Tue 2–4pm, Prof. Chen (MATH 2010)",
+      "example_false": "the box office hours vary"
+    },
+    {
+      "term_id": "ctx-canvas",
+      "term": "canvas",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "extension",
+      "never_alone": true,
+      "provenance": "proposal",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": [],
+      "variants_provenance": "—",
+      "false_friend": {
+        "description": "Three-way ambiguity, named in the dispatch: Canvas the LMS (Instructure) vs canvas the painting surface vs canvas the material/product (canvas tote, canvas print) — plus the HTML canvas element in web-dev material. An art-supply receipt or a frontend tutorial carries the word with zero academic meaning. Case is no help (sentence-initial Canvas vs the brand). Firmly never_alone; even beside a floor term it should stay the weakest supporter.",
+        "example_false": "16x20 stretched canvas, pack of 2"
+      },
+      "rationale": "\"submitted on Canvas\" / \"see Canvas for the rubric\" is ubiquitous real coursework context in LMS-era corpora — too valuable to omit, too ambiguous to trust alone.",
+      "design_cite": "00 §3.5 (extension; 'such as' floor)",
+      "example_true": "Upload your problem set to Canvas by 11:59pm",
+      "example_false": "canvassing the neighborhood"
+    },
+    {
+      "term_id": "ctx-blackboard",
+      "term": "blackboard",
+      "language": "en",
+      "scripts": ["latin"],
+      "role": "extension",
+      "never_alone": true,
+      "provenance": "proposal",
+      "word_boundary": true,
+      "case_sensitive": false,
+      "variants_proposed": [],
+      "variants_provenance": "—",
+      "false_friend": {
+        "description": "Blackboard the LMS (Anthology) vs the physical blackboard. The physical sense shows up exactly where this product looks: OCR of classroom photos and whiteboard/blackboard captures — the design itself lists whiteboards among dense-text photo subjects. A photo caption \"equations on the blackboard\" is photographic context, not LMS context.",
+        "example_false": "chalk dust on the old blackboard"
+      },
+      "rationale": "Same LMS logic as canvas: high-value institutional context in real corpora, unusable alone.",
+      "design_cite": "00 §3.5 (extension; 'such as' floor)",
+      "example_true": "Grades are posted on Blackboard for ECON 1001",
+      "example_false": "blackboards were replaced by whiteboards"
+    }
+  ],
+  "refused": [
+    {
+      "term_id": "ref-university-name",
+      "term": "any university or school name",
+      "rationale": "A university name is a gazetteer value (R4's content), not a context term. The design is explicit that the name alone is ambiguous across roles, which is exactly why it cannot serve as the §3.5 context that validates a course fact: it would launder the ambiguity into a validation.",
+      "quote": "A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.",
+      "design_cite": "00 §4.9",
+      "example_false": "Columbia 4300 (no course fact: 'Columbia' is not a context term)"
+    },
+    {
+      "term_id": "ref-bare-numeric-context",
+      "term": "numbers, section marks, or dates as context",
+      "rationale": "A nearby year, date, or section number is not academic context. The design's date discipline exists because year-shaped numbers are routinely course identifiers, versions, builds, and ZIP codes; letting one number validate another would be circular.",
+      "design_cite": "00 §3.10",
+      "example_false": "4300 (2024) — no context, no fact"
+    },
+    {
+      "term_id": "ref-generic-education-words",
+      "term": "school, university, college, class, course (the bare words)",
+      "rationale": "Too broad to gate anything: \"school of thought\", \"a class of problems\", \"of course\", \"collision course\", \"university district\" all defeat word-boundary matching semantically while passing it lexically. `course` in particular appears in ordinary prose at a rate that would make the §3.5 check meaningless. Any of these becoming context terms needs corpus evidence and Joseph's sign-off.",
+      "design_cite": "00 §3.7 (conservative facet extraction)",
+      "example_false": "of course, the collision course continued"
+    }
+  ],
+  "uncertain": [
+    {
+      "term_id": "unc-further-en-extensions",
+      "term": "exam, quiz, assignment, tutorial, professor, prerequisite, lecturer, transcript, GPA",
+      "rationale": "Each is plausible academic context and each has a real hazard: exam (medical exam, eye exam), quiz (pub quiz, marketing quizzes), assignment (legal assignment of rights, work assignments), tutorial (software tutorials — enormous false-friend load in a developer corpus), professor (form of address in journalism), prerequisite (business/legal prose), lecturer (job-title zone overlap with instructor), transcript (P4 has a `transcript` zone for audio/video captions — the word collides with the product's own vocabulary), GPA (safe but rare outside transcripts). None is authored; each would be `proposal` + never_alone if Joseph wants it.",
+      "provenance": "proposal",
+      "example_true": "—",
+      "example_false": "—"
+    },
+    {
+      "term_id": "unc-cjk-context-terms",
+      "term": "CJK context-term slot (学期, 講義, シラバス, 単位, 学分, 수업, 학기 …)",
+      "rationale": "The design requires CJK support in extraction — the OCR section's own words are that Apple Vision needs “appropriate language support including CJK where required” — so the context-term list will eventually need CJK members (学期 semester zh/ja, 講義 lecture ja, シラバス syllabus ja, 単位 credits ja, 学分 credits zh, 학기 semester ko). They are recorded here as a named slot (`cjk_context_terms_slot`) rather than as entries because (a) word-boundary matching is Latin-script machinery and CJK needs its own boundary rule, and (b) this list should be verified by a native reader against a real corpus before it gates fact creation. Nothing here is authored as active.",
+      "provenance": "proposal",
+      "language": "zh | ja | ko",
+      "scripts": ["han", "hiragana", "katakana", "hangul"],
+      "example_true": "—",
+      "example_false": "—"
+    },
+    {
+      "term_id": "unc-extension-policy",
+      "term": "extension_context_policy (injected slot)",
+      "rationale": "Whether some combination of extension terms with no floor term can ever satisfy the §3.5 check (e.g., `homework` + `midterm` + `office hours` all in one window) is a policy fork, not data. The slot is named; the policy is Joseph's. Until set, the safe reading is: extensions support only in the presence of a floor term.",
+      "provenance": "proposal",
+      "example_true": "—",
+      "example_false": "—"
+    }
+  ],
+  "acceptance_fixtures": [
+    "tests/eval/fixtures/adversarial/A01.json — `MIT` inside \"submit\" must produce nothing; the word-boundary rule here is the same rule that protects it",
+    "tests/eval/fixtures/adversarial/A02.json — `UNC` inside \"uncertainty\" must produce nothing",
+    "tests/eval/fixtures/adversarial/A03.json — a course-code-shaped ZIP or device model must abstain; context terms are half of that defense (catalogue 02 is the other half)"
+  ],
+  "sourcing_note": "The floor is sourced to the design alone. Extension terms and false friends are authored from common knowledge of coursework and LMS vocabulary (Canvas/Instructure, Blackboard/Anthology, Daft Punk's Homework, US midterm elections, Supreme Court syllabi) — none required external verification beyond RESEARCH.md's notes."
+}

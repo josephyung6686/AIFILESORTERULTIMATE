@@ -1,0 +1,435 @@
+{
+  "id": "academic.iep-accommodation-plans",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "IEP and accommodation plans",
+  "one_line": "The organizational situation in which a school issues, reviews and revises a written plan of accommodations or special-education services for one named student - and someone (usually a parent, sometimes the adult student) keeps that plan, its evaluations, its notices and its progress reports as files. It reuses the Academic schema unchanged; what makes it a node is that its detection structure is a plan-and-services form rather than a course, and that its privacy rules invert the schema's default template - the material is protected first and the folder levels that would name a disability are deliberately not recommended.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal for an organizational situation, evaluated against the file's own evidence. Nothing here writes a fact by itself; the facts that may become legal are the Academic schema's (school, term, subject, instructor, work_type) and each still has to clear its own rule. This node declares no fields of its own and copies none.",
+      "a plan-document structure: a title-zone heading naming an individualized education program or a section-504 accommodation plan, together with labelled slots for an eligibility or determination statement, an annual-review or plan-meeting date, and a services-or-accommodations table. This copies the SHAPE of 00's pattern-plus-context rule - \"BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as\" its five literal terms - onto a different structure. The slot vocabulary below is PROPOSED (see proposed_context_terms) and is never claimed as a list 00 wrote",
+      "an accommodations table: a repeated row shape of an accommodation description beside a setting-or-frequency slot and a responsible-staff-role slot, in the table zone 00's extraction preserves - \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" The table structure is the signal; the word accommodation is not (see never_alone)",
+      "a present-levels-plus-measurable-goals heading pair in a document that also carries a schools-gazetteer hit matched at a word boundary and an academic-term pattern of school-year shape. 00 requires the boundary discipline - \"It should use word-boundary matching rather than substring matching\" - and the term half comes only from dedicated patterns: \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\" R4 owns the gazetteer's contents and R6 the patterns; this row writes neither names nor regexes",
+      "a team-meeting notice or prior-written-notice structure: labelled slots for a meeting date, a stated purpose, the required participant ROLES (not names), and a parent-signature-and-date block",
+      "a school-issued evaluation structure: a labelled assessment-instrument table with standardized-score columns beside an evaluator-ROLE slot and an educational-eligibility-category statement. This is the one evidence item medical.dependant-child-health reads equally well, so it resolves per evidence item under CONNECTION section 4 step 3 and carries the collides_with signal to that template",
+      "a per-course accommodation letter: an accommodations statement addressed to a named instructor, on a disability-services-office letterhead, co-occurring with a course-code-shaped token and 00's academic context. This is the one file in this situation where subject is legitimately available - the letter is about one course - and the office letterhead is what separates it from the boilerplate paragraph inside a syllabus",
+      "a goal-progress report structure: a repeated row shape of a goal identifier, a reporting period, and a progress-status slot, in a table or spreadsheet zone, on a document already carrying a school hit and a school-year term pattern",
+      "an email whose labelled sender slot resolves to a school special-education or disability-services address and whose labelled subject slot carries a plan-meeting, eligibility, or accommodation-request term. 00's email extractor yields \"sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\" as structured slots, \"while treating addresses and message content as potentially sensitive\"",
+      "a calendar event whose labelled SUMMARY slot names a plan-review or eligibility meeting together with a schools-gazetteer hit at a word boundary. The CONTENT fires; source_type = calendar contributed only as a file-kind signal (CONNECTION-EXAMPLES fixture 5)"
+    ],
+
+    "needs_llm": [
+      "PRECONDITION on every entry below: this material is protected-shaped, so a model step runs only after P7 classification and only under the user's policy - 00: \"Protected material should not be included in cloud-model prompts by default\", and where a model is genuinely needed, \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" A local model under fully-offline or local-model mode is the default reading of every line below",
+      "an unlabelled letter or email from a teacher describing supports a student receives, with no plan named, no eligibility statement and no services table - the model must decide whether it records a plan or is ordinary parent-teacher correspondence, and return unknown when it cannot cite support",
+      "separating this situation from its own TOPIC: a district policy handbook, a blank plan template, a parent-advocacy guide, or a special-education course reading are all dense in this vocabulary and none is a record about a named student. 00: \"Topic answers what a file is about, while purpose answers what the file was for.\"",
+      "an OCR'd signature or meeting page where the labelled slots survived but the surrounding headings did not",
+      "an archive or scanned packet whose members mix this situation with a neighbour's - a plan beside an immunization record beside a report card - where the question is whether one shared purpose explains the packet",
+      "whether an accommodations approval is a school-issued plan governing daily instruction or a testing organization's one-off approval for a named test administration",
+      "a plan issued in a language whose labelled-slot vocabulary the deterministic structure catalogue does not cover",
+      "whether the file records the holder's own accommodations (an adult student) or a dependant's. The model must abstain rather than assert a subject - 00: \"A model that cannot cite sufficient evidence must return unknown\" - and this template has no field that could carry the answer in any case (see open_question)"
+    ],
+
+    "never_alone": [
+      "the word accommodation or accommodations alone. THIS is the tempting false file for this node, twice over. (a) Nearly every course syllabus carries a standard disability-services paragraph telling students who require accommodations whom to contact - a policy statement about a class of students, sitting in a late low-weight body zone of a document whose own structure is a syllabus. 00's positional rule is what strikes it: \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.\" (b) A hotel or conference booking confirmation uses the same word for lodging. A record ABOUT one named student is what supports this situation; the word never is",
+      "a school or district gazetteer hit alone. 00 states the ambiguity for a university - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" - and the same multi-role problem holds for a school on a child's paperwork, which may be the issuer, the site, the employer of the sender, or merely a letterhead (provenance: inference; 00 writes this sentence about a university, not about a K-12 school)",
+      "a child's or any person's name alone, including a PDF or DOCX author or producer string, which may name a district document template or an export tool. 00: \"PDF metadata should be treated as supporting evidence, not as truth\"",
+      "a disability, diagnosis, or condition term alone. A term of that kind is topic, is often the single most sensitive token in the file, and belongs to the medical neighbour's evidence rather than to this situation's plan structure",
+      "a bare 4-digit number, or a bare year-range-shaped token, read as a school year. 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"; a school-year value comes only from an academic-term pattern in a labelled position",
+      "source_type alone - text_document, image, ocr, archive, email, calendar or spreadsheet. 00: the engine should \"treat the file extension as a routing signal rather than an assumption about meaning\", and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2)",
+      "the absence of EXIF as proof that a scanned or photographed plan page is a screenshot - 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+      "membership in a download session that pulled several PDFs off one district portal at once. 00: \"A session should never be treated as proof of topic\"",
+      "a parent folder named IEP, Special Ed, School, or a child's first name, alone. Folder context is a clue, and 00 requires that existing structure not be silently reinterpreted",
+      "a course-code-shaped token alone on an accommodation letter: it supports subject only under the Academic schema's own pattern-plus-context rule, and it never supports this situation, which is not course-scoped"
+    ]
+  },
+
+  "proposed_context_terms": [
+    "individualized education program",
+    "504 plan",
+    "eligibility determination",
+    "annual review",
+    "present levels of performance",
+    "measurable annual goals",
+    "related services",
+    "least restrictive environment",
+    "prior written notice",
+    "parent consent for evaluation",
+    "accommodations and modifications",
+    "service minutes",
+    "case manager",
+    "transition plan",
+    "behavior intervention plan",
+    "progress toward goals",
+    "testing accommodations",
+    "extended time",
+    "assistive technology",
+    "reevaluation"
+  ],
+
+  "work_types": [
+    "iep",
+    "504 plan",
+    "eligibility determination",
+    "evaluation report",
+    "consent for evaluation",
+    "meeting notice",
+    "meeting minutes",
+    "prior written notice",
+    "goal progress report",
+    "accommodation letter",
+    "service log",
+    "transition plan",
+    "behavior intervention plan",
+    "plan amendment"
+  ],
+
+  "grouping_reasons": [
+    "one student's plan across one annual cycle: the plan document as the direct anchor, with its meeting notice, minutes, amendments and progress reports as context-supported members. Membership is reviewable and copies nothing - 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "one evaluation cycle: the consent, the evaluation reports, and the eligibility determination that answered them, joined by their shared school and school-year evidence",
+    "one plan across its drafts and amendments, joined by the universal version_family fact rather than by any academic fact",
+    "one student's records inside a household - which is exactly the association this template cannot express, because no canonical field names the person a record is about (see open_question). The neighbourhood may exist while no fact records whose plan it is",
+    "no group at all is still a valid outcome here. 00 surfaces isolated sensitive material anyway: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold\""
+  ],
+
+  "template": {
+    "dimension_order": ["school", "term"],
+    "why": "Two levels, and the two omissions are the point of the row. KEPT: school, because a plan is issued and administered by one school and a change of school is the real break in this material; then term, carrying a school-year value, because a plan is written for and reviewed over one school year. Both are Academic-schema fields and both are destination_eligible on the canonical row. OMITTED work_type, deliberately, as metadata-only for this template: its values here (iep, 504 plan, eligibility determination, evaluation report) would publish a named child's disability determination as a visible folder label, in a namespace Finder, Spotlight, backup tools and sync clients all read. That is the leak the protection exists to prevent, and 00 pushes the other way even inside the product's own screens - \"Protected branches should have configurable redaction in the canvas and review screens\" - while the Protected Records home \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". The work_type fact still extracts, still drives search and review, and is simply not recommended as a level. OMITTED subject, because this situation is not course-scoped: an annual plan spans every course at once, and branching on subject would scatter one child's plan across course folders while adding no retrieval value. subject remains legal as a FACT - the per-course accommodation letter carries it - which is why it is omitted here rather than forbidden. Order follows 00's own reason for putting a parent first: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" Not time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" And this is a recommendation, not a filesystem - \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" A household with one child at one school will correctly flatten this to nothing. Provenance for the whole entry: proposal - 00 names neither this situation nor these dimensions; what is quoted above are 00's general rules, applied here.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "calendar",
+      "spreadsheet"
+    ],
+    "extensions": [".pdf", ".docx", ".jpg", ".png", ".heic", ".zip", ".eml", ".ics", ".xlsx"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "IEP 2025-2026 - Jayden M.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title-zone heading names an individualized education program",
+        "district letterhead and a school name in the page-one heading",
+        "labelled slots for an eligibility statement, an annual-review date, and a case-manager role",
+        "a services table with rows of service description, setting, and frequency",
+        "a present-levels section followed by a measurable-goals section",
+        "a school-year-shaped token beside a labelled school-year slot",
+        "the PDF producer string names a district document-generation tool"
+      ],
+      "facts_legal": ["school", "term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "subject - the plan spans every course and names no course code",
+        "instructor from the case-manager slot: a case manager is not the instructor of a course, and the canonical instructor role is the person teaching one course",
+        "an authored_by or any identity fact from the producer metadata",
+        "that the holder is the person the plan is about - holder and subject are different roles, and no field here carries either"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "504 Plan signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title-zone heading names a section-504 accommodation plan",
+        "a two-column accommodations table of accommodation description beside responsible-staff role",
+        "a parent-signature and date block at the end",
+        "school name present only in a small footer, not in the title zone",
+        "no course code, no goals section, no service-minutes slot"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "school from a footer occurrence alone - 00's positional weighting makes a footer hit low-weight, and a school name alone is never sufficient",
+        "term, because no academic-term pattern appears anywhere in the document",
+        "a folder path",
+        "that a signature means the plan is currently in force"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ms Alvarez note.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose from a teacher describing how a student is being supported in class",
+        "no plan named, no eligibility statement, no services table, no signature block",
+        "school name in the DOCX core-properties company slot only",
+        "sits in the same directory as a plan document and two meeting notices"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from the neighbouring plan document",
+        "school from the DOCX core-properties slot, which may name a template or a prior editor",
+        "term from the file's modification timestamp",
+        "that this situation is active: this is the needs_llm case, and abstention is the correct outcome when the model cannot cite support"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_7741.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "no text layer; the frame is a phone photograph of a signature page held on a table",
+        "camera-pattern filename",
+        "sits in a directory that also holds two plan PDFs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from the directory it sits in",
+        "school or term from the neighbouring plan PDFs",
+        "media_type = screenshot - camera EXIF is present and 00 treats it as strong photo evidence",
+        "that no fact can ever exist here: OCR re-runs recognition under a new cache key, and once the labelled slots are readable this situation may fire and the file becomes protected material"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-04-08 at 14.22.10.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads a district parent-portal page with a documents heading, a student name, and a list of downloadable document titles",
+        "OCR text also contains a navigation menu and a sign-out control label",
+        "one listed title contains a school-year-shaped token"
+      ],
+      "facts_legal": ["school"],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone - the exact display resolution, PNG format and software metadata are what may support it, and conflicting signals abstain",
+        "work_type from a link title in a document list: the listed documents are other files, not this one",
+        "term from the school-year token inside a link title",
+        "that any listed document was opened, downloaded, or exists in this corpus",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "sped_packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Eligibility Determination.pdf, Psychoeducational Evaluation.pdf, Consent for Evaluation.pdf, Immunization Record.pdf and Report Card Q2.pdf",
+        "outer archive name is vague and abbreviated",
+        "declared uncompressed size is small",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from any member filename - the manifest names other files, not this one",
+        "that every member belongs to this situation: the immunization record is the medical neighbour's and the report card is academic.k12-schooling's, which is precisely why a packet is purpose-coherent without being content-coherent",
+        "school or term from a member filename without inspecting the member",
+        "that a member may be extracted to the filesystem to be read - 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Psychoeducational Evaluation - Jayden M.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school-psychologist letterhead naming a school district in the title zone",
+        "an assessment-instrument table with standardized-score columns",
+        "an evaluator-role slot and a stated purpose of determining educational eligibility",
+        "an eligibility-category statement in the closing section",
+        "no patient-identification block, no record-number slot, no clinical diagnosis code"
+      ],
+      "facts_legal": ["school", "work_type"],
+      "must_not_conclude": [
+        "that the presence of standardized scores makes this a clinical record: the school issuer plus the educational-eligibility purpose is what separates it from medical.dependant-child-health, and a child's name beside an evaluator credential discriminates neither side",
+        "any diagnosis fact - no schema here declares one and the medical placeholder declares no fields at all",
+        "term, since the document carries no academic-term pattern",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Accommodations - BIOL 1201 - Spring 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "disability-services-office letterhead in the title zone",
+        "an accommodations statement addressed to a named instructor",
+        "filename and page-one heading both carry a course-code-shaped token and a term-shaped token",
+        "the body states which accommodations apply and explicitly says no diagnosis is disclosed",
+        "an office-signature block"
+      ],
+      "facts_legal": ["school", "term", "subject", "work_type", "instructor"],
+      "must_not_conclude": [
+        "a diagnosis or condition fact - the letter states that it discloses none, and no field here could carry it",
+        "a folder path, and specifically not the course's coursework folder: where this file is placed is P10 and P11's decision from the frozen tree, not a fact",
+        "that subject being available makes subject a recommended dimension for this situation - one letter is course-scoped, the plan it derives from is not",
+        "purpose, which PR-1 keeps as a College-applications field"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Syllabus BIOL 1201 Spring 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename and PDF title carry a course-code-shaped token and the word Syllabus",
+        "page-one heading reads Spring 2026",
+        "a page-eleven boilerplate paragraph tells students who require accommodations to contact the Office of Disability Services",
+        "a grading schedule and a reading schedule",
+        "no named student anywhere in the document"
+      ],
+      "facts_legal": ["subject", "term", "work_type"],
+      "must_not_conclude": [
+        "activation of THIS situation from the accommodations boilerplate: it is a policy statement about a class of students, in a late low-weight body zone, and this node needs a record about one named student. This is the collision fixture for this row and its counterpart is academic.coursework",
+        "a school from the Office of Disability Services name alone",
+        "work_type = accommodation letter: the document's own structure is a syllabus",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Annual Review Meeting.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot names an annual plan-review meeting",
+        "labelled LOCATION slot names a school",
+        "labelled start and end times",
+        "ORGANIZER is a district special-education mail address",
+        "an ATTENDEE list of staff addresses"
+      ],
+      "facts_legal": ["school", "work_type"],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone: the SUMMARY content is what fires, and calendar contributed only as a file-kind signal",
+        "term from the DTSTART year - a bare year is never a term",
+        "instructor from the organizer address",
+        "contact facts turned into a folder proposal - 00 keeps address-book data \"privacy-protected rather than used to create folder proposals\"",
+        "that the meeting occurred or that a plan resulted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Re Annual review scheduling.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a district special-education address",
+        "labelled subject slot carries a plan-review term",
+        "one attachment name reads Meeting Notice.pdf",
+        "a thread identifier and a reply chain of three messages",
+        "body names a student in prose"
+      ],
+      "facts_legal": ["school", "work_type"],
+      "must_not_conclude": [
+        "activation from source_type = email alone",
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "a fact recording which student the thread is about: no field here can carry it",
+        "term from a date in the reply chain",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Accommodation confirmation - Kyoto.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the word accommodation appears in the title zone and three more times in the body",
+        "a booking-reference slot, a check-in and check-out date pair, a nightly rate table",
+        "a property name and address block",
+        "no school, no student, no plan structure of any kind"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any activation of this situation from the word accommodation in a title zone - the word is lodging here, and this is the second half of this node's never_alone fixture",
+        "term from the stay dates",
+        "school from the property's address",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Goal progress Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet name carries a school-year-shaped token",
+        "column headers read goal, reporting period, progress status, comment",
+        "rows reference goal identifiers that appear in no other file in the corpus",
+        "workbook author metadata names a script",
+        "no school name, no student name, no plan title"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "school, which appears nowhere in the file",
+        "term from the sheet name's year-range token alone - an academic-term pattern in a labelled position is what supports term",
+        "instructor from the workbook author metadata",
+        "which student the goals belong to, or that the goal identifiers resolve to a plan held elsewhere",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.coursework",
+      "signal": "a course syllabus almost always carries a boilerplate disability-services paragraph, so the accommodations vocabulary appears on ordinary coursework at scale. The discriminating evidence: a record ABOUT one named student - a labelled plan heading, an eligibility statement, a services or accommodations table, or a disability-services letter addressed to an instructor - is this node; a policy paragraph in a late low-weight body zone of a document whose own structure is a syllabus, a lecture deck or a problem set is coursework. The word accommodations counts for neither side on its own."
+    },
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "both sides carry a school, a school-year term pattern, and a child who is not the holder, and both commonly arrive from the same district portal in one download session - which 00 forbids as proof either way. The discriminating evidence: an eligibility determination, a goals-and-services structure, a prior-written-notice slot, or a meeting-notice structure is this node; a grade or attendance table, an enrollment or emergency-contact form, or a general school newsletter is K-12 schooling. A child's name beside a school year counts for neither."
+    },
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "an evaluation about a child - psychoeducational, speech, occupational therapy - reads to both sides, and both are held by a parent about someone else. The discriminating evidence: a school issuer, an evaluator-ROLE slot, and a stated purpose of educational eligibility is this node; the same assessment issued under a clinic's patient-identification block with a record-number slot, a referring-provider slot, or a clinical diagnosis is the dependant's health record. A child's name beside a clinician credential discriminates neither, which is why this pair needs the mutex at all."
+    },
+    {
+      "domain": "academic.standardized-testing",
+      "signal": "a testing-accommodations approval letter carries accommodation language, a school year, and a named student, exactly as a school plan does. The discriminating evidence: a school-issued plan governing daily instruction across courses is this node; an approval issued by a testing organization, scoped to one named test and carrying a registration or eligibility-decision slot, is standardized testing. Both may cite the same underlying plan, so the citation itself discriminates nothing."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    "Protected Records"
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's own privacy language covers this material from two directions at once: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\", and the residual home it names for isolated material of this kind is the protected one - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" These files are educational records that state a named child's disability determination, evaluation scores, and required services, and the holder is usually not the person the record is about. Only 00's phrase is asserted here; which handling class applies is P7's and is not set on this row.",
+
+  "open_question": "The person a record is ABOUT has no canonical field, and this is the one situation where that gap changes the recommendation rather than merely annoying it. A household with two children has one obvious discriminating dimension - which child - and it is the one dimension this template must not offer: it is a person, and 00 says \"It should avoid using authorship or creator identity as a destination dimension\"; and as a folder label beside a plan document it publishes a named child's disability status in the filesystem namespace. So three joined questions are Joseph's, not this node's. (1) Does a holder-versus-subject role split enter the canonical field list at all? medical.json opened the same fork from the health side; answering it once serves both, and no field row is written here in either case. (2) If it does, is it destination-eligible for this template, or metadata-only? This row's recommendation assumes metadata-only. (3) Should school itself be re-read here? The canonical school role reads \"the institution the holder attends, attended, or teaches at - the person's own school, never the application target\", and on a parent-held plan the school is the child's, not the holder's - the same holder-versus-subject gap surfacing on a field that already exists. This row uses school for the school that issued and administers the plan and flags the role tension rather than minting a synonym, because a second spelling of school is exactly the defect D6 exists to kill."
+}

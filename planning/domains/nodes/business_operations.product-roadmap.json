@@ -1,0 +1,450 @@
+{
+  "id": "business_operations.product-roadmap",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Product roadmaps, release planning and release records",
+  "one_line": "The organizational situation of COMMITTING product work to an ORDER and communicating that order to an audience: the roadmap itself, the release plan and its scope, the prioritisation that produced the order, the replanning that changed it, and the release notes that record what the order actually delivered. The organizing anchor is the ORDERED COMMITMENT - a set of intentions placed in a sequence at a stated level of commitment - which is what separates it from the requirements documents it sequences (anchored on intended behaviour with an acceptance test) and from the strategy papers above it (anchored on an argued option under an approval). Time is how this row is usually DRAWN and is not what it is: a period axis alone is disclaimed in never_alone, and a dateless now / next / later board is fully this row. Deliberately narrowed this pass: the customer-facing ANNOUNCEMENT of a release is business_operations.go-to-market's, in that row's own terms. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it recognizes the situation and writes NO field rows, because the business_operations schema declares none (PR-6; D1's deferral stands).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "AN ORDERING AXIS WITH ITEMS PLACED IN ITS CELLS - the row's defining structure and the one all the others corroborate. Two renderings, and the row takes both: a PERIOD rendering (a grid or timeline whose one axis is labelled with quarters, months or releases and whose other axis is labelled with themes, teams or product areas, items sitting in cells), and a DATELESS ORDINAL rendering (columns or bands labelled now / next / later, or committed / planned / exploring). The labelled axis headers are the labelled slot; the placement of items into their cells is the structure. THE DELETION TEST, stated so R1c and the neighbours can check it: delete the ORDERING and the document is destroyed - an unordered bag of themes is not a roadmap - whereas deleting the ORDERING from a requirements document, a business case or a launch gate leaves each of them readable. This is a repair of, not a departure from, the delete-the-dates test the requirements and strategy rows settled on: it returns the same verdict on every file they tested it against, and additionally covers the dateless board, which delete-the-dates cannot see.",
+      "a prioritisation structure: a scored list whose header row names criteria such as reach, effort, value or confidence, with a rank or score column ordering the items. The named criteria columns are the labelled slot and the rank ordering is the structure - this signal is the ordering axis in table form, which is why it is this row's and not the strategy row's option comparison. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a release-scope structure: a version token paired with an in-scope item list, an explicit CUT LINE separating in from out, and dependencies or blockers between items. The cut line is the load-bearing byte: it is an ordering decision made visible, and it is what business_operations.go-to-market's own edge accepts as this row's while its readiness column stays that row's.",
+      "a release-notes or changelog structure: a version and a date heading, followed by grouped entries under added, changed, fixed or deprecated, repeated per version in one document. Recorded honestly as this row's WEAKEST deterministic signal: it is a backward record of an order that already happened rather than a forward commitment, it accumulates rather than being superseded, and where it sits in a repository the code schema co-holds it (see also_holds_with). It is kept because the delete-the-ordering test passes on it - strip the version headings and the entries are an undifferentiated list - not because the row needs it.",
+      "a replanning or roadmap-review structure: a before-and-after pair of the same axis, a slipped or dropped column, or a table whose rows name items and whose columns name the previous and the revised position. The change of position is the structure; the two position slots are the labelled pair.",
+      "CORROBORATING ONLY, never activating on its own: a roadmap-communication framing - a disclaimer that the content is forward-looking and subject to change, or a slide marked for a customer, partner or board audience. Downgraded from an activating signal this pass because it is a labelled slot with no structure behind it, and the schema anchor's rule for this family requires a structure paired with a slot. It is nonetheless the single most useful corroborator the row has, because it is close to unique in the corpus and because it is the byte that decides the row's privacy question.",
+      "a dependency or sequencing diagram whose text layer names product items and periods rather than systems or processes - corroborating, because a dependency graph with no ordering axis around it is as likely to be an architecture diagram."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "the boundary that defines this row: whether the document commits work to an order for an audience (this row) or specifies what one feature must do (business_operations.product-requirements). One deck routinely opens with a roadmap slide and continues into specification detail, and NEITHER ROW SHOULD RESOLVE THE MIXED DECK FROM STRUCTURE - it is needs_llm on both sides, in matching terms. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "which audience a roadmap was cut for - internal, board, customer, partner - which is the difference between an ordinary file and a commercially sensitive one, and which is usually only stated on one slide.",
+      "separating a product roadmap from a project schedule, a delivery plan, a budget phasing and a strategy paper, all of which put work or money against periods. The discriminator is not altitude and must never be argued as altitude: a company-wide themes-by-quarter deck is still this row's, and business_operations.strategy-plan states the same conclusion from its side.",
+      "recognising a SUPERSEDED roadmap - last quarter's version is structurally identical to this quarter's and no longer states anything true. Recorded as a HANDLING HAZARD, not as evidence: supersession is detected through the universal version-family machinery plus content, so it cannot be a ground for this row's node test (see never_alone) and it appears here only so that a model never reports an expired plan as current.",
+      "whether an apparent roadmap is the holder's own plan or ANOTHER organisation's published roadmap saved for reference. The discriminator is CUSTODY, not shape - a publication apparatus and no internal approval or audience marking - adopted from business_operations.strategy-plan's rival-strategy fixture and applied here in the same terms.",
+      "a purpose-coherent planning-cycle pack whose members are individually unremarkable - a deck, a scoring spreadsheet, a scope list, a board capture and a set of replanning notes. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "the word roadmap, plan or release in a filename alone. This is the tempting false file for this row: strategy papers, project plans, construction programmes and event schedules all carry those words, and a release is also a legal release and a press release.",
+      "A STATED HORIZON OR A PERIOD AXIS ALONE, disclaimed outright and stated reciprocally with business_operations.strategy-plan, which carries the identical entry. A period axis is a DIMENSION the design already handles universally - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” treats period as a level in every document world, and budgets, forecasts, reports, board cycles and programmes all draw one. This row activates on items COMMITTED TO AN ORDER inside such an axis, never on the axis itself.",
+      "a quarter or period token alone - Q1, FY26, H2. Every budget, forecast, report and plan in the corpus carries one, and this row must not claim them all.",
+      "a version token alone - v2.3, Rev B - AND, more strongly, the fact of REISSUE. Roadmaps are reissued every planning cycle, and it would be easy to argue this row from that; it is not argued from that, following the precedent business_operations.policy-handbook set for the family. Version family is a UNIVERSAL fact - 00 lists “file type, creation date, language, duplicate family, version family, and sensitivity status” as the shared set every file may carry - so reissue can never earn a row. “A content-hash match supports deduplication review; a filename match alone does not.”",
+      "a Gantt-shaped or timeline-shaped chart alone - project schedules, construction programmes and marketing calendars share it exactly, and none of them commits items to an order at a stated level of commitment.",
+      "a forward-looking or subject-to-change disclaimer alone, and an audience marking alone. Both are labelled slots with no structure behind them; they corroborate an ordering axis and never substitute for one.",
+      "a product's name alone - it appears on marketing material, support articles, invoices and specifications equally, and 00's stop rules forbid a group formed “when one high-frequency entity acts as the only bridge”.",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.” A .pptx is not a roadmap, and this row must never be argued as the deck row.",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "membership in a download session that dropped a whole planning folder at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "roadmap",
+    "horizon",
+    "swimlane",
+    "now next later",
+    "theme",
+    "initiative",
+    "release plan",
+    "release scope",
+    "cut line",
+    "in scope",
+    "out of scope",
+    "prioritisation",
+    "ranking",
+    "dependency",
+    "milestone",
+    "target quarter",
+    "committed",
+    "planned",
+    "exploring",
+    "slipped",
+    "deprioritised",
+    "supersedes",
+    "release notes",
+    "changelog",
+    "deprecated",
+    "forward-looking",
+    "subject to change",
+    "general availability"
+  ],
+  "work_types": [
+    "roadmap deck, timeline view or swimlane grid",
+    "dateless now / next / later or commitment-band board",
+    "roadmap export or planning spreadsheet",
+    "prioritisation or scoring model",
+    "release plan and scope definition with a cut line",
+    "dependency or sequencing map",
+    "release notes or changelog",
+    "roadmap review or replanning record",
+    "roadmap board capture or export image",
+    "superseded roadmap version"
+  ],
+  "grouping_reasons": [
+    "one planning cycle: the roadmap, the prioritisation model, the review notes, the scope list and the board captures for one horizon, held together by purpose rather than by content. “The documents are content-incoherent but purpose-coherent.” This is the row's answer to the charge that it is a document TYPE rather than a filing world: a document type produces copies of itself, whereas this pile is five unlike artefacts sharing one purpose.",
+    "one roadmap across its successive versions. Recorded as a grouping reason and explicitly NOT as a node-test ground: version family is a universal fact, and this row claims nothing from reissue.",
+    "one release: the scope definition and the changelog for one version token. The customer announcement for the same version is business_operations.go-to-market's and is deliberately not listed here.",
+    "one product across many planning cycles, which is a real reason to group and the one most likely to tempt a commitment or a date onto an unrelated file naming the same product. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single changelog with no plan around it is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation, then the PRODUCT or offering, then the planning horizon or release, then the document function. The horizon level is where this row differs most from its paired requirements row, which refuses a horizon level outright. NOT time-first, and the reason matters more than the flag, because this is the row in the family most likely to be accused of claiming the exception: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”, and the exception is granted elsewhere and to something else - “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” A roadmap's quarters are CONTENT periods, not capture dates; a year-first tree would interleave two products' roadmaps in every quarter folder. Within the product, time is the right next level, which is a narrower claim than time_first and the honest one. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a release note is meaningless without the release, and a release is meaningless without the product. Privacy caveat specific to this row: audience matters more here than anywhere else in the family, because an internal roadmap and its customer-facing cut are near-identical files with very different disclosure consequences, so an audience level is arguably load-bearing here and is left for R1c rather than asserted. The user may reverse, remove or flatten any of this later - “the user can reverse, remove, add, or flatten dimensions.” - this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "presentation",
+      "spreadsheet",
+      "text_document",
+      "image",
+      "email",
+      "design_creative",
+      "archive",
+      "code_structured",
+      "ocr"
+    ],
+    "extensions": [
+      ".pptx",
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".md",
+      ".docx",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "H1 roadmap.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "swimlanes by team across a quarter axis, themes placed in cells",
+        "a now / next / later summary slide",
+        "an internal-only marking in the master",
+        "every theme name is also a feature name"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "a commitment or a delivery date as a fact of the product's own - a roadmap cell is an intention, and an intention is not a fact about the world",
+        "that this file and the customer-facing cut of it are interchangeable",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Roadmap - customer version.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same themes as the internal deck with dates removed",
+        "a forward-looking-statements disclaimer",
+        "a customer-audience framing on the cover",
+        "no team or effort information"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that this is a duplicate of the internal deck because the themes match - it is a deliberately reduced cut, and treating the two as one duplicate or version family would be a real error with a disclosure consequence. “A content-hash match supports deduplication review; a filename match alone does not.”, and here even a near-match must not merge them",
+        "an audience fact used as a folder proposal without the disclaimer being present",
+        "activation from the disclaimer alone - it corroborates the ordering axis on the cover pages and does not substitute for it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Prioritisation model.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read item, reach, impact, confidence, effort, score",
+        "a rank column sorting the rows",
+        "a scenario tab with different weightings",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a priority or a ranking as a fact of the product's own - the scores are somebody's estimates",
+        "which of this row and business_operations.strategy-plan owns it when the items are company initiatives rather than product items",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CHANGELOG.md",
+      "source_type": "text_document",
+      "observations": [
+        "version headings with dates in reverse order",
+        "entries grouped under added, changed, fixed, deprecated",
+        "sits at the root of a repository beside source code",
+        "links to issue identifiers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "exclusivity against the code schema - a changelog in a repository legally carries BOTH, because the code schema activates on structural evidence about the file's LOCATION (a repository root, a package manifest) while this row activates on the document's release-record structure, which is evidence about its PURPOSE. Recorded as also_holds_with, not collides_with; this corrects the gist pass, which named the refused row code.software-project",
+        "that this row may propose re-filing anything inside a preserved repository root - repository atomicity is code.json's own open question and therefore Joseph's",
+        "a release date as a fact of the product's own from a heading",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PRD - saved views.md",
+      "source_type": "text_document",
+      "observations": [
+        "headings read problem, goals, non-goals, requirements, open questions",
+        "numbered requirements with identifiers",
+        "a target release mentioned once in a single line",
+        "an open-questions table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the single target-release mention: a specification with an out-of-scope section and acceptance criteria is the paired situation - this is the collision fixture, and business_operations.product-requirements owns it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Project plan - migration.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "tasks with start and finish dates, durations and predecessors",
+        "a resource column naming individuals",
+        "a percent-complete column",
+        "a Gantt-shaped conditional format"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a task-and-dependency schedule with resources is business_operations.project-delivery, not a roadmap - the second collision fixture, and the reason a timeline shape is in never_alone",
+        "a resource name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Whats new in 4.2 - customer email.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names a version and an announcement",
+        "recipients slot resolves to a customer distribution list",
+        "a body listing shipped items with screenshots and positioning language",
+        "an unsubscribe footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row. CEDED THIS PASS: business_operations.go-to-market's landed edge takes the launch gate, positioning, enablement and announcement material for one dated release (that row's own edge wording), and an announcement has no ordering axis - delete the ordering from it and it still reads. This is the third collision fixture and go-to-market owns it",
+        "that ceding the announcement cedes the release SCOPE list - go-to-market's own edge names a scope list with a cut line as this row's and a readiness column as its own, and calls the evidence disjoint",
+        "activation from source_type = email alone",
+        "a customer list fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "roadmap_board_export.png",
+      "source_type": "image",
+      "observations": [
+        "a capture of a planning board with columns per quarter",
+        "card titles legible under OCR",
+        "no EXIF camera metadata",
+        "sits beside the roadmap deck"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a roadmap fact from the neighbouring deck - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that missing EXIF proves the image is a screenshot - the board chrome and the OCR text support that, not the absence of metadata",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Roadmap 2024 - OLD.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "the same structure as the current roadmap with different content",
+        "a two-year-old horizon axis",
+        "OLD appended to the filename by a person",
+        "several themes that were never delivered"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a superseded roadmap states anything currently true - this is the row's distinctive handling hazard, and a plan that expired is evidence about the past only",
+        "that supersession is this row's EVIDENCE. It is not, and the gist pass was wrong to lean the node test on it: supersession is read off the universal version family plus content, and “file type, creation date, language, duplicate family, version family, and sensitivity status” are the shared set every file may carry",
+        "that OLD in a filename is a reliable version marker - “A content-hash match supports deduplication review; a filename match alone does not.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Atlassian public roadmap.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a themes-by-quarter grid with items in cells - every structural signal of this row fires",
+        "a forward-looking-statements disclaimer",
+        "another organisation's brand on the master and an investor- or customer-communications apparatus",
+        "no internal audience marking, no owner column, no approval route the holder is part of"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row. ADDED THIS PASS as the fixture in the other direction: the discriminator is CUSTODY, not shape - this is somebody else's plan, saved as reading material. Adopted in the same terms as business_operations.strategy-plan's Corporate strategy 2030 - Rival plc.pdf, so a reader checking either file finds one account",
+        "that a competitor's committed dates are commitments of the holder's own product",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.product-requirements",
+      "signal": "The paired row, and the closest confusion in this family. SETTLED AS TWO ROWS, confirmed from this side this pass with independent reasoning: that row's axis is intended behaviour with an acceptance test, this row's is an ordered commitment. The discriminating evidence: an ordering axis with items in its cells, a cut line, prioritisation scoring and an audience framing support this row; an out-of-scope section, requirement identifiers and given-when-then acceptance criteria support the requirements row. A product name, a feature list and a quarter token discriminate neither - stated in that row's own words and accepted verbatim. REFINEMENT OFFERED, NOT A REVERSAL: that row's delete-the-dates test is correct on every file it applied it to but blind to a dateless now / next / later board, which has no dates to delete and is fully this row's; delete-the-ORDERING returns the same verdicts and also covers that case. The mixed deck - a roadmap slide followed by twenty specification slides - is needs_llm on both sides and neither row resolves it from structure. Contested bytes named identically on both sides: H1 roadmap.pptx. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "Both put work against time, and a delivery plan and a release plan can be the same spreadsheet. The discriminating evidence: tasks with durations, predecessors, resources and percent-complete supports project delivery - that row states a dependency column as its strongest single discriminator and this row does not contest it; product items committed to positions in an ordering axis with no task structure supports this row. A shared quarter axis discriminates neither. Contested bytes: Project plan - migration.xlsx, a negative fixture here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "A strategy paper contains a roadmap and a roadmap implies a strategy, and prioritisation models serve both. RECIPROCATED THIS PASS in that row's own terms: its axis is the argued option - a baseline beside alternatives, resolved into a recommendation under an approval - and this row's is the ordered commitment. The discriminating evidence: costed alternatives, an owner column and an approval slot support the strategy row; items committed to positions in an order support this row. ALTITUDE IS EXPLICITLY NOT THE DISCRIMINATOR and this row does not use it: a company-wide themes-by-quarter deck is this row's, which that row states from its side and this row accepts. Symmetrically, an option paper about one product is the strategy row's, and this row does not claim it because the product is small. Contested bytes: a company-wide themes-by-quarter deck, named on both sides. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "A launch date belongs to both, and release material is produced by both. NARROWED THIS PASS IN THAT ROW'S FAVOUR: the customer-facing announcement, positioning, enablement and the launch readiness gate are go-to-market's, and this row no longer lists an announcement work type. That row's fold analysis is accepted as correct in this row's own terms - a gate record has no ordering axis, does not expire, and there is no current version of a go / no-go that happened. The discriminating evidence: a readiness column and a single irreversible external date support go-to-market; a release-scope list with a cut line and items in an ordering axis support this row - disjoint evidence, and that row already says both may activate. Contested bytes: Whats new in 4.2 - customer email.eml, now a negative fixture here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.partnerships-bd",
+      "signal": "Roadmap decks are cut for customers and partners and sent under NDA, so the same file appears in a pursuit folder. The discriminating evidence: a named counterparty being pursued, a proposal or a pre-contractual instrument supports the business development row; the roadmap itself supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "A roadmap is a standing board paper, so the deck sits inside board packs. The discriminating evidence: a notice, quorum, numbered papers or a resolution supports governance; the roadmap as a document supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "ADDED THIS PASS, because the charge that this row is 'just a period axis' is answered most sharply against the sibling that most obviously also has one. Both documents are organised by period. The discriminating evidence: period-scoped monetary line items with variance against ACTUALS - a backward comparison of money - supports the budget row; non-monetary items committed to positions in a FORWARD order at a stated level of commitment supports this row. Neither is discriminated by the period axis itself, which both rows carry in never_alone. A roadmap carrying costs per theme is still this row's while the costs are estimates attached to intentions; it becomes the budget row's when actuals appear beside them. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "ADDED THIS PASS, reciprocating that row's cession rather than asserting anything new. It narrowed itself so that agendas and minutes produced INSIDE another situation belong to that situation, where they are values of work type - so the minutes of a roadmap review or a replanning session are this row's. Restated for symmetry: a standing team meeting that merely discusses the product is meeting-record's; minutes of a review OF A NAMED ROADMAP OR RELEASE PLAN, carrying a before-and-after position pair, are this row's. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "code",
+      "signal": "CORRECTS THE GIST PASS, which wrote collides_with: code.software-project. That template row is refuse_node: true - “Fails the template half of the node test on all three limbs” (code.software-project.json, verbatim) - so a collision edge to it could never fire; it was a dangling pointer. The relationship was also never mutex. A changelog, a release-scope list or a roadmap markdown file living inside a repository legally carries BOTH: the code schema activates on structural evidence about the file's LOCATION - a repository root, a package manifest - while this row activates on the document's release-record or ordering structure, which is evidence about its PURPOSE. 00 licenses both being true of one file. Reciprocal boundary: the code schema owns the repository layout and this row must not propose re-filing anything inside a preserved root, since whether a root is atomic is code.json's own open question and therefore Joseph's. The reasoning and the wording are adopted from business_operations.product-requirements, which made the identical correction, so the two product rows do not diverge. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone roadmap, release plan or changelog with no accepted planning-cycle group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a superseded roadmap or an untitled planning grid whose horizon and audience are unresolved - the row's distinctive case, because an expired plan is exactly a file whose final location needs a decision. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for captures of planning boards and roadmap views with no accepted association. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for other organisations' published roadmaps and release notes saved for reference, which this row must not mistake for the user's own plans. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected planning archive or an unreadable export. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "An unreleased roadmap is one of the more commercially damaging documents an organisation holds, and the hazard here is specifically that THE SAFE VERSION AND THE UNSAFE VERSION LOOK THE SAME: an internal roadmap and its customer-facing cut share themes, layout and often a filename stem, and only a disclaimer or an audience marking separates them. That is a privacy rule of this row's own rather than the schema's, because it is a hazard about a NEAR-DUPLICATE PAIR: the universal duplicate and version machinery is the thing most likely to cause the harm, by merging the pair or by surfacing the wrong member as the survivor. 00's caution is the operative one - “A content-hash match supports deduplication review; a filename match alone does not.” - and here even a near-hash match must not merge them. Roadmap decks also circulate to customers and partners under non-disclosure, so a copy in a folder may carry somebody else's confidentiality obligation. 00's operative limits apply to whatever P7 classifies as protected: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and the enforcement point is 00's: “Privacy policy must be enforced before content reaches any model or external connector.”. The row takes the cautious value because a near-duplicate pair whose members differ only in audience must not be handled on the assumption that the safer member is the one in hand. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "TWO questions, one of them now settled from both sides. (1) NJ-BO-10, the pair question - whether this row and business_operations.product-requirements should be one row. SETTLED AS TWO, and this pass CONFIRMS that row's settlement with independent reasoning rather than accepting it silently: the two rows' atoms differ (positions in an order versus obligations with an acceptance test), their neighbour sets barely overlap, and their prose dimension orders diverge at exactly one level - this row wants a horizon level and that row refuses one. The merge case is not dismissed: in a small team these are one folder, one author and sometimes one file, and the dimension leg is unavailable to both under PR-6. It loses because the node test is about what evidence ACTIVATES, not about how a small team stores things. Downgraded, on both rows, from an open question about which row survives to a narrow re-examination trigger: if the fields pass never happens, or if real corpora show ordering axes and acceptance criteria co-occurring in one document more often than separately, re-examine the pair. One refinement is offered rather than a reversal - see the collides_with entry for that row - and it changes no verdict either row reached. (2) NJ-BO-12, ADDED THIS PASS in a different form from the gist's. The gist asked whether a superseded roadmap should be treated differently from an old version. That is now answered NO at the level of the node test - supersession cannot be this row's evidence, because version family is a universal fact and business_operations.policy-handbook established for this family that reissue can never earn a row. What remains open is narrower and is a PRODUCT question, not this row's: the universal version family has no notion of a member that has ceased to be TRUE as opposed to merely being older, and this row is the clearest case in the catalogue where the difference has a user-visible consequence. Alternatives: (a) leave it, and accept that a superseded roadmap is offered to the user as an ordinary earlier version - cheapest, and risks a stale plan being read as current; (b) let a row mark supersession as a handling hazard on the file - which is what this row does now, at zero cost to the universal; (c) extend the universal with an expiry notion - the largest change, touching every domain, and out of proportion to one row's need. This row takes (b) and recommends (b) to R1c. Joseph's call."
+}

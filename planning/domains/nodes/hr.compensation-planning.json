@@ -1,0 +1,468 @@
+{
+  "id": "hr.compensation-planning",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Compensation and benefits planning",
+  "one_line": "The employer-side instruments that decide what a job is worth and what a round will pay: grade-and-range structures, job evaluation, third-party salary-survey matches, merit and increase-guideline matrices, pay-review round proposals and budget envelopes, bonus and equity plan rules, and benefit plan-design and cost comparisons. Its signature is a grid keyed by a JOB GRADE or a PLAN OPTION rather than by a person, which is the one hr situation the schema's employee-or-cohort default template does not recognise; the round worksheets that do name individuals are the strictest material in the family and are protected before any model path.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "job_grade",
+      "type": "string",
+      "example": "Band 6, Grade M3, or job-match code FIN.ANL.03",
+      "why_no_existing_key": "This row's organizing axis is absent from the hr schema's own proposed vocabulary, which is the clearest evidence that the row is not a restatement of its schema. All four schema proposals are keyed to a person or a population or a process: `workforce_member` is the individual subject of a personnel record, `workforce_unit` is a department, site, or reporting population, `people_cycle` is a bounded process instance, and `personnel_case` is one employee-relations or safety matter. A salary structure, a job-evaluation scorecard, and a survey match table name NO person, NO department, and often no cycle at all - their row key is the graded job. `role` and `job_title` describe what someone does; a grade is the levelling assignment that a pay range attaches to, and two titles routinely share a grade while one title spans two. Without this key the signature artifact of this row has no legal fact and no possible dimension.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true, and this is the rare hr key that can be one, because a branch named Band 6 discloses no individual. It should never lead: a grade level is meaningless outside the structure version or round it belongs to. It must also not become a one-child collector in a corpus with a single grade.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Grade, Band, Level, or Job Code column is a direct observation, but grade vocabularies are employer-specific, are renamed at every restructure, and collide with survey vendors' own codes. Validation would need an employer-specific grade roster that this row is not licensed to invent, so the inferred fact is capped at possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "people_cycle",
+      "type": "string",
+      "example": "2026 pay review round, FY2026 bonus plan year, or 2027 benefits renewal",
+      "why_no_existing_key": "Reused verbatim from the hr schema anchor rather than minted; this row does not propose a variant. Recorded here only because this row makes a stronger claim about it than the schema does - see `template.why`. A merit matrix cell reading three-and-a-half percent is uninterpretable without the round, exactly as `00` describes a homework file being meaningless without the course.",
+      "destination_eligible": true,
+      "destination_eligible_why": "As proposed on the schema anchor. This row argues it should lead for round-bounded material rather than sit third.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled round or plan-year title is direct; a bare year on a reward document may be the structure's effective date, the survey's data date, the plan year, or the document's creation date, and no generic date rule separates them.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a grid whose ROW KEY IS A GRADE, BAND, LEVEL, OR JOB-MATCH CODE and whose columns are pay-range positions - minimum, midpoint, maximum, range spread, midpoint progression - or market percentiles. No employee is named and none is needed. This is the row's signature and no other hr situation produces it: the schema's default deterministic signals all require labelled slots that jointly identify an employee or a cohort, and this grid identifies neither",
+      "a guideline matrix whose two axes are a performance rating and a position-in-range or compa-ratio measure and whose cells are increase percentages, accompanied by a round instruction or budget statement. The two-axis rating-by-range shape is the discriminator, not the word merit",
+      "a round worksheet carrying, on one row, a current amount, a PROPOSED or NEW amount, and a unit budget envelope or spend-against-allocation total. The proposal-and-envelope columns are the signal; statutory deduction and net-pay columns instead indicate payroll administration",
+      "a plan instrument bearing a plan year, an eligible population, a target percentage or grant value keyed to grade, and a payout curve, gate, proration, or leaver rule. This is an operative instrument for a bounded year, not a standing policy",
+      "a benefit plan-design comparison keyed by PLAN OPTION with employer and employee contribution split, coverage tier, and projected employer cost. Keyed by option, not by enrolled employee",
+      "a job-evaluation or levelling scorecard whose factor scores resolve to a grade for a job title with no incumbent named",
+      "a third-party salary-survey submission or result carrying a participant or subscriber code, job-match codes, and percentile columns, together with separate evidence that the holder is the participating employer"
+    ],
+    "needs_llm": [
+      "whether a grade-and-range table is the holder's own operative structure or a published, market, or cited table reproduced inside a report, a recruitment advert, a vendor deck, or a news article",
+      "whether a workbook carrying both a period-cost tab and a range tab is a budget submission or a reward instrument. The deciding structure is whether the grid resolves to an approved period budget line or to a grade ladder",
+      "whether a plan-like document is the operative bonus, equity, or benefit instrument for a bounded year or the standing compensation philosophy and pay policy that governs every year",
+      "whether an individually addressed statement of pay is a member of an employer-generated batch or the individual's own employment record held in a personal corpus",
+      "whether pay-equity workings are a reward-design exercise or a workforce-analytics or statutory reporting product. Both readings are protected and abstention is the correct answer when the evidence does not decide"
+    ],
+    "never_alone": [
+      "a currency amount beside a job title. Offer letters, job adverts, recruiter emails, consultant quotes, invoices, and CVs all carry exactly that pair, and the offer-letter fixture in this file is the collision it produces",
+      "a percentile, P50, P75, median, or quartile column. Market studies, pricing analyses, survey reports, and performance dashboards all carry percentile columns without being reward instruments",
+      "the words compensation, reward, salary, pay, bonus, benefits, band, grade, level, benchmark, or total reward alone, in a filename, heading, or directory name",
+      "a single employee's salary letter, payslip, offer, bonus letter, or total reward statement merely because an employer issued it. In a personal corpus those are that individual's own employment and payroll records",
+      "a budget line labelled salaries, wages, bonus, benefits, or employer on-costs. A period-keyed budget or ledger stays with business planning or finance unless a grade-keyed or round-keyed structure is present",
+      "the holder's firm appearing as employer, letterhead, email domain, author, or custodian, which `00` treats as a role perspective rather than an anchor when it says a university name alone should not create a group because the same name can appear as employer, provider, target, venue, or a merely cited organization",
+      "source type or extension alone, including spreadsheet, presentation, email, calendar, image, OCR, or archive",
+      "a bare year, percentage, currency amount, grade-shaped token such as M3 or L5, or acronym such as STI, LTI, TRS, or FTE",
+      "membership in a download session, mailbox folder, or parent directory named Comp, Reward, Pay, Salary, Confidential, or Do Not Forward",
+      "absence of EXIF as proof that an image of a range chart or a planning-tool screen is a screenshot"
+    ]
+  },
+  "work_types": [
+    "salary structure, grade ladder, or pay-range table and its effective-dated revisions",
+    "job evaluation, levelling, or job-architecture scorecard and its grade outcome",
+    "third-party salary-survey submission, job-match mapping, or percentile result set",
+    "market positioning or competitiveness analysis against a stated pay policy line",
+    "pay-review round instruction, merit or increase-guideline matrix, and budget allocation",
+    "manager pay-proposal worksheet, calibration extract, and round approval record",
+    "bonus or short-term-incentive plan rules, target schedule, and payout modelling",
+    "equity or long-term-incentive grant guideline keyed to grade",
+    "benefit plan design, option comparison, renewal broker report, and employer cost model",
+    "total reward statement generation batch and its templates and communication pack",
+    "pay-equity or pay-gap design workings held to inform structure and round decisions"
+  ],
+  "grouping_reasons": [
+    "one pay-review round from instruction and matrix through unit proposal worksheets, calibration extracts, budget reconciliation, and approval",
+    "one salary structure and its effective-dated revisions, joined through universal version_family rather than through a reward-only field",
+    "one benefits renewal cycle across broker report, option comparison, employer cost model, and the decision pack",
+    "one plan year's instrument family: plan rules, target schedule, payout model, and the communication pack that explains it",
+    "one survey participation: submission file, job-match mapping, and the returned result set, bounded by the survey's own data date",
+    "sparse round members such as a lone matrix PDF or a single manager pack may join an accepted round by membership without copying a grade, amount, round, or unit fact onto them",
+    "no group is valid when a lone reward-looking file carries only amounts and titles with no grade ladder, round instruction, or plan instrument; protected residual placement is safer than inventing an employer's reward corpus"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because PR-6 leaves the hr schema fieldless and no proposed key may become a folder dimension yet. The prose recommendation held for R1c differs from the schema default in one argued way. The hr default is work type or people programme first, workforce unit second, people cycle third, and never the employee's name. This row's corpus splits in two, which no other hr row's does: STANDING instruments - the grade structure, job evaluations, the survey library - are round-independent and should be ordered work type first, then job grade, with the effective-dated versions carried by version_family; ROUND-BOUNDED instruments - the matrix, the unit worksheets, the budget reconciliation - are uninterpretable outside their round and should put people_cycle FIRST, ahead of work type and unit, on the same reasoning `00` gives when it says a group's members must not carry irreconcilable course, institution, project, term, or purpose facts. Workforce unit may follow the cycle only where several units genuinely submitted; it must not become a one-child collector. A grade may be a leaf-side dimension because it names no person, but it must never lead. The employee's name is never a dimension here even though the round worksheets contain it. Not time-first: an effective date, a data date, a plan year, and a document date are four different things on the same page, so a date cannot define this world.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Salary structure FY27 - grades and ranges.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per grade Band 1 to Band 8 with a job-family column; columns minimum, midpoint, maximum, range spread, midpoint progression, currency",
+        "a per-country tab repeats the ladder with different currencies and an effective-date cell",
+        "no employee name, no employee ID, no headcount, and no period columns anywhere in the workbook"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "job_grade or people_cycle as canonical, because this placeholder declares no fields",
+        "that the absence of names makes the workbook low-sensitivity",
+        "that the effective date is the creation date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "2026 merit matrix and increase guidelines.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a grid whose rows are performance ratings and whose columns are position-in-range quartiles, cells holding increase percentages",
+        "a paragraph stating the round budget as a percentage of paybill and instructing managers to submit by a stated date",
+        "no individual is named"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any cell percentage applies to a specific person",
+        "that the stated budget is an approved finance budget line",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Salary survey 2026 - matched jobs results.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "tab one carries a subscriber code, a survey data date, and a redistribution restriction notice",
+        "one row per matched job code with P25, P50, P75 base salary and total cash columns and a sample-size column",
+        "a separate mapping tab pairs internal grades against the vendor's job codes"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the survey vendor named on tab one is the holder's employer",
+        "that percentile columns alone establish this row without employer-side participation evidence",
+        "that the survey data date is the structure's effective date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Pay review 2026 - Customer Operations proposals.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per employee with employee ID, name, grade, current salary, compa-ratio, rating, proposed increase percentage, new salary, and bonus target",
+        "a header block naming the unit and a budget envelope with a spend-against-allocation total",
+        "a manager sign-off cell and a submitted-on cell"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "workforce_member or job_grade as canonical facts while those keys remain proposals",
+        "that this is a payroll register - it carries no statutory deduction or net-pay column and nothing has been paid",
+        "that any proposed amount was approved or took effect",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "STI plan rules FY2026 - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sections for plan year, eligible population, target percentage by grade, performance gates, payout curve, proration, leaver treatment",
+        "an approval line naming a committee and a date",
+        "no version-control table, no review-date field, and no handbook numbering"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the plan is in force, has been funded, or that any payout is owed",
+        "that a plan-shaped document is therefore the governing compensation policy",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Benefits renewal 2027 - plan design comparison.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per plan option with employer contribution, employee contribution, deductible, coverage tier, and projected annual employer cost",
+        "an insurer or scheme name column and a broker commentary column",
+        "no enrolled employee is listed"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any option was selected, bound, or renewed",
+        "that the named insurer is the holder's current carrier",
+        "any clinical fact about any person",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Job evaluation scorecard - Senior Analyst.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "factor rows for know-how, problem solving, and accountability with numeric factor scores and a total",
+        "an evaluation-panel block with names and a date, and a resulting grade cell",
+        "the subject is a job title; no incumbent is named"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a panel member is the subject of the record",
+        "that the resulting grade is any individual's grade",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pay gap analysis 2026 - draft workings.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "employee-level rows with hourly rate, quartile assignment, grade, and a demographic column",
+        "a summary tab with mean and median gap figures and a quartile distribution chart",
+        "a note tab describing which structure version and which round the workings were run against"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any demographic fact about any named individual",
+        "that a computed gap is a finding, a breach, or a statutory disclosure",
+        "that aggregation on the summary tab reduces the sensitivity of the row-level tab",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Band 6 ranges - do not forward.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a reward lead, recipients are an HR director and a finance director, distribution restriction in the subject",
+        "body discusses moving a band midpoint against a stated market position and names the round",
+        "one attachment whose name matches the structure workbook"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the discussed range change was decided or applied",
+        "that the restriction phrase in the subject is a handling class",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reward committee - pay round calibration.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is the reward lead; attendees are unit heads and an HR director",
+        "summary names the pay review round and the word calibration",
+        "no attachment and no agenda body"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any attendee's own pay is the subject",
+        "that the meeting occurred or reached a decision",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-02-11 at 09.14.22.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: display-resolution dimensions, an operating-system capture filename pattern, and visible window chrome",
+        "OCR recovers a range chart with grade labels on one axis and a highlighted midpoint marker"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that missing EXIF proves screen origin - the visible chrome and the capture-name pattern do",
+        "that the on-screen grades belong to the holder's own structure rather than a vendor demo",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Comp round 2026 - manager pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a matrix PDF, several unit proposal worksheets, a guidance deck, and an FAQ",
+        "member names repeat one round label",
+        "no member is inspected beyond the manifest"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the archive should be unpacked solely to improve classification",
+        "that every member inherits the round label printed on the archive name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Offer letter - A Okafor - Senior Analyst.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to one named individual; states grade, annual salary, bonus target percentage, benefits summary, and a start date",
+        "signature blocks for the individual and a company officer",
+        "no range, no matrix, no round label, and no other job or person appears"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a grade plus a salary plus a bonus target activates compensation planning - every token this row cares about is present and the file is still not this row's evidence",
+        "that the letter is a member of a pay round",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FY27 people cost model.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are roles with FTE counts; columns are the twelve months of the financial year",
+        "employer on-cost percentages, a vacancy-timing assumption, and a submitted-and-approved trail with a version cell",
+        "no grade ladder, no range columns, and no named individual"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that people cost makes it a reward instrument - the grid resolves to an approved period budget line, not to a grade ladder",
+        "that adding one salary column would leave the reading unchanged; it would cross the line and the stricter side wins",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Compensation philosophy and pay policy v4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a version-control table, an owner, an approval date, and a next-review date",
+        "prose principles about market positioning and internal equity with no numbers, no grades, and no plan year",
+        "handbook section numbering in the footer"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that reward vocabulary makes a governed standing policy an operative reward instrument",
+        "that the review date is a plan year",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Reward market data 2026 - licensed.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "password protected; no member list is readable",
+        "the filename is the only evidence available"
+      ],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": [
+        "any reward, grade, round, or sensitivity fact from the filename, because `00` says the system should not infer a purpose from their filename alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr.payroll-benefits-administration",
+      "signal": "The sharpest collision in the family and the one that could have reduced this row to a lifecycle stage. A pay-round proposal worksheet and a payroll register are both employee-keyed grids of names and salaries. The discriminating evidence is the COLUMN SET, which is testable without knowing any date: proposed increase, new salary, compa-ratio, rating, and a unit budget envelope support this row and describe a decision that has not happened; gross pay, statutory deductions, employer contributions, net pay, and a pay-period control total support payroll administration and describe a transaction that has. The same reciprocal test applies to benefits: a plan-option comparison keyed by option is this row, an enrolment or contribution file keyed by employee is administration. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.org-design-headcount",
+      "signal": "Both rows are grade-aware and neither is person-keyed, so grade cannot decide. The discriminating evidence is what hangs off the grade: pay ranges, market percentiles, increase guidelines, and plan targets support this row; approved posts, vacancies, FTE, reporting lines, and structural moves support org design. One establishment plan that adds a cost column per post is the shared fixture; where the cost is an unpriced budget assumption it stays with org design, and where it is derived from the range table it crosses here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "Pay-gap and pay-distribution workings are the shared fixture and both readings are defensible. The discriminating evidence is the intended use visible in the file: workings held against a named structure version or round, produced to move ranges or set a budget, support this row; a population measurement series with period-over-period cuts and a reporting output supports analytics. Neither reading changes the protection, and where the file does not decide, abstention is correct. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "The holder-role seam, and the one that produces this row's collision fixture. An offer letter, a salary-change letter, a bonus letter, and a total reward statement carry a grade, a salary, and a bonus target - every token this row recognises - but they are instruments addressed to ONE individual. The discriminating evidence: an individually addressed instrument in a personal corpus is the individual's own employment record; the same bytes are this row's evidence only as a member of an employer-held generation batch or template set with a round or plan-year anchor. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "Reciprocal to the edge that row already authored against this one, and named on the same fixture: the people cost model. That row states that roles, FTE counts and aggregate cost with no names support it, while named individuals, salary bands, or personal review outcomes support this row, and that a single spreadsheet frequently crosses at one column, where the stricter side wins. This side adds the test that does not depend on names: period columns resolving to a submitted-and-approved budget line support budget-forecast; grade rows with range or market columns, or a rating-by-range guideline matrix, support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "A compensation philosophy and a bonus plan document are both policy-shaped. The discriminating evidence: a version-control table, an owner, an approval and next-review date, and handbook numbering support the handbook; a plan year, an eligible population, targets keyed to grade, and a payout curve support this row because they are an operative instrument for one bounded cycle rather than a standing rule. The hr schema anchor already draws this seam family-wide; the plan-year test is this row's specific contribution to it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "An equity grant guideline table keyed to grade and an actual grant record are the shared fixture. The discriminating evidence: grant VALUE bands keyed to grade with no grantee support this row as a reward design instrument; grantee identity, share counts, strike price, vesting schedules, and instrument identifiers support cap-table equity as an ownership record. A guideline that has been populated with grantees has crossed, and the ownership reading wins. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "The benefits renewal fixture legitimately carries both readings at once rather than confusing them. A group medical, life, or income-protection plan-design comparison is simultaneously an employer reward instrument and a corporate insurance record: the option, insurer, coverage tier, and premium structure are insurance facts, while the employer-versus-employee contribution split and the projected employer cost are reward-design facts. Neither reading should erase the other, and neither may manufacture a clinical fact about any person. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Independent Records",
+    "Review Later",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row inverts the schema's privacy logic, which is the third leg of its node test. The hr default protects material BECAUSE it identifies a person; here the least personal files are among the most sensitive. A grade-and-range table, a merit matrix, and a survey result set name nobody and are still restricted: they expose pay-equity position, negotiation posture, and licensed third-party data whose redistribution terms sit on the file itself. The round worksheets are strict for the ordinary reason as well, since they carry a named individual's current salary, rating, and proposed increase together - a combination no payslip and no review form produces on its own. The practical rule is that the absence of names must not be read as a reason to relax handling, that pay-round and pay-gap material should be recognised locally from labels and headers rather than sent as a dossier, and that no branch label should expose an individual's pay position. This node records only `potentially_sensitive`; P7 owns handling classes.",
+  "open_question": "Three items are unresolved and are argued in the memo: whether `job_grade` is minted at all or whether R1c folds grade into the existing `workforce_unit` proposal (this row argues it must not); whether the pay-gap fixture is a collision with `hr.workforce-analytics` or a co-holding within one schema, which CONNECTION's `also_holds_with` does not clearly cover for same-schema siblings; and whether a remuneration-committee pack should carry an edge to this row, which `business_operations.board-governance` deliberately refused and this row deliberately does not author back."
+}

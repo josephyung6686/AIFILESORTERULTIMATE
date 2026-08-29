@@ -2,6 +2,28 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> ## ⚠️ P1 IS BUILT. This document is the record of how it was built, not a description of its current surface.
+>
+> **`src/database_agent/` is the substrate — read it, not this file, for any signature.** P1 shipped on
+> 2026-08-19 (152 tests). Four ratifications landed on 2026-08-20 *after* this plan was written, and this
+> plan was deliberately not rewritten to match: rewriting a construction record to look like the thing it
+> produced destroys the history and still leaves every task's TDD steps inconsistent. The divergences are
+> named here instead, and they are the complete list — verified by parsing every `def` in this document
+> and comparing parameter names against the shipped modules.
+>
+> | Function | This plan | Shipped | Why |
+> |---|---|---|---|
+> | `record_file` | derives `path.name`, NFC, `path.suffix`, `stat.st_size`, `_timestamps(path)` | requires `filename`, `normalized_filename`, `extension`, `observed_size`, `observed_timestamps` as keywords with no default; plus optional `content_hash` | **P3 SPEC O5**: R2 is "the only computation of this record". A default would let a caller omit one and silently get P1's derivation — the same violation wearing a friendlier face. |
+> | `observe_path` | same five derived | same five required | as above |
+> | `start_scan` | `(conn)` — mints a private `scan_id` | `(conn, *, scan_run_id)` — adopts P3's published identity, mints nothing | **P1 OQ19 / P3 OQ16, ratified 2026-08-20.** A value P1 minted is one nothing else can join. |
+> | `_check` | parameter `scope` | parameter `key` | private helper; cosmetic |
+>
+> The `_timestamps(path)` helper in this plan **was never shipped**, on purpose. `files_table.py` carries a
+> standing note where it would have gone: a derivation helper here is an invitation to re-derive the R2
+> record, which is exactly the contract violation P3's drift test exists to catch.
+>
+> Nothing else drifted: 38 of the 42 functions this plan states shipped with identical parameters.
+
 **Goal:** Build the SQLite substrate every other part writes through — content-hash file identity, an append-only provenance log with a registration rule, supersede-never-overwrite, four fixity verification points, and three small stores (learning projection, budget config, vector arrays).
 
 **Architecture:** One local SQLite database (§0), stdlib `sqlite3`, no ORM. Nine modules, one per published surface in [`SPEC.md`](SPEC.md)'s Contract out. P1 records and returns; it interprets nothing. Append-only is enforced by SQL triggers, not by convention, so a bug in a *neighbouring* part cannot mutate history.

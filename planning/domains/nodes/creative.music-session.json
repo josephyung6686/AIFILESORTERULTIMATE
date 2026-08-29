@@ -1,0 +1,224 @@
+{
+  "id": "creative.music-session",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Music recording and production session",
+  "one_line": "A bounded song or release being recorded and produced through session files, takes, edits, stems, mixes, masters, rights paperwork and delivery variants; a working session may reference audio it does not contain and mix versions multiply.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A readable DAW session or interchange file whose tracks, clips, takes, playlists or regions reference recorded audio, instrument parts, samples or stems, with a recurring song, artist or release identifier in session metadata or labelled companion text.",
+      "A coherent packet linking a recording/session manifest or track sheet to take-numbered audio, an editable DAW session, mix notes or recalls, and named stereo, instrumental, acapella or stem exports.",
+      "A mix or master delivery record that names exact audio files, sample rate, bit depth, channel layout or platform variants and is paired with the corresponding render; `FINAL` without an artifact-bearing record is insufficient.",
+      "A rights or metadata packet that names a recording, contributors, splits, ISRC/UPC-like identifiers, territory or usage grant and is linked to the session or delivery by the same release reference. This is recognition of a music-production neighbourhood, not a licence fact written by this fieldless schema.",
+      "A project archive whose manifest contains an editable session, audio takes, edits, stems, recall notes, masters and delivery metadata, even when some referenced media or plug-ins are absent. Archive paths alone never supply a music-session conclusion."
+    ],
+    "needs_llm": [
+      "deciding whether a DAW session is a song, podcast, film score, game audio, sound-design pass, rehearsal, lecture or private voice memo when the surrounding purpose is not labelled",
+      "matching take numbers, track names, stems and mix recalls when filenames use abbreviated or conflicting conventions",
+      "deciding whether a bounced WAV is a work-in-progress, review mix, approved master, live recording or an isolated reference track",
+      "distinguishing a recording-rights or royalty document from a generic contract, invoice or business record when the same artist and title occur in both",
+      "deciding whether a session archive is complete when linked audio, samples, plug-ins, licences or external drives are missing"
+    ],
+    "never_alone": [
+      "a `.logicx`, `.ptx`, `.als`, `.flac`, `.wav`, `.aiff`, `.mp3`, `.m4a`, `.cue` or `.zip` extension; extensions route extraction and do not establish a music project",
+      "the words song, track, take, mix, master, stem, vocal, beat, session, bounce, release or approved alone",
+      "an artist, band, producer, engineer, label or studio name alone",
+      "`FINAL`, `MASTER`, `MIX 3`, `v2`, `R2` or `approved` in a filename; version_family is universal metadata and approval requires linked artifact evidence",
+      "a waveform, duration, BPM, key, codec, loudness value or embedded album tag alone",
+      "a folder named Audio, Sessions, Masters, Mixes, Songs or Releases, or membership in one download/export session",
+      "a screenshot of a mixer or timeline without recoverable song, session or release context",
+      "a bare date or four-digit number interpreted as recording date, release year, catalogue number or take number"
+    ]
+  },
+  "proposed_context_terms": [
+    "DAW", "session", "playlist", "comp", "take", "overdub", "vocal", "tracking", "edit", "comping", "rough mix", "mix recall", "stem", "instrumental", "acapella", "master", "premaster", "ISRC", "UPC", "metadata", "split sheet", "producer points", "mechanical", "sync", "delivery specs", "sample rate", "bit depth", "loudness", "QC"
+  ],
+  "work_types": [
+    "recording session", "take", "comp or edit", "overdub", "rough mix", "mix recall", "stem", "instrumental or acapella", "master", "metadata sheet", "split or rights record", "delivery export"
+  ],
+  "grouping_reasons": [
+    "one song or release across tracking sessions, take families, edits, stems, mix recalls, masters and delivery variants",
+    "one recording date or session whose takes are recoverably named by track, performer or slate",
+    "one mix-review cycle where notes name the exact bounce and a later recall or render responds to them",
+    "one delivery set whose manifest names exact masters, formats, channels, metadata and destination variants",
+    "overlapping membership of a music-production group and a universal version_family is expected; sparse audio must not receive song or stage facts copied from a nearby session"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: the creative schema declares no field rows, so project, stage, artifact_type, work_type, artist and release cannot become authored folder dimensions here. The recommended lifecycle is session/tracking → takes and edits → stems → mix/recall → master → rights and metadata → delivery, but these are work-type or stage values for later schema adjudication, not paths or facts this placeholder may write. It is not time-first: recording date, session date, mix date and release date are different workflow clocks, and filesystem time cannot order them.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["audio_video", "design_creative", "text_document", "spreadsheet", "email", "image", "ocr", "archive", "opaque_binary"],
+    "extensions": [".logicx", ".ptx", ".als", ".aup3", ".sesx", ".wav", ".aiff", ".flac", ".mp3", ".m4a", ".omf", ".aaf", ".cue", ".pdf", ".xlsx", ".eml", ".png", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "North Star_Song_04_Tracking.logicx",
+      "source_type": "design_creative",
+      "observations": ["DAW project contains named tracks, playlists, regions and take folders", "session metadata references external WAV paths and plug-ins", "song title and track number recur in the project and nearby audio"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["project, stage, artifact_type or work_type facts because creative has no fields", "that referenced audio or plug-ins are present on this machine", "that the session is approved from its filename"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "North Star_S04_Take_07_Vocal.wav",
+      "source_type": "audio_video",
+      "observations": ["audio metadata gives duration and sample format", "filename carries song, track, take and performer-role tokens", "same stem has adjacent takes and a comp session"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that take 07 is selected or the best take", "that the recording date equals filesystem creation date", "a song or artist fact copied from the filename without corroboration"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "S04_Vocal_Comp_R2.ptx",
+      "source_type": "design_creative",
+      "observations": ["session contains playlists and edit regions assembled from multiple take files", "timeline name says Vocal Comp R2", "external media references resolve to the take-family naming pattern"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that R2 is approved", "that all source takes are retained", "a folder path or stage fact"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North Star_S04_Stems_2026-07-18.zip",
+      "source_type": "archive",
+      "observations": ["archive manifest lists drums, bass, instruments, lead vocal, backing vocal and effects stems", "members share a song stem and aligned duration", "README names the receiving mix engineer and render specification"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": ["that every archive member was delivered successfully", "that stems are final masters", "a rights grant from a receiving engineer name"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North Star_S04_Mix_Recall_03.pdf",
+      "source_type": "text_document",
+      "observations": ["pages list time or bar references and requested balance, edit and vocal changes", "header names the song and the prior mix bounce", "comments distinguish a review mix from the next recall"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "language", "sensitivity_status"],
+      "must_not_conclude": ["that requested changes were implemented", "that Mix Recall 03 is approved", "a project or work_type fact"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North Star_S04_Mix_04_Approved.wav",
+      "source_type": "audio_video",
+      "observations": ["audio file carries the song title, mix number and stereo channel layout", "adjacent recall notes name Mix 04 and a sign-off email names the same render", "filename says Approved"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["release approval from the filename alone", "that the file is a production master rather than an approved mix", "rights clearance or delivery recipient"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "North Star_S04_Master_24bit_44k1.wav",
+      "source_type": "audio_video",
+      "observations": ["container metadata identifies stereo PCM and sample format", "embedded title and catalogue reference match the session packet", "paired instrumental and clean variants share the master reference"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a master is legally cleared or commercially released", "that technical metadata proves the intended destination", "a rights or ownership fact"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "North Star_S04_Metadata_and_Splits.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labelled columns identify recording title, contributors, percentage splits and identifier placeholders", "separate tabs list delivery metadata and clean/instrumental variants", "artist and producer names recur with the session packet"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that unsigned split percentages are agreed rights", "that an identifier placeholder is issued", "a creative field or destination path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North Star_S04_Delivery_QC.eml",
+      "source_type": "email",
+      "observations": ["message names attached masters and lists format, loudness and metadata checks", "recipient and sender roles are labelled", "one platform variant is marked for correction"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that QC pass is label or distributor acceptance", "that unlisted attachments belong to the release", "that an email role proves rights ownership"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Voice Memo 2026-07-18.m4a",
+      "source_type": "audio_video",
+      "observations": ["phone audio has a date-like filename and short duration", "no song, session, take, slate, release or linked project context", "content is an unlabelled spoken memo"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["music-session activation from an audio extension or date", "that the memo is a take", "a project, artist or work_type fact"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Harbour Film_Sound_Mix_05.aaf",
+      "source_type": "design_creative",
+      "observations": ["interchange file contains dialogue, effects and picture-referenced tracks", "scene and timecode labels refer to a film production", "no song, take, release or recording-session context"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["music-session activation because the file is an audio session", "that stems are song stems", "a project or work_type fact"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.post-production",
+      "signal": "The same session/mix fixture can be read as generic post-production: a DAW project, stems, review notes and a master export. Music-session activation requires recording-specific evidence such as take/playlist families, track or performer roles, song/release identifiers, or music delivery variants; post-production must not infer a song merely from a mix, stem or WAV. Conversely, a song session with those recording signals must not be flattened into generic post-production and lose take and rights context. Shared fixture: North Star_S04_Stems_2026-07-18.zip and North Star_S04_Mix_Recall_03.pdf."
+    },
+    {
+      "domain": "creative.sound-design",
+      "signal": "A sound-design session may also contain WAVs, tracks, stems, recalls and a mix. The discriminator is whether audio is being made as a song/release with takes, performers, song metadata and music delivery variants, or to sit under picture/game/installation with scene, timecode, cue, foley or effects evidence. The same Harbour Film_Sound_Mix_05.aaf must remain sound-design/post-production evidence, while North Star_S04_Mix_Recall_03.pdf must not be claimed by sound design solely because it contains mix notes."
+    },
+    {
+      "domain": "creative.podcast-episode",
+      "signal": "Both domains use recording sessions, edits, mixes and delivery files. A podcast episode is activated by episode/show cadence, spoken-word edit, transcript/show notes or publish record; a music session by takes, overdubs, instrumental/acapella/stem structure and song/release metadata. A file named `Final Mix.wav` alone is ambiguous in both directions and falls through until its surrounding evidence is recoverable."
+    },
+    {
+      "domain": "photos",
+      "signal": "Audio/video media can carry capture metadata and can be a personal recording. A phone or field recorder file with only device metadata is not a music session; a recording session becomes music evidence only with the track/take/session structure described above. The reciprocal photos boundary is that audio capture metadata must not acquire a photo event or music project from nearby filenames."
+    },
+    {
+      "domain": "career",
+      "signal": "A finished master, showreel excerpt or artist portfolio can be both a made artifact and a career presentation. The making-side evidence is session/take/revision/delivery structure; the career-side evidence is curated self-presentation, resume, reel or application purpose. A lone master such as North Star_S04_Master_24bit_44k1.wav must not be moved into a portfolio or music branch based on content alone."
+    },
+    {
+      "domain": "code",
+      "signal": "Generative music repositories and software build outputs may contain audio renders, version tokens and words such as render or release. Repository markers, manifests and source code explain the code domain; DAW tracks, linked takes and mix/master records explain this row. `build-release-notes.md` remains code evidence even if it mentions audio rendering."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "A signed split sheet, producer agreement, sample licence or artist release can be a legal instrument and a rights record attached to a music session. The legal reading must retain parties, execution and operative clauses; the music reading may group it with the named recording. Neither reading may suppress the other."
+    },
+    {
+      "domain": "business_operations",
+      "signal": "A label or studio production packet may be both a music-making record and an operational record with approvals, budgets, purchase orders or reporting. DAW/take/mix evidence supports this row; controlled headers, accounting tables or approval workflow support business_operations. Shared names and project references do not collapse the two."
+    }
+  ],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone master, session file or rights sheet with durable purpose but no recoverable song/session association belongs in the residual rather than a synthetic music project.", "provenance": "design"},
+    {"residual_template": "Review Later", "why": "Unattached mix notes, incomplete manifests, unsigned split sheets and ambiguous delivery messages need a future decision when the recording cannot be reconstructed.", "provenance": "design"},
+    {"residual_template": "Reference Clips", "why": "A downloaded beat, reference track, sample or playlist item with no current recording structure is reference material, not a session.", "provenance": "design"},
+    {"residual_template": "One-Off Images", "why": "A lone voice memo or field recording without production evidence is not music-session material merely because it is audio.", "provenance": "inference"},
+    {"residual_template": "Protected Records", "why": "Unreleased recordings, contributor identities, private vocals and rights paperwork can remain sensitive even when the session association is unresolved.", "provenance": "inference"},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable DAW packages, password-protected delivery archives and missing-media sessions should be represented safely rather than treated as empty or confidently filed.", "provenance": "design"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased songs and mixes, raw vocals, performer identities, private communications, contractual splits and delivery metadata can expose confidential creative work or third-party personal information. Privacy handling must precede model or connector exposure; this row assigns no handling class and writes no creative fields.",
+  "open_question": "NEEDS-JOSEPH: whether music should later receive `project`, `stage` and `artifact_type` through a ratified creative schema, or remain a fieldless applicability record whose session → takes → mix/master → rights/delivery lifecycle is assembled by P9/P10. A separate rights field may be useful but must not be invented here; rights instruments can also be legal records. Also unresolved: whether spoken-word music-adjacent releases should be one podcast/music boundary or a user-confirmed overlap. Recommended: retain this placeholder, use recording-specific evidence for activation, and keep sparse audio in Review Later until a session or release association is recoverable."
+}

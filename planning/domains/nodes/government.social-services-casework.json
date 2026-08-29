@@ -1,0 +1,421 @@
+{
+  "id": "government.social-services-casework",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Social services and welfare casework",
+  "one_line": "The statutory authority's OWN open-ended file on one named person or household, anchored by a recurring case reference rather than a docket, and structured as a duty cycle — referral and threshold, assessment against statutory criteria, an eligibility or duty determination, a plan naming commissioned services and an allocated worker, then a scheduled review that re-runs the same headings. It fires only where the corpus holder is the body that owes the duty and can close the case; a provider's, advocate's, family's, or recipient's copy of the same bytes is not this row. It declares no field rows under PR-6, so activation unlocks recognition, a stricter-than-default privacy posture, and grouping only.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below must evidence the DUTY-OWING authority as holder. The `government` schema's own never_alone rules apply unchanged and are not restated here; these signals only add what separates a person-anchored statutory case from the schema's docketed authority-side default. No signal licenses a government fact — the schema declares none.",
+      "a per-person or per-household case token (case, client, referral, conference, or duty reference) repeated across members that are themselves different stages of one duty cycle — an assessment, a plan, a review, a decision letter — rather than repeated across drafts of a single document",
+      "an assessment document carrying labelled statutory structure on the deciding body's letterhead: presenting needs or concerns, criteria or threshold applied, an eligibility or duty determination with reasons, outcomes sought, and a named allocated worker with a team or district",
+      "a plan artifact that names commissioned or arranged services against the same case token and carries a next-review or review-due date, so that the plan and its later re-issue form a review cycle rather than a version family alone",
+      "an intake or front-door contact record with a referrer slot (professional, agency, or withheld), the threshold or criteria applied, and a progress-or-no-further-action decision recorded by the receiving authority",
+      "a multi-agency conference or panel record CONVENED BY the authority: chair and chairing office, attendance spanning agencies, a plan category or panel outcome, core-group or review membership, and a scheduled review conference date",
+      "a financial or means assessment against the same case token, with income and capital lines resolving to a client contribution, charge, or personal-budget figure set by the authority",
+      "a case-management system export, caseload extract, or archive manifest whose rows or paths repeatedly encode one person or household case under one team or service; manifests are inspected without unpacking, and a person-level extract is treated as protected before it is treated as evidence",
+      "an email or calendar record whose structured sender, recipient, organizer, attendee, subject, or attachment slots carry the case token into an ALREADY evidenced case; such a record extends a case, it never opens one"
+    ],
+    "needs_llm": [
+      "deciding whether the holder OWES THE DUTY or merely touches the case — a commissioned voluntary-sector provider, an independent advocate, a foster carer, the family, an instructed lawyer, an inspectorate, and the authority itself all keep assessment-and-plan artifacts with the same headings; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a statutory care or protection case from a health record when the same assessment prose, diagnosis language, and practitioner names appear in both, and deciding whether a joint health-and-social-care assessment is dual-custody rather than a takeover",
+      "distinguishing an ENDURING person-anchored case that re-opens and re-reviews from a bounded proceeding with a docket, a one-activation welfare roster, or a single application decided once and closed",
+      "reading whether a conference or panel artifact is the convening authority's own minute and plan or one attendee agency's contribution prepared for it",
+      "deciding whether a caseload spreadsheet is person-level statutory casework or an aggregate performance, funding, or inspection return with no individual rows",
+      "recognizing an unlabeled running case note, chronology, genogram, or handwritten visit record as a member of an already evidenced case rather than as loose personal prose"
+    ],
+    "never_alone": [
+      "a social services, children's services, adult social care, safeguarding board, or welfare department name, letterhead, or footer alone; the same block appears on the recipient's copy, a provider's subcontract, an inspection report, and a job advert",
+      "a named individual or household alone — a person's name is the subject of the record, never proof of custody of it; the canonical `people` key is not destination-eligible and a person must not become the organizing dimension of this row",
+      "the words assessment, care plan, support plan, review, referral, threshold, safeguarding, eligibility, or case note alone; every one of them occurs in a commissioned charity's file, a hospital discharge pack, a school's pastoral record, and an HR capability file",
+      "a benefit award letter, care-charge invoice, placement confirmation, or decision letter held by the person it is about; the recipient's copy is the individual's own record and routes to Protected Records or the person's finance, medical, legal, or identity material",
+      "a bare case-shaped token such as `4471` or `12-345-678` without duty-cycle context around it; a lone number is a reference in some system, not evidence of which system",
+      "a calendar entry naming a person plus a visit, meeting, or review, and a contacts entry for a named worker; structured attendee and organizer slots extend an evidenced case and cannot open one",
+      "a file extension, a `SOURCE_TYPES` value, or a parent folder named Cases, Clients, Social Care, Safeguarding, or Welfare alone",
+      "a shared download or scan session that swept an assessment, a bank statement, and a school report into one batch; “A session should never be treated as proof of topic”",
+      "clinical, legal, or financial vocabulary inside an assessment; a care assessment quotes a GP, cites a statute, and totals income without becoming a medical, legal, or finance record"
+    ],
+    "proposed_context_terms": []
+  },
+  "work_types": [
+    "referral or contact record, threshold decision, and no-further-action or progress-to-assessment outcome",
+    "needs, care, or protection assessment, including joint, specialist, carer's, and re-assessment forms",
+    "eligibility, duty, or entitlement determination with reasons, and its refusal, suspension, or closure counterpart",
+    "support, care, protection, or pathway plan and its re-issued versions",
+    "review, re-assessment, conference minute, core-group note, panel decision, and case-closure summary",
+    "running case note, chronology, home-visit record, genogram, and contact log",
+    "financial or means assessment, client contribution, personal-budget, and direct-payment record",
+    "placement, commissioning, or service-arrangement record made by the authority for one named person",
+    "consent, authority-to-share, information-sharing, and third-party disclosure record on the case",
+    "complaint, representation, appeal, tribunal, or ombudsman response about this authority's own casework decision",
+    "caseload allocation, transfer, and supervision record naming the individuals held"
+  ],
+  "grouping_reasons": [
+    "one enduring person or household case, bounded by an exact case token, holding referral, assessment, determination, plan, notes, reviews and closure — and re-opening under the same token rather than starting a new group",
+    "one review cycle inside that case, linking the plan version, the review record and the re-assessment that produced it, without copying a determination fact onto a sparse member such as an undated visit note",
+    "one multi-agency conference or panel occasion, linking the convening authority's minute, plan category, distribution list and review date, while each attending agency's own contribution stays with its author",
+    "one financial-assessment episode, linking the means form, evidence schedule and contribution decision, while the person's own bank statements and payslips remain their financial record",
+    "one export, bundle, or manifest, kept shallow and protected until access boundaries are known, and never unpacked merely to strengthen recognition",
+    "duplicate and version families remain universal relationships; a re-issued plan or a re-scanned assessment acquires no new case facts from neighbourhood context",
+    "cross-person joining is not a grouping reason: two cases sharing a worker, a team, an address, or a school must not be merged into one group, and a multi-person caseload extract does not license the extraction of individual cases from it",
+    "no group is a valid outcome for a single letter about a named person with no evidenced case around it; “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, not by indifference: PR-6 leaves the `government` schema fieldless and a template cannot branch on undeclared fields. The recommendation this row would make, and which differs from the schema default's, stays prose until central adjudication. The schema default recommends authority-side function first, then an exact bounded proceeding or docket reference, then work type. This row has no docket — its bounding anchor is an enduring case token attached to a person — so the default's second dimension does not fit, exactly as `government.emergency-management` argued for activations. The order this row would recommend is: service or duty area, then the CASE TOKEN (never the person's name), then review cycle, then work type. Naming a person as a dimension is forbidden here even though the person is the true anchor, because a folder tree is readable by anyone who can see the disk and the existence of a case is itself the disclosure. Time is not first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The parent dimension must make the child intelligible — “A work type such as Homework 3 is meaningful only after the course is known” — and a review note is meaningless without the case it reviews. Any order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".mp3",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Care Act Assessment - SW-2026-4471 - initial.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the token SW-2026-4471 recurs in the filename and in a header field, and the same token appears on a plan and a review in the same folder",
+        "labelled sections: presenting needs, eligibility criteria applied, determination with reasons, outcomes sought",
+        "signature block naming an allocated worker, a team and an adult social care department"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any government fact - the schema declares none under PR-6",
+        "a medical fact because the assessment quotes a GP letter and names a diagnosis",
+        "the service user's name as a folder dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Support Plan v3 - SW-2026-4471 - review due 2026-11-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "same case token as the assessment; a v3 marker with v1 and v2 present in the same directory",
+        "a services table with hours, a provider name and a personal-budget line",
+        "a review-due date on the front sheet"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the named provider makes this the provider's record - the plan is the authority's instrument",
+        "that a version family alone evidences a review cycle",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Child Protection Conference - Minutes - CP-2026-0188 - 14 May 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "chair named with a chairing office of the convening authority; attendance list spanning health, police, education and the family",
+        "a plan category, core-group membership and a review conference date",
+        "third parties named who are not the holder and did not consent - including a minor"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "clinical custody because a clinician attended - a health attendee is one line of an attendance list",
+        "that a single named family makes the file lower risk than a multi-case list",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Referral MASH-2026-11832 - contact record and threshold decision.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a referrer slot naming a professional agency, with a withheld-identity option marked",
+        "the threshold or criteria applied, and a decision line recording progress to assessment or no further action",
+        "receiving team and duty-officer block on the authority's letterhead"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a no-further-action outcome makes the record disposable or lowers its sensitivity",
+        "that the referring agency is the holder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Financial assessment - client contribution - SW-2026-4471.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "income and capital rows, a disregard column and a weekly contribution total",
+        "the same case token as the assessment and plan",
+        "a tab of scanned-evidence filenames referencing bank statements and benefit letters"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "a finance-schema account or tax fact - this is the authority's charging calculation, not the person's financial record",
+        "that the referenced statements may be pulled into this group; the person's own statements are their record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case notes export - Adults Team 4 - Q3.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per service user with a case token, a name, a date of birth, an allocated worker and a free-text note column",
+        "many distinct case tokens rather than one",
+        "no aggregate or count columns"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "that individual cases may be split out of this file into per-person groups",
+        "that two rows sharing an address, a school or a worker are one household",
+        "an aggregate performance return - person-level rows are the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE SW-2026-4471 - consent to share with GP.eml",
+      "source_type": "email",
+      "observations": [
+        "the case token in the subject slot; sender and recipient slots are an authority mailbox and a practice mailbox",
+        "an attachment named as a signed consent form",
+        "the thread already has an evidenced case around it in the same corpus"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "activation from the mail domain or the token alone - this record extends an evidenced case and cannot open one",
+        "a medical fact from the practice recipient",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Home visit - Mrs A Patel - 2026-06-11.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer slot is an authority worker; a person's name and an address in the location slot",
+        "no case token in the event",
+        "a recurring series with other named individuals in the same calendar"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "a case fact from a person's name plus a visit word - the never_alone rule for calendar entries applies",
+        "that the address may become a dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-04 - case management system - assessment tab.png",
+      "source_type": "ocr",
+      "observations": [
+        "dense OCR text showing a system chrome with a client banner, a case token and assessment field labels",
+        "no EXIF capture metadata",
+        "saved into the same directory as the assessment and plan"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "screenshot status from missing EXIF alone",
+        "that OCR of a client banner may be surfaced in a group summary",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case file bundle - SW-2026-4471 - subject access request.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists members whose paths repeatedly encode one case token under one team",
+        "a schedule document and a redaction log sit alongside the case members",
+        "archive is inspected without unpacking"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the whole bundle is this row's - the schedule and redaction log are the records-holder function's work",
+        "that unpacking is warranted to strengthen recognition",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Assessment and Support Plan - J. Rivera - Bright Futures Family Services.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "identical section headings to a statutory assessment: needs, plan, outcomes, review date, allocated key worker",
+        "the issuing block is a registered charity, and a contract or referral-from-the-council reference appears on the footer",
+        "no eligibility or duty determination and no closure authority - the plan is delivered, not decided"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "this row - the holder delivers a commissioned service and cannot determine duty or close the case",
+        "that the council reference on the footer transfers custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Homelessness HL-2026-0912 - duty decision letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a duty determination with reasons, on a local authority letterhead, naming a household",
+        "the duty, remedy and review right are all accommodation - eligibility, priority need, allocation band",
+        "a safeguarding referral is annexed as a member"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "this row - the duty decided is housing, which is government.housing-authority's",
+        "that the annexed safeguarding referral converts the housing case into a care case",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.constituent-casework",
+      "signal": "Reciprocal of the edge that row already authored. The deciding evidence is POWER OVER THE OUTCOME. This row is the deciding authority's own statutory file: it assesses, it owes the duty, and its own determination opens, changes and closes the record. The constituent office can only ask, acting on the individual's written authority, and files somebody else's answer as its outcome. Same fixture on both sides: a letter about Ms A's housing — on the deciding authority's letterhead determining her case it is this row; written by an outside member's or ombudsman office on her authority asking that authority to reconsider, and carrying that office's own separate reference, it is theirs. Neither side may read the shared person or the shared reference as transfer of custody.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The generic authority-side sibling would absorb this row on the strength of a public-body issuing block, and the schema default's docket dimension would then be imposed on a world that has no docket. Discriminating evidence for that row: a bounded proceeding, request, consultation or programme with an exact reference that closes when the proceeding closes. Discriminating evidence for this row: an ENDURING case token attached to a person or household that re-opens, re-assesses and re-reviews, with a statutory duty rather than a proceeding as its spine. Same fixture: `Case file bundle - SW-2026-4471 - subject access request.zip` — the disclosure schedule and redaction log inside it are the records-holder function's work, while the case members they enumerate remain this row's. Authored one-way here; R1c owes the reciprocal.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.housing-authority",
+      "signal": "Reciprocal of that row's edge, restated to match its wording. Discriminating evidence for the housing row: the duty, decision and remedy are accommodation — eligibility, priority need, allocation, tenancy, rent account. Discriminating evidence for this row: care, protection or support duties owed to a person, with assessment and plan structures that survive regardless of where the person lives. Same fixture on both sides: `Homelessness HL-2026-0912 - duty decision letter.pdf`. A safeguarding referral annexed inside a housing case is a member that keeps its own evidence, not a conversion — and the same is true in reverse for an accommodation letter annexed inside a care case.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.defence-veterans",
+      "signal": "Reciprocal of that row's edge. Intake, evidence development, assessment, decision-with-reasons, appeal and payment members are shaped identically in both worlds; the agency name decides nothing. Discriminating evidence for that row: reasoning that cites a service period, a service event or a character-of-service determination, plus a personnel identifier. Discriminating evidence for this row: a determination resting on means, household composition, residency, capacity or a disability with no service premise. Same fixture on both sides: `Rating Decision - file 12-345-678 - 2026-06-19.pdf` set against an identically laid out general disability or care allowance decision.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.emergency-management",
+      "signal": "Reciprocal of that row's edge. Discriminating evidence is THE UNIT AND ITS DURATION: a roster of persons registered against one activation at one reception centre, closed at stand-down, supports that row; an enduring case opened for one person or household under a case token with an allocated worker and a review cycle supports this row. Same fixture on both sides: `Shelter Registration - Northgate High School - 2026-11-04.csv`. Both sides are protected, so neither may pull the other's material into a less protected group, and CONNECTION's stricter-side-wins principle governs the merge.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.case-conference",
+      "signal": "Reciprocal of that row's edge, restated to match its wording. Discriminating evidence is WHO CONVENED IT and who authored the artifact: the convening authority's conference minutes, plan category and review record are this row's, with the clinician present as one attendee rather than as the anchor; a clinician's own report or contribution prepared for the conference is that row's. Same fixture on both sides: `Child Protection Conference - Minutes - CP-2026-0188 - 14 May 2026.docx` alongside the health contribution filed for it. Neither side may read the health attendee as proof of clinical custody, nor the authority letterhead as proof that a clinician's own report has changed hands.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit",
+      "signal": "A commissioned voluntary-sector provider keeps assessment, plan, key-worker, review and closure artifacts with the same headings, often on a template the authority supplied. Discriminating evidence for this row: the holder determines eligibility or duty and can close the case. Discriminating evidence for the nonprofit side: the holder delivers against a referral or contract, and the file's spine is service delivery, attendance and outcome reporting back to a commissioner. Same fixture on both sides: `Assessment and Support Plan - J. Rivera - Bright Futures Family Services.pdf`. A council reference on a provider's footer is a commissioning trace, not a transfer of custody. Authored one-way here; R1c owes the reciprocal.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "Care assessments quote clinicians, name diagnoses and attach discharge summaries; health records name social circumstances and safeguarding concerns. Discriminating evidence for this row: the artifact's purpose is a statutory duty determination or an arranged social-care service, authored by a non-clinical authority team. Discriminating evidence for medical: the record documents care given to a patient in a clinical episode, held in clinical custody. Same fixture on both sides: a hospital discharge and social-care handover pack — the discharge summary is the health record's, the resulting needs assessment and package is this row's. Neither may absorb the other on the strength of overlapping prose.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "An allegation against a person who works with children or vulnerable adults produces referral, investigation, meeting-record and outcome members that look exactly like casework. Discriminating evidence for that row: the subject is an employee of the holder and the apparatus is employment — a disciplinary allegation, a right to be accompanied, an absence record, an appeal reference. Discriminating evidence for this row: the subject is a service user or a child owed a duty, and the outcome is a protection or support decision rather than an employment sanction. A managing-allegations file straddles both and each side keeps its own artifacts. Authored one-way here; R1c owes the reciprocal.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "The authority's caseload dashboards, staffing rotas, unit-cost models, inspection preparation and performance returns describe casework without being casework. Discriminating evidence for that row: the file's rows are counts, budgets, staff or KPIs and no named service user appears. Discriminating evidence for this row: person-level rows or a single named case. Same fixture on both sides: `Case notes export - Adults Team 4 - Q3.csv` against a same-named file containing only aggregate columns; the person-level version is this row's and is protected, the aggregate version is an operating record.",
+      "design_cite": null,
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "When an authority takes protection proceedings, one packet is legitimately both: it is the statutory case's own evidence and it is a legal matter file with a court reference, a bundle index, statements and orders. The design's abstract-that-is-also-an-application principle applies — the file is purpose-coherent in two worlds at once, so this is dual custody rather than a collision. Practical split for the reciprocal: the court bundle index, pleadings, instructions and counsel's advice belong to the practitioner side and are `legal.practice-matter-file`'s when the holder is the in-house or instructed lawyer; the assessments, chronology and plan exhibited within them remain this row's. Neither side may strip the other's protection.",
+      "design_cite": null,
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "any record about a named individual's welfare, care, protection, benefit or household circumstances that cannot be attached to an evidenced case with a duty-owning holder — the default landing for this row, chosen over Independent Records because the existence of the record is itself the disclosure",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone, non-identifying administrative artifact from this world — a blank assessment form, a published eligibility policy, a service leaflet, a generic charging schedule — that has durable value and names nobody",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the artifact plainly concerns one person's welfare but the holder role — duty-owner, provider, advocate, family, lawyer — cannot be settled safely, so no group may be asserted in either direction",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a password-protected case bundle, a case-management database export, or a damaged archive yields nothing beyond metadata and must be represented rather than opened",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Stricter in kind than the schema default, not merely equal to it. Every member concerns a named living individual, and the individuals are disproportionately children, vulnerable adults and people in crisis; the files also name third parties — family members, neighbours, referrers, sometimes protected referrers — who never consented to appear. Unlike the `government` default, this row has no low-risk residue: there is no published notice or enacted law in the packet whose openness could justify relaxing the posture of the group. Three consequences follow. The EXISTENCE of a case is itself the disclosure, so a folder name, a filename, or a group title may not carry the person's name even though the person is the true anchor. Cross-person joining is forbidden: a caseload extract must not be split into per-person groups and two cases sharing a worker, address or school must not be merged. And no content may reach a model or connector — the design requires: “Privacy policy must be enforced before content reaches any model or external connector.” Where this row meets a neighbour, the stricter side governs the merged posture.",
+  "open_question": "NEEDS-JOSEPH: this row's natural bounding anchor is a per-person case token, and the `government` schema declares no field able to hold it, so grouping is asserted in prose that nothing can bind. Alternatives, for central adjudication rather than a child-row mint: (a) keep PR-6 intact and let this row group only via universal duplicate/version relationships plus recognition, accepting that a case cannot be a dimension; (b) adjudicate one bounded, holder-side reference concept centrally on the `government` schema — usable by this row, `government.constituent-casework`, `government.permit-licensing` and `government.public-records-foi` alike — explicitly pseudonymous and destination-eligible, with a person's name never destination-eligible; (c) route all person-anchored authority casework to Protected Records at launch and defer the dimension entirely. A second, narrower question: whether a duty-owning-holder concept should be a recognition precondition only, as written here, or a recordable fact."
+}

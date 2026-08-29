@@ -1,0 +1,522 @@
+{
+  "id": "resource_operations.utility-metering-billing",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Utility metering and billing operations",
+  "one_line": "The supplier- or network-operator-side evidence chain that turns readings at a service point into billed consumption: service-point and meter/register identity, actual/estimated/substituted reading provenance, interval or billing period, tariff or rate version, calculation determinants, bill-run controls, exceptions, corrections and rebills. It is not a customer's ordinary utility statement, a meter photograph, a tariff publication, a commissioning certificate or a regulatory return merely because the same identifiers and quantities appear. The row remains a J-DEPTH placeholder and writes no resource_operations fields; its distinct detection grammar, shallower service-point-first recommendation and customer-usage privacy posture are the provisional reasons it survives the schema default.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a meter-to-charge calculation trace whose labelled slots join one service point or supply account, one meter and register, previous/current or interval readings, reading provenance or quality, consumption derivation, a tariff or rate version, billing period and resulting charge components; the joined roles are the signal and no individual identifier, quantity or charge is sufficient",
+      "a billing-run control workbook whose rows or sheets join service-point or account identifiers to reading status, consumption, tariff version, calculated amount, exception state and run/control totals; a generic invoice ledger or budget does not have the read-to-charge lineage",
+      "a meter-read ingestion or validation export with stable service-point and meter/register columns, read or interval timestamps, actual/estimated/customer/substituted quality states, acceptance or rejection reasons and a downstream billing-cycle or bill-run reference",
+      "a rebill or billing-exception case whose evidence packet links the original reading, corrected reading or substitution decision, affected period, calculation before and after correction, customer/account or service-point reference, approval and replacement bill",
+      "a supplier-issued final statement or bill copy only when its own pages expose the operational lineage from meter/register readings through consumption and tariff determinants to charges; amount due, supplier and service address alone support the Finance customer-account situation instead",
+      "a structured smart-meter or interval payload whose labelled header and rows join service point, meter/register, interval start/end, import/export direction, measured quantity, quality/substitution flag and a billing or settlement run reference; file format and a time series alone do not activate",
+      "an email whose native sender/recipient/subject slots and body or attachment manifest identify a read-validation, billing-exception, rebill or meter-to-bill workflow and cite the same service-point/account and billing period; a payment reminder or generic bill-ready email is customer-account evidence",
+      "an archive manifest showing one bounded billing cycle or exception dossier with meter-read export, validation report, calculation trace, bill-run control, replacement statement and approval members; manifests are inspected without unpacking and member names do not donate facts to one another"
+    ],
+    "needs_llm": [
+      "whether a rendered utility bill is being evidenced as the supplier's meter-to-charge output or merely kept as the customer's recurring account statement when the bytes do not expose custody or workflow role",
+      "whether an unlabelled quantity series is billing input, renewable-generation export, grid settlement, engineering test data, building-management telemetry or a research dataset",
+      "whether a change between two readings is an accepted correction, a meter exchange/reset, a multiplier change, a rollover or a data error when the reason survives only in prose or an OCR-poor note",
+      "whether a tariff/rate notice is an operational billing input, a government or regulator publication, a contract change or customer correspondence",
+      "whether a spreadsheet with both submission references and metered quantities is primarily a compelled sector return, an internal billing control or both independently evidenced situations",
+      "whether customer-submitted meter photographs and emails form one accepted billing-exception packet without copying a service point, customer, period or reading fact onto sparse members",
+      "a multilingual bill-calculation trace, exception code description or supplier correspondence outside the local context vocabulary; a bounded model must cite the exact surviving labels or prose and may return unknown"
+    ],
+    "never_alone": [
+      "the words utility, energy, water, gas, electricity, bill, billing, meter, reading, usage, consumption, tariff, rate, supplier, settlement, account or service point alone",
+      "a supplier, network operator, metering agent, regulator, customer or premises name alone; the same organization or address occurs in contracts, notices, bills, complaints, engineering packs and published guidance",
+      "a meter serial, service-point identifier, account number, bill number, case reference or other digit string outside a labelled role slot; several of these appear on one page and must not be conflated",
+      "a previous/current reading pair, interval time series, currency amount, unit, multiplier, standing charge, tax line, balance or total alone",
+      "a service address or premises description alone; it may belong to a lease, inventory, insurance record, connection agreement, customer bill or field visit",
+      "the words actual, estimated, customer, smart, substituted, rejected or corrected alone; they have meaning only as labelled read-quality or exception roles in the same meter-to-bill chain",
+      "a source_type or extension alone, including PDF, CSV, XLSX, XML, JSON, email, image, OCR, archive or opaque binary",
+      "a parent folder called Utilities, Billing, Metering, Customers, Operations, Settlements or Regulatory Returns alone",
+      "membership in a download, upload or billing-run session alone; a session is a retrieval clue rather than proof of topic or role",
+      "absence of EXIF as proof that a meter image is a screenshot, or camera EXIF as proof that the image is only a Photos record",
+      "an unreadable or encrypted file with a billing-shaped filename; metadata-only indexing cannot establish a supplier-side workflow"
+    ]
+  },
+  "proposed_context_terms": [
+    "service point",
+    "supply point",
+    "meter register",
+    "read date",
+    "read source",
+    "read type",
+    "actual read",
+    "estimated read",
+    "customer read",
+    "substituted read",
+    "validation status",
+    "exception code",
+    "billing period",
+    "consumption calculation",
+    "multiplier",
+    "tariff version",
+    "rate effective date",
+    "billing determinant",
+    "bill run",
+    "control total",
+    "rebill",
+    "replacement bill",
+    "meter exchange",
+    "opening read",
+    "closing read"
+  ],
+  "work_types": [
+    "meter-read ingestion or validation export",
+    "interval or register-reading extract",
+    "consumption calculation trace",
+    "tariff or rate configuration input",
+    "billing-run control report",
+    "billing exception or suspense report",
+    "estimated-read or substitution decision",
+    "meter-exchange and read-continuity record",
+    "bill, statement or bill-render output",
+    "rebill, cancellation and replacement statement",
+    "meter-reading submission or acceptance message",
+    "billing dispute evidence packet",
+    "settlement or regulated metering return",
+    "billing-cycle archive or audit extract"
+  ],
+  "grouping_reasons": [
+    "one service point across meter exchanges, successive registers, reads, billing calculations, statements, exceptions and rebills; the service-point anchor remains evidence until R1c licenses a field",
+    "one billing period's lineage from raw or submitted reads through validation, consumption derivation, tariff version, bill-run control and rendered statement",
+    "one meter-reading exception across rejected input, investigation, corrected or substituted read, approval and replacement bill",
+    "one tariff or rate version across its effective-date configuration, affected bill run, control totals and sampled calculation traces",
+    "one duplicate or corrected bill family through universal duplicate_family and version_family facts, not from a filename suffix alone",
+    "a sparse meter photograph, bill-ready email or interval extract may join an accepted service-point group without receiving service point, meter, period, supplier or tariff facts from neighbours"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because resource_operations is a PR-6 placeholder and declares no legal destination fields. Subject to R1c, this situation recommends the schema anchor's proposed roles as site/service point → reporting_period → record_type, with asset/meter inserted only where one service point genuinely has several meters or registers. It deliberately omits the schema default's operating_authority and output_stream levels: authority and commodity usually repeat across a supplier billing corpus, while the service point and billing cycle make a calculation trace intelligible. Time is not first; the design states, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Raw readings, consumption quantities, tariff names, customer names, account numbers and exception codes remain evidence/search values, never proposed folder levels. The user may reverse, remove, add or flatten any eventual recommendation.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".html",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Billing-Run_Control-Totals_2026-07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook title and control sheet identify one supplier billing run",
+        "rows join service-point and account references to reading status, consumption, tariff version, calculated amount and exception state",
+        "control sheet reconciles accepted, suspended, failed and billed rows to run totals"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any resource_operations field before R1c licenses the schema proposals",
+        "reporting_period from the filename alone",
+        "that every amount is a customer balance rather than a run control",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Meter-Reads_SP-10482_2026-07.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "headers label service point, meter, register, read timestamp, read value, unit, read source and validation state",
+        "rows include actual, customer and substituted states plus rejection reasons",
+        "no tariff, charge or bill-run reference survives in the export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template from a meter-read table without meter-to-bill or accepted billing-workflow evidence",
+        "a supplier or customer from surrounding files",
+        "that a substituted read is erroneous",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Bill-Calculation-Trace_SP-10482_2026-07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled service point and meter/register references",
+        "calculation block shows previous and current accepted reads, multiplier, derived consumption and unit",
+        "rate block labels tariff version, effective dates, component rates and resulting charges",
+        "audit block names billing run, exception state and replacement-bill reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a final customer balance from one calculation component",
+        "that the displayed tariff is legally valid or correctly applied",
+        "any unlicensed resource_operations fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Rebill-Case_BR-8871.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "case header labels service point, account tail, affected billing period and original bill",
+        "evidence table contrasts original estimated read with accepted corrected read and explains the reason",
+        "approval block authorizes cancellation and replacement and cites the replacement bill"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the customer's claim is correct merely because a dispute exists",
+        "a customer identity or account fact from the case header",
+        "that a corrected read proves meter fault",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Your meter read was accepted.eml",
+      "source_type": "email",
+      "observations": [
+        "native sender and recipient slots identify supplier and customer-side mailbox roles",
+        "subject and body cite a service-point tail, read date and accepted reading",
+        "body states that the reading will be used for the next bill but contains no bill calculation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "full activation from an acceptance message alone",
+        "a billing period from the email sent date",
+        "a customer name or service point copied from an accepted group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Final Utility Statement - Account 0042.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one statement labels supplier, account tail, service address, billing period and amount due",
+        "usage page labels meter/register, previous and current reads, read types, multiplier and consumption",
+        "charge page applies a named tariff version and identifies the statement as a final bill"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "supplier-side custody or workflow from rendered-statement bytes alone",
+        "that finance facts erase the separately evidenced meter-to-charge structure",
+        "tax_year from the statement year",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Monthly-Metering-Return_2026-07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet labels regulated entity, authority return name, reporting period, submission reference and declaration",
+        "detail sheet joins service points and meters to accepted, estimated and substituted volumes",
+        "submission receipt is embedded as a separate sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every regulatory filing is utility operations",
+        "that a submission reference is a meter or billing account identifier",
+        "any business_operations or resource_operations field while both schemas are placeholders",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Bidirectional-Interval-Data_SP-7781_2026-07.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "headers label service point, meter, interval start/end, import, export, unit and quality flag",
+        "no customer charge, tariff, generation asset, incentive or bill-run reference appears",
+        "both import and export registers are populated"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "utility billing rather than renewable generation from import/export columns alone",
+        "a billing period from interval timestamps",
+        "a generation installation from export values",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Meter-Accuracy-Test-Certificate_MTR-771.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "certificate labels instrument under test, reference standard, procedure, test points, deviations and pass/fail",
+        "revision and sign-off establish controlled verification evidence",
+        "no service point, billing period, tariff, bill run or customer charge appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template from a meter identifier and measured values",
+        "that a passed test proves later readings or bills correct",
+        "billing use from membership in a meter asset group",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tariff-Decision-and-Price-Cap_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead and decision heading",
+        "legal and policy analysis explains a regulated tariff framework and effective date",
+        "no supplier bill run, service point, meter/read lineage or customer charge calculation appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template from tariff vocabulary and an authority name",
+        "that a publication was loaded into a supplier billing system",
+        "a jurisdiction field or destination dimension",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Move-in Meter Reading and Keys.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF supplies capture time and device metadata",
+        "OCR sees an inventory heading, property address, key/fob counts and two meter serial/read pairs",
+        "tenant and inventory-clerk acknowledgement is visible"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "supplier-side billing operations from meter serials and readings",
+        "a service-point or customer fact from the property context",
+        "that the image alone proves an opening read was accepted by a supplier",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Billing-Cycle-2026-07_Audit-Packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists read-ingestion.csv, validation-exceptions.xlsx, calculation-sample.pdf, control-totals.xlsx and rebill-approvals.pdf",
+        "member paths cite more than one service point and exception case",
+        "archive is inspected through its manifest without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that all members concern one account, meter or service point",
+        "facts from member filenames without reading member evidence",
+        "permission to unpack, preview or send customer records to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "service-bills-protected.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "file signature identifies an encrypted PDF",
+        "filesystem evidence supplies only filename, size, timestamps, content hash and format",
+        "no text, form field, manifest, bill structure or meter-to-charge lineage is readable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template from the filename",
+        "a supplier, service point, meter, period, bill or account",
+        "that the file should be opened or moved to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.subscriptions-utilities",
+      "signal": "Direction one — resource_operations.utility-metering-billing owns supplier-side evidence that joins meter/register readings and their quality to derived consumption, tariff/rate version, bill-run controls, exceptions and rebills. Direction two — finance.subscriptions-utilities owns the customer's standing paid-service account: issuing institution, account/service relationship, covered period, amount due, payment, renewal or cancellation. Same fixture bytes: `Final Utility Statement - Account 0042.pdf`. Its meter/read-to-tariff calculation pages evidence direction one; its provider/account/amount-due statement pages evidence direction two. Rendered-statement bytes alone do not reveal custody, so both schemas may need independent activation and protection; the shared supplier, service address, period and amount count for neither side by themselves.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "Direction one — resource_operations.utility-metering-billing owns the operational metering series and bill/settlement lineage tied to service points, meters, read quality and calculated quantities. Direction two — business_operations.corporate-regulatory-filings owns the compelled submission to an authority: return name, obligated entity, reporting deadline, declaration, submission reference and acknowledgement. Same fixture bytes: `Monthly-Metering-Return_2026-07.xlsx`. Its service-point/meter/read-quality detail evidences direction one; its cover sheet, declaration and submission receipt evidence direction two. A period, authority name or submission reference alone cannot allocate the metered quantities.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.renewable-generation",
+      "signal": "Direction one — resource_operations.utility-metering-billing owns import/consumption reads only when a service-account and meter-to-charge or billing-run lineage is present. Direction two — resource_operations.renewable-generation owns generation/export performance when an installation, generator, export register, performance or incentive relation is present. Same fixture bytes: `Bidirectional-Interval-Data_SP-7781_2026-07.csv`. Its import/export interval columns and meter identity are deliberately insufficient for either direction; billing references and charge determinants allocate direction one, while generation-asset and production/export evidence allocate direction two. With neither, the exact bytes go to Review Later rather than being guessed from register direction.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone calculation trace, correction decision, meter-exchange record or durable notice with no accepted billing-cycle group remains a meaningful record without forcing an account or service-point hierarchy.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A readable interval export, meter-read table or mixed quantity workbook whose supplier-side billing, generation, settlement, engineering or regulatory role cannot be established is partly understood and should remain unresolved.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated meter-read acceptance message, bill-ready notice or payment/rebill confirmation with no accepted operational series is a transactional confirmation rather than proof of the full template.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Supplier billing packets and rendered statements can expose customer identity, service address, account and meter identifiers, granular usage, payment state and disputes. When no deeper group is accepted, the protected residual preserves the privacy posture without inventing dimensions.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Published tariff decisions, billing guidance and market or regulatory reports with no evidence of use in one supplier workflow are reference material, not operating records.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A meter or premises image with no legible role structure and no accepted service-point group is an unassociated image; camera or missing-EXIF evidence cannot create the billing relation.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Encrypted bill packs, proprietary meter payloads and unreadable exports are represented safely from metadata rather than activated from filenames or forced open.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation can join named or identifiable customers to service addresses, account and meter identifiers, interval-level consumption, payment state, complaints, corrections and supplier-side exception notes. Those joins can reveal occupancy patterns and commercial usage as well as ordinary account information. Recognition should therefore use labelled headers, control structures and the minimum necessary excerpts; rendered bills and customer-linked packets should remain local-first and protected before any model path. This row assigns no handling class, writes no customer or identifier field and keeps all raw quantities and identifiers out of destination dimensions.",
+  "open_question": "NEEDS-JOSEPH NJ-UTIL-1: can a rendered utility statement's supplier-side versus customer-side role be activated from the bytes at all, or must R1c require explicit corpus custody evidence and permit resource_operations plus Finance coactivation when both meter-to-charge and account-statement structures are present? NJ-UTIL-2: does the distinct meter-to-charge grammar and privacy posture justify this template once the resource_operations default already names meter-read, settlement and billing-operation exports, or should billing collapse into finance.subscriptions-utilities while raw metering remains only the resource_operations default? NJ-UTIL-3: if the row survives, should R1c reuse only the anchor's proposed `site`, `asset`, `reporting_period` and global `record_type`, treating supply-point, account, meter, tariff, reading and reading-quality values as evidence/search data, or license a privacy-safe identifier role? This row recommends no new key and no raw identifier as a destination. NJ-UTIL-4: the intended Finance↔resource_operations and business_operations↔resource_operations schema coactivations cannot be authored here because CONNECTION section 5 restricts `also_holds_with` to schema rows; R1c must adjudicate and lift them or document why collision plus independent activation is sufficient."
+}

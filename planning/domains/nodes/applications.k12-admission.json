@@ -1,0 +1,485 @@
+{
+  "id": "applications.k12-admission",
+  "kind": "template",
+  "schema_id": "college_applications",
+  "parent_id": null,
+  "name": "K-12 and secondary school admission",
+  "one_line": "The organizational situation in which a parent or guardian assembles and keeps an admission packet addressed to one or more primary or secondary schools on behalf of a child who is not the holder of the corpus — application forms, entrance-test score reports, teacher evaluations, the current school's transcript, interview and visit records, tuition-assistance forms, and the decision that ends the season.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [
+    {
+      "key": "student",
+      "type": "string",
+      "example": "the child an admission packet is submitted for",
+      "destination_eligible": "recommended true, but this is Joseph's call and R1c's to place, not this node's",
+      "role_split_with": ["authored_by"],
+      "provenance": "proposal",
+      "why": "This is the SAME gap academic.k12-schooling.proposed_fields.student records, reached from the other side of the same household, and it is filed here as corroborating evidence for R1c rather than as a second field: one key, proposed twice, must not become two columns. No canonical key names the person a record is ABOUT when the holder is not that person. `authored_by` is the producer and is never destination-eligible; `people` is photo-side and seeded not-a-folder-level; `school` and `target_university` name institutions, not humans. 00 states the general rule this instance falls under: \"The system must separate roles that happen to contain the same entity type.\" It is not the authorship prohibition — 00 excludes authorship from destinations (\"It should avoid using authorship or creator identity as a destination dimension\") while placing on the other side of that same sentence \"the document’s purpose, project, subject, or target is more informative for placement\", and an application's applicant sits on the informative side. The concrete organizational consequence: a household applying for two children in the same season has no declared field that separates their two packets, and every one of this template's high-weight signals (entering grade, entry year, target school) can be identical across the two. NOT placed in dimension_order — a template may only branch on fields its schema declares (CONNECTION.md section 3), and college_applications declares no such field. If adopted, it belongs on the schema with a role_split against authored_by.",
+      "considered_and_rejected": "entry_grade_level was considered and NOT proposed: for one child in one admission season it is one-to-one with application_cycle, so it would open a folder level that produces exactly one child (00: \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\"). It is a value inside a labelled slot and a strong detection signal, not a field this situation needs."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "admission-application vocabulary in a high-weight zone — filename, document title, page-one heading — together with a schools-gazetteer hit matched at a word boundary. Word-boundary matching is 00's requirement, not an optimisation: it uses \"word-boundary matching rather than substring matching\", and positional weight is 00's too, since a name in a filename or title carries more meaning than the same name in a footer",
+      "a labelled admission-form slot set read from form fields or table cells — Applicant/Student Name, Entering Grade, Entry Year, Current School, Parent/Guardian, Application Fee — which is the extraction 00 preserves: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" A labelled entry-term or program slot gives application_cycle and application_document_type directly rather than by inference",
+      "an entering-grade-level-shaped token co-occurring with an entry-year or school-year-shaped pattern AND admission-role language (apply, admission, entrance, decision, offer, waitlist) in the same high-weight zone. The patterns are R6's catalogue, and 00 requires dedicated ones here — \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\"",
+      "a labelled entrance-test score report: a test-name token in the title zone plus a scaled-score or percentile table plus a score-recipient list of schools. The recipient list is what supplies an addressee role; the test name alone supplies only a document kind",
+      "an archive manifest whose members are the K-12 admission supporting set (application form, current-school transcript, teacher evaluation, health form, tuition-assistance summary), read without unpacking — 00's own case is a ZIP whose members are a transcript, personal statement, resume, certificate and form, \"which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague\"",
+      "an admissions-office mail domain or ORGANIZER address together with admission content in the message or event itself — the address is context, the content is the evidence",
+      "an existing user-created folder name that already expresses admission purpose (00's own example of this shape is \"a purpose-defined packet, such as Chinese University Application Materials\"), read as parent-folder context — 00: \"Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal\". It is a clue about the files inside, never a licence to rename that folder",
+      "NOT a signal here, and this is what separates this template from academic.k12-schooling: enrolled-student record evidence — a report card, a marking period, an attendance summary, a homeroom assignment. Those say the child already attends the named school, which is the opposite role"
+    ],
+    "needs_llm": [
+      "an unlabelled child-written essay whose only admission signal is a prompt-shaped heading. This is 00's Wash U.docx shape, where the filename reveals nothing and \"That heading is strong evidence for the College Applications domain\"",
+      "an OCR'd capture that must be judged as \"an application portal rather than a generic image\"",
+      "a heterogeneous packet whose only shared property is the submission — 00 allows the model to \"identify a shared purpose across a heterogeneous packet\", which is exactly the content-incoherent / purpose-coherent case here, where a form, a transcript, a health record and an income statement sit together",
+      "a document naming several schools where the addressed one must be picked out — 00's adversarial suite names \"multiple institutions in one application essay\" as a known failure mode, and an entrance-test score report's recipient list is the K-12 version of it",
+      "the offer-to-enrolment seam: after an acceptance letter, an enrollment contract for the same school in the same year reads almost identically to the admission packet it ends, but it is academic.k12-schooling's material and its facts are about a school the child now attends",
+      "whether a teacher-evaluation form is held by the applicant's family (this template) or by the recommending teacher who wrote it (academic.recommendation-letters-written) — the document is the same object seen from two roles, and only its surrounding evidence separates them",
+      "a multilingual or unfamiliar admission form whose labelled slots the deterministic slot vocabulary does not cover"
+    ],
+    "never_alone": [
+      "a school name alone. 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A K-12 school name carries the same ambiguity with one addition that matters here — it may be the child's CURRENT school (the role split against academic.k12-schooling) as easily as the school applied to",
+      "an enrolled-child's report card filed inside a folder named School Applications. This is the tempting false file this template must refuse: an issuing school in a report-card letterhead is the child's school, never a target, and folder context is a clue only — 00: \"The system learns from existing folders but must not silently reorganize them.\"",
+      "a bare 4-digit number or a bare year-pair as application_cycle — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a grade-level-shaped token alone. Grade 6 may be an entering grade, a letter-grade table row, a reading level, a lumber or fuel grade, or a product grade",
+      "a child's given name in a filename alone (Emma_2026.pdf) — a person name evidences no application, and the person named is a data subject this schema declares no field for",
+      "a SOURCE_TYPE or an extension alone (.pdf, .docx, .zip, .png, .ics, .eml). 00 treats the extension as a routing signal \"rather than an assumption about meaning\"",
+      "packet or session membership alone as proof of target_university on a shared supporting document. 00: \"A transcript may be part of several application packets\", and the same is true of one entrance-test score report sent to six schools; 00 also holds that \"A session should never be treated as proof of topic\"",
+      "the absence of EXIF as proof that an image is an admissions-portal screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+      "an admissions-office mail domain in a sender or ORGANIZER address alone, with no admission content in the message itself",
+      "a DOCX or PDF author field naming a school account — \"PDF metadata should be treated as supporting evidence, not as truth\", and the field may name a template, a prior editor or a script"
+    ],
+    "proposed_context_terms": [
+      "application for admission",
+      "admission",
+      "admissions office",
+      "entering grade",
+      "entry year",
+      "applicant",
+      "parent/guardian",
+      "current school",
+      "teacher evaluation",
+      "candidate statement",
+      "shadow day",
+      "revisit day",
+      "open house",
+      "tuition assistance",
+      "acceptance",
+      "waitlist",
+      "enrollment contract"
+    ],
+    "proposed_context_terms_note": "Proposal, not design. 00 lists \"admissions language, a portal, a checklist, or a clearly targeted essay\" as the direct-application-evidence families and lists the five academic context terms verbatim; the K-12-specific tokens above are R2/R6's to accept, refine, or reject. No regex, no score, no threshold is written here."
+  },
+
+  "work_types": [
+    "admission application form",
+    "entrance exam score report",
+    "teacher evaluation form",
+    "counselor or principal recommendation",
+    "current-school transcript",
+    "applicant essay",
+    "parent statement",
+    "student writing sample",
+    "portfolio or activity sample",
+    "interview notes",
+    "campus visit record",
+    "admission portal record",
+    "application checklist",
+    "application fee receipt",
+    "tuition assistance form",
+    "health and immunization form",
+    "admission decision letter",
+    "waitlist letter",
+    "enrollment contract"
+  ],
+  "work_types_note": "These are values of application_document_type, discovered at runtime, never roster nodes. They sit alongside 00's own packet listing, \"compatible record types such as a transcript, resume, personal statement, recommendation form, certificate, or ID\", and differ from it in exactly the ways this situation differs: an evaluation written by someone else about a minor, a parent-authored statement, a household financial statement, and an enrollment contract that closes the season.",
+
+  "grouping_reasons": [
+    "one target school in one entry year — the analogue of 00's course rule, \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\" A school name alone must not merge two admission seasons, and with no declared field for the applicant it must not merge two siblings' packets either",
+    "one child's admission season across several schools: purpose-coherent while its members are not content-coherent — 00: \"The documents are content-incoherent but purpose-coherent\"",
+    "a shared supporting document (an entrance-test score report, the current-school transcript, a health form) attached to several school packets without gaining any one school's target fact from that membership",
+    "drafts of one applicant essay or parent statement, held together by the universal version family rather than by any new fact",
+    "sparse members — an untitled essay, a photographed form page — stay context-supported: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+
+  "template": {
+    "dimension_order": ["target_university", "application_document_type"],
+    "why": "This differs deliberately from the college_applications schema default (target_university, application_cycle, application_document_type) by dropping the cycle level. A K-12 admission season is normally ONE entry year across SEVERAL schools, so a cycle level beneath each school produces exactly one child, which is what 00 tells the canvas to warn about: \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" Where a corpus genuinely holds more than one season for the same household (a Grade 6 entry and a later Grade 9 entry, or two siblings applying in different years), application_cycle is the level to re-insert — beneath target_university, because 00's practical rule for document and record domains is that \"project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Target school stays first for the same reason 00 gives for course before work type: \"A work type such as Homework 3 is meaningful only after the course is known\" — an interview note or a teacher evaluation is unintelligible until the school it was written for is known. purpose is destination-eligible on this schema but is not a dimension here: the flat purpose-defined packet is a different organizational situation (applications.purpose-packet), not a second level of this one. The level this household actually files by is the CHILD, and no declared field names one — see proposed_fields.student and open_question. Where a parent already keeps a folder per child, that is existing structure to attach beneath, never structure to reinterpret. All of this is a recommendation: \"the user can reverse, remove, add, or flatten dimensions\".",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "calendar",
+      "spreadsheet"
+    ],
+    "extensions": [".pdf", ".docx", ".png", ".jpg", ".heic", ".zip", ".eml", ".ics", ".xlsx"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Oakwood Academy - Application for Admission.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Application for Admission above a school letterhead",
+        "labelled slots read Applicant Name, Date of Birth, Entering Grade, Entry Year, Current School, Parent/Guardian, Home Address",
+        "a paragraph names an application fee and a decision-notification date",
+        "the values sit in table cells, not in body paragraphs"
+      ],
+      "facts_legal": ["target_university", "application_cycle", "application_document_type", "purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "school = Oakwood Academy — the letterhead names the addressee, and the Current School slot names the other side of that role split",
+        "a folder level built from the applicant's identity values (name, date of birth, home address)",
+        "identity-schema activation from a date-of-birth slot alone",
+        "application_cycle from the fee due date or the notification date rather than from the labelled Entry Year slot"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SSAT Score Report Nov 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an entrance-test name token in the title zone",
+        "a scaled-score and percentile table",
+        "a Score Recipients block listing five school names",
+        "a test date and a candidate identifier"
+      ],
+      "facts_legal": ["application_document_type", "purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "a single target_university when the recipient block names five schools — 00's known failure mode is \"multiple institutions in one application essay\", and a recipient list is the same trap with the addressee role spread across every entry",
+        "application_cycle from the test date",
+        "that the packet this file was retrieved into supplies its target school — 00: \"A transcript may be part of several application packets\", and one score report behaves the same way",
+        "subject or term from the section names in the score table"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Confidential Teacher Evaluation - Math.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Confidential Teacher Evaluation",
+        "labelled slots read Applicant Name, School Applying To, Teacher Name, Present School, Subject Taught",
+        "a rating grid of behaviour and achievement descriptors and a free-text comment block",
+        "PDF author metadata names a school-issued account"
+      ],
+      "facts_legal": ["target_university", "application_document_type", "purpose", "school"],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from the evaluating teacher — 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "instructor as this schema's field; college_applications does not declare it, and the teacher here is not teaching a course to the holder",
+        "school from the PDF author account's mail domain — \"PDF metadata should be treated as supporting evidence, not as truth\"",
+        "that the holder wrote this document; if the corpus belongs to the evaluating teacher the same bytes are academic.recommendation-letters-written's material"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fifth Grade Transcript - Lincoln Elementary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing school letterhead and a registrar signature block",
+        "a year-by-year table of plain subject names and marks",
+        "a Released To line naming an admissions office",
+        "the file appears inside two different accepted admission packets"
+      ],
+      "facts_legal": ["school", "term", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the issuing school — the issuer is the child's current school, the role split this template must not cross",
+        "target_university from either packet's membership: \"A transcript may be part of several application packets\"",
+        "purpose = school application from packet membership alone",
+        "an arbitrary choice between the two packets when the tree has no shared-material branch"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Essay.docx",
+      "source_type": "text_document",
+      "observations": [
+        "one page of child-register prose answering an unattributed prompt",
+        "no school name, no year token, no labelled slot anywhere in the file",
+        "sits in a folder whose other members all name one school",
+        "DOCX core properties name a household account"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the surrounding folder's other members — that is the grouping firewall: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "application_document_type = applicant essay from the filename alone",
+        "purpose from a bounded download session — \"A session should never be treated as proof of topic\"",
+        "authored_by as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "admissions-packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking; members are Application.pdf, Transcript.pdf, Teacher Evaluation.pdf, Immunization Record.pdf and PFS Summary.pdf",
+        "the outer archive name carries no school and no year",
+        "no member is extracted to disk during the normal scan"
+      ],
+      "facts_legal": ["purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from a member filename alone",
+        "that the members inherit the packet's facts — the manifest is evidence about the archive, and each member is re-evidenced on its own bytes",
+        "medical activation for the outer archive from an Immunization Record member name",
+        "application_document_type for the archive from any one member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-02-09 at 19.44.03.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR header region reads a school name beside the word Admissions",
+        "OCR body reads Application status: Submitted, Entering Grade 6, Entry Year 2026-2027",
+        "OCR also carries a portal navigation menu and a Sign Out label",
+        "the filename carries a capture-time-shaped stamp"
+      ],
+      "facts_legal": ["target_university", "application_cycle", "application_document_type", "purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "application_cycle from the capture stamp — the capture time is when the portal was photographed, not the entry year the portal states",
+        "media_type = screenshot from the absence of EXIF alone — \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "that the navigation menu's other school names are additional target facts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_0912.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "the frame is a photograph of a completed paper admission form lying on a table",
+        "no text layer",
+        "camera-pattern filename, stored beside the season's other admission PDFs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "application_document_type from the directory the file sits in",
+        "target_university or application_cycle before OCR has run",
+        "application_cycle from the capture date",
+        "that no application fact can ever exist here — OCR re-runs recognition under a new cache key and may then supply the target school, the entry year and the document type",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Shadow Day - Oakwood Academy.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY pairs a schools-gazetteer name with Shadow Day",
+        "DESCRIPTION names an admissions office contact and a visit itinerary",
+        "ORGANIZER is an admissions mail address",
+        "DTSTART and DTEND present, no attachment"
+      ],
+      "facts_legal": ["target_university", "purpose", "application_document_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that source_type = calendar contributed anything on its own — it is file-kind plausibility only, and a calendar is a SOURCE_TYPE, never a domain",
+        "application_cycle from DTSTART",
+        "target_university from the ORGANIZER mail domain alone, without admission content in the event itself"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PFS Summary 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading names a parents' financial statement prepared for tuition assistance",
+        "labelled slots for household income, dependants, and an assessed family contribution",
+        "a School Recipients block naming three schools",
+        "an account or reference identifier and an issuing service's letterhead"
+      ],
+      "facts_legal": ["application_document_type", "purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from any income or contribution value",
+        "a single target_university from a three-school recipient block",
+        "that this is the admission application form itself",
+        "that finance activation cancels this template's, or the reverse — both fact sets are kept, and protection runs first: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed\""
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Acceptance Letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school letterhead and a head-of-school signature block",
+        "body offers a place in a named entering grade for a named school year",
+        "an enrollment-contract deadline and a deposit amount",
+        "the filename names neither the school nor the year"
+      ],
+      "facts_legal": ["target_university", "application_cycle", "application_document_type", "purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "school = the offering institution — an offer is not attendance; the child's school fact changes only on the enrolled-student evidence that belongs to academic.k12-schooling",
+        "application_cycle from the deposit deadline rather than from the stated school year",
+        "a finance fact from the deposit amount without financial-record evidence of its own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Report Card - Grade 5 - Q2 - 2025-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Report Card above an elementary school name and a district line",
+        "a table pairing plain subject names with marks and teacher comments",
+        "an attendance summary row",
+        "the file was found inside a user folder named School Applications 2026"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the issuing school — a report card is enrolled-student evidence and its issuer is the child's current school, which makes this the collision fixture for academic.k12-schooling",
+        "purpose = school application from the containing folder's name — folder context is a clue, and 00: \"The system learns from existing folders but must not silently reorganize them.\"",
+        "application_document_type = current-school transcript; a report card is not a transcript and no Released To line appears"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Re_ Your daughter's application to Oakwood Academy.eml",
+      "source_type": "email",
+      "observations": [
+        "Subject pairs a schools-gazetteer name with the word application",
+        "From address is an admissions-office domain; the display name is a staff person",
+        "body confirms receipt and states an entering grade and an entry year",
+        "attachment names include a checklist PDF"
+      ],
+      "facts_legal": ["target_university", "application_cycle", "application_document_type", "purpose"],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from the sender address or display name",
+        "application_cycle from the Date header rather than from the stated entry year",
+        "facts about the attachment from its filename — the attachment is re-evidenced on its own bytes"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Health Form - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "clinic letterhead and a provider identifier in the title zone",
+        "an immunization table with dose dates and a physician signature",
+        "one line reading Required for admission, naming a school",
+        "the child's name and date of birth in a labelled header block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from the required-for-admission line — a school name in a requirement clause is not an addressee",
+        "application_document_type from the packet the file was retrieved into",
+        "that being filed inside an admission packet makes this an admission document — it is medical.dependant-child-health's, and protection precedes any model or placement path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.k12-schooling",
+      "signal": "A school name paired with a school year and a child's name is the shared evidence item, and it carries no role by itself. Discriminating evidence: admission-role language — application for admission, entering grade, entry year, application fee, decision, offer, waitlist — points here; enrolled-student record evidence — a report card, a marking period, an attendance summary, a homeroom assignment, an enrollment confirmation — points there. The school on an admission form is the role-split target; the school on a report card is the child's own. Reciprocal: that node already names this one.",
+      "design_cite": "A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization"
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "Both are applications addressed to an educational institution, on the same schema, and the document kinds overlap almost completely (essay, transcript, recommendation, test scores, portal record, decision letter). Discriminating evidence: an entering-grade-level slot, a parent/guardian-as-applicant-of-record slot, a current-school-is-a-primary-or-secondary-school line, or a school-of-record that the schools gazetteer resolves as K-12 points here; undergraduate/college/major/common-application language and an applicant who is the corpus holder points there. The document kind discriminates nothing; the applicant's role and age markers do."
+    },
+    {
+      "domain": "academic.standardized-testing",
+      "signal": "An entrance-exam score report is the same bytes on both sides. Discriminating evidence: a score-recipient list of schools, or the report sitting inside an evidenced admission packet, gives it an addressee role and makes it this template's supporting document; a registration confirmation, a practice test, a score history or a preparation artifact with no recipient block is the testing template's. A test-name token alone gives a document kind, never a target."
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "The current school's transcript is issued by one institution and submitted to another. Discriminating evidence: a Released To or Sent To line naming an admissions office, or evidenced membership in an admission packet, brings it into this situation as a supporting document; the issuing letterhead and registrar block keep the school and term facts on the academic side. Neither side may take the other's institution — the issuer is never the target, and 00 warns that \"A transcript may be part of several application packets\", so packet membership alone confers no target fact."
+    },
+    {
+      "domain": "academic.recommendation-letters-written",
+      "signal": "One teacher-evaluation form, two holders. Discriminating evidence: whose corpus it is — a family's packet holds the completed form beside the application it supports, while a teacher's corpus holds many such forms for different students addressed to different schools. Applicant-side context (the same child across the packet's members, a parent-authored statement, an application checklist) points here; recommender-side context (multiple distinct student names, a submission-portal receipt addressed to the recommender, a letterhead that is the writer's own) points there. The form's heading is identical on both sides."
+    },
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "Admission packets require a physician-completed health and immunization form, which carries the target school's name and the child's name and is filed with the application. Discriminating evidence: a clinician or clinic letterhead, a vaccine or medication table, a provider identifier or a diagnosis makes it the dependant-health template's, whose protection runs first; this template needs admission-role evidence of its own. A school name appearing only in a required-for-admission clause is never enough.",
+      "design_cite": "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed"
+    },
+    {
+      "domain": "finance.student-financial-aid",
+      "signal": "Tuition-assistance statements, fee receipts and deposit records arrive inside the admission season and carry the school name and entry year in exactly this template's high-weight zones. Discriminating evidence: household income figures, an assessed family contribution, an amount due, a payment schedule, an invoice or account number and a billing institution are financial-record vocabulary; this template needs admission-role evidence. A single document can genuinely carry both fact sets — the PFS summary in file_examples — and that co-holding is a schema-level relation, recorded on the schemas rather than as an edge from this template."
+    },
+    {
+      "domain": "applications.scholarship-fellowship",
+      "signal": "A private-school merit award application is submitted with the admission packet and names the same institution in the same entry year. Discriminating evidence: what is being asked for — a place (admission, enrolment, entering grade, offer, waitlist) points here; money from a named award, fund, or sponsor (award name, stipend, nomination, selection committee) points there, and the addressee may be a sponsor that is not the school at all. An application form naming an institution and a year clears neither side alone."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    "Independent Records",
+    "Review Later",
+    "Protected Records",
+    "Temporary Screenshots"
+  ],
+
+  "role_split": [
+    {
+      "field": "target_university",
+      "other_field": "school",
+      "neighbor": "academic.k12-schooling",
+      "why": "Same entity type, different role: the school an admission application is addressed to versus the school the child is already enrolled at. Both appear on paperwork one parent keeps in the same year for the same child — an admission form names the target in its letterhead and the current school in a labelled slot; a transcript reverses which is which. The split therefore has to be read off the document's own language, never off the institution name. 00's general rule: \"The system must separate roles that happen to contain the same entity type.\" The canonical field list already records the pair; this row names the neighbour that holds the other role, reciprocating that node's own row.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client"
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 counts this material in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" What makes this situation heavier than the college_applications default is the holder-versus-subject gap plus the disclosure load an admission packet carries about a person who cannot consent: the applicant is a minor and the holder is a parent, the forms carry the child's date of birth and home address, a physician-completed health form and a household financial statement are routinely required members, teacher evaluations are explicitly confidential third-party assessments of the child, and custody or guardianship status may appear in a labelled slot. 00's own boundary applies to those members: \"Protected material should not be included in cloud-model prompts by default\". This row records only that the situation is potentially sensitive; the handling class is P7's and is not assigned here.",
+
+  "open_question": "Two, and both are Joseph's rather than this node's. (1) The addressee field is spelled target_university and the addressee here is a primary or secondary school; the college_applications schema already records this exact tension as its own open question (\"the same organizational situation covers targets that are not universities\"). This node uses target_university unchanged, because minting a K-12 spelling would be the two-columns defect D6 exists to kill — but the key reads wrong on every file in file_examples, and whether the fix is a widened role on one key or a second canonical role field is not decidable here. (2) The dimension this household actually files by is the child, and no canonical field names a record's data subject (proposed_fields.student, corroborating academic.k12-schooling's identical proposal). Adding it makes person-shaped folders for minors a product-proposed default, which is a privacy decision as much as a filing one; leaving it out means this template's recommended order silently omits the level a two-child household needs to keep two packets apart."
+}

@@ -1,0 +1,648 @@
+{
+  "id": "finance.vehicle-records",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Vehicle ownership and service records",
+  "one_line": "A placeholder Finance template for the records that follow one owned or operated vehicle across acquisition, title and registration, financing, insurance, inspection, maintenance, recall work and disposal. It reuses the Finance schema, keeps legal and identity evidence distinct, and recommends record_type only inside an accepted one-vehicle group until a canonical vehicle field is adjudicated.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "vehicle",
+      "type": "string",
+      "destination_eligible": true,
+      "reliability_ceiling": "validated",
+      "why_no_existing_key_works": "The organizing subject is the vehicle itself. institution names an issuer, lender, insurer, dealer or repair provider; account_type names a financial account; tax_year names a tax period; record_type names the document role. None can say that a title from an authority, a policy from an insurer and an invoice from a garage concern the same vehicle. project and event are also wrong roles: an owned asset is neither a project nor an occasion. Authoritative examples from California DMV, NHTSA, FTC, NAIC and California BAR show a labelled vehicle identifier recurring across title, transfer, insurance, recall and repair records. The value should resolve an evidence-backed vehicle entity from labelled identifiers and descriptions; a full raw VIN or plate remains evidence and need not become the display label.",
+      "provenance": "proposal",
+      "note": "Proposed for R1c clustering, not asserted as canonical here and not copied into fields. The pre-R0 committed catalogue used both vehicle and vehicle_identifier; vehicle is the narrower product concept because it denotes the asset while allowing VIN, plate and user-confirmed nickname to remain evidence or value aliases rather than mixing identifier schemes in one field. If accepted, the useful order becomes vehicle then record_type. Until then this placeholder branches only inside an accepted one-vehicle group."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an official ownership, title or registration structure in which a labelled vehicle-identification slot appears beside labelled make/model/year slots and a registered-owner, legal-owner or lienholder section. The authority name or form label supports institution; the document heading supports record_type; the vehicle value remains only a proposal until R1c accepts the key",
+      "a repair-order, work-order or completed service-invoice structure with a labelled vehicle block, a labelled odometer or mileage slot, and itemized requested work, parts, labor or completed repairs. A garage name and an amount alone are insufficient; the vehicle block plus repair structure is the discriminator",
+      "a purchase or transfer record with a labelled vehicle identifier and description beside buyer/seller or transferor/transferee roles, an odometer disclosure or sale record, and a signed or completed transaction section. Jurisdiction-specific form names are values or observations, never fields or dimensions",
+      "an auto-loan, lien-release or payoff record with a labelled lender/lienholder, a labelled auto-loan account or agreement role, and a labelled vehicle identifier. The vehicle identifier alone must not choose between this template and finance.loans-mortgage",
+      "an auto-insurance declarations structure with a policy number and policy period, coverage or deductible slots, and a vehicle block listing year/make/model plus a labelled vehicle identifier. The vehicle block alone must not choose between this template and either insurance template",
+      "a recall owner letter or completion record that identifies one vehicle in a labelled slot and carries a recall/campaign identifier plus remedy, inspection or completed-repair language. A generic recall bulletin by year/make/model is reference material, not proof that the holder owns the vehicle",
+      "an organization-gazetteer hit matched at a word boundary in a letterhead, page-one heading or labelled issuer/provider slot, together with vehicle-record context and a labelled vehicle identifier. The gazetteer contents belong to R4; the proposed context terms below belong to a later catalogue, and this node writes no regex or threshold",
+      "an archive manifest containing several ownership/service-shaped member names tied by the same labelled vehicle identifier or a user-approved vehicle label, inspected without unpacking. The outer filename vehicle-records.zip and the .zip extension never prove the template"
+    ],
+    "needs_llm": [
+      "a faded or handwritten service-book page recovered by OCR, where the model must distinguish work actually performed from a recommended maintenance schedule and cite the exact line it used",
+      "a cropped service receipt that names the vehicle only by a household nickname, a masked plate tail or nearby accepted-group context. The model may judge group membership, but the graph must not copy a vehicle fact onto the receipt",
+      "a screenshot of a manufacturer, insurer, registration or repair portal: OCR content must establish what the screen records, because image shape and missing EXIF do not distinguish a vehicle record from any other screenshot",
+      "an unlabeled prose notice about a defect, warranty extension, lease-end obligation or title problem whose vehicle and document role are expressed indirectly rather than in labelled slots",
+      "separating a generic owner manual, marketing brochure or public recall bulletin from a copy retained for one particular owned vehicle. Make/model vocabulary alone does not establish ownership or an accepted vehicle group",
+      "a multilingual or non-domestic title, registration, inspection or repair record whose document-kind terms and role labels are not in the deployed catalogues. The model receives only a bounded, redacted dossier and must return unknown without cited support",
+      "whether a mixed archive is one vehicle packet or several vehicles' records. Repeated provider names or one download session cannot settle that question; conflicting labelled vehicle identifiers must remain separate"
+    ],
+    "never_alone": [
+      "a VIN-shaped or chassis-number-shaped string alone. It can appear in a parts catalogue, sales listing, public recall result, fraud report or research material; it requires a labelled vehicle slot plus a record structure",
+      "a registration-plate-shaped string alone. Plate formats are jurisdiction-specific, plates can be reassigned, and the same token shape collides with order ids, product codes and abbreviations",
+      "a make, model or model year alone. Brochures, reviews, photographs, manuals, listings and insurance advertisements contain the same values without being records for an owned vehicle",
+      "the words title, registration, service, warranty, inspection, recall or policy alone. Each has common non-vehicle meanings or appears in generic reference material",
+      "a dealer, garage, insurer, lender, manufacturer or motor-vehicle authority name alone. The organization may be an issuer, employer, cited party or advertiser; its role must come from the file's own labelled structure",
+      "an invoice number, policy number, campaign number, odometer-looking number, money amount or date alone. Each is an opaque value until its labelled slot and surrounding structure establish the role",
+      "a bare year read as tax_year. A model year, registration year, policy year, service date, inspection date or recall date is not a tax-year fact",
+      "source_type or extension alone. A PDF is not a title, a CSV is not a maintenance log, an ICS event is not proof of an owned vehicle, an image is not a scanned registration, and a ZIP is not a vehicle packet",
+      "membership in a bounded download session. It can retrieve a title, insurance card and unrelated dealer brochure for review, but it cannot prove topic or copy a vehicle fact",
+      "missing EXIF or dense OCR as proof that an image is a screenshot or a document scan. Receipts, photographed pages, messaging-app images and screen captures can share those observations",
+      "a generic maintenance schedule or owner manual. It can be grouped with an accepted vehicle by the user or graph context, but it carries no ownership, service-completion or vehicle-identity fact by itself"
+    ],
+    "proposed_context_terms": [
+      "vehicle identification number",
+      "VIN",
+      "license plate",
+      "certificate of title",
+      "vehicle registration",
+      "registered owner",
+      "lienholder",
+      "odometer",
+      "repair order",
+      "service invoice",
+      "inspection report",
+      "recall campaign"
+    ],
+    "proposed_context_terms_note": "Proposal, not design. These are candidate vehicle-record context terms for a later recognition catalogue. They are always corroboration for labelled structure or an identifier, never a standalone lexicon; no regex, jurisdiction pack or numeric threshold is authored here."
+  },
+  "work_types": [
+    "certificate of title or ownership",
+    "registration certificate or renewal record",
+    "bill of sale or transfer confirmation",
+    "purchase agreement or buyer disclosure",
+    "lease agreement or return record",
+    "auto-loan agreement or statement",
+    "lien release or payoff confirmation",
+    "insurance declarations or proof of coverage",
+    "repair estimate or work order",
+    "service invoice or maintenance receipt",
+    "inspection or emissions report",
+    "recall notice or recall-completion record",
+    "warranty or service-contract document",
+    "vehicle history report",
+    "sale, disposal or release-of-liability record"
+  ],
+  "grouping_reasons": [
+    "one vehicle across acquisition, title/registration, financing, insurance, maintenance, recall work and disposal, anchored by repeated labelled vehicle identity rather than a make/model name alone",
+    "one ownership or operating period, so records from a prior owner can remain context-supported history without being mistaken for the current holder's own transaction facts",
+    "one service visit across estimate, authorization email, work order, inspection report, invoice and payment receipt",
+    "one transfer or payoff event across bill of sale, odometer disclosure, title application, lien release and release-of-liability confirmation",
+    "one policy or loan record that belongs to both its finance sibling group and the accepted vehicle group. Multi-membership is reviewable; it does not create a second copy of facts",
+    "a sparse dashboard photo, generic manual or cropped receipt attached to a vehicle group through context while retaining no vehicle fact of its own",
+    "duplicate downloads and corrected reissues through the universal duplicate_family and version_family facts, never through a filename suffix"
+  ],
+  "template": {
+    "dimension_order": [
+      "record_type"
+    ],
+    "why": "This order is intentionally scoped inside an accepted one-vehicle group. record_type separates ownership, registration, insurance, service, inspection and recall records once the group label supplies the vehicle context. institution-first would scatter one vehicle across an authority, lender, insurer, dealer and several repair providers; account_type is meaningful only for the loan or policy subset; tax_year is not a model year, registration year, policy period or service date. The canonical schema therefore supports only this shallow order today. If R1c accepts the proposed vehicle key, the useful default becomes vehicle then record_type; until then a multi-vehicle corpus must remain grouped or flat rather than misuse another field. This is a recommendation, never a path: the user may reverse, remove, add or flatten dimensions, and a branch without enough distinct record types should stay flat.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".txt",
+      ".csv",
+      ".xlsx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Certificate of Title - 2021 Corolla.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page heading identifies a certificate of title",
+        "labelled vehicle-identification, year, make and model slots",
+        "separate registered-owner and lienholder or legal-owner sections",
+        "motor-vehicle authority letterhead"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from the model year or issue year",
+        "account_type = auto loan merely because a lienholder is named",
+        "the owner name as institution",
+        "a folder path",
+        "that the vehicle key is canonical before R1c accepts the proposal"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle Registration Renewal 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registration-renewal heading and authority issuer",
+        "labelled plate and vehicle-identification slots",
+        "year/make/model block",
+        "registered-owner name and address",
+        "fee and renewal-period sections"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from 2026",
+        "account_type from the registration class",
+        "current legal title merely from a renewal notice",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bill of Sale - Corolla.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bill-of-sale heading",
+        "labelled buyer and seller roles",
+        "vehicle-identification and year/make/model slots",
+        "sale price, date and signatures",
+        "odometer disclosure attached or embedded"
+      ],
+      "facts_legal": [
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "the private seller as institution",
+        "tax_year from the sale date",
+        "that a quote or unsigned draft completed a sale",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Retail Installment Contract - Corolla.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled creditor or lender and borrower roles",
+        "vehicle collateral block with labelled identifier",
+        "amount-financed and payment-schedule sections",
+        "execution signatures"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from a contract date",
+        "that the vehicle identifier alone chooses this template over finance.loans-mortgage",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Lien Satisfaction - Corolla.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "lien-satisfied or title-holder-release heading",
+        "labelled lender or legal-owner section",
+        "vehicle-identification, plate, make and model slots",
+        "registered-owner section and authorized signature"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from the release date",
+        "that the release by itself proves the current title location",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Auto Insurance Declarations - Corolla.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "policy number and policy-period slots",
+        "named-insured section",
+        "coverage limits and deductible table",
+        "vehicle block with year/make/model and labelled vehicle identifier",
+        "loss-payee or lienholder section when present"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from the policy period",
+        "that the vehicle block alone chooses this template over finance.insurance-personal",
+        "that a named insured is the vehicle owner",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Repair Order 004812 - 48000mi.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "repair-shop letterhead and repair-order number",
+        "labelled vehicle block and odometer slot",
+        "customer-request and authorization sections",
+        "itemized completed repairs, parts and labor"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from the service date",
+        "account_type from a customer number",
+        "a new canonical odometer field",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "oil-change-receipt.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a garage name, service lines and a labelled total",
+        "OCR recovers a labelled plate or vehicle-identification tail and an odometer line",
+        "image metadata shows a photographed paper receipt rather than a native document"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "vehicle from a garage name and amount without the labelled vehicle block",
+        "tax_year from the receipt date",
+        "screenshot from missing EXIF",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Annual Safety Inspection Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "inspection-report heading and inspection-station issuer",
+        "labelled plate or vehicle-identification slot and odometer reading",
+        "pass/fail or defect-item table",
+        "inspection date and inspector authorization"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "tax_year from the inspection year",
+        "a future due date computed from a jurisdiction-specific interval",
+        "that a generic checklist is a completed inspection",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Safety Recall Owner Letter 23V123.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "manufacturer or authorized issuer letterhead",
+        "owner-notification or safety-recall heading",
+        "labelled campaign identifier and affected vehicle identifier",
+        "remedy and service-appointment instructions"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "account_type from the campaign identifier",
+        "tax_year from the campaign or model year",
+        "that recall work was completed merely because notice was issued",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Vehicle Maintenance Log.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "workbook title and a labelled vehicle sheet carry the same vehicle-identification tail",
+        "header row contains service date, odometer, work performed and provider columns",
+        "rows record several completed visits rather than a generic future schedule"
+      ],
+      "facts_legal": [
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "institution from a provider column containing several values",
+        "tax_year from row dates",
+        "that every planned row represents completed work",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Your Service Is Complete - Corolla.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender resolves to a repair provider",
+        "subject and body identify completed service rather than an appointment reminder",
+        "body carries a labelled repair-order number and masked vehicle-identification tail",
+        "attachment name identifies the completed invoice"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "vehicle from the sender or household nickname alone",
+        "completed service from a generic promotion or appointment reminder",
+        "tax_year from sent date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "service-appointment.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary says oil service and a household nickname",
+        "location names a repair shop",
+        "start and end times are structured calendar fields"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "vehicle from a household nickname",
+        "record_type = completed service",
+        "institution from calendar location alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Vehicle Records Export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists title.pdf, registration.pdf, insurance-card.pdf and service/repair-order.pdf",
+        "several member names repeat the same labelled vehicle-identifier tail",
+        "archive is inspected without writing members to disk"
+      ],
+      "facts_legal": [
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "vehicle from the outer archive name alone",
+        "one vehicle if member identifiers conflict",
+        "institution from a folder name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_4912.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and capture time are present",
+        "image shows a dashboard and OCR finds an odometer-looking number",
+        "no labelled vehicle identifier appears"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "vehicle from an odometer-looking number",
+        "record_type = service record",
+        "missing vehicle identity supplied by a neighboring title",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "2021 Corolla Owner Manual.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "manual title states a make, model and model year",
+        "body contains generic maintenance schedules and warranty language",
+        "no owner, VIN, plate, completed-service or user-approved vehicle-group evidence appears"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "vehicle ownership from make/model/year",
+        "record_type = completed service",
+        "institution from manufacturer authorship alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Driver License.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "government credential heading",
+        "person name, address, licence class and credential identifier",
+        "no vehicle identifier, title, registration or service structure"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "vehicle from a driver credential",
+        "record_type = vehicle registration",
+        "institution as a vehicle-record issuer",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle History Report - VIN ending 1234.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "report-provider letterhead",
+        "labelled vehicle identifier and year/make/model",
+        "chronology of title, loss, salvage, odometer or repair entries",
+        "report-generation date distinct from event dates"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "current ownership or clean title merely from the report",
+        "tax_year from chronology years",
+        "each historical event as a separate folder path",
+        "that a provider report is an official title"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Commercial Auto Policy Fleet Schedule.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "named-insured organization and policy-number slots",
+        "coverage table and policy period",
+        "fleet schedule listing several labelled vehicle identifiers and descriptions"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "vehicle"
+      ],
+      "must_not_conclude": [
+        "one-vehicle group when several vehicle values are listed",
+        "tax_year from the policy period",
+        "that the vehicle schedule alone chooses this template over finance.insurance-corporate",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "dealer-service-history.bin",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filesystem metadata identifies an unknown proprietary binary export",
+        "no approved extractor exposes labelled vehicle, provider or service observations",
+        "filename suggests service history but is not evidence of contents"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "vehicle or record_type from the filename",
+        "institution from the parent folder",
+        "that unsupported means empty",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "Reciprocates the committed edge on finance.insurance-personal. An auto declarations page and a vehicle service record both carry the same vehicle description and identifier. Labelled coverage limits, deductible and policy period under a carrier make the insurance situation; a labelled odometer plus repair-order, service or inspection structure make this vehicle situation. The vehicle identifier itself counts for neither side alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "Reciprocates the committed partial node's edge. A commercial auto policy schedule and a small-team vehicle file share vehicle identifiers, carrier names and year tokens. A named-insured organization plus several vehicles under one policy and coverage table make the corporate-insurance situation; title, registration, purchase or service records centered on one vehicle make this situation. Neither carrier name nor vehicle identifier discriminates.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "Reciprocates the committed edge on finance.loans-mortgage. An auto-loan agreement and lien release identify the collateral vehicle. Amount financed, payment schedule, payoff amount or loan-account structure make the loans situation; title, registration, ownership-transfer, service and inspection structures make this vehicle situation. The vehicle identifier is shared evidence and proves neither template by itself.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "A vehicle purchase, lease or service contract is a signed agreement and a vehicle-lifecycle record. Parties, obligations, numbered terms and an execution block make the agreement situation; an official ownership/registration structure or a vehicle-specific service history makes this situation. A signature, money figure or vehicle identifier alone must not count for both. The file may still join both accepted groups; this edge only disambiguates a shared evidence item.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A driver credential and a vehicle registration can both be government-issued cards carrying a person's name, address, photo or opaque identifier. The subject of the labelled structure discriminates them: a credential identifies and authorizes a person; a title or registration identifies a vehicle and records ownership, registration or lien status. The authority name and person address are shared items and prove neither template alone.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Titles, registrations, finance agreements and insurance records routinely concentrate owner names, addresses, signatures, vehicle identifiers, account details or legal interests. The Finance safety schema protects before any model or placement path; an isolated sensitive record belongs in the protected residual rather than a visible general folder.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone inspection report, recall-completion record, warranty notice or service invoice has durable value even when no accepted vehicle group exists. This is the assignment's required fallback and matches the residual's durable standalone-record purpose.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated maintenance receipt, parts receipt or sale confirmation may be transaction-shaped but lack enough vehicle evidence to join a vehicle group. The residual keeps the transaction without inventing vehicle identity.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A cropped receipt, vague appointment or mixed packet can be partly understood as vehicle-related while still lacking the evidence needed for one vehicle or one record role.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A locked title scan, password-protected portal export, damaged archive or unknown workshop format remains indexed without purpose inferred from its filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Proposal-level vehicle records are not named as a design domain, so this does not claim that every vehicle file is sensitive. The concrete files establish the risk: titles and registrations carry owner identity and address; finance and insurance records carry account and policy data; signed transfer or lease documents are legal records; images may carry location metadata. The inherited Finance schema is a safety domain, so protection precedes any cloud or automated placement path. Only the catalogue phrase potentially_sensitive is assigned here; P7 owns every handling class. Raw identifiers and full text remain local, protected summaries should be redacted, and this placeholder does not unlock a deep template from safety activation.",
+  "open_question": "R1c must adjudicate the proposed canonical vehicle field. Without it, the honest v1 template can only place record_type beneath an accepted one-vehicle group; institution-first scatters one vehicle across issuers and record_type-first at the corpus root merges several vehicles. If vehicle is accepted, its value should be the evidence-backed asset identity with a user-safe display alias, while full VINs, plates and owner details remain raw/local evidence rather than mandatory folder labels. If it is rejected, this row remains useful for recognition, protection and grouping but must stay shallow; no existing key may be repurposed to make the familiar vehicle then record-type tree appear complete."
+}

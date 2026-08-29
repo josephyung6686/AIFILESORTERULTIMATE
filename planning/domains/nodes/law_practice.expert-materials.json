@@ -1,0 +1,570 @@
+{
+  "id": "law_practice.expert-materials",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Expert evidence and instructions",
+  "one_line": "The file of ONE retained or appointed non-party specialist within a matter: the letter of instruction that scopes the questions, the enumerated bundle of material provided to the specialist, the specialist's qualifications and testimony history, the draft and signed report with its declaration, the supplemental or rebuttal report, the written questions and answers, the joint statement produced after two opposing specialists meet, and the working papers, calculations, inspection record and raw test output that stand behind the opinion. The row exists because its activation structure is NOT the schema's default practitioner-and-client pair: its anchoring slot is a DECLARATION OF DUTY RUNNING TO A TRIBUNAL rather than to the instructing side, beside a QUALIFICATIONS slot and a MATERIALS-CONSIDERED ENUMERATION, so the producer is deliberately marked as NOT the practitioner side and the client is frequently not named on the document at all. Its privacy rule is doubly inverted against the schema default: the named non-party here is a professional whose own file carries a PRIOR-TESTIMONY LIST, a cross-matter bridge written inside a single file, and the material behind the opinion is routinely a FOURTH person's primary medical, financial or identity record, which co-activates a safety domain on its own evidence and not on the matter's. It does NOT hold the examination of that specialist (law_practice.depositions-testimony), the designator series and schedule that mark documents the specialist did not produce (law_practice.evidence-exhibits), counsel's advice to the instructing side (law_practice.opinions-advice), or a client-addressed professional report given outside proceedings (construction_property.survey-valuation). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "subject_of_record",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "ENDORSEMENT OF AN EXISTING PROPOSAL, ADDING ONE CASE THE OTHER PROPOSERS DO NOT FACE. `clinical_practice` raised `subject_of_record` for the person a record is ABOUT as distinct from the holder, `nonprofit` adopted it rather than minting `beneficiary`, and the `law_practice` schema adopted it for a witness, deponent or child. This row needs it for a person NONE of those three describe: the specialist is neither the holder, nor the holder's client, nor an adverse party, nor a subject at all - they are a PRODUCER who is nevertheless a named non-party with a documented professional history sitting in the file. Two candidate mints are refused here explicitly so no sibling reaches for them: `expert` and `author_role` would both encode a role name in a key, and the schema already ruled that a role name cannot carry a node. If R1c judges that the producing non-party genuinely cannot be carried by `subject_of_record`, the honest answer is that no key holds them and none should be minted for one template.",
+      "preferred_resolution": "Adjudicate as ONE key with `clinical_practice`, `nonprofit` and `law_practice`. This row asks for nothing the schema did not already ask for, and joins the request that `destination_eligible` be FALSE on the key itself; it adds one reason of its own, that a specialist's name as a folder level is simultaneously a strategic disclosure and a cross-matter bridge.",
+      "why": "The field-shaped hole under this row's privacy claim. The person most present in the file is the one canonical fields cannot name."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION AND DELETION TEST. Every signal below is a STRUCTURE plus a LABELLED SLOT, and this row concedes the schema's strike first and in full: the word expert, a specialist's name, a discipline name, a set of letters after a name, a professional-body membership line and a document-type word are ALL never-alone here, alone or in combination. The schema's own never_alone list already strikes an EXPERT NAME by name. Delete every entity name and every document-type word from the fixtures below and what must survive is four labelled slots - an instructing party, a qualifications section, an enumerated materials-considered list, and a declaration whose stated duty runs to someone outside the retainer. If none of those survives, nothing fires.",
+      "A DECLARATION-AND-QUALIFICATIONS structure, and it is this row's anchor because it is the one shape the schema's default template cannot see. A single document carrying (i) a section reciting the instructing party and the questions asked, (ii) a qualifications, experience or curriculum-vitae section about the PRODUCER, (iii) an enumerated list of documents and material considered, and (iv) a signed declaration slot whose own words state a duty owed to a court or tribunal, or an independence or statement-of-truth slot. The schema's default requires a practitioner-role slot paired with a client-role slot; THIS DOCUMENT HAS NEITHER. Its role pair is instructing-side and producer, and its duty slot points at a third party who instructed nobody. Read through 00's direct-fact path, \"a labeled form field\": the declaration is a labelled slot, and its literal words are preserved as an observation. The product decides no independence, no admissibility, no compliance and no legal effect from it.",
+      "A LETTER-OF-INSTRUCTION structure: a letter or memorandum whose labelled parts pair an INSTRUCTING slot (a firm or a matter reference) with an INSTRUCTED SPECIALIST slot, and enclose a numbered or scheduled list of documents provided, a statement of the questions or issues on which an opinion is sought, an assumptions or agreed-facts section, and a fee or timetable line. It is deliberately distinguished from the schema's counsel-instruction signal by the ENCLOSURE LIST BEING SCOPED TO A LATER REPORT and by the presence of a scope-of-opinion question set rather than a request for advice on the instructing side's position.",
+      "A JOINT-STATEMENT structure, which no neighbour on the roster produces: a document naming TWO separately instructed specialists on OPPOSING sides, recording a meeting, and partitioning its body into matters AGREED and matters NOT AGREED with reasons, signed by both. Two adverse producers signing one document is a structure the schema's two-role default cannot express, and it is the strongest single discriminator in the row.",
+      "A QUESTIONS-AND-ANSWERS structure: a document putting numbered written questions to a named producer about an identified earlier report, with the producer's numbered answers returned, cross-referring to the report by paragraph. The PARAGRAPH-COORDINATE CROSS-REFERENCE into another named document is the evidence, not the question words.",
+      "A MATERIALS-CONSIDERED ENUMERATION as a grouping anchor: a numbered or scheduled index, inside a report or as its appendix, listing documents, records, data sets, photographs and inspections the producer reviewed. This is an EXPLICIT REFERENCE written by the file itself, which is what 00's grouping rules require of an anchor - \"It should not form a supported group when there is no valid anchor, when the graph is connected only by embeddings, when one high-frequency entity acts as the only bridge\". It supports candidate membership over the listed items and copies no fact onto any of them.",
+      "A WORKING-PAPERS structure behind an already-evidenced report: a workbook whose COLUMN SET carries an assumption, input, source-reference and calculated-output series with a sheet reconciling to a figure that appears in a report; an inspection or examination record pairing a date, a location or subject, a method and observations; a raw instrument or test output whose header names an operator, a run identifier and a method. Read through 00's spreadsheet path. These fire ONLY when an instruction or a report is separately evidenced; alone they are unattributed technical files.",
+      "AN EMAIL structure whose labelled sender and recipient roles cross the INSTRUCTING-SIDE-to-SPECIALIST boundary and whose subject or body carries an exact matter reference together with an identified report - comments on a draft, a request for further material, a timetable for a joint meeting. A professional-sounding subject line, a consultancy email domain and a source type never fire.",
+      "AN OPPOSING SERVED REPORT: the same declaration-and-qualifications structure as above, where the instructing block names a firm that is NOT the holder's and the copy is stamped, transmitted or indexed as served. This is included deliberately, because it is the case where the schema's default template UNDER-FIRES completely - there is no matter reference belonging to the holder's firm, no client slot, and no practitioner-side producer marker anywhere on the document."
+    ],
+    "needs_llm": [
+      "SEPARATING A REPORT PRODUCED FOR PROCEEDINGS FROM A REPORT PRODUCED FOR A CLIENT. This is the row's central and hardest question and it is owed reciprocally to `construction_property.survey-valuation`. A surveyor, an accountant, a physician and an engineer all write reports with a qualifications section, a methodology, limitations and a signature. The discriminating evidence is the DECLARATION SLOT, the instructing-solicitor block and the materials-considered enumeration; the discipline, the letterhead and the professional-body line discriminate nothing.",
+      "DECIDING THE SIDE, inherited unchanged from the schema and sharper here. Our specialist, their specialist, or a single joint appointment instructed by both. The same report, the same CV and the same joint statement exist in both parties' files and differ only in which instructing block is the holder's. Where the side is unresolved the model must abstain: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "SEPARATING THE PRODUCER'S OPINION FROM COUNSEL'S ADVICE. Both are reasoned professional documents inside a matter. The seam is structural and stated for `law_practice.opinions-advice`: counsel advises the instructing side and has no qualifications section, no materials-considered enumeration and no duty declaration to a tribunal; the specialist's document has all three and is produced in order to be disclosed. Topic will not separate them - \"Topic answers what a file is about, while purpose answers what the file was for.\"",
+      "RECOGNISING UNLABELLED PRODUCER PROSE - a preliminary view given in running text, a scribbled inspection note later scanned, a telephone attendance note recording a specialist's oral opinion, a slide deck used to explain a model. 00 names exactly this class among the reasons rules are insufficient.",
+      "DISTINGUISHING AN OPERATIVE REPORT FROM A TEACHING OR SAMPLE COPY. This discipline publishes its own exemplars more freely than most - model instruction letters, sample reports in practice guides, training-course specimen joint statements, published academic papers by the same authors. A specimen carries the declaration wording too, because that is what it is teaching.",
+      "DECIDING WHETHER RAW TECHNICAL MATERIAL BELONGS TO THIS ROW AT ALL. A data set, a scan, a model file or a photograph set is material CONSIDERED, not material produced. It keeps its own schema's evidence and this row claims no primacy over it; where that schema is a safety domain, its protection runs first.",
+      "ABSTAINING WHEN ONLY THE ROLE WORD IS PRESENT. A file named for a specialist, a folder named for a discipline, a CV with no instruction and no report around it: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "A SPECIALIST'S NAME, A DISCIPLINE NAME, POST-NOMINAL LETTERS, A PROFESSIONAL-BODY MEMBERSHIP LINE, OR A CONSULTANCY NAME. Struck first and conceded as the row's existential risk, read across by inference from \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" One person appears as the holder's instructed specialist, as the opponent's, as a single joint appointee, as a published author cited in someone else's report, as a lecturer on a training deck, and as an ordinary consultant on an unrelated commercial engagement.",
+      "THE WORD EXPERT, WITNESS, OPINION, REPORT, INSTRUCTION, DECLARATION, INDEPENDENT, JOINT or SPECIALIST, alone or beside a name. A document-type word beside an entity name is the two-token escape route the schema already closed, and this row is the one most likely to be tempted by it because its entire subject matter is named by one such word.",
+      "A QUALIFICATIONS OR CURRICULUM-VITAE SECTION ALONE. A CV is `career` material by default; it becomes this row's evidence only as an appendix inside, or an enclosure to, a separately evidenced instruction or report.",
+      "A METHODOLOGY, LIMITATIONS, ASSUMPTIONS or PEER-REVIEW SECTION ALONE. Consultancy deliverables, audit reports, valuations, academic papers and internal technical memos all carry these sections.",
+      "A DECLARATION, STATEMENT-OF-TRUTH, INDEPENDENCE or DUTY LABEL WITHOUT ITS SURROUNDING STRUCTURE. The label is preserved literally and decides nothing; a template, a specimen and a training deck all print it.",
+      "A MATTER, CASE, CLAIM, INSTRUCTION or REPORT REFERENCE ALONE. An identifier supplies linkage only after its own labelled role is established, and its digits are never a date.",
+      "A PRIOR-TESTIMONY, ENGAGEMENT-HISTORY or PUBLICATION LIST AS A CROSS-MATTER BRIDGE. Stated as a never-alone rule rather than only as a privacy rule, because the temptation is specific and mechanical: the file itself supplies a list of OTHER matters, and reading it as a link is precisely the cross-matter bridging the schema suppresses.",
+      "A SHARED SPECIALIST NAME ACROSS TWO MATTERS, or a shared discipline, a shared method, a shared test facility, or semantic similarity between two reports.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including text_document, spreadsheet, image, ocr, email, archive, audio_video and opaque_binary. file_kind_plausible is constitutionally never-alone, and this row's raw material is the roster's clearest case of a technical file that means nothing without its report.",
+      "A FILENAME OR FOLDER containing expert, report, opinion, instruction, joint, appendix or served. A folder name is an unlabelled position.",
+      "AUTHOR, CREATOR OR PRODUCER METADATA naming a consultancy, a laboratory instrument, a modelling package or a document-assembly tool. 00: \"It should avoid using authorship or creator identity as a destination dimension\".",
+      "SERVICE OR DISCLOSURE OF A REPORT AS PROOF THAT IT IS LOW-SENSITIVITY. A served report was designed to be handed to an opponent; that is a professional act, not publication, and it says nothing about the surrounding draft, the instruction, the working papers or the material behind it. This is the schema's public-availability rule restated for the one artefact family that will most often invite the mistake."
+    ]
+  },
+  "proposed_context_terms": [
+    "letter of instruction",
+    "instructing solicitor",
+    "instructing party",
+    "instructed to prepare",
+    "single joint expert",
+    "joint instructions",
+    "documents provided",
+    "materials considered",
+    "material relied upon",
+    "index of enclosures",
+    "questions on which my opinion is sought",
+    "issues for the expert",
+    "substance of instructions",
+    "instructions received",
+    "qualifications and experience",
+    "curriculum vitae",
+    "professional qualifications",
+    "prior testimony",
+    "testifying experience",
+    "publications list",
+    "statement of truth",
+    "declaration",
+    "duty to the court",
+    "duty to the tribunal",
+    "independence",
+    "I confirm that I have made clear which facts",
+    "opinion",
+    "range of opinion",
+    "reasoned opinion",
+    "methodology",
+    "method adopted",
+    "assumptions",
+    "limitations",
+    "site inspection",
+    "examination undertaken",
+    "tests performed",
+    "sample reference",
+    "chain of custody",
+    "calculation schedule",
+    "working papers",
+    "draft report",
+    "comments on draft",
+    "supplemental report",
+    "rebuttal report",
+    "responsive report",
+    "questions to the expert",
+    "answers to questions",
+    "experts' meeting",
+    "joint statement",
+    "agreed and not agreed",
+    "matters agreed",
+    "matters not agreed",
+    "expert's fee estimate",
+    "expert terms of engagement",
+    "report served",
+    "exchange of expert reports",
+    "permission for expert evidence"
+  ],
+  "work_types": [
+    "letter of instruction to a specialist and its enclosure schedule",
+    "specialist terms of engagement, fee estimate and availability confirmation",
+    "bundle or index of material provided to the specialist",
+    "specialist qualifications, curriculum vitae and testimony-history appendix",
+    "draft report and comments on a draft",
+    "signed report with declaration",
+    "supplemental, rebuttal or responsive report",
+    "written questions to a specialist and the answers returned",
+    "joint statement or experts'-meeting memorandum",
+    "single joint appointment and joint instructions",
+    "opposing party's served report",
+    "specialist working papers, calculation model, inspection record and raw test output",
+    "correspondence between the instructing side and the specialist"
+  ],
+  "grouping_reasons": [
+    "ONE SPECIALIST ENGAGEMENT within one matter, joined by an exact matter reference plus an identified report: the instruction letter, the material index, the drafts, the signed report, the questions and answers, the joint statement and the correspondence. Content-incoherent and purpose-coherent, which is 00's own licence - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership and copies no producer, client, subject or opinion fact onto any member.",
+    "ONE REPORT ACROSS ITS VERSIONS - draft, commented draft, signed, served and paginated-in-bundle - the universal version_family fact, supported by hashes or explicit revision markers, never by a `-final` suffix.",
+    "THE MATERIALS-CONSIDERED SET, and it is this row's distinctive anchor because the list is written INSIDE the file by its own producer. An enumerated index of documents reviewed is an explicit reference, not a similarity, so it can support candidate membership over items the producer did not create. Those items keep their own schema's facts, and several of them are protected records in their own right: \"A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.\"",
+    "TWO OPPOSING REPORTS PLUS THEIR JOINT STATEMENT, joined ONLY by the joint statement's own naming of both reports. Never by shared subject matter, shared discipline or two reports arriving in one download.",
+    "NO GROUP AT ALL is a valid and common outcome. A single served report with no instruction, no matter and no correspondence around it is still protected material and is routed as such.",
+    "NOT grouping reasons, stated because this row's own content invites all four: a shared specialist name across matters; the prior-testimony or publications list inside the file; a shared discipline, method or test facility; and a download session. \"A session should never be treated as proof of topic\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - a dimension may only branch on a field the same schema declares and `law_practice` declares none under PR-6 - and empty a second time because this row's material co-activates `legal`, `medical` and `finance`, and \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" THE RECOMMENDATION HELD AS PROSE, AND HERE IS WHERE IT DIVERGES FROM THE SCHEMA'S DEFAULT PARAGRAPH. The schema recommends client (only where genuinely multi-client and explicitly approved), then matter, then document function, then period, and forbids a named third party as a level for a consent reason: an adverse party, a witness, a deponent, a child never chose this filesystem. THIS ROW ADDS A PROHIBITION THE DEFAULT DOES NOT STATE AND CANNOT DERIVE, because the natural axis of an expert file is neither the client nor the function but the SPECIALIST, and the specialist is not a vulnerable third party - they are a paid professional who consented to the engagement, so the schema's consent argument does not reach them. The prohibition is nevertheless absolute, for two different reasons. First, DISCLOSURE OF STRATEGY: a branch named for a specialist publishes which discipline a matter turned on and which specialist a firm chose, including specialists instructed and then not used, which is exactly the kind of visible label the neighbouring row warned about when it said a visible client or matter label can itself disclose the existence and subject of a representation. Second, CROSS-MATTER BRIDGING: a specialist-named level would place two unrelated matters under one parent in the filesystem, materialising as a path the very bridge the schema suppresses in facts. WITHIN one engagement the lifecycle - instruction, materials, draft, signed, questions, joint statement - is likewise NOT a level: it is a lifecycle stage and a version series, and 00 already resolves version differences as a fact rather than a folder. Function still follows the matter for 00's stated reason, \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it\" - a rebuttal report, an answer set and an appendix are unintelligible without the report and the matter they attach to. NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Instruction date, inspection date, report date, service date and filesystem date mean five different things here, and nothing in this world is capture-based. And whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "presentation",
+      "archive",
+      "audio_video",
+      "opaque_binary",
+      "calendar"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".msg",
+      ".eml",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".pptx",
+      ".zip",
+      ".mp4",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Letter of instruction to expert - 41127-0006 - Dr M Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a firm letterhead and a matter reference in a labelled header, addressed to a named individual at a consultancy",
+        "a numbered schedule of documents enclosed, running to several pages",
+        "a labelled section stating the questions on which an opinion is sought, and an assumptions section",
+        "a fee estimate line, a timetable, and a paragraph reciting a duty owed to the court",
+        "no bound party pair, no execution block and no tribunal caption anywhere on the letter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none; and no client, our_firm, project or subject_of_record value, all of which are proposals awaiting R1c",
+        "that this is the schema's default counsel-instruction structure. The default's third slot is a NAMED ADVISEE and the advice runs to the instructing side; here the third slot is a DUTY TO A TRIBUNAL and the questions are scoped to a report that will be disclosed. The enclosure schedule is a materials list, not a bundle index",
+        "that the enclosure schedule licenses copying the matter reference onto the enclosed documents; the anchor supports membership and copies nothing",
+        "a folder path, and specifically not a branch named for the addressee"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Expert report - Dr M Patel - signed - 2026-05-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title page naming the matter, the instructing firm and the party on whose behalf the report is prepared",
+        "a qualifications and experience section about the author, with an appended curriculum vitae and a list of matters in which the author has previously given evidence",
+        "an enumerated materials-considered list and a section reciting the substance of the instructions received",
+        "methodology, assumptions, limitations, a range-of-opinion passage and numbered conclusions",
+        "a signed declaration slot whose printed words state a duty to the court and confirm independence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS IS THE ROW'S ANCHOR FIXTURE AND ITS FIRST PROHIBITION IS THE POINT: the schema's DEFAULT TEMPLATE DOES NOT FIRE ON IT. There is no practitioner-role slot paired with a client-role slot; the pair is instructing-side and producer, and the producer is expressly not the practitioner side. Activation here comes from the declaration, the qualifications section and the materials enumeration, not from the default pair",
+        "independence, impartiality, admissibility, compliance with any procedural rule, or that any opinion is correct, current, accepted or acted on. The declaration's words are preserved literally and decide nothing",
+        "that the prior-testimony list may be used to link this matter to any other. It is the row's most mechanical cross-matter bridge and it is suppressed",
+        "an authored_by fact turned into a dimension - 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appendix 3 - materials considered - Dr Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a numbered list of documents, records, photographs and data sets with dates and short descriptions",
+        "a header cross-referring to a named report and its paragraph numbering",
+        "some entries carry a document-control number applied by someone other than the author",
+        "no designator series of its own, and no schedule of admitted or objected items"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "SHARED FIXTURE WITH `law_practice.evidence-exhibits`, WHOSE BOUNDARY THIS ROW ACCEPTS AND RECIPROCATES: an enumeration SCOPED TO ONE REPORT and headed by that report is this row's; a designator series applied across documents the producer did not create and closed by a schedule outside the report is that row's. The presence of foreign control numbers in the entries does not move the appendix",
+        "that the listed items become members carrying this row's facts. Each keeps its own schema's evidence, and where that schema is medical, finance or identity its protection runs first",
+        "that a list of short entries is low-risk; the enumeration names third-party records in bulk",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Joint statement of quantum experts - Patel and Owusu - signed.docx",
+      "source_type": "text_document",
+      "observations": [
+        "two separately instructed producers named at the head, each with their instructing firm identified",
+        "a record of a meeting date and the documents both had before them",
+        "the body partitioned into matters agreed and matters not agreed, with reasons attributed to each producer",
+        "two signature blocks, one for each producer, and no party or execution recital"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that agreement or disagreement is binding, correct, current, or an outcome of the matter",
+        "that the presence of the opposing producer's name creates a link to the opposing party's own file, or to any other matter either producer has worked on",
+        "any law_practice fact - none is declared. TWO ADVERSE PRODUCERS SIGNING ONE DOCUMENT is the row's strongest structural discriminator and it is still only an activation signal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Loss calculation model - Patel report appendix.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers pairing assumption, input value, source reference and calculated output",
+        "a summary sheet reconciling to a figure that appears in a named report's conclusions",
+        "source-reference cells pointing at document-control numbers from a disclosure set",
+        "no institution name, no account number and no issuer or billed-to block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is finance. The discriminating evidence is the ASSUMPTION-AND-SOURCE-REFERENCE column set reconciling to a report, and the absence of an institution-and-account header. A statement of a real account IS finance's on its own evidence and this row does not claim it",
+        "that it is a business_operations model because it forecasts; a project column would make it one, a report cross-reference does not",
+        "any figure as a fact, a valuation, a loss, or anything the product asserts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Site inspection - 14 Priory Road - 2026-03-02 - IMG_0417.jpg",
+      "source_type": "image",
+      "observations": [
+        "EXIF DateTimeOriginal and a device model; no GPS",
+        "one of a numbered sequence referenced by figure number in a report's inspection section",
+        "a scale rule and a handwritten card bearing a sample reference appear in frame",
+        "the filename carries only the camera's own counter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "camera_model",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a location, address or subject fact from the folder name or the report's caption - EXIF DateTimeOriginal is evidence and capture date is the fact; nothing else on this file is labelled",
+        "that the photograph is this row's material because it sits beside a report. It becomes a candidate member through the report's own figure reference; without that it is `photos` material and nothing more",
+        "that a photograph inside an expert file is unprotected because it shows a building rather than a person",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Draft report - comments before signature - 41127-0006.msg",
+      "source_type": "email",
+      "observations": [
+        "labelled sender and recipient slots crossing the instructing-firm-to-specialist boundary",
+        "an exact matter reference in the subject and a named draft report attached",
+        "running prose discussing the wording of conclusions and the scope of an assumption",
+        "a confidentiality and privilege footer applied automatically to every message from the sender"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege, work-product protection, disclosability or waiver, from the footer or from the fact that the exchange concerns a draft. The product preserves the literal observation and decides no legal status - and this fixture is where that rule bites hardest, because correspondence about a draft report is precisely the material whose protection is contested in real practice",
+        "that the footer is evidence of this row, or of any row",
+        "that thread membership joins other messages to the matter - \"A session should never be treated as proof of topic\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Claimant medical records bundle - indexed - provided to expert.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned and OCR'd compilation with an index page and continuous pagination",
+        "clinical letters, discharge summaries, imaging reports and prescriptions about ONE named individual who is not the holder and not the holder's client",
+        "a cover sheet from the instructing firm listing it as an enclosure to an instruction letter",
+        "OCR confidence is poor on handwritten sections"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that membership of an expert's materials list makes this a law_practice artefact rather than a medical one. IT IS MEDICAL'S, ON MEDICAL'S OWN EVIDENCE, AND MEDICAL IS A SAFETY DOMAIN WHOSE PROTECTION RUNS FIRST - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" This row co-activates and takes nothing away",
+        "a clinical fact, a diagnosis, a condition or a subject identity as a stored value, a prompt payload, or a folder level",
+        "permission to send any of it to a cloud model: \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\"",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Deposition of Dr Mira Patel - expert - Volume I.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an officer's certificate, an appearances page and question-and-answer pages with page-and-line numbering",
+        "the examination is almost entirely about a named report and the materials its author considered",
+        "an errata slot for the witness to correct their own recorded words",
+        "an alphabetical word index bound at the end",
+        "the file sits in a folder with that report and its instruction letter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THE RECIPROCAL IS OWED TO `law_practice.depositions-testimony` AND IS ACCEPTED IN THAT ROW'S OWN TERMS: the seam is BY ARTEFACT, NEVER BY PERSON. That row owns the EXAMINATION, on its officer's certificate and its errata slot; this row owns the instruction letter, the report, the materials-considered list, the curriculum vitae and the correspondence. The same individual is on both sides, so the shared name is the least useful evidence in the pair",
+        "that the report becomes that row's because it was examined on, or that the transcript becomes this row's because a specialist spoke",
+        "that the folder supplies the matter or the engagement - a folder is an unlabelled position",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Building condition report - 14 Priory Road - for Mr and Mrs Hartley.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a surveyor's letterhead, a professional-body membership line and a qualifications paragraph",
+        "an inspection date, a methodology and extent-of-inspection section, and a limitations and assumptions section",
+        "conclusions with condition ratings and a costed schedule of repairs",
+        "addressed to the occupiers by name, on the surveyor's own terms of engagement",
+        "NO instructing-solicitor block, NO matter reference, NO materials-considered enumeration and NO declaration of duty to a court"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE PRIMARY COLLISION FIXTURE and it carries every superficial marker of an expert report - qualifications, methodology, limitations, a signature, a reasoned conclusion. The DISCRIMINATING EVIDENCE is the absence of the three slots that define this row: an instructing-side block, a materials-considered enumeration and a declaration whose duty runs outside the retainer. `construction_property.survey-valuation` owns it, on its own landed statement that a client-addressed report given under a professional basis stays there",
+        "that the discipline decides anything. The same surveyor writing the same building up for proceedings, with a solicitor's instruction and a duty declaration, produces this row's file instead",
+        "that a costed repair schedule is a pleading annex",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Expert Witness CV and Testimony History - Dr M Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a professional curriculum vitae with education, appointments, publications and a fee-rate schedule",
+        "a table of prior engagements listing case names, instructing parties, sides and years",
+        "no instruction letter, no report and no matter reference anywhere around it",
+        "the filename is the only thing tying it to any proceeding"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW ON ITS OWN. THIS IS THE SECOND COLLISION FIXTURE AND IT IS THE ROW-DEFINED-BY-A-NAME TRAP IN ITS PUREST FORM: a person's name plus two document-type words, both of which this row's own never_alone list strikes. A curriculum vitae is `career` material by default, and it becomes this row's evidence only as an appendix to, or an enclosure of, a separately evidenced instruction or report",
+        "that the prior-engagement table may be read as links to other matters. It is a ready-made cross-matter bridge and reading it is forbidden regardless of how well it would work",
+        "that the fee-rate schedule is finance evidence about the holder",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Order granting permission for expert evidence - Hartley v Nash.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption naming two parties and a case identifier in the heading zone",
+        "numbered operative paragraphs, one of which names the disciplines permitted and a date for exchange",
+        "a court seal image and a filed stamp",
+        "the word expert appears four times in the operative paragraphs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row displaces `legal`. IT DOES NOT AND THE ROW CONCEDES IT: a caption plus operative paragraphs is `legal`'s own deterministic signal, `legal` is a safety domain and its protection runs first. The repeated word expert is a document-type word inside someone else's structure and activates nothing here",
+        "that the order's permission, its disciplines or its exchange date are current, complied with, varied or operative",
+        "a date fact from digits in the case identifier",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Instrument run export - batch 22-118.dat",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a readable header naming an operator, a run identifier, a method name and an instrument serial number",
+        "the remainder is an undocumented binary payload",
+        "a sample reference in the header matches a card visible in an inspection photograph",
+        "no matter reference, no party, no report and no human-readable prose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "this row from the header alone. Raw instrument output is material CONSIDERED, not material produced, and it becomes a candidate member only through a separately evidenced report's own sample or figure reference",
+        "a result, a measurement or a finding of any kind - the payload is not parsed and no meaning is manufactured from a method name",
+        "that an unparseable file in a professional folder inherits the folder's purpose",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.depositions-testimony",
+      "signal": "SAME FIXTURE BOTH SIDES: `Deposition of Dr Mira Patel - expert - Volume I.pdf` — a certified examination transcript almost entirely about one specialist's report, sitting beside that report and its instruction letter. THE NEIGHBOUR OWNS the examination, on its officer's certificate, its page-and-line addressing and its errata slot; THIS ROW OWNS the instruction letter, the report, the materials-considered list, the curriculum vitae and the specialist correspondence. Discriminated by THE ARTEFACT AND NEVER THE PERSON — the same individual is on both sides, so the shared name is the least useful evidence in the pair. Reciprocal of the neighbour's landed edge, accepted in its own terms.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.evidence-exhibits",
+      "signal": "SAME FIXTURE BOTH SIDES: `Appendix 3 - materials considered - Dr Patel.pdf` — an enumerated attachment set that reads exactly like a schedule. THIS ROW OWNS an enumeration scoped to ONE report and headed by that report, beside an instructing block, a qualifications section and an opinion structure; THE NEIGHBOUR OWNS a designator series applied across documents the specialist did not produce and closed by a schedule that lives outside any report. Discriminated by whether the list is authored inside the report or applied to the corpus from outside it; foreign control numbers appearing in the entries do not move the appendix. Reciprocal of the neighbour's landed edge, which recorded that it gives this fixture away.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.survey-valuation",
+      "signal": "SAME FIXTURE BOTH SIDES: `Building condition report - 14 Priory Road - for Mr and Mrs Hartley.pdf` — a surveyor's report with qualifications, methodology, limitations, ratings and a costed repair schedule. THE NEIGHBOUR OWNS a client-addressed report given under the surveyor's own professional basis; THIS ROW OWNS the same surveyor's report when an instructing-solicitor block, a matter reference, a materials-considered enumeration or a declaration of duty to a court is present. Discriminated by those three slots, never by the discipline, the letterhead or the professional-body line. Reciprocal of the neighbour's landed edge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.opinions-advice",
+      "signal": "SAME FIXTURE BOTH SIDES: `Advice on quantum - 41127-0006.pdf` — a reasoned professional document inside one matter, headed by the matter reference, separating questions from conclusions. THE NEIGHBOUR OWNS counsel's or the firm's advice to the instructing side, whose producer marker is the practitioner side and which has no qualifications section, no materials-considered enumeration and no declaration of duty outside the retainer; THIS ROW OWNS the document that has all three and is produced in order to be disclosed. Discriminated by the declaration slot plus the qualifications section, not by the reasoning, the topic or the word opinion.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "SAME FIXTURE BOTH SIDES: `Claimant medical records bundle - indexed - provided to expert.pdf` — a paginated clinical compilation about one named individual, enclosed with an instruction letter. THE NEIGHBOUR OWNS the clinical record on its own evidence and, being a safety domain, its protection runs FIRST and is not displaced by membership of a materials list; THIS ROW OWNS only the enclosure relationship and the report built on it. Discriminated by nothing at all on the bundle itself — the discriminator is the direction of the claim: this row co-activates and takes nothing away. Same rule for a medico-legal report about a claimant, which is this row's on its declaration and medical's on its clinical content simultaneously.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Terms of engagement and fee estimate - Patel Consulting.pdf` — a two-organisation engagement document with scope, rates, confidentiality and signature blocks. THE NEIGHBOUR OWNS a consulting engagement with prepared-for and prepared-by roles, deliverables, milestones and acceptance; THIS ROW OWNS the same shape when the scope is expressed as questions for an opinion, the counterparty is an instructing firm on a matter, or a duty-to-the-tribunal paragraph appears. Discriminated by the question-set-and-duty structure, never by the fact that a consultancy was retained. The same rule sends a bare curriculum vitae to `career`: `Expert Witness CV and Testimony History - Dr M Patel.pdf` is that row's until an instruction or a report anchors it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "SAME FIXTURE BOTH SIDES: `Expert Report - Dr Mira Patel.pdf`, which the landed neighbour lists among its own fixtures. THE NEIGHBOUR OWNS it as one member of a practitioner-side matter packet, recognised through the representation anchor, and it is the broader safety-side row whose protection is not narrowed by this one; THIS ROW OWNS the engagement AROUND that document — the instruction, the materials enumeration, the drafts, the questions and answers and the joint statement — and adds the declaration-and-qualifications activation that fires when the report arrives with no representation anchor at all, such as an opposing party's served copy. Discriminated by whether the recognition runs through a practitioner-and-client representation or through the report's own duty declaration.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Loss calculation model - Patel report appendix.xlsx` and, more sharply, a forensic accountant's schedules built from a party's statements. THE NEIGHBOUR OWNS anything carrying an institution-and-account header, an issuer-and-billed-to block or a ledger of real transactions, including the specialist's own invoice; THIS ROW OWNS a workbook whose column set is assumption, input, source reference and calculated output and which reconciles to a figure in a named report. Discriminated by the institution-and-account header, exactly as the schema states the test from its side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "SAME FIXTURE BOTH SIDES: `Peer-reviewed paper cited at para 4.12 - Patel report.pdf` — a published article sitting inside an expert folder. THE NEIGHBOUR OWNS published reading material with no accepted purpose anchor, which is where a downloaded paper, a practice guide on expert evidence and a specimen report all land; THIS ROW OWNS the same paper only where a report's own materials-considered enumeration names it by an exact reference. Discriminated by the enumeration, never by co-location, topic match or a shared author name.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Default potentially_sensitive, and the reason is NOT the schema's default reason, which is why it is stated here rather than inherited. The schema protects a third party who never chose this filesystem. This row protects three distinguishable people at once. FIRST, the instructing side's own strategy: an instruction letter states what a matter turned on, a commented draft shows what was changed before signature, and the existence of an instructed specialist whose report was never served is itself a strategic fact. SECOND, a FOURTH person entirely: the material behind an opinion is routinely another schema's primary record about someone who is neither the holder, nor the client, nor the specialist - a claimant's clinical bundle, a party's account statements, a child's assessment protocols. That material co-activates a safety domain on ITS OWN evidence and its protection runs first; membership of a materials list neither creates nor erases it. THIRD, the specialist, who is a named professional rather than a vulnerable party and is protected for a different reason: their file carries a fee schedule and a prior-testimony list, and the list is a cross-matter bridge written inside a single file. One correction to a natural assumption is stated explicitly because it will otherwise be made: A SERVED REPORT IS NOT PUBLIC. It was designed to be handed to an opponent, which is a professional act and not publication, and it says nothing about the draft, the instruction, the correspondence or the material behind it. Handling classes are P7's; nothing here assigns one, and no legal status - privilege, disclosability, waiver, admissibility - is decided anywhere in this row.",
+  "open_question": "Four, none of them smoothed. (1) NJ-EXP-1, THE OPINIONS-ADVICE SEAM, and it is this row's weakest joint because the neighbour has not landed. This row claims the declaration-and-qualifications structure and leaves counsel's advice to `law_practice.opinions-advice`; but a firm's own internal memorandum obtaining a technical view, and a specialist's preliminary letter before any formal instruction, sit exactly between them and carry neither a duty declaration nor a practitioner-side producer marker. Alternatives: (a) this row takes any document whose producer is expressly not the practitioner side, and the neighbour keeps only practitioner-side advice - simple, but it drags in every consultancy note; (b) the neighbour takes everything without a duty declaration, and this row narrows to declared evidence only - clean, but it loses the instruction letter, which is this row's first artefact; (c) leave both under the schema default until the neighbour lands. This row implements (b)'s discriminator in its edge and prefers (c) as the adjudication. R1c decides. (2) NJ-EXP-2, THE FOURTH PERSON. This row's material list routinely contains another schema's protected primary record about a person with no relationship to the holder at all. The design docs settle that safety protection runs first and that a file may belong to more than one accepted group; they do not settle whether a materials enumeration may create a REVIEWABLE CANDIDATE EDGE onto a protected medical or finance record, or whether the edge must be suppressed so that the enumeration cannot be used to enumerate protected files. Alternatives: allow the edge but never surface the member list; allow it only after explicit user approval; forbid it entirely and let the enumeration remain unlinked text. This row assumes the middle option and says so rather than assuming silently. (3) NJ-EXP-3, THE PRIOR-TESTIMONY LIST. A single file here contains a machine-readable list of OTHER matters. The schema's cross-matter suppression is written as a rule about inference across files; a list inside one file is a case it does not literally cover. This row treats it as covered and strikes it in never_alone, but the rule should be stated once at schema or contract level rather than re-argued by every template that happens to hold a self-declared cross-matter index. (4) NJ-EXP-4, THE SERVED-BUT-NOT-PUBLIC CLASS. This row asserts that service on an opponent is not publication. Nothing in the design docs distinguishes deliberately-disclosed-to-one-party from publicly-available, and P7 owns handling. If P7's vocabulary cannot express that distinction, the alternatives are to treat every served document as ordinary protected material - this row's assumption - or to add a disclosed-to-a-named-counterparty observation, which is a new observation kind and should not be minted by a placeholder template."
+}

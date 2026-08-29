@@ -1,0 +1,604 @@
+{
+  "id": "government.public-records-foi",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Public records access and information requests",
+  "one_line": "The answering authority's own file for one request for recorded information: the received request, the search record, the item-by-item disclosure schedule, the redacted release, the withheld original, the refusal or partial refusal, and any internal review or oversight-body appeal. It is not activated by an access statute, an exemption citation, a reference-shaped token, or the presence of redaction; it requires the holder to be the body answering an external request, and it is the one government situation whose organizing anchor is a stranger's request rather than the authority's own programme.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are schema-activation signals for the government schema, which declares no fields. No accepted signal licenses writing a request, requester, exemption, or release fact. Every signal must evidence the holder as the body ANSWERING an external request, not as a requester, recipient, or reader of a disclosure.",
+      "one request reference repeated across an inbound request, an acknowledgement, a search record, a schedule, a decision letter, and a review, where the deciding or sending block is the holding public body; the same reference printed on a requester's copy is excluded by the role precondition",
+      "a document-level disclosure schedule: repeated item rows carrying a document description, a document date, a per-item disposition such as release, part-release, or withhold, and a per-item exemption or redaction reason - the signature structure of this row and of no other government row",
+      "a decision or refusal letter carrying all of a date the request was received, a response-due or statutory-response date, a disposition, and a rights-of-review or complaint paragraph addressed to the requester",
+      "a disclosure or publication log register: one row per request, with a request reference, a date received, a summary of what was asked, an outcome column, and a requester field that is anonymised or absent by design",
+      "a search or retrieval record naming systems, mailboxes, custodians, search terms, dates searched, and nil returns, tied to an exact request reference",
+      "a redacted release and an unredacted original of the SAME item set sitting under one request reference - a version family whose members have deliberately opposite exposure",
+      "an oversight-body case reference from an information commissioner, ombudsman, or tribunal paired with the authority's own request reference, plus the authority's submissions or chronology",
+      "a fee, cost-estimate, extension, transfer-to-another-authority, or repeat-and-burdensome determination notice that cites the same request reference and is issued by the holder",
+      "a case-management export or archive manifest whose paths repeatedly encode one request reference across request, correspondence, search, schedule, and bundle families"
+    ],
+    "needs_llm": [
+      "deciding WHICH SIDE holds a disclosure bundle when the released copy is byte-identical for the authority, the requester, a journalist, a campaigner, a lawyer, and a researcher; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "recognizing an unlabeled public-interest-test note, harm assessment, or exemption rationale whose function is expressed only in prose with no headed slots",
+      "separating an access-regime request from a subject-access or personal-data request in which the requester asks about themselves; the latter is a named person's own record and routes away from this row",
+      "deciding whether a redacted bundle is an authority's disclosure workflow or a legal, research, or reading packet after identifiers have been minimized",
+      "distinguishing an authority's disclosure schedule from a litigation or discovery schedule that itemises documents and withholding reasons in the same columnar shape",
+      "deciding whether a hybrid, arms-length, contracted-out, or quasi-public body is answering as a public authority at all; abstain rather than guess",
+      "judging whether an item inside a released bundle is a member of this request or merely a similar record held elsewhere in the corpus",
+      "abstaining whenever no external request workflow can be cited, however much access vocabulary is present"
+    ],
+    "never_alone": [
+      "an access-regime statute name, an exemption or clause citation, or phrases such as public interest test, vexatious, or neither confirm nor deny; the requester's copy, an archives access review, a lawyer's advice note, and a campaigner's template letter all carry the same vocabulary",
+      "a request-shaped reference token such as FOI-2026-0412 or 2026-0412; the identical string is printed on the requester's copy, quoted in a news article, and pasted into a campaigning site",
+      "redaction itself - black boxes, a REDACTED stamp, exemption codes in the page footer, or a redaction watermark; redaction is a treatment applied in litigation productions, published court exhibits, journalism, and research anonymisation, and never proves a disclosure workflow",
+      "a disclosure log, transparency page, or open-data release downloaded for reference; publication by an authority is not authority-side custody",
+      "a public body's name, seal, letterhead, .gov-style domain, or officer signature block; the body may be the requester's target, a cited authority, or the sender of a document held by its recipient",
+      "a folder or filename containing FOI, Freedom of Information, Disclosure, Transparency, Access to Information, EIR, or Records Request",
+      "a member of the public's name and address appearing beside an authority's name; a person plus an organisation is never-alone evidence twice over and may equally describe casework, a complaint, or a mailing list",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a shared download session or a single browser batch that pulled several disclosure PDFs together; “A session should never be treated as proof of topic”",
+      "the absence of camera metadata on an image, used as proof that it is a case-queue or request-portal screenshot",
+      "a statutory-looking deadline or a countdown of working days; deadline cadence occurs in casework, procurement, planning, complaints, and litigation alike"
+    ]
+  },
+  "proposed_context_terms": [
+    "request received",
+    "response due",
+    "internal review",
+    "schedule of documents",
+    "exemption applied",
+    "information not held",
+    "requester"
+  ],
+  "work_types": [
+    "received request and acknowledgement",
+    "clarification or scope-narrowing correspondence",
+    "search and retrieval record",
+    "schedule of documents or disclosure schedule",
+    "redaction record and exemption rationale",
+    "public-interest or harm assessment note",
+    "fee notice, cost estimate, or extension notice",
+    "response, decision, part-refusal, or refusal letter",
+    "redacted release bundle",
+    "withheld or unredacted source set",
+    "internal review request and review decision",
+    "oversight-body appeal submissions and outcome",
+    "transfer to another authority",
+    "repeat, burdensome, or out-of-scope determination",
+    "disclosure log or publication-scheme register entry"
+  ],
+  "grouping_reasons": [
+    "one request lifecycle, linked by an exact request reference across receipt, clarification, search, schedule, decision, release, review, and appeal; the appeal additionally carries the oversight body's own case reference and both references anchor the same group",
+    "records disclosed inside a bundle are MEMBERS of the request group and keep their own schema evidence; a released procurement evaluation, inspection report, mailbox extract, or personal record does not acquire request, exemption, or release facts from membership, and its own row does not acquire the request either",
+    "the redacted release and the unredacted source set form a version family with deliberately opposite exposure; version-family reasoning must not propagate released status, low sensitivity, or publication from the redacted copy to the original",
+    "a disclosure log is a register of requests, not a group of the underlying records; a log row does not pull the referenced records into any group",
+    "a case export or archive manifest stays shallow until its internal access boundaries are known and is never unpacked merely to strengthen recognition",
+    "sparse members such as a bare chase email or an unnamed schedule join only through an exact reference and are marked as grouped without copying facts",
+    "no group is a valid outcome; an isolated notice or bundle routes to a residual rather than being forced into a request lifecycle"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema with no fields and D1's deferral stands, so a template on it cannot branch on any declared field. The world nevertheless has a clear prose order that R1c may adjudicate later: the bounded request comes first, then the stage of the response cycle, then the individual item; the requester must never become an organizing dimension, because a branch named after a member of the public discloses both that the person asked and what they asked about. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” - a request opened in December and answered in February would otherwise be split. Any later order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "FOI 2026-0412 - Response Letter - City Water Department.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for date request received, response-due date, and disposition",
+        "numbered paragraphs cite exemption clauses item by item",
+        "closing paragraph offers an internal review and names the oversight body",
+        "signature block names the authority's information-governance officer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any government field, because the schema declares none",
+        "that the refusal or exemption is correct, lawful, or final",
+        "that the requester's name may become a display label or dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FOI 2026-0412 - Schedule of Documents.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per document with description, document date, and author column",
+        "a disposition column reading release, part release, or withhold",
+        "an exemption column repeating clause references per row",
+        "a redaction-reason column in free text"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a listed document is present in the corpus, or that any local file is the listed item",
+        "that a withheld row's description is safe to display",
+        "an exemption or release fact on any other file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FOI 2026-0412 - Disclosure Bundle - REDACTED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "black rectangles over name and address blocks with exemption codes printed alongside",
+        "page footers repeat one request reference and a running item number",
+        "internal document boundaries visible as re-set headers and restarting pagination"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that redaction proves this row, since litigation productions and journalists' copies redact identically",
+        "that a released copy makes its unredacted source, or its neighbours, low sensitivity",
+        "the identity of anyone behind a black box"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "FOI 2026-0412 - Bundle - UNREDACTED - DO NOT RELEASE.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same item set and pagination as the redacted bundle with no obscured regions",
+        "names, addresses, and internal advice visible in the same page positions",
+        "a handling caveat printed in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that version-family membership with the released copy transfers released status, publication, or reduced sensitivity to this file",
+        "that the printed caveat is a handling class",
+        "any personal fact about the individuals named"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Request received - Freedom of Information - reference 2026-0412.eml",
+      "source_type": "email",
+      "observations": [
+        "inbound sender is a personal mail account, recipient is the authority's information-requests mailbox",
+        "body states the wording of the request and the date",
+        "an automatic acknowledgement quoting a newly issued reference is threaded below"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the requester's identity is relevant to any decision, or may be displayed, grouped on, or used as a dimension",
+        "that the request is valid, in scope, or answerable",
+        "a topic fact for the records the request describes"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Disclosure Log 2026 Q2.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for reference, date received, summary of request, date answered, and outcome",
+        "no requester column, or a column populated only with a category such as member of the public",
+        "outcomes repeat a small closed set across many rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a log row groups the underlying records it describes",
+        "that publication of the log makes any local case file publishable",
+        "a requester identity from a summary line"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Search Record - FOI 2026-0412 - systems searched.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a table of systems, mailboxes, and custodians with dates searched",
+        "search terms listed verbatim with hit counts and nil-return rows",
+        "a sign-off line by the searching officer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a named custodian is a subject, author, or owner of anything",
+        "that a nil return proves records do not exist",
+        "that the listed systems exist in this corpus"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Internal Review 2026-0412 - Decision.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a review officer distinct from the original decision-maker is named",
+        "sections restate the original decision, the grounds of complaint, and the review outcome",
+        "the same request reference appears with a review suffix"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the review outcome is final, correct, or binding",
+        "that the original decision file is superseded rather than versioned"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IC-2026-1188 - Submissions to the Information Commissioner.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an oversight-body case reference in the header alongside the authority's own request reference",
+        "a dated chronology of the request handling",
+        "argued exemption sections addressed to a regulator rather than to the requester"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an outcome, a legal position, or that either reference is authoritative",
+        "that a regulator case reference alone activates this row"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Public Interest Test - FOI 2026-0455.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unheaded prose weighing factors for and against disclosure",
+        "no labelled slots; the request reference appears only in the filename",
+        "tracked changes from two officers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the balance struck, or that a test was applied correctly",
+        "a request fact from the filename alone",
+        "that pre-decisional deliberation is releasable"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Notice of Transfer - FOI 2026-0481 to Department of Transport.eml",
+      "source_type": "email",
+      "observations": [
+        "outbound from the authority to the requester and copied to a second authority",
+        "states the request is not held here and is transferred, with both references",
+        "no records attached"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the receiving authority's handling belongs to this corpus",
+        "that not held is a fact about any file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-06-02 at 09.14.11 - FOI case queue.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: window chrome and display-native dimensions",
+        "OCR reveals a table of references, due dates, and assigned officers",
+        "requester names visible in one column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "screen origin from missing camera metadata",
+        "a request lifecycle for every reference legible in the capture",
+        "that OCR'd requester names may be indexed or displayed"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "FOI-2026-0412-export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists request, correspondence, search, schedule, redacted and unredacted families",
+        "member paths repeatedly encode one request reference",
+        "mixed member types including spreadsheets, mail, and PDFs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "member facts without reading members, and members are not unpacked merely to strengthen recognition",
+        "that the export's access boundaries are known",
+        "release status for any member from the export's existence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FOIA response - City Water Dept - obtained 2026-05.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "byte-identical to the authority's released bundle, including reference and exemption codes",
+        "sits beside lead-pipes-draft-v3.docx and a fact-check sheet in a story folder",
+        "no request-receipt, search, schedule, or decision-issuing structure is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that this row is active; the holder is the requester, not the answering authority",
+        "an authority-side workflow from a statute name plus a reference token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Access Review - MS-0603-14 - closed until 2059.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an accession or manuscript reference, not a request reference",
+        "a closure period with an opening date rather than a response-due date",
+        "restriction reasoning that reads like exemption reasoning",
+        "no external requester and no statutory response clock"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that exemption-shaped reasoning activates this row",
+        "a request lifecycle from a custody decision"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Case 8841 - third chase.eml",
+      "source_type": "email",
+      "observations": [
+        "an escalating chase with a case reference and a deadline complaint",
+        "the sender's role and the basis of the request are stated only in prose",
+        "no schedule, exemption, or release-rights structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from chase cadence alone",
+        "whether the request is for records under an access regime or for a decision on one named person's own matter"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Privilege Log - Acme v Beta - Set One.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for document date, author, recipient, description, and basis for withholding",
+        "the columnar shape is indistinguishable from a disclosure schedule",
+        "the header names a tribunal caption and a party, not a request reference or an authority"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this row from a per-item withholding-reason table",
+        "that a party is an authority, or that litigation withholding is an access exemption"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Request for my own file - response - Council.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the requester and the subject of the records are the same person",
+        "addressed to that person at a home address, with their own case history enclosed",
+        "held in a personal corpus, not an authority corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row; a personal-data request about oneself, held by oneself, is the person's own record",
+        "an authority-side role from an authority letterhead"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.journalism-reporting",
+      "signal": "SAME FIXTURE: FOIA response - City Water Dept.pdf and the request bundle archive. The bytes are identical on both sides. THIS ROW requires the answering authority's own process around the release - receipt, search record, schedule, exemption reasoning, decision issued outward, review rights. The journalism row requires the requester's side, resolved by a story slug, a draft, or fact-check apparatus. RECIPROCAL: this row must not claim a reporter's obtained bundle merely because it carries a statute and a reference number, and the journalism row must not claim an authority's own disclosure file. Where neither structure is present the covering letter is a standalone document with a durable purpose and no group.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.archives-recordkeeping",
+      "signal": "SAME FIXTURE: a document that names a reference and refuses or defers access with exemption-shaped reasoning. Both sit on the records-holder side. THIS ROW requires an external request workflow - a requester, a request reference, a response clock, and an answer sent outward; Access Review for MS-0603-14 closed until 2059 is the archives row's, keyed to an accessioned item and an opening date. Disclosure Schedule for FOI Request 2026-118 is this row's. RECIPROCAL and consistent with the landed archives node: a redaction record alone decides nothing on either side.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.constituent-casework",
+      "signal": "SAME FIXTURE: RE Case 8841 - third chase.eml. Both hold a request to an authority, a chase cycle, a deadline cadence, and a refusal or review letter. THIS ROW is the records-holder's own disclosure process, in which the requester's identity is normally irrelevant to the answer and must never become a dimension. The casework row is an intermediary asking about one named person's own matter, where that person's identity is the whole basis of the request. RECIPROCAL and consistent with the landed casework node: if the chase seeks records under an access regime and the holder answers, it is this row; if it seeks a decision on a named individual's case on that individual's authority, it is casework.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "SAME FIXTURE: FOI-2026-0412-export.zip and the released bundle inside it. The generic authority row holds the body's own function - the procurement evaluation, inspection report, or briefing that the bundle discloses. THIS ROW holds the request wrapper around those records. RECIPROCAL: the disclosed copies keep their own authority-side evidence and do not acquire request or release facts from membership here, and this row does not absorb a source record merely because a disclosure once quoted it. Where the wrapper is absent and only the underlying record survives, the generic authority row governs.",
+      "design_cite": null
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "SAME FIXTURE: an item-by-item withholding table - Privilege Log - Acme v Beta - Set One.xlsx against FOI 2026-0412 - Schedule of Documents.xlsx. Both list document date, author, description, and a basis for withholding, and both accompany a redacted production. THIS ROW requires an external information request answered by a public body under an access process; the legal row requires a representation and a tribunal or discovery process. RECIPROCAL: a disclosure schedule is not a privilege log and a privilege log is not evidence of an access regime; neither row may claim the other's table from columnar shape.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone response letter, transfer notice, fee notice, review decision, or published disclosure-log extract has durable value but no accepted request lifecycle in the corpus",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Protected Records",
+      "when": "an unredacted source set, a schedule naming withheld material, a requester's inbound request, a case export, or an oversight submission lacks a safe accepted group; this is the default fallback for anything on the withheld side of the version family",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a redacted release, transparency report, or disclosure bundle appears to be reading material collected from an authority's publication scheme rather than held as its own case",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "an unheaded public-interest note, search record, or officer draft is partly understood but its request and holder role are unresolved",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a case export, redaction-tool project file, or bundle is password-protected, damaged, or in an unreadable format; the filename must not manufacture a request, requester, or release status",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a case queue or request portal yields no accepted request through OCR",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row is the one government situation whose packet is deliberately split in exposure, and getting that split wrong is the failure mode. The redacted release is prepared for publication; the unredacted source set, the schedule describing withheld material, the exemption rationale, and the requester's own identity are among the most protected things an authority holds - and the released copy and the withheld original are a version family, so any reasoning that propagates status across versions can leak the original. The requester is a named private individual whose interest is normally irrelevant to the answer, so their name must never become a display label, a group key, or a dimension. Released bundles also carry other people's personal data that survived redaction only because it was in scope. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” Sensitivity here is only potentially_sensitive; P7 owns handling classes, and this node assigns none.",
+  "open_question": "NEEDS-JOSEPH: three unresolved items, stated in the memo. (1) If PR-6 is lifted, decide centrally whether a bounded request reference may exist as a government field and whether it is destination-eligible; this row proposes no field so as not to pre-empt that adjudication. (2) Decide how P9 represents a version family whose members have opposite intended exposure, so that released status can never propagate from a redacted copy to its unredacted source. (3) Decide whether records disclosed inside a bundle are represented as members of the request with their own schema evidence intact, or as duplicates of corpus originals, or both; the choice determines whether a disclosure can retroactively change how an authority's own source record is displayed."
+}

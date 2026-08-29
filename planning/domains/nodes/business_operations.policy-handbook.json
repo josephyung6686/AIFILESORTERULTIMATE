@@ -1,0 +1,487 @@
+{
+  "id": "business_operations.policy-handbook",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Policies, handbooks, procedures and codes",
+  "one_line": "The organizational situation of documents that state binding or authoritative RULES for an organisation's people and then govern themselves - policies, employee handbooks, codes of conduct, standard operating procedures and work instructions, together with their revision history, approvals and control apparatus. The organizing anchor is the CONTROLLED DOCUMENT: a governing document carrying a document-control block that pairs an owner or approver, a version, an effective date and a next-review date. That block is a structure paired with labelled slots, which is what the business_operations schema row requires of every sibling, and the schema row names it as the reason this row passes its node test. It separates the governing document from the meeting that approved it, the audit that tests whether it is followed, and the contract that binds two named parties instead of a population. Absorbs the legacy rows ops.policy-handbook (ROW) and ops.process-documentation (FOLD) - a policy says what must happen and a procedure says how, and organisations keep them as one controlled set under one control-block format. The acknowledgement and attestation side is NOT owned here: the schema row settles it - \"A policy is this schema; the signed acknowledgements are hr\" - so this row recognizes acknowledgements as context and co-activates with hr rather than holding them. Placeholder row (J-IND): it writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity whose rules these are - one employer's staff handbook among the three a person has kept",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `organization` is proposed by the landed business_operations SCHEMA row and independently by the landed construction_property schema row, which asks that it be adjudicated once. This entry adds no variant, no synonym and no second spelling; the underlying argument is the schema row's and is not restated. What this row adds is the case where the key does the most work anywhere in the family: policy titles are GLOBALLY REPEATED. ‘Data protection policy’, ‘Code of conduct’ and ‘Expenses policy’ exist at every employer a person has ever had, at every supplier who sent them a copy, and in every downloaded template pack. Nothing else in the row separates them - not the title, not the clause structure, not the control block, all of which are identical across employers. Without custody, three employers' handbooks are one indistinguishable pile. Note reciprocally: the same property is what makes `organization` DANGEROUS here, per the schema row's seeded-ineligible caveat - in a single-employer corpus it names the user's employer above everything, which is 00's “use an author or organization merely as a collector” failure. This row seconds the key and seconds the caveat with it.",
+      "destination_eligible": true,
+      "destination_eligible_why": "As proposed on the schema row, unchanged and with its conditional intact: eligible, but template-time conditional on the accepted group genuinely spanning more than one entity, because “the user can reverse, remove, add, or flatten dimensions.” Not first in a single-entity corpus.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A filename or a letterhead yields `possible` at best; an entity name is constitutionally never-alone here. Promotion to `direct` needs a labelled slot - a control block's owner-organisation cell or a document footer's issuing-entity slot. Confirmation is a gazetteer-plus-context rule family, not written here (R4 owns the gazetteer, R2 the rule)."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a document-control block - a labelled table or header pairing a document owner or approver, a version, an effective or issue date, and a next-review date, with those slots FILLED. This is the strongest single signal in the row and the only one that is a STRUCTURE paired with LABELLED SLOTS rather than a document-type word: the pairing the business_operations schema row requires of every sibling, and the pairing whose absence refused business_operations.organisational-records and construction_property.compliance-certificate. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a normative-clause structure: numbered clauses in which obligation verbs recur - must, shall, is required to, may not - across a contents page of numbered sections. Prose alone does not do this; policies do it relentlessly.",
+      "a scope-and-application section naming who the document binds, followed by a definitions section - the standing opening shape of a policy.",
+      "a revision-history table listing versions, dates and a summary of change, usually at the front or the back. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an acknowledgement or attestation structure pairing one named individual, one named document version and a date or signature - the receipt side of the same situation.",
+      "a step-numbered procedure structure with responsibility columns, or a flowchart whose text layer carries step numbers and decision points - the work-instruction end of the set.",
+      "a distribution or circulation email whose labelled subject slot announces a new or updated policy and whose attachment-name slot names a handbook or policy document."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating an organisation's OWN governing document from a copy of somebody else's - a supplier's policy filed as diligence evidence, a regulator's guidance, a downloaded template, a client's code imposed by contract. All four read identically. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a policy from a contract: both are numbered obligation prose, and the difference is whether the document binds an organisation's people generally or two named parties to each other.",
+      "recognising a draft or a redline as belonging to the same governing document rather than as a separate document.",
+      "an undated, unversioned policy-shaped document with no control block - common in small organisations and the hardest real file here.",
+      "a purpose-coherent policy pack whose members are individually unremarkable - a handbook, three annexes, a signed acknowledgement sheet and a blank form. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "the word policy, handbook, procedure, code or SOP in a filename alone. This is the tempting false file for this row: privacy policies of websites, insurance policies, downloaded templates and blog posts about policy all carry it, and an insurance policy is a finance document with no relation to this situation at all.",
+      "a version token alone - v3, Rev B, FINAL. Versioning is a UNIVERSAL fact, not this row's evidence: 00 lists “file type, creation date, language, duplicate family, version family, and sensitivity status” as the shared set every file may carry, and the landed duplicate/version-family design already handles reissue. “A content-hash match supports deduplication review; a filename match alone does not.” That an organisation reissues its handbook annually is therefore NOT an argument for this row, and this row does not make it.",
+      "numbered clauses alone - contracts, standards, statutes and specifications are all numbered.",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a bare 4-digit number read as an effective year, a policy number or a clause reference.",
+      "membership in a download session that dropped a whole policy library at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a document-control block whose slots are EMPTY or bracketed. The block is this row's anchor only when its slots are filled; an unadopted template carries the same block with [Organisation] and no effective date, and that is a Reading Inbox file, not a governing document."
+    ]
+  },
+  "proposed_context_terms": [
+    "policy",
+    "handbook",
+    "code of conduct",
+    "standard operating procedure",
+    "work instruction",
+    "scope and application",
+    "document owner",
+    "approved by",
+    "effective date",
+    "review date",
+    "revision history",
+    "supersedes",
+    "must",
+    "shall",
+    "is required to",
+    "acknowledgement",
+    "I confirm I have read",
+    "breach of this policy",
+    "definitions",
+    "responsibilities"
+  ],
+  "work_types": [
+    "policy document",
+    "employee handbook or staff manual",
+    "code of conduct or ethics code",
+    "standard operating procedure or work instruction",
+    "process map or flowchart",
+    "policy annex, schedule or form",
+    "acknowledgement or attestation record",
+    "approval or sign-off record",
+    "revision history or change summary",
+    "policy communication or circulation notice",
+    "draft or redline under review"
+  ],
+  "grouping_reasons": [
+    "one governing document across its versions and formats - the source document, the published PDF, the redline and the annexes - which is a version family before it is anything else.",
+    "one policy library or handbook set for one organisation at one effective date, held together by purpose rather than by content. “The documents are content-incoherent but purpose-coherent.”",
+    "one policy joined to the acknowledgement records collected for it, which is a real reason to group and the one most likely to tempt a named individual's employment status onto the policy itself. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single downloaded template with no organisation and no control block is a standalone document, or reading material."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation whose rules these are, then the policy AREA or function, then the governing document itself, with versions handled as a version family rather than as folder levels, because a version level would scatter one document across its own history. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a clause number or an annex is meaningless without the document, and the document is meaningless without the organisation, since the same policy title exists at every employer a person has ever had. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - an effective date is a fact ABOUT a policy, not a home for it. Privacy caveat specific to this row: acknowledgement and attestation records are personnel records naming individuals, and they should not acquire automatic depth alongside the policy they attest to. “Protected branches should have configurable redaction in the canvas and review screens”. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "ocr",
+      "email",
+      "image",
+      "design_creative",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".pptx",
+      ".eml",
+      ".png",
+      ".vsdx",
+      ".zip",
+      ".md"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Employee Handbook v4.2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a contents page listing numbered policies",
+        "a control block naming an owner, a version, an effective date and a review date",
+        "obligation verbs throughout",
+        "an acknowledgement page as the final section"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "an employment fact about the reader from an acknowledgement page",
+        "that a version token makes v4.2 a different document from v4.1 - it is one version family",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SOP-014 Goods receipt.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a document reference in the filename and the header",
+        "numbered steps with a responsibility column",
+        "a revision-history table at the back",
+        "an embedded flowchart"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and manufacturing.work-instruction owns it - a goods-receipt SOP is both an administrative procedure and a shop-floor instruction, and P10 chooses from an accepted group later",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Policy acknowledgements 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read name, employee number, policy, version, date acknowledged",
+        "one row per person per policy",
+        "several hundred rows",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it. CHANGED IN THIS PASS: the business_operations schema row settles it - “A policy is this schema; the signed acknowledgements are hr.” This row may recognize it as context for a policy version and must not absorb it",
+        "that a list of short cells is low-risk: this is a personnel roster joined to a compliance status, and it names every member of staff",
+        "an employment fact copied onto the policy document it references - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a person's name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Handbook acknowledgement - J Patel - signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "one named individual, one employee number, one handbook version reference and a date",
+        "a wet signature captured by scan",
+        "the policy title appears only as a reference line, with no clause text",
+        "no document-control block of its own - it is a receipt, not a controlled document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row. THE REVERSE-DIRECTION COLLISION FIXTURE: it names the same bytes this row's neighbour must keep. It carries this row's vocabulary and this row's document reference, and it is an hr record - it identifies a named employee and nothing else. Losing it TO this row would drag a personnel record into a row whose posture is built for published documents",
+        "a policy fact ABOUT the handbook from the acknowledgement, or an employment fact about J Patel from the handbook",
+        "that the version reference makes this a member of the handbook's version family - a receipt naming v4.2 is not a version of v4.2",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Privacy Policy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "saved from a website's footer link",
+        "numbered sections, a definitions section, a scope section and obligation verbs throughout",
+        "a 'last updated' date in the header",
+        "a company name in the footer that is not the user's employer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row. It fires the normative-clause signal, the scope-and-definitions signal and a date, and it is somebody else's published notice to the public - not a document that binds any organisation's PEOPLE. The discriminator is the control block: a 'last updated' line is not an owner, a version and a review date",
+        "an organisation fact from a website footer",
+        "that this row and finance.insurance-personal are the only two ways the word policy misleads - this is the third and it is the commonest on a real disk",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Home insurance policy 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the word policy in the title",
+        "a policy number, an insured address, a premium and a schedule of cover",
+        "numbered exclusions clauses",
+        "an insurer's letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: policy here means a contract of insurance, not a governing document - this is the collision fixture and the single most likely false positive in the row; finance.insurance-personal owns it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Supplier - code of conduct signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a code of conduct with numbered obligations",
+        "a countersignature block naming a supplier organisation and a date",
+        "scanned, with no text layer until OCR",
+        "a covering page referencing a sourcing reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a signed code is this row: a countersigned code imposed on a named counterparty is a contractual instrument, and business_operations.vendor-management or business_operations.contract-administration owns it - the second collision fixture",
+        "an organisation relationship from a signature block alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Data protection policy - TEMPLATE.docx",
+      "source_type": "text_document",
+      "observations": [
+        "bracketed placeholders where an organisation name should be",
+        "a control block with an empty owner and no effective date",
+        "generic clause text",
+        "a footer naming a template publisher"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an organisation fact from bracketed placeholders",
+        "that a downloaded template is the organisation's own governing document - it is reading or reference material until adopted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "New expenses policy - effective 1 April.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot announces a new policy and a date",
+        "recipients slot resolves to an all-staff distribution list",
+        "one attachment named as a policy PDF",
+        "a short body asking recipients to confirm they have read it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Escalation process map.vsdx",
+      "source_type": "design_creative",
+      "observations": [
+        "swimlanes labelled with team names",
+        "decision diamonds and numbered steps",
+        "a title block naming a procedure reference and a revision",
+        "no obligation prose at all"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a diagram extension proves a process map - the same file type holds network diagrams, org charts and floor plans",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scan_policy_signed_page.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a single signed acknowledgement page",
+        "a handwritten name and date",
+        "EXIF carries a capture timestamp and no GPS",
+        "OCR yields a policy title fragment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a policy fact from the neighbouring handbook file - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that the absence of GPS metadata proves anything about what the image is",
+        "a named individual's employment status from a signature",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "The employee handbook is issued at induction and its acknowledgement is a joiner checklist item, so the same PDF sits in both situations. CHANGED IN THIS PASS - the boundary is now settled, not merely observed: the business_operations schema row states “A policy is this schema; the signed acknowledgements are hr.” THIS ROW MUST NOT TAKE: an acknowledgement, attestation or induction checklist anchored on one named joiner. HR MUST NOT TAKE: the governing document itself, which is a controlled document with an owner, a version and a review date and which exists independently of any joiner. Shared fixture bytes, named on both sides: `Handbook acknowledgement - J Patel - signed.pdf` and `Employee Handbook v4.2.pdf`. Where the two arrive as one container, see also_holds_with: hr. Provenance: design (the schema row's hr seam), applied here by inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "Policies are the evidence an audit collects, and an audit pack is largely a bundle of policies. The discriminating evidence: an audit or standard reference, a control identifier, a finding, or an auditor's request-list position supports the audit row; the governing document itself, with its control block, supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "A code of conduct or policy annexed to and countersigned under a contract becomes a contractual instrument, and both documents are numbered obligation prose. The discriminating evidence: two named parties bound to each other, executed signature blocks, notice periods and an obligations register support contract administration; a document binding an organisation's people generally supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "The word policy names a contract of insurance as readily as a governing document, and both are numbered clause documents with exclusions. The discriminating evidence: a policy number, an insured party, a premium, a period of cover and a schedule support the insurance row; a scope-and-application section, an owner, an effective date and a review date support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "signal": "Standard operating procedures and work instructions are the same document kind under two vocabularies, and the FOLD of ops.process-documentation into this row makes the overlap explicit. The discriminating evidence: a process, line, machine or product anchor with in-process controls supports the manufacturing row; an administrative or people-facing procedure supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.policy-development",
+      "signal": "Public-body policy work produces documents that look identical to internal governing documents and often carry the same words in their titles. The discriminating evidence: a public consultation, a legislative or rulemaking anchor, or an external audience supports the government row; a document binding one organisation's own people supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "Policies are approved by boards and committees, so an approval record and a draft policy travel in the same board pack. The discriminating evidence: a notice, quorum, numbered papers or a resolution supports governance; the governing document itself supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "That sibling lists 'risk policy or framework document' and 'crisis management or incident response procedure' among its own work_types, so the overlap is real and in-family. THIS ROW MUST NOT TAKE: a document whose working content is a register - likelihood/impact scoring columns, risk owners, residual-risk ratings - however policy-shaped its cover page. THAT ROW MUST NOT TAKE: the governing document that SETS the risk appetite, carrying a control block and obligation clauses and no scoring columns. Shared fixture bytes: a 'Risk management policy and framework' PDF whose annex is a scoring matrix. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "That sibling lists 'signed supplier code of conduct or policy acknowledgement' among its own work_types - the same object as this row's second collision fixture, which confirms the split rather than contradicting it. THIS ROW MUST NOT TAKE: a code countersigned by a named counterparty, which is a supplier-relationship artifact. THAT ROW MUST NOT TAKE: the organisation's own unsigned code of conduct, which binds its people and carries the control block. Shared fixture bytes: `Supplier - code of conduct signed.pdf`. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "That sibling lists 'site induction or workplace handbook material' among its own work_types. THIS ROW MUST NOT TAKE: material anchored on a specific site, building or workplace - a fire plan for one floor, a site induction pack for one address. THAT ROW MUST NOT TAKE: an organisation-wide health-and-safety or workplace policy with no site anchor. Shared fixture bytes: a 'Health and safety policy' PDF whose appendix is one building's evacuation plan. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "That sibling lists 'support policy, scope, or service catalogue entry' among its own work_types. THIS ROW MUST NOT TAKE: a document whose obligations run to CUSTOMERS and are measured - service levels, response targets, a service catalogue. THAT ROW MUST NOT TAKE: an internal governing document binding staff generally. Shared fixture bytes: a 'Support policy' PDF containing an SLA table. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "hr",
+      "signal": "Disjoint-evidence co-activation, not a mutex, and stated by the business_operations schema row in terms: “Where one file crosses, the stricter side governs the members that identify people, even where this schema activates on the container.” The container case is a handbook pack whose final section is a signed acknowledgement page, or a policy circulated with an attestation sheet. This row activates on the governing document via its control block; hr activates on the named individual and the signature, on evidence this row never reads. Neither copies the other's facts: “The graph does not automatically copy those missing facts onto sparse files.” Where hr is not yet written, the acknowledgement member routes to Protected Records rather than being absorbed here. Provenance: design (the schema row's hr seam), applied by inference to this row.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone policy, code or procedure with no accepted policy-library group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The correct home for a downloaded template, a regulator's guidance note or somebody else's policy saved for reference - material this row must not mistake for the organisation's own rules. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an undated, unversioned policy-shaped document whose ownership is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for acknowledgement and attestation records, which are personnel records naming individuals rather than governing documents. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected policy library archive or an unreadable document. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "potentially_sensitive, but on NARROWER ground than the gist pass argued, and this is a correction. The gist row drove the value almost entirely from the acknowledgement and attestation half - a roster of named staff joined to a compliance status. The business_operations schema row has since settled that half elsewhere: “A policy is this schema; the signed acknowledgements are hr.” With that half removed, the honest position is that the governing documents themselves are among the LEAST sensitive material in this family - many are published deliberately - and this row's privacy posture is therefore NOT a point of difference from the schema's default. Three residual grounds keep the cautious value rather than lowering it, none of them the generic ‘documents can be sensitive’: (1) the schema's own third-party ground reaches this row unchanged - a former employer's internal handbook on a personal laptop exposes an organisation that cannot consent, since it is not operating the product; (2) specific policies carry case material in their annexes - disciplinary, grievance, whistleblowing and safeguarding procedures - and 00 names the corpus this product handles, which “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.”; (3) the hr co-activation above means an acknowledgement member arrives inside a container this row activated on, and the stricter side governs it. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class, and it does not carry is_safety_domain.",
+  "open_question": "NJ-BO-8 (renumbered - see the memo; the gist pass numbered this NJ-BO-6, which business_operations.compliance-audit already uses for a different question). The gist row asked whether the acknowledgement side belongs here or in hr. That is now SETTLED against this row by the deepened schema anchor, and this row has been changed to match rather than left contradicting it. What remains open is the residue that the settlement creates: an acknowledgement sheet is not a personnel record until hr exists to hold it, and hr is unwritten. Today such a file routes to Protected Records, which is safe but loses the join to the policy it attests - a real user asking ‘who has signed v4.2’ gets nothing. The alternatives and their costs: (a) leave it at Protected Records until hr lands - safe, and the compliance question is unanswerable in the meantime; (b) let this row hold the acknowledgement as a grouped member with hr governing it - answers the question, and puts a staff roster inside a row whose posture is built for published documents; (c) hold only the acknowledgement's POLICY-side facts here and none of its person-side facts - correct in principle, and it depends on member-level fact scoping that this pass cannot confirm exists. Stated reciprocally: the hr author should carry the same question from the other side, and should not assume this row has quietly kept the receipts."
+}

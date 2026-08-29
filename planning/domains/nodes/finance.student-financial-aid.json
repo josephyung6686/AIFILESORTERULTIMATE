@@ -1,0 +1,602 @@
+{
+  "id": "finance.student-financial-aid",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Student financial aid and education loans",
+  "one_line": "The protected financial-aid lifecycle: applications and eligibility summaries, school aid offers, verification and disbursement records, and education-loan documents. It uses the Finance schema while keeping schools, issuers, servicers, aid periods, tax years, admissions packets, and repayment groups in their distinct roles.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "aid_year",
+      "type": "string",
+      "destination_eligible": true,
+      "why_no_existing_key_works": "Aid records repeatedly identify an aid, award, or academic funding period such as 2026-27. tax_year is the source year for tax information and can differ from the period being funded; application_cycle is scoped to College Applications and does not describe later disbursement or servicing records; term is scoped to Academic and may cover only part of an annual award. Reusing any of them would collapse different time roles. This is a proposal for R1c, not a legal Finance fact yet.",
+      "provenance": "proposal",
+      "note": "If R1c finds the same need in insurance, benefits, subscriptions, or grants, it should consider a broader shared period key rather than mint several near-synonyms. Until adjudicated, aid-period text remains evidence and a P9 grouping anchor; it is not used in dimension_order."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a processed aid-summary structure with an explicit aid or award period, a labelled eligibility section, a student or contributor block, and labelled aid categories or eligibility results. A program name alone does not fire; the labelled structure does",
+      "a school-issued financial-aid offer with an issuer in the letterhead and separate labelled sections for cost of attendance or net cost, grants or scholarships, work-study, and loans. The combination distinguishes an aid offer from a tuition bill and from an admissions decision",
+      "a labelled aid-disbursement or student-account-credit structure: a school or aid administrator in the issuer position, a named aid program, a scheduled or posted disbursement, and a student-account or enrolment-period reference",
+      "a financial-aid verification request or worksheet issued by a school aid office that identifies the aid process, the requested evidence, and the relevant aid period. The attached tax, identity, or academic records retain their own domains; the request does not copy their facts",
+      "an education-loan origination structure with a labelled borrower block, a student-loan program or education-purpose statement, a promissory or loan-agreement heading, and repayment terms. The education-purpose evidence is required because a generic loan agreement belongs to finance.loans-mortgage",
+      "an education-loan servicing statement with a labelled servicer, loan or account slot, payment due information, and principal or interest breakdown, plus an education-loan program or school-certification reference. Without the education evidence it is only the general loan situation",
+      "an email whose labelled sender resolves to an aid office, aid administrator, or loan servicer and whose labelled subject names an aid offer, verification action, disbursement, or student-loan account event. Email source_type alone never fires",
+      "an archive manifest that lists an aid-summary or aid-offer anchor beside verification forms, loan documents, or disbursement records, inspected without unpacking. The manifest can support a candidate packet; it never writes member facts onto the archive or archive facts onto members"
+    ],
+    "needs_llm": [
+      "an OCR-derived portal capture that must be distinguished among an admissions portal, a financial-aid dashboard, a bursar account, and a student-loan servicer",
+      "an unlabelled special-circumstances or aid-appeal letter whose prose explains a change in family finances but never names its document role",
+      "an award-shaped letter that could be a scholarship application outcome, a school aid offer, a study-abroad grant, or a standalone certificate; the model must cite the direction and function of the document and may return unknown",
+      "a heterogeneous verification or aid-application packet whose tax, identity, academic, and finance members are content-incoherent but may share one submission purpose. The result is reviewable group membership, not propagated facts",
+      "a servicing-transfer or repayment-plan letter whose prose names several organizations and does not label which one is the current servicer",
+      "a multilingual or non-domestic aid record whose program and document-role vocabulary is absent from the injected jurisdiction catalogue",
+      "a sparse file named Award Notice.pdf or scan_0048.pdf that may join a strongly anchored aid-period neighborhood but carries too little evidence to receive institution, account_type, or record_type"
+    ],
+    "never_alone": [
+      "the words aid, award, grant, scholarship, bursary, loan, or work-study alone. They occur in application prompts, course readings, resumes, marketing material, tax documents, and news articles",
+      "a school, government agency, lender, or servicer name alone. A school can be an issuer, a prospective destination, the holder's school, or merely one entry in a comparison list",
+      "an amount, currency symbol, contribution index, account balance, or percentage alone. These values are sensitive content and do not establish a domain or a legal field",
+      "an aid-period or academic-year string alone, and especially not as tax_year. A period funded and the tax year used to assess eligibility are different roles",
+      "a bare 4-digit number. It may be a year, school code, form number, account tail, postal code, or identifier",
+      "a list of schools on a common aid summary or common financial-aid application. The listed schools are recipients or comparison candidates, not automatically the record issuer, school fact, or target_university fact",
+      "an application upload or recipient list as proof that every member has a College Applications purpose. A tax return or transcript submitted for aid keeps its own facts and receives no target from packet membership",
+      "a source_type or extension alone. A PDF is not an aid offer, a spreadsheet is not an offer comparison, an email is not a disbursement notice, and a ZIP is not a verification packet",
+      "membership in one folder or download session. It can retrieve candidate neighbors but cannot prove topic, purpose, institution, or aid period",
+      "a loan number or servicer name alone. It can be a general personal loan, mortgage, vehicle loan, or education loan and needs a labelled education-loan context",
+      "missing EXIF as proof that a portal image is a screenshot. Screenshot evidence and aid-domain evidence are separate questions, and conflicting signals require abstention",
+      "a tax return, identity scan, transcript, or pay statement inside a verification archive as proof that the member itself is a student-aid record. The archive manifest supports a packet; each member activates schemas from its own evidence"
+    ],
+    "proposed_context_terms": [
+      "financial aid offer",
+      "aid year",
+      "award year",
+      "eligibility summary",
+      "FAFSA Submission Summary",
+      "Student Aid Index",
+      "cost of attendance",
+      "work-study",
+      "verification",
+      "disbursement",
+      "master promissory note",
+      "entrance counseling",
+      "student loan servicer"
+    ]
+  },
+  "work_types": [
+    "financial-aid application",
+    "application acknowledgement or processed summary",
+    "eligibility or needs-assessment summary",
+    "verification request or worksheet",
+    "financial-aid offer",
+    "grant, scholarship, or bursary award notice",
+    "aid adjustment or appeal decision",
+    "disbursement notice",
+    "student-account aid-credit statement",
+    "promissory note or education-loan agreement",
+    "loan disclosure or borrower-rights statement",
+    "entrance or exit counseling completion",
+    "student-loan servicing statement",
+    "repayment-plan, deferment, or forbearance notice",
+    "student-loan payment confirmation",
+    "aid renewal or satisfactory-progress notice",
+    "secure portal export or aid-data summary"
+  ],
+  "grouping_reasons": [
+    "one aid period at one school across its offer, verification requests, adjustment decisions, disbursement notices, and student-account credits. Until aid_year is adjudicated, the period is a grouping anchor rather than a written Finance fact",
+    "one common aid application across its submission acknowledgement, processed eligibility summary, corrections, and requests for further documentation. Several listed schools do not make several issuer facts",
+    "one education-loan lifecycle across the promissory note, counseling records, school disbursement, servicing statements, repayment changes, and payment confirmations. A repayment-centered branch may also belong to the finance.loans-mortgage situation",
+    "one special-circumstances or aid-appeal case across the request, supporting documents, correspondence, and decision. Supporting tax, identity, medical, legal, or employment records retain their own facts",
+    "one file re-downloaded or corrected: duplicate_family and version_family are universal facts and do not become aid fields",
+    "one record in more than one accepted group: an aid offer can support a college decision, a mobility grant can support a study-abroad term, and a loan statement can support both an aid history and a repayment history. Membership never copies facts"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "record_type"
+    ],
+    "why": "A shallow institution then record_type recommendation preserves the issuing role and keeps an intelligible document leaf without forcing every mixed aid offer into one of its several grant, work-study, and loan line items. account_type is deliberately optional: it helps when a corpus has distinct institutional-aid and education-loan series, but on a combined offer it can be multi-valued and would split one record. tax_year is excluded because an eligibility source year is not the period funded. The proposed aid_year would be the natural middle dimension, but it is not legal until the shared field catalogue accepts it, so this row does not smuggle it into the order. A common application summary that lists several schools should stay under its actual issuer or remain flat; listed recipients do not become issuer branches. The user may reverse, remove, or flatten the recommendation, and an accepted aid-period packet may remain whole.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "2026-27 FAFSA Submission Summary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page heading names a processed federal student-aid summary and its form period",
+        "labelled sections show eligibility, form answers, school information, and next steps",
+        "the eligibility section includes a labelled contribution index and estimated aid categories",
+        "the school-information section lists several schools selected by the applicant",
+        "a financial-information section labels the source tax year"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "tax_year"
+      ],
+      "must_not_conclude": [
+        "that the listed schools are issuers, school facts, or target_university facts; they are recipients or comparison candidates on this record",
+        "aid_year = tax_year. The form period and the labelled tax-information year play different roles, and aid_year is still only proposed",
+        "that an estimated eligibility amount is a final school offer or an account balance",
+        "a folder path or a cloud dossier containing form answers"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Financial Aid Offer - Harbour University - 2026-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school financial-aid-office letterhead in the page-one issuer position",
+        "labelled cost-of-attendance and estimated-net-cost sections",
+        "separate rows for grants, scholarships, work-study, and loans",
+        "an explicit enrolment or aid period and an accept-or-decline instruction"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "school",
+        "term"
+      ],
+      "must_not_conclude": [
+        "one account_type from the presence of several offered aid categories; a mixed offer may legitimately be multi-valued or remain at the student-aid level",
+        "target_university solely because the issuer is a university; this is a post-decision financial record unless separate admissions evidence activates College Applications",
+        "tax_year from the aid period",
+        "a folder path or the offered amounts as catalogue facts"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CSS Profile Acknowledgment 2026-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer heading names a common nonfederal financial-aid application service",
+        "labelled submission status, application year, student section, and parent or contributor sections",
+        "a recipient list names several colleges and scholarship programs",
+        "next-step text references a documentation-upload service"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "target_university or school from every recipient; the common application reports to several institutions and is addressed to none as a unique target",
+        "tax_year from application year",
+        "that packet membership makes every uploaded parent or tax document a College Applications fact",
+        "a folder path or any raw household-finance value"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Verification Request - Missing Documents.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender resolves to a university financial-aid office",
+        "labelled subject names an aid-verification action",
+        "body identifies the applicable aid period and lists required tax and identity documents",
+        "attachment names include Verification Worksheet.pdf and Income Statement.pdf"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "tax_year from an attachment filename unless the attachment itself labels its tax year",
+        "identity, payroll, or tax facts written onto the email because it requests those records",
+        "automatic membership for every attachment; each file retains its own evidence and facts",
+        "a folder path or a cloud prompt containing the message body"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Financial Aid Verification Packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an aid verification worksheet, a tax-return copy, an income statement, an identity attestation, and a school request letter",
+        "manifest is inspected without extracting members to disk",
+        "member paths include one aid-period label and one school-office name",
+        "the outer filename contains no institution"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "tax_year, institution, or identity values copied from members onto the archive",
+        "finance facts copied onto the tax return or identity attestation because they share a packet",
+        "that a manifest proves every member belongs; it supports a reviewable candidate group",
+        "a folder path or a combined cloud dossier of the packet"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Student Aid Disbursement Notice Fall 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school aid-office letterhead and a labelled student-account tail",
+        "table columns label aid program, scheduled date, posted date, and amount",
+        "the heading names Fall 2026 as the enrolment period",
+        "one row is marked pending while another is posted"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "school",
+        "term"
+      ],
+      "must_not_conclude": [
+        "that the scheduled row is money already received",
+        "tax_year from Fall 2026",
+        "one account_type from a table containing several aid programs without a document-level account label",
+        "a folder path or an amount fact"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Student Account Statement Fall 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "bursar letterhead names the school as issuer",
+        "labelled statement-period and student-account slots",
+        "ledger rows show tuition charges, grant credits, loan credits, payments, and balance due",
+        "Fall 2026 appears in a labelled term slot"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "school",
+        "term"
+      ],
+      "must_not_conclude": [
+        "that every aid-program line is a separate document-level account_type",
+        "target_university from the school name; this is an issuer and attended-school role",
+        "tax_year from the term",
+        "a folder path or the balance as a catalogue fact"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Direct Loan Master Promissory Note.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names a master promissory note and an education-loan program",
+        "labelled borrower and school-identification blocks",
+        "numbered repayment, interest, deferment, and borrower-rights clauses",
+        "electronic signature and completion date"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "school as institution when the school is only certifying enrolment and another organization issued the note",
+        "tax_year from the completion date",
+        "that legal co-activation removes the record from the aid or loan lifecycle",
+        "a folder path or a cloud dossier containing identity and signature fields"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Student Loan Statement Jun 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "servicer in the page-one issuer position",
+        "labelled loan or account tail, due date, payment amount, principal balance, and interest",
+        "education-loan program name and school-certification reference",
+        "transaction table for recent payments"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "tax_year from the statement month",
+        "the school as current issuer or servicer",
+        "that this template is the only valid group. Repayment structure supports finance.loans-mortgage while education evidence can support an aid-history group",
+        "a folder path or a principal-balance fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-22 at 10.45.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at a display-shaped resolution and a platform screenshot filename pattern",
+        "no camera EXIF",
+        "OCR region shows an aid-office name beside labelled Offer Status and Verification Required",
+        "a masked student identifier appears in a separate OCR region"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "screenshot from missing EXIF alone; the filename and display-shape signals support the capture reading",
+        "an admissions status from the word Offer without financial-aid context",
+        "the masked identifier or displayed amount as a folder dimension",
+        "a folder path or raw OCR in a cloud dossier"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Award Letter - Regional Scholarship 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "foundation letterhead and a named scholarship",
+        "outcome language answers an earlier application",
+        "a one-time award amount and acceptance instructions",
+        "no school-account, aid-offer, disbursement, or loan structure"
+      ],
+      "facts_legal": [
+        "application_cycle",
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "ANY Finance fact from the words award and scholarship plus an amount. This fixture belongs to applications.scholarship-fellowship unless separate account or disbursement evidence exists",
+        "institution as an account issuer from foundation letterhead",
+        "tax_year from 2026",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Erasmus Grant Award Letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "home institution and mobility-program name in the letterhead and heading",
+        "labelled study period and host institution",
+        "grant amount, instalment schedule, and payment-account instruction",
+        "credit-completion condition in the body"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "school",
+        "term"
+      ],
+      "must_not_conclude": [
+        "that one institution-plus-program string supplies both finance and academic roles; the payment structure and study structure are separate evidence",
+        "target_university from the host institution; this is not an admissions application",
+        "tax_year from the study period",
+        "one permanent folder path; the record may belong to both an aid group and a study-abroad group"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "529 Plan Statement Fall 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "plan administrator in the issuer position",
+        "labelled beneficiary-student and plan-account slots",
+        "holdings and transaction tables",
+        "one qualified school-payment line and a Fall 2026 memo"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that an education purpose makes the custodial investment statement an aid award or disbursement record",
+        "school or term from one payment memo",
+        "tax_year from Fall 2026",
+        "a folder path. The investment-account group and education-funding group may overlap without copying facts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Aid Offer Comparison.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet title names an aid-offer comparison",
+        "columns label school, cost of attendance, grants, work-study, loans, and estimated net cost",
+        "rows compare several schools",
+        "no issuer, student-account number, or final accepted offer appears"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution by selecting the first, largest, or most repeated school; the spreadsheet references several and belongs to none",
+        "that the entered figures are direct facts from the schools; this is a user-created comparison",
+        "target_university from the row order",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Aid Appeal - Special Circumstances.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose addressed to a financial-aid committee",
+        "body describes a change in household finances and requests reconsideration",
+        "one school name appears in the salutation and several employer and medical references appear in the narrative",
+        "no labelled aid period, account slot, or outcome"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "medical, payroll, or legal facts from circumstances mentioned in the narrative without those schemas' own evidence",
+        "a final aid decision from a request",
+        "tax_year from prose dates unless an explicit tax-year role is labelled",
+        "a folder path or cloud escalation with unredacted narrative"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "scan_0048.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "one scanned page with a broken text layer",
+        "OCR recovers only the phrase Your award has been revised and a partial signature",
+        "no institution, aid period, account, program, or document heading resolves",
+        "neighboring scans have sequential filenames"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, account_type, record_type, or aid period from neighboring files. This may be a context-supported member of an aid group while carrying none of those facts",
+        "packet membership from sequential filenames alone",
+        "that award means student aid rather than scholarship, insurance, employment, or a certificate",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "financial_aid_notice_protected.pdf",
+      "source_type": "opaque_binary",
+      "observations": [
+        "the PDF is password-protected and yields no text",
+        "filesystem extraction records the filename, format, hash, and timestamps",
+        "the filename resembles a portal export",
+        "the file arrived near readable aid documents"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "institution, record_type, account_type, or purpose from the filename",
+        "aid-group membership from the download session or neighboring files",
+        "that the file can be opened, OCRed, or sent to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.loans-mortgage",
+      "signal": "Both situations can see the same education debt and the same school and servicer names. Aid applications, eligibility summaries, school offers, and disbursement records are supported by an aid period and school-aid process; a repayment account is supported by principal, interest, payment, and servicer structure. A student-loan statement can support both accepted groups on separate evidence, but the school name or servicer name alone must count for neither. Reciprocal fixture: Student Loan Statement Jun 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.scholarship-fellowship",
+      "signal": "An aid or award word beside an institution and an amount appears on scholarship applications, award outcomes, aid summaries, offers, and tuition records. Applicant-side submission or outcome structure belongs to the scholarship situation; account, eligibility, school-offer, or disbursement structure belongs here. A word, organization, or amount alone decides neither. Current aid-summary fixture: 2026-27 FAFSA Submission Summary.pdf; the reciprocal node uses its historical Student Aid Report filename.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "Aid forms, profile acknowledgements, portal captures, and offer comparisons travel with an admissions packet. The application side needs a unique admissions addressee and cycle or a packet-purpose anchor; this side needs a financial-aid application, eligibility, offer, account, or disbursement structure. A released-to school list is not a set of target facts. Reciprocal fixture: CSS Profile Acknowledgment 2026-27.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.k12-admission",
+      "signal": "Tuition-assistance applications, deposit records, and school offers carry the school name and entry period in the same high-weight zones as admission records. Household-finance declarations, assessed contribution, amount-due, payment-schedule, or aid-account structure support this side; admission, entry-grade, guardian-signature, and enrolment-decision structure support the K-12 application side. A school name or entry year alone decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.study-abroad",
+      "signal": "A mobility-grant letter combines home institution, host or program, study period, amount, payment schedule, and account instructions. The money and disbursement structure supports this side; enrolment, course, and credit structure supports study abroad. The institution-plus-program pair alone must not count for both. Reciprocal fixture: Erasmus Grant Award Letter.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "A financial-aid award letter and an academic credential can share school letterhead, an office signature, a person name, and an annual period. Aid amounts, eligibility, or disbursement structure support this side; registrar attestation, grades, credits, or a conferred credential support the academic-record side. School letterhead alone decides neither. Reciprocal fixture: Financial Aid Offer - Harbour University - 2026-27.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "An education-savings plan can be both a custodial investment account and a source of school funding. A labelled holdings table under a plan-account descriptor supports the investment situation; a beneficiary-student slot together with school-payment, aid, or disbursement structure supports this situation. The education purpose alone decides neither. Reciprocal fixture: 529 Plan Statement Fall 2026.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Independent Records",
+    "Review Later",
+    "Unsupported or Encrypted",
+    "Receipts and Confirmations"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Aid applications and verification packets can expose student and contributor identity, tax, income, assets, household circumstances, immigration or dependency evidence, signatures, school choices, and loan balances. Finance is a safety domain, so classification and protection precede any model or automated placement path. Raw values, complete text, OCR, filenames, and combined packet dossiers stay local; any allowed model review must use a bounded, redacted dossier under user policy. This row assigns no handling class: D2 leaves the authoritative classification to P7.",
+  "open_question": "Two connected decisions remain. First, should aid_year become a canonical destination-eligible field, or should R1c fold it into a broader shared benefit or coverage period used by other record templates? The current fields cannot represent the funded period without misusing tax_year, application_cycle, or term, so this node keeps the period as evidence and a group anchor. Second, the roster hint includes loan servicing while finance.loans-mortgage already claims the repayment-account lifecycle. This node treats education-purpose and aid-history evidence as one possible group and repayment structure as another, with overlapping P9 membership allowed; Joseph or R1c must decide whether P10 should routinely surface both templates for the same student-loan series or choose one branch posture."
+}

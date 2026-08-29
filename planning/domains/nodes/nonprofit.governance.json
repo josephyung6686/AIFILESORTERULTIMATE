@@ -1,0 +1,269 @@
+{
+  "id": "nonprofit.governance",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Nonprofit and charity governance",
+  "one_line": "REFUSED. The roster hint names the association's SELF-RUNNING record - governing document, registration, trustee or board business, policies, annual reporting and regulatory returns - which is precisely and by name the material the `nonprofit` schema row declares it does NOT hold: 'trustee minutes, budgets, contracts, policies, procurement, audits, projects, IT and statutory returns are business_operations with a different tax status, and are routed there by name.' The schema's activation precondition is a NON-EXCHANGE relation between two labelled parties, and no artefact in this row's scope names one: a constitution names an entity and its objects, a trustee minute names officers, a policy names a population, a regulator return names an authority. Every scrap of the scope is already owned by a landed row - business_operations.board-governance (the constituted body's cycle), business_operations.corporate-regulatory-filings (the compelled submission), business_operations.policy-handbook (the controlled document), law_practice.corporate-secretarial (the constitutional register kept on an entity's behalf), nonprofit.member-association (the members' meeting instrument) - and what remains after those subtractions is only the assertion that the organisation is a charity rather than a company, which is an organisation type. The schema strikes that first and in terms: 'tax status is a FIELD VALUE, not a structure.' The coverage is routed, not lost.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the CONNECTION section 2 node test against the `nonprofit` schema's own default, and fails a fourth test the brief names separately - it is defined by an organisation type, which is never-alone evidence. LEG 1, DETECTION. A template exists when its detection signals differ from the schema default's. This row's signals cannot differ because they cannot reach the default: the `nonprofit` schema fires only on evidence of a non-exchange relation between two labelled parties - restricted grant, gift declaration, membership roll, beneficiary case, safeguarding concern, volunteer rota, rite register - and a governing document, a trustee minute, a policy or a regulator return evidences none of them. Its only candidate signals are a charity or union registration number, a trustee role word, mission and public-benefit vocabulary, and an association name, and the schema lists all four in `never_alone` and calls the first of them 'the charge this schema was written to answer'. A signal set built entirely from a schema's forbidden sole activators is not a different default; it is no activation at all. LEG 2, DIMENSIONS. The `nonprofit` schema declares no field rows under PR-6, so its default `dimension_order` is empty by contract and this row's must be empty too. Two empty orders cannot differ. Even the schema's PROSE recommendation - association, then non-exchange counterparty or fund, then period, then function - is unreachable here: this row has no counterparty and no fund, so the only level it could offer is the association itself, which 00's own validator rejects as 'use an author or organization merely as a collector' producing 'meaningless one-child levels' in the single-association corpus that is this world's normal case. LEG 3, PRIVACY. The `nonprofit` schema's stricter-than-business_operations posture is argued on one thing: the exposed party is a third party who is 'neither the user, an employee, nor a customer, and often disclosed under need or vulnerability'. This row's material exposes trustees and officers, and the schema disposes of them explicitly - 'Trustee and officer records are hr's or business_operations' by the same logic; a trustee is not a beneficiary.' Officers are named on public registers by the same regulator this row's returns are filed with. The posture is therefore business_operations', not the schema's stricter one, so leg 3 differs in the wrong direction. FOURTH, THE ORGANISATION-TYPE TEST. Both landed business_operations rows that authored a boundary against this id proposed the same discriminator - 'owner type: a trustee or member-body vocabulary, a charity or union registration slot, and a purpose-of-the-association framing supports nonprofit.governance' - and every token in it is on the schema's `never_alone` list. Two neighbours independently drew a seam whose evidence the target schema refuses to fire on. That is the diagnosis, not a coincidence: this row is an organisation type wearing a document list. FIFTH, THE SCHEMA ALREADY ROUTED THE BEST FIXTURE. The strongest survival candidate, a constitution or trust deed with a charitable-objects clause, is disposed of by the `nonprofit` schema's own residual argument, which names 'a constitution, a certificate of registration' as Independent Records material. The schema sent this row's best file to a residual home before this row was researched. SIXTH, NJ-NP-4. The schema's own open question enumerates the seven templates it believes defensible - grant-funding-received, restricted-fund-accounting, donor-and-fundraising, membership-register, beneficiary-service-record, safeguarding-record, faith-rite-register - and governance is not among them; it separately instructs that 'a charity-regulator-return row should NOT be built, because business_operations.corporate-regulatory-filings already owns that relation.' This refusal answers NJ-NP-4 in the affirmative rather than contradicting it. WHAT WOULD REVERSE THIS: a governance artefact that names a labelled non-exchange party in a structure business_operations has no analogue for. The nearest candidate is the members' meeting instrument - notice, motion, proxy, member-vote count - which does carry a member-to-association relation; but the schema assigns it to the MEMBERSHIP-REGISTER signal and the roster gives it to `nonprofit.member-association`, so it reverses nothing here.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "A registered charity number, a 501(c)(3) or 509(a) reference, a CIC, CIO, e.V. or gGmbH suffix, a union registration number, a tax-exempt determination reference, or a VAT-exemption note - alone, or beside a document-type word. This is the refusal in one line: it is the only evidence that separates this row's scope from business_operations.board-governance's, and the `nonprofit` schema strikes it in terms - tax status is a field value, not a structure. TRUE OF A TEMPTING FALSE FILE: `Trustee board minutes - 12 March 2026.pdf` differs from a company board's minutes by a footer.",
+      "A trustee, governor, elder, council-member, delegate or officer ROLE word, alone or in an attendance list. A role word without the register, rota, agreement or non-exchange relation it should sit in names an ambiguous person. A trustee is an officer of the association, not a party to a non-exchange relation with it.",
+      "Charitable-objects, public-benefit, mission, impact or theory-of-change vocabulary in a constitution, an annual report narrative or a strategy paper. A benefit CLASS ('persons in need in the parish of X') is not a labelled party, and the identical framing appears in corporate purpose statements, ESG reports and public-sector strategy.",
+      "A charity, union, church, foundation, NGO, club or association NAME on a letterhead, a cover page or a filing header. Read across by inference from 00's role-ambiguity reasoning: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'",
+      "A regulator's name, a filing reference or a submission receipt from a charity or union regulator. The relation evidenced is regulated-entity to authority, which is business_operations.corporate-regulatory-filings' whole anchor, and a different registry does not make a different structure."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None are authored. Every group this row could have formed is a landed neighbour's: one governance cycle of one constituted body is business_operations.board-governance's; one controlled policy and its revisions is business_operations.policy-handbook's; one filing obligation and its receipt is business_operations.corporate-regulatory-filings'; one entity's constitutional register is law_practice.corporate-secretarial's; one membership year and its meeting instrument is nonprofit.member-association's. A group formed here on 'same charity' would be the collector level 00's validator rejects."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty for a second independent reason that would hold even if it were not: the `nonprofit` schema declares no field rows under PR-6, so no dimension may branch on anything (_CONTRACT rules 10 and 15). No physical recommendation is made. The material's dimensions, where any exist, are recommended by the landed rows that hold it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Trustee board minutes - 12 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover naming a board of trustees and a meeting date",
+        "attendance, apologies and quorum",
+        "numbered papers and numbered resolutions",
+        "a registered-charity number in the footer",
+        "an embedded management-accounts appendix"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row activates. THE SHOWCASE FIXTURE OF THE REFUSAL, and it is the `nonprofit` schema's own declared collision fixture, already conceded there: 'a trustee board running a governance cycle is structurally identical to a company board, and the row that owns it is business_operations.board-governance.'",
+        "that the charity number in the footer promotes a business_operations file into this schema - it is the schema's first never-alone token",
+        "any nonprofit fact - the schema declares none, and it does not activate here at all",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Constitution and rules - adopted 2019 - as amended 2024.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a recital naming the association and its legal form",
+        "a labelled Objects clause stating the purposes for which the association exists",
+        "clauses on membership classes, trustee appointment and removal, meetings and quorum, and dissolution",
+        "an adoption date, an amendment history and signature blocks",
+        "no counterparty, no amount, no reference number tying it to any relation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the Objects clause names a non-exchange party. It names a benefit CLASS, which is not a labelled party, and the schema's precondition requires a party - this is the single strongest survival argument this row had, and it fails on that distinction",
+        "that a governing instrument is this row's evidence. The `nonprofit` schema already routed it: its Independent Records argument names 'a constitution, a certificate of registration' by name. `legal` holds the executed-instrument reading; `law_practice.corporate-secretarial` holds the register kept on an entity's behalf",
+        "an organization fact - the key is an unadjudicated proposal on the schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Annual Report and Accounts year ended 31 March 2026 - trustees signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a trustees' report narrative with sections on objectives, activities, achievements and public benefit",
+        "a governance section listing trustees serving during the year and their appointment method",
+        "a statement of financial activities whose column set partitions rows into unrestricted, restricted and endowment",
+        "an independent examiner's or auditor's report and a signature page",
+        "a charity registration number on the cover"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row holds it. THE COLLISION FIXTURE THAT LOOKS MOST LIKE THIS ROW AND IS NOT: the file splits cleanly across three landed owners and leaves nothing behind. The trustees' report narrative and governance section are business_operations (board-governance for the cycle, strategy-plan for the objectives account); the copy submitted to the regulator with a filing reference is business_operations.corporate-regulatory-filings; and the restricted-fund column partition in the SOFA is the ONLY part that fires the `nonprofit` schema at all - on the schema's own RESTRICTED-FUND signal, which is a schema-default activation, not this template's",
+        "that a schema-default activation inside a file rescues a template. It is the definition of a template that does not differ from its default",
+        "that public-benefit vocabulary is evidence - it is a never-alone token here and appears in corporate ESG reporting",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Charity annual return 2025-26 - submission receipt.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a regulator's header and a submission reference",
+        "labelled slots for registered number, financial period and trustee details",
+        "a submitted-on timestamp and a confirmation sentence",
+        "a deadline reminder in the covering text"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a different registry makes a different structure. The relation is regulated-entity to authority - 'an OBLIGATION TO AN AUTHORITY with a deadline and a filing reference' is business_operations.corporate-regulatory-filings' stated anchor, and the `nonprofit` schema instructs in NJ-NP-4 that this row should not be built for exactly this reason",
+        "that trustee details in a labelled slot are a non-exchange party - they are officer particulars, and the same regulator publishes them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Safeguarding policy v4.2 - approved by trustees 12 March 2026 - next review March 2028.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a document-control block pairing owner, approver, version, effective date and next review date",
+        "a scope section naming staff, volunteers and trustees as the governed population",
+        "procedural sections on reporting concerns and the designated lead role",
+        "a revision table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that safeguarding subject-matter routes a policy here. The `nonprofit` schema's safeguarding signal requires a CONCERN, ALLEGATION OR INCIDENT form naming a reporting person and a subject - a named third party. A policy names a population and no party at all",
+        "that this is anything but business_operations.policy-handbook's - the document-control block is that row's stated organizing anchor, and it is present verbatim here",
+        "that approval by trustees rather than a board changes the controlled document into a nonprofit record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AGM 2026 - notice, motions and proxy form.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a notice period stated against the constitution's requirement",
+        "numbered motions and a special-resolution threshold sentence",
+        "a proxy appointment form with a member number slot",
+        "an agenda item to receive the trustees' report and accounts"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this reverses the refusal. It is the one artefact in this row's scope that DOES carry a member-to-association relation, which is why it is written here rather than omitted - but the `nonprofit` schema files it under the MEMBERSHIP-REGISTER signal ('a members' meeting instrument carrying a notice period, a motion, a proxy or ballot form and a member-vote count'), and the roster gives that structure to nonprofit.member-association. It is a sibling's evidence, not this row's residue",
+        "that a member number slot is a member fact - the schema declares no fields",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Model constitution for charitable incorporated organisations - regulator guidance.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a regulator's publication header and a guidance version",
+        "template clauses with square-bracketed blanks",
+        "explanatory commentary between clauses",
+        "no adoption date, no signature block, no named association"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that it is an operative governing document. The blanks and the absent adoption are the discriminating evidence, and this is the schema's own needs_llm case - separating operative records from a downloaded exemplar, where 'purpose answers what the file was for' is the only test that works",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Board pack March 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "member paths encoding a meeting date and numbered paper prefixes",
+        "member names suggesting minutes, management accounts, a risk register and a policy for approval",
+        "no member path encoding a grant reference, fund name, case reference or membership year"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the packet is a nonprofit packet. Read the manifest without unpacking; the absent grant, fund, case and register references are what the `nonprofit` schema's own archive signal looks for, and their absence is the whole answer. The packet is business_operations.board-governance's",
+        "that a member path is a folder path fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Trustee board minutes - 12 March 2026.pdf` - that row owns the entire file and this row owns nothing in it, discriminated by the fact that nothing in the pack names a non-exchange party, which is the `nonprofit` schema's activation precondition. THE SEAM AS LANDED IS WRONG IN THIS ROW'S FAVOUR AND THIS ROW DECLINES IT: that node's authored signal offers 'a trustee or member-body vocabulary, a charity or union registration slot, and a purpose-of-the-association framing' as evidence for this row, and all three are on the `nonprofit` schema's never_alone list - the registration slot is the token the schema says it 'was written to answer', and the answer was that tax status is a field value, not a structure. Recommendation to R1c, not an edit: retarget that entry at the `nonprofit` schema itself, where it would fire only when a non-exchange party appears in the pack, or drop it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: `Charity annual return 2025-26 - submission receipt.pdf` - that row owns the whole obligation-to-an-authority structure (its stated anchor: a deadline and a filing reference) and this row owns nothing, discriminated by the fact that a different registry is not a different structure. Its authored signal against this id proposes the same owner-type discriminator - 'a charity or association registration slot and a trustee framing supports nonprofit' - built from tokens this row's own schema forbids as sole activators. The `nonprofit` schema settles it directly in NJ-NP-4: 'a charity-regulator-return row should NOT be built, because business_operations.corporate-regulatory-filings already owns that relation.' The only residue worth naming is a restricted-fund note travelling with a return, and that fires the schema's own fund signal, not this template. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "SAME FIXTURE BOTH SIDES: `Safeguarding policy v4.2 - approved by trustees 12 March 2026 - next review March 2028.docx` - that row owns it on the document-control block that is its stated organizing anchor, and this row owns nothing, discriminated by party versus population: a policy governs a population and names no party, whereas the `nonprofit` schema's safeguarding signal requires a concern or incident form naming a reporting person and a named subject. Safeguarding SUBJECT-MATTER does not route a document to the nonprofit family; safeguarding STRUCTURE does. In the reverse direction: an actual concern form is not a controlled document, has no version block and no review cycle, and belongs to the `nonprofit` schema's protected default rather than to policy-handbook. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.corporate-secretarial",
+      "signal": "SAME FIXTURE BOTH SIDES: `Constitution and rules - adopted 2019 - as amended 2024.pdf` - that row owns the constitutional record when it is KEPT ON AN ENTITY'S BEHALF (its anchor: an entity registration number repeated across artefacts plus a matter, engagement or service reference), and this row owns nothing in either case, discriminated by that service reference: with it the file is that row's, without it the schema's own residual argument sends it to Independent Records as 'a constitution, a certificate of registration'. Note that row already cedes the entity's own board cycle and its compelled submissions by name, so the three-way seam closes without this row existing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "SAME FIXTURE BOTH SIDES: `AGM 2026 - notice, motions and proxy form.pdf` - that sibling owns it on the `nonprofit` schema's MEMBERSHIP-REGISTER signal ('a members' meeting instrument carrying a notice period, a motion, a proxy or ballot form and a member-vote count'), and this row owns nothing, discriminated by which relation the instrument evidences: member-to-association is a non-exchange relation and fires the schema, whereas the board cycle that convenes the meeting is business_operations.board-governance's. This is the ONE artefact in this row's roster scope that carries a genuine non-exchange party, and recording that it belongs to a sibling rather than to this row is the load-bearing step in the refusal - without it the refusal would be over-broad. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "SAME FIXTURE BOTH SIDES: `Charity annual return 2025-26 - submission receipt.pdf` - the AUTHORITY's copy is government's (the deciding office's letterhead, case reference and statutory power over registration and regulation of the association), the FILER's copy is business_operations.corporate-regulatory-filings', and this row holds neither side, discriminated by which side's letterhead heads the artefact. The `nonprofit` schema's own government seam - authority-side administration versus grantee-side lifecycle - turns on a restricted grant, which is nowhere in this row's scope, so this row cannot even take the grantee position. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Annual Report and Accounts year ended 31 March 2026 - trustees signed.pdf` - finance owns any institution-and-account structure inside it (bank statements, ledgers, filed returns as custodial and statutory records), the `nonprofit` schema itself owns the restricted-fund column partition on its own fund signal, and this row owns neither, discriminated by the header: an institution name and an account number is finance, a fund-class partition is the schema default, and a trustees' narrative around both is business_operations. This row would only have been the wrapper, and a wrapper is not a structure. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The principal home for this row's characteristic isolated file once the row is refused: a constitution, a trust deed, a certificate of registration, a charter, a signed conflict-of-interest declaration standing alone. The `nonprofit` schema had already routed exactly these here. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For governance-shaped material whose owner row is genuinely unresolved - a minute pack that might be a company's or an association's, a policy with no control block, a board archive whose manifest resolves nothing. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "For the isolated transactional members of this world: a filing submission receipt, a registration confirmation, an annual-return acknowledgement with no obligation packet around it. 00: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This row's tempting false files are overwhelmingly reading material - model constitutions, regulator guidance, other associations' published annual reports, sector governance codes. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected board portals' exports and governance-system archives are ordinary here and must not be forced open. 00: \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded for the material as it travels to its real owners, not as a claim that this row holds it. The posture is business_operations', NOT the `nonprofit` schema's stricter one, and that difference is leg 3 of the refusal: the schema's stricter posture rests on an exposed third party 'who is neither the user, an employee, nor a customer', and governance material exposes trustees and officers, whom the schema explicitly assigns elsewhere - 'a trustee is not a beneficiary.' Officer particulars are published by the same regulator these returns are filed with. `potentially_sensitive` is nonetheless the honest value rather than `none`, for two reasons that are about carried payloads and not about governance itself: a board or trustee pack routinely encloses a personnel or employment matter, a legal advice note, a safeguarding case summary or a donor schedule, and each of those carries its own owner's protection into the packet - 00's corpus sentence covers them, since such a corpus \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\"; and for some associations - a union, a congregation, a support-group charity - the governing document's own objects clause discloses affiliation or belief. No handling class is assigned; that is P7's. No `is_safety_domain` flag is claimed.",
+  "open_question": "Four, all reciprocal or upstream; none is a reason to keep the row. (1) NJ-NPG-1, THE INHERITED SEAM. Two landed rows - business_operations.board-governance and business_operations.corporate-regulatory-filings - authored boundaries against this id whose discriminator is owner type ('a charity or union registration slot and a trustee framing supports nonprofit'), which the `nonprofit` schema forbids as a sole activator. Their entries now point at a refused row. Alternatives for R1c: (a) retarget both at the `nonprofit` schema itself, so they fire only when a non-exchange party appears in the pack - this row's preference; (b) delete both entries and let owner type be a field value as the schema says; (c) reverse this refusal, which would require overturning the schema row's own scope sentence. This row edited neither neighbour. (2) NJ-NPG-2, THE AGM INSTRUMENT. The members' meeting instrument is the only artefact in the roster hint carrying a genuine non-exchange party. It is assigned here to nonprofit.member-association on the schema's membership signal, but that sibling may reasonably read itself as owning the ROLL rather than the MEETING. Alternatives: (a) member-association owns roll and meeting together, since the meeting is the roll exercising itself - this row's preference; (b) the meeting instrument splits, with the convening cycle to business_operations.board-governance and the proxy and vote count to member-association. If neither holds, the residue is a candidate for a narrow members-meeting row, which would still not be this row. (3) NJ-NPG-3, THE OBJECTS CLAUSE. This refusal turns on the distinction between a benefit CLASS and a labelled PARTY. If R1c judges that a charitable-objects clause naming a defined beneficiary class does satisfy the schema's two-party precondition, then a narrow governing-instrument row becomes arguable - but it would be a constitutional-instrument row, not the roster hint's governance row, and it would still have to defeat law_practice.corporate-secretarial, `legal`, and the schema's own routing of a constitution to Independent Records. The distinction is stated here so it can be overturned deliberately rather than eroded. (4) NJ-NPG-4, THE ROSTER HINT'S OWN WORD. The hint's phrase 'trustee or board business, policies, annual reporting and regulatory returns' reproduces the `nonprofit` schema row's exclusion list nearly item for item. Whoever generated the ten nonprofit templates appears to have derived them from the industry rather than from the schema's structures. R1c should check the other nonprofit siblings for the same derivation; nonprofit.political-campaign has already refused on a closely related ground, and nonprofit.religious-institution narrowed itself to a rite register for the same reason. This row does not touch them."
+}

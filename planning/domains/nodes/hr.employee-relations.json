@@ -1,0 +1,633 @@
+{
+  "id": "hr.employee-relations",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Employee relations cases",
+  "one_line": "The employer's file for one formal process run against, for, or with an individual employee or their representatives under a written procedure: grievance, disciplinary and conduct, capability, absence review, investigation, suspension, appeal, whistleblowing, mediation, negotiated exit, and collective consultation. It is recognised by the SERVED PROCEDURAL APPARATUS - an allegation or grievance put to a named person, a dated hearing, a representation right, a separated investigator/decision-maker/appeal-hearer triad, and an outcome carrying a live period and an appeal route - not by the words grievance or disciplinary and not by a named individual. PLACEHOLDER ROW (J-IND): the hr schema declares no canonical field rows under PR-6, so this row writes none and its recommended dimensions stay unserialised.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a SERVED procedural instrument: one document that jointly carries a named individual, a dated and located hearing or meeting, the allegation or grievance being considered, a representation right (accompanied by a colleague or trade union representative), and a stated possible outcome. All five together are the signal. The same sentence sitting inside a procedure document is not, because it is addressed to nobody",
+      "terms of reference for an investigation naming an investigating officer distinct from the commissioning manager, with allegations placed in scope and out of scope, a reporting deadline, and a confidentiality undertaking. The separation of the two roles is the diagnostic part; a single-author fact-find note is not",
+      "an outcome instrument carrying a sanction or determination TOGETHER WITH a stated live or expiry period for it and an appeal route with a deadline and a named appeal hearer. A decision without a lifespan and an appeal route is an ordinary management decision",
+      "a witness statement bearing a case reference, a signature and date, and a first-person account of a workplace event, held alongside other members of the same case reference rather than in the witness's own file",
+      "a case log or register whose columns pair a case reference with a PROCESS NAME drawn from the formal-procedure vocabulary (grievance, disciplinary, capability, appeal, whistleblowing) AND a subject-employee column AND a stage column drawn from investigation, hearing, outcome, or appeal. Case reference plus status plus handler alone is a service-desk queue",
+      "collective consultation apparatus: an employee-representative election or ballot record, or minutes recording recognised-union or elected representatives as attendees, together with a stated consultation period and sections on selection pool, selection criteria, or alternatives to the proposal",
+      "a settlement, compromise, or negotiated-exit instrument carrying a waiver of employment claims together with the independent-adviser certification block that such instruments require",
+      "an employment tribunal or employment-court claim or response form naming the holder's organisation as respondent, with the claimant identified as a current or former worker"
+    ],
+    "needs_llm": [
+      "whether an unlabelled note is a case narrative or an ordinary management one-to-one, a coaching note, or a project retrospective. This is protected content: use a local model or an explicit-consent route, never a default cloud dossier",
+      "whether a performance improvement plan is a step in a formal capability procedure (procedure cited, review period, stated consequence of failure, warning-equivalent status) or an output of the annual review round, which belongs to the performance-cycle row",
+      "whether an investigation concerns employment conduct, clinical care of a named patient, or a system or event. The three produce structurally identical reports and only the subject under review separates them",
+      "whether a grievance and a disciplinary that reference each other are one case with a counter-allegation or two cases that must not be merged. The safe answer is a reviewable candidate link, not a merge",
+      "whether a consultation pack is a formal collective consultation with representatives or an internal restructuring proposal that has not yet been put to anyone, which belongs to organisation design and headcount planning",
+      "whether an occupational-health report was commissioned by the employer for an absence or capability process or is the individual's own clinical record that happens to name their employer",
+      "whether a heterogeneous packet is purpose-coherent as ONE case when its members include policy extracts, emails, rosters, recordings, and medical evidence drawn from other schemas"
+    ],
+    "never_alone": [
+      "the words grievance, disciplinary, capability, investigation, hearing, appeal, misconduct, suspension, or confidential. A disciplinary procedure extract from a staff handbook contains every one of them and is a policy record, not a case",
+      "a right-to-be-accompanied SENTENCE, a procedure citation, or a sanction ladder appearing as generic text. Only the served instance - addressed to a named person, for a dated hearing, about a stated allegation - is evidence of a case",
+      "a case-shaped reference such as GRV-2026-014, ER-0042, or 26-031. Support tickets, safety incidents, audit findings, insurance claims, and legal matters all use that shape",
+      "a named individual plus an adverse-sounding subject line, filename, or folder name",
+      "the meeting shape - attendees, discussion, agreed actions - which every minute in the corpus has",
+      "the timeline, cause, findings, and corrective-actions shape, which a post-mortem about an outage has identically",
+      "a without-prejudice or strictly-confidential marking, which appears on commercial negotiations and legal correspondence",
+      "a trade union name, a representative's name, an HR business partner's name, or the employer's name, letterhead, or email domain",
+      "one employee's own copy of one warning, one settlement, or one outcome letter, with none of the surrounding procedural apparatus. That is the individual's employment record",
+      "membership in a mailbox folder, download session, or directory named HR, People, Cases, ER, or Confidential",
+      "source type or extension alone, including email, calendar, spreadsheet, archive, audio, image, or OCR",
+      "absence of EXIF as proof that an image of a case-management portal is a screenshot"
+    ]
+  },
+  "work_types": [
+    "grievance, including collective and group grievances",
+    "disciplinary or conduct process, including gross-misconduct proceedings",
+    "capability or formal performance-management process",
+    "sickness-absence management, long-term absence review, and return-to-work under procedure",
+    "investigation or fact-find commissioned under terms of reference",
+    "suspension or precautionary removal from duties",
+    "appeal against a grievance outcome, a sanction, a dismissal, or a selection decision",
+    "whistleblowing or protected-disclosure report and its handling record",
+    "bullying, harassment, or discrimination complaint and its handling record",
+    "mediation or informal resolution record",
+    "settlement, compromise, or negotiated-exit instrument",
+    "collective consultation on redundancy, transfer of undertaking, or change to terms",
+    "union recognition, collective bargaining, and collective dispute record",
+    "employment tribunal or employment-court claim, response, and bundle held by the employer as respondent"
+  ],
+  "grouping_reasons": [
+    "one case from initiation through investigation, evidence, hearing, outcome, appeal, and the expiry of any sanction - the case reference is the join, and the case is closed by an appeal being exhausted rather than by a date",
+    "one collective consultation round across its representative election, its numbered consultation meetings, its selection criteria, and its outcome letters",
+    "a grievance and a disciplinary that explicitly reference each other join as a REVIEWABLE CANDIDATE LINK only; they are never merged into one case, because doing so would place a complainant's material inside a respondent's file",
+    "a sparse member such as notes.docx, statement.docx, or scan.pdf may join an accepted case group by membership alone, without copying the subject, case reference, procedure, or outcome onto it as a fact",
+    "duplicate and version families of a draft outcome letter, an investigation report, or a settlement draft join through the universal duplicate_family and version_family facts, not through a case-only field",
+    "a witness statement joins the CASE, never the witness's own personnel or employment file, and the witness's identity is not propagated outward from the group",
+    "no group is valid when a case-shaped file carries no served procedural apparatus and no accepted case reference; protected residual placement is safer than inventing an employer-side case"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because PR-6 leaves the hr schema with no canonical field rows, so no key may become a folder level yet. The recommendation is held as prose for R1c and it DIFFERS FROM THE hr SCHEMA DEFAULT in two specific ways. The schema's default prose is work type or named people programme first, then workforce unit or cohort, then people cycle, with a pseudonymous personnel case only under explicit policy. For this row that order is wrong. (1) Work type must not lead: one case migrates across work types mid-process - a grievance that produces a counter-disciplinary, a capability process that becomes an ill-health case, a disciplinary that ends in a settlement - and a work-type first level would split one case's bytes across branches while it is still live. (2) Workforce unit must not lead: a small department plus a formal-process branch name re-identifies the subject even when no name appears. (3) People cycle does not apply at all: a case has no wave, round, run, or annual instance; it has a start, a decision, an appeal window, and a sanction lifespan. The recommended order is therefore a single pseudonymous case anchor and nothing above it, with function (notice, evidence, hearing, outcome, appeal) below it, and only under explicit user policy. Absent that policy the recommendation is no visible depth at all: represent in place and let search carry the case. Not time-first: dates here are notice dates, hearing dates, and expiry dates whose meanings differ, and none of them defines the world.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".m4a",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Invitation to disciplinary hearing - J Patel - 2026-08-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a named individual with an employee reference",
+        "labelled date, time, and location of a hearing",
+        "a numbered list of allegations to be considered",
+        "a sentence stating a right to be accompanied by a work colleague or trade union representative",
+        "a stated possible outcome and a citation of the employer's disciplinary procedure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any hr fact as canonical while the schema declares no fields",
+        "that the allegations are true, that a sanction followed, or that the procedure cited is the one that applies",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grievance GRV-2026-014 - terms of reference.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled commissioning manager and a separately named investigating officer",
+        "allegations placed explicitly in scope and out of scope",
+        "a reporting deadline and a confidentiality undertaking",
+        "a case reference repeated in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the investigating officer is the decision-maker",
+        "that the case reference identifies any particular employee",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Witness statement - A Okafor - GRV-2026-014 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "first-person account of a dated workplace event",
+        "signature and date block at the end",
+        "case reference in the header and references to exhibits"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this file belongs in A Okafor's own employment or personnel file",
+        "that the account is accurate, or that the named witness is the case subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Investigation report - GRV-2026-014 - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "background, chronology of events, evidence considered, findings against each allegation, recommendation",
+        "an investigating officer named as author and a commissioning manager named as recipient",
+        "the subject under review is a named individual, not an effort or an outage"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a findings-and-actions structure alone makes this a personnel case",
+        "that a recommendation is a decision",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Disciplinary hearing notes - 2026-08-21.docx",
+      "source_type": "text_document",
+      "observations": [
+        "attendees listed with procedural roles: chair, note-taker, HR support, the employee, and their companion",
+        "questions put to the employee and their responses recorded",
+        "an adjournment recorded before a decision"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an attendee list plus agreed actions is enough to activate this row",
+        "the outcome of the hearing from the notes' existence",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "First written warning - outcome letter - J Patel.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a determination against each allegation",
+        "a sanction with a stated period for which it remains live",
+        "a right of appeal with a deadline and a named appeal manager"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the sanction is currently live, expired, spent, or lawful",
+        "that the employee's own copy of this letter belongs to this row rather than to their employment records",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appeal outcome - GRV-2026-014.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "grounds of appeal restated and answered in turn",
+        "an appeal hearer named who is not the original decision-maker",
+        "a closing sentence stating that the internal procedure is concluded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the case is closed for retention or deletion purposes",
+        "that exhaustion of the internal procedure has any legal consequence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Settlement agreement - K Ruiz - draft 3 - without prejudice.docx",
+      "source_type": "text_document",
+      "observations": [
+        "named parties, a termination date, a payment schedule",
+        "a waiver of listed employment claims",
+        "an independent-adviser certification block and a confidentiality clause",
+        "tracked changes between two firms' drafts"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the agreement is executed, effective, or enforceable",
+        "that a without-prejudice marking establishes any protection",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "ET3 response - Patel v Northgate Ltd - 2026-09-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal claim number and a claimant named as a former worker",
+        "the holder's organisation named as respondent",
+        "numbered responses to numbered particulars of claim"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a law practice holds this as a client matter file",
+        "any view on the merits, jurisdiction, or time limits",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Collective consultation - meeting 3 - minutes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "attendees identified as elected employee representatives and a recognised union official",
+        "a stated consultation period and its remaining days",
+        "sections on the selection pool, the selection criteria, and alternatives to the proposal",
+        "no individual employee named as a subject"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any individual is at risk, selected, or dismissed",
+        "that a consultation period is adequate or complete",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employee representative election - ballot result - Customer Ops.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a constituency described as a workforce population",
+        "candidates, votes cast, and elected representatives",
+        "a returning officer and a date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "individual voting behaviour, union membership, or that any consultation followed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ER case log 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns pair a case reference with a process-name column reading grievance, disciplinary, or capability",
+        "a subject-employee column and a stage column reading investigation, hearing, outcome, or appeal",
+        "a handler column, an opened date, and a days-open measure",
+        "the layout is indistinguishable from a service-desk ticket export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a case-reference plus status plus handler layout is sufficient - the process-name and subject-employee columns are what discriminate",
+        "outcomes, patterns, or judgements about any named subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Occupational health referral and report - J Patel - capability.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a referral section naming the commissioning manager and the process it supports",
+        "a clinician's opinion on fitness, adjustments, and likely return",
+        "clinical detail beyond the fitness question"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any clinical fact as an hr fact, or any diagnosis at all",
+        "that a fitness opinion determines the capability outcome",
+        "a folder path"
+      ],
+      "also_schema": "clinical_practice",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hearing recording - 2026-08-21 - GRV-2026-014.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "recording metadata and duration consistent with a meeting",
+        "spoken identification of attendees and the process at the start",
+        "a case reference in the filename only"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the recording was consented to or is admissible anywhere",
+        "the case subject from the filename reference alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grievance GRV-2026-014 investigation pack - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "an archive whose member list cannot be read",
+        "a case-shaped reference in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "case membership, subject, or contents from the filename",
+        "that the archive should be unpacked to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - case portal queue.png",
+      "source_type": "ocr",
+      "observations": [
+        "screen-origin evidence establishes a capture",
+        "OCR reveals a table of case references, process names, and stages",
+        "the same layout is used by the internal service desk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that missing EXIF proves a screenshot",
+        "that a portal queue proves this row rather than support operations",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Employee Handbook v4.2 - Disciplinary Procedure extract.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "contains every formal-procedure word this row uses",
+        "contains the right-to-be-accompanied sentence, the sanction ladder, and the appeal route as generic clauses",
+        "a document version and an effective date; no named subject and no case reference",
+        "applies to the whole workforce"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that this row is active - THIS IS THE COLLISION FIXTURE and it belongs to the policy and handbook row",
+        "that procedure vocabulary is case evidence",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Performance improvement plan - K Ruiz - Q3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "objectives, measures, support offered, and a review date",
+        "no procedure citation, no warning-equivalent status, and no stated consequence of failure",
+        "carries the annual review-round header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a plan about an underperforming person is a capability case - without the procedure citation and the stated consequence it is a performance-cycle output",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.employment-records",
+      "signal": "Shared fixtures: `First written warning - outcome letter - J Patel.pdf` and `Settlement agreement - K Ruiz - draft 3 - without prejudice.docx`. THIS ROW MUST NOT TAKE an individual's own store of their employment documents merely because one warning or one settlement sits in it. CAREER.EMPLOYMENT-RECORDS MUST NOT TAKE an employer's case file merely because every member could be copied to the person it names. The discriminator is possession of the procedural apparatus that only the employer side holds: terms of reference, witness statements, investigator's working notes, hearing panel papers, and the appeal hearer's file. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "Shared fixture: `Employee Handbook v4.2 - Disciplinary Procedure extract.pdf`. THIS ROW MUST NOT TAKE the governing procedure, the sanction ladder, or a code of conduct - they name nobody, carry a controlled version and an effective date, and apply to the whole workforce. POLICY-HANDBOOK MUST NOT TAKE a procedure extract that has been served on a named person as an enclosure to a hearing invitation, where it is a case member. The discriminator is a served, addressed instance versus a published clause. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.retrospective-postmortem",
+      "signal": "Shared fixture: `Investigation report - GRV-2026-014 - final.docx`, which has that row's timeline-cause-findings-actions shape exactly. That row states the discriminator from its side and this row states it reciprocally: WHAT IS UNDER REVIEW. An effort, a system, or an event supports the retrospective row; a named individual as the subject, with terms of reference, an investigating officer, and a right-of-response section, supports this row. Getting it wrong files a disciplinary record in a working branch. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "Shared fixture: `Disciplinary hearing notes - 2026-08-21.docx`. That row states the discriminator from its side and this row agrees: a formal invitation with a right to be accompanied, an allegation, a warning, or an appeal reference supports this row; ordinary work discussion supports the meeting row. Reciprocally, THIS ROW MUST NOT TAKE a running one-to-one merely because it turns difficult, and MEETING-RECORD MUST NOT TAKE hearing notes whose attendee list carries procedural roles - chair, companion, note-taker. The pair matters for privacy, not only for filing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.support-operations",
+      "signal": "Shared fixture: `ER case log 2026.xlsx` and the portal-queue screenshot. That row states the discriminator from its side and this row states it reciprocally: an employee as the SUBJECT of the case, a formal process name, and a confidentiality frame support this row; a product or service fault and an agent resolution support support-operations. SUPPORT-OPERATIONS MUST NOT TAKE an ER register because it uses ticket columns; THIS ROW MUST NOT TAKE an internal service desk's queue because it happens to receive HR-adjacent requests. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.performance-cycle",
+      "signal": "Shared fixture: `Performance improvement plan - K Ruiz - Q3.docx`. PERFORMANCE-CYCLE MUST NOT TAKE a plan served under a capability procedure with a review period, a warning-equivalent status, and a stated consequence of dismissal. THIS ROW MUST NOT TAKE a plan produced by the annual review round from a low rating, with no procedure cited. The discriminator is the procedure citation and the stated consequence, not the presence of underperformance. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "Shared fixtures: `Occupational health referral and report - J Patel - capability.pdf`, and any investigation report bearing a case reference. WORKPLACE-HEALTH-SAFETY MUST NOT TAKE an absence, capability, or conduct case because it cites health; THIS ROW MUST NOT TAKE an injury, hazard, near-miss, or statutory safety report because it names a person and has an investigation. The discriminator is whether the subject under review is an ALLEGATION OR A PERSON'S CONDUCT, CAPABILITY OR ATTENDANCE, or an INCIDENT, HAZARD OR PLACE. The hr schema's own recognition list lumps these two together in one bullet; this row separates them and recommends R1c adopt the split. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "Shared fixture: `Settlement agreement - K Ruiz - draft 3 - without prejudice.docx` and the leaver checklist beside it. ONBOARDING-OFFBOARDING MUST NOT TAKE the negotiated part of an exit - the waiver, the without-prejudice drafts, the adviser certification - merely because a leaver process ran in parallel. THIS ROW MUST NOT TAKE the exit administration: asset return, access revocation, final-pay instruction, exit interview. A resignation-with-grievance is the genuinely hard case and is a reviewable candidate link, not a merge. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "Shared fixture: `ET3 response - Patel v Northgate Ltd - 2026-09-02.pdf`. PRACTICE-MATTER-FILE MUST NOT TAKE an employer's own tribunal response held by its HR function with no practitioner-side representation evidence; THIS ROW MUST NOT TAKE an employment-law firm's client matter file merely because every document concerns a grievance or a dismissal. The discriminator is the holder role: employer-as-party versus practitioner-representing-a-client, which is the same discriminator that row already applies to a personal summons. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "Shared fixture: a disciplinary process against a clinician-employee, which produces allegation letters, investigation reports, witness statements, and hearing notices structurally identical to that row's. That row states the discriminator and this row supplies the reciprocal: an allegation about CLINICAL CARE of a named patient, an incident-system reference, or an indemnity or regulator anchor supports the clinical row; an allegation about employment conduct, attendance, or capability with a contractual disciplinary-procedure citation supports this row. An investigation report alone supports neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.case-conference",
+      "signal": "Shared fixture: a case conference about a member of staff - occupational health, capability, a return-to-work meeting - which has that row's header, attendance, named subject, decision, and actions exactly. That row states the discriminator and asks for this reciprocal, which is supplied here: the subject is an employee of the holder's organisation and the apparatus is employment - an allegation, a right to be accompanied, an absence record, an appeal reference - supporting this row; a patient or service user receiving care supports the case-conference row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "A settlement instrument and a tribunal claim or response are simultaneously employer-side case members and legal documents. Both schemas may hold disjoint facts; neither copies the other's, and this row draws no conclusion about validity, merits, privilege, or time limits."
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "An occupational-health report commissioned for an absence or capability process is both a case member and a clinical record. Clinical facts remain clinical, and the stricter privacy posture of the two governs the file."
+    },
+    {
+      "domain": "business_operations",
+      "signal": "Collective consultation minutes are also a governance meeting record, and a served procedure extract is also a controlled policy version. Co-activation is lawful and the case membership does not overwrite the operational reading."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "the material is recognisably about an allegation, a named subject, a hearing, an outcome, health in an employment frame, or a settlement, but no accepted case group is active or the holder role is unresolved. This is the principal fallback and it is preferred over any working-folder placement"
+    },
+    {
+      "template": "Independent Records",
+      "when": "a durable standalone artifact - a concluded outcome letter, an executed settlement, a representative-election result, a procedure extract - has a lasting purpose but no accepted case, consultation round, or policy group"
+    },
+    {
+      "template": "Review Later",
+      "when": "a readable case-shaped artifact's holder role or process is genuinely undecided between this row and a neighbour, such as an investigation report with no stated subject type"
+    },
+    {
+      "template": "Unsupported or Encrypted",
+      "when": "an investigation pack, case export, or recording cannot be read, and its filename must not be allowed to manufacture a case, a subject, or a sensitivity result"
+    },
+    {
+      "template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a case portal, mailbox, or roster yields no accepted case or neighbouring process under OCR"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The EXISTENCE of the record is the disclosure here, which is a stronger claim than the schema's default that employee-identifying CONTENT must be protected. A folder or a filename that pairs a person with a formal-process word discloses that they are the subject of an allegation, a capability process, an absence review, or a negotiated exit, and it discloses it to anyone who can see the directory listing without opening a file. Roles inside one case are also asymmetric: a witness's identity may need protection from the subject, a complainant's from the respondent, and a whistleblower's from everyone, so a single case-level protection is not sufficient by itself. Content is protected before any cloud step, raw excerpts do not appear in general summaries, cross-case semantic similarity is suppressed because allegations, names, managers, and procedure text recur without authorising any link, and automated movement requires explicit policy. This catalogue value invents no handling class and makes no legal, disciplinary, or employment-status finding.",
+  "open_question": "NEEDS-JOSEPH NJ-ER-1: decide whether collective consultation and collective bargaining belong on this row at all. The roster hint puts them here as formal processes with an individual's REPRESENTATIVES, and the procedural spine genuinely matches - a governing procedure, a served notice, representation, meetings, an outcome - but the collective half has NO individual subject, so its privacy calculus is materially weaker and it could reasonably sit with hr.org-design-headcount or business_operations. Alternatives: keep both halves here with a work_type value separating them; split a collective row; or move the collective half to headcount planning and leave this row purely individual. NEEDS-JOSEPH NJ-ER-2: decide whether the hr schema's single recognition bullet that lumps employee-relations cases with workplace health and safety should be split, as this row argues. NEEDS-JOSEPH NJ-ER-3: if PR-6 is lifted, decide whether `personnel_case` may ever be destination-eligible for this row specifically. This row's recommendation is a pseudonymous case level only behind explicit user policy, and no visible depth at all by default; the alternative is search-only representation in place. NEEDS-JOSEPH NJ-ER-4: decide how P9 records the grievance-and-counter-disciplinary candidate link and the witness-statement membership without letting a witness's or complainant's identity propagate into the subject's group."
+}

@@ -1,0 +1,586 @@
+{
+  "id": "engineering.process-plant-design",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Process plant design definition (tag, line and stream)",
+  "one_line": "The design definition of a plant expressed as a tag-and-line topology: equipment and instrument tags bound to numbered lines and streams, each carrying a service fluid and a design pressure/temperature pair, plus the process-safety reasoning (HAZOP nodes, relief scenarios, cause-and-effect matrices) that justifies those conditions. The roster name reads as an industry label; the row is defined here by that relation, not by the industry. It is not the plant's construction contract (construction_property), not its operating asset register or maintenance execution (manufacturing), not the flowsheet solver run (engineering.simulation-analysis), and not the controlled drawing SET as a package (engineering.drawing-package). Placeholder row (J-IND, full J-DEPTH): PR-6 keeps fields empty and the machine-readable dimension_order empty.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "differs_from_schema_default": true,
+    "leg_1_detection": "The engineering schema default fires on an identified design item joined to a controlled definition: a title block with drawing number, revision and approval; a requirements table with stable requirement identifiers and verification-method columns; a parent-assembly BOM. This row's discriminating structures contain none of those and are not reachable from them. They are (a) a tag vocabulary whose members are bound to each other by CONNECTIVITY rather than by parent/child containment - a line runs FROM one tagged item TO another; (b) a per-line or per-stream row carrying a service fluid together with a design pressure and design temperature pair, which is a duty statement, not a revision statement; (c) an instrument tag whose letters denote a measured variable and a function within a control loop; (d) a deviation structure whose rows are node plus guideword rather than failure mode plus severity. The sharpest proof that this is a different signal: a line list export and a stream table frequently carry NO revision block, NO approver and NO requirement identifier, so the schema default cannot fire on them at all, while this row fires cleanly.",
+    "leg_2_dimensions": "The schema's researched default is project then design_item then lifecycle_stage then engineering_artifact_type. The second level cannot be filled here. What these files belong to is a PROCESS UNIT or plant area - a bounded section of a continuous plant - and a unit is not a parent item in a product structure; it has no assembly tree, its members are tagged instances, and one tagged item legitimately appears on the deliverables of two units where a line crosses a battery limit. This row's researched order is project then plant/unit then engineering_artifact_type, with lifecycle_stage demoted to an optional branch because process work is organised by discipline deliverable inside a design package far more strongly than by gate. dimension_order stays empty under PR-6; no key was minted to fill the second level (see open_question).",
+    "leg_3_privacy": "Differs in kind, not degree, from the schema default's proprietary-IP and export-control reason. HAZOP worksheets, relief-scenario calculations, cause-and-effect matrices and hazardous-inventory summaries state where a hazardous inventory sits, how it is released and which single safeguard prevents that release. That is third-party and public exposure with consequences for people who do not own the file, and in several jurisdictions it is security-sensitive facility information rather than commercial confidence. Separately, feed compositions and catalyst or recipe conditions are the licensor's trade secret. Not a new handling class and not a safety launch."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them. The legal set on any file this row recognises is the engineering schema's proposed set (project, design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline) once R1c licenses it, plus the universals. PR-6 keeps that set unlicensed today.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Empty deliberately. Three keys were genuinely tempting and each was rejected. (1) A plant/unit key: this is the intelligible parent and the row needs it, but proposing it now mints a near-synonym of the schema's unadjudicated `design_item` before either is settled - the same trap engineering.civil-structural declined for `structure`. Recorded as NJ-PLANT-1 instead. (2) An equipment/instrument tag key: the strongest fact on the node and the thread that binds the whole corpus, but a folder per tag would open one branch per pump, valve and transmitter in a plant, so it could only ever be a search and grouping fact; it is not this template's decision whether a non-destination fact may exist on the shared vocabulary at all (NJ-PLANT-2). (3) A service/design-condition key: multi-valued per file and per row, so it fails destination eligibility for the same reason engineering.civil-structural's `design_code` did, and duplicating an unresolved question is worse than recording it.",
+  "recognition": {
+    "deterministic": [
+      "a drawing sheet whose graphic content is a connected network of tagged equipment symbols and numbered lines, where a labelled line annotation carries size, service or fluid code and piping class, and instrument bubbles carry tag letters denoting measured variable and function; the connectivity plus the tag vocabulary is the signal, never a valve symbol or the letters P&ID alone",
+      "a tabular line list or piping index whose columns are line number, from-tag, to-tag, nominal size, service fluid, design pressure and design temperature, and piping material class; the from/to pair is what distinguishes it from any other engineering table",
+      "a stream table or heat-and-material balance whose columns are numbered streams and whose rows are mass or molar flow, composition, temperature, pressure and phase, joined to a flowsheet whose stream numbers match",
+      "an equipment or instrument datasheet identified by a single tag, carrying a PROCESS duty block (flow, pressure, temperature, fluid, density) alongside a separate MECHANICAL design block (design pressure, design temperature, materials, code stamp); the two-block structure is the discriminator against a vendor catalogue page",
+      "a deviation study worksheet whose rows are a node or line reference plus a guideword and deviation, with cause, consequence, existing safeguard and recommendation columns and a recommendation register; this is structurally distinct from a failure-mode/effect/severity table",
+      "a relief or depressuring calculation naming a relief-device tag, an enumerated overpressure scenario, a relieving rate and a required versus installed orifice or area",
+      "a cause-and-effect or safety-matrix grid whose row headers are initiating tags and whose column headers are final-element tags, with intersection marks denoting the action taken",
+      "a piping isometric identified by a line number and spool, carrying a bill of material for that line and continuation references to adjoining isometrics",
+      "a design basis or process design memorandum stating plant capacity, feed specification, utility conditions and the governing design codes for a named unit, where the capacity and feed statements are labelled slots rather than prose claims",
+      "an archive manifest exposing several of the above under one unit or issue - drawings, line list, datasheets, HAZOP - without extracting members to disk",
+      "parent-folder context naming a unit or plant may raise plausibility only after one tag-and-line structure is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a schematic of pumps, valves and pipework is process apparatus for a plant or building services distribution for one property",
+      "whether an equipment list is the design register of tagged items for a unit, an as-installed asset register, a procurement enquiry list or a spare-parts holding",
+      "whether a marked-up drawing records a design change to the definition or a field correction captured during commissioning",
+      "whether a heat-and-material balance is a design deliverable bound to flowsheet stream numbers or the reported output of a simulation run whose object is the run itself",
+      "whether a control narrative describes intended plant behaviour as design definition or documents an implemented controller configuration held in a repository",
+      "whether a pilot-plant or bench dataset supports a process design decision for a specific plant or is knowledge-producing research about the chemistry",
+      "whether a hazard study is a design-stage study of a proposed plant or a periodic revalidation of an operating one"
+    ],
+    "never_alone": [
+      "the letters P&ID, PFD, HAZOP, SIL, MOC or the words process, plant, line, stream, service, loop or tag alone; every one of these tokens appears in software, logistics, manufacturing execution and building-services material",
+      "a tag-shaped token such as P-101A, V-201 or FIC-1502 alone. The same short letter-number-suffix shape is a part number, a room number, a purchase line, a form code, a seat number and an arbitrary filename stub. It needs a second plant structure - a from/to line relation, a service and design-condition pair, or a loop membership - before it means a tagged plant item",
+      "a pressure and temperature pair alone; test reports, weather data, autoclave logs, medical devices and cooking records all carry one",
+      "an equipment list or an inventory of vessels alone. An asset register, an insurance schedule, a procurement enquiry and a spare-parts holding are all lists of the same objects and none of them defines the plant",
+      "a valve, vessel or pump symbol alone, and any drawing symbol legend alone; a legend proves a drawing convention, not a domain",
+      "an operator, licensor, EPC contractor or refinery company name alone. Role ambiguity here is the same defect 00 identifies for a university name: the name on the title block may be the owner, the licensor, the engineering contractor or the vendor, and it does not say which",
+      "a native or proprietary CAD/drafting extension alone, and any extension alone; 00 requires extension to be a routing signal rather than an assumption about meaning",
+      "a revision token, issue status or as-built stamp alone; construction drawings, policies, contracts and research manuscripts all use revision control",
+      "a chemical or fluid name alone; a safety data sheet, a shipping document, a recipe and a research paper all name fluids",
+      "absence of EXIF or a screenshot-like image alone; it does not prove a captured flow diagram",
+      "a bounded download session alone; 00 says a session is never proof of topic"
+    ]
+  },
+  "proposed_context_terms": [
+    "line number",
+    "line list",
+    "piping class",
+    "service fluid",
+    "design pressure",
+    "design temperature",
+    "battery limit",
+    "tie-in",
+    "stream number",
+    "heat and material balance",
+    "process flow diagram",
+    "piping and instrumentation diagram",
+    "equipment tag",
+    "instrument loop",
+    "control narrative",
+    "guideword",
+    "deviation",
+    "safeguard",
+    "node",
+    "relieving scenario",
+    "set pressure",
+    "cause and effect",
+    "safety instrumented function",
+    "isometric",
+    "design basis",
+    "unit",
+    "utility summary"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only; it does not list these. They exist to stop a bare tag-shaped token from activating, not to act as a detector.",
+  "work_types": [
+    "block flow diagram",
+    "process flow diagram",
+    "heat and material balance",
+    "piping and instrumentation diagram",
+    "line list",
+    "tie-in list",
+    "equipment list",
+    "equipment datasheet",
+    "instrument datasheet or index",
+    "control narrative",
+    "cause-and-effect matrix",
+    "safety instrumented function definition",
+    "hazard and operability study worksheet",
+    "relief and depressuring calculation",
+    "hydraulic or line sizing calculation",
+    "piping material class specification",
+    "plot plan or equipment layout",
+    "piping isometric",
+    "utility and effluent summary",
+    "process design basis memorandum"
+  ],
+  "work_types_note": "Candidate VALUES of engineering_artifact_type (or a widened canonical artifact_type), never child nodes. Several are also values on sibling engineering rows; a shared value is not a shared node.",
+  "grouping_reasons": [
+    "one tag threaded across its deliverables - a pump's P&ID sheet, datasheet, relief case, loop entry and isometric are one neighbourhood even when no two of those files share a title-block field",
+    "one process unit's issued design package at one issue: flowsheets, line list, datasheets, layout and the hazard study that reviewed them",
+    "one hazard study and the recommendation register that closes it, preserving the link from a recommendation to the deliverable that implemented it rather than copying a unit fact onto the recommendation",
+    "one line number from its list row through its sizing calculation to its isometric and material take-off",
+    "a sparse cropped stream-table image may join an accepted unit neighbourhood without acquiring any tag, unit or service fact; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty under binding PR-6: the engineering schema declares no destination-eligible fields yet, so no machine-readable order may be encoded. Subject to R1c, the researched order is project then plant/unit then engineering_artifact_type. Project or function precedes time under 00's document-domain rule; the unit is what makes a line number, a tag and a deviation node intelligible, exactly as a course makes Homework 3 intelligible; the deliverable type is the last level because retrieval in this world is 'the line list for Unit 2100', not 'the June files'. lifecycle_stage is an optional branch above the unit where a corpus genuinely spans conceptual, FEED and detailed design; it is NOT a standing level, because the great majority of a plant corpus sits in one stage and the level would open a branch the facts cannot fill. revision_or_baseline stays metadata: revision folders fragment a unit's definition. The user may reverse, remove, add or flatten any of this.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".xlsm",
+      ".csv",
+      ".docx",
+      ".pptx",
+      ".dwg",
+      ".dgn",
+      ".dxf",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "1042-PID-2100-001_Crude-Feed-Pumps_RevD.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sheet shows tagged pumps P-2101A/B and vessel V-2103 connected by annotated lines",
+        "line annotations read size, fluid service code and piping class",
+        "instrument bubbles carry tag letters and are drawn on a loop to a final element",
+        "title block carries drawing number, revision D and an issued-for-design status",
+        "continuation arrows reference adjoining sheet numbers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c licenses them",
+        "activation from the valve symbols or the drawing legend alone",
+        "construction_property from a controlled title block alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Line-List_Unit-2100_RevC.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per line number",
+        "labelled from-tag and to-tag columns hold equipment tags",
+        "service, design pressure, design temperature, piping class and insulation columns are populated",
+        "no approval block and no requirement identifier appear anywhere in the workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the absence of an approval block means the file is uncontrolled",
+        "a product structure from a table of components",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "HMB_Unit-2100_Case-2-Summer-Design.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers are numbered streams matching a flowsheet",
+        "rows are mass flow, component composition, temperature, pressure and vapour fraction",
+        "a header cell names the design case and ambient basis",
+        "no solver, convergence or run-configuration information is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a simulation run when no run configuration is evidenced",
+        "research because a balance produces numbers",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "P-2101AB_Centrifugal-Pump-Datasheet_Rev2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a single tag identifies the sheet",
+        "an operating and rated duty block states flow, suction and discharge pressure, temperature, fluid and density",
+        "a separate mechanical block states design pressure, design temperature, casing material and a pressure-code stamp",
+        "a vendor column is present but empty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a vendor catalogue page from the presence of performance numbers",
+        "manufacturing from the code stamp",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "HAZOP-Worksheet_Node-7_Feed-Surge-Drum_2026-03.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a node header names a drum tag and the lines bounding the node",
+        "rows pair a guideword with a deviation, then cause, consequence, existing safeguard and recommendation",
+        "a consequence column describes a loss of containment and its effect on personnel",
+        "a recommendation register sheet carries owners and target dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a design FMEA from the presence of causes and effects",
+        "an incident record from a described consequence",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PSV-2201_Relief-Sizing_Fire-Case_RevA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a relief-device tag identifies the calculation",
+        "enumerated overpressure scenarios are listed with a governing case selected",
+        "relieving rate, set pressure, required area and installed orifice designation are labelled slots",
+        "a signature block names a checker"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "engineering.simulation-analysis because a rate was calculated",
+        "an inspection result from a pass verdict",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Cause-and-Effect-Matrix_Unit-2100_RevB.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "row headers are initiating instrument tags with trip setpoints",
+        "column headers are final-element tags",
+        "intersections carry action codes for trip, alarm and interlock",
+        "a legend defines the action codes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "code activation from an interlock logic table",
+        "manufacturing.safety-case from the word trip",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "2100-ISO-1502-06_RevA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a line number and spool identify the sheet",
+        "an isometric projection carries dimensions, weld positions and support marks",
+        "a bill of material lists pipe, fittings and gaskets for that line only",
+        "continuation references name adjoining isometric sheets"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a product structure from a per-line material list",
+        "a fabrication record from the weld positions",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Unit-2100_Process-Design-Basis_RevB.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sections state plant capacity, turndown, feed specification and product specification",
+        "a utilities table gives steam, cooling water and instrument air conditions",
+        "a codes-and-standards section names the governing design codes",
+        "no tag or line number appears in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a standards list makes this a standards-library file",
+        "a contract scope document from a capacity statement",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "MEP-Chilled-Water-Schematic_Rev4_IFC.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "schematic shows pumps, valves, a chiller and annotated pipework with sizes",
+        "title block names a building address, a contract drawing number and an issued-for-construction status",
+        "no line-number system, no service or design-condition columns and no datasheet references exist",
+        "sheet is part of a numbered contract drawing series for one property"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "process-plant activation from a pipework schematic",
+        "that a building services drawing loses its construction_property facts",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Equipment-Register_Site-Assets_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry the same tags that appear on the flowsheets",
+        "columns are manufacturer serial number, installation date, criticality ranking, maintenance strategy and last inspection date",
+        "no service fluid, design pressure, design temperature or line relation appears",
+        "the register covers the whole site rather than a unit's design definition"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "process-plant activation from a list of plant tags",
+        "design conditions from an as-installed record",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "1042-U2100_IFD-Package_RevC.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists flowsheets, a line list, equipment and instrument datasheets, a plot plan and a hazard study report",
+        "member names repeat the same unit number and issue letter",
+        "members have not been extracted to the filesystem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from uninspected member contents",
+        "that RevC alone proves a controlled issue",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "stream_table_crop.png",
+      "source_type": "image",
+      "observations": [
+        "cropped screenshot of a table with numeric columns and a partial header row",
+        "no tag, stream number, unit or fluid name is legible in the crop",
+        "no EXIF is present",
+        "nearby accepted files refer to Unit 2100"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from a table that looks like a stream table",
+        "a unit or tag copied from neighbouring files",
+        "screenshot status from missing EXIF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Same-schema sibling, same bytes. Fixture: 1042-PID-2100-001_Crude-Feed-Pumps_RevD.pdf. That row owns the discipline-neutral controlled drawing SET - sheet numbering, register, transmittal, package issue. This row owns what is drawn: the tag-and-line topology and its service and design conditions. Both readings of the same sheet are legitimate and neither requires the other; a transmittal with no sheet content is only theirs, a line list with no drawing is only this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.cad-model",
+      "signal": "Fixture: a 3D plant model of Unit 2100. That row owns the model as geometry under revision - assemblies, references, native format. This row owns the tagged process content, which a plant model carries but does not define. NOTE for R1c: engineering.cad-model's memo explicitly declined an edge to this row, preferring the construction_property seam and arguing a third claimant is worse than two. This side records the boundary anyway rather than leaving it silent; if R1c agrees with cad-model, delete this edge from here, not from there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.simulation-analysis",
+      "signal": "Fixture: HMB_Unit-2100_Case-2-Summer-Design.xlsx and the flowsheet-simulator file that produced it. That row's relation is the RUN: model, solver, convergence, case study, post-processed result. This row's relation is the balance as design basis, bound to the stream numbers the flowsheet publishes. A native simulator case file is only theirs; a stream table issued in a design package with no run information is only this row's; an issued balance report exported directly from a case is legitimately in both neighbourhoods.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.civil-structural",
+      "signal": "Reciprocated with the same fixture that row already named: a pipe rack or plant support structure. Process apparatus - P&ID, line list, equipment schedule, stream data - is this row; the structure that carries it, designed by load takedown and member check, is that row. Both may hold on one plant package because both relations are explicitly evidenced. That row's NJ-CIVIL-4 offers to concede the process apparatus entirely; this row accepts that framing and concedes the load-path justification symmetrically.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "Fixture: the per-line material list inside 2100-ISO-1502-06_RevA.pdf, and Line-List_Unit-2100_RevC.xlsx. That row keys on a parent-assembly to child-part relation with quantities and drawing revisions. A line list has no parent assembly - its organising relation is from-tag to to-tag, which is connectivity, not containment - and an isometric take-off is scoped to one line. This row concedes any plant table that does state a parent/child product structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.risk-analysis-fmea",
+      "signal": "Fixture: HAZOP-Worksheet_Node-7_Feed-Surge-Drum_2026-03.xlsx against a design FMEA workbook. Both are hazard tables with causes, effects and actions. The discriminator is the row key: an FMEA row is a failure mode of a component scored by severity, occurrence and detection; a HAZOP row is a guideword deviation applied to a node bounded by lines. A study that scores components belongs there even in a plant; a study that walks nodes belongs here even on a machine.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "Fixture: a marked-up P&ID stamped as-built. That row owns the transfer of a located installed instance - ITRs, punch lists, handover dossier. This row owns the design definition, including the as-built revision that folds field changes back into it. The tell is whether the file records completion of an activity on an installation or states what the plant is. That row's memo declined an edge here on the ground that this row is a discipline container; this row's relation is a tag-and-line topology rather than a discipline, so the boundary is stated from this side for R1c to reconcile.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "Fixture: Equipment-Register_Site-Assets_2026.xlsx, which carries the SAME tags as this row's flowsheets. That row keys on the as-installed asset: serial number, installation date, criticality, maintenance strategy. This row keys on the as-designed duty: service fluid, design pressure and temperature, and the line relation. A tag alone belongs to neither; it is on this row's never_alone list for exactly this reason.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "Fixture: MEP-Chilled-Water-Schematic_Rev4_IFC.pdf - the collision fixture of this node. Building services distribution drawn with the same symbols is that row's evidence when its anchor is a property address and a contract drawing series. This row requires a line-numbering system with service and design-condition slots. A grassroots plant on a site can hold both because both anchors are separately evidenced; a chilled-water riser diagram holds only theirs.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Fixture: a control narrative against an exported PLC or DCS configuration in a repository. Repository roots, manifests, source structure and version history activate code. A narrative that states intended plant behaviour by tag, and a cause-and-effect matrix that specifies interlocks, are design definition and activate this row. A control-system integrator's repository is code even though its employer designs plants.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "Fixture: a pilot-plant campaign dataset. Work whose object is a generalisable proposition about the chemistry or the kinetics is research. Work whose object is a named plant's design conditions - a scale-up basis feeding a specific unit's design basis memorandum - is this row. The tell is whether the conclusion is about a substance or about a plant.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "construction_property",
+      "signal": "A plant design package for one site can be simultaneously a controlled process definition and a contract/site record, on disjoint evidence: the tag-and-line structure on one side, a property or site anchor and an instruction lifecycle on the other. This is the schema row's own construction_property co-activation, applied to the case that produced it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "A hazard-study recommendation register and a management-of-change record can carry both a design-definition change and an operating-plant execution record when both are explicitly evidenced; neither side is inferred from the other.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with_note": "Restricted to schema ids already declared on the engineering schema row's co-activation set (manufacturing, code, research, business_operations, construction_property). A template may not widen its schema's edges, which is why the code and research relations above are expressed as collisions instead.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone datasheet, relief calculation or single drawing sheet with durable meaning but no reliably evidenced unit or accepted project belongs here rather than activating from a tag-shaped token.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a table or schematic is clearly technical but whether it defines a plant, lists assets, prices a scope or reports a simulation cannot be established from its own evidence - the line list, stream table, matrix and isometric fixtures all land here when their anchoring unit is unevidenced.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Native drafting and plant-model formats and password-protected issue packages retain basic metadata without filename-only purpose inference.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Preferred default for an inactive hazard study, relief-scenario set or hazardous-inventory summary: the load-bearing fact is that the file states how a hazardous inventory is released and which safeguard prevents it, which is third-party exposure rather than commercial confidence. Stated as a preference, not a handling class - see NJ-PLANT-3.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is PROCESS LICENSOR against ENGINEERING CONTRACTOR against OWNER-OPERATOR - all three appear in one title block, and which one a name denotes changes what the file is. There is no canonical key for any of the roles, 00 forbids authorship as a destination, and minting a producer-side key to solve one template's problem is the move that generated thousands of private field names in the overnight pass. It is recorded in the never_alone rule on operator/licensor/contractor names instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Differs in kind from the engineering schema default's proprietary-IP and export-control reason, which is what carries leg 3 of the node test. Hazard studies, relief-scenario sets, cause-and-effect matrices and hazardous-inventory summaries state where a hazardous inventory sits, how it can be released, and which single safeguard stands between a deviation and harm to people who are not the file's owner - and in several jurisdictions that is treated as security-sensitive facility information rather than commercial confidence. Separately, feed compositions, catalyst conditions and licensed process recipes are trade secrets whose exposure is commercial. This is not a new handling class and does not make the row a safety launch; 00's binding rule stands that privacy policy is enforced before any model or connector receives content.",
+  "open_question": "NEEDS-JOSEPH NJ-PLANT-1: the intelligible parent here is a PROCESS UNIT or plant area, and the engineering schema's proposed `design_item` is item-and-assembly shaped. Alternatives: (a) widen `design_item` to cover a bounded section of a continuous plant - recommended, and the reason no key was proposed here; (b) mint a plant/unit key, creating two near-synonyms before either is adjudicated; (c) collapse units into `project`, which loses the level that makes a line number and a deviation node intelligible. NJ-PLANT-2: the equipment/instrument TAG is the strongest fact on this node and the thread that binds its whole corpus, but a folder per tag is indefensible, so it can only be a search and grouping fact. Confirm that a non-destination domain fact may exist on the shared vocabulary at all, or this row's grouping reasons must be re-expressed without it. NJ-PLANT-3: does an inactive hazard study route to Protected Records by default? This row says yes; that is a stronger default than any engineering sibling applies and should be confirmed rather than assumed. NJ-PLANT-4: the roster NAME is an industry label ('Chemical and process plant design') while the researched relation is a tag-and-line topology. If R1c prefers roster names to stay as issued, the name and the relation disagree in the shipped file; renaming is recommended. NJ-PLANT-5: engineering.cad-model and engineering.commissioning-handover both explicitly declined edges to this row as a 'discipline container'. Those refusals were reasonable against the roster's industry framing and are answered by the relation stated here; R1c should reconcile the asymmetry rather than let one side stand silently."
+}

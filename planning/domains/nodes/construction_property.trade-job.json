@@ -1,0 +1,491 @@
+{
+  "id": "construction_property.trade-job",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Trade job (branch root)",
+  "one_line": "One piece of work for one client at one address, carried out by a tradesperson or a small firm and recorded on a WORK RECORD: a job or reference number, a customer name-and-address block, a scheduled date, an engineer or technician, a description of the work carried out, parts used with quantities, labour time, a total, and a captured customer signature taken at the point of performance. That document — a record of LABOUR PERFORMED AT A PROPERTY, signed for by the person who lives there — is the one structure this row stands on, and it is claimed by no sibling. The row does NOT stand on scale: a job is not a small construction project, it is a situation with none of the contract machinery (no award sequence, no contract-particulars block, no programme, no valuation cycle, no handover envelope), and construction_property.construction-project states the same line from its side — “The difference is CONTRACT MACHINERY, not size in the abstract, and no threshold is written on either side.” Its recommended tree (client-and-address before job) and its privacy posture are recorded but are NOT load-bearing; the privacy ground is the schema's own, held by all 27 siblings. Absorbs the legacy row trade.job. Placeholder row: it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "the field-service work record, which is this row's fingerprint and the single structure its node test rests on: a machine-generated PDF carrying a job or reference number, a customer name and address block, a scheduled date, a technician or engineer name, a DESCRIPTION OF WORK CARRIED OUT, PARTS USED with quantities, LABOUR TIME, a total, and a captured customer signature image at the foot. What discriminates it is the work-performed triple — work carried out, parts used, labour time — recorded at a fixed property and signed for by its occupier. NARROWED THIS PASS: the earlier claim that a signature-on-a-work-record appears in no other row of this catalogue is WITHDRAWN. construction_property.materials-delivery carries a received-by signature block and a proof-of-delivery signature image, and manufacturing.field-service-report carries the same software's output for a serialised asset. The signature is not the discriminator; the work-performed triple against a property is. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a small-job quote-to-invoice pair: a quotation and an invoice bearing the SAME reference number, the same address block and the same trading identity, differing only in tense and in whether a payment reference is present.",
+      "a phone-camera before-and-after pair: two or more images of the same fixture or room captured on one device within a short interval on one day, with camera EXIF present and frequently GPS. “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.”",
+      "a trading identity block repeated across every document: a sole trader or small limited company name, a mobile number, a tax registration number and a trade body membership logo, machine-stamped by the same software on quote, invoice and certificate alike.",
+      "a certificate issued at the end of a small job naming the same address as the invoice — the row's characteristic closing document, whose own detailed situation is construction_property.compliance-certificate's.",
+      "a card-payment or payment-link confirmation carrying the job reference — small trades are paid at the door, so the payment record is part of the job file rather than a separate accounting cycle.",
+      "an appointment record: a calendar entry whose labelled SUMMARY carries a customer name and an address and whose duration is a slot rather than a period. The CONTENT is what fires; source_type = calendar contributes only as a file-kind signal.",
+      "parent-folder context naming a customer, an address or a job number, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: every file in this row names a private individual and the address they live at, usually together with a phone number and sometimes a photograph of the inside of their home. Any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating a JOB from a PROJECT. The documents rhyme — both have quotes, photographs, certificates and invoices — and the discriminant is the machinery around them rather than the subject: no contract administration, no valuations, no programme, no packages, and a corpus of five files rather than five hundred.",
+      "separating the TRADE's copy from the CUSTOMER's copy of the same invoice and certificate. The documents are identical and the filing consequence is opposite: one is a business record about many customers, the other is a household record about one home.",
+      "an unlabelled job: a photograph of a handwritten quote on a duplicate pad, a text-message thread agreeing a price, and a bank notification — the commonest real job file in the trade world and the hardest in this row.",
+      "separating a job's before-and-after photographs from a household's ordinary phone photographs, which are the same device, the same day and often the same rooms.",
+      "a purpose-coherent job file whose members are individually unremarkable — a quote, two photographs, a materials receipt, a certificate and an invoice, sharing nothing but an address. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a person's name alone. In this row a customer name and a trading name look alike, especially where the trader is a sole trader trading under their own name — so the same token is the business and the client on two different documents.",
+      "an invoice structure alone. Invoices are the most format-standardised documents in the corpus and every schema in this roster has some.",
+      "camera EXIF alone on a phone photograph. A picture of a boiler is a job record, a household record, a warranty claim, an insurance photograph or an appliance the user was thinking of buying, and the image cannot say which. “conflicting signals should lead to abstention rather than an invented classification”",
+      "a job or reference number alone. Field-service software numbers everything sequentially, and the number is meaningful only inside the issuing firm's own system.",
+      "a trade word alone — boiler, rewire, leak, install, service. It appears in marketing material, in manufacturer manuals, in the user's own notes and in unrelated correspondence.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated.",
+      "a captured signature image alone. The line is construction_property.materials-delivery's, stated from its side and adopted here in its own words rather than re-phrased: “a signature image alone. A scrawl proves a handover happened, not what was in it.” A signature on a delivery note, a carrier proof-of-delivery, a policy acknowledgement and a job sheet are the same pixels; only the structure around it says what was signed for. Provenance: neighbour's wording, not a design quote.",
+      "the SCALE of the surrounding corpus. A five-file folder does not make a job and a five-hundred-file folder does not make a project; the discriminator is the presence or absence of contract machinery, and a line drawn on size would need a threshold that _CONTRACT rule 3 forbids inventing. This entry exists because scale is the argument the retired gist draft led with, and it is not evidence.",
+      "browse position inside a job folder. A file sitting under a customer or a job number is browsing there; the row that owns the file's own structure is what activates. CONNECTION.md section 3 makes the folder parent a DIMENSION and not a schema id, and “The graph does not automatically copy those missing facts onto sparse files.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "job number",
+    "job sheet",
+    "work carried out",
+    "engineer",
+    "technician",
+    "call out",
+    "attendance",
+    "labour",
+    "parts used",
+    "quotation",
+    "quote reference",
+    "estimate",
+    "invoice",
+    "paid on completion",
+    "customer signature",
+    "site address",
+    "installation address",
+    "service visit",
+    "annual service",
+    "repair",
+    "install",
+    "first fix",
+    "second fix",
+    "make good",
+    "materials",
+    "trade counter",
+    "sole trader",
+    "limited company",
+    "VAT registration",
+    "trade body membership",
+    "warranty on workmanship",
+    "before and after",
+    "completion photographs",
+    "no access",
+    "follow up visit"
+  ],
+  "work_types": [
+    "enquiry or booking record",
+    "quotation or estimate for a small job",
+    "job sheet or work record",
+    "engineer or technician visit report",
+    "before-and-after photograph set",
+    "materials receipt for a job",
+    "compliance or installation certificate issued at completion",
+    "invoice",
+    "payment or card confirmation",
+    "customer signature capture",
+    "appointment or calendar slot",
+    "follow-up or callback record",
+    "workmanship warranty note",
+    "no-access or aborted-visit record"
+  ],
+  "grouping_reasons": [
+    "one job for one client at one address — the definitional group in this row, and one that typically has five members rather than five hundred.",
+    "one client across several jobs over years — the boiler serviced annually, the landlord with four flats — a real reason to group, and the reason a customer name must never become an activation proof on its own.",
+    "one address across several trades' visits, which is how a homeowner's corpus is shaped even though the trade's corpus is shaped by client.",
+    "one job's photographs, joined by capture time and device rather than by any construction fact.",
+    "one quote across its revisions before acceptance, joined by the universal version_family fact.",
+    "no group at all is a valid outcome: a single materials receipt from a trade counter is an isolated transactional document.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two customers' jobs in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the client or the property address first, then the job (its reference or its date and description), then the document function inside it — quote, work record, photographs, certificate, invoice — where a job has enough files to need one, which many do not. The client-or-address level is the row's real distinguishing recommendation: every larger construction row is organised by PROJECT and this one is organised by WHO and WHERE, because a trade's corpus is a list of customers rather than a list of contracts. A third function level should usually be FLATTENED rather than built, because a five-file job in a three-level tree is worse organised than a five-file job in one folder — 00's flattening allowance is doing real work here: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.” 00’s own ordering reason applies: “a parent dimension should provide the context required to understand the child”. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Time is a poor top level in particular, because a repeat customer's jobs scatter across years. And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "spreadsheet",
+      "calendar",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Job 4471 - 14 Oakfield Rd - work record.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a job number, a customer name and an address block",
+        "a scheduled date and an engineer name",
+        "work carried out, parts used and labour time",
+        "a captured customer signature image at the foot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "which side holds it — the trade's copy and the customer's copy are the same PDF",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Quote 4471.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same reference number and address block as the work record",
+        "a priced description of proposed work",
+        "a validity period and terms",
+        "the same trading identity stamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "that a shared reference number proves a group — it proves one firm's numbering, and the group is P9's to accept",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a boiler in situ before work",
+        "camera EXIF with make, model, capture time and GPS",
+        "a near-identical sibling captured ninety minutes later showing the new unit"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a job fact from EXIF — “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” is about photo events, and a before-and-after pair on a phone is also an ordinary household pair",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "INV-4471.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an invoice bearing the job reference and the same address block",
+        "a total, a tax registration number and payment details",
+        "marked paid with a card reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "which row owns it: an invoice is this row's closing document, the trade's bookkeeping entry and the customer's household record at once",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Gas Safety Record - 14 Oakfield Rd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate naming an installation address, an appliance and an engineer registration number",
+        "an issue date and a next-due date",
+        "a customer signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it: the closing document of a job is also the standing compliance record of a property, which is construction_property.compliance-certificate's situation and a landlord's tenancy obligation",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 at 08.11.png",
+      "source_type": "image",
+      "observations": [
+        "a screenshot of a text-message thread agreeing a price and a day",
+        "exact display resolution, PNG, software metadata",
+        "no camera EXIF"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a price or job fact from a screenshot before OCR text exists",
+        "a screenshot classification from missing EXIF alone — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "trade counter receipt 02-05.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed till receipt for pipe fittings and a valve",
+        "a merchant name, a date and a total",
+        "no customer, no address, no job reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a job fact from a receipt that names no job — the sparse-file case, and the receipt may join a job neighbourhood without receiving its facts: “The graph does not automatically copy those missing facts onto sparse files.”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Boiler service - 14 Oakfield Rd.ics",
+      "source_type": "calendar",
+      "observations": [
+        "a labelled SUMMARY naming a customer and an address",
+        "a two-hour slot on a weekday morning",
+        "an annual recurrence rule"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that a calendar file is a domain — calendar is a SOURCE_TYPE, and the .ics fixture forbids it (CONNECTION-EXAMPLES fixture 5)",
+        "a job fact from an appointment title alone",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Oakfield - main contract - valuation 04.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an interim valuation with gross, previously certified and retention lines",
+        "a contract administrator's certificate",
+        "a programme reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the collision fixture. Same address, same trade vocabulary, but a valuation cycle and a certifying role are the machinery of construction_property.construction-project, not of a job",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "customer-export-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing per-customer folders of quotes, job sheets and invoices",
+        "several thousand members",
+        "exported from a field-service application"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a customer fact from a manifest path alone",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kitchen Remodel - Bright Plumbing - Invoice 7841.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "contractor letterhead above a separately labelled Bill To block",
+        "a labelled Service Address matching the property, differing from the contractor address",
+        "line items describing installed plumbing work, labour and materials under one job reference",
+        "no scheduled visit, no technician named, no parts-used table, no captured signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: THE OUTBOUND COLLISION FIXTURE, and these are the landed finance.household-property row's own bytes, reproduced with its reading unchanged. It is a householder's own improvement record of their own home",
+        "that a job reference on a contractor's invoice makes the holder the contractor - the work-performed triple and the signature capture are absent, and the holder's corpus is one address across many trades",
+        "any construction_property fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "The load-bearing collision on this row, and the one the row exists to draw. A job and a project share every document type — quote, photographs, certificate, invoice — and differ in machinery and scale. The discriminating evidence: an interim valuation, a certifying role, a programme, works packages or a retention regime supports the project row; a customer-and-address anchor, a single visit, a signature capture and a five-file corpus supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.quote-estimate",
+      "signal": "The quote is the sibling row's whole subject and this row's opening document, and in small trades a quote is often the ONLY document a job ever has. The discriminating evidence: a pre-acceptance document with a validity period, revised until accepted or forgotten, supports the quote row; a quote sitting in a completed job with a matching work record and invoice supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "Materials receipts and paid invoices are simultaneously this row's job evidence and the trade's expense records. The discriminating evidence: a customer, an address and a job reference support this row; a merchant, a date and a total with no job anchor support the finance row. Because finance is a safety schema, where both fire the protective ordering runs first. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A trade's invoices ARE its sales ledger, and a field-service export is a bookkeeping export. The discriminating evidence: a per-job work record with a signature capture supports this row; a ledger, a period, a nominal code or a tax return supports the bookkeeping row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.household-property",
+      "signal": "Reciprocal with the landed household row. The customer's copy of a job's invoice and certificate is that row's home-maintenance record, and the trade's copy is this row's business record — the SAME PDF, filed by two people for two reasons. The discriminating evidence: many customers across many addresses supports this row; many trades across one address supports the household row. Stated reciprocally because neither can tell from the document alone. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "signal": "A job's closing certificate is that row's whole subject, and it outlives the job by years. The discriminating evidence: a standard, a registration number and a next-due date on a document held for the PROPERTY supports the certificate row; the same certificate sitting in a completed job file with its quote and invoice supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "Structurally the same object one schema over: one piece of paid work for one client, with a proposal, a delivery and an invoice. The discriminating evidence: a physical property address, materials and a site visit support this row; a scope of professional services, deliverables and no address support the career row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.field-service-report",
+      "signal": "A field-service visit report is byte-for-byte this row's job sheet in a different sector, produced by the same class of software. The discriminating evidence: an asset serial number, an equipment model and a service contract support the manufacturing row; a domestic or commercial property address and a trade support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "Added this pass, and it is the sharpest INTERNAL challenge to this row's one surviving structure. Both rows recognise a signed handover document produced in the field. The discriminating evidence: a DELIVER-TO address differing from the invoice-to address, quantities delivered against quantities ordered, and a discrepancy annotation support the delivery row; work carried out, parts used and labour time against a scheduled visit at a property support this row. A signature image discriminates nothing and is never-alone on both sides. That row's own phrasing is adopted rather than re-authored. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.plant-hire",
+      "signal": "Added this pass. A small firm hires a machine for one job, so a hire confirmation and an off-hire notice land in a job file. The discriminating evidence: an ASSET plus a HIRE PERIOD - a fleet or serial number, a rate per day, an on-hire date and an off-hire notice - supports the plant-hire row, whose own one_line names that pairing as its anchor; a customer, a property and a work-performed record support this row. The hire papers may browse inside the job without receiving any of its facts. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.final-account",
+      "signal": "Added this pass to complete the money seam inside the family. Both rows end in a demand for payment. The discriminating evidence: a cumulative valuation stated against what was previously certified, a payment notice, a retention line or a reconciliation of additions and omissions supports the final-account row, whose anchor is the CONTRACT and its numbered cycle; a single invoice closing a single visit, paid at the door, supports this row. A total discriminates nothing. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Every job sheet names a private individual, the address they live at and often a photograph of inside their home, and a trade's corpus holds thousands of such customers who cannot consent. This is the row's default protective home. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The row's most numerous member by far — materials receipts, card confirmations and isolated invoices with no job around them. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone certificate or quote with a durable purpose and no job file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a single job photograph with no pair and no job around it — a very large population, because a trade's phone is mostly this. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Screenshots of message threads agreeing prices and dates are how much of a small trade's contracting actually happens. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for an appointment file or a customer export whose job and side are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the construction row with the highest density of ordinary people's personal data per file. A single job sheet carries a named private individual, their home address, their phone number, their signature as a captured image, and a description of what is wrong inside their home; a trade's corpus contains thousands of them, and a set of before-and-after photographs is a picture of the inside of someone's house. 00's corpus sentence names the categories the moment they appear — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. As inference rather than a design claim, the exposed parties here are almost entirely NOT the user and cannot consent, which argues for the cautious setting even though each individual file looks mundane. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here. STATED HONESTLY AFTER THE DEEPENING PASS: none of this is a DISTINGUISHING privacy rule. The schema anchor already sets exactly these grounds - that the material names a real person's home and who is in it, and that the exposed party is usually not the user and cannot consent - for all 27 siblings. This row is not stricter than its schema; construction_property.site-health-safety is, and this row is not that row. What is peculiar here is only VOLUME and the consumer character of the exposed parties, and volume is scale, which this row refuses to treat as evidence anywhere else and will not smuggle back in through privacy. Leg 3 of the node test therefore FAILS as a distinguishing leg and is recorded as failing.",
+  "open_question": "Two. (1) The same-PDF-two-sides problem, stated reciprocally with the landed finance.household-property: an invoice and a certificate are the trade's business record and the customer's household record, identical bytes filed by two people for opposite reasons. Neither row can tell from the document alone; only the shape of the surrounding corpus can — many customers at many addresses versus many trades at one address — and corpus shape is not an activation input. This is recorded rather than resolved. (2) Whether this row should recommend a THREE-level tree at all. A five-file job in a three-level tree is worse organised than a five-file job in one folder, and 00 explicitly permits flattening. The honest recommendation is that the function level be offered and usually declined, which is a proposal about default behaviour rather than about evidence, and therefore Joseph's. (3) NEW THIS PASS - the row now stands on ONE structure. After the deepening, leg 2 (dimensions) is weak and leg 3 (privacy) fails outright, so the row's whole claim is the field-service work record and its work-performed triple. If R1c judges that structure to be a work_type value of construction_property.construction-project, or concedes it to construction_property.materials-delivery or manufacturing.field-service-report, then this row IS a residual wearing a domain's clothes and should be refused with its coverage routed to Receipts and Confirmations, Independent Records, One-Off Images and Protected Records. The condition under which the row falls is named here deliberately, so the judgement can be made rather than assumed."
+}

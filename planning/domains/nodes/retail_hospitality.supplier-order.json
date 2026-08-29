@@ -1,0 +1,402 @@
+{
+  "id": "retail_hospitality.supplier-order",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Supplier ordering and goods-in (the inbound order cycle)",
+  "one_line": "The operator's record of BUYING STOCK IN TO SELL ON, held as a CYCLE rather than as a document: one ORDER REFERENCE placed against one SUPPLIER ACCOUNT and then recurring, in different bytes and under a different author, across the supplier's confirmation or allocation, the delivery or goods-received note where quantities received are set against quantities ordered with shortages, rejections and substitutions annotated, and the credit note that settles the difference. Its anchor is a COUNTERPARTY ACCOUNT plus a RECURRING REFERENCE, not a trading date and not a trading session, which is the whole of its difference from the family default. It is the INBOUND direction only: goods coming in against an order the operator placed. Nothing the operator sells to a member of the public is this row, and no isolated invoice, statement or delivery confirmation without a recurring reference is this row either. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it declares NO field rows (PR-6; the retail_hospitality schema declares none) and recommends its dimension order as prose for R1c.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "supplier",
+      "type": "string",
+      "example": "`Brakes`, `Bidfood`, `Harlow Foods Ltd`, or the account code `BRK-4417` where the corpus uses codes rather than names",
+      "reliability_ceiling": "validated",
+      "rule_family": "counterparty gazetteer plus order-context terms (purchase order, account number, delivery note, credit note, pack size) - the gazetteer contents are R4's and are not invented here",
+      "destination_eligible": true,
+      "why": "REUSED, NOT MINTED: `supplier` is already proposed on a landed row elsewhere in the corpus, and this row deliberately does not mint a variant such as `supplier_account`, `vendor` or `counterparty`. It is this row's ONLY dimensional difference from the family default template, which has no counterparty level and cannot acquire one, because its three levels are site, occasion and function and a counterparty is none of the three. An order reference is unintelligible without the account it was placed against - `PO-2026-0418` names nothing on its own - which is the same argument 00 makes for a parent dimension that makes a child intelligible. Not a canonical key: `client` is the opposite role (who the holder acts FOR, not who the holder buys FROM) and `institution` and `venue` are places, not trading counterparties.",
+      "provenance": "proposal"
+    },
+    {
+      "key": "trading_occasion",
+      "type": "string",
+      "example": "the ORDER REFERENCE as this row's occasion value - `PO-2026-0418`, `Order 8841772`, `AW26 allocation drop 3`",
+      "reliability_ceiling": "possible",
+      "destination_eligible": true,
+      "why": "REUSED from the retail_hospitality schema's own proposed set rather than minted here. This row does not need a new key for its occasion; it needs the schema's occasion key to take an ORDER REFERENCE as its value. Recorded so R1c can see that the fourteen templates want one occasion key with fourteen kinds of value, not fourteen keys.",
+      "provenance": "proposal"
+    },
+    {
+      "key": "site",
+      "type": "string",
+      "example": "`Store 214 - Camden`, `The Bell, Wharf Street` - the delivery-to unit where a multi-site corpus genuinely has more than one",
+      "reliability_ceiling": "possible",
+      "destination_eligible": true,
+      "why": "REUSED from the schema's proposed set, and inherited conditional exactly as the schema makes it conditional. Noted here only because this row's site value is the DELIVER-TO unit, which for a head-office corpus is not the same unit as the one that placed the order - a distinction R1c should be aware of before it fixes the key's definition.",
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. This row declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised and offered honestly, and so that this row's commercial-confidence posture is applied before anything leaves the machine - “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "A RECURRING ORDER REFERENCE ACROSS DIFFERENT AUTHORS - this row's first, strongest and defining signal, and the one that separates it from every document-type row it could be mistaken for. The SAME reference token (`PO-2026-0418`, `Order 8841772`, `Ref 4417/RD`) appearing in a document the OPERATOR authored (the purchase order) and again in documents the SUPPLIER authored (confirmation, delivery note, credit note). No sibling in this family has a multi-author reference chain: a stocktake sheet, a Z-read, a rota and a temperature log are all single-author artefacts. The chain is what makes this a cycle rather than a pile of order-shaped documents, and it is the reason the row must not be split into a goods-in row and an ordering row.",
+      "AN ORDERED-AGAINST-RECEIVED COLUMN PAIR carrying a SHORTAGE, REJECTION or SUBSTITUTION annotation. A tabular block with one row per line and columns pairing a quantity ORDERED against a quantity DELIVERED or RECEIVED, with a difference column, a rejected or damaged column, or a free-text substitution note (`out of stock - subbed 2kg for 2 x 1kg`). “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "A SUPPLIER ACCOUNT IDENTIFIER in a labelled header slot - account number, customer number (the operator is the supplier's customer), depot code, or a delivery-point code. This is the token that anchors the counterparty level and is present on trade documents and absent from consumer ones. Its presence is what upgrades an order-shaped PDF from a transactional confirmation to a trade-account artefact.",
+      "A PACK-STRUCTURE COLUMN TRIPLE: an order code, a pack size or case size or unit of issue (`6 x 2.27L`, `case of 24`, `outer of 12`), and a per-case or per-unit trade price. Consumer purchase records carry a price and a quantity; trade ordering carries the UNIT OF ISSUE between them, because what is ordered is a case and what is counted is a unit. This triple appears in trade price lists, purchase orders and delivery notes alike and appears in no consumer receipt.",
+      "A TRADE PRICE LIST structure: one row per order code with description, pack size, case price and a VALIDITY PERIOD, keyed in its header to a SUPPLIER ACCOUNT rather than to a finished sold item. “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.” The keyed-to-an-account test is the discriminator against a recipe costing that consumes the same numbers.",
+      "AN ALLOCATION OR DISTRIBUTION structure in the non-food retail variant: a sheet with one row per selling line and one column per receiving unit, carrying quantities pushed to each unit against a season, drop or delivery window, with the placed order reference in the header. It is inbound because the receiving unit did not choose the quantity; the order behind it did.",
+      "INBOUND DIRECTION as a structural reading, not a keyword: the holder occupies the BUYER slot and a trading counterparty occupies the SELLER slot. A record where the holder is in the seller slot and a member of the public is the buyer is `retail_hospitality.ecommerce-ops` or `retail_hospitality.pos-reporting`, never this row, however identical the word `order` is on both.",
+      "A photographed or scanned paper delivery note, read through OCR, where the handwritten annotation is itself the payload - a circled quantity, a crossed-out line, `2 short` in biro, a driver's signature block. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.” The unlabelled handwritten variant is where this row is weakest and needs_llm carries it.",
+      "An email whose labelled subject slot names an order or delivery reference AND whose body or attachment names a shortage, a credit, a substitution or a delivery date change. The reference-plus-discrepancy pairing fires; a wholesaler's sender domain alone does not.",
+      "An archive whose MANIFEST names a supplier pack, a price-list drop, an order export or a season's allocation - read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+    ],
+    "needs_llm": [
+      "Deciding whether an unlabelled prose or handwritten sheet is a goods-in record at all. A phone photo of a paper note with a supplier logo, a date, a list of items and a signature has no header labels; only reading it decides whether it is a delivery note, a caterer's job sheet, a stock requisition or a parts list for a repair.",
+      "Deciding INBOUND versus OUTBOUND when both parties are businesses. A confirmation between two trading companies is this row when the holder is buying and is `business_operations.customer-account-management` or the e-commerce row when the holder is selling. The slot the holder occupies is often only recoverable from the letterhead and the address block, not from the filename.",
+      "Deciding whether an order-shaped document is REPEAT REPLENISHMENT against an agreed catalogue or the closing document of a COMPETITIVE SOURCING EVENT. The bytes converge; the surrounding evidence (an evaluation matrix, scored bidders, a stated award criterion) does not appear in replenishment and is what `business_operations.procurement-sourcing` needs.",
+      "Deciding whether a delivery note whose lines are all medicines carries medicine-specific custody or regulated-supply accountability, which would move it to `clinical_practice.pharmacy-operations`. Drug names alone do not.",
+      "Reading whether a shortage annotation is scoped to ONE consignment (this row) or whether the sheet is a population count at a location on a date (`retail_hospitality.stocktake`). Both are counted-against-expected tables and the count vocabulary is identical."
+    ],
+    "never_alone": [
+      "THE WORD `ORDER`, `PURCHASE ORDER`, `DELIVERY NOTE`, `INVOICE` or `PRICE LIST`, standing alone. These are document-type words, and the schema's own never-alone rule states that a row resting on a document-type word is the default template wearing a name. This row's evidence is the RECURRENCE of a reference across authors and the ORDERED-AGAINST-RECEIVED pair, never the noun on the letterhead. THIS IS THE ROW'S CONSTITUTIVE NEVER-ALONE and it is the direct answer to the charge that the row is a document type.",
+      "A SUPPLIER'S OR WHOLESALER'S NAME OR SENDER DOMAIN, standing alone. Read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - the sentence is about ROLE AMBIGUITY, and a trade name is exactly as ambiguous: `Bidfood` appears as the holder's supplier, as a competitor named in a market review, as a former employer on a CV, as a case study in a training deck and as a company the holder once applied to.",
+      "TEMPTING FALSE FILE, STATED EXPLICITLY: an ORDER CONFIRMATION addressed to a private individual - `Order confirmation - your order has shipped.pdf` from a consumer retailer, whether the holder bought a laptop, a birthday present or a case of wine for themselves. It has an order reference, a line table, a quantity, a price and a delivery date, and it is NOT this row. What is missing is the trade-account identifier, the pack-structure triple and any later document under the same reference. It falls to Receipts and Confirmations, which “may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” The operative word in that span is ISOLATED, and it is this row's fall-through rule in one word.",
+      "A SINGLE INVOICE, standing alone, however trade-shaped - and the schema anchor says so directly. An invoice's anchor is a PAYMENT OBLIGATION with terms, a tax treatment and a due date, which is finance's structure. It joins this row only when it carries the order reference AND a received-against-ordered reconciliation.",
+      "A CURRENCY-DENOMINATED TABLE, standing alone, inherited from the schema. What fires here is the ORDERED-AGAINST-RECEIVED pairing, not the presence of amounts.",
+      "A DELIVERY DATE or a WEEK NUMBER, standing alone. Every artefact in this row is dated and most are weekly; the date identifies the consignment, it does not identify the row.",
+      "A DRIVER'S OR SALES REPRESENTATIVE'S NAME OR SIGNATURE on a delivery note. It is a named private individual, must never anchor a group and must never become a folder level, per the schema's hard rule for all fourteen templates and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”",
+      "A PRODUCT, SKU OR INGREDIENT NAME, standing alone. Inherited hard from the schema: a product must never become a dimension because it produces a branch per SKU."
+    ]
+  },
+  "work_types": [
+    "purchase order - the operator's own instruction to buy, carrying the reference every later document repeats",
+    "order confirmation or acknowledgement - the supplier's reply, first place substitutions and out-of-stocks appear",
+    "allocation or distribution sheet - the non-food variant, quantities pushed to receiving units against a drop",
+    "delivery or goods-received note - the ordered-against-received reconciliation, signed, often photographed",
+    "shortage, rejection or substitution annotation - frequently the entire payload of a photographed note",
+    "credit note or claim - the document that settles the difference the goods-in note recorded",
+    "trade price list or catalogue keyed to a supplier account, with a validity period",
+    "supplier order export - the ordering system's periodic dump, one row per line per order",
+    "standing order or par-level sheet - the recurring template a replenishment order is generated from"
+  ],
+  "grouping_reasons": [
+    "SHARED ORDER REFERENCE ACROSS AUTHORS - the row's primary and most distinctive grouping reason, and one no sibling template has. Four artefacts, two authors, one token: the operator's purchase order, the supplier's confirmation, the supplier's delivery note and the supplier's credit note all repeat the same reference. This is why the row is a cycle and not a lifecycle stage.",
+    "SHARED SUPPLIER ACCOUNT over time, which gathers many complete cycles plus the price list they were all placed against under one counterparty.",
+    "SHARED DELIVERY DATE AND DELIVER-TO UNIT, which gathers a morning's several deliveries from different suppliers into one goods-in session - a weaker reason than the reference, and one that must not be allowed to override it.",
+    "A photographed delivery note with no readable reference may JOIN a group by delivery date and supplier logo WITHOUT this row writing a supplier or occasion fact onto it - activation is not grouping, and the sparse-file rule applies here exactly as it applies to `HW 3.pdf`."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT (PR-6): the schema declares no field rows and a dimension may only branch on a field the same schema declares, so this row's recommendation is held as prose for R1c. THE RECOMMENDATION, AND EXACTLY HOW IT DIFFERS FROM THE FAMILY DEFAULT: the family default is site (conditional) then TRADING OCCASION then OPERATIONAL RECORD FUNCTION. This row recommends site (conditional, and here meaning the DELIVER-TO unit) then SUPPLIER ACCOUNT then ORDER REFERENCE then function. The inserted SUPPLIER ACCOUNT level is the row's entire dimensional difference and it is a level the default template does not have and structurally cannot have, because the default's three levels are a place, an occasion and a function, and a counterparty is none of them. The level earns its place on 00's own intelligibility argument - an order reference names nothing standing alone, exactly as Homework 3 is meaningless without the course - and on the fact that the artefacts under one reference are authored by two different parties, so nothing else in the corpus binds them. NOT TIME-FIRST, and this row is under more pressure to break that rule than most, because every artefact it holds carries a delivery date and the corpus arrives weekly: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A delivery week is a content period, not a capture date, and claiming time_first here would be claiming the photos exception without the photos evidence. The supplier level is NOT conditional in the way the site level is: a single-supplier corpus is not the normal case in this world, and where it genuinely is, the level collapses to a one-child branch and should be dropped by the same validation that drops any one-child level. A PRODUCT must never be a dimension (a branch per SKU) and a DRIVER'S OR REPRESENTATIVE'S NAME must never be a dimension (a named private individual published into the tree). Any order remains editable by the user; this is a recommendation, not a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".docx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PO-2026-0418 Brakes.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries an order-reference-shaped token and a trade name",
+        "header block carries a labelled account number slot and a required delivery date",
+        "line table carries order code, description, pack size, quantity and unit price"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact at all - this row declares no field rows",
+        "that a competitive sourcing event took place - there is no evaluation matrix anywhere in it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Order confirmation 8841772 - Bidfood - del 2026-03-28.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier is the AUTHOR and the holder is in the buyer slot",
+        "two lines flagged out of stock with a substitution note",
+        "carries the reference the operator's own purchase order also carries"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a supplier's sender domain or letterhead activates this row on its own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Delivery note 2026-03-28 - Brakes - 2 lines short.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "table pairs quantity ordered against quantity delivered with a difference column",
+        "two lines annotated short",
+        "header carries both the order reference and the trade account number",
+        "signature block naming a driver and a receiving member of staff"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a quantity variance makes this a stocktake - it is scoped to one consignment from one named counterparty against one order reference",
+        "that the driver's name is a dimension or a group anchor",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "IMG_4471.jpg",
+      "source_type": "image",
+      "observations": [
+        "phone photograph of a paper delivery note on a stainless counter",
+        "no filename evidence whatsoever",
+        "OCR recovers a supplier logo, a date, a line list and a handwritten `2 short` beside one line",
+        "no readable order reference - the biro obscures it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a supplier or occasion fact copied from a neighbouring file in the same folder",
+        "that missing EXIF makes this a screenshot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Credit note CN-114203 - Bidfood - short delivery 28 Mar.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "credits exactly the two lines the delivery note recorded short",
+        "carries the original order reference in a labelled slot",
+        "carries a monetary total and a tax treatment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a monetary total and a tax treatment make this finance - the order reference and the line-level correspondence to a goods-in discrepancy are what decide it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Harlow Foods trade price list Mar 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per order code with description, pack size, case price and unit price",
+        "header names a supplier account and a validity period",
+        "no finished item anywhere in the sheet and no decomposition of anything into components"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that pricing ingredients makes this a recipe costing - the sheet is keyed to a bought-from account, not to a sold item",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "order_export_2026-w13.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per line per order with account code, order reference, quantity ordered, quantity delivered and quantity credited",
+        "column headers are labelled slots",
+        "spans many suppliers and many references in one file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a single supplier or a single occasion fact - the file is a population, not a cycle, and any per-row facts belong to rows, not to the file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE_ Shortages w-c 23 March - credit request.eml",
+      "source_type": "email",
+      "observations": [
+        "subject slot names a delivery week and a credit request",
+        "body quotes two order references and the short quantities",
+        "attachment-name slot names a photographed delivery note"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a wholesaler sender domain fires this row alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "allocation - AW26 womenswear - drop 3 - store 214.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per selling line, one column per receiving store, quantities in the cells",
+        "header carries a season, a drop number and the placed order reference",
+        "receiving stores did not choose these quantities"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a per-store quantity grid makes this a stock count - nothing here is counted, it is pushed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Invoice 99213 - Bidfood.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE - a supplier invoice, same counterparty, same trade account, same line vocabulary",
+        "carries payment terms, a tax treatment and a due date",
+        "carries NO quantity-received column and NO reconciliation against anything"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row fires - the schema anchor states directly that a single invoice is not the order-cycle structure",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Order confirmation - your order has shipped.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SECOND COLLISION FIXTURE - a consumer retailer's confirmation to a private individual",
+        "has an order reference, a line table, a quantity, a price and a delivery date",
+        "has NO trade account identifier, NO pack-structure triple and NO later document under the same reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an order reference plus a line table is sufficient - isolation is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "supplier-pack-2026-Q2.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names a price list, an order form template and a terms document",
+        "read from the manifest alone; contents are not extracted"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any fact drawn from a member that was not extracted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "SAME FIXTURE BOTH SIDES: `Delivery note 2026-03-28 - Brakes - 2 lines short.pdf` - THIS ROW owns it because its variance is scoped to ONE CONSIGNMENT from ONE NAMED COUNTERPARTY against ONE ORDER REFERENCE; STOCKTAKE owns `Stocktake 2026-03-31 - period end - all locations.xlsx` because its variance is scoped to a POPULATION AT A LOCATION ON A DATE and names no counterparty at all. Discriminated by whether an ORDER REFERENCE AND A SUPPLIER IDENTITY are present in the header block. RECIPROCAL: THIS ROW MUST NOT TAKE a period-end count sheet, a wastage log or a shrinkage report merely because it counts stock; STOCKTAKE MUST NOT TAKE a goods-in note merely because it records a quantity variance. This is the sharpest same-family collision either row has, because both artefacts are literally counted-against-expected tables and the count vocabulary is identical on both sides. AUTHORED RECIPROCALLY: the stocktake row states this boundary in the same terms and names it as its own NJ-RH-STOCK-3 pending this row landing; this row accepts that framing verbatim and R1c may now close NJ-RH-STOCK-3.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.menu-recipe-costing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Harlow Foods trade price list Mar 2026.xlsx` - THIS ROW owns THE SHEET KEYED TO A SUPPLIER ACCOUNT (order codes, pack sizes, case prices, a validity period, and the purchase-order-confirmation-goods-received-credit-note cycle placed against it); MENU-RECIPE-COSTING owns THE SHEET KEYED TO A FINISHED SOLD ITEM (a dish exploding into components whose unit costs are CONSUMED from elsewhere). Discriminated by WHETHER THE RECORD IS KEYED TO A BOUGHT-FROM ACCOUNT OR TO A SOLD ITEM. RECIPROCAL: THIS ROW MUST NOT TAKE a recipe specification, a gross-profit build-up or an allergen matrix because it names goods that were bought; that row MUST NOT TAKE a trade price list, a purchase order or a goods-received note because it prices ingredients. AUTHORED RECIPROCALLY: the neighbour states this boundary in these exact terms and this row adopts it unchanged.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "SAME FIXTURE BOTH SIDES: `PO-2026-0418 Brakes.pdf` - THIS ROW owns it as REPEAT REPLENISHMENT against an already-agreed trade price list, with no competition and no evaluation anywhere in the corpus; PROCUREMENT-SOURCING owns the order that CLOSES A BOUNDED COMPETITIVE EVENT - one requirement, one competition, one award against stated criteria, with an evaluation matrix, scored bidders and an award rationale in the same folder. Discriminated by WHETHER A COMPETITION IS EVIDENCED ANYWHERE IN THE REFERENCE CHAIN, not by the sector or by the goods. RECIPROCAL: THIS ROW MUST NOT TAKE a tender pack, an RFP response, an evaluation matrix or an award letter merely because a supplier is named; PROCUREMENT MUST NOT TAKE a weekly replenishment order, a delivery note or a credit note merely because it is addressed to a supplier. The neighbour authored this boundary first in shorter terms; this row states it reciprocally.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "SAME FIXTURE BOTH SIDES: a trade-counter delivery note - THIS ROW owns it when the goods are REPLENISHMENT INTO A STOCKROOM against a catalogue, to be sold on unchanged; MATERIALS-DELIVERY owns it when the goods are CONSUMED INTO A NAMED SITE FOR A SPECIFIC JOB and the note carries a site address or job reference rather than a stock location. Discriminated by WHETHER THE DESTINATION IS A STOCK LOCATION OR A JOB. RECIPROCAL: THIS ROW MUST NOT TAKE a delivery keyed to a site and a job number; THAT ROW MUST NOT TAKE a replenishment delivery into a stockroom. The neighbour authored this boundary first; this row states it reciprocally and adds the discriminating token (stock location versus job reference).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.shipment",
+      "signal": "SAME FIXTURE BOTH SIDES: `POD 28-03-2026 - 4 cages - Brakes.pdf` - THIS ROW owns it as a GOODS-IN record answering `did what I ordered arrive`, keyed to the operator's own ORDER REFERENCE and its shortage columns; LOGISTICS.SHIPMENT owns it as a MOVEMENT record answering `was the carriage obligation discharged`, keyed to a CONSIGNMENT IDENTITY, a carrier and a route. Discriminated by WHETHER THE RECORD IS KEYED TO AN ORDER REFERENCE OR TO A CONSIGNMENT IDENTITY. RECIPROCAL: THIS ROW MUST NOT TAKE a carrier manifest, a freight rate card, a route plan or a consignment-numbered POD with no order reference on it; LOGISTICS MUST NOT TAKE a goods-received note carrying the buyer's order reference and ordered-against-received columns. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the logistics side, which the event-production row also flagged as an open three-way.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.event-production",
+      "signal": "SAME FIXTURE BOTH SIDES: `Supplier schedule - 6 Jun - Harbour site.xlsx` - THIS ROW owns the record that is ONE SUPPLIER'S REFERENCE RECURRING ACROSS TIME (a purchase order, a confirmation, a goods-received note and a credit note under one account); EVENT-PRODUCTION owns the record that is MANY SUPPLIERS AGAINST ONE DATE (audio-visual, staging, florist, security, each with an arrival window, a mobile contact and an access note). The INVERSION is the discriminator in both directions. RECIPROCAL: THIS ROW MUST NOT TAKE a many-trades call schedule keyed to a running order; THAT ROW MUST NOT TAKE an order cycle merely because a supplier is named on it. AUTHORED RECIPROCALLY: the neighbour states the inversion in these exact terms.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.pharmacy-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: a wholesaler goods-received note every line of which is a medicine - THIS ROW owns it while the record is ORDINARY TRADE REPLENISHMENT (order reference, account, pack sizes, shortages); PHARMACY-OPERATIONS owns it once the same bytes add MEDICINE-SPECIFIC CUSTODY OR REGULATED-SUPPLY ACCOUNTABILITY - a controlled schedule, a register balance, a named supply event, a recall quarantine or a witnessed destruction. Discriminated by THE PRESENCE OF A CUSTODY OR REGISTER OBLIGATION, never by the goods. RECIPROCAL: THIS ROW MUST NOT TAKE a controlled-drug register or a recall quarantine record; THAT ROW MUST NOT TAKE a wholesaler order merely because the lines are drugs, and drug names, batch numbers, expiry dates and a pharmacy buyer's name alone do not cross the boundary. AUTHORED RECIPROCALLY: the neighbour states this in the same terms.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Invoice 99213 - Bidfood.pdf` and `statement 31-03-2026 Brakes.pdf` - FINANCE owns both, because an invoice's anchor is a PAYMENT OBLIGATION (terms, tax treatment, due date) and a statement's anchor is an ACCOUNT BALANCE across many invoices; THIS ROW owns the same counterparty's paperwork only where it carries an ORDER REFERENCE AND A RECEIVED-AGAINST-ORDERED RECONCILIATION. Discriminated by WHETHER THE DOCUMENT RECONCILES GOODS OR RECONCILES MONEY. RECIPROCAL: THIS ROW MUST NOT TAKE supplier invoices, statements, remittances or the payables ledger merely because it knows the supplier; FINANCE MUST NOT TAKE a delivery note or a purchase order merely because a price appears in it. The schema anchor states directly that a single invoice is not this row's structure. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the finance side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.ecommerce-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: a file literally named `orders_export.csv` - THIS ROW owns the INBOUND export (the holder is the buyer, rows carry supplier accounts, order codes and pack sizes); ECOMMERCE-OPS owns the OUTBOUND export (the holder is the seller, rows carry consumer names, delivery addresses and payment references). Discriminated by WHICH SIDE OF THE TRANSACTION THE HOLDER OCCUPIES - and the consequence is a privacy consequence, not merely a filing one, because the outbound export is personal data about members of the public and the inbound export is not. RECIPROCAL: THIS ROW MUST NOT TAKE a customer order export, a fulfilment record or a channel listing; THAT ROW MUST NOT TAKE a supplier order export merely because both are called orders. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the ecommerce side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "SAME FIXTURE BOTH SIDES: `Brakes - supply agreement 2026.pdf` sitting in the same folder as the year's orders - VENDOR-MANAGEMENT owns the RELATIONSHIP INSTRUMENT (the agreement, the onboarding pack, the insurance certificate, the performance review) which is about the counterparty as a party; THIS ROW owns the TRANSACTIONAL CYCLE placed under that instrument. Discriminated by WHETHER THE RECORD GOVERNS THE RELATIONSHIP OR EXECUTES AGAINST IT. RECIPROCAL: THIS ROW MUST NOT TAKE a supply agreement, a supplier questionnaire or a vendor scorecard; VENDOR-MANAGEMENT MUST NOT TAKE the order cycle, which its own memo already concedes is excluded. AUTHORED RECIPROCALLY: the neighbour's memo states the exclusion.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Receipts and Confirmations",
+    "Independent Records",
+    "One-Off Images",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [
+    {
+      "field": "supplier",
+      "other_field": "customer",
+      "other_domain": "retail_hospitality.ecommerce-ops",
+      "why": "SAME ENTITY TYPE, OPPOSITE ROLE SLOT. Both rows hold an artefact called an order, with a reference, a line table and a delivery date. In this row the HOLDER IS THE BUYER and the other party is a trade counterparty; in that row the HOLDER IS THE SELLER and the other party is a member of the public. The field keys differ accordingly - a supplier account and a pack structure here, a consumer identity and a fulfilment status there - and the privacy consequence differs completely. Recorded as a role split rather than only as a collision because the confusion is structural and permanent, not accidental.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "POTENTIALLY_SENSITIVE, BUT UNDER A DIFFERENT RULE FROM THE FAMILY DEFAULT, AND THIS DIFFERENCE IS ONE OF THE ROW'S THREE NODE-TEST LEGS. The schema's family-wide posture is built on PERSONAL DATA ABOUT MEMBERS OF THE PUBLIC WHO HAVE NO RELATIONSHIP WITH THE HOLDER BEYOND ONE VISIT - guest names, dietary and allergen requirements, identity-document numbers, card tokens, complaint allegations. THIS ROW HAS NONE OF THAT AND CAN HAVE NONE OF IT. It is the family's one genuinely business-to-business row: no guest, no consumer, no member of the public appears in a purchase order, a delivery note or a trade price list, and the moment a consumer's name does appear the artefact is outbound and belongs to `retail_hospitality.ecommerce-ops` instead. What this row protects is different in kind: NEGOTIATED TRADE TERMS - case prices, rebates, settlement discounts and volume tiers on a named account - whose exposure damages the holder's commercial position against both the supplier and competitors, and which the holder is frequently under a contractual confidence obligation not to disclose. The row also carries a thin strand of personal data of a completely different sort: DELIVERY DRIVERS' AND SALES REPRESENTATIVES' NAMES AND SIGNATURES on goods-in notes, which are named private individuals who are neither the holder's staff nor the holder's customers, must never anchor a group and must never become a folder level. Practical consequence: the family's rule protects a member of the public from being filed; this row's rule keeps a counterparty's confidential pricing off the wire. “Privacy policy must be enforced before content reaches any model or external connector.” Handling classes are P7's and none is assigned here.",
+  "open_question": "NJ-RH-SUPP-1 (the row's sharpest, and the one that decides whether it survives): the SUPPLIER ACCOUNT level is this row's entire dimensional difference from the family default. Alternative A: recommend it unconditionally between site and order reference, on the ground that an order reference names nothing standing alone and that a single-supplier corpus is not the normal case in this world. Alternative B: make it conditional exactly as the schema makes the site level conditional, firing only where a corpus shows two or more counterparties. This row proposes A; if R1c chooses B and the corpus is single-supplier, the dimensional leg collapses and the row rests on the multi-author reference-chain grouping leg and the commercial-confidence privacy leg alone - which it can survive on, but narrowly. NJ-RH-SUPP-2: whether the SUPPLIER INVOICE ever joins this row's group. The schema says a single invoice is not this structure and finance owns the payment obligation, but an invoice carrying the order reference is the fourth artefact in the chain in most real corpora and excluding it splits a group a user would expect to be whole. Alternative A: finance owns every invoice absolutely and this row never groups one. Alternative B: an invoice bearing this row's order reference joins the group for P9 purposes WITHOUT this row activating on it. R1c must choose; the design docs settle neither. NJ-RH-SUPP-3: the ALLOCATION SHEET in the non-food variant is pushed, not ordered, and a head-office allocation may exist with no purchase order visible anywhere in the receiving unit's corpus. Alternative A: it stays here as an inbound order-cycle artefact. Alternative B: it belongs to `retail_hospitality.product-catalogue` with the range plan it implements. This row proposes A but the evidence is genuinely balanced and the receiving-unit corpus is the case that breaks it."
+}

@@ -1,0 +1,311 @@
+{
+  "id": "manufacturing.quality-management-system",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Quality management system documentation",
+  "one_line": "The quality-system situation on the manufacturing schema: the governed manual, policies, procedures, audit programme and reports, management reviews, quality objectives, training evidence and controlled improvement records that describe and monitor an organization's system for making and releasing output. It is system-level and cross-product: a procedure or audit may govern many lines and products, while a production inspection, lot disposition or single CAPA remains a narrower manufacturing record. This placeholder serializes no destination fields because the manufacturing schema is deferred under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": "conditional",
+    "privacy_differs": true,
+    "why": "LEG 1 — SIGNALS. The manufacturing anchor recognizes a repeatable transformation or control cycle tied to a product, batch/lot, site/line, asset or quality event. This row requires the wider quality-system relation: a controlled manual or procedure defines how multiple processes are governed, an audit programme or report evaluates system conformity across areas, and management review or KPI evidence closes the review-and-improvement loop. A single inspection, NCR, calibration certificate or work instruction is not enough. LEG 2 — DIMENSIONS, conditional because PR-6 forbids serialized dimensions. The manufacturing anchor's proposed dimensions are product -> batch_lot -> record_type for production/quality records, site -> asset -> record_type for maintenance, and quality_event -> record_type for NCR/CAPA. QMS material is function/system-led: site or organization scope -> quality-system process/area -> record_type, with review period only for recurring audits or management reviews. Product and lot are optional references, not the default parent, because a QMS procedure can govern many products. LEG 3 — PRIVACY. Audit findings, complaint trends, supplier weaknesses, process capability, named auditors and management-review decisions can disclose operational vulnerabilities, personnel performance or commercial exposure. A system-wide quality file therefore needs a more protective posture than a generic work instruction, even though it is not a safety-domain schema and no handling class is assigned.",
+    "charge_answered": "The strongest objection is that a quality manual, audit, management review and corrective action are merely work_type values under manufacturing. The row survives only because these files are system-level and cross-product: they establish controlled document governance, audit the quality system across processes, set objectives and review indicators, and record management decisions that steer future controls. A batch inspection, NCR/CAPA case or single SOP may be a member or a neighbouring situation, but none alone establishes the QMS-wide relation. If the corpus has only standalone procedures or isolated audit checklists with no governed system context, this row should be refused and the files should fall through to the manufacturing default or a residual."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a quality-manual or QMS-governance document with labelled scope, system processes, quality objectives, document-control authority, management responsibilities and controlled revision/effective status",
+      "a controlled procedure set whose headers join procedure identifiers and revisions to process owners, approval/effective dates, change history and cross-process quality controls, with more than one procedure or a manual index establishing system scope",
+      "an internal-audit programme or report that labels audit scope, criteria, process/area, auditor, findings, corrective actions and closure or follow-up across a quality system rather than one product inspection",
+      "a management-review packet with labelled agenda, quality objectives/KPIs, audit results, complaints, process performance, resource decisions, risks and action owners, tied to a defined review period",
+      "a QMS objective or KPI review that joins system measures such as complaints, defects, audit findings, on-time closure or supplier performance to targets, trend analysis, action and management review",
+      "a quality-system training or competence matrix that maps controlled procedures or process roles to personnel, training status, effectiveness evidence and revision changes; a generic employee roster is not enough",
+      "a document-control or change-control register that links controlled quality documents to revision, approver, effective date, obsolete status and distribution/acknowledgement across the system",
+      "a supplier or customer-quality review that is explicitly embedded in the QMS governance cycle, with audit/complaint trends, systemic corrective action and management review; a supplier certificate or one complaint alone is not enough",
+      "an archive manifest containing a QMS manual, controlled procedures, audit programme/report, management-review minutes, KPI pack and action register for one governed system; the archive is inspected without extraction",
+      "a quality-system portal export or signed scanned checklist whose own headings and cross-references establish QMS scope, review, audit or controlled-document status"
+    ],
+    "needs_llm": [
+      "an unlabeled prose memo discussing quality culture, continuous improvement or compliance without a clear system scope or governed review structure",
+      "whether a procedure is a QMS-controlled procedure, a product work instruction, an engineering standard or a business policy when document-control fields are incomplete",
+      "whether an audit report is an internal QMS audit, a supplier qualification audit, a regulatory inspection, a financial compliance audit or an engineering design review",
+      "whether a KPI workbook describes system-level quality performance, one production line's operating metrics, a customer-service dashboard or a business forecast",
+      "whether a management-review meeting packet contains actual review decisions or is merely a calendar invitation, agenda draft or project status meeting",
+      "an OCR-poor signed manual, audit checklist or review minute where headings and approval relationships survive visually but text extraction is incomplete",
+      "whether a mixed archive contains one coherent QMS release or unrelated procedures, product records and reference documents, and which members can join without copying system scope"
+    ],
+    "never_alone": [
+      "the words quality, QMS, ISO, audit, compliance, procedure, manual, CAPA, corrective action, KPI, inspection, training or management review alone",
+      "a product, part, lot, batch, site, line, supplier, customer, auditor or organization name alone",
+      "a document number, revision, approval stamp, signature, pass/fail result, finding, target or date alone",
+      "an SOP, work instruction, control plan, inspection result, NCR or CAPA identifier alone; these may be narrower manufacturing records",
+      "an audit word or checklist alone; government inspection, supplier qualification, engineering verification and business compliance all use them",
+      "a source_type or extension alone; PDF, DOCX, XLSX, presentation, image, email, calendar and archive are routing clues only",
+      "a download or portal session alone; a session is a weak review clue and never proves topic",
+      "a parent folder named Quality, QMS, ISO, Compliance, Procedures or Audits alone",
+      "missing EXIF as proof a signed quality document image is a screenshot or scan",
+      "an invoice, purchase order, delivery receipt or customer email alone, even if it mentions quality or acceptance"
+    ]
+  },
+  "proposed_context_terms": [
+    "quality management system",
+    "quality manual",
+    "controlled document",
+    "document control",
+    "management review",
+    "quality objective",
+    "internal audit programme",
+    "audit finding",
+    "systemic corrective action",
+    "quality KPI",
+    "customer complaint trend",
+    "supplier performance",
+    "process owner",
+    "effective date",
+    "obsolete revision",
+    "training effectiveness",
+    "quality policy",
+    "continuous improvement",
+    "quality planning",
+    "change control"
+  ],
+  "work_types": [
+    "quality manual or quality policy",
+    "QMS process map and governance register",
+    "controlled quality procedure",
+    "document-control or records-control procedure",
+    "internal-audit programme and audit report",
+    "management-review agenda, minutes and action register",
+    "quality objectives and KPI dashboard",
+    "customer-complaint trend and systemic review",
+    "supplier-quality trend and management review",
+    "quality training and competence matrix",
+    "change-control and controlled-document register",
+    "quality plan or system-readiness review",
+    "continuous-improvement and effectiveness review",
+    "external certification or surveillance audit response"
+  ],
+  "work_types_note": "These are values of the manufacturing schema's proposed record_type and quality_event roles, not child schemas. Quality manual, procedure, audit, review, objective and training labels describe records inside a governed system; they do not create new fields or activate this template without the system-level evidence cluster.",
+  "grouping_reasons": [
+    "one QMS release across the manual, controlled procedures, process map, document register, audit programme, management review and action register",
+    "one audit cycle across programme, checklist, report, finding, corrective action, effectiveness check and management-review follow-up",
+    "one management-review period across KPI pack, complaint and supplier trends, audit results, resource decisions and owned actions",
+    "one controlled procedure across revisions, approval/effective history and records executed under that procedure, without copying the procedure's facts onto every record",
+    "one quality objective across its metric definition, trend reports, improvement actions and review decisions",
+    "a sparse calendar invite, email, screenshot or signed checklist may join an accepted QMS group without receiving its system scope, site or period facts"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract because manufacturing declares no legal field rows. Subject to R1c licensing the anchor's proposals, the QMS recommendation is site or organization scope -> quality-system process/area -> record_type, with reporting period only for recurring audits, KPI packs and management reviews. Product and batch_lot should be optional references for a procedure or audit that is genuinely product-specific; they must not be forced above system-level material. This differs from manufacturing's product -> batch_lot -> record_type production default and quality_event -> record_type NCR/CAPA default because QMS documents govern multiple products and close system-level review loops. It is not time-first; the design says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Revision, approver, finding, metric and personnel values remain evidence/search facts, not default folder dimensions. The user may reverse, remove or flatten any eventual order.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["filesystem", "text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".csv", ".pptx", ".png", ".jpg", ".eml", ".ics", ".json", ".xml", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Quality-Manual_Rev12.pdf",
+      "source_type": "text_document",
+      "observations": ["title labels a quality manual and revision", "scope covers multiple manufacturing processes and sites", "sections assign management responsibility, quality objectives, document control and audit review"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["site or quality-system scope from filename alone", "that every procedure in the corpus belongs to this release", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Document-Control-Procedure_QP-001.docx",
+      "source_type": "text_document",
+      "observations": ["labelled procedure identifier, owner, approval and effective date", "revision history distinguishes obsolete and current versions", "body defines controlled-document issuance, distribution and acknowledgement"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["QMS activation from procedure vocabulary alone", "that the named owner is the organization scope", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Internal-Audit-Programme_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["sheets schedule audits across production, quality, purchasing and maintenance processes", "columns label criteria, scope, auditor, planned date and follow-up", "programme references a QMS process map and audit cycle"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["reporting_period or site from filename alone", "that a planned audit occurred", "a regulator audit from criteria vocabulary alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Internal-Audit-Report_Plant-2_Process-Controls.pdf",
+      "source_type": "text_document",
+      "observations": ["report labels audit scope, criteria, process owners, findings and evidence", "findings cover document control, training and production controls rather than one lot", "corrective actions and follow-up status are summarized"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a government inspection from the word audit", "that each finding is a separate CAPA case", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Management-Review-Minutes_Q2-2026.docx",
+      "source_type": "text_document",
+      "observations": ["agenda and minutes label management review", "tables summarize audit results, complaints, supplier performance, objectives and resources", "decisions assign owners and due dates for system actions"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a calendar invitation is completed minutes", "that every action is a CAPA event", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "QMS-KPI-and-Complaint-Trends_Q2-2026.pptx",
+      "source_type": "presentation",
+      "observations": ["slides trend customer complaints, nonconformities, audit closure and on-time actions", "charts compare quality objectives and current performance", "review slide records systemic actions and management decisions"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a chart alone proves a QMS", "that every metric is a product or lot fact", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Quality-Training-and-Competence-Matrix.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["rows map controlled procedures and process roles to training status", "columns include revision taught, effectiveness check and retraining need", "matrix spans production, inspection and document-control roles"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a personnel directory from names alone", "that training status proves competence", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Supplier-Quality-Audit-and-System-Review_SUP-17.pdf",
+      "source_type": "text_document",
+      "observations": ["report separates supplier-process findings from the organization's supplier-monitoring review", "QMS audit criteria, systemic corrective actions and management escalation are labelled", "supplier approval and scorecard sections are also present"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that supplier approval follows from one audit", "that all pages belong to QMS rather than supplier qualification", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Quality-Procedure-Change-Approval.eml",
+      "source_type": "email",
+      "observations": ["subject identifies a controlled quality-procedure revision", "message names approver roles and effective-date coordination", "attachment list includes a redlined procedure and approval form"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["QMS scope from email subject alone", "that an approval was granted because it was requested", "that recipients become folder dimensions", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "QMS-Management-Review.ics",
+      "source_type": "calendar",
+      "observations": ["event title proposes a management-review meeting", "event has organizer, attendees, location and recurrence metadata", "no minutes, KPI pack or decisions are attached"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a completed management review from calendar source_type or title", "QMS activation without review evidence", "a reporting period from the event date alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "QMS-Release-2026-04.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists quality manual, controlled procedures, audit programme, review minutes, KPI deck and action register", "members include current and obsolete revisions", "archive remains unextracted"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one revision or review period for the entire archive", "facts from the manual copied to each member", "that archive name proves a valid QMS release", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Signed-Audit-Checklist_Plant-2.jpg",
+      "source_type": "image",
+      "observations": ["camera EXIF is present", "image shows a signed checklist with partial quality and process-control headings", "plant and audit identifiers are not fully legible"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["QMS activation from scene or signature alone", "audit scope, finding or site facts from an unreadable image", "missing EXIF as proof of screenshot origin", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Scanned-Quality-Manual_Rev9.pdf",
+      "source_type": "ocr",
+      "observations": ["OCR recovers quality-policy and process-map headings", "signature and revision fields are partly legible", "several scope and effective-date lines are unreadable"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["unreadable scope or revision as direct facts", "that OCR headings establish a current QMS release", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Plant-2-Control-Plan-and-Inspection-Results.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["sheet names label product, lot, characteristic, specification, measurement and disposition", "rows are one production lot's inspection results", "no system audit, document-control or management-review structure appears"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["QMS activation from quality vocabulary", "system-level quality objectives from one control plan", "a folder path"],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "Direction one — manufacturing.quality-management-system owns the system-level audit, procedure or management-review evidence when it governs inspection controls across processes or sites and records systemic review or action. Direction two — manufacturing.inspection-record owns characteristic-level inspection or test evidence for a product, lot, asset or sample, including specification, measured result and disposition, even when a QMS procedure is cited. SAME FIXTURE BYTES: `Plant-2-Control-Plan-and-Inspection-Results.xlsx`. Its cross-process control-plan governance appendix supports QMS; the lot-specific characteristic and measurement sheets support inspection. Quality words, limits and pass/fail cells alone allocate neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "Direction one — manufacturing.quality-management-system owns systemic QMS review when a recurring finding trend, management decision or effectiveness programme spans processes and quality objectives. Direction two — manufacturing.nonconformance-capa owns the individual deviation/NCR/CAPA case with affected product or lot, containment, root cause, action owner, due date and closure evidence, even if it is reported into management review. SAME FIXTURE BYTES: `NCR-2026-041-Systemic-Review-and-CAPA.pdf`. The trend and management-escalation pages support QMS; the event investigation, containment and effectiveness record support nonconformance-CAPA. An NCR number or corrective-action word alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "signal": "Direction one — manufacturing.quality-management-system owns controlled system procedures when they define governance, document control, audit, review or cross-process quality responsibilities. Direction two — manufacturing.work-instruction owns the executable task instruction for one product, machine, line or operation, with sequence, parameters, setup and operator checks, whether or not the instruction is under QMS control. SAME FIXTURE BYTES: `QP-001-Document-Control-and-Line-Setup-Instruction.docx`. The document-control governance sections support QMS; the line-specific setup steps and operator checks support work-instruction. A revision number, approval block or SOP label alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "signal": "Direction one — manufacturing.quality-management-system owns system-level supplier-quality trends, audit governance and management escalation across the supplier population. Direction two — manufacturing.supplier-qualification owns the individual supplier's approval scope, capability assessment, qualification evidence and status, even when the evidence is reported to a QMS review. SAME FIXTURE BYTES: `Supplier-Quality-Audit-and-System-Review_SUP-17.pdf`. Cross-supplier trends and systemic actions support QMS; supplier-specific capability, approval and audit findings support supplier-qualification. A supplier name, score or certificate alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "Direction one — manufacturing.quality-management-system owns the manufacturing quality-system audit when criteria, process controls, quality objectives and management review are the operative evidence. Direction two — business_operations.compliance-audit owns an organization-wide compliance engagement with scope, risk/control mapping, evidence request, finding severity, remediation and assurance reporting, regardless of whether manufacturing quality is sampled. SAME FIXTURE BYTES: `Integrated-Quality-and-Compliance-Audit-Report_Plant-2.pdf`. QMS process conformity and quality follow-up support this row; enterprise compliance scope, control testing and assurance conclusions support business_operations. The word audit, a finding or a checklist alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "Direction one — manufacturing.quality-management-system owns a controlled quality policy or manual when it defines manufacturing-process governance, audit, objectives and system review. Direction two — business_operations.policy-handbook owns the organization-wide policy framework for conduct, approvals, responsibilities and general operating rules, even when it references quality. SAME FIXTURE BYTES: `Corporate-Quality-Policy-and-QMS-Manual_Rev12.pdf`. The QMS scope, process map and quality-control sections support this row; corporate policy hierarchy, broad employee obligations and enterprise approvals support business_operations. A policy title or approval signature alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "signal": "Direction one — manufacturing.quality-management-system owns quality-system requirements when they govern controlled processes, auditability, records and management review across manufacturing. Direction two — engineering.requirements-specification owns technical product/system requirements with identifiers, verification method, acceptance criteria, interfaces and baseline status, whether or not quality assurance reviews them. SAME FIXTURE BYTES: `Product-Quality-Requirements-and-QMS-Control-Plan.pdf`. System auditability and controlled-record requirements support QMS; product performance requirements and verification traceability support engineering. A requirement id, acceptance criterion or approval block alone supports neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "Direction one — manufacturing.quality-management-system owns a warehouse-quality procedure or review when it governs QMS controls, audit findings, traceability and systemic corrective action across warehouse operations. Direction two — logistics.warehouse-ops owns the live stock, receipt, pick, storage, quarantine and dispatch execution record for locations, quantities, movements and handling events. SAME FIXTURE BYTES: `Warehouse-Quality-Control-Procedure-and-Stock-Exception-Log.xlsx`. Procedure governance and recurring system review support QMS; transaction rows, bins, quantities and movement exceptions support logistics. A warehouse name, quarantine word or quantity alone supports neither.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A standalone procedure, certificate, audit notice or manual without evidence of a governed quality-system set remains a durable independent record.", "provenance": "design", "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."},
+    {"residual_template": "Receipts and Confirmations", "why": "An isolated audit acknowledgement, certification confirmation, training booking or quality-service receipt is transactional evidence, not a QMS system record without its own governance relation.", "provenance": "design", "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."},
+    {"residual_template": "Review Later", "why": "An ambiguous checklist, KPI workbook, meeting agenda, procedure draft or mixed packet whose system scope and role cannot be settled needs review rather than invented QMS facts.", "provenance": "design", "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."},
+    {"residual_template": "Unsupported or Encrypted", "why": "An unreadable quality portal export, protected archive or damaged scanned manual cannot establish system scope from its filename.", "provenance": "design", "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."},
+    {"residual_template": "Protected Records", "why": "Audit findings, personnel training matrices, supplier weaknesses, complaint trends and management decisions may require protected local treatment when no safe accepted QMS group exists.", "provenance": "design", "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."},
+    {"residual_template": "One-Off Images", "why": "A lone signed checklist or plant photograph without independently evidenced QMS membership is an unassociated image, not a system document.", "provenance": "design", "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Quality-system files can expose audit findings, process weaknesses, complaint and supplier trends, named personnel responsibilities, training status, production controls and management decisions. This row assigns no handling class and does not make names, findings, scores, revision identifiers or corrective-action details destination dimensions.",
+  "open_question": "NEEDS-JOSEPH NJ-QMS-1: should R1c license a neutral `record_type` and `site`/`product` scope for QMS templates, or keep system-level scope metadata-only because a manual can govern several sites and products? NJ-QMS-2: should audit findings and management-review actions coactivate QMS with manufacturing.nonconformance-capa and business_operations.compliance-audit on disjoint evidence, or should user policy choose one accepted group when one report combines all roles? NJ-QMS-3: where a controlled procedure is both a QMS governance document and an executable work instruction, should P10 offer two independently evidenced views while preserving one version family, or require a single user-selected destination?"
+}

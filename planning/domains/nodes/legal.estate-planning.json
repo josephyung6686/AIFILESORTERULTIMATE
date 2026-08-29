@@ -1,0 +1,919 @@
+{
+  "id": "legal.estate-planning",
+  "kind": "template",
+  "schema_id": "legal",
+  "parent_id": null,
+  "name": "Wills, estate and end-of-life documents",
+  "one_line": "A protection-first situation for a person's testamentary, trust, delegated-authority, advance-care, beneficiary-direction and closely related estate-administration records. It recognizes wills, codicils, trust instruments, powers of attorney, advance directives, designation forms, grants and estate packets without deciding legal validity, current effect, ownership, capacity, inheritance rights or medical wishes; Legal remains field-less and recommends no automatic folder depth.",
+  "launch": "safety",
+  "provenance": "inference",
+  "design_cite": "00 names Legal's posture, not this narrower situation: “Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.” It permits a lone legal document to surface safely: “Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.” It names the broad residual home: “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” The estate-planning boundary and every instrument-specific signal below are inference, not attributed to 00.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these structures select a protected Legal situation only. They do not prove that an instrument is valid, operative, current, unrevoked, enforceable or complete, and they license no Legal fact because the schema declares no fields under D1 and PR-6. P7 classification precedes every model or placement path: “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a completed will structure whose title or page-one heading identifies a testamentary instrument and whose own body contains a named maker or testator role, an executor or personal-representative designation, dispositive clauses, and an execution or attestation block. The combination is the signal; the word will, a person's name, or signatures alone is not",
+      "a codicil, amendment, restatement or revocation whose own heading identifies the instrument, whose body directly references a parent will or trust, and whose execution or attestation block is present. The reference supports a candidate version relationship only; it does not establish which instrument governs",
+      "a completed trust instrument whose heading identifies a trust deed, declaration, agreement, amendment or certification and whose labelled or operative structure distinguishes a settlor or grantor, trustee and beneficiary role alongside directions for holding or administering property. Those roles remain observations, and a trust-titled account statement is not the instrument",
+      "a completed delegated-authority instrument whose own title identifies a power of attorney or functional equivalent and whose structure distinguishes the principal or donor from the attorney or agent, states an authority scope, and carries an execution, witness, certification or registration block. These terms are proposed contextual vocabulary for R6, not a universal legal rule",
+      "a completed advance-directive or living-will structure whose own title is health-specific and whose body names the person making the directive, states treatment preferences or appoints a health-care agent, and carries an execution, witness or notarial block. The same file may activate Medical protection on independent clinical evidence, but the directive never becomes a medical fact",
+      "a completed beneficiary-designation, payable-on-death or transfer-on-death record whose issuer-labelled account or plan slot co-occurs with primary or contingent beneficiary slots and an owner authorization or execution block. The account and plan structure may activate Finance independently; the designation does not prove entitlement, currency or consistency with any will",
+      "an official estate-administration record whose heading identifies a grant, representation or administration function and whose labelled structure names a deceased person or estate, a personal representative, a court or registry, and a grant or proceeding reference. Jurisdiction-specific document names are candidate values supplied later, never fields or universal requirements",
+      "an estate inventory or account whose own heading names an estate, whose rows distinguish assets, liabilities, receipts, payments or distributions, and whose cover or certification block cites a grant, estate reference or personal representative. Money columns alone point to Finance, not this situation",
+      "a personal estate-plan archive whose manifest lists several mutually reinforcing members such as a will, codicil, trust instrument, power of attorney, advance directive, designation or registration confirmation. Only the manifest is inspected during the normal scan: “Archives should be inspected without being unpacked to disk.” Member facts are never copied to the archive or to one another",
+      "a structured signature-service, registry or adviser message whose sender and subject identify completion, filing or delivery of a named estate instrument and whose attachment metadata identifies that instrument. The message establishes only its own protected workflow; it does not supply the attachment's content, legal effect or current status"
+    ],
+    "needs_llm": [
+      "PRECONDITION: Legal protection is already active, P7 has run, and this schema still has no Legal fields. Protected material is excluded from cloud prompts by default; any permitted model review is local or explicitly authorized and redacted. The model may propose only template plausibility, group coherence or an outlier decision with exact citations, never legal advice or an instrument's validity, effect, status, parties, wishes or dispositive outcome",
+      "an unlabelled letter of wishes, funeral instruction or family letter whose estate or end-of-life purpose appears only in prose and which may be personal guidance rather than a legal instrument",
+      "whether two near-identical files are a draft, executed copy, codicil, restatement, revocation or unrelated template. A model may identify cited differences for review but must not declare which one is current or governing",
+      "whether an ambiguous use of will, living will, directive, trust, estate, attorney, agent or beneficiary describes a testamentary instrument, a health-care instrument, an account record, a lawsuit, an IT estate, or ordinary prose",
+      "whether a corpus holds the person's own estate documents or a practitioner's client matter. Matter-management structure, billing, work product and multiple clients point to legal.practice-matter-file; possession, a folder name or one firm letterhead decides nothing",
+      "a foreign-language, historical or unusual instrument whose functional roles are visible but whose document-kind vocabulary is not in the deployment's one injected jurisdiction catalogue",
+      "whether a mixed archive is one coherent estate-plan or administration packet when the manifest is incomplete, while retaining every member as its own file and leaving conflicting people, estates, accounts or instrument references visible",
+      "whether correspondence about a death or estate belongs to routine administration, an adversarial will contest, a tax filing, a financial account workflow, genealogy research, or no accepted situation",
+      "an OCR'd portal screenshot or photographed page whose visible content may be an executed estate instrument, an adviser checklist, a public sample form, a clinical order, or a finance portal",
+      "whether a trust certification, beneficiary form or account-registration document carries disjoint Legal and Finance evidence, without letting an account number, institution, beneficiary name or trust label count once for both schemas",
+      "handwritten or voice-derived wishes only after an explicit privacy and compute policy authorizes the relevant extraction. Without an authorized transcript or sufficient legible text, the correct result is abstention"
+    ],
+    "never_alone": [
+      "the words will, trust, estate, beneficiary, executor, probate, attorney, agent, directive, wishes, legacy or succession alone. Will is ordinary prose; estate describes property and IT systems; trust appears in finance and governance; beneficiary appears in insurance, retirement and research",
+      "a person's name, relationship word, death reference, address, asset description, account number or identifier-shaped token alone. None establishes a legal role, ownership, authority, entitlement or which person's plan the corpus holds",
+      "a signature, witness line, notarial seal, attestation block or electronic-signature certificate alone. Leases, affidavits, consents, school forms and commercial agreements carry the same execution furniture",
+      "a lawyer, notary, court, registry, hospital, insurer, bank, brokerage or adviser name alone. The organization can be an issuer, provider, counterparty, employer, citation, template publisher or sender of generic guidance",
+      "a medical treatment, resuscitation, capacity, care, proxy or patient term alone. A clinician order or provider proxy-access record is not an advance directive merely because it discusses end-of-life care or representation",
+      "an account, policy, pension, investment, premium, tax, asset or beneficiary term alone. An account statement and tax return can concern a trust or estate without being an estate-planning instrument",
+      "a death certificate, marriage certificate, birth certificate or other vital record merely because it appears in an estate packet. Registry structure makes it Identity material; grouping never rewrites its schema evidence",
+      "source_type or extension alone, including PDF, DOCX, image, OCR, spreadsheet, email, calendar, archive, presentation or opaque binary. 00 says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "the words draft, final, current, signed, executed, revoked, certified or registered in a filename alone. A filename cannot establish legal status, version precedence or execution",
+      "a folder named Estate Plan, Wills, Trust, Probate, Family Documents or a person's name. Existing structure is context and user intent, not evidence that every descendant is an operative instrument",
+      "download-session membership or proximity to another estate document. “A session should never be treated as proof of topic”; it can retrieve candidates for review and never propagates a role or status",
+      "a calendar appointment with an estate adviser, a generic completion email or an attachment filename. A planned signing is not proof that an instrument was signed, and the message and attachment are separate files",
+      "missing EXIF, dense OCR or a platform-shaped PNG filename as proof of screenshot origin or legal content. Document scans, camera photos and downloaded samples share those properties",
+      "a bare date, year-shaped token, jurisdiction name or jurisdiction-specific form code. Date roles require narrow labelled evidence; jurisdiction remains an injected value and never a field or destination dimension",
+      "an unreadable, encrypted, damaged or unsupported file whose filename says Estate, Will or Trust. “Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone”"
+    ]
+  },
+  "proposed_context_terms": [
+    "last will and testament",
+    "codicil",
+    "revoke former wills",
+    "testator",
+    "executor",
+    "personal representative",
+    "trust deed",
+    "declaration of trust",
+    "settlor",
+    "grantor",
+    "trustee",
+    "beneficiary",
+    "power of attorney",
+    "principal",
+    "donor",
+    "attorney-in-fact",
+    "health care proxy",
+    "advance directive",
+    "living will",
+    "health care agent",
+    "beneficiary designation",
+    "payable on death",
+    "transfer on death",
+    "grant of probate",
+    "letters of administration",
+    "estate inventory",
+    "estate account",
+    "letter of wishes"
+  ],
+  "work_types": [
+    "will",
+    "codicil",
+    "trust deed or declaration",
+    "trust amendment or restatement",
+    "certification or abstract of trust",
+    "property or financial power of attorney",
+    "health or welfare power of attorney",
+    "advance directive or living will",
+    "revocation or termination of authority",
+    "beneficiary, payable-on-death or transfer-on-death designation",
+    "grant of probate or representation",
+    "letters of administration",
+    "estate inventory or asset schedule",
+    "estate account or distribution record",
+    "letter of wishes or funeral instruction",
+    "registration, filing or signature confirmation",
+    "adviser or counsel correspondence",
+    "estate-plan or administration packet"
+  ],
+  "grouping_reasons": [
+    "one estate-planning packet across a will, trust, powers of attorney, advance directive and beneficiary directions, but only when a manifest, direct cross-reference or user decision supports the packet. A shared person name or adviser is not enough",
+    "one instrument across its draft, executed copy, amendment, codicil, restatement, registration and revocation records, linked through direct parent references or the universal duplicate_family and version_family facts. Grouping must never assert which version governs",
+    "one trust across its deed, amendments, certifications and trustee records when the documents directly identify the same trust or a user confirms the group. An account titled to a trust may join without donating its Finance facts to the trust instrument",
+    "one personal estate administration across the grant, inventory, asset correspondence, accounts and distribution records when an explicit estate or grant reference supports membership. A deceased person's name alone cannot absorb every nearby document",
+    "one beneficiary or transfer direction as both a Finance account workflow and an estate-plan member. Multi-membership preserves both readings; neither schema copies names, roles, account facts or legal effect from the other",
+    "one advance directive across the holder's copy, provider-filed copy and registry or delivery confirmation through exact duplicates, version relationships or direct references. A medical chart mention does not inherit the directive's contents",
+    "a protected instrument can surface without any accepted group. 00 explicitly permits rare legal documents below normal group-size expectations, so protection never depends on fabricating an estate, family, adviser or folder branch",
+    "every group preserves file-level evidence: “The graph does not automatically copy those missing facts onto sparse files.” No member receives a person, role, asset, beneficiary, status, jurisdiction, instrument kind or path from its neighbours"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract and by privacy. Legal declares no fields under D1 and PR-6, so this template has no destination-eligible key and cannot smuggle estate, person, role, adviser, instrument kind, status, jurisdiction or year into a folder level. Independently, those labels would reveal exactly what protection is meant to hide. 00 requires, “Protected branches should have configurable redaction in the canvas and review screens.” It leaves disclosure under user control: “The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.” The present recommendation is a flat, redacted protected area or preserved user-created structure; accepted packets may be reviewed without automatic depth. It is not time-first. Even if Legal fields later exist, the record-domain rule points away from chronological fragmentation: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "presentation"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".html",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Last Will and Testament - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one title identifies a last will and testament",
+        "body separately labels the maker or testator and the nominated executor",
+        "numbered dispositive clauses and a residuary clause appear before the signature page",
+        "final page contains dated maker and witness signature blocks"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any Legal fact: Legal declares no fields, so testator, executor, beneficiaries, assets, execution date and instrument kind remain observations",
+        "that the will is legally valid, current, complete, unrevoked, accepted for probate or controlling",
+        "that a named person is the corpus holder or entitled to property",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Codicil to Last Will - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a codicil",
+        "opening paragraph directly references a prior will by maker and execution date",
+        "body changes one clause and confirms the remainder in prose",
+        "maker and witness signature blocks appear at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the referenced will is present, valid or the current parent instrument",
+        "that the codicil effectively changed any disposition or that later instruments do not exist",
+        "any person, clause, date, instrument-kind or supersession fact",
+        "copying the referenced will's observations onto this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Revocable Family Trust Agreement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading identifies a trust agreement",
+        "recitals distinguish settlor or grantor, trustee and beneficiary roles",
+        "operative sections describe contributed property, trustee powers and distributions",
+        "execution page contains signatures and a notarial acknowledgement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "legal ownership, validity, revocability, tax treatment, funding status or current trusteeship",
+        "that an asset named in a schedule was ever transferred into the trust",
+        "any settlor, trustee, beneficiary, trust-name or instrument fact",
+        "a trust-named folder branch"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Durable Power of Attorney - Property and Finance.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a property and financial power of attorney",
+        "labelled principal and agent sections name different people",
+        "initialled authority categories and special-instruction sections appear in the body",
+        "signature, witness and notarial sections are completed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the appointment is valid, effective, durable, unrevoked, accepted by any institution or held by the named agent",
+        "that a finance topic or authority over accounts makes this a Finance account record",
+        "capacity, permission, ownership, principal, agent, scope or execution-date facts",
+        "automatic grouping with every account document"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Advance Health Care Directive - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies an advance health care directive",
+        "labelled principal and health-care-agent sections name different people",
+        "completed treatment-preference and end-of-life instruction sections",
+        "signature and witness or notary blocks appear at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any Legal or Medical fact; both schemas are field-less placeholders",
+        "the person's present wishes, diagnosis, prognosis, capacity, consent, code status or treatment decision",
+        "legal validity, current effect, provider acceptance or that the named agent is the corpus holder",
+        "that a cloud model may receive the treatment-preference text"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Health and Welfare Power of Attorney.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "instrument heading and operative appointment clauses",
+        "separate principal or donor, attorney or agent, witness and certification roles",
+        "health, residence and care decision powers rather than a provider-access workflow",
+        "execution and registration sections are present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "medical.dependant-child-health from health and representative vocabulary alone",
+        "that the instrument grants current portal access, proves a care relationship or authorizes any specific medical decision",
+        "validity, capacity, effect, revocation, principal, agent, relationship or scope facts",
+        "that possession proves the holder is the appointed person"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Beneficiary Designation - Retirement Plan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "plan administrator heading and labelled plan or account descriptor",
+        "completed account-owner and primary or contingent beneficiary sections",
+        "percentage-allocation columns and owner authorization block",
+        "no holdings table, contribution history or distribution record"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any beneficiary, owner, allocation, entitlement, inheritance, legal-status or estate-plan fact",
+        "that the designation is current, accepted by the plan, consistent with a will or effective at death",
+        "that Finance facts authorize automatic placement or weaker privacy",
+        "copying plan or account facts to a separate will"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Transfer on Death Registration - Brokerage.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "brokerage issuer and labelled account slot",
+        "registration heading identifies a transfer-on-death workflow",
+        "completed beneficiary and owner authorization sections",
+        "no holdings table or trade activity appears in the form"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a TOD label proves the designation was accepted, remains current or overrides another instrument",
+        "any account owner, beneficiary, ownership, inheritance or Legal fact",
+        "a brokerage home from the issuer name alone or an estate home from the death-transfer phrase alone",
+        "one permanent folder path when Finance and Legal evidence both stand"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grant of Probate - Estate of Morgan Lee.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court or registry heading identifies a grant function",
+        "labelled estate or deceased-person block and grant reference",
+        "named personal representative in an operative grant paragraph",
+        "official seal and issue-date slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the grant is authentic, current, unrevoked, sufficient in another jurisdiction or evidence of the holder's authority",
+        "that every document naming Morgan Lee belongs to this estate",
+        "any person, estate, representative, grant, issue-date or jurisdiction fact",
+        "that a professional practice file is the holder's personal estate packet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate Inventory and Account.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "cover sheet identifies an estate and cites a grant reference",
+        "sheets separate assets, liabilities, receipts, payments and proposed distributions",
+        "header rows carry description and amount columns",
+        "certification sheet names a personal representative"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any listed asset is owned, valued correctly, distributed, taxable or available",
+        "any estate, representative, beneficiary, account, asset or Legal fact",
+        "that every money row is a Finance fact or that the spreadsheet proves a completed administration",
+        "copying the grant reference or estate name to neighbouring correspondence"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Funeral and Memorial Wishes.txt",
+      "source_type": "text_document",
+      "observations": [
+        "plain prose with no title field, official form, signature or witness block",
+        "first-person statements describe ceremony, notification and disposition preferences",
+        "several family names and service-provider names appear",
+        "no statement says whether the note is legally operative"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "deterministic activation or that the note is a will, directive, contract or legally binding instruction",
+        "current wishes, religious affiliation, family roles, service provider, disposition choice or person facts",
+        "that an LLM may turn prose into an estate field or folder label",
+        "that proximity to a will makes this its attachment"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Estate Plan Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a will, trust agreement, financial power of attorney, advance directive, trust certification and signing summary",
+        "member paths reflect an export packet rather than the user's destination tree",
+        "member count and uncompressed size are read from archive metadata",
+        "no member is unpacked during the normal scan"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every member is executed, current, internally consistent or about the same person",
+        "member-level names, roles, wishes, assets, dates or status from the manifest",
+        "that the outer archive inherits every member's facts or handling decision",
+        "that the archive may be unpacked to improve recognition"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Completed Estate Documents.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender is a signature-service or adviser domain",
+        "subject identifies completion of named estate documents",
+        "body contains a generic completion notice and access link",
+        "attachment metadata names a signed packet, which remains a separate file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that completed means legally valid, fully executed, current, downloaded or accepted by any registry",
+        "the attachment's contents, parties, instrument types, signatures or status",
+        "that the recipient is a testator, principal, trustee, beneficiary or corpus holder",
+        "that forwarding or saving the email weakens protection"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate Plan Signing.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY identifies an estate-plan signing appointment",
+        "ORGANIZER is an adviser office and LOCATION is a meeting room",
+        "start and end slots are present",
+        "no instrument, party, signature, witness or registration evidence appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this template from source_type = calendar, adviser identity or the word signing",
+        "that the appointment occurred, anyone attended, an instrument existed or anything was signed",
+        "an event fact in the Photos sense or any Legal fact",
+        "that event proximity supplies status to a later document"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_7782.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and capture time are present",
+        "the frame photographs a signed will page with perspective distortion and visible page edges",
+        "OCR recovers a testamentary heading and witness block",
+        "no evidence links the photograph to an original PDF"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any Legal fact; the listed capture facts come from Photos on their own evidence",
+        "validity, completeness or that the photographed page is the current will",
+        "membership in a photo event or a capture-first destination once protected legal content appears",
+        "that OCR, EXIF or the image may enter a default cloud dossier"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-07-18 at 10.22.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "display dimensions, capture software and interface chrome support screen origin",
+        "OCR shows an estate-planning portal and document checklist",
+        "one item is labelled awaiting signature and another complete",
+        "no document body or execution page is visible"
+      ],
+      "facts_legal": [
+        "media_type",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "screen origin from missing EXIF or PNG format alone",
+        "that any listed instrument exists, was signed, is valid, current or belongs to the corpus holder",
+        "any status, person, adviser, instrument-kind or Legal fact from portal labels",
+        "that a short visible excerpt is safe for a cloud prompt"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Will Contest Petition.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "court caption names opposing parties and a probate matter",
+        "petition heading challenges validity of a will",
+        "body pleads allegations and requests relief",
+        "filing stamp and service section appear"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from will and probate vocabulary; adversarial caption and requested relief point to legal.personal-legal-matters",
+        "that any allegation is true or that the challenged instrument is invalid",
+        "party, claim, court, matter, outcome or Legal facts",
+        "that a planning packet may absorb the dispute because it references the same will"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client Matter Export - Estate Planning.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists client intake, conflict check, engagement letter, time entries, advice drafts and executed instruments",
+        "member paths contain several client and matter identifiers",
+        "billing and work-product members dominate the packet",
+        "manifest is inspected without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this personal estate-planning situation from instrument names inside a professional matter export",
+        "that the corpus holder is a client, testator, beneficiary or personal representative",
+        "member facts, client identities, legal conclusions or one shared estate from manifest paths",
+        "that professional custody permits a cloud model or automatic placement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Residential Lease Agreement - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title identifies a residential lease",
+        "recitals name landlord and tenant roles",
+        "property, term, rent and deposit clauses",
+        "dated signature blocks for the contracting parties"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from an executed instrument, witness line, address or the word estate in an agent footer",
+        "a trust merely because property is the subject of the agreement",
+        "any landlord, tenant, property, date, validity or Legal fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Portable Medical Order - Morgan Lee.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "provider-issued medical-order heading",
+        "labelled patient, clinician and order-date blocks",
+        "treatment and resuscitation choices in clinician-order sections",
+        "no principal-agent appointment or estate-instrument execution structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from end-of-life or resuscitation content; provider-authored order structure points to medical.personal-health-records",
+        "that the order is current, active, clinically indicated or equivalent to an advance directive",
+        "patient, clinician, treatment, order, diagnosis or Legal facts",
+        "that medical protection permits content exposure"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Trust Account Statement - Q2 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "custodian heading and labelled trust-titled account slot",
+        "statement period and masked account number",
+        "holdings table with quantity and market-value columns",
+        "no operative trust clauses, settlor role or execution block"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from the trust account title or beneficiary-shaped text; account and holdings structure points to finance.investment-brokerage",
+        "that the statement proves the trust's validity, terms, trustees or beneficiaries",
+        "tax_year from Q2 2026 or any Legal fact",
+        "that account grouping can copy the trust name to a separate deed"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Life Insurance Beneficiary Designation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "insurer heading and labelled policy slot",
+        "policy owner, insured and primary or contingent beneficiary blocks",
+        "allocation and owner authorization sections",
+        "no claim, premium table or loss narrative"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any beneficiary is entitled to proceeds or that the designation is current, accepted or consistent with a will",
+        "that insurance issuance or account evidence is a Legal fact",
+        "that estate-plan membership makes every policy document estate material",
+        "one path when Finance and Legal evidence may both stand"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate Tax Return 2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tax-authority form heading and labelled tax-year slot",
+        "estate or filing-entity identification block",
+        "asset, deduction and tax-computation schedules",
+        "preparer and filing signature sections"
+      ],
+      "facts_legal": [
+        "tax_year",
+        "record_type",
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from estate or beneficiary language; the tax form and computation structure points to finance.tax-filings",
+        "that reported assets, deductions, valuations, taxes or filing positions are correct",
+        "any Legal fact, grant status, beneficiary entitlement or completed distribution",
+        "that a tax-year branch may absorb the will or trust"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Death Certificate - Morgan Lee.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "vital-record authority and death-certificate heading",
+        "labelled registrant or decedent and event details",
+        "certification number, registrar and seal",
+        "no will, trust, grant, representative or estate-account structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from death, family or certificate evidence; civil-record structure points to identity.core-documents",
+        "that the certificate establishes an estate, will, executor, inheritance or corpus-holder relationship",
+        "any identity or Legal fact because Identity and Legal are both field-less",
+        "copying the named person into estate correspondence"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Blank Last Will Template.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page title identifies a sample last-will form",
+        "all maker, executor, beneficiary, asset, signature and witness slots are empty",
+        "footer names a public legal-information publisher",
+        "no completed party or execution evidence appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation from an instrument title and empty role slots",
+        "that downloading the form proves intent, legal advice, a completed will or an estate plan",
+        "any person, role, asset, status or sensitivity fact from placeholders",
+        "grouping with an executed will from format similarity alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Estate Documents (password protected).zip",
+      "source_type": "archive",
+      "observations": [
+        "archive header is readable but the manifest is encrypted",
+        "no member name, uncompressed size or document content is available",
+        "filename carries estate-document wording",
+        "the normal scan does not attempt a password or extraction"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "Legal or this template from the filename; nothing inside was observed",
+        "that the archive contains a will, trust, directive or any named person's records",
+        "that protection permits forcing it open, guessing credentials or unpacking it",
+        "any purpose, sensitivity class, status or folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IT Estate Architecture Review.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide-one title uses estate to mean an organization's technology environment",
+        "slides diagram applications, repositories, cloud accounts and network dependencies",
+        "speaker notes identify a software modernization project",
+        "no person, testamentary instrument, trust, authority appointment or death-related structure appears"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "this estate-planning template from the word estate, asset inventory or architecture relationships",
+        "a trust or legal instrument from governance or ownership vocabulary",
+        "any person, beneficiary, authority or sensitivity fact",
+        "a folder path from Code facts"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "A beneficiary designation, transfer-on-death registration or trust-titled account form can be both an account workflow and a direction for assets at death. A labelled account descriptor with holdings, contribution or custodian structure points to investment and brokerage; completed beneficiary or owner-authorization sections, a trust or estate instrument reference and operative direction point here. One issuer, account number, beneficiary name or trust title cannot count for both; disjoint Finance and Legal evidence may still co-activate.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "A health-and-welfare power of attorney, advance directive, guardianship instrument and provider proxy-access record all mention health decisions, representatives and patients. Operative appointment clauses, execution formalities, witnesses, notarization, revocation or legal-instrument headings point here; a provider or portal access workflow, patient-specific clinical record or care-plan structure with separately labelled patient and representative roles points to dependant health. Authority wording alone proves neither legal effect nor clinical access.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "An advance directive or living will and a provider-authored medical order can both state treatment and resuscitation choices. A completed principal-or-agent legal instrument with execution or witness structure points here; a patient/provider block, clinician order and clinical-record workflow without an appointment instrument points to personal health records. End-of-life vocabulary alone decides neither, and both readings remain protected.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "A will contest, probate dispute or fiduciary claim cites the same will, trust, estate and people as a planning or administration packet. An adversarial court caption, opposing parties, allegations and requested relief point to personal legal matters; a testamentary, trust, delegated-authority or advance-directive instrument, or a routine grant-and-account administration structure, points here. The words probate, estate or will alone decide nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "A trust deed and an ordinary deed, lease or signed agreement share recitals, numbered clauses, parties, signatures and notarization. Settlor, trustee and beneficiary roles with directions for holding or distributing property point here; landlord, tenant, premises, rent or a bilateral service obligation points to leases and agreements. The word deed, property, trust or signed alone cannot select either template.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "The exact same wills, trusts, powers and probate papers may sit in a person's protected plan or in a practitioner's client matter. Multi-client matter identifiers, conflict checks, engagement records, billing, advice drafts and professional work product point to the practice situation; one household's instruments, direct personal-plan packet or user-confirmed personal administration points here. Possession, a law-firm name or a folder labelled Clients decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-personal",
+      "signal": "A life-insurance beneficiary designation is issued inside a policy workflow and also directs proceeds at death. Policy, coverage, premium or claim structure points to personal insurance; a completed beneficiary-direction and owner-authorization structure points here. An insurer name, policy number, beneficiary word or death reference alone cannot count for both, while disjoint Finance and Legal evidence may co-activate.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "A trust or estate tax return and an estate-administration packet share estate names, assets, representatives and dates. A tax-authority form, labelled tax year, filing-entity block and computation schedules point to tax filings; instrument roles and execution, or a grant-linked inventory and account, point here. The words estate, trust, beneficiary or a year alone decide neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A death certificate or other vital record commonly accompanies probate and names the same person and family. Registry-issued civil-record structure with event details, certificate number and registrar points to core identity; a will, trust, grant, authority or estate-account structure points here. Packet membership and one shared name never transform the certificate into an estate-planning instrument.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "A photographed or scanned will, trust or directive genuinely has page-capture geometry and OCR evidence. Page edges, perspective, scanner or camera metadata establish capture origin; testamentary, trust, authority or directive structure in the document content points here. Capture evidence may supply Photos facts but cannot lower protection or choose a capture-first destination.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "An estate portal capture genuinely carries screen-origin evidence while its OCR exposes protected instrument names and workflow status. Display dimensions, capture software and interface chrome establish screenshot origin; completed legal-instrument structure visible on screen would point here. Missing EXIF, PNG format, portal labels or the word complete decide neither, and screen origin never overrides protection.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The safe broad home when a Legal-protected estate instrument has no accepted packet, instrument family or user-approved structure. 00 defines it directly: “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” It is an opt-in residual candidate that may represent a file without moving it; it does not authorize automatic placement.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 places Legal on the safety path and states: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Estate instruments can expose third-party identities, family relationships, medical wishes, incapacity planning, assets, account references, signatures and intended transfers. This row sets only potentially_sensitive. D2's authoritative ClassificationRecord keyed by file_id and content_hash, its injected P7 detector, and P7's handling-class vocabulary are not re-derived, populated or named here.",
+  "open_question": "Three forks remain Joseph's. First, if D1's Legal deferral ever lifts, decide centrally whether subject-of-plan or estate, holder role, instrument kind, party roles, matter or grant reference, execution date, and supersession state exist as canonical fields at all; this template proposes none, and institution, client, record_type and creation_date cannot be repurposed for those roles. Second, decide whether estate planning and personal post-death administration remain one protected situation or split only after corpus evidence supports a separate template, and how P10 distinguishes a person's own records from practitioner custody without a holder-role field. Third, decide whether any Legal value may ever become a visible destination dimension: person, estate, beneficiary, adviser, medical-wish, instrument-status and matter labels all disclose protected content. Until those field, custody and display decisions are explicit, this row remains flat, treats jurisdiction terms as injected values, and never asks a model to rule on validity, capacity, entitlement, current effect or which instrument governs."
+}

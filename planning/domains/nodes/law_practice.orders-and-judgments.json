@@ -1,0 +1,373 @@
+{
+  "id": "law_practice.orders-and-judgments",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Orders, judgments and directions",
+  "one_line": "REFUSED. The instrument by which a tribunal states its decision - the order, the judgment, the decree, the ruling, the direction, the award - is a DOCUMENT TYPE whose own face is the `legal` schema's proceeding signal and not this schema's, and the `law_practice` anchor conceded exactly that in writing, on exactly this artefact, before this row was dispatched. The material is not lost: the decision document is `legal`'s on `legal`'s own evidence and is protected there first; its membership of a practitioner's matter is the `law_practice` default template's; the receipt that it moved is `law_practice.court-filing-record`'s; the challenge to it is `law_practice.appeals`'; the blank form of it is `law_practice.precedent-bank`'s; the dates it sets are the schema default's diary; and a published judgment kept to read is reading material.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "THE NODE TEST FAILS ON ALL THREE LEGS, AND THE SCHEMA ANCHOR HAD ALREADY DECIDED THE CENTRAL ONE. (1) DETECTION SIGNALS ARE NOT THIS SCHEMA'S - THEY ARE THE SAFETY NEIGHBOUR'S, AND THE ANCHOR CONCEDED IT ON THIS ROW'S OWN FIXTURE. `law_practice`'s default requires BOTH legs: an exact matter or file reference repeated across two or more artefacts, AND at least one artefact whose own labelled slots separate a practitioner-or-firm role from a client role. A sealed order carries neither on its face. It carries a tribunal caption, a party pair, a case identifier, numbered operative paragraphs, a judicial signature and a seal - and `law_practice.json` spends that precise file, `Order - Hartley v Nash - sealed.pdf`, as ITS OWN over-firing collision fixture, whose must_not_conclude reads: 'THIS IS THE OVER-FIRING COLLISION FIXTURE AND THE ROW CONCEDES IT: the caption plus the operative paragraphs are `legal`'s own deterministic signal, `legal` is a safety domain, and its protection runs first. This schema co-activates through the counsel block and the matter reference, and takes nothing away.' A template cannot own detection signals its own schema has already conceded to a neighbour, and it cannot be activated by evidence that fires a different schema. The counsel block does not rescue it: the schema strikes a firm or practitioner name as never-alone, and 00 forbids the neighbouring use directly - 'It should avoid using authorship or creator identity as a destination dimension'. (2) DIMENSION ORDER IS NOT DIFFERENT - IT IS ONE VALUE AT THE SCHEMA'S OWN FUNCTION LEVEL. The anchor's recommendation held as prose is client (only on explicit approval), then matter, then DOCUMENT FUNCTION, then period. 'Order' and 'judgment' are labels at that function level, not a reordering of it; branching one in a single-proceeding corpus is what 00 forbids the engine to validate - it must not 'create meaningless one-child levels'. The two landed siblings that survived this test survived by ARGUING ABOUT the function level rather than being a value in it: `law_practice.court-filing-record` showed a receipt is a leaf beside the document it attests, and `law_practice.appeals` showed a two-tier pair plus a direction addressed to a lower tribunal is a second proceeding whose subject is a first. This row does neither. (3) PRIVACY RULES ARE THE DEFAULT, AND ON THE ROW'S MOST CHARACTERISTIC ARTEFACT THEY ARE LOOSER. 00: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' A decision instrument IS that material and receives the safety posture from `legal` whether or not this row exists. `law_practice`'s claim to a posture stricter than `legal`'s rests on protecting a THIRD PARTY who never chose this filesystem - true of a privilege log, an attendance note, a deponent's proof. The named persons in an order are the proceeding's own parties, already inside the safety perimeter; and an approved judgment is frequently the single most PUBLIC document in the matter, handed down for citation. Being looser than a safety default is not a licence to create a node - and the anchor separately strikes public availability as never-alone, so the row cannot claim the laxer posture either. FIVE INDEPENDENT KILL VECTORS. (a) IT IS A WORK_TYPE VALUE, and a PROPER SUBSET of one: `law_practice.work_types` reads 'order, judgment, award and appeal record', and the 'appeal record' fragment was already taken by an accepted sibling. Work types are values of a field; the dispatch is explicit that they are not child nodes. (b) IT IS A DOCUMENT TYPE. Order, judgment, decree, decision, ruling, award, direction, minute of order are document-type words. Apply the anchor's deletion test - delete every entity name and every document-type word - and what survives is a caption and a party pair, which is `legal`'s. (c) IT IS DEFINED BY ABSENCE, AND THREE LANDED SIBLINGS DEFINE IT THAT WAY IN WRITING. `law_practice.appeals` gives the discriminator as 'one proceeding identifier, no on-appeal-from line and no slot directing another court means the NEIGHBOUR's'; `law_practice.court-filing-record` distinguishes its own artefacts by carrying 'a destination set' that the decision document lacks; `law_practice.opinions-advice` separates itself by an addressee block and a reliance restriction that a tribunal instrument has 'no addressee block and no clause restricting reliance'. Every one of those is a negative characterisation. A row whose whole content is what three neighbours are not cannot own a positive structure. (d) THE TEMPTING RESCUE IS A LIFECYCLE STAGE. 'The DRAFT order circulated for approval is practitioner-side, the SEALED one is `legal`'s' distinguishes draft from agreed from consented from lodged from sealed from entered. That is a lifecycle stage, not a node, and the tracked draft carries the identical caption and party pair. The two-firm consent block on a draft consent order is the sharpest form of the rescue and it still fails: it separates PRACTITIONER FROM PRACTITIONER, our side from the other side, and the schema's second leg demands practitioner separated from CLIENT. (e) THE ONE STRUCTURALLY DISTINCT RESIDUE IS ALREADY A SIBLING. A draft order form whose party slots are bracketed placeholders and whose signature line is blank BY DESIGN is precisely the schema's inverse-recognition PRECEDENT-BANK signal, and `law_practice.precedent-bank` is a roster row that landed on it. Taking it here duplicates that row. NO COVERAGE IS LOST - `collides_with`, `falls_through_to` and every file example below name the row or residual that receives the material.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "A DOCUMENT-TYPE WORD - order, judgment, decree, decision, ruling, determination, award, direction, minute of order, disposition, mandate. This is the row's entire proposed content and the anchor already struck it: 'A DOCUMENT-TYPE WORD, AND A DOCUMENT-TYPE WORD BESIDE A FIRM OR CLIENT NAME.' A document-type word names no entity and resolves nothing about any role.",
+      "A TRIBUNAL CAPTION, COURT SEAL, HAND-DOWN LINE, REGISTRY STAMP or NEUTRAL CITATION ALONE. The anchor's own words: 'A COURT CAPTION, FILED STAMP, LEGAL CITATION, PLEADING TITLE or PUBLISHED OPINION ALONE. A caption is `legal`'s signal, not this schema's, and it is satisfied identically by a public filing anyone downloaded. It is never evidence that the holder acted for anybody.'",
+      "NUMBERED OPERATIVE PARAGRAPHS or DECRETAL LANGUAGE ALONE - 'IT IS ORDERED', 'IT IS ADJUDGED', 'the court directs'. Operative structure proves that a decision instrument exists; it proves nothing about whose filesystem it is on, which side the holder was, or whether a matter exists at all. It is the same caption-plus-party-pair evidence in a different band of the page.",
+      "A JUDICIAL NAME, A COUNSEL SIGNATURE BLOCK, A COURT NAME or A FIRM NAME ON THE FACE OF THE INSTRUMENT. Role names, struck by the anchor and read across from 00: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.'",
+      "A CASE NUMBER, DOCKET NUMBER, CLAIM NUMBER, ENTRY NUMBER, RECORD PAGE NUMBER or AWARD REFERENCE ALONE. An identifier supplies linkage only after its own labelled role is established, and its digits are never a date.",
+      "A SEALED, EMBARGOED, RESTRICTED, ANONYMISED, WITHOUT-PREJUDICE or NOT-FOR-PUBLICATION LABEL. The product preserves the literal observation and decides no legal status - and such a label appears on commercial and HR paper constantly.",
+      "THE ABSENCE OF SOMETHING A NEIGHBOUR HAS - no on-appeal-from line, no lower-tribunal direction, no recipient-and-method list, no addressee block, no reliance restriction. Three landed siblings characterise this row exactly this way. An absence is not an observation, cannot be extracted, and cannot activate anything.",
+      "PUBLIC AVAILABILITY of a judgment, order or docket as proof that the local copy or its surrounding matter context is low-sensitivity or eligible for a cloud prompt.",
+      "A FILENAME or FOLDER containing Orders, Judgments, Court Orders, Decrees, Rulings or Awards, and DOWNLOAD-SESSION MEMBERSHIP in a batch of official-looking PDFs. 00: 'A session should never be treated as proof of topic'.",
+      "A SOURCE TYPE or EXTENSION ALONE - text_document, ocr, image, email, archive and every extension this row would have listed. file_kind_plausible is constitutionally never-alone."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BECAUSE THE ROW IS REFUSED, and empty for two further reasons that would each hold on their own. (1) BY CONTRACT: `law_practice` declares no field rows under PR-6, so no dimension may branch. (2) BY THE SUBSTANTIVE FINDING: this row does not DIFFER from the schema's recommendation, it is one label at the schema's own DOCUMENT FUNCTION level, which the anchor already places after the matter on 00's reasoning that 'A work type such as Homework 3 is meaningful only after the course is known' - an order amending a directions timetable is unintelligible without the proceeding it amends, in exactly that way. Nothing in this world is capture-based, so `time_first` stays false: an order carries a made-on date, a sealed date, an entered date, a hand-down date and a filesystem date, and they mean five different things.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Order - Hartley v Nash - sealed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption naming two parties and a case identifier in the heading zone",
+        "numbered operative paragraphs and a court seal image",
+        "a counsel block naming the holder's firm as representative",
+        "the file sits inside a folder whose name carries the matter reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE FIXTURE THE SCHEMA ANCHOR ALREADY SPENT ON ITSELF, and it spent it against this row: `law_practice.json` carries this exact filename and records 'THIS IS THE OVER-FIRING COLLISION FIXTURE AND THE ROW CONCEDES IT: the caption plus the operative paragraphs are `legal`'s own deterministic signal, `legal` is a safety domain, and its protection runs first. This schema co-activates through the counsel block and the matter reference, and takes nothing away.' The row being refused here is the row that would have taken something away",
+        "that the folder name supplies the matter, the client or the representation - a folder is an unlabelled position",
+        "that any order, finding or remedy is current, complied with, appealed, stayed, satisfied or true",
+        "a year fact from the digits in the case identifier, and a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Approved Judgment - Hartley v Nash - hand-down 2026-07-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption, a neutral-citation-shaped token, a judge's name and a hand-down statement",
+        "numbered paragraphs of reasoning ending in a dispositive section",
+        "an embargo notice on the front sheet",
+        "no matter reference, no fee-earner slot and no client slot anywhere on the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "this row. The document is simultaneously the instrument that binds two parties and a published authority anyone may download; nothing on its face distinguishes the practitioner's copy from a copy pulled off a judgments website, which is why the discrimination cannot live in a `law_practice` template",
+        "that the embargo notice is this product's sensitivity classification, or that it licenses or forbids any handling behaviour",
+        "that the judgment is correct, final, appealed, distinguishable or good law",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Consent Order - DRAFT for approval - Ellis and Co _ Rowntree LLP.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the same caption and party pair as the sealed version, with tracked changes and comment bubbles",
+        "a consent block with two solicitor firm names and two signature lines, one for each side",
+        "a covering line asking whether the other side approves the wording",
+        "the matter reference appears in the document footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE STRONGEST RESCUE ATTEMPT AND IT FAILS TWICE. First, draft-versus-agreed-versus-sealed is a LIFECYCLE STAGE, not a node, and the draft carries the identical caption and party pair as the sealed instrument. Second, the two-firm consent block separates PRACTITIONER FROM PRACTITIONER - our side from the other side - and `law_practice`'s second leg demands an artefact whose labelled slots separate a practitioner-or-firm role from a CLIENT role. Two struck role names are not the two labelled parties the schema rests on",
+        "that either firm is the holder's; the side is not recoverable from the block alone",
+        "that agreement was reached, that the order was made, or that any term is binding",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Directions Order - CMC 2026-05-11 - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption and numbered paragraphs, each paragraph pairing a step with a date by which it must be done",
+        "a listing paragraph fixing a trial window",
+        "a judicial signature and a seal",
+        "the same dates reappear as rows in a separate key-dates workbook in the corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. The timetable is the tempting operational hook and it belongs to two places that already exist: the instrument itself is `legal`'s on the caption, and the DIARISING of its dates is the `law_practice` schema's own limitation-and-diary deterministic signal - a portfolio table over many matters with a key-date column and an owning practitioner. `law_practice.deadlines-diary` was itself refused into that schema default, so there is no third home to invent",
+        "that the product calculates, validates, interprets or acts on any date, or treats one as operative, satisfied, missed, extended or jurisdictionally valid",
+        "that a step in the timetable was taken because a file with a matching name exists",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "NEF - Order entered 2026-08-19 - 41127-0006.eml (attachment: Order - entered.pdf)",
+      "source_type": "email",
+      "observations": [
+        "a court-system sender, a case slot, an entry number and a docket-text line in the message body",
+        "an enumerated recipient list with a service method beside each name",
+        "one PDF attachment carrying an entered-on registry stamp and numbered operative paragraphs",
+        "no practitioner-to-client role boundary anywhere in the message"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the packet is one thing. `law_practice.court-filing-record` states the split against this row in its own words - its artefacts record a TRANSMISSION and 'therefore always carry a destination set', while the decision document records a DECISION through 'numbered OPERATIVE PARAGRAPHS and a judicial signature block'. The covering notice is that landed row's; the attached order is `legal`'s on its own caption; the shared entry number is linkage that decides neither side",
+        "that the notice proves service was effective, timely or complete",
+        "that the sender domain, being a court system, activates anything by itself",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Appellant's Appendix Vol 2 - decision under appeal - pp 118-146.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a first-instance order with one caption, one case number, numbered operative paragraphs and a seal",
+        "an overprinted record pagination band in the outer margin",
+        "an appendix index in a separate file listing this extract by page range",
+        "no on-appeal-from line and no slot directing another tribunal"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row, and equally not `law_practice.appeals`. That landed row already drew the line and drew it negatively against this one: 'one proceeding identifier, no on-appeal-from line and no slot directing another court means the NEIGHBOUR's'. Being characterised by three absences is the reason this row is refused, not a reason it survives; the underlying instrument is `legal`'s and the appendix membership 'lives on the COMPILATION'S INDEX, never on the member'",
+        "an appeal fact from the record pagination, or a first-instance fact from the appendix index",
+        "that the decision was reversed, affirmed or is under any live challenge",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Final Award - ICC Case 27331_MK - Hartley Holdings v Nash SA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "no court caption; instead a tribunal-constitution section naming three arbitrators and a seat",
+        "a recital of the arbitration agreement, then reasons, then a numbered dispositive section",
+        "signature blocks for each arbitrator with dates and places of signature",
+        "a confidentiality legend on the front sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row on the ground that the surface is not a court caption. It is the one artefact in the family with a genuinely different face, and it still fails: what it carries is a BOUND PARTY PAIR plus an EXECUTION BLOCK, which is `legal`'s instrument structure stated in `legal`'s other form, not `law_practice`'s matter-plus-two-roles default. A different surface for the neighbour's evidence is still the neighbour's evidence",
+        "that the confidentiality legend is a handling class or a legal status finding",
+        "that the award is enforceable, final, challenged or satisfied",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Decree Absolute - my divorce - certified copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a court caption, a case number, a short operative pronouncement and a registry seal",
+        "the named party matches the holder's own name on the corpus's identity documents",
+        "no firm letterhead, no matter reference and no engagement record anywhere in the corpus",
+        "the file sits beside a passport scan and a change-of-name deed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row, or `law_practice` at all. THE UNDER-FIRING COLLISION FIXTURE: every token this row would have claimed is present - caption, seal, operative pronouncement, decision instrument - and the holder is the PARTY. The discriminator is which slot the holder occupies and whether any practitioner-side apparatus exists in the corpus; here neither does, so `legal.personal-legal-matters` owns it under `legal`'s safety protection",
+        "an identity fact merely because the file sits beside identity documents; adjacency is position, not evidence",
+        "that the decree is current, or that any status it records still obtains",
+        "a folder path, and specifically nothing recording the existence or subject of the holder's own proceeding"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "DRAFT ORDER (blank) - firm standard - Tomlin v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an order-shaped document with full paragraph numbering and a schedule",
+        "the caption and party slots contain bracketed placeholders instead of names",
+        "the signature and seal zones are blank and unnamed",
+        "footnoted drafting notes and optional-clause alternatives, plus a firm template version marker"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this row. This is the schema's INVERSE-RECOGNITION signal - 'an instrument-shaped document whose PARTY AND EXECUTION SLOTS ARE DELIBERATELY EMPTY' - and `law_practice.precedent-bank` is the roster row that landed on it. It is the one structurally distinct residue this row could have claimed, and claiming it would duplicate a sibling",
+        "`legal` activation either: instrument vocabulary with no bound party pair and no execution block fires nothing on that side",
+        "a party fact from a bracketed placeholder, or sensitivity_status as protected material - there is no client, no matter and no third party in the file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Judgments to read - Supreme Court - Jul 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest, read without unpacking, lists eleven PDFs with citation-shaped filenames",
+        "member paths encode no matter reference and no client name",
+        "the members' creation timestamps fall within one afternoon",
+        "one member is also present, byte-identical, inside a matter's authorities bundle"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "this row, or any matter fact. Eleven judgments that arrived together are a download session, and 00 is explicit: 'A session should never be treated as proof of topic'. The anchor adds the grouping rule from the other side - 'It should not form a supported group when there is no valid anchor'",
+        "that the byte-identical copy inside an authorities bundle promotes this archive into the matter; duplicate_family records the sameness and copies no fact",
+        "that the archive should be unpacked to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.02 - order entry on the court portal.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: a browser chrome band and a system clock strip",
+        "OCR recovers a docket row, an entry number and a truncated order title",
+        "no operative paragraphs, no seal and no signature are visible",
+        "the capture sits in a downloads folder with unrelated images"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from a truncated OCR title. A recovered document-type word is the weakest instance of the row's only proposed evidence, and the anchor strikes it twice over - as a document-type word and as an OCR-derived possible",
+        "an entry, service or decision fact from a portal row rendered on a screen",
+        "screenshot status from missing EXIF; the screen-origin evidence here is positive and independent",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES: `Order - Hartley v Nash - sealed.pdf` - a tribunal caption with a party pair and a case identifier, numbered operative paragraphs, a judicial signature and a court seal. That structure IS `legal`'s proceeding activation signal read off the document's own face, and `legal` is one of 00's four safety domains, so the item counts there before any placement decision. THIS ROW owns nothing on that face: `law_practice`'s default needs an exact matter reference recurring across two or more artefacts PLUS an artefact whose own labelled slots separate a practitioner-or-firm role from a client role, and an order supplies neither - the counsel block is a role name and role names are never-alone. The discriminating evidence is therefore the caption-and-operative-paragraph structure itself, and it discriminates wholly in the neighbour's favour, which is why this row is refused rather than bounded. `law_practice.json` records the same conclusion on the same filename.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Decree Absolute - my divorce - certified copy.pdf` - a caption, a case number, an operative pronouncement and a registry seal, which is exactly the surface this row would have claimed. THE DISCRIMINATOR IS WHICH SLOT THE HOLDER OCCUPIES, checkable item by item: here the named party matches the holder's own name on the corpus's identity material, and no firm letterhead, matter reference or engagement record exists anywhere, so the holder is a PARTY and the item counts toward the neighbour under `legal`'s safety protection. It could count toward a practitioner-side row only on the reverse pattern - the holder named in a counsel or fee-earner slot AND an exact matter reference recurring across artefacts - which is the `law_practice` default's own two legs, not anything this row adds. Caption, seal and operative pronouncement are common to both and decide nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.appeals",
+      "signal": "SAME FIXTURE BOTH SIDES: `Appellant's Appendix Vol 2 - decision under appeal - pp 118-146.pdf` - a first-instance order with one caption, one case number, numbered operative paragraphs and a seal, overprinted with a record pagination band and indexed in a compiled appendix. The landed neighbour states the split and states it negatively against this row: 'one proceeding identifier, no on-appeal-from line and no slot directing another court means the NEIGHBOUR's', while it owns 'the artefact whose own face carries the two-tier pair PLUS a direction addressed to a lower tribunal'. DISCRIMINATED BY the on-appeal-from line and the lower-tribunal direction, both read off the item's own face. Because this row's half of that split is defined purely by their absence, the half is not a node: the underlying instrument routes to `legal`, and the record pagination counts wholly for the neighbour.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.court-filing-record",
+      "signal": "SAME FIXTURE BOTH SIDES: `NEF - Order entered 2026-08-19 - 41127-0006.eml` and its attached `Order - entered.pdf`, arriving as one packet sharing one entry number. The landed neighbour already wrote the discriminator in both directions: its artefacts record a TRANSMISSION and 'therefore always carry a destination set, either an accepting registry named as receiver or an enumerated recipient-and-method list', whereas the decision document carries 'numbered OPERATIVE PARAGRAPHS and a judicial signature block, which have no counterpart in any receipt'. DISCRIMINATED BY the destination set versus the operative-paragraph block. The neighbour's half stands; this row's half - the attached order - is `legal`'s on `legal`'s own evidence, so the covering notice stays with the neighbour and the shared entry number remains linkage that decides neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "SAME FIXTURE BOTH SIDES: `Approved Judgment - Hartley v Nash - hand-down 2026-07-02.pdf`, one file that is simultaneously the instrument binding two parties and a published authority anyone may download. NOTHING ON ITS FACE SEPARATES THE TWO READINGS - caption, citation, judge, reasoning and dispositive section are identical in both. DISCRIMINATED BY an exact accepted matter or research reference somewhere else in the corpus, never by the document: with a practitioner-side anchor the copy is a member of a protected matter under `legal`; with a research or authorities-list anchor it is reading material; with neither it falls to Reading Inbox. 00's test is the only one that works - 'purpose answers what the file was for' - and topic will not separate them, which is a further reason a document-type row cannot arbitrate here.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Reading Inbox",
+    "Review Later",
+    "Unsupported or Encrypted",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded on a refused row because the material still exists and must still be protected while it is routed elsewhere. A decision instrument names the parties and, in family, criminal, immigration and personal-injury proceedings, narrates the intimate facts of people who never chose this filesystem - including children and complainants who are named in the operative paragraphs of an order and are subjects rather than parties. 00 places the material inside the safety perimeter directly: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' That protection arrives from `legal` and does not depend on this row existing, which is one of the three legs on which the row fails. The converse must not be inferred either: an approved judgment being published does not make the local copy, its filename, its annotations or its surrounding matter context low-sensitivity or eligible for a cloud prompt.",
+  "open_question": "R1c must resolve a consolidation and two dead deferrals this refusal creates or inherits. (1) CONSOLIDATION: `law_practice.pleadings` refused first and predicted this outcome in writing - it recorded that this row rests on 'the same caption-plus-party-pair structure separated only by a document-type word, so the argument that refuses this row appears to reach them too', and asked whether they should be refused together, folded into one proceeding-documents row that must still defeat the `legal` concession, or retained on evidence it did not see. This row, having now looked, finds no such evidence and refuses independently; R1c should record the pair as refused on one argument rather than two. (2) DEAD DEFERRALS: `law_practice.court-filing-record` and `law_practice.appeals` both defer the decision document to this row by name in `collides_with`. Those pointers now aim at a refused row and should be redirected to `legal` and, for matter membership, to the `law_practice` default template - neither landed row needs reopening, only its target rewritten. (3) A NARROWER ROW THIS REFUSAL MIGHT HAVE THROWN AWAY: the ORDER-COMPLIANCE apparatus a practice builds around an unless order or an undertaking - a compliance checklist pairing an operative paragraph with a step taken and a verification - is a practitioner-authored artefact with a genuine two-role structure, and it is currently split between the schema's own limitation-and-diary signal and `law_practice.closing-binder`'s conditions-precedent shape. If that is what the roster meant, the honest fix is a new row named for that situation, not the reinstatement of a document-type row; this node does not mint one, because minting a replacement id is outside what a single node agent may do."
+}

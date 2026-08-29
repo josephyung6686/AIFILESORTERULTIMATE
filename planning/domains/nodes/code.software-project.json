@@ -1,0 +1,325 @@
+{
+  "id": "code.software-project",
+  "kind": "template",
+  "schema_id": "code",
+  "parent_id": null,
+  "name": "Software project",
+  "one_line": "REFUSED. A repository-rooted project recognized by package manifests and repo markers, recommended project then repository then artifact_type — which is the Code schema's own activation rule and its own dimension order, so this row is the schema's default situation wearing a template id rather than a second organizational situation.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "00 states this row's whole content as a property of the Code SCHEMA. Its fields: \"Code files may use project, repository, programming language, and artifact type\". Its detection rule: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text\", and \"structural indicators such as repository markers, package manifests, notebook metadata, and README files\". Its exclusion rule: the engine \"should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod\". Its launch status: \"academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects\". Not one of those sentences distinguishes a rooted-project SITUATION from the Code domain; they are the domain. The binding rule is ALIGNMENT.md: \"A template that would only repeat its schema’s fields and dimension_order **is not a node** — it is the schema’s default template.\" CONNECTION.md section 2 restates it as the node test and CONNECTION.md section 8 confirms nothing breaks when the row is absent: destination_dimensions reads \"a template id, or a schema id resolving through the schema's default template\".",
+  "refuse_node": true,
+  "refuse_reason": "Fails the template half of the node test on all three limbs — detection signals, recommended dimensions, and privacy rules are the Code schema's own, not a second situation's.\n\n1. DIMENSIONS — identical. The roster's own one_line_hint for this id opens \"The Code schema's default situation\". planning/domains/nodes/code.json already carries dimension_order [project, repository, artifact_type] with the parent-context and time-last reasoning attached. Writing it again puts one recommendation in two rows, and there is no narrowing available that the schema row has not already made: its template.why already states that artifact_type is 'the optional deepest level' that is 'meaningful only for loose code artifacts that have no repository root of their own; when a root is preserved it is normally flattened away'. The only dimension change this id could offer — dropping artifact_type so a preserved root is atomic — is the exact question code.json files as its open_question, and _CONTRACT rule 7 forbids resolving a question that is Joseph's by minting a row that answers it.\n\n2. DETECTION SIGNALS — the schema's, not this row's. Every signal a rooted software project can claim is a repository-root marker, a package manifest slot, a source-layout archive manifest, or a parent-folder repo marker. All four are already the code schema row's authored deterministic list, because a project root is how 00 makes the Code domain plausible in the first place. What the roster leaves this id after its four named siblings take the unrooted situations — code.scratch-prototypes (loose code with no repository root), code.notebooks-experiments (notebooks and runs), code.dotfiles-environment (configs and credential-bearing environment files), code.pkm-vault (markdown vaults) — is nothing more than the condition that a repository root fires. That is the schema activating, and CONNECTION.md section 8 already specifies the resolution path for it.\n\n3. PRIVACY RULES — identical, and the sharper one belongs to a sibling. code.json's sensitivity_why is the credential case (.env beside a manifest, 00's 'authentication key' that 'should enter a protected state immediately'). The roster hands the sharper version of that rule to code.dotfiles-environment: 'Configs can embed credentials - privacy rules matter more than folder shape'. Nothing on the rooted-project situation differs from the schema's own posture.\n\nFIXTURE EVIDENCE that the id is a label: of the thirteen files researched below, every one is either already a fixture on code.json (a root manifest, a source archive, a README, .env, a screenshot of a stack trace, a take-home submission archive), or is claimed by a named sibling on the roster (Untitled.ipynb, utils.py, .zshrc, a vault marker), or is a file 00 removes from organization entirely by the exclusion rule (node_modules, .git, dist). The two genuinely new fixtures below — the AIKonic-Project preserved folder and the .xcodeproj bundle — do not create a situation; they sharpen the SAME preservation rule the schema row already carries, and they are recorded in open_question as findings for R1c rather than as this row's content.\n\nRefusing costs nothing downstream. A rooted project still activates the code schema on its own structural evidence, P10 still reaches [project, repository, artifact_type] through the schema row, and file-kind plausibility is a schema-row property under CONNECTION.md section 5, which serializes file_kind_plausible as a list of SOURCE_TYPES members or literal extensions on schema rows — where code.json already lists code_structured, filesystem and archive. Padding this row would produce a second stored copy of one recommendation and a detection list identical to its own schema's — the failure ALIGNMENT names and the shape the 574 produced at scale.",
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [],
+    "deterministic_note": "Deliberately empty, and the emptiness is the finding. The four signals this situation would state — a project-root marker at the root of its own directory (00's named examples package.json, requirements.txt, Cargo.toml, go.mod), a manifest's labelled name/repository/runtime slots read once the root test passes, an archive manifest showing a source layout read without unpacking, and a repository marker in the parent-folder context of a loose source file — are already authored on the code schema row. Restating them under a template id would not make them this row's; it would make one signal set exist twice, which is precisely the join CONNECTION.md exists to prevent.",
+    "needs_llm": [],
+    "needs_llm_note": "Same finding. The interpretive calls a rooted project raises — is this markdown project documentation, a personal note or a saved article; is an OCR'd terminal image about a known project at all; is a heterogeneous folder of scripts one project or several downloads — are already the code schema row's needs_llm list, and the unrooted versions of them belong to code.scratch-prototypes and code.pkm-vault.",
+    "never_alone": [
+      "A package manifest inside an excluded directory. This is the tempting false file for exactly this row, because it is byte-shaped like the row's strongest signal: node_modules/left-pad/package.json carries the same labelled name slot as the project's own manifest. 00 removes it by rule — the engine 'should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod', and 'This prevents the proposal engine from mistaking a dependency subdirectory for a meaningful personal destination.' Restated from the code schema row; not distinct to this id.",
+      "A source-code extension alone. 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning', so a .py, .ts or .rs file in Downloads makes nothing plausible on its extension.",
+      "source_type = code_structured alone, which is a file_kind_plausible signal and is constitutionally never sufficient (CONNECTION.md section 5, invariant 2).",
+      "A repository or organization name in body text, a link or a reference list. A github URL cited inside an article is not a code project, on the same logic 00 uses for institutions — a name that can appear as author, provider, target, employer or mere citation cannot carry a domain by itself.",
+      "A bare 4-digit number in a filename. 00 warns these are often 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values', and build and version numbers are exactly what code filenames carry.",
+      "A parent folder whose NAME looks like a project, with no member file carrying a root marker. 00 keeps folder context a clue and not a licence: 'The system learns from existing folders but must not silently reorganize them.'",
+      "Download-session membership — 00: 'A session should never be treated as proof of topic'.",
+      "A filename on an unreadable or encrypted archive — 00: 'the system should not infer a purpose from their filename alone'."
+    ]
+  },
+
+  "work_types": [],
+  "work_types_note": "Empty by refusal, not by omission. The artifact_type values a rooted project holds — source file, package manifest, documentation or README, test suite, configuration, build artifact or lockfile, dataset or fixture — are already enumerated as VALUES on the code schema row. 00: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.' A missing value is a value-list gap for R1c, never a licence for a roster row.",
+
+  "grouping_reasons": [],
+  "grouping_reasons_note": "Empty by refusal. The grouping reason for this material — one repository root together with the contents beneath it, a structural family rather than a semantic cluster — is the code schema row's, and P9 owns grouping regardless of which row states it.",
+
+  "template": {
+    "dimension_order": [],
+    "why": "No dimension order is authored here, because the order this situation would recommend is already authored on the code schema row. project leads for 00's stated reason — 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders' — and repository refines a project that holds more than one repo, under 00's parent-context rule that 'a parent dimension should provide the context required to understand the child'. Both statements are the schema's. What this situation genuinely needs from 00 is uneven depth rather than a second row: 'The product should not force every branch to use the full template or have the same number of levels', and 'each branch should offer the dimensions that are actually present in its member groups'. A preserved repository root populates project and repository and nothing below, so the honest recommendation is the schema default with artifact_type flattened away — a per-branch flattening the user performs on the canvas, since 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.' That is a use of the default template, not a different template. The deeper question — whether a preserved root is ATOMIC, so that no template may ever open a level inside it — is code.json's open_question and Joseph's to answer; answering it by minting this row would be the wrong instrument.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true,
+    "note": "Not authored here. CONNECTION.md section 5 puts file_kind_plausible on SCHEMA rows, and code.json already lists code_structured, filesystem, archive, text_document and ocr with its extension examples. A refused row must not re-claim them. The roster's file_kind_owner for this id (code_structured, filesystem, archive) is therefore satisfied by the schema row; whether file_kind_owner is a claim of exclusivity or of primary interest is R1c's to settle, and it is recorded in open_question below.",
+    "never_alone_note": "never_alone stays true because 00 makes file-kind evidence constitutionally insufficient regardless of which row carries it."
+  },
+
+  "file_examples": [
+    {
+      "filename": "AIKonic Project/config.json (a curated existing project folder the user already keeps)",
+      "source_type": "code_structured",
+      "observations": [
+        "parent directory holds many JSON files and other software material",
+        "a project-root marker sits at that directory's own root",
+        "the directory is user-named and long-standing, not a download landing spot",
+        "the file itself is a settings map with no name-shaped labelled slot"
+      ],
+      "facts_legal": ["project", "repository"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the folder's interior may be re-filed — 00 names this exact folder as the case not to touch: 'if a folder called AIKonic Project has a lot of files such as JSON and other software material, those are probably not supposed to be touched'",
+        "project from this file's own contents; the fact comes from the root marker at its directory, not from a settings map",
+        "that a rooted-project template is what protects it — the protection is 00's preservation rule, which applies before any template is chosen"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "One of the two genuinely new fixtures in this list, and it argues against the row rather than for it. What it sharpens is 00's preservation rule — 'existing folder structures should mainly be preserved' and 'Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure' — which constrains every template on this schema, so it belongs on the schema row or in R1c's notes, not in a template that exists to state it."
+    },
+    {
+      "filename": "node_modules/left-pad/package.json",
+      "source_type": "code_structured",
+      "observations": [
+        "the same labelled name slot a real root manifest carries, value left-pad",
+        "path contains node_modules, one of 00's named excluded directories",
+        "an ancestor directory carries a project-root marker"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "project = left-pad",
+        "a folder path",
+        "that a dependency subdirectory is a meaningful personal destination — 00 states the consequence directly",
+        "a second project fact competing with the enclosing repository's"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null,
+      "note": "Already fixture two on code.json. Reproduced here only to show that this row's strongest signal and its strongest false positive are both the schema's. falls_through_if_inactive is null by design: 00 excludes this file from organization rather than routing it to a residual home."
+    },
+    {
+      "filename": "requirements.txt (at the root of its own directory, beside src/ and tests/)",
+      "source_type": "code_structured",
+      "observations": [
+        "one of 00's four named project-root markers, at the root of its own directory",
+        "pinned dependency lines; no labelled name slot of its own",
+        "sibling directories src and tests, and a README.md",
+        "the directory is not inside an excluded tree"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "repository — a requirements file declares no repository slot, unlike a package.json; the directory name alone is the name-alone case",
+        "that the pinned dependency names are projects of this user",
+        "programming_language from the file's presence: a declared runtime slot is direct evidence, a marker's mere existence is not"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The variant fixture: code.json used package.json, which happens to be the richest of 00's four markers. The three poorer markers yield fewer facts. That is a per-marker extraction nuance for R2/R6, not an organizational situation."
+    },
+    {
+      "filename": "src/cli/query.ts (deep inside a repository)",
+      "source_type": "code_structured",
+      "observations": [
+        "no self-describing header; import statements and exported functions",
+        "an ancestor directory carries a package manifest and a repository marker",
+        "the directory position is src/cli, a conventional source layout"
+      ],
+      "facts_legal": ["project", "repository", "programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that src/cli may become a folder DIMENSION — the interior of a preserved project is not a destination tree, and no canonical field names it",
+        "project from the filename, which is generic",
+        "a language fact strong enough to become a folder level: programming_language is not destination-eligible on the canonical row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The file that most tempts a rooted-project template into inventing interior levels. The restraint it needs is code.json's open_question, not a row."
+    },
+    {
+      "filename": "MyApp.xcodeproj (a macOS package bundle that presents as one file)",
+      "source_type": "filesystem",
+      "observations": [
+        "a directory the operating system presents as a single item",
+        "sits beside a source directory and a manifest at the same root",
+        "internal members are readable but are not independent user files"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that its members are separately placeable files — 00's filesystem rule is to 'avoid moving package bundles unless explicitly approved', and it lists 'macOS packages, application bundles' among the cases needing defined behaviour",
+        "a second project from a member manifest inside the bundle"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The second genuinely new fixture, and like the first it constrains the whole schema rather than defining a situation: bundle atomicity is a P3/P8-side mutation rule, and 00 states it in the filesystem-safety layer, not in the template layer."
+    },
+    {
+      "filename": "dist/bundle.min.js",
+      "source_type": "code_structured",
+      "observations": [
+        "minified single-line JavaScript, no readable structure",
+        "path contains dist, one of 00's named excluded directories",
+        "content hash differs on every build while the source does not change"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project or repository, even though an ancestor manifest names both",
+        "a version_family relationship with the source it was built from",
+        "that a build output is a personal destination"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": null,
+      "note": "Excluded rather than routed, like the node_modules fixture: 00 names 'build artifacts' among the directories the engine ignores in both scanned sources and candidate roots."
+    },
+    {
+      "filename": "graphify-main.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists README.md, package.json and a src directory, read without unpacking",
+        "outer archive name resembles a repository name plus a branch name",
+        "file count and uncompressed size available from the manifest"
+      ],
+      "facts_legal": ["project", "repository", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "facts about members the manifest does not list",
+        "anything requiring the archive to be extracted — 00: 'the normal scan should never extract archive contents to the filesystem'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "Already fixture five on code.json, sourced there to 00's sentence 'A source-code archive may reveal a README.md, package.json, src directory, or Python package layout and can be recognized as a code project'. The roster gives this id file_kind_owner over archive; the schema row already exercises it."
+    },
+    {
+      "filename": "PHYS1401_hw3.py",
+      "source_type": "code_structured",
+      "observations": [
+        "a course-code-shaped token in the filename",
+        "a module docstring naming an instructor and a semester beside the word homework",
+        "no manifest and no repository marker anywhere above it",
+        "sits in a folder with a lecture PDF and a problem set"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a code project from the .py extension — the extension is a routing signal only",
+        "project from the course code",
+        "repository — none exists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The neighbour-collision fixture. The discriminating evidence is 00's own academic rule — a course-code pattern beside academic context terms such as 'syllabus', 'lecture', 'credits', 'instructor', 'semester' — against this schema's structural-marker rule, and here only the academic side has support. code.json declares a collision with research but none with academic; that omission is recorded in open_question for R1c and is a schema-row finding, not this row's content."
+    },
+    {
+      "filename": "Untitled.ipynb (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata with a kernel/language slot",
+        "code and markdown cells with outputs",
+        "generic filename; no project-root marker in the parent folder",
+        "membership in a tightly bounded download session"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project — nothing in the file or its position names one",
+        "a project inferred from the download session it arrived in",
+        "that a rooted-project row recognises it: it has no root, and the roster gives notebooks to code.notebooks-experiments"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The HW 3 case for this domain, already fixture four on code.json: P9 may attach it to a project neighbourhood as a context-supported member while the project fact stays unwritten — 00: 'The graph does not automatically copy those missing facts onto sparse files.'"
+    },
+    {
+      "filename": "utils.py (in Downloads)",
+      "source_type": "code_structured",
+      "observations": [
+        "import and def structure, no self-describing header",
+        "no project-root marker in the parent folder",
+        "arrived in a bounded download session with unrelated files"
+      ],
+      "facts_legal": ["programming_language", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the filename or from the session",
+        "that this row claims it — the roster gives loose unrooted code to code.scratch-prototypes"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": ".env (beside a package manifest at a project root)",
+      "source_type": "code_structured",
+      "observations": [
+        "key=value lines whose left-hand slot names include API_KEY and TOKEN",
+        "sits in the same directory as a project-root marker",
+        "no readable prose"
+      ],
+      "facts_legal": ["project", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "the secret value itself as a stored value",
+        "a placement or proposal path that puts the filename or content into a cloud prompt — 00 puts an 'authentication key' among the material that 'should enter a protected state immediately'"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "Already fixture seven on code.json, and the roster gives the sharper credential rule to code.dotfiles-environment. This is the third limb of the node test failing in the open: the privacy rule is neither new here nor this id's."
+    },
+    {
+      "filename": "acme_takehome_submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists src/, a package manifest and INSTRUCTIONS.pdf",
+        "outer archive name carries a company-shaped token and the word takehome",
+        "a PDF member name suggesting assessment instructions"
+      ],
+      "facts_legal": ["project", "repository", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "the company token as the project value",
+        "a recruiting fact copied from a neighbouring email or download session",
+        "that the code half and the recruiting half must resolve to one domain — 00: 'One file may hold facts from more than one domain without losing information'"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "Already fixture six on code.json, where the career also_holds edge is authored. Career writes no field rows today (PR-6), so the edge records co-activation, not co-extraction."
+    },
+    {
+      "filename": "IMG_5512.png (a screenshot of a stack trace from a project's test run)",
+      "source_type": "ocr",
+      "observations": [
+        "no camera EXIF",
+        "PNG at a screen-shaped pixel dimension",
+        "OCR text containing a traceback and a file path fragment that resembles a repository name"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF — 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+        "project or repository from a path fragment in OCR text alone",
+        "a code project because the image contains code-shaped text"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots",
+      "note": "Already fixture eleven on code.json. The fallthrough belongs to the capture side, which is why Temporary Screenshots is not a falls_through_to edge on this schema."
+    }
+  ],
+
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [],
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded, and its sameness is the third limb of the refusal. Code projects are not sensitive as a class, but a rooted project routinely holds configuration and environment files carrying credentials, and 00 places an 'authentication key' among the material that 'should enter a protected state immediately'. That is verbatim the code schema row's reasoning; nothing about the rooted situation differs from it, and the sharper credential-handling rule on this schema belongs to code.dotfiles-environment. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Three findings for R1c or Joseph, none of which rescues this row. (1) code.json declares collides_with research but not academic, yet a coursework programming assignment (PHYS1401_hw3.py above) is a real evidence-item collision between a code-shaped file and 00's course-code-plus-context rule; that is a missing reciprocal edge on the SCHEMA row, and this refused row must not author it. (2) The roster gives this id file_kind_owner over code_structured, filesystem and archive, but CONNECTION.md section 5 puts file_kind_plausible on schema rows, and code.json already carries all three; if a later reviewer reads file_kind_owner as exclusive, refusing this row would appear to orphan those source types when in fact the schema row holds them. Whether file_kind_owner is exclusivity or primary interest is R1c's to settle. (3) The atomic-root question is already code.json's open_question and stays Joseph's: may a Code template ever propose folder levels INSIDE a preserved repository, or is a root relocatable only whole? Every fixture above that tempted a template into interior structure (src/cli/query.ts, the .xcodeproj bundle, the AIKonic Project folder) is evidence that the answer is a schema-wide preservation constraint, not a distinguishing feature of a rooted-project template."
+}

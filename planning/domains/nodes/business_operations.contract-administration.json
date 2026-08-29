@@ -1,0 +1,548 @@
+{
+  "id": "business_operations.contract-administration",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Contract administration and obligation management",
+  "one_line": "Running a contract AFTER it is signed: the register that lists what is in force, the obligations and service levels it created, the notice and renewal dates that must be diarised, the variations and change orders that amend it, the performance reports that test it, and the correspondence that manages it to expiry or termination. The anchor is a LIVE OBLIGATION and its calendar — not the negotiation that produced the instrument and not the instrument itself. Absorbs the legacy row ops.contract-administration. It is NOT distinguished by an organisation rather than a person holding the paper — that would be an organisation name, which is constitutionally never-alone in this family — but by a PORTFOLIO STRUCTURE the instrument itself never has: a table over many agreements carrying a notice-date column and an internal contract owner. Placeholder row: it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the legal entity whose own contract register this is — one company among the two a person keeps papers for",
+      "why_no_existing_key": "NOT this row's proposal. A SECOND of the key the business_operations schema row already proposes (and which construction_property independently seconds), recorded here so R1c settles it ONCE across all three families rather than per sibling. This row's own datum for that adjudication is the sharpest in the family and it is a NEGATIVE one: the custody question the key exists to answer is at its hardest here, because a contract's parties block states two entity names in two roles and the document itself never says which side the filesystem belongs to. 00's role pair does not reach it — “A consulting document may mention the author’s firm and the client organization.” gives `our_firm` (authorship, correctly never a destination) and `client` (its counterparty); a BUY-SIDE register's counterparty is a third role neither key holds. So `organization` as proposed would still not disambiguate a supplier contract from a customer contract; it would only say whose drawer the file is in. That is worth having, and this row says plainly that it is less than it looks. See role_split and NJ-BO-CA-1.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Follows the schema proposal unchanged — seeded false. This row does not reopen it, and adds one supporting reason from its own material: in a single-entity corpus an `organization` level here would name the holder's own company above every contract they hold, which is the validator's own prohibition on a template that would “use an author or organization merely as a collector”.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Unchanged from the schema's proposal. This row adds the caution that its own richest source of entity strings — the parties block — is the WORST one for this key, because it yields two entity names of equal prominence and no role marker. A letterhead or footer entity block is better evidence here than the parties recital.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "FY2026 — offered as the schema's example, not as one this row would branch on",
+      "why_no_existing_key": "NOT this row's proposal. A SECOND of the schema row's key, and seconded only WEAKLY, with the objection stated rather than hidden. The schema row's own argument for the key rests on the four rows in the family that cycle annually — budgets, board packs, statutory returns, audits (quoting business_operations.json, not 00). This row is NOT one of those four and should not be counted as support for the key by volume. Its periods are CONTRACT periods — a term running from a commencement date to an expiry date, a notice window measured backwards from that expiry, a service-level quarter defined by a schedule. Those cycle on the agreement's own anniversary and routinely straddle two fiscal years, so filing a renewal notice under a fiscal period would separate it from the expiry it answers. The key is still worth having for the family; this row seconds it for the family's sake and records that it would not use it as a level.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Follows the schema proposal unchanged (true, but not first). This row's prose recommendation does not put it in the top levels at all, for the anniversary-versus-fiscal-year reason above.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Unchanged from the schema's proposal, including its caveat that the `validated` claim depends on a rule family R2/R6 owns and drops to `possible` without it. This row writes no regex and no term list, and notes that its own documents are unusually dense in date-shaped tokens — execution, commencement, effective, review, invoice — which makes the context half of that rule carry more weight here than the pattern half.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a register structure: a table whose columns include a counterparty, a contract reference, a start date, an end or expiry date, a notice date or notice period, a value, and an internal owner — one row per agreement. The notice-date column is the single most characteristic signal in this row and it appears in no other family's tables. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an obligation-tracker structure: obligations extracted from an instrument into rows, each with a clause reference, a responsible party, a frequency, and a due or review date.",
+      "a notice structure: a formal letter carrying a labelled clause reference, an effective date, a delivery method, and a served-on or acknowledged-by block — renewal, non-renewal, termination, breach, price review, or assignment.",
+      "a variation structure: a change order, amendment, or deed of variation naming a parent agreement by reference and date, with a numbered amendment sequence and its own execution block.",
+      "a service-level or performance structure: a periodic report of measured performance against defined targets with a credit, remedy, or escalation column referring back to a schedule.",
+      "a contract summary or abstract: a one-page precis carrying labelled slots for parties, term, value, notice, governing law and key obligations — produced BY the administration function and by nothing else.",
+      "a recurring calendar entry or reminder whose labelled SUMMARY names a contract reference and a notice or renewal event. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT is what fires; source_type = calendar contributes only as a file-kind signal.",
+      "parent-folder context naming a counterparty, a contract reference, or a renewal year, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating the INSTRUMENT from its ADMINISTRATION. A signed agreement is a legal record; the register entry, the diary date and the renewal letter that run it are this row. Both are usually in one folder, and a single executed PDF with a manuscript renewal note on the cover is genuinely both.",
+      "separating the BUYING side from the SELLING side of the same agreement. A supplier contract and a customer contract are the same document filed by two parties, and the parties block states two names in two roles without saying which side the filesystem belongs to. This is the third role the canonical field list has no key for.",
+      "separating a real executed agreement from a template, a precedent, a draft under negotiation, and a downloaded model form — a redline is a negotiation artifact, not an administration one. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "unlabelled contract correspondence: a chasing email about an unnamed renewal, a note about a price increase, a dispute opener with no reference.",
+      "a purpose-coherent contract file whose members are individually unremarkable — an executed PDF, a register extract, two amendments, an SLA report and a calendar reminder. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "an executed agreement alone. A signature block and numbered clauses are the legal family's shape, and the tempting false file for this row is precisely a signed contract with no administration around it.",
+      "contract vocabulary alone — agreement, term, renewal, notice, counterparty, SLA. Employment contracts, tenancy agreements, personal loan agreements and published model forms are all dense in it.",
+      "the fact that an ORGANISATION rather than a PERSON is the party. This is the discriminator this row must NOT rest on, and it is named here so no downstream reader mistakes it for one. An entity name in a parties block is exactly the evidence business_operations.organisational-records was refused for — read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A limited company signs tenancies, employment contracts and personal-shaped service agreements, and a sole trader signs commercial ones. Scale of counterparty is a value, not a node. What activates this row is the register/tracker/notice STRUCTURE below, never the corporate-ness of a signature.",
+      "an administrative VERB read as a situation. ‘Administering’ a contract is an activity, and an activity is a work_type value, not a node. The row survives because the activity leaves behind artifacts with structures no other row produces — a notice-date column, a clause-referenced obligation row, a service-credit column — not because the activity has a name.",
+      "a counterparty name alone, which is worse than 00's university case because a company name in a parties block is present in exactly two roles at once and the document does not say which is the holder's.",
+      "a date-shaped token read as a renewal or notice date. Contracts are dense in dates — execution, commencement, effective, review, invoice — and only a labelled slot distinguishes them.",
+      "a company, charity, or regulator gazetteer hit alone. 00 states the ambiguity for a university — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — and a company name is worse, appearing as employer, customer, supplier, competitor, regulator, and as the letterhead of a document that is merely ABOUT the holder. Stated as inference; 00 writes that sentence about a university, not a company.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+    ]
+  },
+  "proposed_context_terms": [
+    "contract register",
+    "counterparty",
+    "commencement date",
+    "expiry date",
+    "notice period",
+    "notice date",
+    "auto-renewal",
+    "evergreen",
+    "break clause",
+    "termination for convenience",
+    "termination for cause",
+    "variation",
+    "change order",
+    "amendment",
+    "deed of variation",
+    "assignment",
+    "novation",
+    "service level agreement",
+    "service credit",
+    "key performance indicator",
+    "obligation",
+    "clause reference",
+    "governing law",
+    "master services agreement",
+    "statement of work",
+    "purchase order",
+    "price review",
+    "indexation",
+    "renewal",
+    "non-renewal",
+    "escalation",
+    "contract owner",
+    "contract value"
+  ],
+  "work_types": [
+    "contract register or extract",
+    "executed agreement or counterpart (as an administered item)",
+    "amendment, variation, or change order",
+    "obligation tracker or compliance matrix",
+    "notice letter (renewal, non-renewal, termination, breach, price review)",
+    "acknowledgement or counter-notice",
+    "service-level or performance report",
+    "contract summary or abstract",
+    "purchase order or call-off",
+    "supplier or customer onboarding pack",
+    "insurance or warranty evidence held under a contract",
+    "renewal proposal or price-change correspondence",
+    "expiry, exit, or handover plan",
+    "dispute or escalation correspondence"
+  ],
+  "grouping_reasons": [
+    "one contract lifecycle: the instrument, its amendments, the register entry, the notices, the performance reports and the renewal papers — the clearest group in this family and the one users most expect.",
+    "one counterparty across several agreements over time — a real reason to group, and the one most likely to tempt a counterparty label onto a bare invoice or reminder, which is exactly what must not happen. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one renewal event: the diary entry, the internal recommendation, the notice and the acknowledgement — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one register as it is re-exported over time, joined by the universal duplicate_family and version_family facts rather than by any business fact.",
+    "no group at all is a valid outcome: an isolated notice letter with no reference is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two counterparties' files in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the counterparty or the contract itself, then the agreement or contract reference where one counterparty has several, then the document function (instrument / variation / notice / performance), with the renewal period only where the corpus really cycles annually. An amendment is unintelligible above its parent agreement, which is 00's own reason for putting a course above a homework number. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "ocr",
+      "image",
+      "archive",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Contract register - live agreements.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns reading counterparty, reference, start, expiry, notice date, value, owner, status",
+        "one row per agreement across several counterparties",
+        "conditional formatting on approaching notice dates",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a counterparty fact copied onto any other file that mentions the same name",
+        "that one register is one group: it spans many contracts, which is a real reason it may join none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MSA - Acme Ltd - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block naming two organisations",
+        "a defined-terms section and numbered clauses",
+        "an execution block with two signature images and dates",
+        "a schedule of service levels at the back"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which organisation is the holder's own — the parties block states two names in two roles and nothing says which side the filesystem belongs to",
+        "which row owns it: the instrument is the legal family's and its administration is this row's, and one file carries both anchors",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Amendment 3 to MSA - Acme Ltd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title naming a parent agreement by reference and date",
+        "an amendment number in sequence",
+        "clauses amending specific numbered provisions",
+        "its own execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an amendment is a version of the parent in the universal version_family sense — it is a separate instrument that modifies another, and treating it as a draft would be wrong",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of non-renewal - ref CTR-2019-044.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a formal letter with a labelled clause reference and an effective date",
+        "a delivery-method statement and a recorded-delivery reference",
+        "a signature block naming an authorised signatory"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a legal effect of the product's own from the letter; whether valid notice was given is not the product's question",
+        "a renewal or expiry date as a stored fact — the proposed keys do not exist",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SLA performance report - Q1 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "measured availability and response figures against defined targets",
+        "a service-credit column referring to a schedule reference",
+        "a counterparty logo in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a performance judgement of the product's own from a cell",
+        "an entity fact from a logo — a supplier's own report is branded with the supplier, not the holder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Renewal - CTR-2019-044.ics",
+      "source_type": "calendar",
+      "observations": [
+        "a labelled SUMMARY naming a contract reference and a notice event",
+        "a reminder alarm ninety days before an end date",
+        "an organiser slot on one corporate domain"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that a calendar file is a domain — calendar is a SOURCE_TYPE and the .ics fixture forbids it (CONNECTION-EXAMPLES fixture 5)",
+        "a contract fact from a reminder title alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Employment contract - J Okafor - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a parties block naming an entity and one named individual",
+        "clauses on duties, salary, notice and confidentiality",
+        "a signature block with two signatures"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the shape matches perfectly and the counterparty is a person — an employment agreement is the employee's own record and the employer's people record, and where the two sides differ the stricter one wins",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "NDA template - mutual.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a complete agreement structure with bracketed party placeholders",
+        "tracked-change markup left in the file",
+        "a law firm's footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a template and a redline are negotiation artifacts, not administration ones — the collision fixture for this row",
+        "an entity fact from a law firm footer",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "PO-2026-0331.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a purchase order number, a supplier name, line items and a total",
+        "a reference to a call-off under a framework agreement",
+        "delivery and invoicing terms"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "which row owns it: a purchase order is procurement's output, this row's call-off evidence, and an accounting document at once",
+        "a supplier fact — the key is proposed on this row and does not exist",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "contracts-export-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing executed PDFs, amendments and a register CSV in per-counterparty folders",
+        "the archive is password-protected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a purpose fact from the manifest alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Supplier register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per supplier with a supplier identifier, a category, a status, an internal relationship owner, a spend band and a review date",
+        "no contract reference column and no notice-date column",
+        "a tab of insurance expiry dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row on register-shape alone — this is the sharpest collision fixture the row has, because a register table is its single most characteristic structure and this one belongs to business_operations.vendor-management",
+        "that a review date is a notice date; a review date is a relationship cadence and a notice date is a contractual deadline, and only the labelled header separates them",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Deed of variation - 14 Bridge Street - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title naming a parent lease by date and premises address",
+        "party recitals naming an individual landlord and an individual tenant",
+        "a grant of extended occupancy and a revised rent",
+        "an execution block with witness attestations"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the file that must not be LOST to it. The variation shape matches this row exactly, and it is a person's own tenancy paper — legal.leases-agreements' material, a safety template, and where the two sides differ the stricter one wins",
+        "that an amendment shape is this row's evidence; a variation is evidence of an instrument being amended, and only a register or diary around it makes it administration",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "The load-bearing collision on this row, and the reason the row was challenged. The seam is INSTRUMENT versus RUNNING APPARATUS, stated in that row's own repeated idiom (\"Party recitals, continuing obligations and execution support this agreement situation; [structure X] supports [neighbour]\"): party recitals, reciprocal obligations, numbered clauses, defined terms, a governing-law clause and an EXECUTION BLOCK support legal.leases-agreements — an executed-agreement lifecycle, which that row's own one_line claims including its renewals, variations and termination notices; a PORTFOLIO REGISTER over many agreements with a notice-date column and an internal contract owner, an obligation tracker keyed to clause references, a service-credit report, or a contract abstract produced to run the thing supports this row. A counterparty name, a money figure or a signature block supports NEITHER — that row's own \"A signature block alone counts for neither\" phrasing, which this row adopts unchanged. Because legal is a field-less SAFETY placeholder, where both fire the protective ordering runs first and the file is offered under Protected Records. Same bytes named on both sides: MSA - Acme Ltd - executed.pdf, carried in this row's file_examples with also_schema: legal. RECIPROCITY DEBT, stated openly: legal.leases-agreements landed before this family and does not name business_operations anywhere in its own file, so this seam is written from one side only and R1c owes the reciprocal — NJ-BO-CA-2, the same debt construction_property.subcontract and construction_property.construction-project already record against the same creditor. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.contract-negotiation",
+      "signal": "Redlines, issues lists and negotiation correspondence look like administration correspondence. The discriminating evidence: tracked changes, a comparison document, a negotiation issues list, or a matter identifier and an engagement framing support the practitioner row; a live post-signature obligation, a register and a diary date support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Procurement produces the contract this row then runs, and the boundary is the signature. The discriminating evidence: a requirement, a tender, an evaluation matrix or an award letter supports procurement; anything dated after execution — the register entry, the variation, the renewal — supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "Supplier performance reviews and supplier risk records overlap the SLA reports here almost completely. The discriminating evidence: a contractual clause reference, a service credit, or a notice consequence supports this row; a relationship-level scorecard, an onboarding record, or a supplier risk assessment with no clause anchor supports vendor management. The pair is thin and R1c should confirm both rows survive. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "A renewal is administered on one side and sold on the other, from the same date and often the same spreadsheet. The discriminating evidence: a notice clause, a register entry and a formal letter support this row; an account plan, a usage or adoption record and a renewal PROPOSAL support the account row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.subcontract",
+      "signal": "Subcontract administration — variations, payment notices, delay claims — is this row's shape in a sector that has its own statutory notice regime. The discriminating evidence: a site, a works package, a valuation number, or a statutory payment-notice reference supports the construction row; a general commercial register and notice calendar supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-procurement",
+      "signal": "An authority's contract management and a supplier's copy of the same agreement are identical documents. The discriminating evidence is which side the holder is on: a statutory procurement regime, a published award notice, or a contracting-authority framing supports the government row; a supplier's or buyer's own private register supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "A statement of work is the individual's engagement record and the delivering organisation's contract record at once. The discriminating evidence: a document held to evidence the holder's own engagement, deliverables and fees supports the career row; the register, notice calendar and obligation tracker that run it as one of many support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "A practitioner's contract-review or advice matter contains the same executed agreement, the same clause analysis and the same correspondence as this row's administration file. The discriminating evidence: a matter or engagement identifier, a client-side framing, privilege or work-product marking, and time-and-billing apparatus support the practitioner row — whose own never_alone list already forbids the words contract, agreement and client from doing this work alone; a register entry, a diary date and a notice served in the holder's OWN name support this row. The holder is a party here and an adviser there. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "An obligation matrix keyed to clause references and a compliance matrix keyed to control references are the same table shape with a different left-hand column. The discriminating evidence: the obligations trace to numbered clauses of a named agreement and their consequence is a contractual remedy or notice, supporting this row; they trace to a standard, regulation or control framework and their consequence is a finding or corrective action, supporting compliance-audit. A matrix with a due-date column alone chooses neither. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Executed agreements, notices and registers are commercially confidential and routinely name individuals as signatories or contacts, so this is the primary protective home. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for a register, a report, or a chasing note whose contract and side are unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone notice, acknowledgement or certificate with no contract file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members — a purchase order, a call-off confirmation, a supplier invoice with no register around it. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Model forms, NDA templates and precedent agreements are the tempting false files of this row. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected contract exports and signing-platform bundles are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "business_operations",
+      "why": "00's own role-split pair, and this row is where it fails most visibly in the whole family. 00 states the mechanism — “A consulting document may mention the author’s firm and the client organization.” — for a two-role professional-services document. A contract register has THREE roles and the pair has two keys: the holder, the customer the holder sells to, and the SUPPLIER the holder buys from. The supplier role is the subject of most buy-side material in this world and no canonical key holds it. This row deliberately does NOT mint a `supplier` key: the fix is the `organization` proposal seconded above plus one canonical-list decision at R1c, not a per-row variant, and minting one here would be the near-duplicate defect D6 exists to kill. Recorded from the sibling that suffers it, not only from the schema. Same shape as construction_property.subcontract's role_split, which records the identical three-party failure for a main contractor, subcontractor and employer — one hole, two witnesses.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Contracts are confidential by their own terms — most contain a clause saying so — and 00's corpus sentence names the category directly: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”, and an agreement is a legal record. Beyond that, and as inference rather than a design claim, this row is unusual in that the exposed party is normally NOT the user: a counterparty's pricing, an employee named as a signatory, a customer's terms. They cannot consent to what the product does with the file, which argues for the cautious setting. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Three. (1) The BUYING-versus-SELLING role has no canonical key. 00's role_split pair is `our_firm` / `client`, which covers the professional-services reading; the SUPPLIER role in a buy-side register is a third role with no key, and this row is where that hole is most visible. This row seconds the family's `organization` proposal and deliberately does NOT mint a `supplier` key — but records honestly that `organization` as proposed would not close the hole, only name the drawer. NJ-BO-CA-1, for R1c. (2) Whether this row and business_operations.vendor-management are genuinely two situations. Their detection signals overlap more than any other pair in the family and BOTH rows now say so in the same words. The reading both sides give is contract-anchored versus counterparty-standing-anchored, and the deepening pass found a clean discriminator that makes it survivable — the notice-date column and the clause reference exist only here, the diligence and bank-detail blocks only there — but the pair should still be confirmed rather than inherited. NJ-BO-CA-3. (3) The reciprocal on the legal seam is owed. legal.leases-agreements landed before this family and names no business_operations row; its own one_line claims renewals, variations and termination notices for the executed-agreement lifecycle, which is a real overlap with this row's material, resolved here by portfolio structure rather than by document type. Written from one side only. NJ-BO-CA-2, for R1c, and it is the same debt two construction_property rows already record against the same creditor."
+}

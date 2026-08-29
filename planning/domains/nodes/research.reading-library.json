@@ -1,0 +1,351 @@
+{
+  "id": "research.reading-library",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Literature and reading library",
+  "one_line": "Published work by OTHER people, kept for reading: papers, preprints, chapters and the bibliography files that index them. The situation is recognised by third-party publication structure, not by a project identifier, so its leading dimension is the one fact it usually cannot supply — which is why 00 gives this material a residual home and why this row exists to carry the falls_through_to edge to it.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends 00's named Research domain (\"Research files may use project, stage, artifact type, lab, and venue\") to the one situation 00 describes only from the residual side: Reading Inbox holds \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\". The template object it fills is 00's: \"Each template should define the domain’s allowed fact fields, detection signals, recommended folder dimensions, preferred dimension order, optional branch patterns, privacy rules, and validation constraints.\" No 00 sentence names a reading-library template, so the row is inference, not design.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "why": "The template half of CONNECTION.md section 2's node test asks whether detection signals, recommended dimensions, or privacy rules differ from the schema's default template. All three do, and the row also discharges a CONNECTION invariant that nothing else can.\n\n1. DETECTION SIGNALS — inverted, not narrowed. The research schema activates on a project-identifier token beside the HOLDER'S OWN research-artifact structure (a manuscript title block, numbered protocol steps, a figure-caption sequence). This situation has none of that: its evidence is a third party's published-article structure — a DOI or masthead in the title zone, an abstract heading over a numbered reference list, an author-and-affiliation block naming people the holder is not. The research schema row lists exactly that evidence under never_alone (\"a DOI, a journal name, or a citation string alone\"), so this row's positive signals are the schema's negative ones. That is a different detection signal set, not a copy.\n\n2. DIMENSIONS — project then artifact_type, with stage struck. The schema default is 00's own \"a Research template may define project → stage → artifact type\". stage is the HOLDER'S workflow position (draft, under review, revision, proof); a third party's published paper occupies none of it, and the version suffix or publication year that a reading item does carry is a version_family / creation_date universal, not a stage. Recommending a level no fact in this situation can fill is precisely what the contract's dimension rule forbids, so the honest recommendation is two levels, not three.\n\n3. PRIVACY RULES — the one part of Research that is not potentially_sensitive. The schema row's sensitivity reasoning is human-subjects material, unpublished manuscripts and editorial correspondence. None of those is this situation's material: a published paper by somebody else carries no holder-personal content. sensitivity here is none, with the two carve-outs recorded in sensitivity_why.\n\n4. THE EDGE THAT ONLY THIS ROW CAN CARRY. CONNECTION.md section 5, invariant 5: a residual home that shadows a domain template must be connected by falls_through_to from that template or it is a duplicate, not a fallback. Reading Inbox is defined by 00 in this domain's own vocabulary. Without this row the residual shadows the Research schema with no edge joining them; with it, the associated case is a template and the unassociated case is its named fallthrough. Refusing this id would not delete the situation — it would leave 00's own residual unattached.\n\nWHAT THIS ROW IS NOT: it is not the Reading Inbox residual wearing a template id. The residual is 00's home for material with \"no reliable deeper association\"; this template is the case where an association exists and is evidenced on the file itself. The two are complements joined by one edge, which is the shape CONNECTION prescribes."
+  },
+
+  "fields": [],
+  "fields_note": "Empty by contract, not by omission: a template references its schema's fields and never copies them (CONNECTION.md section 3, rule 1). Which of the research schema's fields this situation actually REACHES, and at what ceiling, is the substantive finding and is carried by the file_examples' facts_legal lists and by template.why — not by a second field list. In short: artifact_type and venue are reachable as direct or validated facts from the publication itself; authored_by is reachable and is never a destination; project is usually reachable only as `possible`, or not at all; stage and lab are not this situation's facts.",
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a published-article structure in the page-one/title zone: a DOI or arXiv identifier (the `doi` and `arxiv` kinds of the injected citation_identifier_patterns list, 06-citation-identifier-patterns) co-occurring with an abstract heading, an author-and-affiliation block, and a numbered reference list. 00 requires the PDF extractor to preserve \"DOI values, citations, identifiers, and other structured strings that may later support file facts\", and the zone requirement is 00's positional rule: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.\"",
+      "a journal or publisher masthead gazetteer hit (R4's content) at a word boundary in the title zone or the running page header — never from a hit confined to the reference_list zone, which is where the injected list's `citation` kind is mapped",
+      "a bibliography-catalogue structure read as structured text: repeated entry records each carrying author, title, journal and year keys (a .bib, .ris or .csl file). 00 routes these through the \"lighter structured-text extractor\" and the entries are ABOUT other documents, so the catalogue is the artifact and its entries are not facts about it",
+      "an ISBN or ISSN hit that passes the check digit the injected list requires (a shape match without a passing checksum is not a hit), co-occurring with a copyright-page or serial-front-matter structure — the book-chapter and serial half of this situation",
+      "an archive manifest whose member names are author-year shaped and which contains a bibliography-format member, read without unpacking — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+      "a project-identifier token in the filename or title zone of a file whose structure is a third-party publication. This is a deterministic signal that produces a `possible`-grade project clue and nothing stronger: the schema's validated rule family requires the token beside the holder's own research-artifact context, which a paper by somebody else does not supply"
+    ],
+    "needs_llm": [
+      "whether a publication is the holder's own output or somebody else's — the role question, which decides between this situation and research.manuscript-publication, and which no gazetteer answers. 00 gives the model this job (\"interpret an unusual research artifact\") and the standing constraint that it \"must return unknown where support is insufficient\"",
+      "whether a project token in a reading item's filename records a real association (this paper was read for that project) or a filing habit (every download gets the prefix) — the difference between a `possible` clue and a reviewable group membership",
+      "whether an OCR'd scan with no DOI is a book chapter, a journal article, a report, or the holder's own draft printed and scanned",
+      "whether a saved capture is a reading item or one of 00's Reference Clips — that residual names \"short article captures\" explicitly, and the boundary is interpretive",
+      "whether a reading item is assigned coursework reading (which puts academic evidence on the same file) or self-directed reading"
+    ],
+    "never_alone": [
+      "A DOI, a journal name, an ISBN, or a citation string alone. This is the constitutive never-alone of this row: that evidence recognises the SITUATION and supplies no destination-eligible fact, which is exactly why 00 gives the material a residual rather than a branch. The tempting false file is the holder's OWN manuscript — PVA-RDP_manuscript_v7.docx carries a full reference list of other people's journal names on its late pages, and a library detector reading mastheads without zone restriction would file the holder's own work as reading material. 00's positional rule is the discriminator and the injected list maps the `citation` kind to the reference_list zone for this reason.",
+      "A bare 4-digit number as a year, a term, or an identifier — the leading digits of an arXiv id and the year in an author-year filename are both this trap. 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"; the injected citation list carries the same rule in its own form (a bare number is never an identifier; the label is required).",
+      "A parent folder named for a project as proof that a paper inside it belongs to that project. A downloaded paper saved into a project directory is the standard cross-fixture with research.project-workspace; folder context is an activation input, never a licence to write the project fact onto the file.",
+      "A download session as the topic or the project of the papers in it — 00: \"A session should never be treated as proof of topic\".",
+      "An author-year filename alone as an authorship fact; and even a correct authorship fact is never a folder level — 00: \"It should avoid using authorship or creator identity as a destination dimension.\" This matters more here than anywhere else in the schema, because author-first is the reference-manager convention users arrive with.",
+      "A source_type or extension alone. text_document, ocr, archive, email, code_structured and image all appear in a reading library and none makes it plausible; 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\".",
+      "A journal masthead in an email's sender domain as a venue fact about the holder — a table-of-contents alert is mail about publications, not a publication."
+    ]
+  },
+
+  "work_types": [
+    "literature paper",
+    "preprint",
+    "review article",
+    "conference paper",
+    "book chapter",
+    "technical report",
+    "thesis by another author",
+    "bibliography file",
+    "annotated reading copy"
+  ],
+  "work_types_note": "Values of the research schema's artifact_type field, discovered at runtime; none is a roster node and none licenses a child schema. The schema row already carries `literature paper` and `preprint`; the other seven are a value-list gap for R1c to fold into that row, not new fields and not new nodes.",
+
+  "grouping_reasons": [
+    "one paper across its copies: a preprint, the published version, and an annotated reading copy — duplicate and version families, which 00 lists among the typed relationships (\"duplicate or version links\") and which are universal facts rather than research facts",
+    "the set of readings cited by one of the holder's own manuscripts — 00 lists \"direct references\" as a typed relationship, and a reference-list link is the one association here that comes from the holder's own artifact rather than from a filename",
+    "one reference-manager library or export: an archive plus its bibliography member plus the PDFs the entries name",
+    "a project's or a course's reading set, where the association is a REVIEWABLE MEMBERSHIP and not a fact. A paper joins the PVA/RDP neighbourhood without acquiring project = PVA/RDP — 00: \"The graph does not automatically copy those missing facts onto sparse files\". This is the HW 3 discipline applied to reading material, and it is why this template's leading dimension is often populated by an accepted group rather than by an extracted fact: \"Each template is populated from the facts and accepted groups that already exist in the evidence database.\"",
+    "a bounded download session, as a `possible`-grade retrieval clue only — it may bring four papers into one packet and it proves nothing about their topic"
+  ],
+
+  "template": {
+    "dimension_order": ["project", "artifact_type"],
+    "why": "project leads because it is the only association that makes somebody else's paper filable inside the holder's tree at all, and because 00's ordering rule puts it there: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" artifact_type follows because a review article, a book chapter and a preprint are the distinctions a reader actually navigates once inside a reading set, and because it is intelligible under project in the way 00 requires of a child dimension.\n\nSTAGE IS STRUCK from the schema default. stage is the holder's workflow position on the holder's own artifact; a published paper by somebody else occupies none of it, and the version suffix or publication year a reading item does carry is a version_family or creation_date universal. Recommending a level nothing can fill is the defect the dimension rule exists to prevent.\n\nlab and venue stay LEGAL FACTS and are deliberately metadata_only here (P10's per-dimension mechanism). venue is the tempting one — a reading library genuinely knows its journals — but branching on it produces one folder per journal over a long tail of single papers, which is what 00 warns against: \"It should warn when a level produces only one child\" and when a split \"creates a large number of tiny folders\", and \"It should recommend flattening when a dimension does not materially improve retrieval.\" lab is worse: for a paper by others, the affiliation describes its authors, and an author-or-affiliation level is the collector 00 forbids outright.\n\nVALIDATION CONSTRAINT, specific to this row: the leading dimension is the fact this situation usually cannot supply. When no project association is evidenced on the file, the branch has no first level and the honest destination is the Reading Inbox residual, not a deeper path invented to fill the shape — 00: \"An isolated file should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path.\"\n\nOPTIONAL BRANCH PATTERNS: (a) flat — a single Reading branch with no levels, correct for a small library and the shape most users already have; (b) artifact_type-first, for a reader who separates books from papers before anything else; (c) venue-first, available if the user asks for it and never recommended, for the reasons above. All three are the user's to choose: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["text_document", "ocr", "archive", "code_structured", "email", "image"],
+    "extensions": [".pdf", ".epub", ".djvu", ".bib", ".ris", ".zip", ".eml", ".png"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Ravikumar_2019_NatureMethods.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a DOI on page one and a journal masthead in the running header",
+        "an abstract heading over sectioned body text, closing with a numbered reference list",
+        "an author-and-affiliation block naming people and institutions",
+        "filename is author-year-journal shaped",
+        "downloaded in a bounded session with three other papers",
+        "no project-shaped token anywhere in the document"
+      ],
+      "facts_legal": ["artifact_type", "venue", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "project — nothing on this file evidences one, and the session that brought it in proves nothing about topic",
+        "lab from the paper's own affiliations: those describe its authors, not the holder's work",
+        "a destination dimension from authored_by, however well the author is identified",
+        "that the masthead alone makes the research schema plausible — it is never-alone evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "2103.02702.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is a bare digit-dot-digit token",
+        "page one carries a preprint-server stamp with a labelled arXiv identifier and a version suffix",
+        "an abstract heading and a reference list are present; no journal masthead",
+        "the author list does not resolve to any user-confirmed identity value"
+      ],
+      "facts_legal": ["artifact_type", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "a term, a capture year, or a creation date from the leading four digits — they are part of the identifier's shape and the injected citation list emits no date from them",
+        "venue from the preprint server: a server is not the publication venue of record, and asserting one would make a later published version look like a duplicate venue fact",
+        "project or stage"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "PVA-RDP_ref_Smith2020_JCB.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename combines a project-shaped token, the word ref, an author-year token and a journal abbreviation",
+        "page one carries a DOI and a masthead; the author list does not include any user-confirmed identity value",
+        "an abstract heading and a numbered reference list follow",
+        "highlighting is present in the rendered page images"
+      ],
+      "facts_legal": ["artifact_type", "venue", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "project as a validated fact — the token sits beside a THIRD PARTY's publication structure, not beside the holder's own research-artifact context, so it reaches `possible` and the association is a reviewable group membership instead",
+        "stage from the highlighting or from the word ref",
+        "that a filename prefix is enough to place the file under a project branch without review"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "library.bib",
+      "source_type": "code_structured",
+      "observations": [
+        "repeated entry records, each with author, title, journal, year and doi keys",
+        "several hundred DOI-shaped strings, all of them inside entry records",
+        "a comment header naming a reference-manager version",
+        "sits beside a manuscript source file"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue or authored_by for THIS file from its entries — every one of them describes a different document, which is the same zone discipline 00 states for a reference list on page eighteen",
+        "project from the neighbouring manuscript: that is neighbourhood context, not this file's evidence",
+        "a topic for the library from the entries it happens to contain"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "zotero_export.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists several hundred PDF members with author-year-shaped names",
+        "one member is a bibliography-format file; another is a reference-manager database file",
+        "folder names inside the manifest look like collection labels",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact about a member that was not inspected — the manifest is the evidence",
+        "project from a collection label inside the manifest, which is the user's own vocabulary and belongs to review, not to extraction",
+        "that the outer archive name means anything on its own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 10.15.03.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR reads an article title, an author list, an abstract paragraph, a journal name and a Download PDF control",
+        "OCR also reads browser chrome and a search box"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "venue or authored_by: this file is a capture OF a listing, not the publication",
+        "project, or that dense OCR text proves anything about type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "chapter7_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; OCR of photographed book pages",
+        "OCR reads a chapter heading, running page headers carrying a book title, and a footnote apparatus",
+        "a copyright-page member earlier in the file carries a labelled ISBN that passes its check digit",
+        "no DOI; low-confidence regions in the margins"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from a publisher name in a page footer alone",
+        "project or stage",
+        "that the scan is complete evidence — a capped or partial OCR run must be recorded as such rather than read as an empty document"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Nature Methods — Table of contents alert.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a no-reply address at a publisher domain; recipient is the holder",
+        "subject names a journal and an issue",
+        "body lists article titles with DOI links",
+        "no attachment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "venue as a fact about the holder's research output, or about this file, which is mail about publications rather than a publication",
+        "artifact_type from the listed articles — none of them is this file",
+        "that the addresses are ordinary metadata: 00 requires mail extraction to proceed \"while treating addresses and message content as potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Reading list — Week 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a page-one heading pairs a course-code-shaped token with the words instructor and semester",
+        "the body is a numbered list of article titles, authors and journals",
+        "a due-date line and a discussion-questions section follow",
+        "no abstract, no reference apparatus of its own"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a list OF papers is a paper — this situation's evidence is a publication's own structure, which this file does not have",
+        "venue or authored_by from the titles it lists",
+        "research at all: the course-code-plus-academic-context pattern puts the file on the academic schema and academic.coursework, which is what the collides_with edge records"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PHYS1401_reading_Feynman1963.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover page carries a course-code-shaped token beside the words lecture and semester, with an instructor's note",
+        "the pages that follow are a published article: masthead, abstract heading, reference list",
+        "filename carries both the course-code-shaped token and an author-year token"
+      ],
+      "facts_legal": ["artifact_type", "venue", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the course code — a course code is not a project identifier",
+        "that the academic facts displace the reading facts, or the reverse: two disjoint evidence sets on one file is co-activation, which the research schema row already records against academic",
+        "instructor or authored_by as a folder level on either side"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "monograph_2024.epub",
+      "source_type": "archive",
+      "observations": [
+        "container manifest is readable but its content documents are encrypted by a DRM scheme",
+        "a metadata member yields a title and a labelled ISSN or ISBN",
+        "no readable body text, no OCR path (there is nothing to render)"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "authored_by or venue from an unreadable member",
+        "a project or a topic from the filename — 00: \"the system should not infer a purpose from their filename alone\"",
+        "that the file is empty: it is indexed-but-unreadable, and 00 requires it to be represented rather than forced open"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.coursework",
+      "signal": "One evidence item — a list or a set of published articles with authors, journals and years — supports both. The discriminator is which pattern the item sits beside: a course-code pattern with academic context (00's own floor: \"a course-code pattern together with academic context\") makes the file coursework, while a publication's OWN structure (masthead or DOI in the title zone, abstract heading, its own reference apparatus) makes it a reading item. Fixture: Reading list — Week 4.pdf is the instructor's list and belongs to academic.coursework; PHYS1401_reading_Feynman1963.pdf carries both evidence sets and is the co-activation case, not the collision.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.manuscript-publication",
+      "signal": "One evidence item — a manuscript-shaped PDF with an abstract, a reference list and a journal name — supports both, and getting it wrong is the expensive error in this domain (the holder's unpublished draft filed as reading material, or somebody else's paper filed into the holder's submission packet). The discriminator is whose artifact it is: an author list that resolves to a user-confirmed identity value, a draft or track-changes structure, a submission-lifecycle term, or a cover letter puts the file on research.manuscript-publication; a publisher masthead, a typeset final-form layout and an author list resolving to nobody the holder is put it here. Where neither side resolves, this is the LLM's role question and abstention is the correct outcome.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00 defines this residual in exactly this situation's words — it holds \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\" — and CONNECTION.md section 5's fifth invariant requires the template it shadows to name it, or it is a duplicate rather than a fallback. This is the primary and expected outcome for the material: the template's leading dimension is the fact a reading item usually cannot supply. Fixtures: Ravikumar_2019_NatureMethods.pdf, 2103.02702.pdf, library.bib, zotero_export.zip, chapter7_scan.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "00 puts \"short article captures\" inside this residual by name, alongside \"saved visual inspiration, product references, quotes, recipes\". A screenshot of a paper's listing page is a capture of reading material, not the reading material, and Reference Clips is where 00 already sends it. Fixture: Screenshot 2026-04-02 at 10.15.03.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\". A publisher alert email is understood — it is mail about publications — without being a reading item or a record worth keeping in place. Fixture: Nature Methods — Table of contents alert.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "DRM-protected ebooks and password-protected reader archives are ordinary members of a real reading library, and 00 requires them to be represented rather than forced open or treated as empty. Fixture: monograph_2024.epub.",
+      "provenance": "inference"
+    }
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "none",
+  "sensitivity_why": "This is the one part of the Research domain whose material carries no holder-personal content: published or preprinted work by other people, held for reading. The research schema row's potentially_sensitive is sourced to human-subjects material, unpublished manuscripts and editorial correspondence, and none of those is this situation's. Two carve-outs are recorded rather than folded in, because both belong elsewhere: a manuscript received for peer review is confidential and is research.manuscript-publication's material, not a reading item; and where the situation touches mail, 00's own rule governs that file — mail extraction proceeds \"while treating addresses and message content as potentially sensitive\", which is why the alert-email fixture routes to Review Later instead of into a reading branch. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Two, both real and neither resolvable by this node. (1) THE HOLDER-IDENTITY VALUE. This template's sharpest discriminator against research.manuscript-publication — is the author list the holder's or somebody else's — cannot be evaluated deterministically unless the product holds a user-confirmed value naming the holder and their name variants. 00 gives the product no such value: authored_by is a field, and there is no `me` to compare it against. Without one, whose-paper-is-this is an LLM role question on every file, which is expensive and abstains often. Joseph's call: does v1 ask the user once for their own name and affiliations (a user_confirmed value, not a new field), or does the role question stay interpretive? (2) VENUE AS A DIMENSION. venue is destination_eligible on the canonical row and this template deliberately does not branch on it, on 00's one-child and tiny-folders warnings. Some readers genuinely do organize by journal. Whether that is a user-chosen reordering of this template or a second template on the same schema decides someone's real folder structure and is not settled here."
+}

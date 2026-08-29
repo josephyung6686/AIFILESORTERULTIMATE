@@ -1,0 +1,77 @@
+{
+  "catalogue": "09-residual-library/02-user-defined-shape",
+  "date": "2026-08-21",
+  "status": "The shape a user-defined residual area must fill. P13 collects one from the user; P10 validates and freezes it exactly as it would a shipped template. This file ships ZERO user-defined templates - it is a form, not a library.",
+  "quote_convention": "Every curly-quoted span is verbatim from planning/00-database-agent-product-design.md, verified by check.py.",
+  "mandate": {
+    "provenance": "design",
+    "design_cite": "“the library must support user-defined residual areas such as Things to Read, Ideas, Shopping Research, Memes, Travel, Receipts to Process, Clips, or Stuff to Sort, because residual organization is highly personal and should not be dictated by a universal taxonomy”"
+  },
+  "illustrations_from_00_never_shipped": {
+    "names": ["Things to Read", "Ideas", "Shopping Research", "Memes", "Travel", "Receipts to Process", "Clips", "Stuff to Sort"],
+    "rule": "These are 00's illustrations of user freedom. The product ships none of them as templates; check.py asserts none appears as a shipped template name anywhere in this catalogue.",
+    "provenance": "design"
+  },
+  "shape": {
+    "note": "A user-defined residual area fills the same eight slots as the shipped nine, so P10's enablement model, P11's workflow, and P12's path composition need no second code path. The slot keys are 00's, fixed; who supplies each value differs.",
+    "identity": {
+      "id": {
+        "supplied_by": "product",
+        "constraint": "snake_case, derived from the display name; stable across renames (rename changes display_label on the node, not the identity — mirroring P10's enablement model, paraphrased)"
+      },
+      "origin": {
+        "supplied_by": "product",
+        "constraint": "user_defined — distinguishes it from the nine shipped names in every surface; a user-defined area is never spelled as one of the nine and never shadows one (see naming_rules)"
+      }
+    },
+    "slots": {
+      "display_name": {
+        "supplied_by": "user",
+        "required": true,
+        "constraint": "free text, the user's own vocabulary. Must not duplicate one of the nine shipped names (enable and rename the shipped template instead) and must not duplicate an enabled node's label under the same parent (P10's tree rules govern, paraphrased)."
+      },
+      "default_parent_location": {
+        "supplied_by": "user",
+        "required": true,
+        "constraint": "a display-label chain in the tree, never a filesystem path. The user picks it on the canvas the same way they relocate a shipped template; replace-with-existing is allowed — 00's own case: “Another may already have an existing To Sort folder, and the system should map the Review Later template onto that folder rather than inventing a new one.”"
+      },
+      "accepted_evidence_patterns": {
+        "supplied_by": "user, assisted",
+        "required": true,
+        "constraint": "at least one pattern stating what evidence routes a file here — collected as examples the user gives or accepts (kinds of content, filename shapes, sources), stored in the same pattern-object form as 01-nine-templates.json. Without at least one pattern the area cannot appear in any review set and the model has no grounds to propose it; an empty pattern list is the global Misc folder 00 forbids — files “should not be thrown into one global Misc, Other, or Unsorted folder”, and that holds for user-defined areas too."
+      },
+      "expected_file_types": {
+        "supplied_by": "user, assisted",
+        "required": true,
+        "constraint": "members of P5's closed source_type vocabulary or literal extension examples, same rule check.py applies to the shipped nine"
+      },
+      "sensitivity_restrictions": {
+        "supplied_by": "product, user may tighten",
+        "required": true,
+        "constraint": "defaults to governed_by_p7_gate. A user-defined area can never weaken P7: it cannot opt sensitive material into prompts, and P7-protected files still fall to Protected Records unless the user explicitly routes a protected file by hand. Only Protected Records carries forbidden_by_00_7_3; a user-defined area may adopt an equally strict local-only posture but cannot claim the shipped template's identity."
+      },
+      "optional_shallow_subfolders": {
+        "supplied_by": "user",
+        "required": false,
+        "constraint": "a short flat list or empty. Depth stays within max_permitted_depth; a nested taxonomy is a domain template request, not a residual area — route the user to the custom-template flow instead (00's LLM-generated custom templates, P10's surface)."
+      },
+      "max_permitted_depth": {
+        "supplied_by": "product",
+        "required": true,
+        "constraint": "an injected slot (residual_max_depth.<id>), same as the shipped nine; never a number stored in this catalogue"
+      },
+      "treatment": {
+        "supplied_by": "user",
+        "required": true,
+        "constraint": "exactly one of reviewed | retained | merely kept searchable — 00's closed treatment vocabulary: “whether the file should be reviewed, retained, or merely kept searchable”"
+      }
+    },
+    "enablement": {
+      "note": "A user-defined area enters the same opt-in flow as the nine: it is a controlled branch the user enables with a disposition (physical-destination | review-only | leave-in-place), becomes a legal node at freeze, and the model may then choose it — “Once the user approves the desired residual branches, those branches become legal nodes in the frozen destination tree. The LLM may choose among them later, but it may not create additional generic destinations.” Creating a user-defined area mid-review is 00's create-a-custom-branch / create-a-custom-folder action, which is a tree edit routed through P10 as a new plan version (P11's residual_set_decision, paraphrased)."
+    },
+    "naming_rules": {
+      "shadow_rule": "A user-defined residual name that shadows a domain template (a residual Travel beside a travel template) must be connected by falls_through_to from that template or it is a duplicate, not a fallback — CONNECTION.md section 5, invariant 5, applied to user-defined homes. Who authors that edge at collection time is an open question carried in README NEEDS-JOSEPH; nothing here closes it.",
+      "nine_names_reserved": "The nine shipped names are reserved spellings. A user wanting a home named Review Later has the shipped template; P13 offers enable-and-rename rather than minting a duplicate."
+    }
+  }
+}

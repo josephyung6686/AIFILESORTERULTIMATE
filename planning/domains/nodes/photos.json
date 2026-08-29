@@ -1,0 +1,368 @@
+{
+  "id": "photos",
+  "kind": "schema",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Photos and captures",
+  "one_line": "Files whose primary evidence is capture metadata: what device made this image, video or scan, when, where, and what kind of capture it is.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "Photos may use capture year, event, location, people, camera information, and media type",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [
+    {
+      "field": "capture_year",
+      "type": "string",
+      "example": "2026",
+      "reliability_ceiling": "direct",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it: \"Photos may use capture year, event, location, people, camera information, and media type\". The ceiling is direct because the value comes from a labelled metadata slot: \"A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field\", and 00 shows the observation/fact split on exactly this field: \"an EXIF field called DateTimeOriginal is raw metadata; capture date = 2026-07-17 is the file fact derived from it\". A year read out of a filename or a folder name is a possible clue, not a direct fact, and a bare 4-digit number is never a capture year."
+    },
+    {
+      "field": "event",
+      "type": "string",
+      "example": "Japan Trip 2025",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it in the Photos field sentence and gives the rule family that confirms it: \"Camera EXIF, GPS, and capture time can support deterministic photo-event proposals\" and \"For a photo group, it might be a deterministic event created from camera, time, and GPS metadata\". Rule family: capture-metadata event clustering over camera identity, capture time and GPS. A P9 group label reaches this field only as a value the user accepts; membership in a neighbourhood never writes the event onto a member."
+    },
+    {
+      "field": "location",
+      "type": "string",
+      "example": "Kyoto",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it in the Photos field sentence. Rule family: place-gazetteer resolution of an EXIF GPS fix (R4's content, word-boundary matched), or a place name in OCR with capture context. The coordinate itself is not the stored value and does not leave the machine: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\""
+    },
+    {
+      "field": "people",
+      "type": "string",
+      "example": "unknown",
+      "reliability_ceiling": "user_confirmed",
+      "destination_eligible": false,
+      "provenance": "design",
+      "why": "00 names it in the Photos field sentence, and the canonical row seeds it destination_eligible false. It is one of the \"several additional fields used only for search, privacy protection, explanation, or later review\". Ceiling user_confirmed: nothing in this product identifies a person from a capture without the user saying so, and 00 makes person visibility a user choice — \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\""
+    },
+    {
+      "field": "camera_information",
+      "type": "string",
+      "example": "Apple iPhone 15 Pro",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "provenance": "design",
+      "why": "00 names it in the Photos field sentence. Direct because EXIF make/model/lens is a labelled structured slot. It is evidence, not a folder level: 00's Photos template is year then event, and 00 warns that \"A folder should not become a collection point for everything produced by the same person or organization.\""
+    },
+    {
+      "field": "media_type",
+      "type": "enum",
+      "example": "screenshot",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it in the Photos field sentence. Rule family: 00's own image-signal hierarchy — \"camera EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification\". Members are values discovered at runtime, never roster nodes. Whether this field may open a folder level in the default template is recorded in open_question."
+    }
+  ],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "EXIF camera make and model present on an image — 00: \"camera EXIF is strong photo evidence\"",
+      "EXIF DateTimeOriginal present, parsed by an explicit pattern, yielding a capture_year candidate",
+      "EXIF GPS present, resolved to a place name by gazetteer (the coordinate stays local)",
+      "camera identity, capture time and GPS agreeing across a run of images — 00: \"Camera EXIF, GPS, and capture time can support deterministic photo-event proposals\"",
+      "sensor-shaped pixel dimensions reinforcing a camera-EXIF hit for media_type = photo",
+      "an exact known display resolution together with PNG format and screen-capture software metadata supporting a media_type = screenshot hypothesis, abstaining when it conflicts with camera EXIF",
+      "HEIC decoded explicitly rather than skipped — 00: \"HEIC support must be included explicitly\"",
+      "exact content hash and perceptual hash agreement identifying duplicate and near-duplicate captures — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\"",
+      "container, codec and creation-time metadata on a video file"
+    ],
+    "needs_llm": [
+      "an opaque image whose only usable evidence is OCR text, where the question is what the capture is OF — 00: it \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"",
+      "naming an event a user would recognise when metadata gives only a device, a date span and a coordinate cluster",
+      "deciding whether a photographed page is a document capture whose facts belong to another active schema rather than to a photo event",
+      "reading a non-Latin or handwritten capture where OCR text needs interpretation before any field can be filled"
+    ],
+    "never_alone": [
+      "absence of EXIF — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"Messaging platforms and downloaded web images often strip metadata from real photographs\"",
+      "OCR text density — 00: \"OCR text density is also not a reliable screenshot detector\"",
+      "source_type = image, or an image extension, on its own (file_kind_plausible is constitutionally never-alone)",
+      "a bare 4-digit number in a filename read as a capture year",
+      "an IMG_#### or DSC_#### filename pattern with no metadata behind it",
+      "a parent folder named Photos, or a bounded download session, read as an event",
+      "a filesystem creation or modification timestamp read as a capture time (a restore or a sync rewrites it; 00 requires the engine not to assume that time only moves forward)"
+    ]
+  },
+
+  "work_types": [
+    "photo",
+    "screenshot",
+    "screen recording",
+    "scan",
+    "video",
+    "live photo",
+    "burst",
+    "panorama",
+    "rendered or exported graphic"
+  ],
+
+  "grouping_reasons": [
+    "one deterministic photo event from agreeing camera, capture time and GPS",
+    "one trip or occasion whose event value the user accepted",
+    "a duplicate or near-duplicate family found by exact and perceptual hash",
+    "a burst or edit family sharing one original capture",
+    "captures sharing one existing curated folder the user made"
+  ],
+
+  "template": {
+    "dimension_order": ["capture_year", "event"],
+    "why": "00's own Photos template — \"a Photos template may define year → event\" — and 00's stated exception to putting subject before time: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" location and media_type are destination-eligible and available as optional dimensions on other templates over this schema; the schema's default template stays 00's two. The order is a recommendation the user may reverse, remove, add to, or flatten.",
+    "time_first": true
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "ocr", "audio_video", "archive"],
+    "extensions": [".heic", ".jpg", ".jpeg", ".png", ".tif", ".dng", ".nef", ".cr2", ".gif", ".webp", ".mov", ".mp4", ".m4v", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "IMG_4821.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make and Model slots carry a phone make and model",
+        "EXIF DateTimeOriginal slot carries a timestamp",
+        "EXIF GPS slots carry a coordinate",
+        "pixel dimensions are sensor-shaped",
+        "filename is an IMG_#### camera pattern"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event value from the timestamp alone, with no clustering and no user-accepted label",
+        "people from a face appearing in the frame"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DSC_0342.JPG",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make/Model slots carry a DSLR body, LensModel and ISO present",
+        "EXIF DateTimeOriginal present",
+        "no GPS slot present"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "location, because no GPS fix and no place evidence exists",
+        "a folder path",
+        "that a missing GPS slot weakens the photo reading — camera EXIF already carries it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-03-14 at 10.22.31.png",
+      "source_type": "image",
+      "observations": [
+        "PNG format, pixel dimensions equal to a known display resolution",
+        "software metadata naming a screen-capture tool",
+        "no camera EXIF slots present",
+        "filename contains an explicit date pattern"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the missing EXIF; the support is the resolution, format and software metadata together",
+        "capture_year as a direct fact — the filename date is a possible clue, not a labelled metadata slot",
+        "an event from the date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_4821.png",
+      "source_type": "image",
+      "observations": [
+        "PNG format, no EXIF of any kind",
+        "camera-shaped filename pattern",
+        "OCR has not run yet, so no text evidence exists"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type = screenshot from absent EXIF",
+        "media_type = photo from the IMG_#### filename",
+        "a folder path",
+        "any capture fact at all — this file's schema set is empty until OCR or metadata gives it evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "WhatsApp Image 2026-05-02 at 19.44.10.jpeg",
+      "source_type": "image",
+      "observations": [
+        "JPEG with all EXIF stripped by the messaging platform",
+        "pixel dimensions are sensor-shaped but re-encoded",
+        "filename contains a platform name and an explicit date pattern"
+      ],
+      "facts_legal": ["capture_year"],
+      "must_not_conclude": [
+        "media_type = screenshot — 00 names this exact adversarial case, \"stripped EXIF on messaging-app photographs\"",
+        "camera_information, because the slot is gone",
+        "a folder path",
+        "an event from the platform name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_2231.jpg (photographed passport page)",
+      "source_type": "image",
+      "observations": [
+        "EXIF camera make/model and DateTimeOriginal present — it really was taken with a phone",
+        "OCR region carries document-identity wording of a travel document"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event, or membership in a photo event, for a protected record",
+        "capture_year or location as folder dimensions here — protection precedes any placement or model path",
+        "any content of this file in a cloud dossier"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hw 5.pdf (photographed homework page, no text layer)",
+      "source_type": "ocr",
+      "observations": [
+        "PDF yields no text layer; page images show a photographed sheet",
+        "OCR recovers handwritten equations and the phrase Homework 5",
+        "no EXIF survives the PDF wrapper"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "a subject fact, from this file or from a neighbouring syllabus",
+        "capture_year, because no capture slot survived",
+        "that the capture reading and the coursework reading are the same fact"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MVI_0088.MOV",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata present, creation-time tag present",
+        "duration present",
+        "sits inside an existing user-created folder named Japan Trip 2025"
+      ],
+      "facts_legal": ["capture_year", "media_type", "event"],
+      "must_not_conclude": [
+        "a folder path",
+        "event as a direct fact — the folder name is user-created evidence that becomes an event value only once the user accepts it",
+        "a transcript; speech-to-text runs only under an explicit privacy and compute policy"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "takeout-20260118.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists paired media files and per-file JSON sidecars",
+        "manifest paths carry an export-tool folder layout",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture facts from the archive's own timestamp — the sidecars, once read as members, are the capture evidence",
+        "one event for the whole archive because the export was downloaded in one session"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "gel_run3_2026-02-11.tif",
+      "source_type": "image",
+      "observations": [
+        "TIFF with imaging-device metadata rather than a consumer camera make/model",
+        "filename carries a run identifier and an explicit date pattern",
+        "OCR of the lane labels carries a project identifier"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event — a lab run is a research artifact, not a photo event",
+        "that the research reading replaces the capture reading, or the reverse"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_3390.jpg (photographed lab result letter)",
+      "source_type": "image",
+      "observations": [
+        "EXIF camera make/model and DateTimeOriginal present",
+        "OCR region carries clinical result wording and a patient-name line"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "membership in a photo event, or a capture_year folder level, for a protected record",
+        "people from the OCR'd name line",
+        "any content of this file in a cloud dossier"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "identity",
+      "signal": "The confusable evidence item is the capture metadata itself: a phone photograph of a passport carries genuine camera EXIF and a capture time, which alone would propose capture facts and a photo-event home for a protected record. The discriminating evidence is document-identity wording in the OCR region, and 00 puts protection first — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\" and \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold\"."
+    },
+    {
+      "domain": "medical",
+      "signal": "Same shape: a photographed clinical letter or a photographed prescription carries camera EXIF and a capture time, which alone would route it into a photo event by year. The discriminating evidence is clinical wording in the OCR region; protection precedes any model or placement path, so the capture reading must never be the one that decides the file's home."
+    }
+  ],
+
+  "also_holds_with": [
+    {
+      "domain": "research",
+      "signal": "A microscope, gel or field image is legitimately both a capture and a research artifact, on disjoint evidence: imaging-device metadata and a capture time on one side, a project or lab identifier and experimental context on the other. This is 00's stated shape — \"One file may hold facts from more than one domain without losing information\" — and neither reading drops the other's fields."
+    }
+  ],
+
+  "falls_through_to": ["Temporary Screenshots", "One-Off Images"],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Captures carry location and people by design, and 00 puts their raw forms behind the local boundary — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and makes their display a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" A capture is also the commonest carrier of another domain's protected content, since an image may be a photograph of an identity document, an account record or a clinical letter. Handling classes are not assigned here.",
+
+  "open_question": "May media_type open a folder level in this schema's default template? 00 states only year then event for Photos, and the schema's other two destination-eligible fields (location, media_type) are unused by that order. Splitting photos from screenshots at the top is the split most users appear to want, but it is a decision about someone's real filesystem, and 00 gives no sentence for it. Recorded rather than resolved. A second, smaller fork: the canonical row seeds people destination_eligible false for privacy reasons; widening it is likewise Joseph's, never a schema's."
+}

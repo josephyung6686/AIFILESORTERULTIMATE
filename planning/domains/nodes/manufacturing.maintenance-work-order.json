@@ -1,0 +1,578 @@
+{
+  "id": "manufacturing.maintenance-work-order",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Maintenance work orders and asset job history",
+  "one_line": "One identified job done to one owned asset, across the three shapes the same job takes: the request that raises an obligation, the instruction that plans it, and the completion record that discharges it and becomes that asset's history. Its organizing anchor is a job identifier bound to an asset, never a product or a lot, which is why the manufacturing default's product-then-lot parent chain cannot make its files intelligible. It is not what the asset IS (manufacturing.asset-register), not a conformity statement the job may produce (manufacturing.calibration-record, engineering.aerospace-airworthiness), not the investigation of why the asset keeps failing (manufacturing.failure-analysis), not a bill for the work (business_operations), and not a defect owed under a workmanship warranty that expires (construction_property.snagging-defects). PLACEHOLDER ROW (J-IND, written at J-DEPTH): PR-6 leaves fields empty; the recommended asset-first dimension inversion is recorded in prose for R1c rather than serialized.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "work_order",
+      "type": "string",
+      "example": "WO-8814",
+      "why_no_existing_key": "This is the grouping anchor that makes the row a situation rather than a document type, and no canonical or anchor-proposed key can hold it. The manufacturing anchor proposes `asset` for the enduring machine, but one asset receives many jobs over its life and the machine cannot separate them; it proposes `quality_event` for a controlled deviation, but a routine lubrication route is not a deviation and forcing it into a nonconformance key would make every planned job read as a quality escape. `project` is bounded discretionary work rather than a repeating dispatched job, and `record_type` names what kind of document a file is, which is exactly what this key must NOT do: request, permit, parts slip and completion report are different record types belonging to the SAME job. R1c should prefer folding this into the broader canonical `case`/`event` key already asked for in the manufacturing anchor's NJ-MFG-2 rather than ratifying a manufacturing-only synonym; this row states the requirement and defers the naming.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE as a LEAF beneath the asset, because the request, permit, parts issue, photographs and completion report of one job belong together and are scattered by any record-type-first order. It is proposed explicitly NOT eligible as a top level: a filesystem whose first branch is a job number is unreadable, since the identifier is meaningless without the asset it was raised against.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "A work-order-shaped token is never sufficient alone; it looks identical to an order number, a ticket number, a case number and an invoice reference. Validation requires the identifier inside a labelled Work Order, Job, WO, Task or Notification slot, co-occurring with an asset/equipment role slot and a dispatch-or-closure structure. The rule family is a labelled-role-plus-context rule owned by R6; this row supplies no pattern, no regex and no score.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a work-order structure binding a labelled asset or equipment identifier to a job identifier, a task or failure code, and a CLOSURE state (completed, returned to service, cancelled, deferred); the closure slot is the signal, not the phrase work order",
+      "a maintenance REQUEST structure with reported-by, date reported, symptom or fault description, priority or urgency and a target asset, whose work-performed block is EMPTY or absent — an obligation raised rather than a result recorded",
+      "a preventive-maintenance task list bound to a trigger that is an interval or a meter reading (running hours, cycles, distance, throughput) with per-task sign-off boxes against one identified asset",
+      "a completion record carrying actual labour attributed to named technicians, parts consumed with quantities charged to a job identifier, downtime start and stop, and a returned-to-service approval",
+      "a per-asset job history whose ROWS ARE EVENTS — job identifier, date, corrective-or-planned type, failure code, downtime, labour — rather than a table whose rows are assets",
+      "a permit-to-work, isolation or lockout record whose validity window, isolation points and issuer/acceptor roles cross-reference a job identifier",
+      "a parts issue or consumption line charged to a job identifier, with no stock balance, reorder point or bin reconciliation of its own",
+      "an email whose labelled subject carries a job identifier together with an asset tag and whose body reports dispatch, delay, parts availability or completion",
+      "a calendar entry whose labelled summary names an asset identifier and a planned maintenance window (shutdown, outage, service visit, PM route) together with a maintenance task; a bare word like service never fires",
+      "an archive whose manifest binds one job identifier across request, permit, parts, photograph and completion members; the archive is inspected without being unpacked to disk"
+    ],
+    "needs_llm": [
+      "an unlabelled handwritten job card photographed or scanned on the shop floor, whose boxes may be a job record, a shift log or a quality check",
+      "a service report that could be the holder's own maintenance function or a vendor's field service, depending on whose letterhead issues it and whose signature accepts it",
+      "a spreadsheet called Maintenance.xlsx whose columns could be a job history, an asset register, a spares stock sheet or an ordinary project task list",
+      "an OCR-poor permit where the isolation rows survive visually but the job cross-reference does not",
+      "a domestic or single-appliance service report where the document does not evidence that the holder owns or occupies the thing serviced",
+      "a defect or snag item on newly handed-over plant, where it is unclear whether the work is owed under a workmanship period or under in-service upkeep",
+      "a contractor quotation describing work to be done, which may be a request, an instruction or a purchase depending on evidence the document does not carry",
+      "a multilingual maintenance form whose slot labels are absent from the deterministic context catalogue"
+    ],
+    "never_alone": [
+      "the words work order, maintenance, repair, service, breakdown, callout, PM, PPM, job or downtime alone",
+      "a work-order-shaped token such as WO-8814 or JOB 44120 outside a labelled role slot; it is indistinguishable from an order, ticket, notification, case or invoice reference",
+      "an asset tag, plant number, serial number or registration mark alone; the anchor's asset key is validated, not direct",
+      "a technician's or engineer's name, a signature, a competence card or a labour-hour figure alone — authorship is never a destination",
+      "an invoice, quotation, purchase order or callout charge alone for the same job, even when it names the asset, the fault and the hours; a payable structure (invoice number, tax lines, payment terms, remit-to) is procurement evidence until an independent dispatch-and-closure structure appears",
+      "a maintenance manual, service procedure or parts catalogue for a machine TYPE, with no owned asset instance and no performed work",
+      "a source_type or extension alone; work orders arrive as PDF, spreadsheet, structured export, image, email and archive exactly as neighbouring situations do",
+      "a parent folder called Maintenance, Engineering, Plant, Facilities or Workshop alone",
+      "a download session alone: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that a defect photograph is a screenshot rather than a field capture"
+    ]
+  },
+  "proposed_context_terms": [
+    "work order",
+    "job card",
+    "maintenance request",
+    "notification",
+    "planned maintenance",
+    "preventive maintenance",
+    "corrective maintenance",
+    "breakdown",
+    "callout",
+    "task code",
+    "failure code",
+    "running hours",
+    "meter reading",
+    "downtime",
+    "returned to service",
+    "permit to work",
+    "isolation",
+    "lockout",
+    "tagout",
+    "labour booking",
+    "parts issued",
+    "backlog",
+    "deferred work",
+    "shutdown",
+    "turnaround",
+    "outage",
+    "PM route"
+  ],
+  "work_types": [
+    "corrective or breakdown work order",
+    "preventive work order triggered by calendar interval",
+    "preventive work order triggered by a meter reading",
+    "condition-based or predictive work order raised from a monitored reading",
+    "maintenance request or fault report awaiting planning",
+    "inspection, lubrication or greasing route",
+    "shutdown, outage or turnaround job package",
+    "statutory or insurance-driven examination job",
+    "modification, retrofit or improvement work order",
+    "permit to work, isolation or lockout record attached to a job",
+    "parts and labour consumption record charged to a job",
+    "completion or service report with returned-to-service approval",
+    "backlog, deferred-work or downtime report"
+  ],
+  "grouping_reasons": [
+    "one job identifier across request, permit, parts issue, photographs, completion report and closure approval — the primary group, and the reason this row exists rather than a record-type list",
+    "one asset across the whole sequence of jobs performed on it, without copying any job's facts onto the asset or onto another job",
+    "one shutdown, outage or turnaround window across the job packages executed inside it",
+    "one recurring PM route across its periodic instances, which are versions of one task list rather than separate procedures",
+    "a defect photograph or a sparse note joins a job's group from its filename or folder neighbourhood without acquiring the asset or job fact — activation is not grouping",
+    "duplicate and version families remain universal facts and never manufacture an asset or job fact by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the manufacturing schema declares no canonical fields (PR-6). The recommendation held in prose, and its DISAGREEMENT with the schema anchor, is the substance of this row's second node-test leg. The anchor's template prose recommends \"site then asset then record type for maintenance and calibration\". This row recommends ASSET first, then the job, with site above asset only in a genuinely multi-site corpus. Two reasons. First, in maintenance corpora the site is usually a PROPERTY of the asset rather than an independent axis — a machine lives at one plant — so a site level never branches for the common single-site holder and the validator should flatten it, whereas the asset level always branches. Second, record_type must not be the level beneath the asset, because request, permit, parts slip, photograph and completion report are different record types belonging to the SAME job; a record-type level shreds every job into five folders. The job identifier is therefore the correct leaf, which is what the proposed `work_order` key is for. Parent context is the governing rule: \"The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.\" A job number is unintelligible without its asset, exactly as \"A work type such as Homework 3 is meaningful only after the course is known\". time_first is false even though asset history is read chronologically more than any other manufacturing branch, because \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — a year-first maintenance tree scatters one machine's life across a decade of calendar folders and destroys the single question this corpus is kept to answer. Time is nonetheless proposed as an unusually strong SECOND dimension for long-lived assets, below the asset and above the job. The user may reverse, remove or flatten any of this after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "eml",
+      "ics",
+      "xml",
+      "json",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "WO-14872 Maintenance Request - Line 3 conveyor noise.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Reported By, Date Reported, Priority and Equipment slots",
+        "free-text symptom description",
+        "Work Performed, Labour and Parts blocks present but EMPTY",
+        "status slot reads Awaiting Planning"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "asset (schema-proposed)",
+        "work_order (proposed)"
+      ],
+      "must_not_conclude": [
+        "that any work was done, because the completion blocks are empty",
+        "a failure cause from the reported symptom",
+        "the reporter as a folder dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PM-CNC07-Q3 preventive maintenance checklist.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Equipment slot and an interval trigger stated in running hours",
+        "numbered task rows with per-task sign-off boxes",
+        "planned duration and trade slots",
+        "no fault description and no failure code"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (schema-proposed)",
+        "work_order (proposed)",
+        "record_type (schema reuse-proposed)"
+      ],
+      "must_not_conclude": [
+        "that the tasks were performed if the boxes are unticked or unreadable",
+        "a nonconformance from a failed task row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WO-8814 completion report - CNC-07 spindle bearing.docx",
+      "source_type": "text_document",
+      "observations": [
+        "job identifier repeated in the header beside the equipment tag",
+        "actual labour hours attributed to two named technicians",
+        "parts-consumed table with part numbers and quantities charged to the job",
+        "downtime start and stop timestamps and a failure code",
+        "Returned To Service approval slot signed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (schema-proposed)",
+        "work_order (proposed)",
+        "site (schema-proposed where a facility slot is labelled)"
+      ],
+      "must_not_conclude": [
+        "the technicians as destination dimensions — authorship is never a destination",
+        "a product or batch_lot from the machine that makes them",
+        "a root cause from the failure code",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Work order history CNC-07 2019-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per JOB: work-order identifier, date, planned-or-corrective type, failure code, downtime, labour hours",
+        "a single equipment identifier repeated in a header or a constant column",
+        "no in-service date, criticality, location or interval columns describing the machine itself"
+      ],
+      "facts_legal": [
+        "file_type",
+        "asset (schema-proposed)",
+        "record_type (schema reuse-proposed)"
+      ],
+      "must_not_conclude": [
+        "a work_order fact for the sheet as a whole — the identifiers are row values, not the file's anchor",
+        "an asset register from the presence of an equipment column",
+        "reliability or failure-rate conclusions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Permit to work PTW-2026-0338 - LOTO Line 3 conveyor.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR reads isolation-point rows, an issuer and an acceptor role, and a validity window",
+        "a cross-reference field carrying WO-14872",
+        "named individuals against each isolation and each signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language",
+        "asset (schema-proposed)",
+        "work_order (proposed, from the labelled cross-reference)",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the isolation was correctly applied or that the permit was surrendered",
+        "an incident from the presence of a hazard row",
+        "named signatories as folder dimensions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Parts issue slip WO-8814.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of part number, description and quantity issued",
+        "a Charged To column carrying one job identifier",
+        "no on-hand balance, reorder point, bin reconciliation or supplier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "work_order (proposed)",
+        "asset (schema-proposed where the slip names the equipment)"
+      ],
+      "must_not_conclude": [
+        "a stock level or a spares holding from an issue quantity",
+        "a purchase from a part number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_2201 sheared coupling WO-8814.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a sheared drive coupling on a workbench",
+        "EXIF capture time and camera data",
+        "a job identifier appears in the FILENAME only; nothing in the image evidences an asset"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates"
+      ],
+      "must_not_conclude": [
+        "asset, site or job facts from the filename token alone",
+        "a failure cause from the visual appearance of the fracture",
+        "that missing GPS makes this a screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "RE WO-14872 conveyor down - can we run Line 3 tonight.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries the job identifier and the asset name",
+        "body reports parts lead time and a revised return-to-service estimate",
+        "attachment named for the request form"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "work_order (proposed, from the labelled subject)",
+        "asset (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "that the job closed because the thread ends",
+        "recipients as folder dimensions",
+        "facts from the unopened attachment",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WO-2026-0413_N214FR_Wheel-Change.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registration mark and a task reference in labelled slots",
+        "labour, parts-fitted and parts-removed blocks with serial numbers",
+        "certifying signature and a date of accomplishment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (schema-proposed)",
+        "work_order (proposed)"
+      ],
+      "must_not_conclude": [
+        "continued airworthiness or a conformity statement from a completed task",
+        "an operator organisation as a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WO-8814 closeout pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a request form, a permit, a parts slip, three photographs and a completion report sharing one job token",
+        "mixed PDF, CSV and JPEG members",
+        "the archive itself carries no labelled slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "work_order (proposed, possible from the manifest)"
+      ],
+      "must_not_conclude": [
+        "facts from unread members",
+        "that the job closed successfully",
+        "an asset fact for members whose own bytes do not carry one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Invoice INV-77213 - emergency callout Line 3 conveyor.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier letterhead, invoice number, tax lines, payment terms and a remit-to block",
+        "a narrative line naming the conveyor, the fault and the engineer hours",
+        "no requestor, no task code, no isolation, no returned-to-service approval"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a work_order fact from the narrative description of the same job",
+        "an asset fact from the equipment name in an invoice narrative",
+        "that maintenance activated because the words breakdown and hours appear",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Fanuc spindle service procedures - maintenance manual.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "manufacturer publication describing how to service a machine TYPE",
+        "torque tables, exploded diagrams and procedure numbering",
+        "no owned asset instance, no date performed, no signature, no job identifier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an asset fact from the machine model named on the cover",
+        "that maintenance activated because every maintenance word is present",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Asset card CNC-07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "equipment identifier, manufacturer, model, serial, in-service date, cost centre and criticality",
+        "a Next PM Due field",
+        "no job identifier, no work performed, no labour, no closure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "asset (schema-proposed)",
+        "site (schema-proposed)"
+      ],
+      "must_not_conclude": [
+        "a work_order fact from the Next PM Due field",
+        "that this row's situation activated because an asset is present",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Boiler service report - 14 Sandy Lane - 2026-03-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "appliance make, model and serial, engineer registration number, work carried out and a safety verdict",
+        "a residential address in the customer block",
+        "no employer maintenance system, no job identifier, no cost centre"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (schema-proposed, only where the holder's ownership of the appliance is separately evidenced)",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a manufacturing site from a home address",
+        "that the holder owns the property because it appears in the customer block",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.asset-register",
+      "signal": "SAME FIXTURE BOTH SIDES: a one-machine table exported from the same maintenance system, arriving either as 'Work order history CNC-07 2019-2026.xlsx' or as 'Asset card CNC-07.pdf' — both carry the equipment identifier, dates and a maintenance interval. DIRECTION ONE — the register keeps the file when its ROWS ARE ASSETS and its columns state what is permanently true of each machine: manufacturer, serial, in-service date, location, cost centre, criticality, next-due interval. DIRECTION TWO — this row keeps the file when its ROWS ARE EVENTS against one machine: job identifier, date, corrective-or-planned type, failure code, downtime, labour. Discriminated by what a row IS, not by the presence of an asset column; a register with a Next PM Due column is still the register's, and a history with an equipment column is still this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "signal": "SAME FIXTURE BOTH SIDES: 'CNC-07 probe calibration 2026-04.pdf', a job dispatched under a work order that produces a certificate. DIRECTION ONE — calibration keeps the file when its purpose is a conformity statement about the instrument: as-found and as-left results, a method or standard, a traceability reference and a due date. DIRECTION TWO — this row keeps the file when it is the dispatch and discharge of the job that carried the instrument away and back: task code, technician, downtime, parts, returned-to-service approval. Discriminated by the as-found/as-left pair plus traceability, which a work order never carries and a certificate always does; the certificate may be an attachment inside this row's group without this row acquiring its conformity facts.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.spare-parts",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Parts issue slip WO-8814.csv' — part numbers, descriptions and quantities on both sides. DIRECTION ONE — spare-parts keeps the file when it reconciles a HOLDING: on-hand balance, bin or storeroom location, reorder point, min/max, cycle-count variance. DIRECTION TWO — this row keeps the file when it charges a JOB: a Charged To column carrying one job identifier and no balance of its own. Discriminated by whether the sheet closes a stock position or consumes against a job; a slip that does both is a genuine mixed export and should group without either row copying the other's facts onto its rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.field-service-report",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Service report SR-4471 - press at Acme Plant 2.pdf', identical bytes on either side of a holder-role seam. DIRECTION ONE — field-service keeps it when the holder is the SERVICING VENDOR and the asset is the customer's: a customer block, a contract, warranty or entitlement reference, chargeable-versus-covered labour, and a customer acceptance signature. DIRECTION TWO — this row keeps it when the holder OPERATES the asset and the document was dispatched by the holder's own maintenance function: an internal requestor, a cost centre, a plant location and a returned-to-service approval by the holder. Discriminated by whose signature ACCEPTS the work; where that is unreadable the file goes to Review Later rather than being assigned by guess.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.failure-analysis",
+      "signal": "SAME FIXTURE BOTH SIDES: 'CNC-07 spindle - repeated bearing failures.pdf', which cites the same job identifiers this row owns. DIRECTION ONE — failure-analysis keeps it when the object is a POPULATION and a cause: several events assembled, a hypothesis, evidence tested, a root cause and a recommendation. DIRECTION TWO — this row keeps the individual job even when it carries a failure code, because a code is a dispatch category chosen at closure and not a finding. Discriminated by whether the document ARGUES a cause from assembled evidence; a completion report that names a cause in one free-text line has not become an analysis.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.hse-incident",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Permit to work PTW-2026-0338 - LOTO Line 3 conveyor.pdf' — hazards, isolations, named issuers and acceptors on both sides. DIRECTION ONE — the HSE row keeps the permit when it is filed as safety-system evidence in its own right: an incident or near-miss investigation, a regulator or insurer reference, a corrective action tracked outside any single job. DIRECTION TWO — this row keeps it when it exists only to authorise ONE job and cross-references that job's identifier, expiring when the job closes. Discriminated by the job cross-reference plus the validity window; a permit register covering many jobs across a site is the HSE row's population document, not this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "SAME FIXTURE BOTH SIDES: a periodic vehicle inspection sheet beside a preventive-maintenance work order for the same van — both carry an asset, an interval, a task list and a completion signature. DIRECTION ONE — fleet keeps it when the artefact's purpose is EXTERNAL evidence of roadworthiness: a numbered statutory check list with inspect/defect/rectified dispositions, brake performance figures and a signed declaration of fitness for the road. DIRECTION TWO — this row keeps it when the work is dispatched by a maintenance system: a job identifier, a planner, a labour and parts booking, a plant or depot location and a closure code. Discriminated by the DECLARATION, because a work order proves work was done and an inspection sheet asserts a condition. This restates the boundary already authored on the fleet row, in the same terms and on the same fixture.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "signal": "SAME FIXTURE BOTH SIDES: 'WO-2026-0413_N214FR_Wheel-Change.pdf', which the airworthiness row already names as this row's in both directions. DIRECTION ONE — airworthiness keeps the release or conformity record the job produces: an approval reference, an effectivity statement and a certification that the article still conforms. DIRECTION TWO — this row keeps the job itself: the task card, the labour, the parts fitted and removed, the closure. Discriminated by whether the page carries execution slots or an approval-and-conformity slot; the release certificate issued at the end of the job is theirs and the work order it came from is still not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.snagging-defects",
+      "signal": "SAME FIXTURE BOTH SIDES: a fault item on a building service — a boiler, a lift, an air-handling unit — naming a fault, a location, an assignee and a closure. DIRECTION ONE — snagging keeps it when the work is owed under a workmanship warranty that EXPIRES: a plot or room, a responsible trade, a contractual defects period with an end date, a making-good certificate or a retention release. DIRECTION TWO — this row keeps it when the work is upkeep that does not expire: an asset or equipment identifier, a planned-maintenance schedule, a meter reading and a fault code. Discriminated by whether an obligation ends. This restates the boundary already authored on the snagging row, in the same terms.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Invoice INV-77213 - emergency callout Line 3 conveyor.pdf', which names the asset, the fault, the engineer hours and the date exactly as this row's completion report does. DIRECTION ONE — business operations keeps it because its structure is a PAYABLE: supplier letterhead, invoice number, tax lines, payment terms, remit-to. DIRECTION TWO — this row keeps only the dispatch-and-closure artefact: requestor, task code, isolation, labour booking, returned-to-service approval. Discriminated by payable structure versus closure structure, and the manufacturing anchor already forbids the shortcut: an invoice is procurement evidence until an independent equipment-control structure supports manufacturing. The invoice and the work order for one job should group without the invoice acquiring a work_order or asset fact.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone completion report, service report, permit or job history with durable value but insufficient asset-plus-job evidence remains an independent record rather than being forced onto a machine it may not concern.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "A callout invoice, a service quotation or a payment confirmation for maintenance work proves a transaction and not a controlled job; it belongs in the receipt and confirmation residual even when it names the equipment and the fault.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor permit or handwritten job card whose asset or job role cannot be read should abstain rather than invent an asset fact; so should a service report whose holder role — operator or servicing vendor — is unresolved.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A defect or as-found photograph whose only job evidence is a filename token has no asset fact of its own and should rest as an image, joining a job's group without acquiring that job's facts.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A maintenance-system binary export or an encrypted closeout archive can be represented without inferring an asset, a job or a completion state from its filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "A manufacturer maintenance manual, service bulletin or parts catalogue describing a machine type with no owned instance and no performed work is reading material, not this row's evidence.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "engineering.commissioning-handover",
+      "why": "Reciprocating the role split that row already authored. The same defect-rectification entity sits on opposite sides of a taking-over date, keyed on the same proposed `asset` handle. THAT SIDE holds punch and snag items that are conditions of acceptance, owned by the delivering party before takeover. THIS SIDE holds jobs raised by the operator against an asset already in service. Shared fixture bytes: 'Punch List - Harbour Pump Station - rev 7.xlsx'. The discriminator is which side of the taking-over date the item was raised on and who owns it, and where that is unclear the file goes to Review Later rather than being assigned by guess.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.field-service-report",
+      "why": "The same entity type — one job performed on one machine — split by holder role rather than by content, and keyed on the same proposed `asset` and `work_order` handles. THIS SIDE holds the job as the asset OPERATOR files it, dispatched by the operator's own maintenance function and closed by the operator's returned-to-service approval. THAT SIDE holds the same job as the SERVICING VENDOR files it, raised against a customer entitlement and closed by the customer's acceptance signature. Shared fixture bytes: 'Service report SR-4471 - press at Acme Plant 2.pdf'. A vendor and an operator may each hold a copy, and neither copy should acquire the other's cost centre, contract or customer facts.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's privacy posture is materially stricter than the manufacturing default's commercial-confidentiality framing, on three exposures the default's product and lot records do not carry. First, employment data: a completion report attributes actual hours to NAMED technicians, which is a timesheet in substance, and a permit names who isolated what and who accepted the risk — a safety-liability record about identified individuals. Second, personal and premises data: a service report for a boiler, a lift, a domestic appliance or a home alarm carries a residential address, an appliance serial and often access or key-holder details, which are household records about the holder's home rather than plant records. Third, third-party data: a field-service copy of the same job names a customer's site, their equipment and their fault history. Failure histories and downtime are additionally commercially damaging in a way a single completed job is not. The row assigns no handling class; P7 owns classes. Privacy policy must run before any model or connector receives content, technician and signatory names remain search and privacy observations rather than destination dimensions, and a credential- or access-bearing member of a closeout pack should route to Protected Records rather than being previewed.",
+  "open_question": "NJ-MFG-WO-1 (this row's own key, and the most important): should the job anchor be the `work_order` key proposed here, or should R1c fold it into the broader canonical `case`/`event` key the manufacturing anchor already asks for in NJ-MFG-2? Folding is recommended for economy, but it means a routine lubrication route and a nonconformance share one field, and the risk is that every planned job then reads as a quality escape. The alternative is two keys with an explicit rule that a job never populates the deviation key. NJ-MFG-WO-2: this row DISAGREES with the manufacturing anchor's own template prose, which recommends site-then-asset-then-record-type for maintenance; this row recommends asset-first with site flattened for single-site holders and the job identifier as the leaf. R1c must ratify one of the two, because the anchor's prose and this row's prose currently both stand. NJ-MFG-WO-3: does a domestic or personal service report — a boiler, a car, a home appliance — belong to this row at all, or to a household/property situation this roster may not have? It is genuinely the same shape (a job done to an owned asset) and genuinely a different privacy world (a home address, an occupier, access details). This pass keeps it with an ownership-evidence condition and flags it rather than smoothing it. NJ-MFG-WO-4: is a permit to work this row's evidence or manufacturing.hse-incident's? A job-scoped permit is argued here as this row's; a site permit register is argued as theirs. That boundary is authored reciprocally on this side only and must be confirmed from the HSE side. NJ-MFG-WO-5: `also_holds_with` is left empty because CONNECTION section 5 restricts it to schema-to-schema pairs and this is a template row; the genuine co-holdings observed on the fixtures — a defect photograph that is also Photos evidence, a vendor invoice that is also business_operations evidence — are recorded in file_examples.also_schema and in the memo for R1c to lift to the schema row if it agrees."
+}

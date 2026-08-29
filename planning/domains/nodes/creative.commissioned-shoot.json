@@ -1,0 +1,222 @@
+{
+  "id": "creative.commissioned-shoot",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Commissioned photography shoot",
+  "one_line": "A photography job evidenced by a counterparty brief, production-day apparatus, a capture and selection run, review or retouch rounds, rights paperwork, and a named delivery. It is not a second home for every camera original: without commission evidence the captures remain a Photos situation or a managed RAW catalogue. Placeholder row at full J-DEPTH; it recognizes and protects this organizational situation but writes no creative fields because the creative schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": "covering common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "The row survives on two independent legs and concedes the third. Detection differs from the Creative default and from Photos: a brief naming commissioned outputs, a call sheet/shot list, releases, a selection/contact sheet, review marks, and a delivery manifest form one job chain; camera EXIF and images alone do not. Privacy differs because model/property releases, client embargoes, unreleased subjects and precise locations constrain the production packet before delivery. Dimension order cannot distinguish the row today: creative declares no fields, so the serialized order is empty. The deferred recommendation is client then project or shoot, then stage/artifact type, with capture date useful inside the shoot rather than as the top-level owner. Keeping the row does not depend on pretending that recommendation is currently executable.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every item below is a detection signal, never permission to write a creative fact; this template's schema currently declares no fields.",
+      "A COMMISSION BRIEF structure naming a counterparty or addressee, a described photographic use, an output or deliverables list, and a due date or schedule. The combined role-bearing structure matters; a brand name or the word shoot alone does not.",
+      "A PRODUCTION-DAY packet in which a call sheet or schedule names a call time and location beside a shot list, crew/contact roles, equipment or access notes, and camera-original files whose capture timestamps fall on that day. The paperwork-to-capture join is the evidence item.",
+      "A RIGHTS packet containing model or property releases whose named shoot/project and date match a call sheet or capture run. A signature image or a generic release template without that join does not establish the job.",
+      "A SELECTION chain: camera originals followed by a contact sheet, proof gallery or explicit selects list that identifies chosen frames by filename, then retouched masters or exports derived from those stems.",
+      "A REVIEW ROUND: annotated proofs, client email or presentation comments, and revised same-stem exports whose round labels or dates align. A `_final` token alone remains universal version-family evidence, not this template's proof.",
+      "A DELIVERY/HANDOFF set with a manifest or message naming enclosed outputs and their intended use, beside same-stem size, crop, colour-space or format variants. A folder of JPEGs without the manifest is only an image set.",
+      "An archive manifest, read without unpacking, that contains a brief or call sheet, releases, captures/selects and delivered exports under one job-shaped root. Member names are observations; absent members and content are not inferred.",
+      "A tethered or catalogue session whose collection name matches the brief/call-sheet job label and whose referenced originals resolve locally. The catalogue file alone belongs to the RAW-catalogue situation; the commission join is what makes this row plausible."
+    ],
+    "needs_llm": [
+      "distinguishing paid or client-commissioned work from a personal collaboration when identical cameras, filenames and editing tools were used and only prose in the brief or correspondence states the counterparty relationship",
+      "deciding whether a mixed folder of brief, releases, captures and exports is one shoot or several jobs copied together, without propagating a client or project label to sparse members",
+      "distinguishing a photographer's production packet from a retailer's delivered product-catalogue assets: the former owns the making chain; the latter owns the selected item-keyed selling asset",
+      "deciding whether an annotated image is a client proof, an internal retouch note, a portfolio image or a personal photo with markup",
+      "reading non-standard or multilingual release and call-sheet forms after the material has already entered the potentially-sensitive local handling path"
+    ],
+    "never_alone": [
+      "camera EXIF, capture time, GPS, or a RAW/JPEG extension alone; those are Photos/capture evidence and file-kind routing signals, not evidence of a commission",
+      "a client, agency, publication or brand name without a role-bearing brief, addressee, approval or delivery context; the name may be the subject, vendor, venue, copyright owner or a logo depicted in-frame",
+      "the words client, shoot, campaign, selects, proof, final or delivery in a filename or parent folder",
+      "a `_v2`, `_R3`, `_final` or `_approved` token alone; it establishes at most possible version-family structure",
+      "a portrait, product, property or event subject inferred from pixels; subject matter does not establish why the photograph was made",
+      "a signature, person's name or contact list alone; releases and call sheets require the surrounding role-labelled document structure and remain sensitive",
+      "missing EXIF as proof of an export, screenshot, delivery or retouched image",
+      "a bounded import, download or shoot-day timestamp cluster alone; a session is never proof of topic or purpose",
+      "an unreadable catalogue, proprietary session file or archive filename alone",
+      "high resolution, CMYK metadata, studio lighting or professional camera equipment alone; personal photographs can share every one of those observations"
+    ]
+  },
+  "work_types": [
+    "commission or creative brief",
+    "estimate or booking confirmation",
+    "call sheet or production schedule",
+    "shot list",
+    "model or property release",
+    "camera original",
+    "contact sheet or proof gallery",
+    "selects list",
+    "retouch instruction or annotated proof",
+    "retouched master",
+    "client review or sign-off",
+    "delivery manifest or handoff message",
+    "delivered export"
+  ],
+  "grouping_reasons": [
+    "one commissioned job from brief through delivery, joined by independently matching job labels, dates and referenced filenames rather than by one folder name",
+    "one shoot day linking call sheet, shot list and the capture run, without copying client or project facts onto generic camera filenames",
+    "one original-to-select-to-retouched-master lineage joined by explicit filename references and version/derived-document relationships",
+    "one rights packet attached to the shoot it names while retaining protection and without turning every depicted person into a folder dimension",
+    "one client review round linking proofs, annotations and revised exports",
+    "one delivery set whose manifest enumerates the output files and intended variants"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: the creative schema declares no fields, and a template cannot serialize dimensions the schema does not license. If R1c adopts the creative schema's existing proposals, the situation recommends client before project/shoot, then stage or artifact_type; capture date belongs inside the shoot because it identifies the production day but does not explain who commissioned the work. This is a recommendation, not a frozen path, and a one-client or one-shoot corpus should flatten meaningless one-child levels.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "contacts", "design_creative", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".pptx", ".jpg", ".jpeg", ".heic", ".tif", ".dng", ".cr3", ".nef", ".arw", ".psd", ".xmp", ".eml", ".ics", ".vcf", ".zip", ".lrcat"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Northstar AW26 Product Shoot Brief.pdf",
+      "source_type": "text_document",
+      "observations": ["page-one addressee names Northstar retail team", "labelled usage section says ecommerce and campaign", "deliverables table lists product angles and due date", "approval contact is distinct from photographer credit"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "client from the organization name without the addressee and approval roles", "that every product image belongs to this shoot", "any creative field because the schema declares none"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Call Sheet - Northstar - 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled call time and studio address", "crew and client-contact roles", "shot references correspond to the brief", "date matches the capture run's metadata"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that every listed person appears in a photograph", "a client or project fact copied onto camera originals", "permission to expose the address or contacts"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DSC_4821.NEF",
+      "source_type": "image",
+      "observations": ["camera EXIF and DateTimeOriginal present", "basename appears on the shot list and later selects sheet", "same-stem XMP sidecar and retouched TIFF exist", "pixels depict one product on white"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "commissioned work from EXIF, raw format or subject matter alone", "client or project copied from neighbouring paperwork", "a product-catalogue item identity from pixels"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Northstar_Selects_R1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["labelled filename column lists camera-original basenames", "selection and retouch-note columns", "brief's deliverable labels recur as row roles", "no embedded image bytes"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that an unlisted capture was rejected", "facts copied from one row to the referenced image", "that a filename column alone proves a commissioned shoot"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "DSC_4821_retouched_R2.psd",
+      "source_type": "design_creative",
+      "observations": ["layered working file with named cleanup and colour layers", "embedded source identifier matches DSC_4821", "same-stem flattened proof exists", "R2 token aligns with review message"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "approved or delivered status from R2", "commission from the PSD extension", "a client fact from a logo visible in the image"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Model Release - Alex Chen.pdf",
+      "source_type": "ocr",
+      "observations": ["scanned signed release with labelled shoot and usage blocks", "shoot date and project wording match the call sheet", "identity and contact details are visible", "OCR confidence varies around handwriting"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that a signature is authentic", "permission beyond the written grant", "that the subject's name may become a destination dimension or cloud prompt content"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Subject: Northstar proofs - round 2.eml",
+      "source_type": "email",
+      "observations": ["native From/To/Date/Subject slots", "body references three proof filenames", "requested changes correspond to R2 layers", "message contains no image attachment"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "client solely from sender domain", "approval when the prose requests changes", "facts copied from referenced files into the email"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northstar_AW26_delivery.zip",
+      "source_type": "archive",
+      "observations": ["manifest read without extraction", "members share selected stems across web and print variants", "README names enclosed outputs and colour spaces", "no raw captures or releases are present"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "member content not exposed by the manifest", "that delivery includes every commissioned capture", "permission to unpack the archive"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "AW26_product_shoot/4821_front_white.jpg",
+      "source_type": "image",
+      "observations": ["filename begins with a catalogue item key", "flattened white-background export", "range spreadsheet references the same item key", "sibling production folder also contains raws, call sheet and layered retouch file"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that the delivered item-keyed asset is owned exclusively by the shoot", "commission from white-background subject matter", "retail range or season facts under the creative schema"],
+      "also_schema": "retail_hospitality",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_7732.jpg",
+      "source_type": "image",
+      "observations": ["camera EXIF and capture time present", "one portrait outdoors", "generic filename", "no brief, call sheet, release, select reference or delivery evidence"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "a commissioned shoot from professional-looking pixels", "client, project or stage from neighbouring files", "creative activation from camera evidence"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "SAME FIXTURE BOTH SIDES: `DSC_4821.NEF` has genuine camera EXIF, capture time and camera-original bytes. Photos owns the capture facts and a personal camera-event grouping; commissioned-shoot owns the job only when the SAME FIXTURE is referenced by a role-bearing brief, call sheet, selects sheet or delivery chain. Discriminating evidence is CAMERA/EVENT STRUCTURE versus COMMISSION AND PRODUCTION APPARATUS. Neither side may read its facts from the other's neighbourhood.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.raw-photo-catalogue",
+      "signal": "SAME FIXTURE BOTH SIDES: a client-named folder containing `DSC_4821.NEF`, its XMP sidecar and a catalogue reference. Raw-photo-catalogue owns the SAME FIXTURE as managed index machinery when the catalogue/sidecar relationship is what binds it; commissioned-shoot owns it as job evidence when a brief, call sheet, selection and delivery bind it. Discriminating evidence is ARCHIVE MACHINERY versus COMMISSION CHAIN; a client-like folder slug proves neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE BOTH SIDES: `Northstar_4821_final.jpg` can be the delivered image inside its commissioned job and later a selected portfolio sample. Commissioned-shoot owns the SAME FIXTURE through brief-to-delivery provenance; portfolio-work-samples owns it through curation, presentation context, authorship claim and work-sample purpose. Discriminating evidence is CLIENT ACCEPTANCE/DELIVERY versus SELF-PRESENTATION/RECRUITING. A polished final image alone counts for neither side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "SAME FIXTURE BOTH SIDES: `shoot-gallery/package.json` beside exported JPEGs may be a delivery-gallery implementation inside the shoot folder. Code owns the SAME FIXTURE when repository-root markers and source structure establish a software project; commissioned-shoot owns only the referenced photographic delivery and job paperwork. Discriminating evidence is REPOSITORY STRUCTURE versus BRIEF/SELECT/DELIVERY STRUCTURE. The word gallery, image extensions, or co-location decides neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.product-catalogue",
+      "signal": "SAME FIXTURE BOTH SIDES: `AW26_product_shoot/4821_front_white.jpg` sits beside raw captures, a call sheet, a layered retouch file and an item-keyed range sheet. Product-catalogue owns the SAME FIXTURE as the selected item-keyed selling asset; commissioned-shoot owns the making chain of brief, shoot, selection, retouch and sign-off. Discriminating evidence is ITEM-KEY/RANGE SELECTION versus PRODUCTION APPARATUS/CAPTURE EVENT. The shoot must not absorb the delivered catalogue set, and the catalogue must not absorb raws, releases or call sheets.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "No template-to-template relationship is authored here. File examples record possible co-activation intents (`photos`, `legal`, `retail_hospitality`) for R1c; CONNECTION reserves `also_holds_with` for schema-to-schema intent, not a relationship between this template and another template.",
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "when": "job paperwork is legible but no commission chain or accepted group is established", "provenance": "inference"},
+    {"residual_template": "Review Later", "when": "working files, selections or archives remain ambiguous or unsupported", "provenance": "inference"},
+    {"residual_template": "One-Off Images", "when": "a capture or export has no reliable deeper association", "provenance": "design"},
+    {"residual_template": "Protected Records", "when": "a release, contact sheet or production document exposes identity, contact, location or rights information without an accepted protected group", "provenance": "design"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The packet commonly includes names, phone numbers, precise locations, call times, unreleased portraits, model/property releases, usage terms, client embargoes and unpublished campaign assets. Protection applies before any model path; a delivered public image does not make the brief, contacts, raws or releases public.",
+  "open_question": "NJ-CS-1: creative still declares no fields, so the useful client/project/stage order is advisory only. Alternatives: R1c adopts the creative schema's existing canonical-key proposals; the row remains recognition-only; or the row is refused if Joseph requires every template distinction to be serializable. NJ-CS-2: a commissioned capture legitimately activates Photos on its own EXIF while Creative is supported by job apparatus. Confirm whether R1c should author creative↔photos as schema-level also_holds intent; this template does not write it. NJ-CS-3: a model release is simultaneously legal material and production evidence. Confirm whether it must always route to Protected Records unless the user explicitly accepts the shoot group, or may remain attached locally under pre-model protection. NJ-CS-4: when a delivered product image is both the product catalogue's selling asset and the shoot's output, confirm shared-material policy rather than duplicate placement; the reciprocal collision records ownership of different evidence chains but cannot decide the one-physical-path outcome."
+}

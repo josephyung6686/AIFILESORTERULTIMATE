@@ -1,0 +1,83 @@
+{
+  "list_id": "gazetteer_research_venues",
+  "title": "10/03 — Labs and venues (research spine) — schema only, zero seed entries",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P6 (injected) — never P5",
+  "consumer": "the same injected gazetteer lookup as 01-schools, for candidates over the Research schema's `lab` and `venue` fields.",
+  "status": "schema_only",
+  "backs_fields": ["lab", "venue"],
+  "backs_fields_note": "The Research schema's two institution-shaped fields. VERIFIED against planning/domains/canonical_fields.json (R1a landed after this file was first drafted): both keys resolve — but R1a tags both with `gazetteer: \"orgs\"`, not a research-specific tag (see unc-r1a-gazetteer-tag). The design names the fields and no values: no journal, no conference, no lab appears anywhere in 00. An honest seed is therefore empty — padding it with plausible journals would be exactly the 'polished but completely false' failure §3.7 warns about. What ships instead: the row schema (identical to 01-schools), the refusals, and the universe fork recorded for Joseph.",
+  "backs_fields_cites": [
+    {"source": "00", "section": "§3.11", "quote": "Research files may use project, stage, artifact type, lab, and venue"}
+  ],
+  "universe": "UNDECIDED — no design-named values exist. Candidate stated universes are recorded under uncertain (journal registries, conference venue lists); labs likely have no shippable universe at all and are user-add by nature.",
+  "match_rule": {
+    "matching": "word_boundary",
+    "why": {"source": "00", "section": "§3.7", "quote": "It should use word-boundary matching rather than substring matching."},
+    "case_rule": "per alias: name aliases case-insensitive; acronym aliases case-sensitive",
+    "cjk_matcher_slot": "same slot as 01-schools: named `cjk_matcher`, unfilled in v1"
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null,
+    "note": "§3.7's thresholds, injected. No number lives in this file."
+  },
+  "never_alone": {
+    "rule": "a venue or lab hit alone fills no field, activates no schema, and creates no group",
+    "cite": {"source": "00", "section": "§4.9", "quote": "A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization."}
+  },
+  "entries": [],
+  "refused": [
+    {
+      "id": "ref-project-identifiers",
+      "refuses": "project identifiers (PVA/RDP and its kin) as gazetteer content",
+      "reason": "A project name is the design's own example of a user-specific value that auto-creates at runtime — a hand-shipped list of other people's project names is a contradiction in terms.",
+      "design_cite": {"source": "00", "section": "§3.12", "quote": "The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically."}
+    },
+    {
+      "id": "ref-every-journal",
+      "refuses": "an unbounded journal dump (all of Crossref / OpenAlex)",
+      "reason": "Tens of thousands of journal titles include single common words ('Cell', 'Science', 'Nature', 'Blood') — word-boundary matching cannot contain that, and no personal corpus needs more than the venues its owner actually publishes in or reads. A bounded registry slice with a stated selection rule is the uncertain path; a dump is refused."
+    },
+    {
+      "id": "ref-lab-name-list",
+      "refuses": "a shipped list of lab names",
+      "reason": "No official universe exists; labs are named after PIs (person names — the refused class in 01 and 02) or are internal names only their members use. `lab` values arrive by user-add and by labeled sources."
+    },
+    {
+      "id": "ref-identifier-duplication",
+      "refuses": "matching DOIs, ISSNs, arXiv ids, or any identifier syntax here",
+      "reason": "Catalogue 06 owns identifier patterns and P5 emits them as observations. This file is names only; the seam is recorded in uncertain unc-venue-via-identifiers because an identifier observation is often the STRONGER route to a venue value."
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-journal-universe",
+      "question": "Which journal registry, if any, backs `venue` in v1?",
+      "note": "Bounded candidates with stated selection rules exist (the DOAJ journal list; the ISSN registry filtered to titles above a distinctiveness rule). Every option needs a decision about single-common-word titles ('Cell') that no matcher can make safe without context. NEEDS-JOSEPH: ship a slice, or ship nothing and rely on identifiers plus user-add."
+    },
+    {
+      "id": "unc-conference-universe",
+      "question": "Ship a conference venue list (CORE ranks / DBLP venue names)?",
+      "note": "Acronym-heavy (NeurIPS, CHI, ICSE) — CHI collides with a Greek letter and common transliterations; every acronym needs the case-sensitive rule plus a homonym record. Not authored in v1."
+    },
+    {
+      "id": "unc-venue-via-identifiers",
+      "question": "Is the primary `venue` route metadata rather than this gazetteer?",
+      "note": "A document carrying a DOI or ISSN (catalogue 06 observation) names its venue in embedded or looked-up metadata far more reliably than a name match in body text. If that route is preferred, this gazetteer stays small forever and only covers venue names appearing without identifiers. Affects whether R1b may stamp reliability_ceiling validated on `venue` — see RESEARCH.md."
+    },
+    {
+      "id": "unc-lab-ceiling",
+      "question": "Can `lab` honestly carry reliability_ceiling `validated` with no gazetteer and no rule?",
+      "note": "_CONTRACT.md rule 4: claiming validated is claiming a rule will confirm it. With this file empty, the gazetteer route cannot be that rule for `lab`. R1b must not stamp validated on `lab` via a gazetteer that does not exist; a labeled-source route (direct) or the LLM route remain. Recorded for R1b and the R1c gate."
+    },
+    {
+      "id": "unc-r1a-gazetteer-tag",
+      "question": "R1a's canonical_fields.json tags `lab` and `venue` with `gazetteer: \"orgs\"` — does the orgs list absorb this file at merge, or does the tag vocabulary gain a research value?",
+      "note": "R1a's tag vocabulary is {schools, orgs, null}; this catalogue split labs/venues into their own file because the dispatch brief names them a separate entity type (the research spine) and because their universes differ from employers'. Both readings are workable: (a) 02-orgs-roles absorbs 03's rows and entity_types `lab`/`venue` at merge, matching R1a's coarse tag; (b) R1a's tag gains a `venues` (or `research`) value and the files stay split. Neither may be decided unilaterally by either author — planning/domains/ is R1a's, this directory is R4's. NEEDS-JOSEPH; mirrored in RESEARCH.md."
+    }
+  ],
+  "homonyms": []
+}

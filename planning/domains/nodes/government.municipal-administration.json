@@ -1,0 +1,243 @@
+{
+  "id": "government.municipal-administration",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Municipal and local authority administration",
+  "one_line": "REFUSED. The situation this row names — a public body's governance cycle of agendas, committee reports, budgets, performance reports, minutes and public notices — is already the `government` schema's DEFAULT TEMPLATE, whose own exemplar fixture is a council agenda pack. The only thing this row adds is the tier of government the body sits at, and a tier is an attribute of an organisation, which is never-alone evidence and cannot activate anything.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on all three legs against its own schema's default template, and its residue is already distributed across landed siblings. (1) DETECTION SIGNALS: identical to the schema default, minus a word. The `government` anchor's deterministic list already carries the governance-cycle recognizer verbatim — 'a public-body governance cycle carrying an authority or statutory-body name, meeting date, agenda or committee identifier, attendance or apologies, numbered papers, and a minute, resolution, or decision section; a private company, charity, union, standards body, or member association with the same furniture is excluded by owner role' — and its work_types already carry 'public-body agenda, committee report, budget, performance report, minute, resolution, or public notice', which is this row's one_line_hint restated. The anchor's own file_examples already include 'Council Housing Committee - Agenda Pack - 18 August 2026.pdf'. Every signal this row could write is that signal plus the token municipal / council / local, and the anchor's never_alone list already forbids exactly that: 'a government department, regulator, municipality, legislature, court, public school, archive, museum, or official-looking seal alone'. The reasoning is the design's own, read across from 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.' — a body's name and tier are role-ambiguous. A row whose whole increment over its schema is never-alone evidence can never clear activation; it would be a row that never fires. (2) DIMENSIONS: identical, and empty either way. The `government` schema declares no field rows under PR-6 (D1's deferral), so its default template.dimension_order is [] and time_first is false; a template cannot branch on undeclared fields, so this row's recommendation is the schema's recommendation character for character. (3) PRIVACY RULES: identical. The anchor's default posture is already potentially_sensitive with authority-side protection, and the anchor's council fixture already encodes the one privacy nuance this row would have claimed as its own — the exempt or Part II appendix inside an otherwise public pack — in its must_not_conclude: 'that every municipal agenda is non-sensitive'. There is nothing left to differ on. What genuinely distinguishes a municipality from a ministry is breadth of function, not a filing world: a local authority is simultaneously planning authority, licensing authority, landlord, school administrator, library and parks service, elections office and records holder — and every one of those is a landed sibling row (government.planning-application, government.permit-licensing, government.housing-authority, government.school-district-administration, government.library-administration, government.parks-public-lands, government.elections-administration, government.public-records-foi, government.constituent-casework, government.public-procurement, government.public-consultation, government.policy-development, government.archives-recordkeeping). Subtract the siblings and the residue is the corporate governance spine, which is the default template. Subtract the default template and nothing is left but the tier.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored. Every candidate deterministic signal for this row is the `government` schema's own governance-cycle signal with a municipal, council, borough, city, county, parish, town-hall or local-authority token added, and that added token is the never_alone entry below. Writing it here would duplicate the anchor and mint a false second activation path for the same bytes."
+    ],
+    "needs_llm": [
+      "The only question this row ever posed that the schema does not already pose is 'which tier of government produced this?', and the answer changes no fact, no dimension, no grouping decision and no privacy posture. It is a browse-comfort question, not an activation question."
+    ],
+    "never_alone": [
+      "the tier or type of the producing body — municipal, council, borough, city, county, parish, town hall, local authority, mairie, Gemeinde, comune — alone or in combination with governance furniture. This is the never_alone entry that a tempting false file trips: 'Board Pack - Riverside Housing Association - September 2026.pdf' carries a meeting date, numbered papers, apologies, officer reports and a minute section, and the word Council appears inside it (as a stakeholder); the discriminator is the owner's public-body role, which the `government` schema already tests, not the word.",
+      "a council-tax, parking-penalty, refuse-collection, electoral-registration or licensing letter held by the resident it was sent to. Recipient custody of a municipal document is the anchor's excluded case: 'an authority-issued permit, licence, tax notice, benefit letter, identity card, visa, voting confirmation, filing acknowledgement, or registry extract held by the recipient'.",
+      "a parent folder named Council, City Hall, Borough, Local Gov or Civic — read across from the anchor's 'a parent folder named Government, Council, Public, Regulatory, Compliance, Civic, or Policy alone'."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored. The governance-cycle grouping reason this row would have written already exists on the `government` anchor: 'one public-body governance cycle, linking agenda, numbered papers, meeting record, decisions, actions, and publication copy without copying a body or meeting fact onto sparse members'. A refused row changes nothing about what P9 may join."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty because the row is refused, and empty in any case by binding contract: the `government` schema declares no field rows under PR-6 (D1's deferral), so no destination-eligible dimension exists to order. The identity with the schema default here is not an accident of the empty-fields regime — it is the second leg of the refusal. Even if government fields were ratified tomorrow, this row's order would still be the schema's order, because a council's agenda pack and a ministry's board pack want the same organising anchor (bounded proceeding, then exact reference, then work type) and differ only in whose letterhead is on the cover."
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Full Council - Agenda and Reports Pack - 2026-09-15.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover carries an authority name, a meeting title and a meeting date",
+        "numbered agenda items, apologies and declarations-of-interest sections, indexed officer reports as appendices",
+        "footer repeats a committee-management-system reference on every page"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["any government field, because the schema declares none", "that the tier of the producing body is a fact worth recording", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "This is the row's flagship fixture and it is already the `government` anchor's fixture in a different costume ('Council Housing Committee - Agenda Pack - 18 August 2026.pdf'). Swap the cover for a state environmental agency's board pack and every observation, every legal fact, every prohibition and the residual all stay the same. Nothing in the pipeline reads differently because the body is municipal."
+    },
+    {
+      "filename": "Cabinet Report - Housing Revenue Account Budget 2026-27 - Item 7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled report-to-committee furniture: report author, portfolio holder, ward, recommendation, background, financial and legal implications",
+        "an item number that ties it to a specific agenda"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the recommendation was adopted", "that the budget figures are operative", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "An officer report is the schema's 'committee report' work type. Its distinctive furniture — implications sections, a recommendation, a delegated-decision route — is public-body governance structure, not municipal structure; a ministerial submission and a state-board agenda item carry the same slots."
+    },
+    {
+      "filename": "Minutes - Licensing Sub-Committee - 2026-07-02 - DRAFT.docx",
+      "source_type": "text_document",
+      "observations": [
+        "present / apologies lists, numbered minutes mirroring agenda numbering, RESOLVED clauses, an action column",
+        "the word DRAFT in the filename and a tracked-changes revision history"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the minutes are approved or operative", "that the licensing decisions recorded are final", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "Draft-versus-approved is a version_family question, which is universal. If the licensing case itself is the subject rather than the meeting, government.permit-licensing owns it — this row would have been a third claimant on bytes two homes already handle."
+    },
+    {
+      "filename": "Statement of Accounts 2025-26 - unaudited.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "primary statements, notes, a narrative report, an annual governance statement, an auditor's opinion placeholder",
+        "authority name and financial-year span on the cover"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the accounts are audited, signed or approved", "a finance institution or record_type fact — the government schema declares no fields and finance's keys are not available here", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "'Local budgets' in the row hint is the anchor's 'budget' work type. A published set of accounts held by anyone other than the authority is reading material; held by the authority it is the governance cycle. Neither reading depends on the body being municipal."
+    },
+    {
+      "filename": "Quarterly Service Performance Report Q1 2026-27.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per indicator with target, actual, direction-of-travel and RAG columns",
+        "service-area column naming waste, housing, planning, libraries and revenues"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a RAG label is a sensitivity or handling class", "that performance against target is a fact about the service", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "The multi-service column is the strongest surviving argument FOR this row — no single sibling owns a document that spans waste, housing and libraries at once. It is still not a detection signal: breadth is a property of the organisation, and the anchor's governance-cycle recognizer already accepts a performance report on the authority side without asking how many services the body runs."
+    },
+    {
+      "filename": "Public Notice - Temporary Road Closure - High Street - s14 RTRA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statutory-notice layout: authority block, statutory power cited, the effect, dates, an objection address",
+        "single page, no addressee"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the notice is in force, current or complied with", "a jurisdiction fact", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "'Local notices' is the anchor's 'public notice' work type. Held by the issuing authority it is governance-cycle output; held by a resident or a contractor it is a received notice and the anchor's recipient-custody exclusion applies. The discriminator is custody, which the schema already tests."
+    },
+    {
+      "filename": "Constitution - Part 3 - Scheme of Delegation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a table of functions against the officer or committee to whom each is delegated",
+        "part numbering implying a larger governing instrument, version and adoption date in the header"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that this version is the operative constitution", "that a delegation shown here was validly exercised in any decision file", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "A scheme of delegation is the crispest municipal artifact in the set and it is structurally a governing instrument — the same shape as a departmental delegation order, a statutory body's standing orders, or a company's matters-reserved schedule. Its owner role, not its tier, is what the schema tests."
+    },
+    {
+      "filename": "Item 12 - APPENDIX B - EXEMPT - Part II - Named Tenancy Cases.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an exemption legend on the cover and a not-for-publication footer",
+        "a table of named residents, addresses, arrears figures and case narratives",
+        "item numbering that ties it to the same agenda as the public pack"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the exemption legend is a handling class — P7 owns handling", "resident identity as a destination dimension", "that the public part of the pack lowers this file's posture", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records",
+      "shows_the_id_was_a_label": "This is the one place a distinct privacy rule could have lived — a single meeting pack that is half publishable and half named-person casework. The `government` anchor already owns it: its council fixture's must_not_conclude reads 'that every municipal agenda is non-sensitive', and its sensitivity_why already names citizen casework and complaints. Leg three of the node test dies here."
+    },
+    {
+      "filename": "Council Tax Bill 2026-27 - 14 Elm Road.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead, a council-tax account number, a band, an annual charge and an instalment schedule",
+        "addressed to a named individual at a residential address"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the `government` schema is active", "that the municipal letterhead establishes authority-side custody", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "COLLISION FIXTURE. This is the most municipal-looking file in an ordinary person's drive and it is not this row's evidence at all, nor the schema's. Discriminator: the addressee is the holder and the authority is the counterparty — the anchor's recipient-custody never_alone. It belongs to a personal-administration reading, and standalone it is Independent Records. A row named for a tier of government would attract exactly this file for exactly the wrong reason, which is the concrete harm the refusal avoids."
+    },
+    {
+      "filename": "Board Pack - Riverside Housing Association - September 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "meeting date, apologies, declarations of interest, numbered papers, a minute section, a finance report",
+        "the local authority is named inside as a nominating stakeholder and grant funder"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that governance furniture plus a council mention makes a public body", "that the association's decisions are authority decisions", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "shows_the_id_was_a_label": "Second collision fixture, in the other direction. Identical furniture, non-public owner. The anchor already excludes it by owner role: 'a private company, charity, union, standards body, or member association with the same furniture is excluded by owner role'. business_operations.meeting-record and nonprofit.governance hold it. This row would have added a competing claimant that decides by vocabulary."
+    },
+    {
+      "filename": "Parish Council Meeting - 2026-08-18.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "a recording whose spoken opening names a body and a meeting date",
+        "no embedded structured meeting metadata"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["a meeting or body fact from the filename", "that speakers named in the recording are attendees of record", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "shows_the_id_was_a_label": "A sparse member: it may join a governance-cycle group through an exact meeting reference in the pack without any body or meeting fact being copied onto it. That behaviour is the anchor's grouping reason, unchanged by tier."
+    },
+    {
+      "filename": "modgov-export-2026-08.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest whose paths repeatedly encode committee, meeting-date and item numbering",
+        "mixed members: public packs, minutes, and directories whose names contain the token exempt"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["member-level facts from the manifest", "that the archive is publishable because most members are", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records",
+      "shows_the_id_was_a_label": "The anchor already accepts committee-management-system exports and already says manifests 'are inspected without unpacking'. Nothing about a municipal export differs from a departmental one."
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The correct home for the standalone, publishable end of this row's pile when no governance-cycle group is accepted — a single public notice, an unattached set of accounts, one performance report, a council-tax bill held by its recipient. The design already describes exactly this: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for the exempt appendix, the named-tenancy schedule and any mixed export whose access boundaries are unknown. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for governance-shaped material whose owner role is unresolved — the housing-association board pack, the meeting recording with no anchor. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.” Abstention is the designed result: “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The correct home for a published council document downloaded by someone who does not administer the authority — a budget consultation PDF, a published minute, a local plan. The anchor already excludes publication from custody, and the design gives the home: “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded for the refused row so that R1c inherits the posture rather than the id. An authority's governance pack routinely mixes publishable items with exempt appendices carrying named residents, tenancy arrears, complaints and casework, and the publishable half must never lower the posture of the pack. This is the `government` schema's default posture already, not a distinguishing rule of this row. No handling class is assigned; that is P7's.",
+  "open_question": "Whether the refusal throws away one thing worth keeping: the cross-service performance and corporate-spine document that spans waste, housing, libraries and revenues at once, which no single function sibling owns. If Joseph wants that covered, the honest fix is a narrow row named for the SITUATION (a public body's own corporate governance and accountability cycle) rather than for the TIER, and that row would then be in open competition with the `government` default template itself and with government.public-authority-record — which is the more likely place it already lives. Minting a replacement id is outside what one node agent may do, so this row does not create one."
+}

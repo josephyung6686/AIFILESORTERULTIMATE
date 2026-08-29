@@ -1,0 +1,635 @@
+{
+  "id": "retail_hospitality.catering-contract",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Catering contracts and function delivery",
+  "one_line": "A caterer's or banqueting team's CLIENT-FACING COMMERCIAL ENGAGEMENT for ONE dated function: the priced proposal, the signed function contract, the Banqueting Event Order's commercial apparatus, the occasion-keyed named-guest allergen sheet, and the final account that closes it. The anchor is a SOLD FOOD-SERVICE ENGAGEMENT under commercial terms, not a table booking, not a clock-keyed delivery day, and not a standing menu cost model. What separates it from every sibling is the engagement chain itself — per-head or package pricing, deposit and cancellation terms, guaranteed minimum numbers, client signature blocks, and a final account against the same engagement reference — none of which the schema's five trading structures require. PLACEHOLDER ROW (J-IND, written to J-DEPTH): it writes NO field rows, because the retail_hospitality schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), and therefore recommends NO folder dimensions.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "A PRICED FOOD-SERVICE PROPOSAL FOR ONE DATED OCCASION. A document offering menu options or packages to a named client or lead contact, carrying a per-head or package price, a covers or guest-count figure, an occasion date, and usually a deposit or validity line. The commercial offer is what fires. A menu without a client, a price and an occasion is `retail_hospitality.menu-recipe-costing` or `retail_hospitality.product-catalogue`; a capacity hold without a price is `retail_hospitality.bookings-reservations`.",
+      "A SIGNED FUNCTION OR CATERING CONTRACT. A two-party instrument naming the caterer or banqueting house and the client, keyed to one occasion date, carrying covers or a guaranteed minimum, a deposit and payment schedule, cancellation or postponement terms, and signature or acceptance blocks. The engagement instrument is what fires. A portfolio row in a contract register with a notice-date column is `business_operations.contract-administration`; a premises lease is not this.",
+      "A BANQUETING EVENT ORDER / FUNCTION SHEET COMMERCIAL APPARATUS. A sheet keyed to one occasion that carries a priced course or package list, a per-head or package charge, a covers or guarantee figure, a client or organiser block, and frequently a payment or deposit status — the Banqueting Event Order's commercial face. It may sit beside timeline rows; the commercial slots are what this row owns. The discriminator against `retail_hospitality.event-production` is exact: that row owns the minute timeline, supplier arrival windows, crew allocation and set-up-to-strike bracket; this row owns what was AGREED WITH THE CLIENT. Shared fixture: `Function sheet - Ashcroft wedding 06.06.26.docx`.",
+      "AN OCCASION-KEYED NAMED-GUEST DIETARY OR ALLERGEN SHEET. A course-by-course or guest-by-guest dietary record for one dated function, naming private individuals and their allergies or dietary requirements, with a lead client contact and a covers figure. Discriminated from `retail_hospitality.menu-recipe-costing`'s standing item-by-allergen grid by WHETHER A GUEST IS NAMED AND A DATED OCCASION IS PRESENT. Shared fixture: `Function allergen sheet - Ashcroft wedding 06.06.26.docx`.",
+      "A FINAL ACCOUNT OR ENGAGEMENT INVOICE against the same occasion or contract reference, pairing agreed package or per-head charges with extras, service charge, and a balance due or paid. The engagement reference is what joins it here; money columns alone are finance. An isolated invoice with no engagement apparatus around it is a residual — “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "An email whose labelled subject slot names a function, wedding, banquet or catering engagement AND an attachment-name slot naming a proposal, function contract, BEO, function sheet, allergen sheet or final account. The engagement-plus-commercial-attachment pairing is what fires; a hospitality-sounding sender domain alone does not.",
+      "Parent-folder context naming a client or couple AND an occasion date together — `Ashcroft - 06.06.26`, `Smith wedding catering` — treated as a clue that raises plausibility once one of the commercial structures above is already present. Folder context never fires alone.",
+      "An archive whose manifest names a catering pack, function file or banquet folder for one named occasion — read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's ordinary output names private individuals and carries health-adjacent dietary data. A model step runs under the user's policy and after P7. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "SEPARATING THE OPERATOR-SELLER FROM THE CLIENT-BUYER, which is this row's central determination and the schema family's operator-side rule applied to engagements. The caterer's signed proposal, contract, BEO, allergen sheet and final account are this row. The couple's own downloaded quote, the corporate client's copy of the same PDF, and a diner's restaurant receipt are the buyer's side and never activate this world. Filenames are often identical. Where evidence does not settle which side the holder is on, this row must not activate.",
+      "Separating a REAL engagement from a TEMPLATE, a specimen banquet pack, a blank BEO, or a downloaded catering-contract pro forma. A blank function sheet and a completed one are the same grid with the prices and names removed. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "The purpose-coherent catering packet whose members share almost no content — a signed proposal, a floor-plan image the client approved, a function sheet, an allergen sheet, a deposit receipt and a final invoice. “The documents are content-incoherent but purpose-coherent.” This is the row's normal grouping case.",
+      "Unlabelled commercial prose: a chaser about the deposit, a menu-change confirmation, a tasting note, a postponement paragraph. No header block, no grid, no reference.",
+      "Reading a PHOTOGRAPHED or SCANNED signed contract or annotated BEO — the pen annotation or wet signature is frequently the only thing that makes the file the executed instrument rather than the draft.",
+      "A document in a language whose banqueting, allergen and catering-contract vocabulary the deterministic structure catalogue does not cover.",
+      "In every case, abstention is required when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE WORD `CATERING`, and every synonym of it, standing alone — catering, banquet, function, wedding, reception, gala dinner. This is the row's defining never-alone and the direct answer to the charge that this row is a work_type wearing a name. The schema already lists `catering engagement record` as a work_type VALUE; a vocabulary word without the commercial engagement chain is that value, not this node. `Catering.pdf` is as likely to be a brochure, a training deck, a supplier capability statement, a client's brief to a venue, or a software feature named Catering.",
+      "A DOCUMENT-TYPE WORD, standing alone — proposal, quote, contract, invoice, sheet, order, account. These are values of a function dimension, and a row resting on one is the schema's default template wearing a name.",
+      "A COVERS, PAX OR PARTY-SIZE FIGURE, standing alone. Capacity-against-dated-demand without a commercial instrument is `retail_hospitality.bookings-reservations`. Eight covers do not make a catering contract.",
+      "A GUEST, CLIENT OR COUPLE'S NAME. This must never anchor a group and must never become a folder level, both because “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” and because publishing a guest dietary sheet into a directory tree exposes members of the public.",
+      "A VENUE OR TRADE NAME, standing alone. Constitutionally never-alone for the reason the design gives about a university: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A venue name appears as the holder's own premises, the client's hired place, a competitor, and a cited example.",
+      "A DATE, standing alone, however wedding-shaped. Every artefact in this row is dated. `06.06.26.pdf` is not a function contract.",
+      "AN ALLERGEN WORD OR LEGEND, standing alone. A standing menu allergen matrix belongs to `retail_hospitality.menu-recipe-costing`; a temperature log belongs to `retail_hospitality.food-safety`; a guest-named occasion sheet is this row only when the occasion and the person are present together.",
+      "A CALENDAR ENTRY for the function. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” An ICS with attendees is a diary, not a commercial engagement."
+    ]
+  },
+  "proposed_context_terms": [
+    "banqueting event order",
+    "BEO",
+    "function sheet",
+    "function contract",
+    "catering contract",
+    "catering proposal",
+    "catering quote",
+    "per head",
+    "per person",
+    "package price",
+    "guaranteed minimum",
+    "minimum numbers",
+    "covers",
+    "deposit",
+    "balance due",
+    "final account",
+    "banqueting",
+    "canape",
+    "wedding breakfast",
+    "service charge",
+    "corkage",
+    "room hire",
+    "dietary requirements",
+    "allergen sheet",
+    "tasting",
+    "menu tasting",
+    "client signature",
+    "organiser",
+    "lead contact",
+    "cancellation terms",
+    "postponement",
+    "force majeure",
+    "pre-order",
+    "place setting",
+    "top table menu",
+    "children's menu",
+    "staff meal",
+    "overtime charge",
+    "extra covers"
+  ],
+  "work_types": [
+    "catering proposal or quotation - priced menu or package options for one dated occasion and one client",
+    "function or catering contract - signed commercial terms, deposit, cancellation, guaranteed numbers",
+    "banqueting event order / function sheet - commercial face: priced courses, per-head charge, client block",
+    "occasion-keyed guest dietary and allergen sheet - named individuals for one function",
+    "deposit receipt and payment schedule notice against the engagement",
+    "menu change, pre-order or tasting confirmation tied to the engagement reference",
+    "final account / engagement invoice - agreed charges, extras, balance against the same occasion"
+  ],
+  "grouping_reasons": [
+    "ONE ENGAGEMENT ACROSS ITS WHOLE PAPER TRAIL: the proposal, the signed contract, the function sheet, the allergen sheet, the deposit receipt and the final account for one client and one occasion date. The members share almost no content and are joined only by the engagement. “The documents are content-incoherent but purpose-coherent.”",
+    "THE VERSION LADDER OF ONE PROPOSAL OR FUNCTION SHEET — draft, client-amended, signed — joined by the universal version_family fact, never by inventing a trading fact.",
+    "No group at all is a valid and common outcome. A lone invoice, a lone booking confirmation or a lone downloaded quote without the engagement chain around it is a residual's business: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT: PR-6 leaves the retail_hospitality schema with no field rows, and a dimension may only branch on a field the same schema declares. THE DEVIATION FROM THE SCHEMA'S DEFAULT IS THEREFORE HELD AS PROSE, AND IT IS REAL. The schema's default paragraph is: the TRADING UNIT - site, venue or channel - ONLY where the corpus genuinely spans more than one, then the TRADING OCCASION, then the OPERATIONAL RECORD FUNCTION. This row differs in two ways and both are argued. FIRST, IT INVERTS THE TOP: the CLIENT ENGAGEMENT / OCCASION comes first and the SITE is DEMOTED OR SUPPRESSED, because off-premise and hired-venue catering happens at the CLIENT'S place, not at the operator's trading unit — a wedding marquee, a client's office, a hired hall. Rooting a catering pack at the operator's kitchen site produces a one-child branch naming the holder's own business above everything, or splits one engagement across hired venues for no retrieval gain; both are the failure the design names when the validator rejects a template that would “create meaningless one-child levels” or use an author or organization merely as a collector. The schema's default makes site conditional; this row makes it presumptively OFF. SECOND, THE LEVEL BELOW THE ENGAGEMENT IS A COMMERCIAL PHASE, NOT A GENERIC RECORD-FUNCTION LIST: proposal / contracted / function-sheet / account — because a final account is unintelligible above its parent engagement, which is the design's own reason for putting a course above a homework number. NOT TIME-FIRST. “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The occasion date IDENTIFIES the engagement; it does not ROOT the tree. The time-first exception belongs to capture-based media alone — “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” — and the plated-food photographs that live beside a function sheet are exactly that exception's material, which is the clearest demonstration that the function sheet is not. A GUEST OR CLIENT NAME MUST NEVER BECOME A DIMENSION. Any later order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "presentation",
+      "archive",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".zip",
+      ".ics",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Catering proposal - Ashcroft wedding 06.06.26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled client and caterer blocks",
+        "occasion date 6 June 2026 and a covers figure of 120",
+        "three priced package options with per-head figures and a deposit percentage",
+        "menu courses listed under each package",
+        "a validity date on the offer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality field fact — the schema declares none",
+        "that a proposal alone proves a signed engagement",
+        "a guest dietary fact from menu options that name no person",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Function contract - Ashcroft wedding - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two-party signature blocks for caterer and client",
+        "occasion date, venue address and guaranteed minimum of 100",
+        "deposit schedule, cancellation tiers and balance-due date",
+        "corkage and overtime charge clauses",
+        "wet-ink or digital signature marks on the final page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality field fact",
+        "legal validity, enforceability or governing-law conclusions",
+        "that this is business_operations.contract-administration — there is no portfolio register or notice-date column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Function sheet - Ashcroft wedding 06.06.26.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled event date and arrival, service and carriage times",
+        "priced course list with a per-head charge and a covers figure",
+        "client and organiser contact blocks",
+        "deposit and payment-status lines",
+        "a dietary and allergen block naming two guests by first name",
+        "a short set-up timeline section sitting beside the commercial block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality field fact",
+        "that the timeline section makes this solely event-production — THIS IS THE COLLISION FIXTURE; commercial slots are this row's, delivery apparatus is event-production's",
+        "guest names or dietary requirements as stored facts or folder levels",
+        "that the allergen block is a medical record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Function allergen sheet - Ashcroft wedding 06.06.26.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled event date and covers figure",
+        "per-guest dietary block naming two guests by first name with their allergies",
+        "course-by-course list of what each will be served",
+        "lead client contact line",
+        "no component decomposition and no cost model"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality field fact",
+        "that this is menu-recipe-costing's standing allergen grid — guests are named and an occasion is present",
+        "guest names or allergies as stored facts or folder levels",
+        "that guest-supplied dietary information is a clinical record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Final account - Ashcroft wedding 06.06.26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header naming the Ashcroft wedding and the function date",
+        "line items for agreed package, extra covers, corkage and service charge",
+        "deposit already received and balance due",
+        "caterer issuer block and client billed-to block",
+        "engagement or contract reference matching the signed contract"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality field fact",
+        "finance ledger facts from this row — money columns may independently activate finance; this row only claims engagement membership",
+        "that an isolated invoice without the engagement reference activates this row",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "RE Ashcroft wedding - menu change and deposit received.eml",
+      "source_type": "email",
+      "observations": [
+        "subject naming the Ashcroft wedding and a menu change",
+        "body confirming a course substitution and that the deposit cleared",
+        "attachment-name slot reading Function sheet - Ashcroft wedding 06.06.26 v3.docx",
+        "sender is the banqueting manager at the caterer's domain"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality field fact",
+        "that a hospitality-sounding sender alone would activate without the engagement-plus-attachment pairing",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Catering pack - Ashcroft wedding 06.06.26.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest naming proposal, signed contract, function sheet, allergen sheet and final account for one occasion",
+        "no member content read beyond the manifest",
+        "coherent engagement family across the listed names"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any structure forced by unpacking — “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+        "any retail_hospitality field fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-02 - signed function contract.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin chrome and window furniture",
+        "OCR of two signature blocks, an occasion date and a deposit schedule",
+        "filename contains Screenshot and a date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from the filename word contract alone",
+        "any retail_hospitality field fact without OCR establishing the commercial instrument",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Table reservation - Smith party of 8 - 14 Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "party name, covers figure of 8, date and time window",
+        "status slot reading confirmed",
+        "a dietary note line with no priced menu and no contract terms",
+        "no deposit schedule, no per-head package, no signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — THIS IS THE BOOKINGS COLLISION FIXTURE; capacity-against-dated-demand without a commercial engagement chain belongs to retail_hospitality.bookings-reservations",
+        "any retail_hospitality field fact from this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Run sheet - Ashcroft wedding 06.06.26 v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "leading column of clock times through one named date",
+        "WHO column naming departments",
+        "load-in and strike bracket rows",
+        "no per-head price, no deposit line, no client signature block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — THIS IS THE EVENT-PRODUCTION FALSE FRIEND; clock-against-responsibility delivery without commercial instrument is event-production's",
+        "any retail_hospitality field fact from this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Allergen matrix - Spring 2026 menu.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "finished dishes down the rows",
+        "closed statutory allergen columns across",
+        "ternary contains/may-contain/free markings",
+        "one review date for the whole sheet",
+        "no guest names and no occasion date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — THIS IS THE MENU-RECIPE COLLISION FIXTURE; a standing dish-keyed grid with nobody named is menu-recipe-costing's",
+        "any retail_hospitality field fact from this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Contract register - live agreements Q1 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "many agreements as rows",
+        "columns for counterparty, value, start, end, notice date and internal owner",
+        "one row reading Banqueting - Ashcroft among dozens of unrelated suppliers",
+        "no per-head menu, no allergen sheet, no function date as the record's anchor"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — THIS IS THE CONTRACT-ADMINISTRATION COLLISION FIXTURE; a portfolio obligation register is business_operations.contract-administration's",
+        "any retail_hospitality field fact from this row",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statement of Work - Acme Market Entry - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "prepared-for and prepared-by consulting roles",
+        "milestones, fees and confidentiality",
+        "signatures",
+        "no covers figure, no menu, no occasion date, no allergen apparatus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — consulting engagement false friend; career.consulting-client-engagement owns prepared-for/prepared-by milestone instruments",
+        "any retail_hospitality field fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "My wedding catering quote - Garden Kitchen.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename and header framed as the couple's own downloaded quote",
+        "one package price and a wedding date",
+        "no operator-side deposit ledger, no BEO commercial apparatus, no staff annotation",
+        "sits alone with no engagement pack around it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — CUSTOMER-SIDE false friend; the operator/buyer determination fails",
+        "any retail_hospitality field fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Invoice 88231.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a single invoice with issuer, billed-to, line totals and a due date",
+        "no occasion name, no covers figure, no function or catering reference",
+        "no proposal or contract in the same packet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates — the schema's own lone-transaction collision fixture; isolated invoices are Receipts and Confirmations",
+        "any retail_hospitality field fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Catering contracts 2024-2026 - locked.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest naming several wedding and corporate function folders",
+        "password protection on the archive",
+        "no readable member content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any structure from the manifest names alone",
+        "any retail_hospitality field fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.event-production",
+      "signal": "SAME FIXTURE BOTH SIDES: `Function sheet - Ashcroft wedding 06.06.26.docx` (the schema anchor's own fixture, and the Banqueting Event Order in trade language) — this row owns the sheet's COMMERCIAL INSTRUMENT, meaning the priced menu, the per-head charge, the deposit and payment schedule, the client signature block and the final account join, while event-production owns the sheet's DELIVERY APPARATUS, meaning the minute timeline, the supplier arrival windows, the crew allocation and the set-up-to-strike bracket, discriminated by whether the reader is being told WHAT WAS AGREED WITH THE CLIENT (this row) or WHO DOES WHAT AND WHEN ON THE DAY (event-production). The BEO is genuinely one document carrying both, which is why the boundary is stated on the section rather than the whole file, and why NJ-CC-1 asks R1c to rule. Reciprocal: THIS ROW MUST NOT TAKE a run sheet, supplier call schedule, on-the-day log or post-event headcount reconciliation, and EVENT-PRODUCTION MUST NOT TAKE a catering proposal, a function contract, an occasion-keyed named-guest allergen sheet or a final account merely because the occasion name matches.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.menu-recipe-costing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Function allergen sheet - Ashcroft wedding 06.06.26.docx` — a course-by-course dietary sheet, which is an allergen document and a function document at once. This row owns THE SHEET KEYED TO A BOOKED OCCASION — an event date, a covers figure, a lead client, and per-guest dietary requirements naming private individuals. The neighbour owns THE STANDING GRID KEYED TO A DISH SET, which names no person. Discriminated by WHETHER A GUEST IS NAMED AND A DATED OCCASION IS PRESENT. Reciprocal: THIS ROW MUST NOT TAKE the menu's standing allergen matrix merely because it was attached to a function file; `menu-recipe-costing` MUST NOT TAKE a function sheet, a proposal or a final account, and must not pull a per-guest dietary block into its grid.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.bookings-reservations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Table reservation - Smith party of 8 - 14 Mar 2026.pdf` — party name, covers, date, time window, status confirmed, a dietary note line, and nothing priced. This row owns the COMMERCIAL ENGAGEMENT CHAIN (priced proposal, signed function terms, BEO commercial apparatus, final account). The neighbour owns CAPACITY-AGAINST-DATED-DEMAND without that chain — a hold on covers, a status slot, requirements. Discriminated by WHETHER A PER-HEAD OR PACKAGE PRICE AND CLIENT CONTRACT APPARATUS ARE PRESENT. Reciprocal: THIS ROW MUST NOT TAKE a bare table, room or ticket reservation because it names covers and a date; `bookings-reservations` MUST NOT TAKE a signed catering contract or a final account because a booking reference appears in the header. NJ-CC-2 records that a restaurant's large-party booking with a deposit can sit on the seam.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Contract register - live agreements Q1 2026.xlsx` — many agreements as rows with notice-date and internal-owner columns, including one Banqueting - Ashcroft line among unrelated suppliers. This row owns ONE FUNCTION ENGAGEMENT'S paper trail ending in a final account. The neighbour owns the PORTFOLIO STRUCTURE the instrument itself never has — a table over many agreements with notice dates and an internal contract owner. Discriminated by WHETHER THE RECORD IS A MULTI-AGREEMENT REGISTER OR A SINGLE-OCCASION ENGAGEMENT PACKET. Reciprocal: THIS ROW MUST NOT TAKE a contract register, renewal diary or obligation tracker because one row mentions banqueting; `contract-administration` MUST NOT TAKE a function sheet, allergen sheet or per-head proposal because a signed PDF exists.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Final account - Ashcroft wedding 06.06.26.pdf` — agreed package, extras, deposit received, balance due. This row owns ENGAGEMENT MEMBERSHIP when the same occasion or contract reference joins the invoice to the proposal and function sheet. `finance` owns the MONEY SLOTS — amounts, tax, payer, payee, payment state — and may activate on the same bytes from disjoint evidence. Discriminated by WHETHER THE CLAIM IS THE ENGAGEMENT JOIN OR THE FINANCIAL FACT. Reciprocal: THIS ROW MUST NOT manufacture finance facts from line totals; `finance` MUST NOT claim the catering engagement because an invoice names a wedding. “One file may hold facts from more than one domain without losing information.” — recorded here as a mutex on over-claiming the same slot, with legitimate coactivation via also_schema on the fixture when both sides' evidence is present. An isolated `Invoice 88231.pdf` with no engagement apparatus is neither row's activating win; it is Receipts and Confirmations.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Statement of Work - Acme Market Entry - executed.pdf` — two organisations, fees, confidentiality, signatures. This row owns FOOD-SERVICE ENGAGEMENT APPARATUS: covers or guaranteed numbers, priced menu or package, occasion date, allergen or dietary deliverable. Career owns PREPARED-FOR / PREPARED-BY consulting roles with milestones and acceptance. Discriminated by WHETHER THE DELIVERABLE IS A CATERED OCCASION OR A PROFESSIONAL SERVICE MILESTONE. Reciprocal: THIS ROW MUST NOT TAKE a consulting SOW because it is a signed client engagement; career MUST NOT TAKE a function contract because two parties and a fee schedule appear.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BOTH SIDES: a purchase order titled for the Ashcroft wedding against a trade supplier — order codes, pack sizes, quantities, a supplier account key. This row owns the CLIENT-FACING engagement (proposal through final account). The neighbour owns REPEAT REPLENISHMENT against a trade price list — PO, confirmation, goods-received, credit note. Discriminated by WHETHER THE COUNTERPARTY IS THE CLIENT BUYING THE FUNCTION OR THE SUPPLIER FEEDING THE KITCHEN. Reciprocal: THIS ROW MUST NOT TAKE a food PO or goods-in note because the filename names a wedding; `supplier-order` MUST NOT TAKE a function contract or guest allergen sheet because ingredients were bought for that date.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "SAME FIXTURE BOTH SIDES: a delivery note for hired glassware or a chilled food drop to the Ashcroft venue on 06.06.26 — consignment identity, carrier, proof of delivery. This row owns the commercial catering engagement with the client. `logistics` owns the MOVEMENT — consignment, carrier, route, POD. Discriminated by WHETHER THE RECORD IS A TRANSPORT EVENT OR A CLIENT ENGAGEMENT INSTRUMENT. Reciprocal: THIS ROW MUST NOT TAKE a consignment note or POD because the goods were for a wedding; `logistics` MUST NOT TAKE a function contract or allergen sheet because a delivery window appears on the BEO.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "SAME FIXTURE BOTH SIDES: an RFP or evaluation matrix for awarding conference catering — one requirement, scored suppliers, an award recommendation. This row owns the CATERER'S SELL-SIDE engagement once awarded and contracted for one occasion. Procurement owns the BUY-SIDE competition — criteria, scores, award. Discriminated by WHETHER THE HOLDER IS RUNNING A SOURCING EVENT OR FULFILLING A SIGNED FUNCTION ENGAGEMENT. Reciprocal: THIS ROW MUST NOT TAKE an evaluation matrix or RFP pack because the subject is catering; procurement MUST NOT TAKE a BEO or guest allergen sheet because the award mentioned food service.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The primary fallthrough for lone transactional members of this world — an isolated final account, a deposit receipt, a customer-side downloaded quote, or a booking-shaped confirmation with no engagement pack. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when an engagement artefact names private individuals and carries dietary or contact data and no accepted engagement group is active — especially the occasion-keyed allergen sheet and a signed contract with personal client details. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome when operator-versus-buyer side is unresolved, or when a photographed BEO's OCR cannot establish the commercial slots. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A durable standalone catering-shaped document with no engagement cycle around it — a specimen banquet menu, a one-off unsigned brochure PDF. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected catering archives and unreadable packs. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of a portal contract or deposit confirmation when OCR does not establish an accepted engagement. Falls here rather than manufacturing purpose from the filename word contract.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THE VALUE MATCHES THE SCHEMA'S AND THE REASON IS SHARPER IN KIND, AND THAT DIFFERENCE IS THE ROW'S THIRD NODE-TEST LEG. The retail_hospitality schema is potentially_sensitive because its ordinary daily output is personal data about members of the public — names, numbers, stay histories, dietary requirements in bulk exports. THIS ROW'S ORDINARY CORE CHAIN PRODUCES THAT DATA AS A COMMERCIAL DELIVERABLE: the function sheet and the allergen sheet routinely name private individuals and record health-adjacent dietary requirements; the signed contract carries client addresses and payment details; the final account joins a named client to a paid occasion. The exposure is not incidental to a trading export — it is the product the client bought. Under-protection would treat a guest dietary sheet as a menu. Over-protection would freeze a priced proposal that names only a corporate client and no guests. Guest names and dietary lines must never become folder levels. P7 owns handling classes; this catalogue records only potentially_sensitive.",
+  "open_question": "Four, recorded rather than smoothed. NJ-CC-1 (the sharpest, and the answer this pass owes to the schema's NJ-RH-3 and to event-production's NJ-EP-1): the FUNCTION SHEET / BANQUETING EVENT ORDER is genuinely one document carrying a commercial instrument and a delivery timeline in adjacent sections. Alternatives: (a) this row owns the file and event-production reads its timeline as a member of the occasion group without claiming the file — this pass's preference, matching event-production's stated preference; (b) event-production owns it whenever the timeline section exists, which would hollow this row; (c) both activate on disjoint sections, which the current model may not support at sub-file granularity. R1c must pick one and both rows must say the same thing. NJ-CC-2: the LARGE-PARTY RESTAURANT BOOKING WITH A DEPOSIT — eight covers, a deposit, a dietary note, no full function contract. Alternatives: bookings-reservations takes every capacity hold including deposited ones; this row takes any booking that carries a per-head package price; or a covers threshold (forbidden as a numeric threshold in this catalogue — so R1c must choose a structural discriminator, not a number). NJ-CC-3: whether off-premise caterers and in-house banqueting teams are one situation or two. This pass treats them as one commercial engagement chain; if R1c splits them, in-house banqueting may collapse into bookings plus event-production and strengthen the refuse charge. NJ-CC-4: whether a final account with an engagement reference may write any finance-shaped fact into this schema once fields exist, or must always coactivate finance and keep money slots there — this pass assumes the latter and proposes no fields."
+}

@@ -1,0 +1,127 @@
+{
+  "list_id": "redaction_transforms",
+  "title": "08/03 — Redaction transforms (named procedures with no default in P7)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P7 (injected). The gate's only content operations are resolution and redaction; these are the redaction half. P7 ships no default transform — a redacted_identifier item with a class whose transform is not injected is a load error, never a passthrough.",
+  "consumer": "the gate's redaction step, at release time, on the materialised excerpt: for each redacted_identifier item the gate resolves (observation_key, span), applies the class's transform to the span, and records the class and outcome in redaction_manifest. Catalogue 02 names which transform each class uses.",
+  "design_anchor": {"source": "P7 SPEC", "quote": "The gate never truncates and never reduces"},
+  "rules_preamble": [
+    "**Redaction removes a value; it never rewrites a document.** Reduction — summarizing, shortening, choosing what the model sees — is a dossier decision and a dossier decision is P8's, made BEFORE the gate is called. The gate's transforms operate on single spans and nothing else.",
+    "**Context always survives.** P4 publishes context_before / context_after / context_truncated as three fields precisely \"so that §8.4 can redact a value without dropping its context\" (P5 SPEC, M5). Every transform below leaves both context fields byte-identical; a transform that touches context is malformed by definition.",
+    "**Every transform is locally reversible in the only sense 00 permits:** the original value remains in local SQLite (the always-local set includes complete extracted text and raw sensitive values) and the dossier carries the redacted form. Nothing is reversible FROM the dossier — that would defeat redaction; reversibility means the local record can always reconstruct exactly what left, which is the audit record's stated obligation.",
+    "**No transform may manufacture a join key.** Hashing or pseudonymizing a value would let two dossiers be joined on the same person across files; 00 nowhere allows it, so it is forbidden (see refused).",
+    "**No numbers.** keep_last_n's n is an injected slot with no default; nothing in this file carries a numeric value."
+  ],
+  "injected_slots": [
+    {"slot": "redaction_keep_n", "meaning": "how many trailing characters keep_last_n retains; per-class override permitted at the injection site", "owner": "configuration; no default here"}
+  ],
+  "entries": [
+    {
+      "transform_id": "replace_with_class_token",
+      "name": "Replace span with a class token",
+      "input": "the materialised excerpt text, one (start, end) span within it, and the identifier class_id",
+      "output": "the excerpt with the span replaced by the literal token '[' + class_id + ']' — e.g. [government_id_number]; span length is deliberately not preserved",
+      "preserves": ["context_before", "context_after", "context_truncated", "every byte of the excerpt outside the span", "the fact THAT a value of this class stood here — the token says so"],
+      "reversible_locally": true,
+      "never_does": [
+        "truncate or shorten the excerpt",
+        "summarize or paraphrase anything",
+        "alter text outside the span",
+        "vary the token per value (a per-value token would be a pseudonym and joinable)",
+        "leak span length by padding the token"
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "selected excerpts, redacted identifiers, candidate labels, non-sensitive metadata, and evidence references"}],
+      "notes": "the default-shaped transform for most classes: the model learns a value of this KIND was present, which is often exactly the evidence a dossier question needs ('is this an account statement?'), while the value itself stays local"
+    },
+    {
+      "transform_id": "keep_last_n",
+      "name": "Class token plus retained tail",
+      "input": "the materialised excerpt text, one span, the identifier class_id, and the injected redaction_keep_n",
+      "output": "the span replaced by '[' + class_id + ' …' + the span's final redaction_keep_n characters + ']' — e.g. [financial_account_number …6819]",
+      "preserves": ["context_before", "context_after", "context_truncated", "every byte outside the span", "the trailing characters statement conventions already display"],
+      "reversible_locally": true,
+      "never_does": [
+        "retain more than redaction_keep_n characters, or derive the count from the value's length",
+        "retain a LEADING prefix (prefixes carry issuer/type information trailing digits do not)",
+        "apply to any class marked always_local — a dropping transform is mandatory there",
+        "truncate, summarize, or touch text outside the span"
+      ],
+      "provenance": "inference",
+      "design_cites": [{"source": "00", "quote": "whether values were redacted"}],
+      "notes": "exists because a tail is sometimes the discriminating evidence — 'which of the two accounts is this statement for?' is answerable from the tail without the locator; the audit record's per-item manifest still marks the value redacted"
+    },
+    {
+      "transform_id": "drop_span",
+      "name": "Remove span entirely",
+      "input": "the materialised excerpt text, one span, and the identifier class_id",
+      "output": "the excerpt with the span removed and nothing inserted; the redaction_manifest entry — not the text — records that a value of this class was dropped",
+      "preserves": ["context_before", "context_after", "context_truncated", "every byte outside the span"],
+      "reversible_locally": true,
+      "never_does": [
+        "leave any fragment of the value, of any length",
+        "insert a marker that names the class in the text (for always-local material even the class's presence-in-text is withheld; the manifest, which stays in the audit record, is the honest ledger)",
+        "drop more than the span — the surrounding sentence survives",
+        "truncate or summarize"
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local."}],
+      "notes": "the transform for always_local classes (authentication_secret): the dossier reads as if the value were never there, the audit record knows it was, and the section-8.6 rule against silent truncation is honored because the DECISIVE evidence for any legitimate dossier question is never a secret's value — a dossier whose question requires the secret itself is a request the gate should be denying, not redacting"
+    },
+    {
+      "transform_id": "drop_gps",
+      "name": "Remove GPS coordinate pair",
+      "input": "the materialised excerpt text and one span covering a coordinate pair (or a metadata_field resolution that turned out to carry coordinates)",
+      "output": "the excerpt with the coordinate pair removed and nothing inserted; for a metadata_field item that resolves to coordinates the item is emptied and the manifest records the drop",
+      "preserves": ["context_before", "context_after", "context_truncated", "every byte outside the span", "non-location neighbouring metadata (a capture YEAR may still travel as its own non-sensitive metadata_field — the year is a Photos fact, the coordinates are not)"],
+      "reversible_locally": true,
+      "never_does": [
+        "coarsen, round, or generalize coordinates to a city or region — a generalized location is an invented value, and inventing values is the extractors' cardinal sin as much as the gate's",
+        "substitute a place NAME resolved from the coordinates — that is derivation, which moves information the always-local rule says stays home",
+        "leave one coordinate of the pair",
+        "truncate or summarize"
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local."}],
+      "notes": "GPS is always-local by name; this transform exists for coordinates that surface INSIDE releasable text (maps-screenshot OCR, captions). The gate's item-kind rules already refuse EXIF/GPS as metadata items; drop_gps is the backstop for text-embedded coordinates"
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-llm-rewrite",
+      "refuses": "any model-assisted 'smart' redaction, paraphrase, or privacy-preserving rewrite",
+      "why": "reduction changes what the model sees, which is a dossier decision — P8's, before the gate. The gate's own contract states \"The gate never truncates and never reduces\" (P7 SPEC); a rewriting transform would also require a model call to sanitize input TO a model call, which is circular.",
+      "design_cites": [{"source": "P7 SPEC", "quote": "The gate never truncates and never reduces"}]
+    },
+    {
+      "id": "ref-hash-pseudonym",
+      "refuses": "hashing or tokenizing a value into a stable per-value pseudonym",
+      "why": "a stable pseudonym is a join key: the same person's identifier hashes identically across files and dossiers, so an external provider could correlate what redaction exists to keep uncorrelatable. 00 never allows it; the dispatch names it a never_does and it is promoted here to a refused transform."
+    },
+    {
+      "id": "ref-generalization",
+      "refuses": "generalizing transforms (coordinates to city, birth date to age band, account to institution)",
+      "why": "every generalization manufactures a value nobody observed; the product's evidence discipline forbids invented values everywhere else and the gate is not an exception. Where the general fact is legitimately needed, it already exists as a FACT (institution, capture year) and travels as candidate_label or metadata_field."
+    },
+    {
+      "id": "ref-format-preserving-masking",
+      "refuses": "masking that preserves length and format (X99-XX-9999 shapes)",
+      "why": "format-preserving output leaks the value's shape and length, which for short identifier spaces is real information; the class token already conveys the kind without the shape."
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-token-collision-with-source",
+      "question": "A document may itself contain literal text shaped like a class token ('[government_id_number]' in a privacy-policy PDF). The manifest disambiguates for the audit trail, but the MODEL cannot distinguish source text from redaction.",
+      "both_sides": "Escaping source-text brackets alters bytes outside the span (forbidden); accepting the ambiguity costs nothing measurable. Recorded so the choice is deliberate.",
+      "blocked": false
+    },
+    {
+      "id": "unc-overlapping-spans",
+      "question": "Two identifier spans can overlap (an account number inside a longer quoted string that is itself a secret). Apply order matters for manifest bookkeeping.",
+      "both_sides": "Widest-span-first with inner spans recorded as subsumed is the obvious rule; stating it here would be inventing gate mechanics, which are P7's build. Flagged for the implementer.",
+      "blocked": false
+    }
+  ]
+}

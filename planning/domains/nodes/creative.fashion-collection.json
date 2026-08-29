@@ -1,0 +1,99 @@
+{
+  "id": "creative.fashion-collection",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Fashion collection development and launch",
+  "one_line": "A purpose-coherent fashion collection moving from concept and design development through samples, line-sheet communication, production readiness, and launch; an isolated garment image, moodboard, or brand guide is not enough.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A collection packet with a named season or drop, collection concept, coordinated style or look identifiers, and multiple garment design records; the repeated collection identifier across members is stronger than a fashion word in one filename.",
+      "Development evidence spanning at least two lifecycle roles: garment sketches or flats plus a tech pack, fit/sample review, line sheet, production order, or launch asset, with matching style identifiers or collection language.",
+      "A line sheet or wholesale assortment document that maps style numbers to garment names, colourways, sizes, prices or order information and is explicitly tied to a collection or season.",
+      "A production-ready packet containing graded specifications, bill of materials, measurement tables, construction details, sample comments, and factory or delivery instructions for coordinated styles.",
+      "A collection launch packet whose lookbook, campaign selects, product copy, and assortment or release plan share a collection/drop identity and refer back to developed styles."
+    ],
+    "needs_llm": [
+      "deciding whether a set of garments is a coherent collection or merely a designer portfolio, retail assortment, costume wardrobe, or reference board; the model must cite collection-level language and cross-file style evidence",
+      "resolving lifecycle role when a file says sample, proto, salesman sample, production, or launch without a readable style identifier or collection anchor",
+      "separating an internal collection packet from a client engagement deliverable, a brand identity guide, a portfolio case study, or a licensed product reference",
+      "deciding whether an archive is one collection packet when member filenames are heterogeneous but its manifest, repeated style codes, and season/drop references establish a shared workflow"
+    ],
+    "never_alone": [
+      "the words fashion, apparel, collection, capsule, runway, resort, couture, lookbook, season, spring, summer, fall, winter, drop, garment, dress, jacket, or sample alone",
+      "a season or year alone, a style number alone, a SKU alone, or a bare size/colour token",
+      "a garment photograph, runway photograph, sketch, flat, pattern, CAD file, fabric swatch, or mannequin image alone",
+      "a brand, designer, factory, retailer, buyer, model, or celebrity name alone; names can be subjects, counterparties, references, or issuers",
+      "a parent folder named Collection, SS26, Fashion, Samples, Production, or Launch, a download session, or shared-drive membership",
+      "FINAL, APPROVED, SAMPLE, FIT, PROTO, DROP, or version suffixes without collection-level and lifecycle evidence",
+      "a public lookbook, trend report, fashion show image, or downloaded product catalogue without evidence it belongs to the holder's own collection workflow"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "collection concept or moodboard",
+    "garment sketch or technical flat",
+    "tech pack or specification sheet",
+    "pattern or grading file",
+    "fabric and trim material record",
+    "sample or fit review",
+    "line sheet or wholesale assortment",
+    "production order or factory packet",
+    "lookbook or campaign launch asset",
+    "collection archive or handoff packet"
+  ],
+  "grouping_reasons": [
+    "one collection or drop across concept, style development, materials, samples, line sheet, production, and launch materials",
+    "one garment style across its sketch, tech pack, pattern, sample comments, approved specification, and production record when identifiers and revisions agree",
+    "one release or assortment packet when the line sheet, lookbook, product copy, and launch plan share a collection identity",
+    "no collection group for an isolated fashion image, generic trend board, public reference catalogue, or one garment file without collection-level evidence"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: the creative schema currently declares no fields. The lifecycle is a template situation, not permission to mint collection, season, garment, or stage fields here. If the shared creative schema later gains destination-eligible fields, collection or project context should precede lifecycle/artifact values so a terminal work type such as a fit comment or line sheet remains intelligible; this is not time-first because season and launch dates describe the collection's chronology rather than replacing its identity.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "design_creative", "image", "ocr", "archive", "email", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".pptx", ".ai", ".psd", ".svg", ".dxf", ".pat", ".plt", ".jpg", ".png", ".tif", ".zip", ".eml"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {"filename": "AW26_Night_Garden_Collection_Overview.pdf", "source_type": "text_document", "observations": ["overview names a drop and collection concept", "pages map coordinated looks to style identifiers and development status"], "facts_legal": [], "must_not_conclude": ["a folder path", "that every file mentioning AW26 belongs to this collection", "production approval from a concept overview alone"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "NG-014_draped-jacket_flat_v03.ai", "source_type": "design_creative", "observations": ["vector contains front/back technical flats and callouts", "style identifier recurs in the collection overview"], "facts_legal": [], "must_not_conclude": ["a collection fact from the style code alone", "approved production status from v03", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "NG-014_TechPack_RevB.pdf", "source_type": "text_document", "observations": ["specification pages include measurements, construction notes, BOM and tolerance table", "revision history names a sample review"], "facts_legal": [], "must_not_conclude": ["that a factory accepted the style", "that nearby styles share these measurements", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "NightGarden_FitReview_2026-02-11.xlsx", "source_type": "spreadsheet", "observations": ["rows identify styles and sample measurements", "comments record fit changes and next actions"], "facts_legal": [], "must_not_conclude": ["that the date is a collection dimension", "that all comments apply to every garment", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "NG_AW26_Line_Sheet_v5.xlsx", "source_type": "spreadsheet", "observations": ["assortment rows map style numbers to colourways, sizes, wholesale prices and order notes", "header identifies the AW26 Night Garden drop"], "facts_legal": [], "must_not_conclude": ["that a line-sheet style is in production", "retail sales or finance facts from prices alone", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "NG-014_Production_Pack_Approved.zip", "source_type": "archive", "observations": ["manifest lists graded specs, BOM, approved sample photos and factory instructions", "style code and collection identifier recur across members"], "facts_legal": [], "must_not_conclude": ["member facts from archive paths alone", "approval of unrelated styles", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "AW26_Night_Garden_Lookbook_Selects.jpg", "source_type": "image", "observations": ["image shows a model wearing a garment and carries embedded caption metadata naming a look", "matching look identifier appears in the line sheet"], "facts_legal": [], "must_not_conclude": ["that a fashion photograph is a design source", "model identity or usage rights without a release", "a folder path"], "also_schema": "photos", "group_without_copying_facts": true, "falls_through_if_inactive": "One-Off Images"},
+    {"filename": "Collection_Launch_Calendar.eml", "source_type": "email", "observations": ["message coordinates release, wholesale preview and campaign deliverables", "body names the drop and links to a line sheet and lookbook"], "facts_legal": [], "must_not_conclude": ["calendar timing as proof of a collection without linked evidence", "that every recipient is a producer or buyer", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Fashion Trends 2026.pdf", "source_type": "text_document", "observations": ["public trend report contains runway images and seasonal colour commentary", "no holder-owned style identifiers or development records"], "facts_legal": [], "must_not_conclude": ["that the holder designed the depicted garments", "collection activation from season language", "a folder path"], "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Reading Inbox"},
+    {"filename": "Brand Guidelines - Northwind.pdf", "source_type": "text_document", "observations": ["manual specifies logo, colour, typography and permitted identity use", "no garment styles, samples, assortment or production evidence"], "facts_legal": [], "must_not_conclude": ["fashion collection activation from a clothing brand name", "that the guide is a collection packet", "a folder path"], "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"}
+  ],
+  "collides_with": [
+    {"domain": "career.portfolio-work-samples", "signal": "A curated lookbook or runway image can be a portfolio work sample rather than an active collection record. Collection identifiers plus development, production, or assortment evidence support this template; capability framing, selected-work narrative, and audience-facing case-study structure support the career template.", "provenance": "inference"},
+    {"domain": "photos", "signal": "Fashion photographs and lookbook selects may be camera captures or authored launch assets. Camera-origin and event chronology support photos; style identifiers and collection lifecycle evidence support this template. Appearance alone is not discriminating.", "provenance": "inference"},
+    {"domain": "creative.brand-identity", "signal": "A fashion label's brand manual and a collection launch packet may share a brand name and visual assets. Governed marks, identity rules, and permitted-use guidance support brand identity; garment development, assortment, and production evidence support this template.", "provenance": "inference"},
+    {"domain": "creative.client-engagement", "signal": "A commissioned collection may contain a brief, schedule, and deliverables alongside design and production files. Scope, counterparties, fees, and review obligations support client engagement; the collection's garment lifecycle and assortment evidence support this template.", "provenance": "inference"}
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A readable line sheet, tech pack, or production notice with no supported collection group remains a durable standalone record.", "provenance": "inference"},
+    {"residual_template": "Review Later", "why": "Sparse style files, detached sample comments, and mixed archives need review before collection facts are accepted.", "provenance": "inference"},
+    {"residual_template": "Reading Inbox", "why": "Public trend reports, downloaded lookbooks, and fashion references without holder-owned development evidence are reading or reference material.", "provenance": "inference"},
+    {"residual_template": "One-Off Images", "why": "An isolated garment or runway image without collection evidence is not a collection situation.", "provenance": "inference"},
+    {"residual_template": "Temporary Screenshots", "why": "Screenshots of seller portals, fit chats, or launch dashboards remain screenshot material unless their own evidence supports the collection packet.", "provenance": "inference"},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable proprietary pattern or CAD archives remain indexed without forced inspection.", "provenance": "inference"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased designs, technical specifications, factory terms, buyer pricing, launch timing, model images, and licensed fabrics or marks may expose commercial strategy or third-party rights. Protection follows the evidence and rights record, not fashion words or extensions.",
+  "open_question": "NEEDS-JOSEPH: when the creative schema is ratified, decide whether collection/project, lifecycle stage, artifact type, and season/drop are shared canonical fields or whether season remains a value/search facet. Also decide whether a commissioned fashion collection should co-activate this template and creative.client-engagement on disjoint role evidence, or whether client engagement remains the sole activation with this as a later group subtype. No field is proposed here because the current creative schema is intentionally empty."
+}

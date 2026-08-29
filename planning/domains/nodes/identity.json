@@ -1,0 +1,433 @@
+{
+  "id": "identity",
+  "kind": "schema",
+  "schema_id": "identity",
+  "parent_id": null,
+  "name": "Identity",
+  "one_line": "The material that proves who someone is and that unlocks what is theirs: passports and government IDs, birth and citizenship records, visas and immigration paperwork, and credential stores. One of 00's four safety domains - it exists to be DETECTED and PROTECTED before any cloud or automated placement decision, not to be filed. It declares NO field rows (D1 as narrowed / PR-6), so activating it unlocks protection plus the universal facts only, and its recommended home is the Protected Records residual.",
+  "launch": "safety",
+  "provenance": "design",
+  "design_cite": "00 names the domain and its posture outright: 'Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.' It names the material: 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' It names the consequence: 'Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.' And it names the residual home: 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an identity-document term in a high-weight zone (filename, page-one heading, or an OCR region) TOGETHER WITH the document's own labelled slots - a cluster of labelled surname / given-name / date-of-birth / document-number / issuing-authority / expiry fields. This is 00's pattern-plus-context SHAPE ('a course-code pattern together with academic context') transposed; R2 owns the identity-document detector's contents and this row writes no regex and no term list. The term alone is never enough - see never_alone.",
+      "the machine-readable band of a travel document recovered by OCR: two or three fixed-width lines whose structure is itself the evidence, not any word inside them (PROPOSED detector family - 00 does not name it; R2 owns whether it ships). It is named here because it is the one signal on a passport scan that survives a language the OCR stack cannot read, and 00 requires 'appropriate language support including CJK where required'.",
+      "a credential-bearing structured export: labelled column headers forming a credential cluster (a title/username/password/URL-shaped header row) in a spreadsheet or CSV. 00's spreadsheet extraction yields 'column headers' and 'visible cell values' as structured slots, and 00 puts 'authentication key' among the material that must 'enter a protected state immediately'. PROPOSED header terms; R6 owns the patterns.",
+      "a key-shaped labelled block in a structured-text or configuration file - 00's structured-data extraction yields 'schema keys' and 'readable text plus format-specific structure'. The credential is the labelled slot, not the file's extension, and the same file's code facts still stand (see also_holds_with code).",
+      "an encrypted or password-protected container recognized from its signature or manifest WITHOUT being opened. 00: 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open or allowed to become decompression-bomb risks', and 'disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved'. This activates protection, never extraction.",
+      "an immigration or civil form read from its LABELLED form-field slots - table cells, form fields, headers - rather than from body prose. 00: 'resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.'",
+      "a contacts file's labelled name / organization / phone / address slots. This is a PROTECTION-ONLY signal by 00's own rule - contact data 'should normally be privacy-protected rather than used to create folder proposals' - so it may raise protection and may never raise a destination. The source_type alone still activates nothing (never_alone)."
+    ],
+    "needs_llm": [
+      "an OCR'd photograph of a card whose text is unlabelled and partial: deciding it is an identity document rather than a generic image. 00's parallel case is the opaque capture that 'may be a screenshot of a receipt, application portal, conversation, code error, or research figure' - only evidence decides which. STANDING CONSTRAINT on every entry in this list: for this domain the model path is closed by default. 00: protected material 'should not be included in cloud-model prompts by default', and PR-2 puts P7 classification before any model path, so these are local-model or explicit-consent judgements, never a cloud dossier.",
+      "whether a heterogeneous set of files is purpose-coherent as ONE immigration or visa submission rather than an admissions packet or an unrelated pile. 00 permits exactly this judgement - the model 'may identify a shared purpose across a heterogeneous packet' - and the two packet kinds share document kinds (ID, transcript, certificate, form, photo), which is why the discrimination needs language and not a pattern.",
+      "an unlabelled civil record in prose or in a foreign-language layout (a certificate whose issuing authority is stated only in running text) - 00 names 'multilingual documents' among the reasons rules alone are insufficient. Same closed-by-default constraint applies.",
+      "deciding that an image or archive is credential-bearing when nothing is labelled - a photograph of a written-down recovery phrase, a screenshot of a key. The safe outcome is abstention into protection, which 00 already licenses: 'conflicting signals should lead to abstention rather than an invented classification.'"
+    ],
+    "never_alone": [
+      "A PERSON'S FULL NAME. This is the tempting false file for this node: a bank statement, a utility bill, a school letter and a resume all carry a full legal name and an address, and none of them is an identity document. 00 forbids the analogous shortcut for organizations - 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - and the same ambiguity forbids a personal name as sole proof here. 00 also refuses person-as-collector generally: 'It should avoid using authorship or creator identity as a destination dimension.'",
+      "a bare number that looks like a document number. 00's narrow-number rule: files contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'. A digit run beside a name is not an identity fact.",
+      "a substring hit. 00: 'It should use word-boundary matching rather than substring matching' - the design's own example is that 'names such as MIT can be found inside' another word. For this node the failure is literal: 'id' inside identify, video, valid, and 'visa' inside vis-a-vis or a filename fragment. Word-boundary matching is not optional here.",
+      "a filename token alone - Passport.pdf, ID.jpg, Scan of license.png. 00 states the general rule this node inherits: 'filenames alone are too weak for real personal corpora'. A filename observation is a possible clue (P4 D11 caps an extractor at direct or possible); the labelled slots or the OCR region are what raise it.",
+      "a source_type or an extension alone - image, ocr, contacts, opaque_binary, archive, .pdf, .vcf, .kdbx. file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2). An encrypted container is Unsupported-or-Encrypted material by format; it becomes identity material only when something beyond the format says so.",
+      "the ABSENCE of a text layer or of EXIF read as proof of a scanned document. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot' - the mirror error here is treating any textless image as a scanned ID.",
+      "membership in a download session that happened to bundle several PDFs. 00: 'A session should never be treated as proof of topic'.",
+      "a photograph's camera EXIF and capture time. Those are photos-domain evidence; on a photographed passport they are real and they must not be the reading that decides the file's home (see collides_with photos)."
+    ]
+  },
+  "work_types": [
+    "passport",
+    "national identity card",
+    "driver licence",
+    "birth certificate",
+    "citizenship or naturalization certificate",
+    "social insurance or tax identification card",
+    "residence permit",
+    "visa",
+    "immigration form",
+    "entry or travel record",
+    "marriage or name-change certificate",
+    "identity photograph",
+    "password-manager export",
+    "recovery or backup codes",
+    "authentication key or certificate file",
+    "encrypted credential vault"
+  ],
+  "grouping_reasons": [
+    "one document across its copies and rescans - the phone photo, the flatbed scan and the emailed PDF of one passport page. This rides the universal duplicate_family and version_family facts, not an identity fact, and 00's fixity discipline (exact and perceptual hashes) is what supports it.",
+    "a group of ONE is legitimate here, which is unusual. 00: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' The normal size discipline is suspended for this material and only for surfacing it as protected.",
+    "an identity document as a MEMBER of a packet that belongs to another domain - 00's own list: 'An accepted Columbia application packet may include an essay draft, admissions checklist, portal screenshot, transcript, resume, certificate, and identification document.' Membership only; the packet's facts are never copied onto the ID and the ID's protection is never dropped by joining.",
+    "one credential store and its exports, recovery codes and encrypted backups - a structural family, not a semantic one.",
+    "one immigration or visa submission as a purpose-coherent packet. PR-1 applies: no per-domain purpose clone is minted here; the packet activates the nearest roster schema on its own evidence or falls through to residual."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT AND BY SAFETY, not by refusal, and this is the one node where those are the same argument. By contract: a dimension may only branch on a field the schema declares, and this placeholder declares none (D1 as narrowed; _CONTRACT rule 15; PR-6). By safety: 00 says a safety domain exists so 'the system detects and protects them before any cloud or automated placement decision is allowed', and PR-2 spells out that no deep template unlocks from safety activation. There is also a leak argument that is specific to this material and is recorded here so a later part does not have to rediscover it: for identity, THE FOLDER NAME IS THE DISCLOSURE. A tree of document kinds under a protected area publishes its contents in the path itself, and 00 already draws that line at the UI - 'a visible list of passport filenames on a shared screen may not be' - and requires that Protected Records 'must not cause filenames or content to be exposed in model prompts'. The recommendation this row therefore makes, as prose and not as a dimension_order, is: ONE shallow protected area, depth added only by explicit user action, with 00's redaction controls over names, previews, thumbnails and OCR text. 00 also holds the door open the other way - 'a Finance or Identity proposal may be visible as a protected area' - so the area may exist and be visible while its interior stays flat. Whether the protected area may carry ANY depth at all is Joseph's call, not this row's; it is in open_question. Not time-first: nothing here is capture-defined, and 00 reserves time-first for 'Photos and capture-based media'.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "image",
+      "ocr",
+      "text_document",
+      "spreadsheet",
+      "archive",
+      "opaque_binary",
+      "code_structured",
+      "contacts",
+      "email"
+    ],
+    "extensions": [
+      ".jpg",
+      ".heic",
+      ".png",
+      ".pdf",
+      ".csv",
+      ".vcf",
+      ".zip",
+      ".kdbx",
+      ".p12",
+      ".txt"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "IMG_2231.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: make, model, lens, DateTimeOriginal, GPS",
+        "sensor-shaped pixel dimensions",
+        "OCR region over the lower band reads a fixed-width two-line machine-readable structure",
+        "OCR region reads labelled slots: surname, given names, nationality, date of birth, document number, date of expiry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field: the schema declares no field rows (D1 as narrowed), so activation legitimises protection plus the universal facts only. The document number in particular is a value with no field to hold it and must not be minted one",
+        "capture_year, event or location as this file's organizing facts - the EXIF is genuine, and that is exactly the trap: 00 puts protection first, so the capture reading must not be the one that decides this file's home (the photos collision fixture)",
+        "a trip or event association from the GPS coordinates; 00 keeps raw GPS local and a place is not an occasion",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "passport scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF with no extractable text layer; routed directly to OCR",
+        "OCR output carries the same labelled surname / given-names / document-number cluster",
+        "producer metadata names a flatbed scanner's driver, not a person",
+        "no camera EXIF anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field - none is declared",
+        "authored_by from the scanner-driver producer string; 00 treats producer metadata as supporting evidence only and names 'python-docx, Mozilla/5.0, or a browser-generated producer string' as the failure shape",
+        "media_type = scan from the absence of a text layer alone; the labelled slots in the OCR are what support the document reading",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "licence front back.heic",
+      "source_type": "image",
+      "observations": [
+        "HEIC container - 00: 'HEIC support must be included explicitly', and failing to configure the stack for it 'can silently exclude a meaningful portion of an Apple-centric corpus'",
+        "camera EXIF present; two card-shaped rectangles in one frame",
+        "OCR region reads an issuing-authority name, a labelled class and expiry, and a licence-number-shaped run",
+        "perceptual hash near-matches an earlier .jpg of the same card"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field - none is declared",
+        "an identity conclusion from the licence-number run alone; it is a bare number, and 00's narrow-number rule strikes it",
+        "that the near-duplicate .jpg may be deleted or expired - 00: the system 'must not delete files, mark them disposable, or move them out of a protected area without explicit user action'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "I-20 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form-field slots: family name, given name, date of birth, country of citizenship, program start and end dates, a program-identifier-shaped run",
+        "a university name appears in a labelled school-attestation slot with a designated official's signature block",
+        "page-one heading names a government-issued form number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "school from the university name - the name sits in a form's attestation slot, and 00 forbids the shortcut outright: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization'",
+        "term from the program start and end dates; a term fact needs a dedicated term pattern, not any date range",
+        "any identity-domain field - none is declared",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "vault-export-2026-04-02.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row: title, username, password, url, notes, totp",
+        "hundreds of visible cell values under those headers",
+        "arrived in Downloads inside a bounded download session with two unrelated PDFs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field - none is declared; and none of the cell values may be normalised into a value row anywhere",
+        "a purpose shared with the two PDFs from the download session. 00: 'A session should never be treated as proof of topic'",
+        "institution facts from the url column's domains - a credential store lists services, it does not belong to one",
+        "a folder path; and no excerpt of this file may enter a model dossier, because 00 keeps protected material out of cloud prompts by default"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": ".env",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled key=value block; several keys carry secret-shaped names and long opaque values",
+        "sits beside package.json at a real project root",
+        "listed in the sibling .gitignore"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "project",
+        "repository"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field - none is declared; identity co-activates here for PROTECTION while the code facts stand (the also_holds_with code case, not a collision)",
+        "that the code project's facts are erased or downgraded by the protection, or that the whole repository becomes protected because one member is",
+        "a credential VALUE stored anywhere as a normalised value row",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "backup.kdbx",
+      "source_type": "opaque_binary",
+      "observations": [
+        "file signature identifies an encrypted credential-vault container",
+        "no readable text; metadata-only indexing",
+        "size and timestamps only"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any identity-domain field - none is declared, and nothing inside was read",
+        "that the container may be opened, cracked, or unpacked to disk - 00 requires safe metadata-only indexing for 'encrypted containers' and forbids forcing password-protected archives open",
+        "a purpose from the filename alone. 00: 'Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone.'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "ID.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one labelled identity-document image page with a document-number slot",
+        "P3 parent-folder context: the containing directory is a curated, user-created folder whose name states an application purpose (00's Chinese University Application Materials case). Context, not a destination and not a fact",
+        "siblings in the manifest: transcript, personal statement, resume, certificate"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "that packet membership erases the protection, or that protection excludes it from the packet - 00's own packet list contains 'an identification document', and 'One file may hold facts from more than one domain without losing information'",
+        "target_university copied onto this file from a sibling essay; the ID carries no institution of its own and the graph does not copy facts across a neighbourhood",
+        "any identity-domain field - none is declared",
+        "a folder path - the curated parent folder is evidence of user intent, not a destination this row may assert"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Statement Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "account holder's full legal name and mailing address in a page-one header block",
+        "a masked account-number run",
+        "labelled table: statement period, opening balance, transactions, closing balance",
+        "an institution name in the letterhead"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "that identity is active. THIS IS THE COLLISION FIXTURE: a full legal name plus a long number is the tempting false file, and it is a finance record. The discriminating evidence is a labelled statement/account/period structure on one side versus a document's own labelled identity slots on the other",
+        "an identity conclusion from the masked account number - a bare number is never sufficient",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Nursing License 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a person's full name, a licence-number run, an expiry date and a state board's seal",
+        "page-one heading names a professional practice authorisation",
+        "no nationality, date-of-birth or travel-document slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that identity is active because the document carries a person's name, a photo-shaped block, an issuing authority and an expiry - that shape is shared with a government ID and is exactly why this pair collides. The discriminating evidence: an authorisation to PRACTISE an occupation is career material; an assertion of WHO SOMEONE IS or of nationality is identity material",
+        "any identity-domain field - none is declared; and career declares none either (D1 as narrowed), so the honest outcome is the universal facts plus the protection question",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "contacts_backup.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "labelled slots: names, organizations, email addresses, phone numbers, postal addresses",
+        "hundreds of records in one file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any destination proposal at all - 00 says contact data 'should normally be privacy-protected rather than used to create folder proposals'. Contact facts stay search-and-privacy-side",
+        "activation from source_type = contacts; the labelled slots are content, and the format alone activates nothing",
+        "a group formed from a shared organization or domain string across the records - 00 requires suppressing 'generic hubs such as a personal email address or broad university domain'",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan_20260412_0001.jpg",
+      "source_type": "image",
+      "observations": [
+        "no EXIF of any kind; PNG-flat colour profile; scanner-shaped dimensions",
+        "OCR pending at the time of activation - no text evidence yet",
+        "filename is a scanner's default pattern and says nothing about content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "identity, from the word 'Scan' and the absence of EXIF. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and the mirror error - textless image therefore scanned ID - is the same mistake",
+        "any domain at all before OCR lands; when OCR text arrives the activation re-runs under a new cache key and may then fire",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "photos",
+      "signal": "A photograph of an identity document carries genuine camera EXIF, a capture time and often GPS. That one evidence item - the capture metadata - would alone propose capture facts and a photo-event home for a protected record. The discriminating evidence is document-identity wording and labelled slots in the OCR region; where they are present, protection precedes placement. Reciprocal: photos.json already names this pair from its side."
+    },
+    {
+      "domain": "finance",
+      "signal": "The shared evidence item is a person's full legal name beside a long identifying number, which appears on a passport and on an account statement alike. The discriminating evidence is structural: a labelled statement / account / period table is the finance record; a document's own labelled identity slots (nationality, date of birth, document number, issuing authority, expiry) are identity. One evidence item must never count for both. Both sides are safety domains, so a wrong split here costs protection, not just filing."
+    },
+    {
+      "domain": "career",
+      "signal": "A professional licence or board certification carries a person's name, a photo block, an issuing authority, a licence number and an expiry - the same shape as a government ID. The discriminating evidence: an authorisation to PRACTISE an occupation, issued to a role, is career material; an assertion of identity or nationality, issued to a person as such, is identity material. Neither may take the name-plus-number item alone."
+    },
+    {
+      "domain": "medical",
+      "signal": "A coverage card, a vaccination record carried as proof of status, or a hospital-issued card pairs a person's name with an identifier number and an issuing organization - the same item that supports an identity reading. The discriminating evidence: an issuing-authority plus document-type structure asserting who the bearer is (a travel or licence document) is identity; a coverage, plan, member or clinical structure around the same name-and-number pair is medical. A name beside a number discriminates nothing on its own, which is this node's first never_alone. Reciprocal: medical.json names this pair from its side."
+    },
+    {
+      "domain": "legal",
+      "signal": "A civil record - a marriage certificate, a name-change order, a naturalization certificate - carries a full legal name under a government seal, and that item alone supports either reading. The discriminating evidence: a document whose function is to PROVE identity or status to a checkpoint is identity; a document that records a proceeding, an agreement or an order is legal. The pair also carries also_holds_with (a naturalization certificate is genuinely both), so this signal exists to keep ONE evidence item from counting twice."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "college_applications",
+      "signal": "00's own packet list contains an identification document: 'An accepted Columbia application packet may include an essay draft, admissions checklist, portal screenshot, transcript, resume, certificate, and identification document', and the purpose sentence repeats it - 'an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission'. Disjoint evidence: the packet supplies purpose and target_university, the ID supplies its own labelled identity slots. The identity side writes no field rows, so today the join carries protection, not co-extraction. Reciprocal: college_applications.json already names identity. Provenance: design.",
+      "provenance": "design"
+    },
+    {
+      "domain": "code",
+      "signal": "A credential-bearing configuration or environment file inside a real project root is a code artifact and protected identity material at once. 00 places 'authentication key' among the material that 'should enter a protected state immediately', while the project-root marker independently evidences the code schema - disjoint evidence, both readings kept, neither erasing the other. Reciprocal: code.json already names identity from its side. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "A naturalization certificate, a visa refusal notice or a name-change order is identity material and legal material on one file; 00's privacy sentence names 'identity documents' and 'legal records' in the same corpus list, and the roster's own immigration-visa template records that this situation 'Crosses identity and legal safety domains'. Both sides are field-less safety placeholders, so the join carries co-activation and protection only - the same shape CONNECTION uses for finance/medical under PR-8. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "A record can carry a financial institution's labelled statement structure AND a taxpayer or national identification number in a labelled slot - a tax filing is the clearest case. 00's privacy sentence names 'identity documents, account statements, tax records' together, and its protected-state sentence names 'A scanned passport, tax statement, medical document, authentication key, or account record' in one breath. The finance fields extract at launch under local-only rules (PR-2) while identity contributes protection and no fields. This pair ALSO collides on a name-plus-number item, which is why that collision carries a discriminating signal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Unsupported or Encrypted"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 names this material in every sensitivity sentence it writes. The corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'; 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately'; and the residual home 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. Only 00's own phrase is asserted here. The handling class is P7's vocabulary and is deliberately not set, even though this is the domain most likely to want one.",
+  "open_question": "Three, and the second is the one this row most wants answered. (1) NJ-2 as it lands on identity specifically: when the D1 deferral lifts, does this placeholder ever gain field rows at all, or is detect-and-protect-but-extract-nothing the permanent answer for identity while finance keeps its four? A document-number or nationality field would be a stored copy of the most sensitive value in the corpus, which is an argument no other domain has to make. (2) MAY THE PROTECTED AREA CARRY ANY DEPTH? For identity the folder name is itself a disclosure - a path ending in Passport or Visa Denial publishes its contents to anyone who can see the tree, sync it, or back it up, which is why this row recommends one flat area as prose and writes no dimension_order. 00 draws the line at the UI ('a visible list of passport filenames on a shared screen may not be') but says nothing about the filesystem shape, so the depth question is Joseph's and is not resolvable from 00. (3) The needs_llm list is written assuming the model path here is local-model or explicit-consent only, per 00's default that protected material is not sent to cloud prompts. If Joseph wants a cloud-assisted mode to ever see this material, that is a policy decision that changes what this node's needs_llm entries are allowed to mean."
+}

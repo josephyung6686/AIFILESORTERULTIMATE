@@ -1,0 +1,17 @@
+{"case_id": "A06", "wording": "duplicate suffixes on unrelated files",
+ "attacks": "family detection, collision policy",
+ "sections": ["§8.3 (\"a content-hash match supports deduplication review; a filename match alone does not\")"],
+ "assert_against": "stage", "dimension": "grouping", "subject_ref": "A06::family",
+ "expected_outcome_kind": "abstained", "expected_value": null,
+ "forbidden_value": {"merged": true, "basis": "filename_match"},
+ "extraction_runs": [
+   {"run_id": "A06-run-1", "file_id": "A06-file-1", "content_hash": "sha256:A06a",
+    "extractor_name": "text.plain", "extractor_version": "1.0.0",
+    "source_type": "filesystem", "config_fingerprint": "sha256:cfg",
+    "completeness": "complete", "coverage": {"units": "files", "processed": 1, "total": 1},
+    "observation_count": 1},
+   {"run_id": "A06-run-2", "file_id": "A06-file-2", "content_hash": "sha256:A06b",
+    "extractor_name": "text.plain", "extractor_version": "1.0.0",
+    "source_type": "filesystem", "config_fingerprint": "sha256:cfg",
+    "completeness": "complete", "coverage": {"units": "files", "processed": 1, "total": 1},
+    "observation_count": 1}]}

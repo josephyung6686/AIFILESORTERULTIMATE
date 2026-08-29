@@ -1,0 +1,422 @@
+{
+  "id": "construction_property.drawings-revisions",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Drawings, models and revision control",
+  "one_line": "The design information a building is actually built from, and — the narrower claim this pass settles on — the ISSUE APPARATUS around it: the transmittal and drawing register that records which revision of which sheet was released to whom on what date, and the revision-history table on the sheet that records what changed. The anchor is a CONTROLLED ISSUE, not a file version and not a drawing. Absorbs the legacy row cons.drawings-revisions. Placeholder row (J-IND): it writes NO field rows, because the construction_property schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6).",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This template's schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where the sensitivity setting says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a TRANSMITTAL or ISSUE-REGISTER structure: a schedule whose rows are drawing-number-shaped tokens and whose columns are revision, status, issue date and recipients — the document that records WHAT WAS RELEASED TO WHOM. This is the row's primary signal, and this pass demotes the title block beneath it deliberately: the construction_property schema row claims the title block as the FIRST of its own four schema-level structures, so a row standing on the title block stands on its schema's default and is not a node. The register is not among the schema's four. It is also the structure the branch root already concedes to this row, in its own words: “a drawing number plus revision plus status, and the transmittal register that released it, activate the sibling”. Read as a table under 00's licence: “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a REVISION-HISTORY table on the sheet: rows of revision designator, date, description of change and initials. The row's second own structure, and marked CONTESTABLE — it sits adjacent to, and sometimes inside, the bordered zone the schema claims. What makes it arguably separate is that it is a TABLE with a change description, not a set of labelled slots. Same 00 table licence.",
+      "a STATUS word from the issue vocabulary — issued for construction, for information, for comment, preliminary, tender, as-built, superseded, void — appearing as a COLUMN VALUE in the register above, or stamped across a sheet. Inside a title block it is the schema's signal, not this row's; the schema's own wording is a “sheet border with a governed status word inside it”. As a register column it is this row's.",
+      "a TITLE-BLOCK structure — a bordered zone carrying project, drawing number, sheet title, revision, scale, status, originator and date as co-occurring labelled slots. Listed here because it is true and because activation needs it, and explicitly NOT counted toward this row's node test: it is the schema's first leg-2 structure and every sibling inherits it. The gist pass rested the whole row on this signal; that is reversed.",
+      "a TRANSMITTAL or ISSUE-REGISTER structure: a schedule whose rows are drawing numbers and whose columns are revision, status, issue date and recipients — the document that records what was released. It is the register, not the sheet, and it is the row's strongest grouping seed.",
+      "a sheet geometry: a page whose content is line work, a north point, a scale bar and dimension strings rather than paragraphs, at a large sheet size, with little extractable prose.",
+      "a design_creative source_type carrying model or drawing structure — layers, sheets, views, linked asset names — per 00: “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.” This is a file-kind signal and never sufficient alone.",
+      "a drawing-number-shaped token appearing in a LABELLED slot on a covering document (a transmittal line, an email attachment schedule, a register row) together with a revision designator.",
+      "parent-folder context naming a drawing register, an issue sheet, a discipline or a superseded set — a clue only, never firing alone.",
+      "an archive whose manifest lists many members whose names share a drawing-number stem and differ in a trailing designator — read from the manifest without extraction."
+    ],
+    "needs_llm": [
+      "a scanned or photographed sheet whose title block is cropped, rotated or illegible, where the only remaining evidence is the drawn content.",
+      "a PDF export of a model view with no border and no title block — a real deliverable that looks like a visualisation.",
+      "deciding whether a sheet is design information for construction or a marketing floor plan drawn from the same model, where the drawn content is nearly identical and only the annotation differs.",
+      "reading a revision-history description well enough to know whether a change was substantive or a title-block correction — which is what a human actually wants to know and what no rule will supply."
+    ],
+    "never_alone": [
+      "a revision-shaped token alone — 'Rev C', '_v2', '(2)', 'FINAL'. This is the row's constitutional never-alone and the reason it is NOT a version-control node: 00 already makes version family a universal fact and warns that “A content-hash match supports deduplication review; a filename match alone does not.” A trailing designator is as often a sheet, phase, block or export counter.",
+      "a filename that merely looks like a drawing number. It is a short alphanumeric token in the same space as job, order, invoice and matter references.",
+      "a source_type or extension alone. 00 requires that the engine “treat the file extension as a routing signal rather than an assumption about meaning”, and “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.” A .dwg, .rvt or .ifc makes this row plausible and proves nothing; a .pdf proves less.",
+      "a postal address or a street name alone — the family's constitutional never-alone, set by the construction_property schema row on 00's own reasoning about a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a firm, practice, contractor, agency or authority name alone — same reasoning, same sentence.",
+      "the word 'drawing', 'plan', 'layout' or 'elevation' alone — work_type values that appear in marketing particulars, in a householder's extension paperwork and in creative work.",
+      "a bare 4-digit number alone — 00 warns that file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values. Here they are also plot, drawing, valuation and unit numbers.",
+      "a duplicate or version family alone. Membership of a version family is a UNIVERSAL fact about bytes and says nothing about whether the bytes are a controlled sheet."
+    ]
+  },
+  "proposed_context_terms": [
+    "drawing number",
+    "sheet",
+    "revision",
+    "rev",
+    "scale",
+    "do not scale",
+    "north point",
+    "title block",
+    "originator",
+    "discipline",
+    "status",
+    "issued for construction",
+    "for information",
+    "for comment",
+    "preliminary",
+    "for tender",
+    "as-built",
+    "superseded",
+    "void",
+    "transmittal",
+    "issue sheet",
+    "drawing register",
+    "drawing schedule",
+    "amendment",
+    "cloud",
+    "general arrangement",
+    "section",
+    "elevation",
+    "detail",
+    "setting out",
+    "levels"
+  ],
+  "work_types": [
+    "general arrangement drawing",
+    "plan, section or elevation",
+    "detail drawing",
+    "setting-out or levels drawing",
+    "services or coordination drawing",
+    "structural drawing",
+    "as-built or record drawing",
+    "model or federated model export",
+    "sketch or markup",
+    "transmittal or issue sheet",
+    "drawing register or schedule",
+    "revision-history record"
+  ],
+  "grouping_reasons": [
+    "one SHEET across its issues — the same drawing number at Rev A, B, C and D. This is the row's defining group and it is the one place where the universal version_family fact and a domain group genuinely coincide; the group is still established by the drawing number in the title block, not by the filename stem — “A content-hash match supports deduplication review; a filename match alone does not.”",
+    "one ISSUE — everything transmitted on one date under one transmittal, which is the register's own group and is purpose-coherent rather than content-coherent: “The documents are content-incoherent but purpose-coherent.”",
+    "one discipline's set for one job — the architectural, structural or services package.",
+    "the superseded set: members that must stay findable and must never be treated as current. Grouping them is not the same as marking them, and this row proposes no marking mechanism.",
+    "one repeatedly re-exported sheet, joined by duplicate_family alone — the same PDF downloaded four times from a document portal, which is the commonest real state of these files.",
+    "no group at all is valid: a single stray sheet with an unreadable title block is a standalone record. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+    "and the stop rules apply: “when members carry irreconcilable course, institution, project, term, or purpose facts” — two jobs' drawing sets do not merge because their sheet numbers happen to collide, and sheet numbers collide constantly."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question (NJ-CP-1). The recommendation, held as prose: the JOB first (this row lives inside construction-project's branch and inherits its reversal of the family default), then the DISCIPLINE or package, then the SHEET — with revision explicitly NOT a level, because a folder per revision scatters one sheet's history and puts the current and the superseded sheet at equal depth. Revision is metadata and register content, not a place. The gist called this “this row's single strongest dimension recommendation and the reason it differs from its schema's default”; that claim is WITHDRAWN this pass, because the schema anchor had already reached it — its own default paragraph puts document function last and says in terms that “`Valuation 07` and `Rev C` are meaningless without the job.” Restating the schema's conclusion is not differing from it, and the anchor is equally explicit that reversing the property/instruction order “is not a difference that earns a node”. The recommendation is still correct and still worth writing down; it simply earns this row nothing. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "text_document",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "opaque_binary",
+      "spreadsheet"
+    ],
+    "extensions": [
+      ".dwg",
+      ".dxf",
+      ".rvt",
+      ".ifc",
+      ".skp",
+      ".pdf",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".xlsx",
+      ".dwf",
+      ".nwd"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "2431-A-102 Rev C - Ground Floor Plan - ISSUED FOR CONSTRUCTION.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a bordered title-block zone carrying project, drawing number, title, revision, scale, status and originator slots",
+        "a sheet border, a north point and a scale bar",
+        "a revision-history table with four rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares none",
+        "that Rev C supersedes Rev B without the register that says so",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "2431-A-102 Rev B - Ground Floor Plan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same drawing number and title, an earlier revision designator",
+        "a status word reading SUPERSEDED stamped across the sheet",
+        "a byte-different file with a different content hash"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that this file may be deleted or hidden; superseded information must stay findable",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Transmittal 2431-TR-018.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of drawing numbers with revision, status, issue date and recipient columns",
+        "a job reference in a labelled header slot",
+        "no drawn content at all"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a fact about any listed sheet from the register row — the register is evidence about other files, and “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Model.rvt",
+      "source_type": "design_creative",
+      "observations": [
+        "a proprietary format recorded as indexed-but-unreadable",
+        "no reference of any kind in the filename",
+        "a parent folder named after a discipline"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a job or discipline fact from the parent folder alone; folder context never fires alone",
+        "that an unreadable file is empty — “Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text; unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_0912.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a phone photograph of a drawing pinned to a site hoarding",
+        "OCR recovering a partial drawing number and the word ELEVATION",
+        "camera EXIF present, title block cropped at the edge of frame"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a drawing number from a partial OCR token",
+        "a revision, since the revision slot is outside the frame",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "floor plan final FINAL v3 (2).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a filename carrying three separate version-shaped tokens and a duplicate-shaped suffix",
+        "no border, no title block, no scale bar",
+        "room labels and dimension text drawn for a marketing particulars sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a version-shaped filename is a revision; this is precisely the never-alone the row exists to state, and “A content-hash match supports deduplication review; a filename match alone does not.”",
+        "that it is controlled design information — the absent title block is the discriminating evidence, and the agency row is the likelier home",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Drawing issue - 2431 - week 12.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest of eleven members sharing a drawing-number stem and differing in a trailing designator",
+        "a transmittal PDF among the members",
+        "no extraction performed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a revision fact for any member from its manifest name alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "RE_ 2431 revised GA drawings.eml",
+      "source_type": "email",
+      "observations": [
+        "a labelled subject carrying a job reference and the word revised",
+        "an attachment-name slot naming three drawing-number-shaped tokens with revision suffixes",
+        "a body listing what changed"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts onto the attachments from the covering email; each attachment is its own file version with its own evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kitchen layout options.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "three drawn layout options on one page with no border and no numbering",
+        "a supplier's logo",
+        "a residential address matching the holder's own home"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "controlled design information; there is no title block, no revision and no status",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Render - view from the park.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photorealistic rendered exterior view with sky, people and planting",
+        "no border, no scale, no title block",
+        "a scheme name in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a rendered view is design information; creative.architectural-visualisation is the likelier home",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.architectural-visualisation",
+      "signal": "Both are design output about the same building, both arrive as design_creative or image files, both carry a scheme name. The discriminating evidence is the TITLE BLOCK and its status and revision apparatus: construction information is numbered, issued, superseded and built from; a visualisation is a persuasive image with a brief and a round of amends. A scheme name, a .skp and a rendered wall count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.agency-listing",
+      "signal": "A marketing floor plan and a general arrangement drawing can be drawn from the same model and show the same rooms. The discriminating evidence is the title block with a drawing number, revision and status (this row) versus room-area annotation, agency branding and a particulars context (agency-listing). Room labels and dimension strings count for neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.revision-round",
+      "signal": "Both worlds are organised around iterations of one artefact, and both use the words revision, issue and final. The discriminating evidence is CONTROL: a construction revision is a designator in a title block on a sheet released under a transmittal to named recipients; a creative revision round is a client comment cycle on a deliverable. A version-shaped filename supports neither, per this row's first never-alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "A thin but real collision at the file-kind level: parametric and BIM exchange formats are structured data, and a repository of design scripts sits beside a model. The discriminating evidence is a repository marker and project-root signal versus a sheet or model structure with title blocks and views. Neither is decided by extension.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.snagging-defects",
+      "signal": "Added this pass, and the sharpest collision on the row — sharper than the visualisation one the gist led with. That sibling's own words are that it is a TRACKER whose “same document is re-issued repeatedly with a status column changing”, which is, structurally, this row's register almost exactly: a schedule of numbered items, a status column, an issue date, re-issued in sequence. The discriminating evidence is WHAT THE ROWS ARE. This row's register rows are drawing-number-shaped tokens naming OTHER FILES it releases; the snagging tracker's rows are defects pinned to a location and a trade, and it names no files at all. A status column, a re-issue sequence and a revision designator count for NEITHER — they are common to both. Shared fixture bytes: `Handover schedule Rev D.xlsx`, a spreadsheet re-issued at Rev D whose rows decide it — drawing numbers make it this row, defect descriptions make it the sibling, and if the rows are unreadable neither activates and it is Review Later. The sibling's own file does not yet name this row: the boundary is authored one-way here and R1c owes the reciprocal.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The right home when the document is plainly real but its property, instruction or side is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exotic here: CAD and BIM formats recorded as indexed-but-unreadable, and password-protected data-room and tender exports. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone member of this situation with no accepted group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A single site or property photograph with no event, job or set around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "Portal captures and phone photographs of a document on a wall are the tempting false files of this world and belong here when nothing else fires.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Saved visual reference — competitor particulars, detail photographs kept for later, product pages. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two grounds, and this pass demotes both from differentiators to inheritance. First, ordinary commercial confidentiality: unissued design information is a third party's intellectual property, frequently under an explicit non-disclosure obligation. Second, a drawing set is a complete map of a real building's internal layout, access, services and security provisions. The gist called that second ground unusual for this family; it is not — the schema row's own leg 3 already names “a building's security-relevant layout” among ITS grounds, so this row inherits the posture rather than differing on it. Inheriting a posture is not a node test leg. The value stays `potentially_sensitive`; the argument for it is the schema's. The handling class is P7's and is not set here.",
+  "open_question": "Three, renumbered and re-scoped after the withdrawal. (1) NJ-CP-5, RESTATED AND HANDED UP: does POSITION WITHIN A VERSION FAMILY (Rev C rather than Rev D) get an owner at all? The landed G5 work is the evidence that it currently has none — it writes a family value and a reliability state, never a position, and holds the lineage rule open for injection. This row no longer proposes a domain field for it (see `withdrawn_field_proposals`); the question belongs to the universal machinery, because every re-issued document in the catalogue wants the same answer. Alternatives and costs: (a) the injected lineage rule also reports an ordinal or a designator — one answer for the whole corpus, at the cost of specifying a rule 00 does not state; (b) leave it unanswered — costs nothing and leaves the single most useful question in this world unanswerable; (c) a domain field per family — rejected here, it is the D6 defect. (2) Inherits NJ-CP-1 and NJ-CP-2. (3) THE SUPERSEDED MARKER, and this pass found the exact shape of the gap: 00 uses supersession only about the EVIDENCE record — “A newer result should supersede an earlier result while retaining the old observation and the reason it was superseded.” — which is precisely the semantics a drawing set needs, stated about provenance rows rather than about content. Whether that idea is ever exposed for file content is Joseph's call. Alternatives: (a) a status VALUE, which marks nothing and only labels; (b) a P7 concern; (c) out of scope, which is the honest default and what this pass assumes. No mechanism was invented.",
+  "proposed_fields_note": "EMPTY, and deliberately so: the gist pass's one proposal, `revision`, is WITHDRAWN. Recorded here so the withdrawal is auditable for R1c rather than silent.\n\nWHAT WAS PROPOSED: A `revision` string carrying the designator from a sheet's title block (C, P03, 04, T2), destination_eligible false, reliability_ceiling `possible`, adjudicated by R1c.\n\nWHY WITHDRAWN: The gist argued it on POSITION: that 00 makes version family a universal fact — “file type, creation date, language, duplicate family, version family, and sensitivity status” — which establishes MEMBERSHIP but not which member this is, and that position is the whole point of this situation. The argument is not wrong, but it is not this row's to make, on three grounds. (1) The landed G5 work confirms the gap and also shows who owns it: version family there carries a family value and a reliability state, never a position, and it is explicitly never `direct`; the middle is held open for an INJECTED LINEAGE RULE. An unowned universal gap is a question for the universal machinery, not a licence for one of 28 sibling rows to mint a domain key that would then be wanted by every re-issued document in the catalogue — a snagging list, a policy handbook, a programme, a specification. (2) business_operations.policy-handbook faced the same temptation from annual reissue and declined it in terms this row now adopts rather than contradicts: the row “gains nothing from reissue and claims nothing from it.” Two rows minting the same field for the same reason IS the D6 near-duplicate defect. (3) The row does not need it. Leg 2 stands on the issue register, and the register carries the revision as its own CONTENT — a cell in a schedule — not as a fact about the file it names; 00 is explicit that “The graph does not automatically copy those missing facts onto sparse files.” The substance survives as NJ-CP-5, restated as a question for the universal version machinery.\n\nR1c should treat this as a withdrawal to confirm, not a proposal to weigh. PR-6 forbids field rows on this schema in any case and D1's deferral stands.",
+  "node_test_note": "KEPT, on leg 2 alone and on a NARROWER base than the gist pass claimed — argued in full in the memo. Leg 1 (fields): fails, and cannot pass; the schema declares none. Leg 2 (detection signals): PASSES, but only on the TRANSMITTAL / ISSUE REGISTER, with the revision-history table supporting it and marked contestable. The title block is conceded to the schema, which claims it as the first of its own four leg-2 structures; the gist rested the whole row on it and that is reversed. Leg 3 (dimensions): FAILS as a differentiator — 'revision is not a folder level' is the schema anchor's own conclusion, not this row's. Leg 4 (privacy): FAILS as a differentiator — the security-relevant layout ground is the schema's own. CONNECTION section 2 is disjunctive and one clean leg suffices. The single point of failure is therefore stated plainly: if the issue register is not a real, findable structure at corpus scale, this row has nothing left and should be refused."
+}

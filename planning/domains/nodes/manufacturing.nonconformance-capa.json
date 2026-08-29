@@ -1,0 +1,254 @@
+{
+  "id": "manufacturing.nonconformance-capa",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Nonconformance and corrective action",
+  "one_line": "The controlled case opened when an identified product, lot, asset, process or supplier output fails a stated requirement, joining the observed condition to containment, disposition, root-cause analysis, corrective action and effectiveness evidence. It is not a failed measurement by itself, a maintenance repair, a design change, a supplier scorecard or an ordinary task tracker. Placeholder launch at J-DEPTH: the manufacturing schema declares no fields, so this row writes fields: [] and keeps its quality-event-first recommendation in prose.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "schema_default_template": "The manufacturing schema already recognizes nonconformance and corrective-action structures and recommends a quality-event then record-type branch in prose. It also lists nonconformance, deviation, concession, complaint investigation and corrective action as work-type values. This creates a serious duplication charge.",
+    "leg_1_detection_signals": "DIFFERENT in case continuity. The schema default recognizes either an NCR form or a corrective-action form. This row requires a controlled event identity and a linked lifecycle: requirement-versus-observed condition, immediate containment or disposition, accountable investigation/action, and closure or effectiveness evidence. A reject row, defect photograph, task tracker, repair order or quality vocabulary alone does not establish the case.",
+    "leg_2_recommended_dimensions": "DIFFERENT in emphasis and grouping consequence. The schema default is branch-shaped across product/lot, asset and quality-event records. This row makes the quality event the indispensable parent because one event may cross a product lot, supplier, asset and department, and its containment, investigation, actions and verification remain intelligible only together. Product, lot, supplier and date are facets of that case, not rival first-level homes.",
+    "leg_3_privacy_rules": "NOT materially different. The row inherits manufacturing's potentially-sensitive posture. It makes explicit that named reporters, operators and action owners are not destination dimensions, and that defect narratives may expose safety, customer, supplier or personnel information, but those are applications of the schema posture rather than a new policy.",
+    "verdict": "ACCEPT on detection and recommended grouping dimensions; privacy is inherited and is not used to save the node."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "proposed_context_terms": [
+    "nonconformance report",
+    "NCR",
+    "deviation",
+    "containment",
+    "quarantine",
+    "material review board",
+    "disposition",
+    "use as is",
+    "rework",
+    "scrap",
+    "root cause",
+    "five whys",
+    "fishbone",
+    "corrective action",
+    "preventive action",
+    "CAPA",
+    "supplier corrective action request",
+    "SCAR",
+    "effectiveness check",
+    "recurrence",
+    "closure approval"
+  ],
+  "recognition": {
+    "deterministic": [
+      "a controlled nonconformance form with a labelled NCR, deviation or quality-event identifier; affected product, lot, asset or supplier output; a requirement-versus-observed-condition pair; containment; disposition; status; and approval slots",
+      "a corrective-action record that repeats a quality-event identifier and separates correction from root cause, corrective action, accountable owner, due date, implementation evidence and effectiveness verification",
+      "a material-review or deviation disposition whose decision is tied to one identified nonconforming quantity and records rework, repair, use-as-is, return or scrap with approval authority",
+      "a supplier corrective-action request that names the supplier, affected receipt or part, defect evidence, response due date, root-cause response, corrective action and acceptance or closure decision",
+      "a complaint investigation linked by exact case identifier to an affected product or lot, containment decision, investigation conclusion and action or closure record",
+      "a CAPA action log whose rows all carry the same controlled CAPA identifier and distinguish action, owner, due date, completion evidence and effectiveness status; an ordinary action tracker lacks the event and quality lifecycle",
+      "an effectiveness-review record that cites the exact prior event and action, defines what recurrence or process evidence was reviewed, records a conclusion, and carries closure authority",
+      "an email whose subject and body repeat an exact controlled event identifier and whose attachments are the NCR, disposition, investigation or action evidence; the word quality or urgent in a subject never suffices",
+      "an archive whose manifest binds one exact quality-event identifier across the initial report, photographs, disposition, root-cause analysis, action evidence and effectiveness review without assuming unread members share facts"
+    ],
+    "needs_llm": [
+      "a narrative deviation memo that describes the requirement, occurrence and temporary control but lacks a standard form layout",
+      "a scanned handwritten NCR whose boxes remain visually distinguishable but whose labels and selected disposition do not survive OCR",
+      "a defect photograph whose article identity and case link may appear only on a placard or in an accepted packet; the image may join the case without receiving copied facts",
+      "a tracker named Actions.xlsx whose columns may describe CAPA actions, engineering changes, audit findings, project tasks or general operations",
+      "a supplier complaint that may be a one-order procurement dispute, a logistics damage claim or a controlled supplier corrective-action case",
+      "a deviation that authorizes temporary departure from a released requirement and may later cause an engineering change; whether the released definition itself changes is decisive",
+      "an equipment failure investigation where repair evidence, failure analysis and systemic corrective action are interleaved in one report",
+      "a multilingual investigation or effectiveness review whose controlled roles are evident but whose vocabulary is absent from the context catalogue"
+    ],
+    "never_alone": [
+      "the words defect, failure, issue, deviation, quality, NCR, CAPA, corrective, preventive, containment, root cause, rework, reject or closure alone",
+      "a reject or out-of-tolerance measurement alone; it proves an inspection result, not that a controlled quality-event case was opened",
+      "an event-number-shaped token outside a labelled NCR, deviation, CAPA, complaint or corrective-action slot",
+      "a product, part, lot, serial, asset, supplier, customer, site or organization name alone",
+      "an owner, due date, status, approval, signature, priority or traffic-light column alone; ordinary project and operations trackers share them",
+      "a fishbone diagram, five-whys worksheet or risk score alone; analysis method does not establish the object being analysed",
+      "a repair invoice, maintenance work order or returned-to-service signature alone",
+      "a purchase order, return authorization, delivery note, damage photograph or supplier email alone",
+      "a source_type or extension alone; PDFs, spreadsheets, scans, images, email and archives are only routing evidence",
+      "a parent folder named Quality, CAPA, Problems, Complaints or Closed alone",
+      "a bounded download or email session alone; co-arrival is not proof that every member belongs to one event",
+      "missing EXIF, missing text layer or OCR density as proof of a shop-floor defect record"
+    ]
+  },
+  "work_types": [
+    "nonconformance report or deviation record",
+    "containment or quarantine record",
+    "material-review-board disposition",
+    "concession, waiver or use-as-is approval",
+    "rework, repair, return or scrap disposition evidence",
+    "root-cause analysis",
+    "corrective or preventive action plan",
+    "supplier corrective-action request and response",
+    "customer complaint investigation",
+    "CAPA action register for one controlled event",
+    "implementation evidence",
+    "effectiveness review and closure approval"
+  ],
+  "grouping_reasons": [
+    "one exact quality-event identifier across initial report, containment, disposition, investigation, action, implementation and effectiveness evidence",
+    "one nonconforming quantity across inspection results, quarantine labels, review-board disposition and rework or scrap proof",
+    "one supplier corrective-action request across the issued request, supplier response, evidence attachments and acceptance decision",
+    "one complaint investigation across complaint intake, lot trace, investigation, field containment and closure",
+    "one systemic action linked to several source NCRs only when the CAPA itself explicitly cites them; similarity does not merge events",
+    "duplicate and version families remain universal facts, while packet membership never copies a case, product, lot or supplier fact onto a sparse member"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the placeholder manufacturing schema declares no canonical fields. The recommendation retained for R1c is quality event first, then record function or lifecycle stage, with product, lot, asset or supplier used as search facets rather than competing top-level parents. The event is the context required to understand a containment memo, five-whys sheet or effectiveness check; separated by product or year, those records lose the case they answer. This is not time-first because one case can span reporting, action and later effectiveness periods. The user may flatten or reverse a validated proposal later.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "image", "ocr", "email", "calendar", "code_structured", "archive", "opaque_binary"],
+    "extensions": ["pdf", "docx", "xlsx", "csv", "pptx", "jpg", "png", "eml", "ics", "xml", "json", "zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "NCR-2026-041 cracked housing.pdf",
+      "source_type": "text_document",
+      "observations": ["labelled NCR identifier and status", "affected part and lot slots", "requirement and observed-condition sections", "containment and disposition boxes with approvals"],
+      "facts_legal": ["file_type", "creation_date", "language", "quality_event (proposed)", "product (proposed)", "batch_lot (proposed)"],
+      "must_not_conclude": ["root cause from the defect title", "that a disposition checkbox is approved without its signature or status", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CAPA-2026-012 effectiveness review.docx",
+      "source_type": "text_document",
+      "observations": ["CAPA identifier repeated in the header", "prior action and implementation evidence references", "recurrence-review period and result", "closure decision and approver slot"],
+      "facts_legal": ["file_type", "creation_date", "quality_event (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["closure from the filename", "that no recurrence occurred outside the reviewed evidence", "the action owner as a destination", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SCAR-2026-018_Vertex_late-plating-adhesion.pdf",
+      "source_type": "text_document",
+      "observations": ["supplier and affected part in labelled slots", "SCAR identifier and response due date", "defect evidence, containment request and required response sections", "supplier root-cause response and buyer acceptance block"],
+      "facts_legal": ["file_type", "quality_event (proposed)", "product (proposed)"],
+      "must_not_conclude": ["supplier qualification status from one event", "that the named supplier owns the internal CAPA", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NCR-2026-041 containment photos.zip",
+      "source_type": "archive",
+      "observations": ["archive manifest names NCR-2026-041", "members include quarantine-label photographs and a readme", "some images have generic camera filenames"],
+      "facts_legal": ["file_type", "creation_date", "quality_event (proposed)"],
+      "must_not_conclude": ["member facts before members are read", "that every photograph depicts the affected lot", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_9042.jpg",
+      "source_type": "image",
+      "observations": ["cracked metal housing beside a scale", "camera EXIF and capture time", "no part, lot, case or placard visible"],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type"],
+      "must_not_conclude": ["a quality event", "product or lot from nearby files", "that the crack is nonconforming without a requirement", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "LOT-24-081_Final-Inspection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["characteristic rows with limits, actuals and verdicts", "several rows marked REJECT", "lot and part in labelled headers", "no NCR, containment, investigation or action identifier"],
+      "facts_legal": ["file_type", "product (proposed)", "batch_lot (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["a quality_event from REJECT rows", "that an NCR was opened", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WO-8814 CNC-07 spindle alarm.xml",
+      "source_type": "code_structured",
+      "observations": ["work-order and asset identifiers", "failure code, work performed and parts used", "returned-to-service status", "no controlled NCR or CAPA lifecycle"],
+      "facts_legal": ["file_type", "asset (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["systemic root cause", "a corrective-action case from repair completion", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ECR-2026-077 permanently widen coating tolerance.pdf",
+      "source_type": "text_document",
+      "observations": ["current and proposed requirement revisions", "affected drawing and rationale", "engineering approval and effective revision", "NCR-2026-041 cited as origin"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that the change order itself is the nonconformance", "that citing an NCR transfers its quality-event fact", "a folder path"],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Actions.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["columns Action, Owner, Due, Status and Notes", "mixed rows about meetings, purchasing and training", "no case identifier, requirement, containment, disposition or effectiveness fields"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["CAPA from owners and due dates", "quality-event membership from a Quality folder", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Out-of-tolerance impact assessment - LC-1142.pdf",
+      "source_type": "text_document",
+      "observations": ["instrument identifier and calibration interval", "out-of-tolerance result", "list of product inspections potentially affected", "impact conclusion and recall decision", "no separate CAPA identifier"],
+      "facts_legal": ["file_type", "asset (proposed)", "record_type (reuse proposed)"],
+      "must_not_conclude": ["a new quality_event without a controlled event slot", "that every listed inspection is invalid", "copied instrument facts on affected product records", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "SAME FIXTURE BOTH SIDES: LOT-24-081_Final-Inspection.xlsx and NCR-2026-041 cracked housing.pdf. The inspection workbook owns measured characteristic, stated limit, actual and per-row verdict; this row owns the controlled event identifier, requirement-versus-observed narrative, containment, disposition, investigation and closure. A REJECT value alone counts only toward inspection and cannot activate this row; an NCR that quotes a measurement remains this row because the case lifecycle is the discriminating evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.calibration-record",
+      "signal": "SAME FIXTURE BOTH SIDES: Out-of-tolerance impact assessment - LC-1142.pdf. Calibration owns the instrument identity, as-found/as-left result, traceability, interval and recall assessment. This row counts the same file only when it carries a separately labelled NCR/CAPA identifier plus containment, accountable corrective action and effectiveness closure. Out-of-tolerance wording and an impact list alone count toward calibration, not toward CAPA.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.maintenance-work-order",
+      "signal": "SAME FIXTURE BOTH SIDES: WO-8814 CNC-07 spindle alarm.xml. Maintenance owns the asset, failure code, work performed, parts used and returned-to-service evidence. This row owns a separately controlled quality event with requirement departure, containment, systemic cause, corrective action and effectiveness review. Repair completion alone counts only toward maintenance; a cited work order can support a CAPA without becoming the CAPA.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "SAME FIXTURE BOTH SIDES: ECR-2026-077 permanently widen coating tolerance.pdf. Engineering owns current-versus-proposed released definition, affected items, approval and effective revision. This row owns the occurrence under the still-current requirement and its containment/disposition. An NCR citation explains why the change began but counts toward neither side alone; whether the released definition changes is the discriminator.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: Actions.xlsx and CAPA-2026-012 effectiveness review.docx. Business operations owns generic action, owner, due-date, status and meeting-governance structure. This row requires a labelled quality-event identifier plus requirement departure, containment or disposition, root-cause/corrective-action roles and effectiveness closure. Task columns count only toward operations; the quality lifecycle counts toward this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "SAME FIXTURE BOTH SIDES: SCAR-2026-018_Vertex_late-plating-adhesion.pdf. Logistics counts shipment, receipt, custody, quantity, carrier, damage-in-transit and return evidence. This row counts the controlled supplier-quality event, defect against requirement, containment request, root-cause response and accepted action. A supplier name, return number or damaged-goods photograph decides neither side without its own role structure.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": ["Independent Records", "Review Later"],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Nonconformance and CAPA records can expose product defects, safety hazards, customer complaints, supplier performance, proprietary process weaknesses and named reporters, operators or action owners. The row assigns no handling class. Person names and blame language are not destination dimensions, and defect narratives or evidence attachments should not be sent to a model path unless user policy permits it.",
+  "open_question": "NEEDS-JOSEPH NJ-NC-1: should the manufacturing anchor's proposed quality_event become a broader canonical case identifier shared with complaint, incident and investigation schemas, or remain manufacturing-specific? This row mints nothing and recommends the broader key if role boundaries can be preserved. NJ-NC-2: when one CAPA cites several source NCRs, should P9 represent one parent action group linked to several immutable event groups, or may R1c treat them as one quality event? Recommend linked groups, never identifier collapse. NJ-NC-3: does an out-of-tolerance calibration impact assessment activate this row without a separately opened NCR/CAPA? Recommend no; retain calibration and permit group linkage until controlled case evidence appears."
+}

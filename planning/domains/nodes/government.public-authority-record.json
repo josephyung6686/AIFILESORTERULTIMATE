@@ -1,0 +1,274 @@
+{
+  "id": "government.public-authority-record",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Public authority records (branch root) — REFUSED",
+  "one_line": "REFUSED. The roster hint defines this row as a document issued by or addressed to a public body that carries an authority and a record type but no more specific governmental sub-domain — which is not an organizational situation but the ABSENCE of one, sitting on top of thirty named government siblings. Its detection signals are the government schema's own authority-side signals, its dimension order is the schema's empty order, and its privacy posture is the schema's potentially_sensitive default, so it fails all three legs of the node test. The coverage is already held twice over: the government schema's own default template accepts any file that legitimately activates the schema without a sibling situation firing, and 00's residual homes — Independent Records, Protected Records, Reading Inbox, Review Later, Unsupported or Encrypted — hold the standalone official document that never reaches a group. Placeholder row (J-IND / PR-6): it writes NO field rows, because the government schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on all three legs of CONNECTION.md's rule that a template row exists only when its detection signals, recommended dimensions, or privacy rules differ from its schema's default template. (1) DETECTION SIGNALS — identical to the schema's. The government anchor already enumerates authority-side signals for every one of its thirteen work types (legislature packets, rulemaking dockets, public-body governance cycles, funder-side grant files, buyer-side procurement, deciding-side permit and enforcement cases, records-holder-side disclosure work, statistical collection cycles, election operations, citizen casework, public education and cultural administration, intergovernmental programmes). A file carrying authority-side evidence but no sibling-specific structure activates the `government` schema and lands on that default template; there is no further signal for this row to contribute. The only signal that would belong to this row and not to the schema is \"a public body owns it AND no sibling fired\", which is an absence conjoined with an organisation-type token that the schema itself lists first among its never_alone items: \"a government department, regulator, municipality, legislature, court, public school, archive, museum, or official-looking seal alone; the entity may be issuer, counterparty, subject, employer, cited authority, research venue, or service provider\". A row whose entire distinguishing evidence is never-alone can never clear activation. (2) DIMENSIONS — identical, and empty on both sides. PR-6 leaves government fieldless, so neither the schema default nor this row may branch on a field. A branch root that recommends what its schema already recommends is the schema's default template under a second name. (3) PRIVACY RULES — identical. Both carry `potentially_sensitive` for the same reason: authority holdings mix published instruments with casework, submissions, and restricted data. This row proposes no stricter and no looser posture. Contrast the siblings that DO earn their rows on this leg: `government.legislative-record` treats recorded votes and verbatim proceedings as published by design while treating inquiry submissions and pre-introduction drafting as stricter than the default, and `government.constituent-casework` adds cross-person suppression around an intermediary's authority-to-act. This row adds nothing of the kind. Separately, it is a residual wearing a domain's clothes. Its job description is already written and already owned by P10/P11: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" Building it would reinstate the failure mode the roster work exists to end — an industry label whose only content is a name and a one-liner. Refusing costs no coverage and no protection: activation, safety posture, universal facts, and grouping all attach through the `government` schema, which is unaffected.",
+  "fields": [],
+  "proposed_fields": [],
+  "proposed_context_terms": [],
+  "recognition": {
+    "deterministic": [
+      "None of its own. This is the finding, not an omission. After subtracting the thirty named government siblings, every remaining authority-side signal is one the `government` schema anchor already carries in its own deterministic list, and the schema fires on it directly. Everything recorded here exists so a later reader can check the refusal rather than take it on trust.",
+      "The residue that is genuinely NOT covered by a sibling is a public body's internal corporate paperwork — its device register, staff rota, facilities log, internal budget, purchase card statement. Those are business_operations shapes whose only claim to this schema is owner type. `business_operations.it-asset-inventory` reached the same conclusion from its side and left the edge unauthored, recording that \"the confusion is about the *owner type*, which the schema anchor already handles at family level\"."
+    ],
+    "needs_llm": [
+      "Nothing is routed here. An officially-shaped file that matches no sibling situation is the ordinary ambiguous case: it goes to the bounded model step against the `government` SCHEMA, and to a residual home if nothing lands. The design's abstention rule governs, not a catch-all row."
+    ],
+    "never_alone": [
+      "a government department, regulator, municipality, legislature, court, public school, archive, or museum name, or an official-looking seal, alone — the whole of this row's residual candidate evidence, and the reason it cannot exist. The body may be issuer, counterparty, subject, employer, cited authority, research venue, or service provider, and the roster hint's own phrase 'issued by, or addressed to' collapses two opposite custody roles into one row.",
+      "'issued by OR addressed to a public body' offered as a two-role relation. It is not one. 'Addressed to' is the recipient's custody, which the schema anchor already excludes: \"an authority-issued permit, licence, tax notice, benefit letter, identity card, visa, voting confirmation, filing acknowledgement, or registry extract held by the recipient\" is never-alone for this schema. A disjunction of a role and its opposite resolves nothing about which side the holder is on, and holder side is the only thing the whole `government` family turns on.",
+      "'no more specific sub-domain applies'. An absence is not a signal, cannot be extracted as evidence, and cannot be checked against a file. It is a routing rule about the sibling set, and routing rules of exactly that shape are what the residual library is.",
+      "a .gov-style domain, government email address, coat of arms, letterhead, footer, PDF producer string, or metadata author alone.",
+      "a parent folder named Government, Council, Public, Regulatory, Civic, or Policy alone.",
+      "a shared download session of official PDFs; \"A session should never be treated as proof of topic\".",
+      "a file extension or source_type alone; the design says to \"treat the file extension as a routing signal rather than an assumption about meaning\"."
+    ]
+  },
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case by binding contract: the government schema declares no field rows under PR-6, so no destination-eligible field exists to order. The absence of a distinguishing dimension order is itself part of the refusal — the schema anchor already records the only recommendation there is, that authority-side function or bounded proceeding comes before an exact reference and then work type, that named people must not become the organizing dimension, and that time is not first because \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" This row would restate that sentence and change nothing in it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Retention and Disposal Schedule - Planning Function - v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for record series, minimum retention, trigger event and disposal action",
+        "an issuing authority block and a version marker",
+        "no transfer instrument and no accession reference anywhere in the workbook"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — the schema anchor's own default template already accepts a records-management instrument as authority-side work",
+        "a government fact of any kind; the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Improvement notice - 18 River Court - received.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a safety regulator's letterhead, an inspector's signature block and a case reference",
+        "a stated contravention and a remedy-by date",
+        "an addressee block naming the duty holder, filed beside the site's own method statement"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — THE COLLISION FIXTURE. It carries every surface feature the roster hint asks for (a public authority, a record type, a reference) and it is the RECIPIENT's copy. The same reference number appears on both custodies, so the reference discriminates nothing; the addressee block does. This belongs to construction_property.site-health-safety",
+        "that the issuing letterhead proves issuing custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Annual Return 2026 - Example Holdings - filing acknowledgement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a registry's acknowledgement block with a submission reference and timestamp",
+        "the filer's company name and number",
+        "no case-handling structure and no statutory power exercised"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — a received acknowledgement held by the filer is business_operations.corporate-regulatory-filings, and the government schema lists the recipient's registry extract as never-alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Complaint CC-2026-0442 - final response - Council Complaints Team.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a public letterhead, a complaints-scheme reference, a named individual, findings and a remedy offer",
+        "exactly one public body in the document, acting as respondent",
+        "no second office and no signed authority to act"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — `government.constituent-casework` already argued this fixture against this id, and it resolves to the respondent authority's own record on the `government` schema default, not to a branch root",
+        "that a reference token plus a public letterhead constitutes a situation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Post registry transfer 2026 - retired consular files.zip",
+      "source_type": "archive",
+      "observations": [
+        "an archive manifest listing retired file series and a covering transfer note",
+        "an origin post operating outside its own state, addressing a capital",
+        "an accession line naming the receiving repository"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — three landed rows already contest these bytes (`government.diplomatic-consular` on the post/sending-state/host-state triangle, `government.archives-recordkeeping` on the accession line). None of the three resolutions needs a branch root; whatever is left over is the schema default",
+        "unpacking the archive to strengthen recognition; the manifest is read without extraction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Council device register - ICT asset list Q3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "asset tag, model, serial, assigned user and location columns",
+        "a council name in the header row",
+        "no statutory power, no case reference, no public-function workflow"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — this is the strongest remaining candidate for a branch root and it fails: its only claim to `government` is owner type, which is never-alone. The shape is business_operations.it-asset-inventory, which considered this exact file from its side and deliberately left the edge unauthored",
+        "that a public employer's name converts an operational register into public-function evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Election Count Reconciliation - North District.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "ballot-account rows that must balance, station identifiers and adjudication columns",
+        "a returning officer block",
+        "an upstream contest identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — `government.elections-administration` authored its boundary against this id over exactly this fixture, and the fixture is the government SCHEMA's own file_example. That is the refusal in one line: the branch root and the schema default are competing for bytes the schema already holds",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scheme of Delegation - Example Agency - adopted 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered clauses delegating named statutory functions to post-holders",
+        "an adopting body, an adoption date and a review clause",
+        "no proceeding, no case reference and no cycle identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — the honest observation is that this is the one pile the branch root gestured at that no sibling squarely holds (see open_question), and the fix is a narrow named row for public-body constitutional instruments, not a catch-all. Minting a replacement id is outside a single node agent's remit",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statutory guidance for local authorities - August 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a department's publication furniture, an ISBN-style identifier and a publication date",
+        "policy prose addressed to authorities in general",
+        "no addressee, no reference to the holder and no workflow around it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row — publication by government is not authority-side custody, and a downloaded instrument held for reading is reading material",
+        "that official vocabulary or a departmental crest constitutes evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 - Grants portal assessment.png",
+      "source_type": "image",
+      "observations": [
+        "screen-origin evidence present in the capture metadata",
+        "OCR text showing a portal chrome and an assessment panel"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row from OCR density; \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and the converse holds too — a screen capture of an official portal is a capture, not a custody",
+        "that a portal name establishes a programme or a case",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Citizen case management backup.gdb",
+      "source_type": "opaque_binary",
+      "observations": [
+        "an unknown database container with no readable manifest",
+        "a filename suggesting named-person casework"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation of this row from the filename; a name cannot manufacture a case, a body, a sensitivity finding, or a group",
+        "forced inspection of the container to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home this refused row was really describing, already written and already owned by P10/P11: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" A standalone public notice, permit, licence, published decision or civic confirmation with durable value and no authority-side workflow lands here.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home when an unattached official document carries a named individual's casework, identity, benefit, immigration, complaint or election data. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Refusing the row costs nothing in protection, because this posture attaches through P7 and the schema, not through a branch root.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for a law, judgment, statutory guidance, official-statistics release, consultation paper or government report held for reading rather than as authority-side work. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a document that looks official or administrative but whose holder role, public-body status, or operational purpose cannot be settled safely — including the public body's internal corporate paperwork whose only government evidence is owner type. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an encrypted archive, case-system backup, damaged export or unknown binary that cannot yield evidence beyond metadata. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded even though the row is refused, so the refusal cannot be read as weakening protection for the files it would have caught. Authority-adjacent documents routinely carry named individuals — casework, complaints, benefits, immigration, submissions, evaluator declarations, election operations — and the design's operative limit governs regardless of which template holds them: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\" That limit attaches through P7 and the `government` schema, which already carries this same value and reasoning; that identity is itself the third leg of the refusal. This entry assigns only the catalogue value `potentially_sensitive` and assigns, aliases, ranks, and infers no handling class.",
+  "open_question": "NEEDS-JOSEPH (two items). (1) Nine landed rows author a `collides_with` edge naming this id — `government.legislative-record`, `government.elections-administration`, `government.emergency-management`, `government.constituent-casework`, `government.archives-recordkeeping`, `government.diplomatic-consular`, `business_operations.board-governance`, `business_operations.corporate-regulatory-filings`, `construction_property.site-health-safety` — and several use 'the generic authority-side default' and this id interchangeably in the same sentence, which is the refusal's own best evidence. This row does not edit them. R1c must decide whether each edge is re-pointed at the `government` schema (recommended: the boundary argued is a schema-level holder-side boundary in every case) or whether the id is retained as an alias target. (2) One real pile may have been thrown away with the branch root: a public body's own constitutional and governance instruments — constitution, standing orders, scheme of delegation, members' register of interests, code of conduct, statement of accounts — which `government.municipal-administration` holds for a council but no row holds for a non-municipal agency, regulator or trust. If that is what the branch root was for, the honest fix is a NEW narrow row named for that situation, not the reinstatement of a catch-all. This row does not create one, because minting a replacement id is outside what a single node agent may do."
+}

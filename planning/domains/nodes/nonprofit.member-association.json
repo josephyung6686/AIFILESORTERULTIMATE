@@ -1,0 +1,530 @@
+{
+  "id": "nonprofit.member-association",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Membership roll, dues and members' meetings",
+  "one_line": "The association's own record of WHO BELONGS TO IT and of the members acting as a body: the roll or register whose row unit is one person's STANDING (a membership number or class, a join date, a lapse or resignation date, a subscription status, an entitlement to vote), the subscription run made across that roll, the members' general meeting instrument whose quorum and vote count are computed AGAINST the roll (notice period, motion or resolution, proxy, ballot, scrutineer return), and the affiliation record by which a small body - a campus society, a branch, a local club - is recognised by a host federation on condition that it keeps a roll and holds a meeting. It absorbs the legacy row acad.student-organization. It is NOT activated by the words member, club, society, association or union, by a membership certificate, by a subscriber list, or by an organisation being a membership body - every association in this schema has members, and the organisation type is a forbidden sole activator. It does NOT hold the board's or trustees' own meeting (business_operations.board-governance), the constitution and regulator returns (nonprofit.governance and business_operations), the gift line that buys nothing (nonprofit.fundraising-donor), a register of RITES (nonprofit.religious-institution), one member's own dues notice (finance.hoa-residents-association), or a paid subscriber list conferring no vote (business_operations). Declares no field rows under PR-6; activation unlocks recognition, a collapsed folder recommendation forced by a privacy rule, and an artefact-level protection the schema does not state.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION. The nonprofit schema's own gate runs first and is not weakened here: the evidence must name a non-exchange relation between two labelled parties. This row's addition is a SECOND gate, and it is what makes the row a node rather than a restatement of the schema: the artefact's ROW UNIT, or its constituency, must be one PERSON'S STANDING IN THE BODY - not a payment, not a case, not a gift, not a fund. Standing means a membership number or class, a join date, a lapse, resignation or expulsion date, a subscription status, or an eligibility to vote. Where the row unit is a transaction, a beneficiary, a grant or a rite, another row owns it and this one abstains.",
+      "A ROLL OR REGISTER OF MEMBERS: one row per named person or affiliated body carrying at least two of - a membership number, a membership CLASS (full, associate, student, honorary, life, retired, affiliate), a join or election date, a lapse, resignation or expulsion date, a subscription or dues status, a voting-eligibility marker. The class column is the strongest single discriminator in the family because a class exists to carry DIFFERENT RIGHTS, and rights are what a customer list does not have. A name-and-email-and-address list with none of these is a contact list and does not fire.",
+      "THE ROLL-QUORUM TIE, and it is this row's most distinctive structure because no other structure in this schema has it: a meeting instrument whose quorum, notice entitlement or vote denominator is stated as a function OF THE REGISTER - a quorum expressed as a proportion or count of members entitled to attend, an electorate size quoted from the roll on a scrutineer's return, a requisition signed by a stated number of members. A grant report, a fund statement, a case file and a rite register each stand alone; a members' meeting instrument is unintelligible without the roll behind it.",
+      "A MEMBERS' GENERAL MEETING INSTRUMENT: a notice stating a period of clear days before the meeting, an agenda carrying NUMBERED RESOLUTIONS distinguished by the majority they require (ordinary, special, extraordinary), a proxy or ballot form appointing another to vote resolution-by-resolution, a poll or show-of-hands result with votes for, against, abstained and spoilt, and a scrutineer or teller return. The constituency is the membership. A meeting whose constituency is a board, a committee of directors or a body of trustees is business_operations.board-governance and this row does not take it.",
+      "A SUBSCRIPTION RUN ACROSS THE ROLL: a workbook, ledger or export with one row per member carrying an amount due derived from the member's CLASS, a paid or unpaid or lapsed status, a last-paid date and a reminder or suspension stage. It is the roll seen through money. The single dues notice addressed to one member is the MEMBER's record and is finance.hoa-residents-association's shape, not this one; the run that generated a thousand of them is this row's.",
+      "A LAPSE-AND-REINSTATE LIFECYCLE, expressed as revision in place: a register carrying a status column that changes (current, in arrears, lapsed, resigned, expelled, reinstated), a suspension or expulsion instrument citing a rule of the constitution and an appeal route, or a dated pair of roll snapshots whose difference is a set of joiners and leavers. A record that is revised in place rather than accumulated is characteristic of a roll and is precisely what distinguishes it from a register of events; nonprofit.religious-institution's rite register is never revised, only annotated.",
+      "AN AFFILIATION OR RECOGNITION RECORD where the MEMBER IS AN ORGANISATION: a campus society's annual re-registration with a students' union, a branch's affiliation to a national federation, a club's membership of a governing body - a form carrying the affiliated body's name, its office-holder slots, a member headcount, an affiliation fee scaled to that headcount, and a condition that a constitution and an annual general meeting exist. This is the absorbed acad.student-organization coverage, and it is the same structure with the row unit promoted from a person to a body.",
+      "A MEMBERSHIP-CARD, CERTIFICATE OR ENTITLEMENT artefact carrying a membership number and a validity period AND an accompanying roll, run or meeting structure. Named here with its own dependency because the certificate alone is the family's most common isolated file and must not fire on its own - it names a body and a number and resolves no relation.",
+      "An ARCHIVE MANIFEST whose member paths repeatedly encode a membership year, a branch, an AGM, a ballot or a roll export - inspected without unpacking, using what 00 says an archive yields: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\".",
+      "A LABELLED-SLOT reading of any of the above from 00's direct-fact path, \"a labeled form field\": Membership No., Member Class, Date Joined, Date Lapsed, Subscription Status, Proxy Appointed, Resolution 1, Votes For, Electorate, Affiliation Fee. Position is weighted for the reason 00 gives - \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\".",
+      "An email or calendar record whose structured slots tie it to an ALREADY EVIDENCED roll, run, meeting or affiliation - a notice circulated to a members' distribution list with the notice-period language in the body, a meeting event whose description carries the resolution numbering. A membership mailing list, a newsletter or a renewal-reminder template alone never fires."
+    ],
+    "needs_llm": [
+      "The row's whole existential question, and it is a judgement no rule settles: whether the payment on the page BUYS RIGHTS or BUYS GOODS. A subscription that confers a class, a vote and a standing in the body is this row; a subscription that confers a magazine, a discount and a renewal price is a customer relationship and is business_operations. The vocabulary is identical on both sides and the discriminating evidence - a class carrying differential voting rights, a constitutional reference, a meeting entitlement - is often present only once and in small print.",
+      "Deciding the SIDE, inherited from the schema and sharper here because both sides hold rolls: the association holding its own register, against a federation holding the affiliated bodies' registers, against a member holding their own card and notice. A roll in a corpus does not say whose roll it is.",
+      "Separating a members' general meeting from a board or trustee meeting when the instrument is unlabelled - a small association's committee, council or executive frequently uses the same document furniture as its AGM, and in the smallest bodies the two constituencies are nearly the same people. Default to business_operations.board-governance and route here only on an evidenced membership constituency.",
+      "Recognising an unlabelled roll: an exported table with generic column names, a scanned sign-in sheet, a handwritten book photographed page by page, or a roll flattened into a PDF with the class column lost in layout.",
+      "Distinguishing an operative roll from a downloaded exemplar - a model constitution, another society's published member list, a governing body's specimen affiliation form, a template AGM notice. Topic will not separate them; \"purpose answers what the file was for\" is the only test that works.",
+      "Judging whether a member list is the association's own register or a purchased, scraped, inherited or shared mailing list, which changes the routing and the protection owed - inherited from the schema and applying with full force to this row's central artefact.",
+      "Abstaining whenever standing cannot be evidenced: \"A model that cannot cite sufficient evidence must return unknown.\", and for this row that abstention is common and correct."
+    ],
+    "never_alone": [
+      "THE ORGANISATION TYPE. That a body is a membership organisation, a club, a society, an institute, an association, a union or a federation is the single most dangerous token for this row and it is struck first, because EVERY association the nonprofit schema recognises has members. Read across by inference from \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" - the reasoning is about role ambiguity and it applies identically: a society's name on a page says nothing about whether the artefact is its roll, its budget, its poster or its lease.",
+      "THE WORD MEMBER, and a document-type word beside it. Member, membership, subscription, dues, joining, renewal, AGM: a role word or a document-type word names no labelled party and resolves no relation. This is the two-role escape route business_operations.organisational-records closed and nonprofit.political-campaign was refused for reopening, and it is closed here for the same reason.",
+      "A MEMBERSHIP NUMBER OR CERTIFICATE ALONE. A bare identifier is 00's own excluded shape read across - a number is a number; a certificate names a body and a person and states no structure. On its own it is Independent Records.",
+      "A LIST OF PEOPLE. A contacts export, a mailing list, an attendee list, a distribution group, a staff directory and a members' roll are the same bytes at a distance. Without a class, a join or lapse date, a subscription status or a voting marker, a list of people is a list of people and this row must not fire on it.",
+      "A PAYMENT OR RENEWAL CONFIRMATION for a subscription. A processor's receipt for an annual fee is transactional and belongs in Receipts and Confirmations absent the roll or the meeting structure; the fee proves money moved, not that a standing exists.",
+      "BALLOT OR MEETING VOCABULARY ALONE - nomination, ballot, proxy, quorum, scrutineer, resolution, teller. Named explicitly because three landed government rows compete on exactly this vocabulary: government.elections-administration states that \"Ballot vocabulary alone never decides it, in either direction\", and this row accepts that in both directions.",
+      "A PERSON'S NAME ALONE, in any of this row's roles. The strictest instance of the schema's own rule: the whole privacy claim here is that a roll is a list of named third parties, so a bare name is simultaneously the least discriminating evidence and the most dangerous."
+    ]
+  },
+  "proposed_context_terms": [
+    "membership number",
+    "member class",
+    "full member",
+    "associate member",
+    "honorary member",
+    "life member",
+    "date joined",
+    "lapsed",
+    "in arrears",
+    "resignation",
+    "expulsion",
+    "reinstatement",
+    "subscription",
+    "dues",
+    "annual subscription",
+    "renewal",
+    "register of members",
+    "roll",
+    "membership year",
+    "annual general meeting",
+    "extraordinary general meeting",
+    "notice of meeting",
+    "clear days",
+    "quorum",
+    "ordinary resolution",
+    "special resolution",
+    "proxy",
+    "poll",
+    "scrutineer",
+    "teller",
+    "votes cast",
+    "spoilt",
+    "electorate",
+    "entitled to vote",
+    "requisition",
+    "affiliation",
+    "affiliation fee",
+    "constituent body",
+    "branch",
+    "chapter",
+    "society registration",
+    "students' union",
+    "good standing"
+  ],
+  "work_types": [
+    "membership register or roll, its snapshots, and its exports",
+    "joining, renewal and resignation instrument for one member, held on the association's side",
+    "subscription or dues run across the roll, with arrears and reminder stages",
+    "lapse, suspension or expulsion instrument and its appeal record",
+    "membership class and rights schedule",
+    "notice, agenda and numbered resolutions of a members' general meeting",
+    "proxy and ballot form, poll result and scrutineer or teller return",
+    "requisition for a meeting signed by members",
+    "officer or committee election record where the electorate is the membership",
+    "affiliation or recognition record where the member is an organisation, including campus society re-registration",
+    "membership card, certificate or entitlement issued by the association"
+  ],
+  "grouping_reasons": [
+    "one MEMBERSHIP YEAR: the roll as it stood at the start, the subscription run made across it, the joiners and leavers, the meeting notice sent to it and the result declared against it. Content-incoherent and purpose-coherent, which is 00's own licence for the group - \"The documents are content-incoherent but purpose-coherent.\"",
+    "one GENERAL MEETING as a packet: notice, agenda, papers, proxies received, poll result, scrutineer return - joined by the meeting's own date and resolution numbering, not by the association's name.",
+    "one AFFILIATION CYCLE for a small body: the re-registration form, the constitution submitted with it, the officer list, the headcount and the fee.",
+    "one ROLL ACROSS SNAPSHOTS as a version family rather than as unrelated spreadsheets, which is the group business_operations cannot form because it has no standing axis.",
+    "no group at all is a valid and common outcome here - a single membership card, a single renewal confirmation, a single downloaded model constitution. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+    "and the stop rules apply as written: two associations' rolls do not merge, two branches' rolls do not merge, a members' meeting does not merge with a board meeting, and \"The graph does not automatically copy those missing facts onto sparse files.\" - a membership year read from a roll is not copied onto a bare proxy form that happens to sit beside it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract - a dimension may only branch on a field the same schema declares and the nonprofit schema declares none (PR-6, _CONTRACT rules 10 and 15). The recommendation is held as PROSE, and it differs from the schema's default paragraph in a way that is FORCED, not preferred, which is this row's third node-test leg. The schema's default is: association, then the NON-EXCHANGE COUNTERPARTY OR FUND (the grant, the restricted fund, the appeal, the case, the register), then the period, then the document function. This row CANNOT USE THE COUNTERPARTY LEVEL AT ALL, because its counterparty is a natural person and the schema's own rule forbids a named member as a folder level; a grant row can branch on the grant, a fund row on the fund, and this row on nothing equivalent. The counterparty level therefore collapses and the recommendation becomes: the ASSOCIATION only where the corpus genuinely spans more than one and never in a single-association corpus, where it is \"use an author or organization merely as a collector\" and would \"create meaningless one-child levels\"; then the MEMBERSHIP YEAR OR GOVERNANCE CYCLE, promoted into the vacated slot; then the DOCUMENT FUNCTION - roll, subscription run, meeting, affiliation. The promotion is not a preference for time and does not make this row time-first: a membership year is a CONTENT period that defines which roll this is, not a capture date, and 00's rule stands - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A second rule binds here beyond the schema's: a MEMBER CLASS may not be a folder level either, however tempting a small branching factor makes it, because a class such as student, retired, clergy, apprentice or overseas discloses a protected characteristic of every person filed beneath it. And whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "calendar",
+      "archive",
+      "contacts",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".zip",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Membership register 2026 - full roll.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named person with columns Member No., Class, Date Joined, Date Lapsed, Subscription Status, Entitled to Vote",
+        "class values drawn from a small closed set - Full, Associate, Student, Honorary, Life",
+        "a second sheet listing class subscription rates and the voting rights attached to each class",
+        "no institution name, no account number, no gross-to-net columns anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any nonprofit fact - the schema declares none",
+        "the named members as stored values, and under no circumstances as folder levels or as excerpted rows in a model prompt: this single artefact discloses the affiliation of the entire membership at once",
+        "that a class column licenses a class folder level",
+        "that it is an hr staff list - there is no gross-to-net structure; or a customer list - a customer has no class carrying a vote",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "AGM 2026 - Notice, agenda and resolutions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a notice stating a period of clear days before the meeting and naming the persons entitled to attend as the members",
+        "numbered resolutions labelled ordinary and special, each stating the majority required",
+        "a quorum clause expressed as a count of members entitled to vote",
+        "a proxy appointment deadline and a form reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that it is a board or trustee meeting. THE CONSTITUENCY IS THE DISCRIMINATOR: quorum computed on the membership and resolutions put to members make it this row; a directors' or trustees' constituency with apologies, numbered papers and a board pack makes it business_operations.board-governance, whatever the association's charitable status",
+        "that a resolution was carried, valid, or has any effect - the notice is a proposal document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Proxy form - A Okafor - AGM 2026 - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a member-number slot and a named appointee",
+        "a resolution-by-resolution grid of for, against and at the proxy's discretion",
+        "a signature and a return-by date",
+        "no shareholding, no number of shares, no unit or plot reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any proxy card is this row's. A company or fund proxy card carrying a SHAREHOLDING count is business_operations or finance - one-member-one-vote against votes-weighted-by-holding is the discriminating evidence; an owners' or residents' proxy carrying a UNIT or PLOT reference is finance.hoa-residents-association",
+        "the appointing member's name or voting intention as a stored fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Subscription run 2026 - arrears and reminders.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per member number with amount due, class rate, last paid date, status and reminder stage",
+        "a suspension column citing a rule number of the constitution",
+        "totals by class rather than by product",
+        "no institution or account header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money owed is finance. The absence of an institution and an account is the discriminating evidence, and the presence of a class-derived rate is the positive one",
+        "that it is business_operations accounts-receivable - a customer owes for goods delivered, a member owes for standing held",
+        "the arrears status of a named person as a stored fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Committee election 2026 - scrutineers' return.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "candidate names with votes cast, spoilt papers and abstentions",
+        "an electorate size stated as the number of members on the roll at a closing date",
+        "two scrutineer signatures and a declaration of the result",
+        "no public electoral register reference and no statutory returning officer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that ballot furniture makes it a public poll. The electorate's BASIS is the discriminator - membership of a private association here, registration on a public electoral roll and a statutory administering office at government.elections-administration",
+        "that a result licenses an officer fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Society affiliation form 2026-27 - Photographic Society.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a host body's form re-registering a campus society for the year",
+        "office-holder slots for president, secretary and treasurer with student identifiers",
+        "a member headcount and an affiliation fee scaled to it",
+        "a checklist requiring a constitution and an annual general meeting to exist",
+        "a signature block for the host body's officer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "an academic fact. A university or students' union name on the form is a HOST, not a school fact, and 00's own warning applies - the same institution name can appear as authoring school, course provider, employer or merely a cited organization. No school, term, subject or instructor fact may be written from this page",
+        "that the attached constitution comes here - the governing document is nonprofit.governance's; this row holds the affiliation relation and the headcount",
+        "the named student officers as stored facts or folder levels",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_4472.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a paper sign-in sheet at a branch meeting, taken on a phone with intact capture metadata",
+        "OCR of the sheet yields a date, ruled rows of handwritten names, a column headed Memb. No. and a column headed Card Checked",
+        "a printed footer naming the association and a branch",
+        "handwriting is partly illegible and several rows OCR to nothing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the OCR'd names as facts. This is the family's cheapest privacy failure: a photograph of an attendance sheet turns an unread paper record into machine-readable affiliation data for everyone on the page",
+        "that an attendance sheet is a roll. Attendance records who came; a roll records who belongs. The membership-number column is what makes it evidence at all, and it is weak evidence on its own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Membership export 2026-06-30.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing roll.csv, subscriptions.csv, mailing_preferences.csv and a readme naming a membership database product",
+        "member paths repeatedly encoding the same membership year",
+        "an uncompressed size far larger than the archive",
+        "no password prompt recorded"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything read by unpacking. \"the normal scan should never extract archive contents to the filesystem\" - the manifest is the evidence",
+        "that a database product name identifies whose record it is; the tool identifies who produced the bytes",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Subscribers 2026 - active.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per named person with columns Name, Email, Plan, Renewal Date, Amount, Delivery Address",
+        "plan values naming tiers with different entitlements - Digital, Print, Print plus Digital",
+        "no membership number, no join or lapse date, no voting column",
+        "no reference to a constitution, a meeting or a class of member"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates. THIS IS THE COLLISION FIXTURE and it is conceded: a subscriber list and a membership roll are the same bytes at a distance, and the discriminating evidence is whether the payment confers RIGHTS IN THE BODY or GOODS. A plan buys a magazine; a class carries a vote. This file is business_operations",
+        "that the word subscription promotes it - the same word names both relations",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Institute of Facilities Managers - Membership Certificate 2026 - M-88214.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a body's name, a member's name, a membership number and a validity year",
+        "a designatory post-nominal and a reference to a code of conduct",
+        "no statement of statutory entry control and no protected-title reference",
+        "no roll, no run and no meeting instrument anywhere near it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a certificate fires this row. It is a never-alone artefact: it names a body and a number and evidences no roll",
+        "that the holder is regulated. Where a protected title, statutory entry control and a fitness-to-practise apparatus with an external appeal route are evidenced, government.professional-regulator owns the world; a voluntary institute's list is this row's. Statutory status is usually not stated on the document, so abstain rather than guess",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "members.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "several hundred cards with names, emails, phone numbers and an organisation field naming the association",
+        "no membership number, class, join date or subscription status in any card",
+        "a group or category label reading Members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a contacts export is a roll. A category label reading Members is a document-type word beside an organisation name and is struck by this row's own never-alone rules; the list has no standing column and no lifecycle",
+        "the association's name as evidence of whose record this is - the organisation field records an employer-or-affiliation string the card's owner typed",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Annual renewal 2026 - subscription and gift.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one page carrying a dues line derived from a member class and a member number",
+        "a separate voluntary gift box with an amount and a tax-relief declaration tick",
+        "a single signature covering both",
+        "a returns address at the association"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that one row owns the page. Both activate on DISJOINT LINES: this row owns the dues line and the register it updates, nonprofit.fundraising-donor owns the gift line carrying the declaration. Neither promotes the other, and the failure to avoid is treating a whole renewal batch as fundraising because a gift box exists on the form",
+        "a donor fact or a tax_year fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Subscribers 2026 - active.csv` - a one-row-per-named-person table of people paying an annual amount to an organisation. This row owns it ONLY where the payment confers STANDING IN THE BODY: a membership number and class, a join and lapse lifecycle, and an entitlement to vote or to requisition a meeting. business_operations owns it where the payment confers GOODS OR SERVICE: a plan, a tier, a renewal price, a delivery address and an entitlement schedule. Discriminated by the class-carrying-rights column against the plan-carrying-entitlements column, and by any reference to a constitution or a general meeting. In the reverse direction, an association's customer relationships - its shop, its room hire, its paid training - do not come here merely because the seller is a membership body. Where the discriminator is not on the page, abstain, on 00's own rule that \"Correct abstention is a successful outcome\".",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "SAME FIXTURE BOTH SIDES: `AGM 2026 - Notice, agenda and resolutions.pdf` and the minutes that follow it - notice, agenda, numbered resolutions, attendance, a vote. This row owns the instrument whose CONSTITUENCY IS THE MEMBERSHIP: quorum computed as a count of members entitled to vote, proxies returned by members, an electorate quoted from the roll. That row owns the instrument whose constituency is a BOARD OR TRUSTEE BODY: apologies, numbered board papers, declarations of interest, a board pack. Discriminated by the constituency and the quorum's denominator, never by the charitable status of the body or by the word resolution. In the reverse direction, a members' AGM does not become board governance because trustees table a report at it, and a trustee meeting does not come here because the trustees are themselves members. In the smallest associations the two constituencies nearly coincide and the honest outcome is Review Later.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.fundraising-donor",
+      "signal": "SAME FIXTURE BOTH SIDES: `Annual renewal 2026 - subscription and gift.pdf`, one page carrying a dues line and a voluntary gift line with a tax-relief tick. This row owns the DUES line and the register it updates - the payment that confers a class, a number and a vote. That row owns the GIFT line - the amount that buys nothing, carrying the declaration or the acknowledgement. Discriminated by whether the payment confers rights: dues do, gifts do not. Both rows activate on disjoint lines and neither promotes the other. RECIPROCAL AND ALREADY AUTHORED: that landed row states this boundary in the same words from its side; this entry is written to match it rather than to reopen it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.religious-institution",
+      "signal": "SAME FIXTURE BOTH SIDES: `Electoral roll 2026.xlsx` or a congregation roll - one row per named adherent with a join date and a status. This row owns it as a MEMBERSHIP ROLL, which that landed row itself states is what it almost always is; the neighbour owns it only where it is a register of RITES with entry numbers, officiants and witnesses. Discriminated by the entry-number-plus-officiant-plus-witness triple, and by revision behaviour - a roll is revised in place as people join and lapse, a rite register is never revised, only annotated. In the reverse direction, a religious body's roll does not go to the neighbour merely because the body is religious. RECIPROCAL AND ALREADY AUTHORED from that side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.trade-union",
+      "signal": "SAME FIXTURE BOTH SIDES: `Branch membership and check-off 2026.xlsx` - one row per named member with a number, a joining date, a subscription rate and a status. The two rows are closest siblings in the family and the seam is by SUBJECT MATTER OF THE RELATION, not by the roll: this row owns the roll, the subscription run, the general meeting and the officer election as an association's ordinary constitutional life; the union row owns what a union does that no other association does - representation and casework for a named member against an employer, collective bargaining, a statutory industrial-action ballot with its notice and turnout thresholds, and check-off deducted through a payroll. Discriminated by the presence of an employer as a counterparty. AUTHORED ONE-WAY HERE; R1c owes the reciprocal, and should also settle whether a union's plain branch roll is this row's or the union row's - this pass says the union row's, on the principle that the more specific situation takes the artefact whole rather than splitting one register between two rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.governance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Constitution as amended at the AGM 2026.pdf` - a governing document carrying the rules that define membership classes, quorum and the conduct of the general meeting. That row owns the INSTRUMENT: the constitution, its amendment history, the registration and the regulator return. This row owns the OPERATION OF ITS MEMBERSHIP CLAUSES: the roll kept under them, the run made under the subscription rule, the meeting held under the notice rule, the expulsion made under the disciplinary rule. Discriminated by whether the artefact STATES the rule or APPLIES it. In the reverse direction, a roll does not become governance because the constitution requires one to be kept. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.standards-body",
+      "signal": "SAME FIXTURE BOTH SIDES: `Committee ballot - closing 2026-04-30.pdf` - a numbered ballot with a closing date, a return address and a tally. That row owns a ballot cast on a TECHNICAL DRAFT, with comment-resolution disposition and an editorial round behind it; this row owns a ballot cast on a MOTION OR A CANDIDATE by the membership at large. Discriminated by what is being voted on - a document under development against a resolution or an office. In the reverse direction, a standards body's own AGM and its membership roll are this row's; its working-group ballots are not. AUTHORED ONE-WAY HERE; R1c owes the reciprocal.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.hoa-residents-association",
+      "signal": "SAME FIXTURE BOTH SIDES: `Annual subscription notice 2026 - M-4471.pdf` - one dues demand naming an association, a member or unit, a period and an amount. That landed row owns it as the MEMBER's own continuing obligation, held by the person who must pay; this row owns the ROLL AND THE RUN that generated a thousand of them, held by the association. Discriminated by cardinality and by holder - one notice addressed to one obligated party against a table of all of them - and, on a proxy form, by a UNIT or PLOT reference against a membership class. In the reverse direction, an owners' association's assessment ledger does not come here merely because owners are members. Where a corpus holds both, as a treasurer who is also a member, both activate on disjoint evidence and finance's protective ordering runs first. AUTHORED ONE-WAY HERE; R1c owes the reciprocal, which that landed row could not have anticipated.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.professional-regulator",
+      "signal": "SAME FIXTURE BOTH SIDES: `Institute of Facilities Managers - Membership Certificate 2026 - M-88214.pdf` and its renewal ledger. A voluntary professional institute publishes a member list, issues numbers, runs annual renewals, keeps a code of conduct and expels members - vocabulary indistinguishable from a statutory register. That landed row requires a protected title or statutory entry control plus a fitness-to-practise apparatus with an external appeal route; this row takes the same bytes for a voluntary body whose only sanction is loss of membership. Discriminated by statutory entry control, not by the presence of a member list. Statutory status is usually not stated on the document, so both sides abstain to Review Later rather than guess. RECIPROCAL AND ALREADY AUTHORED from that side; this entry matches it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.elections-administration",
+      "signal": "SAME FIXTURE BOTH SIDES: `Committee election 2026 - scrutineers' return.pdf` - candidates, votes cast, spoilt papers, an electorate size and a declaration. This row owns it where the ELECTORATE'S BASIS is membership of a private association; that landed row owns it where the basis is registration on a public electoral roll with a statutory administering office. Discriminated by the electorate's basis and the body's status, and, as that row states from its side, \"Ballot vocabulary alone never decides it, in either direction\". In the reverse direction, a public poll does not come here because a co-operative or a students' union administers something similar. RECIPROCAL AND ALREADY AUTHORED from that side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-consultation",
+      "signal": "SAME FIXTURE BOTH SIDES: a consultation on rule changes circulated with a numbered question set and a closing date. This row owns it where the respondents are SCOPED TO THE ROLL - a membership body consulting its own members before putting a rule change to a general meeting; that landed row requires an evidenced public authority consulting an undetermined public. Discriminated by membership scoping, not by the consultation vocabulary. In the reverse direction, an association's response TO a public consultation is not this row's - it is advocacy or governance material, and the authority's own consultation record stays with the neighbour. RECIPROCAL AND ALREADY AUTHORED from that side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: `People 2026.xlsx` - a table of named people held by an organisation, with dates and a status column. This row owns it where the status is STANDING IN THE BODY - a class, a join and lapse date, a subscription; hr owns it where the status is EMPLOYMENT - a post, a start date, a gross-to-net structure, a leave balance. Discriminated by payroll structure, and the rule is asymmetric because the discriminator on this side is partly an absence: any gross-to-net or tax-code column anywhere makes the file hr and hr's privacy posture governs. In the reverse direction, an employee who is also a member appears in both tables and neither table promotes the other.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named FIRST, and this row argues harder for it than its own schema does, because this row's characteristic artefact is a SPREADSHEET LISTING EVERY MEMBER - the single cheapest file in the family to copy, paste or excerpt into a prompt, and the one whose existence alone discloses the affiliation of hundreds of people who never touched the user's machine. Where the roll, run or attendance evidence does not confidently activate, the protective home is the correct one. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for the family's most common isolated artefact - a membership card or certificate, a single affiliation form, a joining letter with no roll behind it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for this row's two defining failures, both frequent: a meeting instrument whose constituency is unresolved between members and a board, and a member list whose payment cannot be read as conferring rights or goods. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world: a subscription renewal confirmation, a joining-fee payment, an event ticket for a members' dinner, a platform notification. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected membership-database exports are ordinary in this world and are exactly the files that must not be forced open, both because the format resists it and because the contents are a whole roll.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, and the specific argument is NOT the schema's. The schema's protected party is a third person disclosed under NEED - a beneficiary, a safeguarded child, a service user - and its rule is that such a person may not become a folder level. This row's protected party is disclosed by AFFILIATION, and three things follow that the schema does not state. First, CARDINALITY: a case file exposes one person, a roll exposes the entire membership in a single artefact, which is usually a spreadsheet - one careless excerpt discloses everyone. Second, INFERENCE FROM MERE MEMBERSHIP: the fact of a row, before any content is read, can disclose belief, political opinion, trade-union membership, sexual orientation, immigration status or a health condition, because associations form around exactly those things - a congregation roll, a party branch roll, a union roll, an LGBT society roll, a recovery or support-group roll. 00's corpus sentence names the material this reaches - the corpus \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and a roll is adjacent to several of them at once while looking like an ordinary spreadsheet. Third, NO CONSENT PATH: the people on the roll gave their details to an association, not to a file-organisation product running on a volunteer secretary's laptop. The operative rules this row therefore adds to the schema's: a roll is treated as protected on its COLUMN SET ALONE, before any row is read; a roll is never excerpted row-wise into a model prompt, and where a model is needed the column headers and the shape suffice; and a member class is forbidden as a folder level in addition to the member's name, because a class such as student, retired, clergy or overseas is itself disclosive of everyone filed beneath it. Detection here exists in order to PROTECT, and \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" This row does not carry is_safety_domain and should not - 00's four are named and closed - and the resulting gap is the schema's NJ-NP-3 raised again. The handling class is P7's and is not set here.",
+  "open_question": "Four. (1) NJ-MA-1, the row's weakest leg, surfaced rather than smoothed: MEMBERSHIP DUES ARE ARGUABLY AN EXCHANGE, and the nonprofit schema's precondition is a NON-EXCHANGE relation. The landed nonprofit.fundraising-donor row states the point against this row in its own words - dues confer rights, gifts do not. This pass answers that the row's evidence is not the payment but the REGISTER OF STANDING: a member is part of the association's constitutional person and votes on its motions, which is a status relation and not a purchase, and the schema itself names the membership register as one of its deterministic structures. If R1c rejects that answer, the consequence is precise and this row would rather take it than be padded: the roll and the run become business_operations customer or CRM material, the general meeting joins business_operations.board-governance, and this row refuses. The alternatives are (a) keep the row on the standing-not-payment argument stated here, (b) narrow the schema's precondition to say that a membership register is admitted by name as a status relation rather than a non-exchange one, (c) refuse and reroute. (2) NJ-MA-2, the union seam: does a trade union's plain branch roll belong to this row or to nonprofit.trade-union? This pass gives it to the union row on the principle that the more specific situation takes the artefact whole, but the opposite rule - this row owns every roll, the union row owns only representation, bargaining and industrial-action material - is equally coherent and would change what both rows detect. One roll must not be split between two rows. (3) NJ-MA-3, the affiliation direction: an affiliation record has a member that is an ORGANISATION, and the host body's file of all its affiliated societies is structurally this row's roll with the row unit promoted. It is not settled whether the host side and the affiliated side are one row or two, and nonprofit.governance may reasonably claim the constitution-and-recognition side of it. (4) NJ-MA-4, the class-as-dimension ban: this row asks that a member CLASS be forbidden as a folder level for the disclosure reason argued in sensitivity_why, which goes beyond the schema's ban on a member's NAME. Class has a small branching factor and will look attractive to a template author or to a user editing the canvas, so if the ban is accepted it has to live in the template contract rather than in this row's prose, and someone must write it there."
+}

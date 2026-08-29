@@ -1,0 +1,13 @@
+{"case_id": "A09", "wording": "long scanned books", "attacks": "OCR budget",
+ "sections": ["§2.7", "§8.6", "§2.9"], "assert_against": "bundle",
+ "dimension": "extraction", "subject_ref": "A09::book::run",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"completeness": "capped",
+                    "coverage": {"units": "pages", "processed": 40, "total": 312}},
+ "forbidden_value": {"completeness": "complete"},
+ "extraction_runs": [{"run_id": "A09-run", "file_id": "A09-file",
+                      "content_hash": "sha256:A09", "extractor_name": "ocr.fixture",
+                      "extractor_version": "1.0.0", "source_type": "ocr",
+                      "config_fingerprint": "sha256:cfg", "completeness": "capped",
+                      "coverage": {"units": "pages", "processed": 40, "total": 312},
+                      "observation_count": 118}]}

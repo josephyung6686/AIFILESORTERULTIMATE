@@ -1,0 +1,713 @@
+{
+  "catalogue": "09-residual-library/01-nine-templates",
+  "date": "2026-08-21",
+  "status": "R3 research output. Slot values for the nine 00 residual templates. P10 injects these definitions (resolution M10) at tree design; P11 consumes only the frozen nodes that result; P13 collects user-defined areas against 02-user-defined-shape.json. Nothing here is auto-enabled.",
+  "authority": "On conflict: planning/00-database-agent-product-design.md wins, then planning/prompts/ALIGNMENT.md, then planning/domains/CONNECTION.md, then the R3 dispatch prompt.",
+  "quote_convention": "Every curly-quoted span in this file is a verbatim quotation from planning/00-database-agent-product-design.md, mechanically verified by check.py before authoring and on every run. Statements about CONNECTION.md, P10/P11 SPECs, or planning/11-ops-runtime.md are paraphrased, never quoted.",
+  "provenance_vocabulary": ["design", "inference", "proposal"],
+  "numbers_rule": "No numeric JSON value appears anywhere in this file (check.py walks and asserts this); numerals occur only inside verbatim 00 quotations, where they are 00's illustrative examples, never thresholds this catalogue sets. Every threshold is an injected slot; max_permitted_depth is a named injected slot per template. Recommended values live in RESEARCH.md as proposal only.",
+  "node_status": "A residual home is never a roster node, never carries a schema, and never activates (CONNECTION.md sections 2 and 7). It is reached by falls_through_to or by the empty activation set - see 03-falls-through.json. These nine names are the only legal falls_through_to targets, spelled exactly as below (CONNECTION.md section 5, invariant 5).",
+  "library_purpose": {
+    "provenance": "design",
+    "design_cite": "“Residual templates provide safe, intentionally broad destinations for files that have no reliable deeper association.” The library exists to prevent the LLM creating arbitrary folders such as “Random PDF Things, Important Screenshot, Miscellaneous Documents, or Travel/Gate B12”, “which may sound plausible but would fragment the user’s filesystem and create unmaintainable structure”."
+  },
+  "eight_slots": {
+    "provenance": "design",
+    "design_cite": "Each residual template defines “a recommended display name, default parent location, accepted evidence patterns, expected file types, sensitivity restrictions, optional shallow subfolders, maximum permitted depth, and whether the file should be reviewed, retained, or merely kept searchable”.",
+    "keys": ["display_name", "default_parent_location", "accepted_evidence_patterns", "expected_file_types", "sensitivity_restrictions", "optional_shallow_subfolders", "max_permitted_depth", "treatment"]
+  },
+  "enablement": {
+    "provenance": "design",
+    "design_cite": "“These templates are not automatically created.” The user may “enable, disable, rename, relocate, merge, or replace with existing folders”. Each is “a real physical destination, a review-only category that never moves files automatically, or a policy that tells the system to leave files in place” by the user's choice of disposition. “Once the user approves the desired residual branches, those branches become legal nodes in the frozen destination tree. The LLM may choose among them later, but it may not create additional generic destinations.”",
+    "note": "Disposition (physical-destination | review-only | leave-in-place) is the user's per-enablement choice, recorded on the P10 node - it is not a slot of the template and nothing in this file preselects it. default_parent_location is a display-label chain in the tree, never a filesystem path (P10 resolution B3, paraphrased)."
+  },
+  "complement_rule": "When a domain association is reliable, residual must not claim the file. “If the LLM finds a credible connection to an accepted project, course, application, photo event, or career group, the file should be returned to the standard node-aware placement engine rather than being trapped in a generic residual folder.” Full boundary treatment: 03-falls-through.json.",
+  "templates": [
+    {
+      "id": "temporary_screenshots",
+      "name": "Temporary Screenshots",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Temporary Screenshots",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Photos/Temporary Screenshots",
+          "provenance": "design",
+          "note": "Stated in 00. A display-label chain, not a filesystem path."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "screenshot-hypothesis",
+              "signals": ["exact display resolution match (deferred-catalogues/02, injected via P5 dimension_signal)", "screenshot filename convention (deferred-catalogues/04: the macOS Screenshot / Screen Shot / screen-recording rows, the Android screenshot row, the Windows screenshot and snipping rows, CleanShot — note iOS screenshots carry the camera-roll IMG_ convention and have no filename row of their own)", "PNG format plus software metadata"],
+              "provenance": "design",
+              "design_cite": "“exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis”",
+              "never_from_absence": "“the system must not mistake the absence of EXIF for proof that an image is a screenshot” — and “OCR text density is also not a reliable screenshot detector because receipts, document scans, whiteboards, and photographs of pages can all contain dense text.”"
+            },
+            {
+              "pattern": "time-sensitive-or-reminder content",
+              "signals": ["local OCR text shaped like a gate/boarding notice, delivery or order confirmation, verification code, deadline, event detail, or an on-screen conversation the user captured to remember"],
+              "provenance": "inference",
+              "design_cite": "00's worked example: a screenshot reading “Gate B12 — Boarding at 18:20” “may be classified as a travel-related temporary confirmation”. The pattern class generalizes 00's examples; the class boundary is inferred, not stated."
+            },
+            {
+              "pattern": "required-absence",
+              "signals": ["no accepted project, trip, application, or event relationship over P9 groups and the frozen tree"],
+              "provenance": "design",
+              "design_cite": "the holds sentence: “have no accepted project, trip, application, or event relationship”"
+            },
+            {
+              "pattern": "conflict-abstention",
+              "signals": ["photo evidence and screenshot evidence conflicting"],
+              "provenance": "design",
+              "design_cite": "“conflicting signals should lead to abstention rather than an invented classification” — a conflicted image is not claimed; it stays unresolved or enters Review Later."
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["image", ".png", ".jpg", ".jpeg", ".heic", ".tiff"],
+          "provenance": "inference",
+          "note": "P5 source_type member plus extension examples. macOS screenshots default to .png; shared/messaged captures arrive as .jpg or .heic."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "Screenshots routinely capture sensitive content. P7 classification precedes any model path; a screenshot P7 protects is never claimed here — it falls to Protected Records (03-falls-through.json). OCR text reaches a residual dossier only under P7's gate.",
+          "design_cite": "“A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” A screenshot of one is the same material."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none. A subfolder taxonomy for temporary material (by app, by month, by topic) is the second filing system residual must not become — the template is intentionally broad, and a temporary pile earns review, not structure."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.temporary_screenshots",
+          "provenance": "design",
+          "why": "00 defines the slot and states no number; every threshold in this product is injected. A recommended value lives in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "reviewed",
+          "provenance": "inference",
+          "design_cite": "00's lifecycle example for exactly this template: the user may define “show temporary screenshots older than 30 days” — a review policy. Time-sensitive material is the reviewed kind.",
+          "note": "The user's enablement choices override; “A user may decide that all isolated screenshots should remain where they are and should never be moved.”"
+        }
+      },
+      "do_not_claim_when": ["an accepted trip, project, application, or event group claims the file (03-falls-through.json, boundary b1/b3)", "P7 protects it (screenshot of a passport or statement → Protected Records, boundary b4)", "the OCR resolves to a confirmed domain: “Your Columbia University application has been submitted” returns to the placement engine, never to a residual home (boundary b3)"]
+    },
+    {
+      "id": "one_off_images",
+      "name": "One-Off Images",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "One-Off Images",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Photos/One-Off Images",
+          "provenance": "design",
+          "note": "Stated in 00."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "required-absence",
+              "signals": ["no photo-event membership, no project association, no reference-collection (Reference Clips) content class, no duplicate/version photo-family link"],
+              "provenance": "design",
+              "design_cite": "the holds sentence: “no event, project, reference collection, or photo-family association”"
+            },
+            {
+              "pattern": "unclustered-photo",
+              "signals": ["camera EXIF may be present, but the image joins no time/GPS cluster — a single photo clusters with nothing"],
+              "provenance": "inference",
+              "design_cite": "“Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” — when no proposal forms, the photo is one-off."
+            },
+            {
+              "pattern": "stripped-metadata-photo",
+              "signals": ["no EXIF, no screenshot-hypothesis signal either"],
+              "provenance": "inference",
+              "design_cite": "“Messaging platforms and downloaded web images often strip metadata from real photographs.” — the fact is 00's; routing the stripped-metadata photo here rather than to Temporary Screenshots is the inference (00 forbids the opposite: absence of EXIF is never screenshot proof)."
+            },
+            {
+              "pattern": "no-evidence-image",
+              "signals": ["no useful OCR, no EXIF, no graph context"],
+              "provenance": "inference",
+              "design_cite": "“An unreadable screenshot with no useful OCR, no EXIF, and no graph context should be labeled as a generic screenshot or unresolved image and either remain in place or enter an approved Screenshot Inbox.” “The model must be allowed to conclude that no meaningful association exists.” — 00 states the unresolved-image handling; offering this home for it (when the user enabled no Screenshot Inbox equivalent) is the inference, and leave-in-place stays legal."
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["image", ".png", ".jpg", ".jpeg", ".heic", ".gif", ".webp"],
+          "provenance": "inference"
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "An opaque image can be a photographed document. P7 classification precedes any model path; P7-protected images fall to Protected Records instead."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none. Any split (by year, by source) starts rebuilding the Photos domain template's dimensions inside a residual home."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.one_off_images",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "merely kept searchable",
+          "provenance": "proposal",
+          "why": "A one-off image carries no reminder function (Temporary Screenshots' job) and no durable record purpose (Independent or Protected Records' job); its remaining value is retrieval. 00 assigns no treatment; this is the proposed fit among 00's three."
+        }
+      },
+      "do_not_claim_when": ["a deterministic photo-event proposal claims the image (EXIF/GPS/time cluster — boundary b5)", "content class is a reference clip (recipe, product, quote, inspiration — Reference Clips wins, boundary b6)", "screenshot-hypothesis signals fire (Temporary Screenshots wins, boundary b6)", "P7 protects it (boundary b4)"]
+    },
+    {
+      "id": "reference_clips",
+      "name": "Reference Clips",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Reference Clips",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Reference Clips",
+          "provenance": "design",
+          "note": "Stated in 00."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "reference-content-class",
+              "signals": ["local OCR or extracted text resolves to one of 00's clip kinds: visual inspiration, product reference or listing, quote, recipe, short article capture, code snippet"],
+              "provenance": "design",
+              "design_cite": "“Likewise, an image containing a recipe, product listing, quote, or visual inspiration may be proposed for Personal/Reference Clips if that user-approved branch exists.”"
+            },
+            {
+              "pattern": "required-absence",
+              "signals": ["not part of a current project: no accepted project, research, course, or code-repository association"],
+              "provenance": "design",
+              "design_cite": "“useful for later retrieval but does not belong to a current project”"
+            },
+            {
+              "pattern": "learned-preference",
+              "signals": ["repeated user placement of a clip kind here raises later confidence — a P11/§8.7 learning record, not a detection rule"],
+              "provenance": "design",
+              "design_cite": "“If the user repeatedly places product screenshots into Reference Clips, the system records that as a user preference and can later propose the same destination more confidently.”"
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["image", "text_document", ".png", ".jpg", ".jpeg", ".heic", ".pdf", ".md", ".txt"],
+          "provenance": "inference",
+          "note": "Clips are mostly captures (images) but 00's kinds include article captures and code snippets, which arrive as PDFs and text files. A full source file inside a repository belongs to the code domain, never here."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "P7 classification precedes any model path; protected material never lands here."
+        },
+        "optional_shallow_subfolders": {
+          "value": ["Recipes", "Products", "Quotes", "Inspiration", "Articles", "Code Snippets"],
+          "provenance": "proposal",
+          "why": "The six names are 00's own enumeration of what the template holds, offered as one optional shallow level of clip-kind. This is the one residual home where a single content-kind level aids retrieval without becoming a domain taxonomy: each subfolder is a kind of clip, never a project or topic tree. Ship-or-drop is NEEDS-JOSEPH (README); dropping them costs nothing structural."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.reference_clips",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal (deep enough for the optional kind level, nothing below it)."
+        },
+        "treatment": {
+          "value": "merely kept searchable",
+          "provenance": "inference",
+          "design_cite": "“useful for later retrieval but does not belong to a current project” — retrieval is the stated purpose; no review cadence and no record-keeping duty is implied."
+        }
+      },
+      "do_not_claim_when": ["an accepted project claims the material (a code snippet inside a repository, an inspiration board for an active design project — boundary b7)", "the capture is a transactional document (receipt, ticket — Receipts and Confirmations wins, boundary b2)", "P7 protects it (boundary b4)"]
+    },
+    {
+      "id": "independent_records",
+      "name": "Independent Records",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Independent Records",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Independent Records",
+          "provenance": "design",
+          "note": "Stated in 00."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "standalone-durable-document",
+              "signals": ["document structure of a certificate, notice, official confirmation, or form: issuer block, labeled fields, table cells, formal headings (P4 zones carry the positions)"],
+              "provenance": "design",
+              "design_cite": "the holds sentence: “standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose”"
+            },
+            {
+              "pattern": "required-absence",
+              "signals": ["no broader group: no accepted application packet, course, employer, or project group; no reliable domain association"],
+              "provenance": "design",
+              "design_cite": "“no broader group”"
+            },
+            {
+              "pattern": "non-transactional",
+              "signals": ["lacks the transactional markers (merchant plus amount plus date, booking or confirmation code, ticket fields) that route to Receipts and Confirmations"],
+              "provenance": "inference",
+              "design_cite": "the two holds sentences partition the document space: transactional documents are Receipts and Confirmations' enumeration; durable non-transactional records are this one's."
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["text_document", "image", ".pdf", ".docx", ".rtf", ".jpg", ".png"],
+          "provenance": "inference",
+          "note": "00 names PDFs outright; certificates and notices also arrive as scans (image source_type with OCR)."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "Certificates and forms sit near the P7 boundary. When P7 protects a record (identity, medical, account material), Protected Records claims it instead — this template holds only what P7 leaves unprotected."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none. Splitting by record kind rebuilds the records taxonomy that finance, legal, and personal-administration domain templates own."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.independent_records",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "retained",
+          "provenance": "inference",
+          "design_cite": "“a durable purpose but no broader group” — durable purpose is what retained means on 00's treatment axis."
+        }
+      },
+      "do_not_claim_when": ["the record belongs to an accepted packet (a certificate inside an application packet — the applications group claims it, boundary b1)", "it is transactional (Receipts and Confirmations wins, boundary b2)", "P7 protects it (passport scan, account statement → Protected Records, boundary b4)"]
+    },
+    {
+      "id": "receipts_and_confirmations",
+      "name": "Receipts and Confirmations",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Receipts and Confirmations",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Receipts and Confirmations",
+          "provenance": "proposal",
+          "why": "00 leaves this blank. Proposal follows 00's own pattern for the four it states: Photos/ for the two image-kind homes, Personal/ for the two document-kind homes; this is document-kind. 00's user example “If the user has approved Personal/Travel/Confirmations, the model may recommend that broad destination and explain that no specific trip group was found.” is user freedom, not a default. NEEDS-JOSEPH (README)."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "transactional-document",
+              "signals": ["merchant or issuer plus amount plus date lines", "booking or confirmation code fields", "ticket, seat, or gate fields", "order and delivery numbers", "invoice structure (billed-to, line items, total)", "from native text or local OCR alike"],
+              "provenance": "design",
+              "design_cite": "the holds sentence enumerates the classes; the concrete field markers are the inference layer over it."
+            },
+            {
+              "pattern": "required-isolation",
+              "signals": ["no accepted trip, purchase-project, or finance-domain association; a boarding pass inside an accepted trip group belongs to travel, not here"],
+              "provenance": "design",
+              "design_cite": "“isolated invoices” — isolation is in the holds sentence, and the complement rule returns grouped members to the placement engine."
+            },
+            {
+              "pattern": "negative-example-routing",
+              "signals": ["user rejections reroute look-alikes before they land here again — a learning record, not a detection rule"],
+              "provenance": "design",
+              "design_cite": "“If the user rejects Receipts and Confirmations for a set of PDFs because they are actually school forms, the system records those negative examples and can route future similar files back toward Academic or Applications review rather than repeating the same mistake.”"
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["text_document", "image", "email", ".pdf", ".png", ".jpg", ".heic", ".eml"],
+          "provenance": "inference",
+          "note": "Receipts arrive as PDFs, as emailed confirmations, and as photographed or screenshotted receipts (image plus OCR). A screenshot whose OCR is a full transactional document is claimed here by content class when this home is enabled; the general screenshot fallback is Temporary Screenshots (boundary b2)."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "Transactional documents carry payment fragments and addresses; P7's gate governs what any dossier may include. Account statements are not receipts: 00 lists them under Protected Records, and P7-protected material never lands here."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none. A year or merchant split duplicates the finance domain's dimensions (institution, tax_year) — the do-not-steal boundary run in reverse. Refused deliberately; reasoning recorded here rather than assumed."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.receipts_and_confirmations",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "reviewed",
+          "provenance": "inference",
+          "design_cite": "00's lifecycle example for this material: “surface travel confirmations after their date has passed” — much of the class expires (boarding passes, tickets) and earns time-aware review. The retained reading (durable purchase receipts) is real; the fork is NEEDS-JOSEPH (README)."
+        }
+      },
+      "do_not_claim_when": ["an accepted trip group claims the boarding pass or booking (travel domain, boundary b1)", "finance-domain association is reliable (institution plus record-type plus tax-year context — the finance schema claims it, boundary b2)", "P7 protects it (account statement → Protected Records, boundary b4)", "it is a non-transactional durable record (Independent Records wins, boundary b2)"]
+    },
+    {
+      "id": "reading_inbox",
+      "name": "Reading Inbox",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Reading Inbox",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Reading Inbox",
+          "provenance": "proposal",
+          "why": "00 leaves this blank. Document-kind home, so Personal/ per the pattern of 00's four stated defaults. NEEDS-JOSEPH (README)."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "reading-material-recognition",
+              "signals": ["paper structure: title, abstract, citation and identifier hits (deferred-catalogues/06: DOI, arXiv, ISBN rows)", "article capture: browser-generated producer metadata (deferred-catalogues/01 rows identify browser and export tools), web-layout text", "report structure: long-form body with headings"],
+              "provenance": "inference",
+              "design_cite": "the holds sentence names the classes “papers, articles, reports, and saved PDFs that appear to be reading material”; the recognizers are the inference layer."
+            },
+            {
+              "pattern": "required-absence",
+              "signals": ["no active research, course, or project association: no validated project or course facts, no accepted research or coursework group membership"],
+              "provenance": "design",
+              "design_cite": "“have no active research, course, or project association”"
+            },
+            {
+              "pattern": "browser-pdf-pile",
+              "signals": ["a PDF saved by a browser into a download location with no other association — the classic Downloads reading pile"],
+              "provenance": "proposal",
+              "why": "RESEARCH.md's pile inventory; a corpus-grounded refinement of the article-capture recognizer, not a 00 statement."
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["text_document", ".pdf", ".epub", ".html", ".md"],
+          "provenance": "inference"
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "Reading material is usually low-sensitivity, but P7's gate still precedes any dossier; a protected document that merely looks like reading material never lands here."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none. An inbox is a queue, not an archive: topical splits are what the research and academic domain templates are for, and read/unread is workflow state, not a folder."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.reading_inbox",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "reviewed",
+          "provenance": "inference",
+          "design_cite": "00's lifecycle example for exactly this template: “review Reading Inbox every two weeks” — a reading queue is the reviewed kind by purpose."
+        }
+      },
+      "do_not_claim_when": ["research-domain association is reliable (project, lab, or venue facts — the research schema claims it, boundary b8)", "the paper belongs to coursework (course code with academic context, an accepted course group — academic claims it, boundary b8)", "the capture is a short clip rather than a document to read (Reference Clips wins, boundary b6)", "P7 protects it (boundary b4)"]
+    },
+    {
+      "id": "review_later",
+      "name": "Review Later",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Review Later",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Review Later",
+          "provenance": "proposal",
+          "why": "00 leaves this blank, and states the stronger preference first: “Another may already have an existing To Sort folder, and the system should map the Review Later template onto that folder rather than inventing a new one.” The proposed default applies only when no such folder exists to map onto. NEEDS-JOSEPH (README)."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "partial-understanding",
+              "signals": ["some validated facts exist, but no destination clears the placement margin — meaning is partly understood, location is not decidable"],
+              "provenance": "design",
+              "design_cite": "the holds sentence: “whose meaning is partly understood but whose final location requires a future decision”"
+            },
+            {
+              "pattern": "multiple-plausible-destinations",
+              "signals": ["placement produced more than one candidate without a margin winner (00's review set: “16 files with multiple plausible destinations”)"],
+              "provenance": "design",
+              "design_cite": "“16 files with multiple plausible destinations” is 00's own surfacing of this pattern as a review set."
+            },
+            {
+              "pattern": "model-declared-uncertainty",
+              "signals": ["the residual model chose its Review Later action — the controlled action set's own uncertainty outlet"],
+              "provenance": "design",
+              "design_cite": "“the correct result is leave in place, Review Later, or abstain”"
+            },
+            {
+              "pattern": "unclear-purpose-spreadsheets-and-presentations",
+              "signals": ["spreadsheet or presentation opened and extracted, but purpose facts absent (00's review set: “14 spreadsheets and presentations with unclear purpose”)"],
+              "provenance": "inference",
+              "design_cite": "00 names the review set; routing it through Review Later's partial-understanding pattern is the inference — no other residual home names these formats."
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["text_document", "spreadsheet", "presentation", "image", "email", "code_structured", "audio_video", "design_creative", ".xlsx", ".csv", ".pptx", ".key", ".numbers"],
+          "provenance": "inference",
+          "note": "Deliberately the widest of the nine: any readable file whose meaning is partly understood can need a deferred decision. The width is the definition, not a leak."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "P7's gate precedes any dossier. A protected file with an undecidable location still goes to Protected Records, not here — protection outranks deferral (boundary b4)."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none. A deferral queue with internal structure defeats deferral; the future decision belongs to the user, not to subfolders made in advance."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.review_later",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "reviewed",
+          "provenance": "inference",
+          "design_cite": "“whose final location requires a future decision” — the future decision is the review; this is the definitionally reviewed home."
+        }
+      },
+      "do_not_claim_when": ["any single destination clears the margin (place it)", "the meaning is not even partly understood and the file is unreadable (Unsupported or Encrypted wins, boundary b9)", "P7 protects it (boundary b4)"]
+    },
+    {
+      "id": "unsupported_or_encrypted",
+      "name": "Unsupported or Encrypted",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Unsupported or Encrypted",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Unsupported or Encrypted",
+          "provenance": "proposal",
+          "why": "00 leaves this blank and itself leans away from moving: the holds sentence's “or, more safely, represent without moving” clause. The parent applies only if the user chooses a physical destination; the leaning toward a review-only or leave-in-place disposition is recorded, and the choice stays the user's. NEEDS-JOSEPH (README)."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "extraction-outcome",
+              "signals": ["an extraction run ended unreadable (damaged file, password-protected, corrupted text layer) or unsupported (no extractor exists) — P4's closed completeness vocabulary, paraphrased"],
+              "provenance": "inference",
+              "design_cite": "“Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open or allowed to become decompression-bomb risks.” and “unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty” — mapping those states onto P4's completeness values is the inference."
+            },
+            {
+              "pattern": "opaque-binary-default",
+              "signals": ["disk images, executables, databases, encrypted containers, unknown binary formats held at metadata-only indexing"],
+              "provenance": "design",
+              "design_cite": "“disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved”"
+            },
+            {
+              "pattern": "filename-is-never-purpose",
+              "signals": ["basic metadata retained; manual attachment to a user-created group stays available; no purpose inferred from the name"],
+              "provenance": "design",
+              "design_cite": "“Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone.”"
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["archive", "opaque_binary", "text_document", ".zip", ".7z", ".rar", ".dmg", ".dat"],
+          "provenance": "inference",
+          "note": "The real test is the extraction outcome, not the format: a damaged .pdf routes as text_document and ends unreadable. archive and opaque_binary are the typical carriers; the extension examples are the encrypted-container commons."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "governed_by_p7_gate",
+          "provenance": "inference",
+          "summary": "Encrypted material may be credential-bearing precisely because someone encrypted it. There is no content to prompt with, but filenames still pass through P7's gate, and material P7 protects falls to Protected Records instead (boundary b4). P7's unreadable-unclassified handling applies before any model involvement (paraphrase of P7's SPEC)."
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none, and there is nothing to structure by — content is exactly what these files do not expose."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.unsupported_or_encrypted",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. Recommendation in RESEARCH.md as proposal."
+        },
+        "treatment": {
+          "value": "retained",
+          "provenance": "proposal",
+          "why": "Cannot be reviewed by content and cannot be made searchable by content — nothing is readable. What 00 requires is retention of the record: basic metadata kept, manual attachment possible, nothing forced open. The reviewed reading (00's set-level question offers “review them manually?”) is a user action on the set, not a treatment of the home; fork recorded as NEEDS-JOSEPH (README)."
+        }
+      },
+      "do_not_claim_when": ["the file was never a files row: contents of protected containers (application bundles, system items — planning/11-ops-runtime.md section 4b: P3 never descends, hashes nothing; residual cannot claim what was never scanned)", "the file is iCloud-dataless (planning/11-ops-runtime.md section 5: never opened, not damaged — nothing was seen; the user materializes it first, and no extraction run exists to be unreadable)", "extraction merely hit a budget cap (deferred is not unreadable; the file waits, it does not fall through)", "P7 protects it (boundary b4)"]
+    },
+    {
+      "id": "protected_records",
+      "name": "Protected Records",
+      "holds": {
+        "provenance": "design",
+        "design_cite": "“Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”"
+      },
+      "slots": {
+        "display_name": {
+          "value": "Protected Records",
+          "provenance": "design"
+        },
+        "default_parent_location": {
+          "value": "Personal/Protected Records",
+          "provenance": "proposal",
+          "why": "00 leaves this blank. Document-kind home, so Personal/ per the pattern of 00's stated defaults; the label itself reveals nothing about contents. Wherever it lives, the branch renders as a protected area: “the product should avoid showing sensitive filenames or sending their contents to cloud services by default”. NEEDS-JOSEPH (README)."
+        },
+        "accepted_evidence_patterns": {
+          "provenance": "design",
+          "value": [
+            {
+              "pattern": "p7-protected-state",
+              "signals": ["P7's sensitivity classification put the file in a protected state — this template never re-detects sensitivity and holds no detector of its own (the detector is R2's content, deferred-catalogues/08, pending)"],
+              "provenance": "design",
+              "design_cite": "“A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”"
+            },
+            {
+              "pattern": "required-isolation",
+              "signals": ["no accepted deeper group. Grouped-and-sensitive is not residual: a medical packet that did group belongs to its group, and protection travels with the file regardless of destination"],
+              "provenance": "design",
+              "design_cite": "“Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.” — surfacing as protected is P7/P9's affair and is not placement into this home; the residual home is offered only when no deeper accepted group exists (CONNECTION.md PR-4, provisional; NJ-4 stays open)."
+            },
+            {
+              "pattern": "deterministic-only",
+              "signals": ["every pattern above is deterministic; no pattern of this template may require a model prompt, so no residual dossier is ever built to decide membership here"],
+              "provenance": "design",
+              "design_cite": "“must not cause filenames or content to be exposed in model prompts” — a membership test that needed a prompt would violate the constraint by construction."
+            }
+          ]
+        },
+        "expected_file_types": {
+          "value": ["image", "text_document", "archive", ".pdf", ".jpg", ".png", ".heic", ".docx"],
+          "provenance": "inference",
+          "note": "Passport and ID scans arrive as images and PDFs; statements and legal forms as PDFs and DOCX; credential exports occasionally as archives."
+        },
+        "sensitivity_restrictions": {
+          "prompt_exposure": "forbidden_by_00_7_3",
+          "provenance": "design",
+          "constraint": "“it should normally remain local-only and must not cause filenames or content to be exposed in model prompts”",
+          "consequences": [
+            "filenames never enter model prompts for material held or considered here",
+            "content (text, OCR, excerpts, thumbnails) never enters model prompts",
+            "no residual dossier is built for files claimed here — membership is decided deterministically from P7's flag plus isolation, so there is nothing to prompt (P7's plan renders this as a denial named for this template, paraphrased)",
+            "no cloud call in any operation mode for this material: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” — and this template's stricter §7.3 rule removes even the by-default latitude for prompts",
+            "surfacing is count-only: “11 protected personal records” is the shape of what the review screen shows — “a visible list of passport filenames on a shared screen may not be” safe",
+            "never moved automatically without an explicit permitting user policy; never moved out of protection without explicit user action: “it must not delete files, mark them disposable, or move them out of a protected area without explicit user action”"
+          ]
+        },
+        "optional_shallow_subfolders": {
+          "value": [],
+          "provenance": "inference",
+          "why_empty": "00 states none, and here emptiness is load-bearing: subfolder names derived from contents (a folder named for a document type someone can read over a shoulder) would republish sensitive facts on every screen and in every path P12 composes. The flat home keeps paths as uninformative as the constraint requires."
+        },
+        "max_permitted_depth": {
+          "injected_slot": "residual_max_depth.protected_records",
+          "provenance": "design",
+          "why": "Slot stated in 00, value injected. RESEARCH.md recommends the floor of the nine as proposal — minimal structure is minimal exposure."
+        },
+        "treatment": {
+          "value": "retained",
+          "provenance": "inference",
+          "design_cite": "00's lifecycle example for exactly this template: “keep protected records indefinitely”. Review of this home is user-manual only — never model review, by the constraint above."
+        }
+      },
+      "do_not_claim_when": ["an accepted deeper group claims the file: “A file may validly belong to more than one accepted group, such as a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet.” — a passport inside an accepted application packet goes with the packet, protection intact (boundary b4)", "the file is sensitive but not isolated (grouped-and-sensitive routes to its group; safety handling still applies via P7 wherever it lands)", "P7 did not protect it (an ordinary certificate is Independent Records' material, boundary b4)"],
+      "by_construction_note": "Done-when three of the R3 dispatch: no slot of this template can leak a filename into a model prompt. The evidence patterns are deterministic-only (no dossier exists to leak), the review surface is count-only, the subfolders are empty (no content-derived names in paths), the treatment excludes model review, and the sensitivity_restrictions carry 00's constraint verbatim. check.py asserts the constraint's presence and the deterministic-only marker."
+    }
+  ],
+  "review_set_projection": {
+    "purpose": "00's residual surfacing screen divides leftovers into review sets. Each of the eight example sets must be projectable as a query over the slot values above — if a set cannot be produced from the slots, the slots are incomplete. The counts inside the quoted set names are 00's illustrative examples, not thresholds.",
+    "provenance": "design",
+    "sets": [
+      {
+        "review_set": "“58 screenshots with no accepted project or event”",
+        "query": "files matching temporary_screenshots.accepted_evidence_patterns[screenshot-hypothesis] or one_off_images image patterns, with expected_file_types image, where the required-absence pattern holds (no accepted project, trip, application, or event relationship)",
+        "projects_from": ["temporary_screenshots", "one_off_images"]
+      },
+      {
+        "review_set": "“21 standalone PDFs and forms”",
+        "query": "files with expected_file_types text_document (.pdf and form-shaped documents) matching independent_records.accepted_evidence_patterns[standalone-durable-document] or the transactional/reading recognizers, with no group — 00 itself then asks the set-level question: “We found 21 independent documents. Should we evaluate them for Receipts and Confirmations, Independent Records, Reading Inbox, Review Later, or leave them in place?”",
+        "projects_from": ["independent_records", "receipts_and_confirmations", "reading_inbox", "review_later"]
+      },
+      {
+        "review_set": "“14 spreadsheets and presentations with unclear purpose”",
+        "query": "files with source_type spreadsheet or presentation matching review_later.accepted_evidence_patterns[unclear-purpose-spreadsheets-and-presentations]",
+        "projects_from": ["review_later"]
+      },
+      {
+        "review_set": "“17 receipts, tickets, and confirmations”",
+        "query": "files matching receipts_and_confirmations.accepted_evidence_patterns[transactional-document] with required-isolation holding",
+        "projects_from": ["receipts_and_confirmations"]
+      },
+      {
+        "review_set": "“11 protected personal records”",
+        "query": "files matching protected_records.accepted_evidence_patterns[p7-protected-state] with required-isolation holding — surfaced as a count only, no filenames",
+        "projects_from": ["protected_records"]
+      },
+      {
+        "review_set": "“9 encrypted, unreadable, or unsupported files”",
+        "query": "files matching unsupported_or_encrypted.accepted_evidence_patterns[extraction-outcome or opaque-binary-default] — extraction completeness in the unreadable/unsupported states, or password-protected archives",
+        "projects_from": ["unsupported_or_encrypted"]
+      },
+      {
+        "review_set": "“16 files with multiple plausible destinations”",
+        "query": "files matching review_later.accepted_evidence_patterns[multiple-plausible-destinations] — placement candidates without a margin winner",
+        "projects_from": ["review_later"]
+      },
+      {
+        "review_set": "“20 files with no extractable text, usable metadata, or graph relationship”",
+        "query": "files matching one_off_images.accepted_evidence_patterns[no-evidence-image] (images) or review_later.accepted_evidence_patterns[partial-understanding] degraded to no-evidence (non-images): no text or OCR observations, no usable metadata, no weak graph neighbours — P11's residual_set carries this as its evidence-availability facet",
+        "projects_from": ["one_off_images", "review_later"]
+      }
+    ]
+  }
+}

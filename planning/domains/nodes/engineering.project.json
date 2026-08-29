@@ -1,0 +1,281 @@
+{
+  "id": "engineering.project",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Engineering project or programme (branch root) — REFUSED",
+  "one_line": "REFUSED. This row is its own schema's default template wearing the word project. The engineering schema's researched default dimension order already begins with `project`, its landed fixture set is already one project's controlled definition end to end, and its own never_alone rule already says that a project name or project plan without controlled technical-definition evidence is business_operations.project-delivery. Subtract the twenty-three sibling rows that own the specific artifacts and what remains is a project noun plus the absence of a more specific sub-domain — a browse-shelving concern that PR-5 leaves to R1c, not an activation node.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the CONNECTION.md node test against the engineering schema's DEFAULT TEMPLATE, and fails two further independent grounds. (1) DETECTION SIGNALS — not its own, in either direction. The engineering schema activates on a relation among an identified design item, a lifecycle/design state and controlled technical artifacts; its deterministic list already ends with `parent-folder context naming an item number or program may raise plausibility only after one controlled-definition structure is present; it never fires the schema by itself`, and its never_alone list already contains `a project name or project plan alone. That is business_operations.project-delivery unless controlled technical-definition evidence also appears.` Those two clauses close the space exhaustively: a project identity WITH controlled-definition evidence is the schema firing on its default template; a project identity WITHOUT it is business_operations.project-delivery or a residual. There is no third state left for this row to occupy. Every candidate signal it could claim is either the schema default's (a drawing title block, a requirements table with verification columns, a BOM parent/child relation, a technical data package manifest) or an existing sibling's on the same schema: engineering.requirements-specification, engineering.drawing-package, engineering.cad-model, engineering.bill-of-materials, engineering.change-order, engineering.simulation-analysis, engineering.verification-validation, engineering.prototype-build, engineering.stage-gate-review, engineering.commissioning-handover. Perform that subtraction and the residue is the word project and a programme name. A programme name is never-alone evidence by read-across from 00's rule that \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" The reasoning there is role ambiguity; a project name is weaker still, because it names the undertaking that pays for the file, not what the file is — the schema row already refuses the identical move for code, holding that a repository is not engineering merely because its employer builds hardware. (2) DIMENSIONS — a truncation of the default, not a different order. The engineering schema's researched default is project, then design_item, then lifecycle_stage, then engineering_artifact_type. A project-root template can only ever recommend `[project]` or `[project, engineering_artifact_type]`: a prefix of the default with information removed, whose first level is the default's own first level, justified by the same 00 clause the default cites — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A recommendation that is the default's recommendation minus its later levels is not a distinct recommendation. Under PR-6 both are empty in any case, which is itself part of the finding: a placeholder template whose empty order would resolve to its schema's own order is the schema's default template. (3) PRIVACY RULES — identical, object for object. The engineering schema is already potentially_sensitive for proprietary design definition, supplier data, safety analyses and export-controlled or critical-technology information. A project folder is a bag of exactly those objects; holding more of them at once changes exposure surface, not the rule. No file this row would take carries a privacy rule the schema does not already state. (4) DEFINITION BY ABSENCE. The row's own one_line_hint defines it as material carrying a project identity \"but no more specific sub-domain\". That is the residual concept, and 00 already supplies nine residual homes for it; a within-schema residual duplicates the residual library rather than adding a template. (5) BROWSE, NOT ACTIVATION. `branch root` is a shelving role. The roster records that parent_id is everywhere null because PR-5 leaves browse shelving to R1c, and the dispatch prompt states that parent_id is browse-only and must be ignored for activation. A row that exists so that a browse tree has a trunk is not a detection node. Coverage of the absorbed legacy id `eng.engineering-project` is routed in collides_with and falls_through_to: controlled technical-definition evidence to the engineering schema's default template and its sibling rows, schedule/budget/governance evidence to business_operations.project-delivery, site and instruction evidence to construction_property.construction-project, execution evidence to manufacturing.production-record, and everything else to the residual templates. No field was proposed and no dimension was invented to keep the id.",
+  "node_test": {
+    "distinct_detection_signals": false,
+    "distinct_dimension_order": false,
+    "distinct_privacy_rules": false,
+    "why": "Measured against the engineering schema's DEFAULT TEMPLATE, not against a neighbouring schema. The default's signals are controlled-definition structures joined to an identified design item; the default's order starts at project; the default's sensitivity is potentially_sensitive for proprietary and export-controlled technical data. This row proposes the same signals with one level of them removed, the same order with its tail removed, and the same sensitivity with the same justification."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [
+      "Whether a file that names a project is a controlled design definition (engineering schema default template and its sibling rows), a schedule/budget/governance record (business_operations.project-delivery), a site or contract record for one property (construction_property.construction-project), or an execution record against a released definition (manufacturing.production-record). This is a routing question among existing rows, not evidence for a new one."
+    ],
+    "never_alone": [
+      "A project or programme name. It names the undertaking that funds the file, not what the file is; read across from 00's rule that a university name alone should not create a group because the same name can appear in several unrelated roles.",
+      "A folder named for a project or programme. Parent-folder context may raise plausibility once a controlled-definition structure is present, and never fires by itself — the engineering schema already states this, so restating it here adds nothing.",
+      "A project plan, timing plan, WBS, RAG status or milestone list. The engineering schema's own never_alone assigns these to business_operations.project-delivery unless controlled technical-definition evidence also appears.",
+      "The words engineering, programme, project, product or delivery in a filename. Every one of them appears in business_operations, construction_property, manufacturing, code and research material.",
+      "The employer's industry. An engineering firm's files are not engineering-schema files because of who owns them."
+    ]
+  },
+  "work_types": [],
+  "grouping_reasons": [],
+  "grouping_reasons_note": "A project or programme IS a real grouping neighbourhood — files genuinely cluster around one undertaking, and that is precisely why it is not a node. CONNECTION.md keeps activation and grouping separate. P9 can assemble one programme's files from an exact project anchor without this row existing, and without copying a project fact onto a sparse member. The engineering schema already carries `project` as its first default dimension and lists project-scoped grouping reasons of its own.",
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the node is refused, and refused partly because any order it could recommend is a prefix of its schema's default order.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour-Works_Engineering-Programme-Plan_v7.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet tabs named Timing, Resource Loading, RAG, Budget",
+        "rows carry workstream owner, planned start, planned finish, percent complete and forecast cost",
+        "workstream names read as engineering disciplines (Structures, Controls, Piping)",
+        "no requirement identifier, drawing number, item number or revision column anywhere in the workbook"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an engineering-sounding workstream column is controlled technical-definition evidence",
+        "that discipline names identify a design item",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "business_operations.project-delivery",
+      "note": "THE COLLISION FIXTURE. This is the file that most looks like engineering.project's evidence — it is the central document of an engineering programme and its filename contains both words. What discriminates it: every column is schedule, cost or ownership. The engineering schema's own collision entry for business_operations already settles it — an engineering team and a project name do not make an engineering schema."
+    },
+    {
+      "filename": "BPA-210-001_Brake-Pedal-Assembly_RevC.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "title block with item identifier, drawing number, revision slot, approval slot and sheet information",
+        "the same programme name appears in the title block's project field"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the project field in the title block activates a project row rather than the schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "actually_belongs_to": "engineering (schema default template) / engineering.drawing-package",
+      "note": "This is one of the engineering schema row's own landed fixtures. A project name printed inside a controlled title block is a value on the default template's first dimension, not evidence for a separate project row."
+    },
+    {
+      "filename": "SYS-REQ-042_Braking-System-Requirements_RevB.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered requirement rows with stable identifiers",
+        "columns for allocation, rationale, verification method and verification status",
+        "document header names the programme"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the programme header is the activating relation; the requirement/verification structure is"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "engineering.requirements-specification"
+    },
+    {
+      "filename": "ECR-1187_BPA-210_Bushing-Material.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "affected item identifier with current and replacement revision",
+        "technical reason, effect on form/fit/function, disposition and approval signatures"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a change record belongs to a project row because it cites the programme"
+      ],
+      "also_schema": "manufacturing when a shop-floor nonconformance triggered the change",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "engineering.change-order"
+    },
+    {
+      "filename": "TDP_BPA-210_Baseline-C.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest joins drawings, associated lists, specifications and quality provisions to one released baseline",
+        "archive name carries the programme and the baseline"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a mixed project packet needs a project template; the schema default already recognises an archive manifest exposing several controlled structures under one baseline without extracting members"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "engineering (schema default template)",
+      "note": "The multi-artifact project packet was the best remaining defence of this row. It fails: the schema default already owns manifest-level recognition, and the members are owned by named siblings."
+    },
+    {
+      "filename": "Project Closeout Report - Harbour Works.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides reporting milestones met, spend against budget and outstanding actions",
+        "the word handover on most slides",
+        "no tag-level acceptance results and no takeover date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that close-out language is technical acceptance evidence"
+      ],
+      "also_schema": "engineering.commissioning-handover, but only if the same deck embeds tag-level acceptance results and a takeover date",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "business_operations.project-delivery",
+      "note": "These fixture bytes are named on the landed engineering.commissioning-handover row against business_operations.project-delivery. Both sides of that boundary are already authored; this row is not a third claimant."
+    },
+    {
+      "filename": "2027 Harbour Works Engineering Project/",
+      "source_type": "filesystem",
+      "observations": [
+        "a directory whose name contains a year, a programme name and the words engineering and project",
+        "mixed children: some controlled drawings, some invoices, some photographs, one password-protected archive"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the folder name is a fact about any child",
+        "that all children share the parent's schema",
+        "a folder path as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "no row — each child is classified on its own evidence",
+      "note": "This directory is the strongest intuitive case for the row and the clearest demonstration of why it is not a node: the folder is a grouping neighbourhood, and its name is never-alone evidence for every child inside it."
+    },
+    {
+      "filename": "Weekly Engineering Sync 2026-08-12.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organiser, attendees, recurrence, conferencing link",
+        "description references the programme by name"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a recurring meeting on an engineering programme is engineering-schema evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "business_operations.meeting-record"
+    },
+    {
+      "filename": "LOT-24-081_Final-Inspection.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "batch identifier, operation, measured characteristic, pass/fail result",
+        "cites the design revision the batch was made to"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that citing a design revision moves an execution record onto the engineering schema"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "actually_belongs_to": "manufacturing.production-record",
+      "note": "These fixture bytes are already named on the engineering schema row's manufacturing collision. Definition versus execution is settled there."
+    },
+    {
+      "filename": "Harbour_Works_Design_Archive.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "password-protected; no readable manifest",
+        "filename contains the programme name and the word design"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a project fact, a design item, a purpose, or a sensitivity result from the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted",
+      "actually_belongs_to": "residual — Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "Fixture bytes Harbour-Works_Engineering-Programme-Plan_v7.xlsx and Project Closeout Report - Harbour Works.pptx. Direction one: everything this refused row would have held whose evidence is schedule, budget, resource, milestone, status, risk or governance belongs to that row, whatever the industry of the team producing it — the engineering schema's own never_alone already says so. Direction two: that row does not become engineering when its project happens to be an engineering programme; it crosses onto the engineering schema only when controlled technical-definition evidence appears in the same file, and then the engineering schema's DEFAULT TEMPLATE or a named sibling holds it, never a project-root row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.stage-gate-review",
+      "signal": "Fixture bytes BPA-210_Design-Review-Pack_CDR.pptx. Direction one: gate packs, review decisions and phase-exit evidence were the most template-shaped material this row could have claimed, and that row already owns the gate-and-decision relation. Direction two: that row does not extend to a programme's whole file population merely because a gate names the programme; material outside a gate decision returns to the schema default, to another sibling, or to a residual.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "Fixture bytes Project Closeout Report - Harbour Works.pptx. Direction one: project close-out and handover language overlap almost exactly, and that landed row already states this boundary against business_operations.project-delivery; a project-root row inserted between them would give the same deck a third claimant with no discriminating evidence of its own. Direction two: that row holds technical acceptance of an installed instance — tag-level acceptance results and a takeover date — and does not absorb a programme's design-definition or schedule material just because the programme is closing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "Fixture bytes 2027 Harbour Works Engineering Project/. Direction one: when the project identity resolves to a site or premises joined to a professional instruction or contract, the coverage is that row's, not an engineering project root's — the engineering schema already draws the definition-versus-site line. Direction two: that row does not gain the engineering schema when a site package contains equipment design definition; both relations may hold, and each is evidenced separately.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "Fixture bytes LOT-24-081_Final-Inspection.xlsx. Direction one: execution records citing a released revision stay on that row; a project-root row would have pulled them in on the shared programme name alone. Direction two: that row does not become engineering by citing Rev C, and it does not own the change record that altered Rev C — that is engineering.change-order, which may also hold manufacturing when a nonconformance triggered it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.automotive-program",
+      "signal": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: that row is already refused, and part of its refusal routes programme identity to this row. Direction two: this row is now refused for the same structural reason one level up — it is the schema's default template with a project noun, exactly as that row is this row with an industry adjective. The two refusals must not route to each other; both route to the engineering schema's default template, to the named siblings, and to business_operations.project-delivery. Recorded for R1c as a cross-row repair, not edited here.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone technical document that survives with durable meaning but no reliably evidenced controlled item and no accepted project group — a lone datasheet, certificate or calculation pulled out of a project folder — belongs here rather than activating from the project word in its parent directory name.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The principal fallback for this refusal. A file that plainly belongs to a project but whose role — defining, managing, building, siting or inspecting — cannot be established from its own evidence goes here rather than into a project bucket that would freeze the ambiguity as a fact.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected project archives and unreadable proprietary CAD keep basic metadata without a purpose being inferred from a programme name in the filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded only so that routed coverage does not lose its posture. The value and its justification are the engineering schema's own — proprietary design definition, supplier data, safety analyses, signatures and export-controlled or critical-technology information — and the fact that this row could state nothing different is the third leg of its refusal. Sensitivity here is only none or potentially_sensitive; handling classes are P7's.",
+  "open_question": "Two cross-row repairs belong to R1c and are not made here. (1) engineering.automotive-program's refusal routes programme identity to engineering.project; with this row also refused, those routes must be re-pointed at the engineering schema's default template, the named engineering siblings, and business_operations.project-delivery. (2) If R1c prefers to keep a browse trunk for the twenty-three engineering.* rows, that is a shelving decision under PR-5 and should be expressed as browse structure with parent_id, never as a template row with detection signals."
+}

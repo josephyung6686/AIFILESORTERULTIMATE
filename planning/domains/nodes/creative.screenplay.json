@@ -1,0 +1,384 @@
+{
+  "id": "creative.screenplay",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Screenplay and script (REFUSED — a document type, already the creative schema's own signal and creative.film-production's first one)",
+  "one_line": "REFUSED. A screenplay is a DOCUMENT TYPE, and its recognition already exists twice over: the creative schema's default template carries the script element grammar as a named deterministic signal and calls it 'the most deterministic single fixture this family has', and creative.film-production carries the same grammar as its FIRST deterministic signal, with .fdx and .fountain in its file_kinds and 'screenplay' as its first work_type value. A row whose whole content is a document type that its own schema already detects has no leg of the node test left to stand on, and the coverage it was meant to carry routes to creative.film-production, creative.theatre-production, creative.podcast-episode, creative.book-manuscript and the Review Later / Independent Records residuals without loss.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of the CONNECTION node test, and fails the charge on four separate grounds before the legs are even reached. THE CHARGE FIRST. (a) DOCUMENT TYPE. The roster hint says it outright — 'the one document type in this slice'. A document type is a value of `artifact_type`, and the creative schema's own `artifact_type` example enum already lists 'script' among 'working file, export, proof, master, stem, cut, render, layout, script, transcript, release form, brief'. (b) EXISTING WORK-TYPE VALUE. `script` is already a member of the creative schema's `work_types`, and `screenplay` is already the first member of creative.film-production's. Work types are values; the assignment states the rule plainly and creative.performing-practice was refused on it. (c) MEDIUM AND FORMAT. 'for screen or stage' is a medium; '.fdx / .fountain / most often reduced to a flat PDF' is a set of file formats, and 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning'. (d) DUPLICATE OF ITS OWN SCHEMA'S DEFAULT TEMPLATE. This is the decisive one and it is quotable from the anchor: the creative schema's eighth deterministic signal is 'a SCRIPT structure: the strict element grammar of a screenplay or stage script - scene headings, character cues centred above dialogue, transitions - which survives even a flat PDF export and is the most deterministic single fixture this family has.' The row's entire proposed contribution is a signal its schema already declares and already advertises as its best one. NOW THE THREE LEGS. (1) DETECTION SIGNALS DO NOT DIFFER FROM THE DEFAULT. Every candidate discriminator this row could name resolves to one of four things: the schema's own SCRIPT signal (scene headings, character cues, transitions, element grammar surviving a flat PDF); an extension (.fdx, .fountain, .celtx, .highland); a document-type word in a filename ('script', 'screenplay', 'draft', 'sides', 'teleplay'); or evidence that is genuinely discriminating but belongs to a sibling — revision-colour pages, A-pages, locked scene numbers and a one-liner schedule are PRODUCTION evidence, existing only because a production is scheduling around a locked script, and creative.film-production already claims them under 'A preproduction packet containing a labelled call sheet or shooting schedule'. Two templates on the SAME schema firing on the same bytes with no discriminator between them is precisely the failure CONNECTION's node test exists to prevent, and it is the reason creative.performing-practice was refused with 'duplicating them here would make the same bytes activate two same-schema templates with no discriminator'. (2) DIMENSIONS DO NOT DIFFER, AND CANNOT. The creative schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so `dimension_order` is empty here as it is for all 41 siblings — identical to the default by construction, not by choice. Nor would adoption rescue it: under option (b) of NJ-R1a-1 the honest recommendation for this material is the schema default's own `project → stage → artifact_type` with `screenplay` as an `artifact_type` VALUE and `2nd Draft` as a `stage` value. The alternative — a document-type-first or draft-first order — inverts 00's parent-context rule, since 'a parent dimension should provide the context required to understand the child' and a draft number is meaningless without the work in exactly the way Homework 3 is meaningless without the course. A `screenplay` level above `project` would also be the one-child collector level 00's own validator rejects for the ordinary case: one writer, one script in progress. (3) PRIVACY RULES DO NOT DIFFER. An unfilmed script is confidential, and that is verbatim the creative schema's own first sensitivity reason — unpublished work, where 'the harm is disclosure rather than identity theft'. The third-party identity that DOES demand a distinct posture in this material — cast lists, contact blocks, minors' guardians — lives on call sheets and release forms, which are creative.shoot-day-media's and creative.film-production's evidence, not the script's. A script page carries characters, not people. THE HONEST RESIDUE. There is one real gap this refusal must name rather than paper over: the working screenwriter with a dozen specs and no production anywhere on the disk. It is recorded as NJ-SCREENPLAY-2 with three alternatives, and the recommendation is to widen creative.film-production's first signal rather than to mint a row for a document type. Inventing a filing world to save this id would be the 574's original mistake performed at the exact point of maximum temptation, because the element grammar really is the most machine-readable structure in the whole creative family — and being easy to DETECT is not the same as being an organizational SITUATION.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "NONE UNIQUE TO THIS ROW, and that is the finding rather than a gap. The script element grammar — INT./EXT. scene headings, character cues centred above dialogue, parentheticals, transitions, and the same grammar preserved in an .fdx paragraph-type structure or a Fountain plain-text convention — is already the creative schema's eighth deterministic signal and already creative.film-production's first. No file is routed to this refused row; every file below activates the schema, a narrower creative sibling, or a residual, on its own evidence.",
+      "The one structure that looked like it might discriminate, examined and rejected: a REVISION-COLOUR PAGE SET (white/blue/pink/yellow pages, A-pages, asterisked change bars, locked scene numbers). It is real, it is strictly formatted, and it is not this row's — those marks exist only because a production is scheduling around a locked script, so they are production-packet evidence and creative.film-production already claims that packet."
+    ],
+    "needs_llm": [
+      "No file is routed to this refused row. Where a bounded model is asked whether a cue-and-dialogue document is a screen script, a stage script, a podcast run-of-show, a game dialogue tree or a downloaded reading copy, it is answering for the ACTIVE creative schema or for a sibling template, and 'A model that cannot cite sufficient evidence must return unknown.'",
+      "The genuinely hard judgement this row would have inherited, recorded so it is not lost: deciding whether a lone cue-and-dialogue document is a work the holder is MAKING or a work the holder is READING or STUDYING. That question is answered by the neighbourhood — a same-stem draft run and a working container on the making side, distributor packaging and a downloads-folder cohort on the reading side — and the neighbourhood is exactly what a document-type row cannot see."
+    ],
+    "never_alone": [
+      "THE SCRIPT ELEMENT GRAMMAR ITSELF. Scene headings, centred character cues, parentheticals and transitions are the single most imitable structure in this family: they are equally present in a downloaded public-domain play, a screenwriting-course exercise, a fan-fiction posting saved to disk, a machine-generated sample, a shooting script for a film someone else made, and a stage script the holder is merely performing in. The grammar proves a script exists; it does not prove the holder is making one, and it does not select a template.",
+      "A .fdx, .fountain, .celtx, .highland OR .pdf EXTENSION ALONE. 00 forbids extension-alone proof generally, and this row is where the temptation is sharpest because .fdx feels uniquely screenplay-specific. It is not evidence of a situation: an .fdx is equally a downloaded sample script, a template, a course handout, and a collaborator's file the holder never opened.",
+      "THE WORD 'SCRIPT' IN A FILENAME. The most polluted document-type token in the whole corpus — it names a shell script, a test script, a sales call script, a video-essay narration, a podcast run-of-show, a conference-talk read-through and a screenplay, and the first two are code's.",
+      "A DRAFT NUMBER, A DRAFT DATE OR A REVISION COLOUR IN A TITLE PAGE OR FILENAME ('2nd Draft', 'Blue Revision 04/11', '_v5', '_LOCKED'). Universal version-family evidence, and it is the exact evidence on which creative.revision-round was refused. It may join a group; it may not activate a row.",
+      "PAGE COUNT OR ESTIMATED RUNTIME. Named explicitly because it is this row's own charge: 'feature-length' and 'short' are LENGTHS, and a length is a value, not an organizational situation. No threshold appears in this node and none may be introduced downstream.",
+      "A WORK TITLE PLUS A WRITER'S NAME ON A TITLE PAGE. Never-alone under the authorship rule — 'Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement' — and in a screenwriter's corpus the writer is the corpus owner, so a writer level would collect the entire disk.",
+      "A PRODUCTION COMPANY, STUDIO, BROADCASTER, AGENCY OR FESTIVAL NAME ON A TITLE PAGE OR IN A FOOTER. The direct read-across of 00's university-name warning: the same organisation appears as commissioner, optioning party, the writer's own representation, the festival that merely screened it, and a company named in the dialogue.",
+      "THE ABSENCE OF PRODUCTION PAPERWORK READ AS PROOF OF AN UNPRODUCED SPEC SCRIPT. The absence rule, and the one this row most wanted to lean on. A produced film's script sits alone on a disk all the time — the writer kept the script and never had the call sheets — and a folder holding only an .fdx is silent about whether anything was ever shot.",
+      "A CHARACTER LIST, A CAST-OF-CHARACTERS PAGE OR A DRAMATIS PERSONAE READ AS A `people` FACT. `people` is a photos-schema key, is seeded destination-ineligible, and its ceiling is user_confirmed; script characters are not people at all."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "NONE OWNED BY THIS ROW. The groups this material really forms are already declared elsewhere: 'one named production across its screenplay, treatment and development material' (creative.film-production), 'one version family of a draft, which in this world is intentional rather than accidental' and 'one named work across its working files, exports and paperwork' (the creative schema). A same-stem draft run of .fdx files is a version family — a universal — and a version family is a grouping reason, never an activation."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty twice over. By contract, because the creative schema declares no field rows and a dimension may only branch on a field the same entry's schema declares (_CONTRACT rule 8, D6). And by refusal, because even if NJ-R1a-1 resolves to option (b) the recommendation for this material is the schema default unchanged — client where the corpus genuinely serves more than one, then project, then stage, then artifact_type — with `screenplay` as an artifact_type value and `2nd Draft` as a stage value. That is the definition of a template that does not differ from its default. Not time-first: 00 grants the capture-first exception to photos and capture-based media, and a script has a draft date, not a capture date; the creative schema names creative.shoot-day-media and creative.raw-photo-catalogue as the only two siblings that may claim it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "opaque_binary",
+      "archive",
+      "ocr",
+      "image",
+      "filesystem",
+      "email"
+    ],
+    "extensions": [
+      ".fdx",
+      ".fountain",
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".celtx",
+      ".highland",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour Lights - screenplay v5.fdx",
+      "source_type": "text_document",
+      "observations": [
+        "an XML-backed screenplay document whose paragraphs carry explicit element types — scene heading, action, character, dialogue, transition",
+        "title page names the work and the draft number, with a revision date beneath",
+        "a call sheet, a shot list and a folder of take-numbered clips carrying the same work title sit in the parent folder",
+        "four same-stem siblings with earlier draft tokens sit beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "a distinct screenplay template: this is creative.film-production's OWN fixture, carried verbatim in its file_examples, and its first deterministic signal already reads on these bytes",
+        "that the strict element grammar is a discriminator; it is the creative schema's eighth deterministic signal and is present on the reading copy and the course exercise below in identical form",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SALT FLATS - 3rd Draft (Blue Revision 04-11-2026).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a flattened PDF whose page furniture carries a revision colour name and a revision date",
+        "asterisked change bars in the right margin and A-page numbering (27, 27A, 28)",
+        "scene numbers printed in both margins and never renumbered between drafts",
+        "a one-line schedule spreadsheet and a cast-and-crew contact list sit in the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "that revision-colour pages and locked scene numbers are screenplay evidence; they are PRODUCTION evidence, existing only because a production is scheduling around a locked script, and creative.film-production claims the preproduction packet",
+        "a stage of `locked` or `approved` from the LOCKED-adjacent page furniture; that claim requires labelled content or a rights/handoff record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hamlet.txt (Project Gutenberg plain-text download)",
+      "source_type": "text_document",
+      "observations": [
+        "a complete play in textbook element grammar — dramatis personae page, act and scene headings, character cues above every speech, bracketed stage directions",
+        "a distributor header and a licence trailer bracket the text",
+        "no same-stem siblings, no version-shaped token, no working container anywhere on the disk",
+        "sits in a downloads folder with thirty other single-file title-and-author texts acquired across one afternoon"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THE COLLISION FIXTURE OF THIS NODE. The element grammar here is more complete and more regular than on any file the row would legitimately claim, and the correct outcome is that no creative row fires at all — the holder is READING this, not making it",
+        "any creative fact — the schema declares none, and this file would license none if it declared four",
+        "a project from the bounded download session that produced the folder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "untitled_spec.fountain",
+      "source_type": "text_document",
+      "observations": [
+        "plain text using Fountain conventions — uppercase scene headings, uppercase character names on their own line, forced-transition markers",
+        "no title page block, no work title, no writer name",
+        "three same-stem siblings with date-stamped filenames and no other file of any kind in the folder",
+        "no production paperwork, no media, no counterparty and no export anywhere in the neighbourhood"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "THE STRONGEST CASE FOR THIS ROW, AND IT STILL FAILS: the creative schema's SCRIPT signal already fires on these bytes and licenses exactly what a screenplay template would license, which is recognition and the universals. The template adds nothing, so it is not a node",
+        "an unproduced-spec status from the absence of production paperwork; a produced film's script routinely sits alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MidnightRiver_screenplay_adaptation_v2.fdx",
+      "source_type": "text_document",
+      "observations": [
+        "screenplay element grammar; title page reads 'based on the novel by' above the same name the neighbouring manuscript carries",
+        "sits in the same folder as MidnightRiver_ch01-12_draft7.docx and its six earlier draft siblings",
+        "shares a stem with the prose work and with a folder of query letters addressed to three named agencies"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "that the shared title, stem and folder make the adaptation a member of the manuscript's draft family; a prose revision and a script revision are not members of one sequence",
+        "that creative.book-manuscript's reciprocal edge naming this row survives the refusal; it is recorded as NJ-SCREENPLAY-1 for R1c to re-point, and is not this row's file to edit",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ophelia sides - Act 3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "pages of character cues and dialogue excerpts for a single role, with the other speeches cut away",
+        "filename names a role and an act but no production, venue or date",
+        "handwritten annotations in the margins, recovered by OCR"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "that this row may claim it: it is creative.performing-practice's own fixture, on a row already refused for duplicating 'a stage script's element grammar' that the schema default holds — a second refused claimant on the same bytes would be the same error twice",
+        "a performer identity from the role name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ep 04 - The Quarry - script (RUN OF SHOW).docx",
+      "source_type": "text_document",
+      "observations": [
+        "host and guest cues above dialogue in a cue-and-speaker layout indistinguishable from a stage script's",
+        "a timing column against segments, and bracketed cues reading MUSIC BED and AD BREAK",
+        "sits beside a multitrack session package, numbered take files and a bounced .mp3 sharing the episode stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "a screenplay from the cue-and-dialogue layout; the timing column, the ad-break cues and the session-plus-takes neighbourhood are creative.podcast-episode's evidence",
+        "that the word 'script' in the filename is evidence of anything at all",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SCWR-210_week3_scene-exercise_submitted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "eight pages of correct screenplay element grammar with no title page and no work title",
+        "a course-code-shaped token, a week number and the word submitted in the filename",
+        "a header carrying an instructor name and a due date",
+        "sits beside a syllabus, a rubric and eleven other week-numbered submissions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none, and creative.film-production's own never_alone already names this file: 'screenplay structure can be a writing sample, classroom exercise, theatre script, or an unrelated draft'",
+        "a course fact from the course-code-shaped token alone; the academic context terms in the neighbourhood carry that reading, and it is academic's to make, not this row's",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scene 14 rewrite.docx",
+      "source_type": "text_document",
+      "observations": [
+        "four pages of dialogue under two uppercase character cues, with no scene heading and no title",
+        "no version token, no draft number, no writer name, no title page",
+        "sits two folders away from a production folder that names a work, and shares no stem with anything"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "the neighbouring production's work title, scene numbering or draft state; this is the HW 3 case, and the neighbourhood may group the file without any fact being copied onto it",
+        "that 'Scene 14' is a scene-number fact rather than a filename token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "TheLastFerry_shooting_script_LOCKED.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest lists mixed members — an .fdx, a paginated PDF, a sides folder, a one-line schedule spreadsheet and a character breakdown",
+        "member paths carry one shared top folder named for the work",
+        "no member is extracted to disk",
+        "the archive's own timestamp is the day it was assembled"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact — the schema declares none",
+        "that the packet is a screenplay packet; it is a production packet — schedule, sides and breakdown are scheduling instruments, and the .fdx is one member of a purpose-coherent group creative.film-production already claims",
+        "member facts from the archive's own timestamp, and a locked or approved stage from the filename token",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.film-production",
+      "signal": "THE COLLISION THAT KILLED THIS ROW, stated reciprocally on the same fixture. SAME FIXTURE: `Harbour Lights - screenplay v5.fdx`, which creative.film-production already carries verbatim in its own file_examples. FILM-PRODUCTION claims the screenplay as one member of a production lifecycle — its first deterministic signal is 'A screenplay structure with scene headings such as INT./EXT., character cues above dialogue and explicit transitions', its file_kinds already carry .fdx and .fountain, and its first work_type value is 'screenplay'. THIS ROW would claim the same bytes on the same grammar with no discriminator, on the same schema. RECIPROCAL: film-production must not claim a lone .fdx merely because a screenplay exists (its own never_alone already says so — 'A script-like document with no production identity'), and this row must not exist to catch that lone .fdx, because catching it is what the creative schema's SCRIPT signal and the Review Later residual already do. There is no third position between them, which is the definition of a template that is not a node.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.theatre-production",
+      "signal": "SAME FIXTURE: `Ophelia sides - Act 3.pdf`. A stage script's element grammar is the same grammar, and the roster hint tried to buy both media with one row ('for screen or stage') — which is what makes the hint a MEDIUM rather than a situation. THEATRE-PRODUCTION claims the staging record: a rehearsal schedule, a programme, a venue and run of dates, a prompt copy. THIS ROW would claim the script that all of them are about. RECIPROCAL: theatre-production must not claim a screen script because both are cue-and-dialogue documents, and this row must not sit between theatre and film absorbing the one document both need, because a document type shared by two situations belongs to the schema, not to a row of its own.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.book-manuscript",
+      "signal": "SAME FIXTURE: `MidnightRiver_screenplay_adaptation_v2.fdx` beside `MidnightRiver_ch01-12_draft7.docx`. book-manuscript already argued this boundary against this row and stated it reciprocally in its own file, and its statement of the discriminator stands whether or not this row survives: it claims the chapter run and the compile container, and it explicitly forbids itself from claiming a dedicated screenplay format merely because the story originated in the book. RECIPROCAL FROM THIS SIDE, AS REFUSED: the adaptation's own evidence routes to creative.film-production where a production exists, and to the creative schema plus Review Later where it does not. NJ-SCREENPLAY-1 records that book-manuscript's edge now points at a refused row and asks R1c to re-point it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.podcast-episode",
+      "signal": "SAME FIXTURE: `Ep 04 - The Quarry - script (RUN OF SHOW).docx`. A run-of-show is a cue-and-speaker document that a naive element-grammar reader cannot tell from a stage script. PODCAST-EPISODE claims the episode as the unit — the timing column, the ad-break and music-bed cues, the session package with numbered takes and a bounced episode file sharing the stem. THIS ROW would claim the document on its layout. RECIPROCAL: podcast-episode must not claim a screen script because a folder contains audio, and this row must not claim a run-of-show because it has character cues — the layout is shared, the episode structure is not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE FAMILY: a writer's `Sample - first 10 pages.pdf` sitting beside a resume and a one-page bio. The bytes are a screenplay excerpt; the purpose is self-presentation. CAREER claims the curated set of finished exports ordered for showing with no working files around them. THIS ROW would claim the excerpt on its grammar. RECIPROCAL: career must not claim a working draft because a writer wrote it, and this row must not claim a submission sample because it is formatted as a script. The creative schema already states the general form of this seam as its load-bearing collision.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "SAME FIXTURE: a `.fountain` file inside a repository root with a git marker, a Makefile that renders it to PDF and a lockfile — a real and growing habit among screenwriters who version their drafts. CODE claims the preserved repository: a manifest, a lockfile and a source layout, whose internal layout is preserved rather than re-filed. THIS ROW would propose re-filing a tracked file out of the repository it lives in. RECIPROCAL: code must not claim the draft's meaning merely because a repository encloses it, and no creative row may propose moving anything inside a preserved repository root.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "EMPTY BY CONTRACT AND BY REFUSAL. _CONTRACT rule 14 restricts also_holds_with to schema rows, and the creative schema already declares the co-activations this material would want — photos, legal, business_operations, career. The one file below carrying a genuine second reading, the course exercise, records it as `also_schema: \"academic\"` on the fixture rather than as an edge, which is where a template row may state it.",
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The primary route for this refused row's coverage and the honest home for most of it. A lone script whose work, side and production status cannot be resolved is the normal case in this material rather than the exception, because untitled drafts and version-token filenames are the habit. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" Six of the ten fixtures land here.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the single finished script kept for its own sake with no production, no draft family and no group around it — the writer who kept one produced screenplay and nothing else. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" This is also where creative.film-production already routes a standalone script, so the two agree; NJ-SCREENPLAY-3 asks whether an in-progress draft family should instead go to Review Later.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The route for the collision fixture, and the one that matters most because the collision fixture's element grammar is more perfect than any file this row would legitimately claim. A downloaded play, a purchased shooting-script edition or a produced screenplay someone else wrote is material the holder READS. Marked inference because 00's Reading Inbox sentence does not name scripts; the mechanism it describes is what this route invokes.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Proprietary or password-protected drafts — a locked studio PDF, a watermarked secure-distribution copy, a .celtx or .highland package no approved extractor reads — where 00 requires that 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty' and the file still counts as evidence in a neighbourhood.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "EMPTY, and the refusal here is the same one finance.crypto-assets recorded. The split this material wants is THE WRITER against THE OPTIONING OR COMMISSIONING PARTY — both names sit in the same title-page and copyright-notice zone. The writer side is authorship, which 00 bars from being a destination at all, and the counterparty side is already the creative schema's declared `client` / `our_firm` split. Minting a producer-side key to solve one refused template's problem is exactly the move that produced thousands of private field names. Recorded in must_not_conclude on the fixtures instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Real, but NOT distinct — which is leg three of the refusal rather than an argument for the row. An unfilmed script, an unproduced adaptation and a draft under an option agreement are confidential by default, and that is verbatim the creative schema's own first sensitivity reason: unpublished work, where the harm is disclosure rather than identity theft, and where the client's or producer's confidence is not the maker's to give away. The distinct third-party-identity posture this material is sometimes credited with belongs to its NEIGHBOURS, not to it: cast and crew contact blocks live on call sheets (creative.shoot-day-media), signed personal details live on release forms (creative.film-production, identity). A script page carries characters, not people. Against all of it: \"Privacy policy must be enforced before content reaches any model or external connector.\" No handling class is assigned; this row does not carry is_safety_domain.",
+  "open_question": "Three, and the second is the only one that could reopen the row. (1) NJ-SCREENPLAY-1 — A LANDED NEIGHBOUR ALREADY POINTS AT THIS REFUSED ROW. creative.book-manuscript.json carries a `collides_with` entry naming `creative.screenplay` with a reciprocal statement about adaptations. That edge now targets a refused node. Alternatives for R1c: (a) re-point it at creative.film-production for screen adaptations and creative.theatre-production for stage, which preserves the discriminator book-manuscript actually argued (its side is the chapter run and the compile container; the other side is the dedicated script format) and loses nothing; (b) leave it as a documented dangling marker recording that the boundary was argued and the far side refused; (c) revive this row, which requires answering (2) first. RECOMMENDATION: (a). NOT DONE HERE — editing a neighbour's node is outside this row's mandate, so it is a recommendation to R1c and nothing more. (2) NJ-SCREENPLAY-2 — THE LONE SCREENWRITER HAS NO ROW, AND THAT IS THE ONE REAL COST OF THIS REFUSAL. A working screenwriter with a dozen specs, no shoot, no call sheet and no camera media has a genuine filing world, and after this refusal no template owns it: creative.film-production's first signal asks for a screenplay 'especially when paired with a named production or a production-paperwork neighbour', creative.self-initiated-work is refused, and creative.book-manuscript is prose. Three answers, three different products: (a) ACCEPT THE SCHEMA DEFAULT — the SCRIPT signal fires, the universals and the version family are legal, and the drafts land in Review Later; this is what the row recommends today, and its cost is that a professional writer's whole corpus gets recognised and never structured; (b) WIDEN creative.film-production's first deterministic signal to drop the production-neighbourhood preference, so development-stage material activates the production row before anything is shot — cheap, edits one sibling, and is the recommendation here; (c) MINT A DIFFERENT ROW ANCHORED ON DEVELOPMENT AS A RELATIONSHIP rather than on a document — an option or shopping agreement, coverage and reader reports, a notes-to-draft cycle, a submission log — which WOULD be a situation with its own detection signals and its own counterparty privacy posture, and would be the only honest version of this id. It is not this id, because this id is named for a document type. RECORDED, NOT RESOLVED; this row proposes no such node. (3) NJ-SCREENPLAY-3 — WHICH RESIDUAL OWNS A LONE SCRIPT. creative.film-production routes a standalone script to Independent Records; this row routes most of its fixtures to Review Later. Both are defensible and they should not disagree silently. The distinction offered: a SINGLE finished script with no siblings has a durable purpose and no group, which is Independent Records' sentence exactly; a same-stem DRAFT RUN is meaning partly understood with a location still undecided, which is Review Later's. Confirm, or collapse both to one."
+}

@@ -1,0 +1,664 @@
+{
+  "id": "manufacturing.work-instruction",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "Work instructions and manufacturing SOPs",
+  "one_line": "Controlled type-level instructions that tell an operator how to perform one manufacturing operation: ordered steps, setup and tooling, parameter limits, in-process checks, safety controls, revision/effective-date control and approval. It is not the executed batch record, engineering specification, warehouse procedure or generic corporate policy merely because those files also contain numbered steps.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": true,
+    "privacy_differs": true,
+    "why": "The manufacturing schema default recognizes recurring transformation or control cycles: executed production, inspection, nonconformance, calibration, maintenance and HSE records. This template is type-level and prospective: a controlled instruction has an operation or station scope, ordered steps, setup/tooling, specified parameter ranges, checkpoints, safety controls, document revision, effective date and approval, but no instance-specific actuals, lot genealogy or returned-to-service result. Its recommended organization is product/process or site/station → record type, with document revision retained as version-family evidence rather than a folder level; this differs from the default's product → batch/lot, site → asset and quality-event branches. Privacy is also distinct in concentration: the instruction can disclose the repeatable process recipe, machine settings, access restrictions and worker-safety controls even when no particular lot has been made. The row remains fieldless because PR-6 defers manufacturing fields. If R1c decides work instructions are only the `work instruction` value already named in the manufacturing schema and cannot preserve this type-versus-instance distinction, refusal is required."
+  },
+  "recognition": {
+    "deterministic": [
+      "a controlled instruction with a labelled document or procedure number, revision, effective date, owner/approver and scope identifying one product, process, operation, station or machine",
+      "an ordered step table or flowchart whose rows tell an operator what to do, what tool or material to use, what parameter or range to set, and what check or decision follows; the sequence and imperative operation relation are the signal",
+      "a setup sheet that joins a station or machine, tooling/fixture identity, setup sequence, specified parameter ranges, first-piece or in-process check and signoff/approval, with no actual lot values",
+      "a standard operating procedure whose manufacturing scope, line or equipment anchor and controlled revision block are explicit, and whose body describes repeatable execution rather than a one-time result",
+      "a cleaning, sanitation, line-clearance, changeover or lockout procedure tied to a product/process or production asset, with preconditions, ordered actions, verification and release steps",
+      "an embedded operator instruction inside a controlled production document or manufacturing-system export, where the instruction's own revision/effective control and type-level steps are distinguishable from the order's actual execution data",
+      "a controlled visual work aid with annotated operation photographs or diagrams, station/tool labels, numbered actions, parameter limits and approval/effective metadata; a photograph or diagram alone is not enough",
+      "a training or competence package only when its content reproduces a controlled manufacturing instruction for one operation and carries the instruction's revision/effective reference; a general training deck is not this row",
+      "an email or calendar item whose native fields and attachment manifest announce release, withdrawal, review or training of a named manufacturing instruction, while the message alone remains a group member rather than proof of the instruction's body",
+      "an archive manifest linking one controlled instruction revision to setup sheets, visual aids, checklists, change notices and withdrawn copies; the archive is inspected through its manifest without unpacking"
+    ],
+    "needs_llm": [
+      "whether an unlabelled sequence of steps is a manufacturing instruction, an engineering method, a warehouse procedure, a laboratory protocol, a maintenance manual or an executed production record",
+      "whether a document is type-level and reusable or an instance-level traveller whose blank-looking cells are actually missing execution evidence",
+      "whether a procedure is controlled by the manufacturing organization or is a supplier manual, customer specification, regulator document or public safety guidance",
+      "whether an instruction's product, process, station or machine anchor is sufficiently explicit when the title only says SOP, standard work or operation",
+      "whether a setup table containing ranges and measured first-piece values is an instruction plus a production/inspection record, or only a completed batch record with copied procedure text",
+      "whether an OCR-poor scan preserves numbered steps, parameter labels, checkboxes, revision control and station scope well enough to activate",
+      "whether a screenshot of a MES or quality portal shows the controlled instruction itself, a release workflow, or merely a search result and should be grouped without copying facts",
+      "whether a work instruction is also a corporate policy or compliance procedure when the same bytes carry both a shop-floor operation and an organization-wide obligation",
+      "whether a maintenance or calibration method is an instruction for operators or an asset-specific work order/certificate whose evidence is the performed service",
+      "whether a multilingual or highly abbreviated shop-floor document can be interpreted without turning a guessed operation, parameter or approval state into a fact"
+    ],
+    "never_alone": [
+      "the words work instruction, WI, SOP, standard work, procedure, method, router, traveller, setup, operation, process, manufacturing, production, quality or shop floor alone",
+      "a product, part, machine, line, station, plant, operator, supplier or organization name alone",
+      "a document number, revision, effective date, work-order number, operation code or serial-like token outside a labelled controlled-document and scope structure",
+      "numbered steps, imperative verbs, a flowchart, a parameter table, a checklist, a signature, an approval stamp or a safety warning alone",
+      "a specified temperature, pressure, torque, speed, tolerance, quantity, time or pass/fail value alone; these occur in specifications, records, manuals and test reports",
+      "a source_type or extension alone, including PDF, DOCX, spreadsheet, image, OCR, presentation, email, calendar, archive, JSON or design file",
+      "a parent folder called SOPs, Work Instructions, Procedures, Manufacturing, Quality, Operations, Plant or Training alone",
+      "a download, release, review or training session alone; 00 says: \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\"",
+      "a product or machine photograph, screenshot, diagram, QR code or barcode without a controlled instruction structure",
+      "a blank form or blank traveller with the same step grid and parameter table but no instance identifier, actual values, effective control or approved scope; it may be a template, not an active instruction",
+      "missing EXIF or dense OCR as proof that a photographed page is a work instruction; 00 says: \"However, the system must not mistake the absence of EXIF for proof that an image is a screenshot.\""
+    ]
+  },
+  "proposed_context_terms": [
+    "work instruction", "standard work", "operator instruction", "setup sheet", "router", "operation", "station", "scope", "applicable equipment", "document number", "revision", "effective date", "approved by", "supersedes", "step", "sequence", "tooling", "fixture", "parameter range", "setpoint", "first-piece check", "in-process check", "line clearance", "changeover", "cleaning instruction", "sanitation", "lockout", "release to production", "visual aid", "operator signoff", "controlled copy"
+  ],
+  "work_types": [
+    "product-specific work instruction",
+    "machine or station setup sheet",
+    "standard work combination or operator sequence",
+    "special-process operating procedure",
+    "assembly, joining or fastening instruction",
+    "machining, forming or finishing instruction",
+    "inspection or first-piece check instruction",
+    "cleaning, sanitation or line-clearance procedure",
+    "changeover and tooling-change procedure",
+    "material handling or point-of-use instruction",
+    "lockout, safety and emergency operating instruction",
+    "visual work aid or annotated operator guide",
+    "controlled instruction release, review or withdrawal record",
+    "instruction revision and training-reference packet"
+  ],
+  "grouping_reasons": [
+    "one controlled operation across its current and superseded instruction revisions, setup sheets, visual aids and release/withdrawal records; version_family remains the universal relation",
+    "one product, process, station or machine across reusable instructions and the executed production, inspection or maintenance groups that reference them, without copying the instruction's product or station facts onto those members",
+    "one changeover or line-clearance procedure across its checklist, release evidence, training reference and related controlled change",
+    "one special process across its normative specification, operator instruction, qualification evidence and completed batch records; the same bytes may support separate templates on disjoint evidence",
+    "one instruction release cycle across approval, effective-date notice, controlled-copy distribution, training acknowledgement and withdrawal evidence",
+    "a sparse screenshot, email, calendar event or photograph may join an accepted instruction group without receiving product, operation, revision or station facts from neighbours",
+    "a document that is both a corporate policy and a shop-floor instruction can retain both evidence relations; placement is decided later and neither group may propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because manufacturing is a PR-6 placeholder and declares no legal destination fields. Subject to R1c, this situation recommends product or process → site/station or machine → record type, with site optional for a single-plant corpus and revision handled by universal version_family rather than a branch. A procedure is reusable across many batches, so batch_lot is deliberately omitted; a production traveller owns the executed order/lot, and a specification owns normative requirements. Time is not first: 00 states, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The user may reverse, remove, add or flatten any eventual order. No operation, parameter, tool, worker, customer or document number is proposed as a destination dimension until R1c resolves the canonical vocabulary and privacy consequences.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".xml",
+      ".json",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".svg",
+      ".dwg",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Setup sheet OP30 AX-410 rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "controlled header identifies an operation, product, document revision, effective date and approver",
+        "ordered setup steps name fixture, tools, machine settings and specified parameter ranges",
+        "a first-piece check and operator acknowledgement appear, but no actual batch values or lot genealogy"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a product, station or operation field before R1c licenses manufacturing fields",
+        "that the setup was executed or approved for a particular lot",
+        "that revision C is current in the issuing system",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BPR_AX410_L240817-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "document embeds the same OP30 parameter table and procedure text as the setup sheet",
+        "header identifies one production order or lot",
+        "operation rows contain actual quantities, timestamps and operator signoffs, followed by release disposition"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that embedded procedure text makes the whole document a reusable work instruction",
+        "a current instruction revision from the traveller's reference alone",
+        "that every parameter or signoff is legible and valid",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CNC-07 Setup Parameters.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets label machine, fixture, tool list, setup sequence, specified ranges and first-piece checks",
+        "a document-control sheet names revision, effective date and approver",
+        "parameter cells are ranges or instructions, not actual values for a particular lot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that CNC-07 is a destination dimension or a live asset fact before R1c",
+        "that a range proves the machine achieved it",
+        "that an extension or worksheet name activates this template",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PS-217 Rev 3 - Solution Heat Treat and Age.docx",
+      "source_type": "text_document",
+      "observations": [
+        "controlled special-process document identifies process scope, revision, approval and effective control",
+        "requirements state temperature/time ranges, quench medium, equipment class and qualification provisions",
+        "the prose says what the process must achieve and how it is demonstrated, not what one operator completed on one lot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this normative specification is a work instruction merely because it has process steps",
+        "that a furnace is qualified or a lot was treated",
+        "that Rev 3 is current or superseded without issuing-system evidence",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SOP-014 Goods receipt.docx",
+      "source_type": "text_document",
+      "observations": [
+        "controlled document number, revision history and numbered responsibility steps",
+        "steps describe receiving and recording materials across an organization",
+        "the same file could be used as an administrative procedure and as a warehouse operator instruction"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which template owns the bytes from SOP vocabulary alone",
+        "a manufacturing product, lot or station fact",
+        "a warehouse site or bin fact from a responsibility column",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Pick-Pack Standard Work - Bay 3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered operator steps and photographs show picking, packing and scan checks",
+        "document-control block identifies a warehouse process, bay and revision",
+        "steps contain handling-unit, bin and outbound-order references but no product transformation or manufacturing process"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "manufacturing activation from the phrase standard work",
+        "a production product or batch fact from item codes",
+        "that a warehouse instruction is an engineering or manufacturing process recipe",
+        "a folder path"
+      ],
+      "also_schema": "logistics",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Line-4 Changeover Checklist.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera or scanner image shows a line, product changeover and checkbox sequence",
+        "OCR recovers station, tooling, cleaning and verification labels plus a revision reference",
+        "some handwritten completion marks are unreadable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the checklist is a reusable instruction rather than a completed execution record",
+        "that unreadable checkboxes were completed",
+        "a line or product fact from the parent folder",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MES Work Instruction Export.json",
+      "source_type": "code_structured",
+      "observations": [
+        "structured payload has document number, revision, operation, station, ordered steps, parameters and approval state",
+        "nested objects distinguish specified values from execution acknowledgements",
+        "export metadata names an MES source but does not establish current release status outside the payload"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from a key name without its labelled object relation",
+        "that the instruction was used on a batch",
+        "that JSON is more meaningful than a PDF with the same structure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "WI_scan_OP30_page-2.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a station heading, numbered steps, tool labels and several setpoint ranges",
+        "page contains a revision/effective block but the approver name is cut off",
+        "the scan is a partial page and cannot establish whether it is current"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a validated instruction revision from partial OCR",
+        "that omitted steps or approval slots are absent rather than unread",
+        "that missing EXIF proves a screenshot or a document scan",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Operator Training - OP30.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides reproduce operation photographs and selected setup steps",
+        "speaker notes describe a training session and competency check",
+        "the deck has no controlled-document block for the instruction and includes teaching examples rather than the full approved procedure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a training deck is the controlled work instruction",
+        "that attendees are competent from slide content alone",
+        "that OP30 names a product or station fact without the controlled relation",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "WI release and withdrawal notice.eml",
+      "source_type": "email",
+      "observations": [
+        "native sender, recipient, subject and sent-date fields announce a work-instruction release",
+        "body cites a document number/revision and names an attachment plus withdrawn revision",
+        "the message contains no step table or controlled instruction body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "instruction content from the attachment filename",
+        "that the release was approved or effective merely because the email says so",
+        "a product, site or operation fact copied from an accepted group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Annual SOP review - Plant 2.ics",
+      "source_type": "calendar",
+      "observations": [
+        "event summary names an annual review of shop-floor procedures",
+        "organiser, attendees, time and plant location are present",
+        "event has no instruction text, revision content or review outcome"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any work instruction was reviewed or changed",
+        "a plant or procedure fact from the calendar title alone",
+        "that calendar is a manufacturing source type by itself",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Work Instruction Archive - Plant 2.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists current and withdrawn instruction PDFs, setup sheets, visual aids, review notices and training references",
+        "member paths repeat product and operation names but cover several stations and revisions",
+        "archive is inspected through its manifest without extracting members to disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every member has one product, operation, station or current revision",
+        "facts from member filenames without reading member evidence",
+        "permission to unpack or send process recipes to a model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Portable torque tool calibration.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph shows a torque tool, calibration label and certificate-like markings",
+        "OCR sees as-found/as-left or due-date words but not a numbered operator sequence",
+        "camera EXIF identifies capture metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a work instruction from a tool or parameter image",
+        "that calibration was performed or the tool is fit for use",
+        "a machine or station fact from the photograph alone",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Process map - Operator Steps.svg",
+      "source_type": "design_creative",
+      "observations": [
+        "vector artwork contains flowchart nodes, arrows and operator-facing labels",
+        "title block identifies a designer and project but has no controlled instruction number or effective approval",
+        "the map could be a draft visual aid, engineering process model or training graphic"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a released work instruction from a flowchart alone",
+        "that the depicted sequence is approved or executable",
+        "a product, process or station fact from a project title",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Home appliance assembly instructions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "consumer-facing booklet has numbered assembly and safety steps with diagrams",
+        "manufacturer name and model appear on the cover",
+        "there is no local station, controlled-copy block, production approval or shop-floor execution relation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "manufacturing activation from assembly steps or a manufacturer name",
+        "that the holder produces the appliance",
+        "a controlled local work instruction from a consumer manual",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Router setup.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename contains the ambiguous word Router",
+        "body is unreadable in the sample and no controlled header or operation structure is available",
+        "the word could refer to a network device, woodworking tool, routing operation or manufacturing document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "manufacturing activation from the filename",
+        "that setup means a shop-floor instruction",
+        "a machine, product or operation fact from an ambiguous word",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Safety Data Sheet - Acetone.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier document has numbered hazard, handling, storage and emergency sections",
+        "chemical properties table and precautionary statements are prominent",
+        "no local operation, station, approved parameter range or manufacturing controlled-copy block appears"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a manufacturing instruction from safety steps or a material name",
+        "that acetone is approved for a local process",
+        "that a supplier document is controlled by the manufacturing holder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Instruction packet - OP30.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest includes one released WI PDF, a blank acknowledgement sheet, a training deck and a related batch traveller",
+        "members carry the same operation reference but have different document functions",
+        "archive can be inspected without unpacking and the traveller may carry actual lot data"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that all members are work instructions",
+        "that the packet's operation label supplies product or lot facts to every member",
+        "that the blank acknowledgement proves training",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "SAME FIXTURE BYTES: `Setup sheet OP30 AX-410 rev C.pdf` and the same parameter table embedded in `BPR_AX410_L240817-03.pdf`. Direction one — manufacturing.work-instruction owns the TYPE-level controlled instruction: document number, revision, effective date, approver, operation/station scope, ordered steps, tooling and specified parameter ranges with no one-lot actuals. Direction two — manufacturing.production-record owns the INSTANCE-level execution: one order or batch/lot identifier, actual values and timestamps per operation, operator signoffs, issued/good/scrap or rework reconciliation and release disposition. The procedure text can appear in both bytes; a parameter range, product name, lot-shaped token or signoff alone discriminates neither. This row must not take the traveller's actuals merely because it embeds the procedure, and production-record must not take a reusable setup sheet merely because it names a product and operation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.material-specification",
+      "signal": "SAME FIXTURE BYTES: `PS-217 Rev 3 - Solution Heat Treat and Age.docx`. Direction one — manufacturing.work-instruction owns an operator-facing, ordered execution instruction for one station or operation, with setup/tooling, specified ranges, checks and controlled release. Direction two — engineering.material-specification owns the normative process definition: requirements, allowable ranges, qualification method, referenced standards, sampling and what the process must achieve across many jobs. A temperature, time, process name, revision or approval block alone allocates neither; this row must not take the specification simply because it includes steps, and material-specification must not take a shop instruction merely because it repeats a requirement. The separate fixture `Furnace 2 - Load and Unload Steps Rev B.docx` is the instruction-side negative where station and per-load sequence are explicit.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "SAME FIXTURE BYTES: `Pick-Pack Standard Work - Bay 3.pdf`. Direction one — manufacturing.work-instruction owns a controlled instruction whose operation transforms, assembles, tests or controls a product at a manufacturing station, with process parameters, tooling/material inputs and in-process checks. Direction two — logistics.warehouse-ops owns the facility's internal custody work: pick, pack, scan, bin, handling-unit and outbound-wave steps, with no product transformation or manufacturing release. A numbered sequence, item code, bay, revision or operator audience alone allocates neither; this row must not claim warehouse standard work from the phrase SOP, and warehouse-ops must not claim a manufacturing setup or assembly instruction merely because goods are handled at a station.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "SAME FIXTURE BYTES: `SOP-014 Goods receipt.docx`. Direction one — manufacturing.work-instruction owns a shop-floor instruction tied to a product/process, machine/station and in-process control, telling an operator the ordered execution steps. Direction two — business_operations.policy-handbook owns an organization-wide governing procedure whose scope, responsibilities, obligations, document control and review cycle bind a population or administrative process. Numbered steps, responsibility columns, revision history and the word SOP alone allocate neither; this row must not take an administrative procedure merely because it is called standard work, and policy-handbook must not take a manufacturing execution instruction merely because it is controlled and procedural.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "SAME FIXTURE BYTES: `Irrigation-Pump-Commissioning-Pack_Field-12.zip` is the analogous controlled-package fixture, and `Process map - Operator Steps.svg` is the shared visual-aid form. Direction one — manufacturing.work-instruction owns a reusable operator procedure for a manufacturing station or process, with steps, ranges, tooling and in-process checks. Direction two — engineering.commissioning-handover owns installed-instance acceptance: as-built identity, test results, settings, punch-list closure, witnessed acceptance and transfer to an operator. A step diagram, machine tag, parameter, handover word or approval alone allocates neither; this row must not take an acceptance pack merely because operators receive it, and commissioning-handover must not take a type-level procedure merely because it is used during startup.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone controlled instruction, setup sheet or durable SOP with no accepted product/process group can remain a meaningful record without forcing an unlicensed manufacturing hierarchy.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "A readable sequence, parameter workbook, visual aid or mixed procedure packet whose manufacturing, engineering, logistics or business role cannot be established from its own evidence is partly understood and should remain unresolved.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated release email, review calendar item, controlled-copy notice or training confirmation without the instruction body is a transaction or confirmation, not proof of this template.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "A supplier manual, safety data sheet, public standard, consumer assembly booklet or general operating guide with no local controlled-process relation is reference material rather than a manufacturing instruction.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photograph of a machine, tool, operator or annotated page with no legible controlled-document relation and no accepted instruction group remains an unassociated image.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Instructions and release packets may disclose proprietary process recipes, machine settings, access controls, worker names, safety controls and customer-specific production methods. When no deeper group is accepted, protected review avoids creating a revealing branch.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "An encrypted MES export, proprietary document container or unreadable scan is represented safely from metadata and cannot activate from a work-instruction-shaped filename.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A work instruction concentrates the repeatable process recipe: machine settings, ranges, tooling, fixtures, material sequence, quality checkpoints, safety interlocks and sometimes customer-specific methods or named operators. That exposure differs from a generic manufacturing pile because the instruction can teach the process independently of any one lot, while a release/training packet can also contain worker identities and access restrictions. The row therefore remains potentially_sensitive, keeps raw parameters and worker names out of destination dimensions, and prefers bounded local evidence. It assigns no handling class; P7 owns that vocabulary.",
+  "open_question": "NEEDS-JOSEPH NJ-WI-1: is the type-versus-instance boundary sufficient to keep this row distinct from manufacturing.production-record, or should both be one work_type family under the manufacturing default? Keep this row only if reusable controlled instructions can be detected without claiming executed actuals. NJ-WI-2: should the canonical manufacturing vocabulary reuse the anchor's proposed `product`, `site`, `asset` and global `record_type`, with operation/station remaining a value or search facet, or is a neutral process/operation key needed globally? This row proposes no key. NJ-WI-3: where one file is both a shop-floor instruction and a business-wide SOP, should R1c lift resource/schema coactivation between manufacturing and business_operations or let template-level evidence remain independently scoped? Templates cannot author `also_holds_with`. NJ-WI-4: where a special-process specification and an operator instruction repeat the same ranges, should both schemas/templates coactivate on disjoint normative versus executional evidence, or should one side own the shared document and the other only the group? NJ-WI-5: should instruction revisions remain only in universal `version_family`, or may a future user-confirmed private tree expose controlled revision/effective state? NJ-WI-6: when a training deck, email or screenshot names an instruction but lacks the body, should accepted-group context be enough for membership while all instruction facts remain unknown?"
+}

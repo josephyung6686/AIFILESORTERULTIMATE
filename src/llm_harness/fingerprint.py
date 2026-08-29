@@ -1,0 +1,71 @@
+# src/llm_harness/fingerprint.py
+"""Deterministic prompt fingerprint and dossier content address.
+
+Callers inject prompt text, response schemas, and policy bytes on
+`PromptDefinition`. This module hashes those injected sources; it does not
+author them. Capability and provenance values (`release_id`, `audit_id`) and
+the current evidence-snapshot identity are accepted only so they can be kept
+off the digest used as the dossier content address.
+"""
+from __future__ import annotations
+
+import hashlib
+from collections.abc import Sequence
+
+from evidence_shape.canonical import canonical_json
+from llm_harness.records import MalformedRecord, PromptDefinition
+
+
+def _as_str_list(value: object, *, name: str) -> list[str]:
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        length = len(value) if isinstance(value, (str, bytes)) else 0
+        raise MalformedRecord(
+            f"{name} is a sequence; a bare string would become {length} "
+            "one-character references"
+        )
+    frozen = list(value)
+    if not all(isinstance(item, str) for item in frozen):
+        raise MalformedRecord(f"{name} must be a sequence of strings")
+    return frozen
+
+
+def prompt_fingerprint(definition: PromptDefinition) -> str:
+    """SHA-256 hex digest of the canonical prompt-definition sources.
+
+    Byte fields are hex-encoded because `canonical_json` cannot encode raw
+    `bytes`. Call-site is inside the fingerprint (B2); it is not a separate
+    binding term.
+    """
+    payload = canonical_json({
+        "call_site": definition.call_site,
+        "call_site_version": definition.call_site_version,
+        "response_schema_bytes": definition.response_schema_bytes.hex(),
+        "shaping_policy_bytes": definition.shaping_policy_bytes.hex(),
+        "template_bytes": definition.template_bytes.hex(),
+        "template_id": definition.template_id,
+    }).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def dossier_content_address(
+    released_material: bytes,
+    *,
+    allowed_vocabulary: Sequence[str],
+    allowed_schema_bytes: bytes,
+) -> str:
+    """SHA-256 hex digest of the canonical model-visible dossier payload.
+
+    Hashed: released material plus allowed schema/vocabulary. Not hashed:
+    `release_id`, `audit_id`, or `evidence_snapshot_id`. Those three were once
+    parameters here, accepted and immediately discarded -- a signature that
+    documents an exclusion reads as though the value has some effect, and no
+    caller ever passed one.
+    """
+    payload = canonical_json({
+        "allowed_schema_bytes": allowed_schema_bytes.hex(),
+        "allowed_vocabulary": _as_str_list(
+            allowed_vocabulary, name="allowed_vocabulary"
+        ),
+        "released_material": released_material.hex(),
+    }).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()

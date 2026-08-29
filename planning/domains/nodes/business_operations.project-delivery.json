@@ -1,0 +1,528 @@
+{
+  "id": "business_operations.project-delivery",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Project and programme delivery records",
+  "one_line": "The organizational situation of defining, scheduling and controlling ONE BOUNDED PIECE OF WORK that has a start, an intended end and a named owner: the charter or initiation document that authorises it, the plan and schedule that sequence it, the RAID and decision logs that steer it, the recurring status report that tells others how it is going, and the closure, acceptance or handover record that ends it. The organizing anchor is the PROJECT as a bounded effort with a closure - which is what separates it from the standing cycles of the same organisation (a budget round, a board meeting series, a risk register that never closes) and from the product or system the project delivers. It is NOT the activity of managing; the activity leaves four structures behind that no other row in this family owns - a scope-and-out-of-scope pair, a dependency-bearing schedule, a stage-gate-and-RAG reporting cadence, and an acceptance-paired-with-handover closure - and those structures, not the word 'project', are what activate it. Absorbs the legacy rows ops.project (ROW) and ops.status-report (FOLD); ops.programme-portfolio (FOLD) is carried here under protest and is the row's open question, because a roll-up naming twenty projects has no project anchor. Placeholder row (J-IND / PR-6): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an initiation structure: a titled document carrying, in labelled blocks, an objective or business need, a scope-and-out-of-scope pair, named sponsor and manager roles, and a milestone or deliverable list. Scope stated together with an exclusion list is the shape that no standing-cycle document has.",
+      "a schedule structure: a table or chart whose columns pair a task or work-package name with a start date, an end date or duration, a percent-complete value, a predecessor reference, and an assigned resource. A dependency column is the strongest single discriminator against every other table in this family.",
+      "a RAID or log structure - a sheet or set of sheets whose headers read risk, assumption, issue, dependency, or decision, each row carrying an identifier, an owner and a status, scoped by a project name in the title or header rather than by an organisational unit.",
+      "a recurring status structure: a fixed short form repeating period after period with a RAG or health indicator, a progress-this-period block, a planned-next-period block, and a blockers or escalations block, with a reporting-period token in the heading or the filename.",
+      "a portfolio structure: one row per project with an owner, a health indicator, a stage-gate name and a budget-versus-actual pair - the same shape, one altitude up, and the reason ops.programme-portfolio folds here rather than standing alone.",
+      "a closure structure pairing a deliverables-accepted or acceptance-signoff block with a handover-to-operations or benefits-realisation block, often with a signature slot."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating a project plan from a strategy or annual plan, a research project plan, a construction programme, or a study protocol - all four state objectives, phases, milestones and owners in the same voice. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether a bounded effort is a work project at all, or one person's own initiative, a course assignment, or a home renovation kept in the same spreadsheet idiom.",
+      "an unlabeled plan written as free prose in a note, or a whiteboard photograph of a milestone wall.",
+      "a purpose-coherent delivery pack whose members are individually unremarkable - a charter, a schedule export, four status decks, a blank issue form and a signed acceptance page. “The documents are content-incoherent but purpose-coherent.”",
+      "whether a status report belongs to this project's own record or to the portfolio row that consumes it, when both carry the same project name."
+    ],
+    "never_alone": [
+      "a project-shaped name alone. Project Phoenix, Workstream 2 and a code-shaped identifier name a delivery effort, a research grant, a marketing campaign and a construction package equally well - this is the tempting false file for this row.",
+      "a Gantt-shaped or milestone-shaped chart alone: the same visual is drawn for study timelines, editorial calendars, build programmes and personal plans.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.” - .mpp is a strong hint and still not proof.",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a year, a project number, or a version.",
+      "the words status, update, plan or review in a filename alone.",
+      "membership in a download session that dropped a whole project pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an actions-with-owners table alone - stated reciprocally with business_operations.retrospective-postmortem, whose own first never-alone is the same table. An owner-and-due-date grid is the most common table in this family and belongs to no row on its own.",
+      "a milestone or deliverable word alone. Deliverable, milestone, workstream and stage gate are business vocabulary, and the schema row's rule for this family is binding here: no sibling may rest its activation on an entity name, a business vocabulary word, or a document shape alone. Every signal above pairs a STRUCTURE with a LABELLED SLOT.",
+      "a budget-versus-actual column pair alone, which is the schema row's management-financial table and is the default template's evidence, not this row's."
+    ]
+  },
+  "proposed_context_terms": [
+    "project charter",
+    "terms of reference",
+    "scope",
+    "out of scope",
+    "deliverable",
+    "milestone",
+    "work package",
+    "sponsor",
+    "steering group",
+    "stage gate",
+    "baseline",
+    "critical path",
+    "dependency",
+    "RAID",
+    "issue log",
+    "decision log",
+    "change request",
+    "status report",
+    "RAG",
+    "blocker",
+    "escalation",
+    "lessons learned",
+    "handover",
+    "acceptance",
+    "benefits realisation",
+    "portfolio",
+    "programme"
+  ],
+  "work_types": [
+    "charter, terms of reference, or initiation document",
+    "project plan, schedule, or Gantt export",
+    "RAID, issue, dependency, or decision log",
+    "status or progress report",
+    "portfolio or programme roll-up",
+    "change request or variation record",
+    "steering group pack or project board paper",
+    "acceptance, closure, or handover record",
+    "resource or capacity plan"
+  ],
+  "grouping_reasons": [
+    "one project across its life: the charter, the plan, its status series and the closure record, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one recurring report across its periods - twelve status decks with the same template and a rolling date are a series, not twelve domains, and are a version family only where the file itself was re-saved rather than re-authored.",
+    "one plan across its baselines - a schedule re-saved after each replan is a version family.",
+    "a sparse deliverable sitting in a project folder joins the project's neighbourhood without acquiring a project fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single status deck from a job the holder left is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field would open a tree level no fact could ever fill. Held as prose for the pass that may license fields: this is the row in the family with the least doubt about its natural order - the project first, then the document function, then the reporting period last, because “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” and a status report for week 14 is meaningless before the project is known, exactly as 00's own Homework 3 is meaningless before the course. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - a period-first tree would scatter one project's charter, plan and closure across three calendar folders. A programme or portfolio level above the project is the one defensible extra depth and belongs to the user rather than to the catalogue, because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”"
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".mpp",
+      ".pptx",
+      ".eml",
+      ".ics",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Phoenix - project charter v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled headings read background, objectives, scope, out of scope, sponsor, project manager, milestones",
+        "a milestone table with target dates",
+        "a version token in the filename and a revision history table on page two",
+        "an approval line with two names and a date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that the sponsor or manager name is a destination: “It should avoid using authorship or creator identity as a destination dimension.”",
+        "a project fact copied onto every other file in the same directory",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Phoenix plan baseline 3.mpp",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a proprietary scheduling-tool binary with no extractable text layer at scan time",
+        "container metadata carries a last-saved timestamp and an author string",
+        "sits beside a PDF export of the same schedule",
+        "a baseline token in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a schedule's contents from a filename or from the neighbouring PDF export",
+        "activation from the .mpp extension alone",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "RAID log.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "four sheets named Risks, Assumptions, Issues, Dependencies",
+        "each sheet carries identifier, description, owner, status and review-date columns",
+        "the project name appears only in the header row of sheet one",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.risk-register owns it - a project RAID and an organisational register are the same table with different scope, and P10 chooses from an accepted group later. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+        "a risk rating or an owner as a fact of the product's own; the cell is a raw observation",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Status report WK14.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a fixed four-slide template repeated from a prior week",
+        "a RAG indicator, a progress block, a next-period block, a blockers block",
+        "a period token in the filename but no year",
+        "slide master names a corporate template"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a year from a bare week number, and no bare 4-digit number read as one",
+        "a project fact when the deck names no project - this member joins the neighbourhood without inheriting the anchor",
+        "a health or delivery judgement of the product's own from a RAG cell",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Portfolio dashboard Q2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per project with owner, stage gate, RAG, budget and actual columns",
+        "a pivot sheet summarising by department",
+        "a quarter token in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a single project anchor for a file that names twenty - a roll-up belongs to the portfolio, not to any one of its rows",
+        "that budget columns make this an accounting record; the money here is a management view",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Steering group - 12 Mar.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY names a project and a governance body",
+        "a recurrence rule and attendee slots resolving to corporate addresses",
+        "a description slot linking to a document location",
+        "no delivery content in the body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone: the SUMMARY and attendee content is what fires",
+        "an attendance fact used as a folder proposal",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kilnfield Phase 2 - programme rev D.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a bar-chart programme with a critical path, issued under a revision letter",
+        "a title block naming a contract reference, an employer and a contractor",
+        "a date for possession paired with a date for completion",
+        "activity names reading substructure, frame, envelope, fit-out"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row. The Gantt shape is present in full and is the thing construction_property.construction-project's own file calls the generic shape that counts for neither. What decides against this row is the possession-and-completion date pair in a contract-particulars block, which that row names as its own discriminating structure and this row never carries.",
+        "that a schedule with a dependency column is sufficient evidence anywhere - it is this row's strongest single signal and it is still never-alone",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Phoenix closure report.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a deliverables-accepted list and a handover-to-operations section",
+        "a lessons-learned section with a timeline of past-tense events and contributing factors",
+        "an outstanding-items table with owners and due dates",
+        "a sign-off line naming the sponsor"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that one of this row and business_operations.retrospective-postmortem must lose. That row names these same bytes as its both-anchors fixture and calls it not a defect; this row agrees and does not contradict it. The closure envelope is this row's; the causal account sitting above the actions table is that row's; P10 chooses from an accepted group later.",
+        "a performance judgement about any person named in the lessons section",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Resource plan FY26 - delivery team.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "named individuals in rows, work packages in columns, allocation percentages in cells",
+        "a day-rate column and a total-cost row",
+        "start and end dates per person tracking the schedule's phases",
+        "a second sheet reconciling to a budget line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row's sensitivity value of none governs this file. The row value is a catalogue default, not a per-file verdict; a file naming individuals against costs reaches hr's posture and is governed per file, and the stricter side wins.",
+        "which of this row and hr.org-design-headcount owns it - the edge is authored one-way and R1c owes the reciprocal",
+        "a person's name used as a destination dimension: “It should avoid using authorship or creator identity as a destination dimension.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kitchen renovation plan.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "task, start, finish, duration, dependency and cost columns",
+        "a milestone row and a contingency line",
+        "supplier names in a notes column",
+        "no organisation, no sponsor, no stage gate"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the schedule shape is present in full and the organisational anchor is entirely absent - this is the collision fixture, and it belongs to household property records",
+        "an employer fact from a supplier name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Acceptance certificate - signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanned page with a deliverables-accepted list and two handwritten signatures",
+        "no extractable text layer until OCR",
+        "a printed project title and a date",
+        "a contract reference in small print"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.contract-administration owns it - an acceptance certificate closes a project and discharges a contractual obligation at once",
+        "a signature as an identity fact",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FW Phoenix pack for board.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names the project and a governance body",
+        "recipients slot resolves to a distribution list",
+        "three attachment names: a status deck, a schedule PDF and a decision log",
+        "a short body naming a deadline"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the attachments' contents from their filenames - each attachment is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_2210.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a whiteboard covered in sticky notes arranged in columns",
+        "EXIF carries a capture timestamp",
+        "OCR of the notes yields fragmentary task-shaped text",
+        "sits in a folder beside the charter"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a project fact from the neighbouring charter - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a plan or a milestone as a fact from fragmentary OCR",
+        "that the absence of GPS metadata proves anything about how the image was made",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "A project RAID log and an organisational risk register are the same table - identifier, description, owner, likelihood, treatment, review date. The discriminating evidence is SCOPE and lifespan: a project name in the header and an assumptions or dependencies sheet beside the risks supports this row; an organisational or unit scope, a risk-appetite statement, a heat map and a standing review cadence with no end supports the register. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.retrospective-postmortem",
+      "signal": "A lessons-learned document is produced BY a project and filed WITH it, and a closure report routinely contains one as a section. The discriminating evidence: a forward-looking control artifact - plan, schedule, RAID, status - supports this row; a backward-looking causal account with a timeline, contributing factors and change commitments supports the retrospective, and an incident retrospective with no project at all is unambiguously the other row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "A business case is the document that authorises a project, so it names the same effort, the same benefits and the same milestones. The discriminating evidence: an options-and-recommendation structure with an appraisal horizon supports strategy; a scope-and-out-of-scope pair, a dependency-bearing schedule and a status cadence supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "Steering group papers and project board minutes are meeting records about a project and carry both anchors. The discriminating evidence: an agenda, attendance and minutes structure supports the meeting row; a plan, log or status artifact circulated to that meeting supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "A research project's workspace uses the identical vocabulary - project, milestones, workpackages, deliverables, progress report - and grant-funded work reports against a schedule too. The discriminating evidence: a protocol, a laboratory or field method, a funder or ethics reference, or a manuscript-facing artifact supports research; a sponsor, a stage gate, a RAG status and a benefits-realisation frame supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "A consultant delivering a project holds the same charter, plan and status reports, and 00's own role split is what separates the copies: “A consulting document may mention the author’s firm and the client organization.” The discriminating evidence: a statement of work, a rate or fee schedule and a client counterparty supports the engagement row; an internal sponsor, internal governance and no counterparty supports this row. The same file may legitimately be both to two different holders. Provenance: design for the role split, inference for the reading.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A software delivery effort keeps its plan, backlog and decision records inside the repository beside the code. The discriminating evidence: residence in a repository with source, configuration and commit-shaped history supports the software project; a governance-facing artifact with a sponsor, a stage gate and a status cadence supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "A construction programme is a project record with a dependency-bearing schedule, a variation register and a handover pack, and the vocabulary is nearly identical. The discriminating evidence: drawings, site instructions, valuations, a contract form and a physical site supports construction; an internal business change effort with no site supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "An acceptance certificate closes a project and discharges a contractual obligation in the same page, and a project change request and a contract variation are frequently the same form. The discriminating evidence: a counterparty pair, a contract reference, a renewal or notice-period schedule and an obligation register supports contract administration; an internal sponsor, a stage gate, a dependency-bearing schedule and a benefits frame supports this row. The reciprocal: that row must not take the internal delivery record merely because a contract funded it; this row must not take the post-signature obligation register, which the schema row names as one of the family's four own structures. Named on the same bytes as this row's Acceptance certificate - signed.pdf fixture. Edge added in the deepening pass - the fixture already named this neighbour and no edge existed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "A steering group is a governance body and its pack is a board-shaped pack: notice, pagination, papers index, minutes. The discriminating evidence: the meeting apparatus itself - notice, numbered agenda, attendance, resolution block, pack pagination - supports board governance; the delivery artifact circulated INTO that meeting, carrying a RAG status, a stage-gate name or a change request, supports this row. The reciprocal, stated so that row's author can write against it: that row must not take a status deck merely because it was tabled; this row must not take the minutes that record the decision. Shared fixture: a project board pack, whose covering minute belongs there and whose status annex belongs here. One-way - that row does not name this one; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.org-design-headcount",
+      "signal": "A resource or capacity plan names individuals against costs, utilisation percentages and start dates, and is a delivery artifact by purpose and a workforce record by content. The discriminating evidence: allocation stated against work packages on a project's own schedule, ending when the project ends, supports this row; establishment posts, headcount budgets, grades or an organisation chart with no bounded effort supports hr. Where a file carries both, hr's posture is the stricter and wins on handling even where this row wins on grouping. AUTHORED ONE-WAY HERE, replacing the gist pass's decision to leave it unedged; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "career",
+      "signal": "A delivery record the holder authored is simultaneously their own work sample and their employer's or client's project record - disjoint evidence in one file: an internal sponsor and a stage gate for this schema, the holder's own authorship and role for career. This is 00's abstract-and-application shape in a working-life setting, not a mutex. AUTHORED ONE-WAY HERE; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone charter, acceptance certificate or closure report with no accepted project group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a status deck or an unlabeled log whose project association is unresolved - the most common outcome for this row, because status reports routinely name no project. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a proprietary scheduling binary or a password-protected project pack. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a whiteboard or milestone-wall photograph with no accepted project association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "none",
+  "sensitivity_why": "The bulk of this row's material is ordinary working documentation - a schedule, a milestone list, a RAG slide - and marking the row potentially_sensitive wholesale would be inflation that weakens the value where it matters. The material that IS sensitive is sensitive for reasons owned elsewhere and detected per file rather than per row: a resource plan names individuals against costs and reaches hr's posture; a business case carries unannounced commercial figures; a closure report may name a person's performance and reaches the retrospective row's caution. Where such a member appears, 00's per-file transition governs it - “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” - and the operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” The catalogue value none is a row default and never a per-file verdict - the Resource plan FY26 fixture exists to make that explicit. This row assigns only the catalogue value none; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "TWO, and the first is escalated from the gist pass rather than carried forward unchanged. (1) The PORTFOLIO fold. The roster folded ops.programme-portfolio here on the ground that a roll-up is the same record one altitude up. That is right about the situation and wrong about the anchor: a portfolio dashboard naming twenty projects has NO project anchor, and this row's entire node test rests on the bounded effort being the anchor. Judged strictly, the portfolio structure is the one member of this row that behaves the way business_operations.organisational-records behaves - it is held together by an organisational unit plus a document-type word, which the schema row rules constitutionally never-alone. The deepening pass therefore does NOT ratify the fold as the gist pass effectively did: the portfolio structure is retained in recognition and in work_types under protest, and R1c must choose between placing the roll-up at the branch root above the project level, giving it its own row, or accepting that it can only ever fire as a low-confidence member of an already-accepted project group. (2) The dimension inversion. This row recommends project then document function then reporting period; the schema row's default for the family is body-or-project then fiscal period then function. The inversion is argued in the memo and is deliberate, but it is a narrow difference and R1c should confirm it rather than inherit it."
+}

@@ -1,0 +1,501 @@
+{
+  "id": "government.elections-administration",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Elections administration",
+  "one_line": "J-DEPTH placeholder template for the records an election-administering office keeps while conducting one poll — register and nomination operations, polling logistics, ballot issue and accounting, the count and its adjudications, the declaration, and post-poll returns. It is not activated by an election word, a ballot, a candidate or party name, an opinion poll, or a voter's own polling card. It differs from the government default template in three ways it must earn: its anchor is a dated poll event subdividing into contests and stations rather than a case reference; its strongest deterministic evidence is arithmetic reconciliation structure that must balance; and it carries a privacy rule the default cannot state, that voter-identity evidence and ballot evidence must never be joined by a group, a folder level, or a prompt. It declares no fields and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below must show the corpus holder on the ADMINISTERING side of a poll — a returning, electoral-registration, count, or election-management office. Candidate, party, agent, observer, journalist, researcher, and voter custody of the same bytes all fail this precondition, and none of these signals writes a government fact, because the schema declares no field rows.",
+      "a ballot-account structure whose labelled quantities are meant to reconcile — ballot papers received, issued, spoilt, tendered, unused, and returned, against a station or contest total — signed by a presiding or counting officer; an arithmetic-balance form of this shape is specific to ballot issue and has no analogue in the other government rows",
+      "a statement of persons nominated, notice of poll, or nomination-receipt register carrying per-candidate slots (candidate, description, proposer and seconder or subscriber list, agent, deposit receipt, validity or objection outcome) issued by the nominating authority; a candidate's own completed nomination pack is the campaign side",
+      "a marked or annotated electoral register extract — a whole-electorate name and address roll with per-elector issue marks, absent-vote flags, or station allocation — produced by a registration or polling operation; a register held for canvassing carries no issue marks and no officer block",
+      "a polling-operations schedule with station identifiers, allocated electorate numbers, appointed presiding and poll clerk names, opening and closing times, equipment or ballot-box seal numbers, and delivery routes",
+      "an absent-voting operational record — postal or advance vote issue and return statements, personal-identifier verification outcomes, rejection-reason tallies, or opening-session logs — where the office is the issuer and verifier rather than the voter",
+      "a count record with running or final per-candidate tallies keyed to a contest, plus a verification or reconciliation step against the ballot account, plus adjudication of doubtful or rejected ballots with rejection categories and an adjudicating-officer mark",
+      "a declaration or return of result signed by a returning or equivalent officer, tied to the same contest identifier as an upstream nomination and count record, and issued rather than downloaded",
+      "an election-management-system export or archive manifest whose paths repeatedly encode one dated poll and its contests, stations, or absent-vote batches, and whose custodian or system metadata identifies the administering office; manifests are inspected without unpacking",
+      "a polling-day incident, complaint, or contingency log whose entries carry station identifiers, timestamps, officer names, and escalation outcomes, written by staff of the administering office rather than by an observer mission or campaign",
+      "an office email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment, event, or reference slots tie it to an already evidenced poll operation; an electoral-office domain alone never fires"
+    ],
+    "needs_llm": [
+      "deciding HOLDER ROLE when identical bytes may sit with the administering office, a candidate or party, a polling agent, an accredited observer, a journalist, an academic, a litigant, or an ordinary voter; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a public election authority from a private or associational body running its own internal election — a co-operative, union, professional membership body, school council, shareholder meeting, or homeowners association — when nomination, ballot, scrutineer, and declaration furniture is identical",
+      "separating the conduct of a poll from opinion polling, turnout modelling, exit-poll analysis, and psephological research, all of which reuse the words poll, ballot, turnout, district, and swing without any administering role",
+      "reading an unlabelled prose incident narrative, contingency memo, presiding-officer diary, or post-poll lessons note whose function is expressed only in sentences",
+      "deciding whether a mixed packet is one administering office's poll file or a recipient-side collection of polling cards, candidate leaflets, official notices, and press releases",
+      "deciding whether an anonymized or aggregated results dataset is an authority release, a research redistribution, or a media reconstruction, when the numbers are identical in all three",
+      "reading multilingual or multi-jurisdiction nomination, ballot, and reconciliation forms whose labelled role vocabulary is not covered by deterministic structure rules",
+      "abstaining whenever no administering-side role can be cited; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "the words election, ballot, poll, vote, turnout, candidate, constituency, precinct, district, ward, or returning officer alone, in a filename, folder, subject line, or body",
+      "an electoral commission, board of elections, returning office, or municipal clerk name, seal, letterhead, or email domain alone; the office may be issuer, counterparty, regulator, employer, data source, or the subject of the document",
+      "a candidate name, party name, party logo, slate, or ballot-position list alone; candidate identity is the one string shared by administration, campaigning, reporting, litigation, and research",
+      "an internal or associational election with nomination forms, ballots, scrutineers, and a declaration — a co-operative board, union officer, student union, church council, or homeowners association vote is nonprofit or member-association material, not public election administration",
+      "an opinion poll, exit poll, turnout model, crosstab workbook, or seat projection; the word poll and per-district numbers are not the conduct of a poll",
+      "a voter's own polling card, registration confirmation, absent-ballot receipt, ballot-tracking notice, or returned-and-counted acknowledgement; the recipient side is a personal record",
+      "a candidate's own nomination pack, deposit receipt, agent appointment, spending return, or election address; issuance by an authority does not put the candidate's copy in authority custody",
+      "a published result table, turnout release, boundary map, or official election report downloaded for reading; publication by an election authority is not administering custody",
+      "an official government document merely because a poll date appears in it; a date is not an anchor",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Election, Elections, Poll, Ballot, Count, Vote2026, or a poll date alone",
+      "a shared download session or browser batch of election-night material; “A session should never be treated as proof of topic”",
+      "missing EXIF or a dense OCR result as proof that an image is an election-system screen capture; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "electoral registration operations — canvass, application processing, objection, review, and register publication",
+    "nomination operations — nomination receipt, subscriber checking, deposit handling, objection, and statement of persons nominated",
+    "notice and publication — notice of election, notice of poll, notice of situation of polling stations",
+    "polling logistics — station allocation, staff appointment and training, equipment and ballot-box issue, delivery routes",
+    "absent voting operations — postal and advance issue, personal-identifier verification, opening sessions, rejection recording",
+    "ballot issue and accounting — ballot paper accounts, tendered and spoilt ballot records, seal and box logs",
+    "count operations — verification, per-contest tallies, stage or transfer sheets, doubtful-ballot adjudication, recount records",
+    "declaration and return — declaration of result, return of the poll, elected-candidate notification",
+    "post-poll administration — storage and retention of sealed material, staff payment, incident and complaint disposal, review report",
+    "referendum and ballot-question conduct where the same office administers a question rather than a candidate contest",
+    "election-system administration — logic and accuracy testing, audit logs, and system configuration held by the administering office"
+  ],
+  "grouping_reasons": [
+    "one dated poll conducted by one administering office, linked by an exact poll, contest, station, batch, or return identifier repeated in the members' own evidence",
+    "one contest inside that poll, so that a ballot account, count sheet, adjudication record, and declaration that all cite the same contest identifier can sit together without any of them acquiring the others' facts",
+    "one absent-voting batch or opening session, whose issue statement, verification outcome record, and rejection tally share an exact batch reference",
+    "one election-management export or archive manifest, kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "PROHIBITED GROUPING: no candidate group, no party group, and no elector group. Grouping by candidate or party imports campaign structure into an administrative file; grouping by elector is the ballot-secrecy violation this row exists to prevent",
+    "PROHIBITED GROUPING: voter-identity evidence (register extracts, marked registers, absent-vote issue lists, personal-identifier records) and ballot evidence (ballot papers, ballot serial or batch numbers, adjudication images, per-ballot records) must not be placed in one group, one branch, or one prompt even when they cite the same station and poll",
+    "duplicate and version families remain universal relationships; successive drafts of a notice, form, count sheet, or declaration do not acquire new facts from neighbourhood context",
+    "no group is a valid outcome for a standalone official notice, published result, or polling card; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, not by absence of structure: PR-6 leaves the government schema fieldless and a template cannot branch on undeclared fields. The recommendation this row would make if fields were ratified differs in shape from the government default, and is recorded here as prose. The default puts authority-side function or a bounded proceeding first. This world instead anchors on one dated poll event, subdivides by contest and then station or batch, and puts function LAST, because a ballot paper account or an adjudication sheet is unintelligible outside its station and contest — “A work type such as Homework 3 is meaningful only after the course is known”. Named people must never be an organizing dimension here: an elector branch is a secrecy failure and a candidate branch is campaign structure. time_first is false: a poll is an event anchor, not a calendar anchor, and its registration, absent-vote, poll-day, count, and retention phases routinely straddle a year boundary, so “putting year first scatters related work across calendar folders” applies with unusual force. Any later order remains editable because “the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".mp4",
+      ".zip",
+      ".xml",
+      ".log"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Ballot Paper Account - Station 14 - Poll 2026-05-07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled quantity slots for ballot papers received, issued, spoilt, tendered, unused and returned, arranged to reconcile to a total",
+        "station identifier and contest name repeat in the header",
+        "presiding officer signature block with an appointment reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any government field, because the schema declares none",
+        "that the account balances, or that a discrepancy is an irregularity",
+        "turnout, a result, or a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Statement of Persons Nominated - North District - 2026-05-07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-candidate rows with description, agent, and subscriber names",
+        "issuing returning-office block and a publication date",
+        "an objections or withdrawal column with outcome marks"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a nomination is valid, withdrawn, or effective",
+        "candidate or party as a stored fact or a folder level",
+        "that subscriber addresses are publishable because the statement is published"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Marked Register - Station 14 - Poll 2026-05-07 - scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "scanned pages of a sequential elector roll with names, addresses and elector numbers",
+        "per-elector issue marks and absent-vote annotations",
+        "station identifier and an officer initial on each page"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any elector's identity, address, or participation as a stored fact",
+        "that this file may share a group, branch, or prompt with ballot or adjudication evidence",
+        "that OCR text may be sent to a remote model to improve classification"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Polling Station Allocation and Staff Appointments - 2026-05-07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets for stations, allocated electorate counts, appointed presiding officers and poll clerks",
+        "contact, availability, training-completion and payment-rate columns",
+        "ballot-box and seal number columns per station"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "staff names or pay as government facts",
+        "that seal numbers may be joined to any voter-identity record",
+        "employment or payroll conclusions"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Postal Vote Opening Session 3 - issue and rejection statement.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "batch reference repeated per row",
+        "columns for issued, returned, personal-identifier verification outcome, and rejection reason category",
+        "an aggregate row that reconciles to the issue total"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a rejection was correct or that a voter was disenfranchised",
+        "elector identity where identifiers appear",
+        "a turnout figure"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Doubtful Ballot Adjudication - North District Count.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered ballot images or descriptions with rejection-category checkboxes",
+        "agent objection column and an adjudicating officer mark per item",
+        "totals per rejection category tied to a contest identifier"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a ballot was correctly rejected or that a voter's intention was X",
+        "any link between a ballot and a person",
+        "an election outcome"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Declaration of Result - North District - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-candidate final vote figures and a rejected-ballot summary",
+        "returning officer declaration wording and signature",
+        "contest identifier matching the nomination statement and count record"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the result is final, valid, or unchallenged",
+        "that the low sensitivity of this member lowers the posture of its packet",
+        "a candidate or party folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Polling day incident log - unformatted notes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "free prose entries with times, station numbers and staff first names",
+        "no form structure, no headings, no signature block",
+        "several entries describe voter disputes and a police attendance"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that an incident occurred as described, or that any person did anything",
+        "administering custody from station numbers alone; an observer or agent writes the same notes",
+        "a named person as a dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Count centre - verification and declaration timings.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is an election office account",
+        "attendee list of counting supervisors and agents",
+        "event descriptions cite the same contest identifiers as the count records"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "attendance, or that any scheduled step happened",
+        "administering role from an official organizer domain alone",
+        "attendee identity as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Emergency ballot paper delivery - Station 22.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipient are election-office and printer accounts with named roles",
+        "subject and body cite the station identifier and a ballot serial range",
+        "attachment is a signed transfer receipt"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the delivery occurred or was authorized",
+        "that a serial range may be joined to any elector record",
+        "supplier or officer as a stored fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Poll 2026-05-07 - returns, accounts and forms.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists per-station folders with account, count and incident members",
+        "one folder holds register extracts and one holds ballot-adjudication images",
+        "custodian metadata names an election office system"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "member facts from folder names inside the archive",
+        "that the archive may be flattened into one group containing both register and ballot members",
+        "that unpacking is warranted to improve classification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-07 09.12 - turnout dashboard.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in dimensions and a window chrome strip",
+        "OCR yields station rows and running issue counts",
+        "no officer block, no signature, no reconciliation structure"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "administering custody from a dashboard image",
+        "turnout figures as facts",
+        "screenshot status from missing EXIF"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Election Count Reconciliation - North District.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "per-station rows with issued, counted and variance columns",
+        "identical bytes appear as a fixture on the government schema's own default template",
+        "no office block; the administering role is carried only by the surrounding corpus"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this row activates rather than the government default merely because the filename says election",
+        "a variance as an irregularity",
+        "a district folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Nomination Pack - completed - J Rivera - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same official form as the authority's blank, filled in",
+        "subscriber signatures and a candidate home address",
+        "no receipt stamp, no office file reference, no validity determination"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "administering custody from an official form layout",
+        "that the nomination was received or accepted",
+        "candidate identity as a government fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "North District poll - weighted crosstabs and turnout model.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets named poll, weights, crosstabs, likely-voter screen",
+        "district and candidate columns with percentage estimates and margins",
+        "a fieldwork-dates note and a sample-size row"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the word poll, district and candidate columns evidence election administration",
+        "estimates as results",
+        "an administering office from a client name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Board Election Ballot and Scrutineer Report - Riverside Co-op 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "nomination, ballot, scrutineer and declaration furniture identical to a public poll",
+        "issuing body is a housing co-operative secretary",
+        "eligibility is membership, not registration on an electoral roll"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "public election administration from ballot and scrutineer vocabulary",
+        "that an internal election is a public function",
+        "member identity as a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Poll card and postal ballot tracking notice - my household.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a named elector at a home address",
+        "station location, elector number and a ballot-tracking reference",
+        "issued by an electoral registration office"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "administering custody from an authority issuer",
+        "that a voting act occurred",
+        "elector number as a government fact"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "EMS results database backup 2026-05-08.bak",
+      "source_type": "opaque_binary",
+      "observations": [
+        "unreadable proprietary container",
+        "filename and sibling paths suggest an election-management system",
+        "no readable manifest"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "contents, contests, results, or elector data from a filename",
+        "that forced inspection is warranted",
+        "a poll anchor from sibling folder names alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit.political-campaign",
+      "signal": "The same nomination pack, candidate list, ballot-position notice, count-observation note, and result table occur on both sides, and the candidate and party strings are identical. This row requires administering-side custody — receipt stamps, office file references, validity determinations, ballot accounts, adjudication marks, officer signatures. A completed nomination pack, agent appointment, spending return, election address, or agent's count tally sheet is campaign material even though the form was issued by the authority.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The generic authority-side default and this row compete over exactly the fixture Election Count Reconciliation - North District.csv, which the government schema already carries as its own example. The default fires when the only evidence is an authority office producing an administrative record about an election; this row fires only when poll-operational structure is present — a reconciliation form that must balance, a nomination or absent-vote register, station and seal logistics, adjudication, or a declaration tied to an upstream contest identifier. A committee report about election policy, a budget line for election costs, or a boundary review stays with the default.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "Co-operative, union, professional-body, student-union and homeowners-association elections reproduce every furniture item of a public poll — nominations, ballots, scrutineers, spoilt-ballot rulings, a declaration. The discriminator is the electorate's basis and the body's status: registration on a public electoral roll and a statutory administering office on this side, membership of a private association on the other. Ballot vocabulary alone never decides it, in either direction.",
+      "design_cite": null
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "Polling cards, registration confirmations, absent-ballot receipts and ballot-tracking notices are issued by the same office that holds this row's records, and carry elector numbers and addresses. The recipient's copy is a personal identity or civil-status record; this row requires the office-side operational counterpart — the register extract, issue statement, or verification record. Neither side may copy the other's identifiers as a fact.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-procurement",
+      "signal": "Ballot printing, poll-card mailing, count-venue hire and voting or counting equipment are procured, so tender notices, evaluation sheets and contracts carry heavy election vocabulary. Procurement owns buyer-side sourcing and award evidence; this row owns the operational use of what was bought — delivery receipts against station allocations, seal logs, equipment test records tied to a poll. An evaluation workbook for a counting system is procurement even though every sheet says election.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.market-research",
+      "signal": "Opinion polls, exit polls, turnout models and seat projections share the words poll, ballot, turnout, district, candidate and swing, and produce per-district numeric tables that resemble count records. Market research owns sampling, weighting, fieldwork dates, margins and client framing; this row requires enumerated ballots and reconciliation against an issue total. An estimate is never a count, in either direction.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "register extracts, marked registers, absent-vote verification records, adjudication images, staff and elector personal data, or a mixed poll archive lack a safe accepted group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone official notice, published statement of persons nominated, declaration copy, or polling card has durable value but no administering-side workflow",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the file is plainly election-operational in shape but the administering role, the body's public status, or the poll anchor cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an election-management backup, sealed archive, damaged export, or unknown binary yields nothing beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Three postures coexist and the packet cannot inherit the mildest. Published members — notices, statements of persons nominated, declarations — are low-risk bytes. Operational members carry staff names, contacts and payments. Register, marked-register, absent-vote and adjudication members carry whole-electorate personal data whose sensitivity comes from scale rather than from any person being the subject of a proceeding, which is a different shape from the case material the government default protects. Above both sits a relational rule the default cannot state: voter-identity evidence and ballot evidence are each retained and must never be joined, so no group, branch, display label, or prompt may put them together even when they cite the same station. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” It further says: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” The node records only potentially_sensitive; handling classes are P7's.",
+  "open_question": "NEEDS-JOSEPH: the ballot-secrecy rule is a constraint on RELATIONSHIPS between files, and the current contract has no place to express it — recognition, grouping_reasons and sensitivity are all per-node. It is written here as prohibited-grouping prose and in sensitivity_why. Decide whether P9 gains a first-class mutual-exclusion between evidence classes, whether P7's handling policy absorbs it, or whether it stays advisory prose that a grouping implementation may silently ignore."
+}

@@ -1,0 +1,494 @@
+{
+  "id": "engineering.material-specification",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Material, component and special-process specifications",
+  "one_line": "The normative definition of a substance, a bought component or a process step — what it must be made of, what properties it must reach, and by which test method that is demonstrated — held as a document with its own identifier and issue, invoked by many design items and outliving all of them. It is the one engineering situation whose organizing anchor is the specification itself rather than a designed item: the schema default cannot activate here because there is no design item in the file. It is not a certificate that one delivered heat met the spec (manufacturing.inspection-record), not a published standard or code held as reference (engineering.standards-library), and not a statement of what a system must do (engineering.requirements-specification). PLACEHOLDER ROW (J-IND, written at J-DEPTH): PR-6 leaves fields empty; the recommended dimension inversion is recorded in prose for R1c rather than serialized.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "leg_detection_signals": "DIFFERS. The engineering schema's own node_test states its decisive signal is configuration identity — 'engineering files say which designed item and controlled definition a requirement, drawing, analysis, change or verification result belongs to' — and every deterministic signal it lists requires an identified item, assembly, system or baseline to be present in the file. A material or special-process specification has no design item in it, by construction: AMS 2700 passivation, MIL-DTL-5541 chemical conversion coating, or an in-house MS-4120 anodize spec are written once and invoked by hundreds of unrelated parts. Run through the schema default, every fixture in this row's file list fails to activate and lands in Independent Records. This row's signals are a different relation entirely: a document identifier plus issue/revision, a specified object that is a material grade, a bought component or a process operation, requirement statements paired with a named test method and an acceptance criterion, and no measured result. That is not a respelling of the schema default; it is the schema default's blind spot.",
+    "leg_recommended_dimensions": "DIFFERS, and inverts. The schema's researched default order is project -> design_item -> lifecycle_stage -> engineering_artifact_type, with revision_or_baseline explicitly kept as metadata. Here design_item is empty and project is actively wrong — a spec that is filed under the project that first invoked it becomes unfindable to the next project and gets re-authored. The organizing anchor is the specification's own identifier, and the field the schema demotes to metadata (revision/issue) is the field that carries the whole risk, because the defect mode of this row is manufacturing to a superseded issue of a live spec. An order that promotes revision above item and drops project is the opposite of the schema default, not a subset of it.",
+    "leg_privacy_rules": "PARTLY DIFFERS, and this is the weakest leg — stated honestly rather than inflated. Sensitivity stays potentially_sensitive, the same posture as the schema, so this leg does not carry the node on its own. The named reason differs: a heat-treat or plating process specification is the recipe itself, which is the classic trade-secret and export-controlled artifact, and a large share of this row's holdings are third-party licensed documents (supplier datasheets, purchased standard extracts) whose redistribution is contractually restricted in a way a drawing of one's own part is not. Redistribution licence is a P7 handling question, not a node fact, and this row does not decide it.",
+    "verdict": "ACCEPT on legs one and two. CONNECTION.md: 'A template row exists only if its detection signals, recommended dimensions, or privacy rules differ from its schema's default template.' Two of the three differ materially and the third differs in reason only."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a normative document structure whose specified object is a material grade, a coating/finish, a bought component or a process operation, carrying its own document identifier and an issue/revision slot, and whose requirement statements each pair a property with an acceptance criterion and a named test method — the relation among specified-object, criterion and test method is the signal, never the word 'specification' alone",
+      "the classical specification section skeleton — scope, applicable/referenced documents, requirements, quality assurance or verification provisions, preparation for delivery, notes — present as headings around a specified material, finish or process, as in MIL-DTL-5541 and AMS-series process specifications",
+      "a requirement table whose rows are properties (composition limits, tensile/yield, coating class and thickness, cure schedule, hardness, surface roughness) and whose columns include a limit and a referenced test standard, with no measured value and no lot or heat identifier present",
+      "a special-process definition that states process parameters and their tolerances (bath chemistry, temperature and soak, quench medium, cure profile) together with the qualification, coupon or periodic-test regime that keeps the process approved — pyrometry and furnace-class clauses referencing AMS2750 are a strong instance",
+      "a supplier component datasheet structure: manufacturer part number plus a document revision, absolute maximum ratings, characteristics tables with min/typ/max columns at stated conditions, and a package/mechanical outline — a received document whose subject is one component's specification",
+      "an approved-materials, approved-process or preferred-parts table whose rows join a material or process code to a governing specification identifier and a status (approved, restricted, obsolete) — a governance table over specifications rather than a bill of materials",
+      "a spec-invocation string appearing as a flag note or finish callout that names a specification identifier and issue and applies it to a surface or feature, which anchors a drawing to this row without moving the drawing here",
+      "an archive manifest exposing one specification identifier's issue history together with its redline, approval record and referenced test methods, read without extracting members",
+      "a deviation, waiver or concession record that names the specification and issue it departs from, states the departure and its bounding scope, and is signed — it belongs to this row's neighbourhood while remaining a departure, not a new issue"
+    ],
+    "needs_llm": [
+      "whether a document specifies a material/process (this row) or specifies what a system must do and how conformance will be shown (engineering.requirements-specification), when the same 'shall' language and the same verification-method column serve both",
+      "whether a received PDF is a published standard or code issued by a standards body or regulator (engineering.standards-library) or the specification of one product or material issued by its producer (this row), when only a cover page is legible",
+      "whether a properties table is a specification's acceptance limits or a certificate's measured results, when the document reports both a limit column and an actual column",
+      "whether a supplier datasheet is being held as a live procurement control or as background reading with no accepted engineering association",
+      "whether a coating or material study is normative (fixes what shall be used) or investigative (asks what happens), when a report contains both a recommendation and an experiment",
+      "whether an approved-materials list is engineering governance over specifications or a purchasing/stock catalogue whose codes merely resemble specification identifiers"
+    ],
+    "never_alone": [
+      "the words specification, spec, material, coating, process, grade, datasheet, TDS or standard alone — every one of them appears on a safety data sheet, a purchase order line, a marketing brochure and a mill certificate",
+      "a specification-shaped identifier alone (a letter-prefix-plus-digits token such as an AMS-, ASTM-, MS- or PS-shaped string). It can equally be a stock code, a drawing number, a purchase-order line, a test-method citation inside someone else's document, or an arbitrary internal number. It fires only alongside a requirement-and-test-method structure",
+      "a material name or alloy designation alone (316L, 6061-T6, FR-4, PA66-GF30). The same token appears on a delivery note, an invoice, a CAD model tree, a datasheet, a mill certificate and a recycling label",
+      "the presence of a properties table alone. A safety data sheet, a mill certificate, a supplier brochure and a research paper all contain property tables; only the absence of measured lot values and the presence of acceptance criteria plus test methods discriminates this row",
+      "a revision or issue token alone — this row shares revision control with drawings, standards, code, contracts and procedures, and the schema already forbids revision as sole proof",
+      "a .pdf, .docx or .xlsx extension or any SOURCE_TYPE alone",
+      "an organisation or supplier name alone (a materials producer, a plating house, a standards body). An organisation name is never-alone evidence and can never activate this row on its own",
+      "parent-folder context named Materials, Specs or Standards alone; it may raise plausibility only after one specification structure is present in the file"
+    ]
+  },
+  "work_types": [
+    "material specification",
+    "raw-material or stock specification",
+    "coating, plating or surface-finish specification",
+    "special-process specification",
+    "heat-treatment specification",
+    "welding or joining procedure specification",
+    "adhesive, sealant or potting specification",
+    "component or part specification",
+    "supplier component datasheet",
+    "technical data sheet",
+    "test-method specification",
+    "packaging and preservation specification",
+    "approved materials or approved process list",
+    "restricted-substance or material declaration",
+    "material qualification report",
+    "specification deviation or waiver"
+  ],
+  "grouping_reasons": [
+    "one specification identifier and every issue it has passed through, with its redlines, approval records and superseded copies — an issue family, keyed on the document, not on any item that invokes it",
+    "one specification and the test methods, referenced standards and qualification evidence it calls out, preserved as links rather than by copying a specification fact onto the referenced document",
+    "one material or process qualification campaign: the specification issue under qualification, its coupon plan, its results and its approval",
+    "one restricted-substance declaration campaign across the components it covers",
+    "a sparse `coating thickness check.xlsx` may join an accepted specification neighbourhood without acquiring a specification identifier, an issue or a design_item fact; the graph assembles context and does not propagate labels",
+    "a drawing that invokes a specification joins the specification's neighbourhood as a reference edge and stays in engineering.drawing-package; the invocation does not move it and does not copy the drawing's item onto the spec"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Binding PR-6 leaves the engineering schema with no declared destination-eligible fields, so the machine-readable order stays empty. The researched recommendation, conditional on R1c ratifying the schema's proposed keys, is deliberately NOT the schema default. It is specification identifier -> issue/revision -> specified-object class (material / finish / process / component), with project and design_item absent from the order entirely. Filing a specification under the project that first invoked it is the observed failure of this world: the spec outlives the project and the next programme re-authors it. Revision, which the schema explicitly keeps as metadata, is promoted to near-primary here because the defect mode of this row is working to a superseded issue of a live specification. If R1c widens canonical `artifact_type` rather than accepting `engineering_artifact_type`, the third level should be that widened key. This inversion is recorded in prose, not silently serialized, because none of its keys are legal yet. The user may reverse or flatten any of it.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".heic",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".zip",
+      ".7z"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "MS-4120 Rev D - Anodic Coating, Sulphuric Acid, Type II Class 2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "internal document identifier plus issue letter in the title block and repeated in the page footer",
+        "headings Scope, Applicable Documents, Requirements, Quality Assurance Provisions, Preparation for Delivery, Notes",
+        "requirement clauses pair a coating class and thickness range with a named test method and a sampling provision",
+        "no measured value, no heat number, no lot number, no part number anywhere in the document",
+        "approval block with signature and effective date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a design_item — the document deliberately names none, and inventing one from a sibling file is the error this row exists to prevent",
+        "that Rev D is the current issue; supersession is a fact about the issuing system, not about this file",
+        "that any part in the corpus is actually anodized to this specification"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PS-217 Rev 3 - Solution Heat Treat and Age, 6061 to T6.docx",
+      "source_type": "text_document",
+      "observations": [
+        "special-process definition with soak temperature and time ranges, quench medium and delay limit, and artificial-age profile",
+        "furnace class and pyrometry clause citing AMS2750 with instrumentation and system-accuracy-test requirements",
+        "test-coupon and periodic-requalification provisions with acceptance hardness and conductivity criteria",
+        "revision history table listing prior issues and the reason each changed"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the referenced AMS2750 copy is held, licensed, or current",
+        "that any furnace in the corpus is qualified",
+        "a manufacturing work_type — this states what the process must be, not what an operator did on a shift"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "LM317T Rev N - Texas Instruments - datasheet.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "manufacturer name and manufacturer part number on the cover with a document revision letter and a date",
+        "absolute maximum ratings table, then electrical characteristics with min/typ/max columns at stated test conditions",
+        "package mechanical outline drawing and ordering-information table",
+        "received document: no local approval block, no local document identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder authored, controls, or may redistribute this document",
+        "that the component is used in any design in the corpus",
+        "engineering.standards-library membership — it is a producer's product specification, not a standards body's published standard"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Technical Data Sheet - Loctite 3090 two-part instant adhesive.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier product identity, typical uncured and cured property tables, fixture and full-cure times by substrate",
+        "storage and shelf-life clause; general handling guidance",
+        "properties given as typical values with no acceptance criteria and no sampling provision"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that typical values are acceptance limits — a TDS informs, it does not impose",
+        "that the product is approved for any application here without an approved-materials entry or a spec invocation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Approved Materials and Processes List Rev 7.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns: internal material or process code, governing specification identifier and issue, supplier, approval status, restrictions, review date",
+        "status values include approved, restricted and obsolete; obsolete rows carry a superseding specification identifier",
+        "no quantities, no prices, no stock levels, no purchase-order references"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a bill of materials — there is no parent assembly and no child quantity",
+        "that a restricted row is a compliance finding or a handling class",
+        "that an obsolete row means the local copy of the superseded specification should be deleted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "mill letterhead, heat/cast number, order and item reference, delivered dimensions and quantity",
+        "ladle chemical analysis with measured percentages, and measured tensile, yield, elongation and hardness values",
+        "conformance statement citing ASTM A276 and a works inspector signature and stamp"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is a specification — it cites one and is not one",
+        "that the material in stock is conforming today",
+        "a design_item from the purchase-order reference"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SDS_Acetone_2026-03_EN-GB.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sixteen numbered GHS section headings from Identification through Other information",
+        "hazard pictograms, precautionary statements, first-aid measures, exposure controls and personal protection",
+        "section 9 physical and chemical properties table looks like a material property table"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a section 9 property table makes this a material specification",
+        "that the substance is approved for use here",
+        "any handling class"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AMS2750G - Pyrometry.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "standards-body cover page with issuing organisation, document designation, revision letter and issue date",
+        "copyright and single-user licence notice restricting reproduction and distribution",
+        "normative clauses with shall statements, referenced-document list, and tables of tolerances"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder authored or controls this document",
+        "that holding it proves compliance with it",
+        "membership in this row — issuer role is a standards body, so it belongs to engineering.standards-library"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Deviation Request DR-0912 - alternate plating supplier - lots 4471-4478.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "names the specification identifier and issue it departs from and states the departure clause by clause",
+        "bounding scope limited to named lots and a stated expiry",
+        "engineering and quality disposition blocks with signatures"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the specification changed — a deviation leaves the issue untouched",
+        "an engineering.change-order, which alters a released definition rather than permitting a bounded departure from one",
+        "that the lots named are conforming"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RoHS and REACH SVHC Declaration - connector 5747299-1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier declaration naming a component part number and a directive/regulation with a version",
+        "substance table with threshold-free presence statements and exemption citations",
+        "authorised signature and declaration date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a compliance verdict for any assembly containing the component",
+        "that the declaration is current",
+        "that a regulation named here becomes a fact about the holder"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_4451.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present with DateTimeOriginal and lens data; positive capture-origin evidence",
+        "OCR of the frame yields a page heading resembling a specification identifier and issue plus a partial requirement clause",
+        "frame is skewed, partially shadowed, and the surrounding wall and clipboard are visible"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a specification identifier or issue from OCR alone — the heading is exactly the never-alone case",
+        "that the photographed page is the current issue or that a copy of it exists in the corpus",
+        "a capture date fact standing in for a specification date"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "RE Approval - MS-4120 Rev D release and supersession of Rev C.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries a specification identifier and two issue letters; body states approval and effective date",
+        "labelled sender and recipient roles within the engineering function",
+        "attachment is the released specification PDF and a redline"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that supersession has taken effect in any production system",
+        "that recipients are approvers of record",
+        "a design_item from the distribution list"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SPEC_PACKAGE_MS4120_RevD.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists the released specification, a Rev C to Rev D redline, the approval record and two referenced test-method extracts",
+        "member names share one specification identifier; no part or assembly identifier appears in the manifest",
+        "read from the manifest without extracting members to disk"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "facts about members that were never opened",
+        "that the bundled test-method extracts are licensed for redistribution",
+        "a design_item"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Materials Delivery Note 88231 - 316L bar 20mm - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier and delivery address, delivery date, purchase-order reference",
+        "line items with material description, quantity and unit; a signature accepting receipt",
+        "no acceptance criteria, no test method, no document issue"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a material grade in a line item activates this row",
+        "a specification identifier from the purchase-order reference"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Anodic layer thickness vs seal time - study writeup.docx",
+      "source_type": "text_document",
+      "observations": [
+        "experiment design, coupon matrix, measured data, plots and a discussion section",
+        "concludes with an observed relationship and a recommendation to consider a seal-time change",
+        "no document identifier, no issue, no approval block, no acceptance criteria"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a recommendation is a normative requirement",
+        "that a specification changed because a study recommended it"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Specification_Library_backup.7z",
+      "source_type": "opaque_binary",
+      "observations": [
+        "password protected; member list unreadable",
+        "filename contains the word Specification and a Library-shaped token",
+        "size and timestamps readable from the filesystem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any specification identifier, issue, material or process from the filename",
+        "that the archive is engineering material at all"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.standards-library",
+      "signal": "Same bytes-shaped evidence: both sides are normative documents with shall clauses, a designation, an issue letter and a referenced-document list. The discriminator is issuer role, not content. A document issued by a standards body or a regulator and held as received reference is standards-library; the specification of one material, process or product issued by the holder's engineering function or by the material's own producer is this row. Shared fixture: AMS2750G-Pyrometry.pdf is standards-library on both sides of this boundary; MS-4120 Rev D and the LM317T datasheet are this row on both sides. The datasheet placement is the contested case and is raised as NJ-MS-2.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "signal": "Both sides use shall statements, a verification-method column and a document issue, and a reader cannot separate them from vocabulary. The discriminator is the specified object: a system's or product's behaviour and performance is requirements-specification; a substance, a bought component or a process operation is this row. Shared fixture: a single Product Specification.docx whose functional-requirement sections are requirements-specification and whose finish and material clauses invoke MS-4120 by reference — the invocation is a link to this row, not a relocation of the document. Reciprocally, MS-4120 Rev D never becomes a requirements-specification merely because a system requirement cites it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "The same property names, the same material grade and the same referenced test standards appear on both sides. The discriminator is measured result plus lot identity: a specification states criteria and names methods and carries no heat, lot, batch or serial number; an inspection record reports measured values for one identified consignment. Shared fixture: Material Test Report - Heat 4471822 - 316L bar - EN 10204 3.1.pdf is manufacturing.inspection-record on both sides, and the ASTM A276 designation it cites does not pull it here. Reciprocally, MS-4120 Rev D is this row on both sides and does not become an inspection record because it names a test method.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.supplier-qualification",
+      "signal": "Supplier-issued material declarations, certificates of conformance and process-approval scope letters sit between the two. The discriminator is what the document governs: a normative definition of the material or process governs any supplier, and belongs here; evidence that one named supplier is approved and remains approved governs the relationship, and belongs to supplier-qualification. Shared fixture: RoHS and REACH SVHC Declaration - connector 5747299-1.pdf — it is supplier-issued and therefore relationship evidence to supplier-qualification, while its substance table is a material-content statement here; both sides may hold it on disjoint evidence rather than fighting.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.work-instruction",
+      "signal": "A special-process specification and a shop work instruction can describe the same physical operation with the same parameters. The discriminator is normative-versus-executional voice and audience: a specification states what the process must achieve and how that is demonstrated, is invoked by many jobs, and carries a qualification regime; a work instruction tells one operator the ordered steps at one station and is controlled by the production system. Shared fixture: PS-217 Rev 3 - Solution Heat Treat and Age is this row on both sides; a `Furnace 2 - Load and Unload Steps Rev B.docx` naming station, fixture and per-load sequence is manufacturing.work-instruction on both sides even when it repeats PS-217's temperatures verbatim.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "Both worlds carry material grades, supplier names and specification citations. The discriminator is transactional versus normative: an order, delivery note or goods-received record has quantities, prices or a signature of receipt and no acceptance criteria; a specification has criteria, test methods and an issue and no quantity. Shared fixture: Materials Delivery Note 88231 - 316L bar 20mm - signed.pdf is construction_property.materials-delivery on both sides, and the grade token 316L does not activate this row. Reciprocally, a coating specification cited on a delivery note stays here and is not absorbed into the delivery record.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "manufacturing",
+      "signal": "A deviation or waiver against a specification is simultaneously a departure record in a production world and a document in this specification's issue neighbourhood. Both relations are separately evidenced; neither is inferred from the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "A material qualification report can legitimately be both a knowledge-producing study and the qualification evidence that a specification issue depends on. The study's project and artifact facts stay independently evidenced and are not copied onto the specification.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering",
+      "signal": "A restricted-substance declaration is material-content evidence here and regulatory-conformance evidence for engineering.product-certification at the same time. Neither side should erase the other or convert the other's evidence into its own facts.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone specification, datasheet, technical data sheet, declaration or mill certificate that is readable and durable but that this row cannot reliably attach to an accepted specification neighbourhood belongs here rather than activating from the word 'specification'.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a document is plainly technical and material-related but whether it specifies, records, orders, investigates or merely reports cannot be settled from its own evidence — the approved-materials table, the release email, the spec archive and the coating study all land here when their role is ambiguous.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Received supplier datasheets, standards extracts and technical articles held with no accepted engineering association are reading material, not controlled specification holdings.",
+      "provenance": "design",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected specification libraries and unreadable proprietary specification formats are represented without extraction and without inferring any specification identifier, issue or material from the filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Special-process and material specifications are frequently the most closely held technical content a manufacturer owns — a plating bath chemistry, a heat-treat recipe or an alloy composition limit is the trade secret itself, and defence and aerospace process specifications routinely carry distribution and export markings. A second, distinct exposure exists here that the engineering schema's own drawings and models do not have: a large share of this row's holdings are third-party licensed documents whose reproduction and redistribution are contractually restricted, so bulk transmission of members to a remote model is a licence question as well as a confidentiality one. This row records only potentially_sensitive; it assigns no handling class and decides no licence question, which are P7's and the user's.",
+  "open_question": "NJ-MS-1: the roster hint calls this row 'an authored specification' yet also assigns it the legacy row eng.component-datasheet, whose fixtures are received supplier documents. This row resolves the contradiction by making the specified object (material / component / process) the unifying fact and authorship an observation. R1c should confirm or reverse. NJ-MS-2: reciprocally with engineering.standards-library — does a supplier component datasheet belong here (a producer's specification of one product) or there (a received, licensed, never-authored reference)? Alternatives: (a) issuer role decides, standards body/regulator to standards-library and producer to this row, as recommended; (b) authorship decides, sending all received documents including datasheets to standards-library and leaving this row only in-house specs; (c) both hold on disjoint evidence. NJ-MS-3: if R1c ratifies the engineering keys, does this row's inverted order require a `specification_id` concept distinct from `design_item`, or should design_item be widened to admit a specified object that is not a design item? This row proposes no key. NJ-MS-4: a specification's issue is authoritative only relative to an issuing system this product cannot see; decide whether supersession may ever be represented as a fact or must remain an observation of what one document says about another."
+}

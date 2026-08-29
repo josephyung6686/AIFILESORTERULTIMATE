@@ -75,6 +75,54 @@ surface, not two. Split into separate parts, this becomes two engines and two re
 
 ---
 
+### `src/readers/` is not a fourteenth part either
+
+P5's readers are constructor parameters and its SPEC says it *"adds no third-party runtime
+dependency"* — so the libraries a real deployment chooses live outside it, in `src/readers/`, behind
+a `readers` extra. It fills P5's shapes (`PdfDocument`, `OcrOutput`) and decides nothing the product
+means: no source type, no completeness, no analysis tier, no field name. The dependency runs one
+way and a guard test enforces it — `src/extractors/` may never import `readers`, `pdfminer`,
+`Vision` or `Quartz`.
+
+What an adapter MAY decide is anything the library knows: a heading style, a table cell, a footer,
+the PDF date syntax, an engine's own name and version. That is why `Region`'s contract puts zone
+assignment in the reader — it is the only layer that can see a font size.
+
+### Where the sensitivity detector lives — P7, and it is injected (D2)
+
+**There is no fourteenth part.** §8.4 requires a handling class before content reaches
+any model, and nothing in the design says who *detects* the sensitivity that class is
+assigned from. An initial reading put the detection in the fact layer, which would make
+P6 the classifier and give §8.4's rule two owners.
+
+The cut is: **P7 owns the classification and consumes an injected rule set.** It is the
+same shape as every reader in P5 — `Readers` names no library, `SafetyPolicy` holds no
+threshold, and P7 holds no detection rule. The rule set is a deployment's, not a part's.
+
+Three consequences, all of them binding now:
+
+1. **The rule set is unwritten.** No task in any plan produces one. Until one exists,
+   a P7 running against a real corpus classifies nothing, and every file resolves to
+   `Denied(unclassified)`. That is the honest v1 posture and it must be stated at the
+   call site rather than defaulted to "carries nothing" — the same correction
+   `TARGETED_OCR_UNAVAILABLE` made for P6's absent verdict.
+2. **`Unreadable or unclassified` is a gate outcome, not a file fact.** It is what the
+   gate answers when it has no classification to release against; it is not a fifth
+   value of a file's sensitivity. It therefore lives on the release decision, never in
+   `files.sensitivity_state`, and a reader must not be able to confuse "this file
+   carries nothing sensitive" with "nothing has looked".
+3. **P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is authoritative.**
+   P1's `files.sensitivity_state` is its projection onto the current row, written
+   through `set_sensitivity_state` — the twin of `set_extraction_status`, with the
+   same M8 authorship rule: P7 authors its §8.4 audit record and P1 stores. Keyed on
+   the content hash because a classification is about BYTES; new bytes at a path are
+   a new file version and inherit nothing.
+
+**P7 does not take an injected `SensitivityStateWriter`.** An earlier plan gave P7 a
+protocol for this. P1 already owns `files` and already publishes one setter of exactly
+this shape; a second write path would be a protocol wrapping a function that exists.
+Authority stays with P7, the protocol goes.
+
 ## Cross-cutting constraints
 
 These have no standalone deliverable and are not parts. Every `SPEC.md` must answer all four.
@@ -134,10 +182,12 @@ means no privacy gate is exercised, because nothing leaves the machine.
 ```text
 input   one PDF whose title carries a course code
 
-P1      hash it, create the file record, append a discovery event
-P3      scan a fixture directory; assert the exclusion rules skip node_modules
+P1      hash it, create the file record — P1 *writes*; it authors no event of
+        its own (§8.2, M8: the acting part authors, P1 stores)
+P3      scan a fixture directory; assert the exclusion rules skip node_modules;
+        P3 authors the discovery and stat-observation events P1 stores
 P4/P5   extract page-one text; emit ONE observation in the frozen shape
-P6      resolve it to ONE validated fact (course = X) with its evidence link
+P6      resolve it to ONE validated fact (subject = X) with its evidence link  [D6]
 P8      not exercised — the fact is rule-validated, no model needed
 P9      form a group of one, from a direct anchor
 P10     a hand-authored TWO-node tree; freeze it (two nodes so the §6.10 margin
@@ -146,6 +196,13 @@ P11     exact fact match to that node; emit a placement decision
 P12     plan → verify preconditions → move → verify hash → undo → verify restored
 P2      the whole run replays from a bundle and asserts each stage's output
 ```
+
+**Authorship, not order.** The lines above are the seams the skeleton touches, not a claim about
+who acts first. P1 never originates a `discovery`, `stat observation`, `hashing` or `external
+modification detection` event: §8.2's reconstruction requirement is unmeetable from a log whose
+author field names the storage substrate as the thing that discovered the corpus. P3 authors the
+scan events, P12 authors the V1–V4 `hashing` events with P1 named as performer, and P1 writes what
+it is handed.
 
 **What it proves:** every table exists and connects, the observation shape survives a real
 extractor, a fact carries its evidence, freeze actually constrains placement, the two-condition
@@ -162,6 +219,11 @@ does not become `abstain` inside P8. This is the B2 contract test the first path
 ## Layout
 
 ```text
+src/
+├── database_agent/   P1        evidence_shape/  P4        scan_agent/     P3
+├── eval_harness/     P2        extractors/      P5        orchestrator.py  the Wave-2 caller
+└── readers/          NOT A PART — the deployment layer: pdfminer.six, Apple Vision
+
 planning/
 ├── 00-database-agent-product-design.md    source of truth — Joseph's wording is authoritative
 ├── 01-product-design-structured.md        the same content, §0–§8

@@ -1,0 +1,106 @@
+{
+  "list_id": "gazetteer_orgs_roles",
+  "title": "10/02 — Employers, firms, clients, financial institutions (one entity list, roles decided by the field)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P6 (injected) — never P5",
+  "consumer": "the same injected gazetteer lookup as 01-schools; hits enter §3.7 ranking as candidates for whichever org-role field's context rule passes. The gazetteer never records role.",
+  "status": "seed",
+  "backs_fields": ["our_firm", "client", "institution"],
+  "backs_fields_note": "The §3.8 role split, applied to organizations: `our_firm` and `client` are two fields over one entity type (role_split in CONNECTION.md section 6), and Finance's `institution` (the issuing bank) is a third role the same entity list can back. VERIFIED against planning/domains/canonical_fields.json (R1a landed after this file was first drafted): all three keys resolve and carry `gazetteer: \"orgs\"`. R1a also tags `lab` and `venue` with `gazetteer: \"orgs\"` — the seam with 03-research-venues.json is recorded there (unc-r1a-gazetteer-tag) and in RESEARCH.md. One gazetteer backs all three role fields; the row never says which role an org plays — the field's context rule does. The Career schema's company field is DEFERRED (D1, narrowed: no career field rows; 04-resolutions.md S3) — canonical_fields.json confirms no such key exists yet. When Joseph authors it, owed before P10, this gazetteer backs it too; naming it here now would mint the field by the back door.",
+  "backs_fields_cites": [
+    {"source": "00", "section": "§3.8", "quote": "distinct facets, such as authored_by and target_school, or our_firm and client"},
+    {"source": "00", "section": "§3.8", "quote": "an account holder and an issuing bank"},
+    {"source": "00", "section": "§3.11", "quote": "Finance files may use institution, account type, tax year, and record type"}
+  ],
+  "universe": "design_examples — v1 contains only organizations the design itself names. There is no honest complete universe for 'employers and clients': they are user-specific by nature (§3.12: values auto-create) and 'every company on earth' is refused outright. The one bounded sub-universe worth considering is a national register of regulated financial institutions for the Finance `institution` field — a jurisdiction fork (D4 'which one'), recorded under uncertain.",
+  "match_rule": {
+    "matching": "word_boundary",
+    "why": {"source": "00", "section": "§3.7", "quote": "It should use word-boundary matching rather than substring matching."},
+    "case_rule": "per alias: name aliases case-insensitive; acronym aliases case-sensitive",
+    "cjk_matcher_slot": "same slot as 01-schools: named `cjk_matcher`, unfilled in v1; per-alias `script` keeps CJK rows representable without a schema change"
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null,
+    "note": "§3.7's thresholds, injected. No number lives in this file."
+  },
+  "never_alone": {
+    "rule": "an org-gazetteer hit alone fills no field, activates no schema, and creates no group — the design's Columbia sentence is about entity ambiguity generally, and a firm name is exactly as role-ambiguous as a university name",
+    "cite": {"source": "00", "section": "§4.9", "quote": "A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization."}
+  },
+  "entries": [
+    {
+      "id": "org-ey",
+      "canonical": "EY",
+      "entity_type": "firm",
+      "aliases": [
+        {"alias": "EY", "case_sensitive": true, "script": "Latin"},
+        {"alias": "Ernst & Young", "case_sensitive": false, "script": "Latin"},
+        {"alias": "Ernst and Young", "case_sensitive": false, "script": "Latin"}
+      ],
+      "scripts": ["Latin"],
+      "provenance": "inference",
+      "source_kind": "design_example",
+      "design_cite": {"source": "00", "section": "§4.5", "quote": "EY Internship Application"},
+      "false_positive_risk": "medium",
+      "example_true": "EY Internship Application",
+      "example_false": "the journey begins",
+      "status": "seed",
+      "notes": "The design's one named commercial organization (a career packet label). Canonical is 'EY' — the firm's actual brand name — with the legacy long forms as aliases; the expansion is inference. The two-letter acronym is case-sensitive; word-boundary keeps it out of 'MONEY' and 'journey' regardless."
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-naics-import",
+      "refuses": "importing NAICS or any industry-classification code table",
+      "reason": "The dispatch brief forbids it, and an industry code is a category, not an organization name — importing one rebuilds the industry taxonomy ALIGNMENT.md forbids."
+    },
+    {
+      "id": "ref-github-orgs",
+      "refuses": "every GitHub organization / a code-hosting namespace dump",
+      "reason": "Unbounded, spam-heavy, and code-project identity is P3/P5's repository-marker territory (catalogue 05), not a name gazetteer."
+    },
+    {
+      "id": "ref-wikidata-dump",
+      "refuses": "unfiltered Wikidata organization entities",
+      "reason": "No stated universe, maximal homonym surface. A filtered, bounded slice with a stated selection rule could return via uncertain; a dump cannot."
+    },
+    {
+      "id": "ref-role-on-row",
+      "refuses": "recording a role (employer / client / our-firm) on a gazetteer row",
+      "reason": "Role is the field's, never the entity's. The same firm is `our_firm` in one engagement and `client` in another; a row that fixed the role would contradict §3.8's split.",
+      "design_cite": {"source": "00", "section": "§3.8", "quote": "distinct facets, such as authored_by and target_school, or our_firm and client"}
+    },
+    {
+      "id": "ref-universities-as-orgs",
+      "refuses": "duplicating universities into this file because they can be employers",
+      "reason": "One entity, one row, one file. A schools-gazetteer hit may back an org-role field when that field's context rule passes; duplicating rows across files would create the cross-file alias collisions check.py exists to prevent.",
+      "design_cite": {"source": "00", "section": "§4.9", "quote": "Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization"}
+    },
+    {
+      "id": "ref-person-names",
+      "refuses": "person names as org rows (sole traders, 'Jane Chen Consulting' style guesses)",
+      "reason": "Same refusal as 01-schools ref-person-names: person-name matching at corpus scale is the MIT-in-submit failure class, and authorship must not drive placement."
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-bank-register",
+      "question": "Does a national register of regulated financial institutions back Finance's `institution` in v1?",
+      "note": "The one org sub-universe that is genuinely bounded and official (for the US, the FDIC's BankFind institution directory; for the UK, the FCA register). Jurisdiction-dependent — D4 is ratified as one-jurisdiction-injected but WHICH one is open, and this is the same fork as 01-schools unc-v1-universe. Until it lands, `institution` values arrive via labeled sources (direct), user entry (user_confirmed), or stay possible. NEEDS-JOSEPH."
+    },
+    {
+      "id": "unc-org-list-at-all",
+      "question": "Should v1 ship any employer/client list beyond user-add?",
+      "note": "Employers and clients are the most user-specific entity type in the product. The design's mechanism for them is §3.12's value auto-creation plus user confirmation, and a shipped list adds mostly homonym risk (every common surname is a firm somewhere). Plausible resolution: ship none; let repeated user-approved values become the user's own gazetteer (see PROCEDURE.md, user-add lifecycle). NEEDS-JOSEPH."
+    },
+    {
+      "id": "unc-career-company-field",
+      "question": "When the Career schema's fields land (D1: owed before P10), which key does this gazetteer back?",
+      "note": "§5.4's Career template names 'company' as a dimension in prose; no field row exists yet and none may be written now. Recorded so the seam is visible to R1a and to whoever authors the career fields."
+    }
+  ],
+  "homonyms": []
+}

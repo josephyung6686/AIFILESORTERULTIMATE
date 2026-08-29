@@ -1,0 +1,513 @@
+{
+  "id": "retail_hospitality.ecommerce-ops",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "E-commerce operations (the merchant's own channel record)",
+  "one_line": "The record a MERCHANT keeps of selling through a channel it does not physically stand in: what is LISTED and in what state, what a stream of remote ORDERS asked for and where each one got to, what stock the channel believes it can promise, how the storefront itself is CONFIGURED to quote shipping and tax, and what traffic and spend brought the order in. Its anchor is a CHANNEL plus an EXPORT WINDOW or an ORDER LIFECYCLE, and its defining structure is a REMOTE STATE MACHINE - published/unpublished, paid/refunded, unfulfilled/partial/fulfilled - carried in a platform's own identifier namespace and, on the order side, bound to a delivery ADDRESS. It is the OPERATOR's side only; a buyer's own order-history export is never this row. A PLACEHOLDER TEMPLATE on the fieldless retail_hospitality schema: fields [] and dimension_order [] by PR-6, so what it contributes is recognition, a recommended prose order that differs from the schema default, and a privacy rule the schema default does not state.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, inherited unchanged from the schema anchor: every entry below is a DETECTION signal and never an extraction licence. This template declares no field rows and its schema declares none, so nothing here writes a domain fact. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "A LISTING-STATE structure, and it is the discriminator against `retail_hospitality.product-catalogue`. A tabular export with one row per selling line OR per variant, carrying a platform HANDLE or slug, a PUBLICATION state slot (published/unpublished, active/draft/archived, live/ended), and at least two of: an option/variant matrix (Option1 Name and Option1 Value repeated per row with a blank identity column continuing the parent line), a per-channel price or title override, a marketplace CATEGORY-TAXONOMY code, an SEO title or meta-description column, and an image-source URL column. A paper or PDF price list has a code, a description and a price and NONE of these; publication state is the thing a physical shelf does not have.",
+      "AN ORDER-LIFECYCLE structure. A tabular export with one row per order or per order LINE, carrying a platform order identifier in the platform's own namespace (a `#`-prefixed sequential name, a marketplace order id), a FINANCIAL state slot (paid, pending, partially refunded, voided), a FULFILMENT state slot (unfulfilled, partial, fulfilled, cancelled), a DELIVERY ADDRESS block, and usually a payment-gateway, discount-code, shipping-method or tracking-number column. The pairing of TWO independent state machines against one identifier is what fires. A till record has no fulfilment state because the goods left with the buyer.",
+      "A PROMISABLE-STOCK structure, and it is the discriminator against `retail_hospitality.stocktake`. Per SKU per LOCATION columns of the shape available / committed / incoming / on-hand, where COMMITTED means reserved against open orders. It is a forward promise, not a count: there is no counted-versus-system pair and no count date, and the same row exists for goods nobody has yet touched.",
+      "A STOREFRONT-CONFIGURATION structure. A structured-data or tabular file whose keys or headers name shipping ZONES and RATE BANDS by weight or price, tax overrides by jurisdiction and product class, payment-gateway or checkout settings, URL redirect maps, or channel-publication rules. “Source code, notebooks, configuration files, and structured data formats such as Python, JavaScript, SQL, Jupyter notebooks, JSON, YAML, TOML, XML, and CSV should yield readable text plus format-specific structure such as language, imports, notebook cell types, package manifests, schema keys, repository markers, and project-root signals.” Schema keys are what fires here. This is the operating setup of a shop, not a program; see the reciprocal against `code.software-project`.",
+      "A DISPATCH-DOCUMENT BATCH. One PDF containing MANY packing slips, pick tickets or shipping labels, each with a different addressee and the same generated-on date - a print run, not a document. The repeated per-page address block against a single generation stamp is the signal.",
+      "A TRAFFIC-AND-SPEND-AGAINST-REVENUE structure. A tabular export pairing sessions, impressions, clicks or spend against conversion rate, add-to-cart, cart-abandonment or revenue, whose row key is THIS store's own product or campaign identifiers. Where the row key is instead a market segment, a competitor or a survey respondent it is `business_operations.market-research`; where it is a creative asset or a flight plan it is `creative.ad-campaign`.",
+      "Spreadsheet extraction is the workhorse for six of the seven structures above, and header names carry almost all of the signal: “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.”",
+      "A platform ADMIN screenshot - a browser chrome strip, a left-hand admin navigation column, and an OCR-readable orders or products table with state chips. Positive screen-origin evidence is `photos.screenshot-captures` business; what this row reads is the OCR content. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.”",
+      "A platform-generated EMAIL whose labelled subject slot names an order in the platform namespace AND whose body carries a state transition (order confirmed, payout sent, item returned, listing removed, policy violation). The sender being a commerce platform is not enough; the order identifier plus a state word is.",
+      "An ARCHIVE whose manifest names a store export, a theme bundle, a catalogue feed drop or a period order dump - read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+      "Parent-folder context naming a channel or a store name raises plausibility once one structure above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION and it binds harder here than anywhere else in this family: an order export is a consumer address database by construction. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "THE SIDE DETERMINATION, which is this row's central call and the one that decides activation. `orders.csv` exists twice - the merchant's export of many buyers from one store, and a buyer's own order-history download covering many stores. Filenames and extensions are identical. The operator's copy carries a POPULATION of distinct recipients plus fulfilment/payout apparatus; the buyer's carries ONE recipient and none. Where evidence does not settle the side, this row must not activate.",
+      "Separating a LIVE channel record from a TEMPLATE, a supplier's specimen feed, a scraped competitor catalogue, a store-building course exercise, or a demo-store seed file. A seeded demo export is byte-shaped exactly like a real one. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Deciding whether a bundle is a STOREFRONT CONFIGURATION or a SOFTWARE PROJECT. A theme export with Liquid templates, a package manifest and a version-control marker is `code.software-project`; a settings export with shipping zones and tax overrides is this row.",
+      "Reading an unlabelled operational message: a supplier chase about a stockout, a marketplace policy-violation notice, a customer service thread about a lost parcel. No header block, no grid, and frequently the most sensitive files present.",
+      "A channel export in a language, currency or marketplace taxonomy the deterministic header catalogue does not cover.",
+      "Abstention is the required outcome in every case above. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "A PLATFORM OR MARKETPLACE BRAND NAME, standing alone - Shopify, WooCommerce, Etsy, Amazon, eBay, Squarespace, Magento. This is the row's defining never-alone and it is true of this row's collision fixture: `Your Orders - amazon.com - 2026.csv` is a BUYER's file with a marketplace brand in its name. The reasoning is read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - the platform name is worse, because it names the SOFTWARE both sides used, not either party.",
+      "AN EXPORT-SHAPED FILENAME, standing alone - `orders_export.csv`, `products_export.csv`, `inventory.csv`, `sales_report.csv`. These are the platform's default download names and they are produced identically for merchants, buyers, demo stores and specimen feeds.",
+      "A FILE EXTENSION OR SOURCE TYPE, standing alone. `.csv` and `.json` are this row's most common carriers and its least discriminating evidence; the schema keys and the column headers are the evidence, never the container.",
+      "A DELIVERY ADDRESS, standing alone. An address in a spreadsheet is contacts, identity, travel, logistics or household material before it is a merchant's order export. What fires here is an address bound to an ORDER IDENTIFIER carrying a fulfilment state.",
+      "A TRACKING NUMBER or a carrier name, standing alone. That is `logistics.shipment` or `logistics.last-mile-pod` evidence; it becomes this row's only as a column inside an order-keyed record.",
+      "A CUSTOMER'S NAME OR EMAIL. It must never anchor a group and must never become a folder level, both because “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” and because a channel's customer list is thousands of members of the public who never chose to be filed.",
+      "A PRODUCT IMAGE or a hero shot, standing alone. Until a listing or catalogue structure claims it, it is `photos` or `creative` evidence; an image URL column inside a listing export is a different thing from a folder of JPEGs.",
+      "A CURRENCY-DENOMINATED TABLE, standing alone - inherited from the schema anchor and true here: a payout total in cells is finance before it is this row."
+    ]
+  },
+  "proposed_context_terms": [
+    "order export",
+    "product export",
+    "listing",
+    "handle",
+    "variant",
+    "option1",
+    "published",
+    "unpublished",
+    "draft listing",
+    "archived listing",
+    "sold out",
+    "fulfilment status",
+    "unfulfilled",
+    "partially fulfilled",
+    "financial status",
+    "refunded",
+    "chargeback",
+    "payment gateway",
+    "checkout",
+    "abandoned cart",
+    "discount code",
+    "shipping zone",
+    "rate band",
+    "tax override",
+    "redirect map",
+    "storefront",
+    "sales channel",
+    "marketplace",
+    "seller account",
+    "buy box",
+    "listing quality",
+    "product feed",
+    "merchant centre",
+    "available to promise",
+    "committed quantity",
+    "incoming quantity",
+    "backorder",
+    "preorder",
+    "dropship",
+    "packing slip",
+    "pick ticket",
+    "shipping label",
+    "tracking number",
+    "sessions",
+    "conversion rate",
+    "add to cart",
+    "cart abandonment",
+    "ROAS",
+    "subscriber list",
+    "payout",
+    "settlement report",
+    "reserve"
+  ],
+  "work_types": [
+    "channel listing record - product and variant export, listing state change, marketplace category mapping, product feed, listing copy and SEO slot",
+    "order record - period order export, single order detail, discount and promotion application, cancellation",
+    "fulfilment record - packing slip and pick-ticket batch, shipping label run, tracking export, backorder and preorder list",
+    "promisable-stock record - available/committed/incoming export, channel stock sync report, oversell exception",
+    "storefront configuration record - shipping zones and rates, tax overrides, checkout and gateway settings, redirect map, app and integration settings",
+    "channel performance record - sessions and conversion export, campaign spend against store revenue, cart-abandonment report",
+    "channel account record - marketplace seller account status, policy notice, listing suppression, account health report",
+    "customer and subscriber list record - marketing list export, segment export, consent state"
+  ],
+  "grouping_reasons": [
+    "ONE ORDER across its whole channel trail: the order line in the period export, the packing slip, the label, the tracking row and the refund line - joined by the platform's order identifier, never by the buyer's name.",
+    "ONE EXPORT WINDOW on ONE CHANNEL: the orders, products, inventory and payout exports pulled for the same month from the same store. Purpose-coherent and content-incoherent - “The documents are content-incoherent but purpose-coherent.”",
+    "ONE LISTING over its life: the product row, the feed entry, the marketplace category mapping and the suppression notice - joined by a handle or SKU, never by a photograph that happens to show the item.",
+    "ONE STOREFRONT CONFIGURATION as a set: shipping zones, tax overrides and redirects belong together because they are one machine, even though no identifier is shared between them.",
+    "One repeatedly re-pulled platform export, joined by the universal duplicate_family and version_family facts rather than by any trading fact - this row produces more near-duplicate exports than any sibling, because re-running a report is a single click.",
+    "No group at all is a valid outcome and it is the correct one for a single order confirmation. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - PR-6 leaves the retail_hospitality schema with no field rows, and a dimension may only branch on a field the same schema declares. The recommendation is therefore held as prose, and it is stated here precisely because it MUST DIFFER from the schema's default to justify this row. THE SCHEMA DEFAULT IS: trading unit ONLY WHERE THE CORPUS SPANS MORE THAN ONE, then the trading occasion, then the operational record function; not time-first. THIS ROW RECOMMENDS: the CHANNEL, UNCONDITIONALLY FIRST, then the EXPORT WINDOW OR ORDER LIFECYCLE, then the record function. Two differences, each argued. (1) The channel level is not conditional. The schema makes site conditional because a single-shop operator would gain a one-child branch naming their own shop above everything; that reasoning does not transfer, because a merchant selling on its own storefront AND a marketplace is the ordinary case, the order-identifier NAMESPACES COLLIDE between channels - the same `#1042` exists on two systems and means two different buyers - and the same catalogue carries different prices, titles and category codes per channel. Where a merchant genuinely has one channel the level collapses and the recommendation degrades to the schema default, which is the honest statement rather than a claim that it never collapses. (2) There is NO TRADING SESSION here and that is structural, not incidental: the storefront never closes, so the schema's occasion level - a session, a count, a booking, a function - has no e-commerce member. What replaces it is the EXPORT WINDOW, which is a date RANGE chosen by whoever pulled the report, and this is the concrete evidence behind the schema's own NJ-RH-5: this row does not want record_period to be sub-daily, it wants it to be an arbitrary range. NOT TIME-FIRST, and this row is the family's most tempted to break the rule because an export window IS a date range - “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” and the photos exception does not apply, since “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” A SKU must never become a dimension (one branch per line) and a customer must never become one (it publishes a member of the public's name into the directory tree). Any order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "code_structured",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "contacts"
+    ],
+    "extensions": [
+      ".csv",
+      ".tsv",
+      ".xlsx",
+      ".json",
+      ".xml",
+      ".pdf",
+      ".txt",
+      ".png",
+      ".jpg",
+      ".eml",
+      ".zip",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "orders_export_2026-03-01_2026-03-31.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per order LINE, with the order identity repeated on the first line only and blank on continuation rows",
+        "columns headed Name (`#1042`), Financial Status, Fulfillment Status, Payment Method, Discount Code, Shipping Method",
+        "a shipping-address block of six columns and a billing-address block of six more",
+        "several hundred DISTINCT recipient names and emails against one store identity",
+        "no bank account number, no nominal code, no posting reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a channel, export window or record period as a stored fact; all await R1c (see NJ-EC-1)",
+        "that money in cells makes this finance - the absent account identity and posting structure is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "products_export.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns headed Handle, Title, Vendor, Type, Tags, Published, Status, SEO Title, SEO Description, Image Src",
+        "Option1 Name and Option1 Value repeated down a block of rows sharing one Handle",
+        "Variant SKU, Variant Price and Variant Inventory Qty per row",
+        "no cost, no margin, no supplier, no range or season slot",
+        "no person named anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is `retail_hospitality.product-catalogue`; the publication-state and variant-matrix columns are the discriminator in both directions",
+        "that the absence of a person makes the whole row's corpus non-sensitive - see sensitivity_why",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "inventory_by_location_2026-03-14.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per SKU per location with columns Available, Committed, Incoming, On hand",
+        "a location column naming a warehouse and a shop",
+        "NO counted-quantity column and NO count date",
+        "negative Available values on three rows, flagged in a Notes column as oversell"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is `retail_hospitality.stocktake`; a promise is not a count, and the absent counted-versus-system pair is the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "shipping_zones_and_tax_overrides.json",
+      "source_type": "code_structured",
+      "observations": [
+        "schema keys naming zones, countries, weight bands and rate values",
+        "a tax_overrides array keyed by jurisdiction and product class",
+        "a redirects map of old paths to new",
+        "no package manifest, no version-control marker, no test directory, no build script"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that a `.json` file is `code.software-project`; the absent repository markers are the discriminator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Packing slips 2026-03-14 batch 42.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sixty pages, each a different addressee with a different order identifier",
+        "per page: an item list with quantities, a gift-message block, and no prices",
+        "one generation timestamp repeated in every page footer",
+        "no picker name, no bin or location codes, no wave or route reference anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is `logistics.warehouse-ops`; keyed on the CUSTOMER ORDER, not on the facility's work - the absent bin, wave and picker columns are the discriminator",
+        "an addressee as a group anchor or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Settlement report 2026-03 - marketplace.txt",
+      "source_type": "spreadsheet",
+      "observations": [
+        "tab-delimited with a header row naming settlement-id, order-id, transaction-type, amount-type, amount-description",
+        "referral fee, fulfilment fee, refund, reserve-release and chargeback rows against order identifiers",
+        "a gross-to-net roll-up and a bank deposit date",
+        "the order identifiers join exactly to the merchant's own order export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it - the schema anchor already fenced this: retail_hospitality must not take a merchant settlement statement",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Your Orders - amazon.com - 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns headed Order Date, Order ID, Title, ASIN, Quantity, Purchase Price, Shipping Address",
+        "ONE recipient - the holder of the machine - repeated on every row",
+        "many DIFFERENT selling merchants down the merchant column",
+        "no fulfilment-status, no payout, no fee and no gateway column",
+        "sitting in Downloads beside a bank statement and a boarding pass"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates - THIS IS THE COLLISION FIXTURE and it is the BUYER's side; this row is the merchant's side only",
+        "that a marketplace brand name in the filename is evidence of anything",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-03-14 at 09.12.44 - admin orders.png",
+      "source_type": "image",
+      "observations": [
+        "browser chrome and a left-hand admin navigation column",
+        "an OCR-readable orders table with paid and unfulfilled state chips",
+        "a customer name legible in three rows",
+        "no EXIF camera make, screen-shaped pixel dimensions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that missing EXIF proves screen origin - positive screen evidence is `photos.screenshot-captures` business",
+        "a customer name read by OCR as any kind of fact",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Ads - campaign performance March 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns headed Campaign, Impressions, Clicks, Cost, Conversions, Conv. value, ROAS",
+        "campaign names containing this store's own product handles",
+        "a sessions and add-to-cart pair joined from the store's analytics",
+        "no creative asset names, no flight plan, no agency, no approval block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is `creative.ad-campaign`; the absent creative and approval apparatus is the discriminator, and the store's own handles as row keys are the positive signal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "store-export-2026-03.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest naming orders.csv, products.csv, customers.csv, settings.json and a theme directory",
+        "the theme directory listing .liquid templates and an assets folder",
+        "no extraction performed",
+        "a customers.csv member implied to carry names, emails and addresses"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any fact read from a member that was not extracted - “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+        "that the theme directory makes the whole archive `code.software-project`",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.product-catalogue",
+      "signal": "SAME FIXTURE BOTH SIDES: `products_export.csv` — this row owns the LISTING AS CHANNEL STATE (publication/status slot, variant-option matrix, per-channel price or title override, marketplace category code, SEO slug, image-source URL), the neighbour owns the PRODUCT AS A THING SOLD (specification, cost build-up, margin, supplier, range or season plan, imagery and copy as authored assets), discriminated by whether the export carries a publication-state column: with it the file is a channel record, without it it is a catalogue record. Reciprocal: this row MUST NOT take a range plan, a costing sheet or a photography brief merely because the products also sell online; product-catalogue MUST NOT take a listing suppression notice or a marketplace category mapping merely because the subject is a product.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.pos-reporting",
+      "signal": "SAME FIXTURE BOTH SIDES: `Sales by day March 2026.xlsx` — this row owns the CHANNEL read (sessions, conversion rate, orders, average order value, per-channel revenue, no physical tender anywhere), the neighbour owns the TRADING-SESSION read (tender split by cash/card/voucher, declared cash against expected, over/short, void and no-sale counts, department mix, keyed to a till and a session), discriminated by the presence of a DRAWER RECONCILIATION: a counted-cash-against-expected line decides for pos-reporting, an order-count-against-sessions pair decides for this row. Reciprocal: this row MUST NOT take a Z-read because the merchant also has a website; pos-reporting MUST NOT take a channel sales report because it is dated by day. Note the structural asymmetry that justifies both rows existing: this row has no session because the storefront never closes, and pos-reporting has no fulfilment state because the goods left with the buyer.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: a despatch report carrying both order numbers and a picker column — this row owns the record keyed on the CUSTOMER ORDER (order identifier, fulfilment state, addressee, tracking), the neighbour owns the record keyed on the FACILITY'S WORK (wave, pick walk, bin location, pack bench, picker), discriminated by whether the rows are ordered by customer order or by storage location. RECIPROCAL ALREADY LANDED AND ACCEPTED UNCHANGED: `logistics.warehouse-ops` wrote this seam against this id first — “The discriminator is whether the record is keyed on the CUSTOMER ORDER or on the FACILITY'S WORK.” — and this row endorses it verbatim and adds one case it did not cover: a batch of packing slips with no bin, wave or picker column anywhere is wholly this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Settlement report 2026-03 - marketplace.txt` — this row owns the ORDER-LEVEL operating read (which orders shipped, which were refunded, which listings sold), the neighbour owns the SETTLEMENT AND LEDGER structure (gross-to-net roll-up, referral and fulfilment fees, reserve, chargeback, deposit date, nominal posting), discriminated by presence of an ACCOUNT IDENTITY plus a fee-and-payout structure. The schema anchor already fenced this row on the same fixture — retail_hospitality must not take a merchant settlement statement — and this template accepts that fence rather than arguing it back. Reciprocal: finance MUST NOT reduce an order export to a transaction list, because the fulfilment state and the delivery address it would discard are the operating reasons the export exists. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the landed finance row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "SAME FIXTURE BOTH SIDES: `store-export-2026-03.zip` containing both `settings.json` and a `.liquid` theme directory — this row owns the STOREFRONT CONFIGURATION (shipping zones and rate bands, tax overrides, checkout and gateway settings, redirect maps, channel publication rules), the neighbour owns the THEME OR APP AS SOFTWARE (templates, package manifest, dependency lock, version-control markers, build script, tests), discriminated by repository markers: their presence decides for code, their absence with commercial schema keys decides for this row. Reciprocal: this row MUST NOT take a theme repository or a storefront app's source because the product is a shop; code MUST NOT take a shipping-rate table because it arrived as JSON.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.stocktake",
+      "signal": "SAME FIXTURE BOTH SIDES: `inventory_by_location_2026-03-14.csv` — this row owns PROMISABLE STOCK (available / committed / incoming, forward-looking, reserved against open orders, no count date), the neighbour owns COUNTED STOCK (counted quantity against system quantity, variance quantity and value, a count date, wastage and shrinkage reasons), discriminated by the counted-versus-system PAIR: present decides for stocktake, absent with a committed column decides for this row. Reciprocal: this row MUST NOT take a physical count sheet because the stock also sells online; stocktake MUST NOT take a channel stock-sync report because it lists quantities.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.returns-warranty",
+      "signal": "SAME FIXTURE BOTH SIDES: a refund line inside `orders_export_2026-03-01_2026-03-31.csv` — this row owns the REFUND AS AN ORDER STATE (a financial-status value on a row in a population export), the neighbour owns the RETURN AS ITS OWN CASE (an RMA or authorisation reference, a reason code, a condition assessment, a warranty right asserted, a disposition decision), discriminated by whether a return-authorisation identity exists separately from the order identity. Reciprocal: this row MUST NOT take an RMA file because the sale was online; returns-warranty MUST NOT take a whole period order export because some rows show refunded.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "SAME FIXTURE BOTH SIDES: `customers_export.csv` — this row owns the CHANNEL CUSTOMER POPULATION (a list of one-purchase consumers with order counts, total spent, marketing-consent state and no relationship apparatus), the neighbour owns the NAMED B2B ACCOUNT (an ongoing relationship with a plan, a review cadence, a contact map, an agreed price schedule, a renewal), discriminated by whether any single row carries relationship apparatus of its own. Reciprocal: this row MUST NOT take a wholesale account plan for a trade customer who happens to order through the website; customer-account-management MUST NOT take a marketing subscriber list because it contains customers.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.ad-campaign",
+      "signal": "SAME FIXTURE BOTH SIDES: `Ads - campaign performance March 2026.csv` — this row owns the SPEND-AGAINST-STORE-REVENUE read whose row keys are this store's own product handles and order revenue, the neighbour owns the CAMPAIGN AS A COMMISSIONED WORK (brief, concept, creative assets and their versions, flight plan, approval round, agency), discriminated by whether creative and approval apparatus appears at all. Reciprocal: this row MUST NOT take a creative brief, a layered source file or an approval round because the campaign sold products; creative MUST NOT take a ROAS export because the assets it measures were designed there.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for the ISOLATED transactional document this world produces constantly - one order confirmation, one dispatch email, one refund notice - and for the collision fixture, a buyer's own order history. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” This row activates on POPULATIONS and STATE MACHINES; the lone transaction is a residual's business.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when a channel export turns out to be a consumer database rather than an operating record - an orders or customers export carrying names, emails, phone numbers, full delivery addresses and gateway tokens, or a packing-slip batch that is sixty addresses in one PDF. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.” This is the row's most frequent residual, and the reason is in sensitivity_why.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a channel-shaped export whose SIDE is unresolved, or whose store cannot be identified from the file at all - the ordinary condition of a default-named `orders_export.csv` with no covering context. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a durable standalone channel document with no cycle around it - a marketplace seller-account approval, a single policy notice, a domain or trademark confirmation for the store. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected store export or a platform database dump in an unreadable proprietary format. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for an admin-panel screen capture whose OCR does not establish a store or an order population. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "merchant",
+      "other_field": "buyer",
+      "other_domain": null,
+      "why": "The schema's operator/guest split, sharpened for a channel where the two sides never meet. The pattern is 00's own - “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.” - and here it is decisive because the SAME PLATFORM generates both sides' files with the same default filenames. Neither role gets a key. `buyer` must never be proposed: a channel's buyer list is thousands of members of the public, and a buyer-named folder level would be an author-or-organization collector that exposes protected information, which the validator sentence forbids. `merchant` is not proposed either, because in a single-business corpus it is the holder's own store name and therefore a one-child collector. The split is recorded so that no future field pass smuggles either side in as a dimension.",
+      "provenance": "inference"
+    },
+    {
+      "field": "site",
+      "other_field": "channel",
+      "other_domain": null,
+      "why": "The schema anchor proposed `site` and explicitly deferred whether an e-commerce channel is a site at all, naming this row as the dependant. This entry records the two roles so R1c can rule on a pair rather than on a word: `site` answers WHICH PHYSICAL TRADING UNIT and is a place; a channel answers WHICH SELLING SURFACE, has no location, and can be added or closed without touching any premises. They coincide for a single-shop merchant and diverge completely for a warehouse-only merchant on three marketplaces. See NJ-EC-1; this row deliberately does NOT mint `channel` as a field.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row differs from the schema default not in VALUE - both are potentially_sensitive, and the dispatch allows only none or potentially_sensitive - but in the RULE, and that difference is one of the three legs on which this template stands. The schema's posture rests on the claim that the family “CANNOT BE SEPARATED into a safe half and a sensitive half at recognition time, since the sensitive members arrive inside the same exports and the same folders as the safe ones.” That claim is FALSE HERE, and usefully so. This row's corpus separates cleanly and cheaply at the EXPORT TYPE, from the header row alone: a products export, an inventory export, a settings file, a shipping-rate table and an ads performance export contain NO PERSON AT ALL; an orders export, a customers export, a subscriber list and a packing-slip batch contain a delivery address for every single row, by construction rather than by accident. That is a stronger and a more actionable rule than the schema's, and it cuts both ways. Stronger: an order export is not a document that happens to mention a customer, it is a structured consumer address database with a name, an email, a telephone number, a full postal address, an order history and a payment-gateway token per row - and volume is itself the risk, because one order is a receipt and a year of orders is a database the merchant would have to notify a regulator about if it leaked. A packing-slip batch is the same exposure in PDF form, and a customers.csv inside a store archive is the same exposure that must never be extracted to disk to find out. The binding design is therefore engaged for those export types before any model or connector step: “Privacy policy must be enforced before content reaches any model or external connector.” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Cutting the other way, and stated so this value is not read as more than it is: this row should NOT be treated as uniformly protected, because doing so would needlessly lock a shipping-rate table and a product feed that carry nothing about anyone. Two honesty notes. First, this row invents no handling class - P7 owns those. Second, this row does not carry is_safety_domain and does not ask for it; it asks that whatever mechanism forces P7 ahead of a model path for THIRD-PARTY personal data reaches an address-bearing export in a row that is not a safety domain, which is the schema's NJ-RH-4 restated with a concrete fixture rather than a worry.",
+  "open_question": "Four, none of them smoothed. NJ-EC-1 (the one the schema anchor asked this row to answer): is an e-commerce channel a `site`? The schema proposed `site` with the online channel as an example value and deferred the ruling to R1c, naming this row as the dependant. This row's evidence is that a channel behaves like a site in EVERY structural respect that matters to a template - records are keyed to it, identifier namespaces are unique per channel, prices and titles vary per channel, and a corpus routinely spans several - and unlike a site in exactly one, having no location. The alternatives are (a) widen `site` to `the trading unit or selling surface`, which this row prefers and which costs one word; (b) mint a separate `channel` key, which this row declines to do because it would seed the synonym family the canonical list exists to prevent, and which would force every multi-channel bricks-and-clicks merchant to carry two keys for one top level; (c) rule that a channel is not keyable, in which case this template's recommended first dimension is unavailable and the row degrades to the schema default plus its privacy rule - survivable, but a real loss. NJ-EC-2: the export window. The schema's NJ-RH-5 asks whether `record_period` may be SUB-daily for a service session; this row needs the opposite stretch, an ARBITRARY user-chosen date RANGE with no operational meaning, because whoever pulled the report chose the dates. If `record_period` must be a natural period, this row has no key for its second dimension and the recommendation collapses to channel-then-function. R1c should answer both stretches together. NJ-EC-3: the marketing seam is drawn here on a discriminator this row can state but not prove - that a performance export keyed on the store's own product handles is this row's, while a campaign brief and its assets are `creative.ad-campaign` and a segment study is `business_operations.market-research`. A blended agency report containing both a ROAS table and creative thumbnails satisfies neither test cleanly. Alternatives: give the whole marketing world to creative and business_operations and narrow this row's work_types to exclude it, or keep the seam and accept that blended reports route to Review Later. NJ-EC-4: subscriber and consent data. A marketing list export carrying consent state is arguably not a trading record at all but a compliance record, and no landed row claims it. Alternatives: this row; `business_operations.customer-account-management`; or a privacy-only route straight to Protected Records with no domain claim."
+}

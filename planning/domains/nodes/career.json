@@ -1,0 +1,327 @@
+{
+  "id": "career",
+  "kind": "schema",
+  "schema_id": "career",
+  "parent_id": null,
+  "name": "Career and recruiting",
+  "one_line": "The domain of getting, holding and showing work: resumes, recruiting processes at named companies, offers, employment records and work samples. A launch domain of 00 that today declares NO field rows - S3/D1 (narrowed) defer the career field keys, owed before P10 - so activating it legitimises the universal facts only, and its recorded dimension recommendation is held as prose.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "00 names the domain at launch: 'The initial release should fully support only the domains required to validate the product on real heterogeneous corpora: academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects.' 00 names its template dimensions: 'a Career template may define company → role or recruiting cycle → document type'. 00 names one of its groups: 'a career packet EY Internship Application'.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a resume/CV-shaped document: a filename or page-one heading token 'Resume' or 'Curriculum Vitae' co-occurring with reverse-chronological section headings for experience and education (PROPOSED context terms - 00 states the pattern-plus-context SHAPE only for course codes: 'a course-code pattern together with academic context', and this row copies the shape, not a list 00 wrote)",
+      "an offer or agreement document: an organization-gazetteer hit at word boundary in a letterhead or page-one heading co-occurring with an offer/acceptance/start-date term in a labelled position (PROPOSED context terms; R4 owns the organization gazetteer's contents, R6 the term patterns - this row writes neither a regex nor a list)",
+      "a recruiting email: the email extractor's labelled sender-domain slot resolving to an organization, together with an interview/application/offer term in the labelled subject slot (00's email extraction yields 'sender, recipients, subject, sent date' as structured slots; the source_type alone is never sufficient - see never_alone)",
+      "a calendar event whose labelled SUMMARY slot carries an organization name together with an interview/screen term (PROPOSED terms; calendar is a SOURCE_TYPE, so this fires on CONTENT, per CONNECTION-EXAMPLES fixture 5)",
+      "an archive whose manifest lists a resume beside a cover letter and supporting records, read without unpacking - 00's own packet-from-manifest shape: a ZIP 'may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'"
+    ],
+    "needs_llm": [
+      "an unlabelled prose document that argues a person's fit for a named role - 00 lists exactly this judgement among the model's allowed determinations: it 'may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain'",
+      "an OCR'd portal screenshot: deciding it is an application-status or job-portal page rather than a generic image. 00's worked parallel is admissions - a screenshot reading 'Your Columbia University application has been submitted' - and the recruiting portal is the same shape with an employer in place of a school",
+      "whether a heterogeneous set of files is purpose-coherent as ONE recruiting process rather than several - 00's named example of the outcome is 'a career packet EY Internship Application'",
+      "an unusual professional artifact whose document kind has no labelled slot - 00 names 'unusual professional artifacts' among the reasons rules alone are insufficient"
+    ],
+    "never_alone": [
+      "an organization or university name alone. 00: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - the same ambiguity that forbids it as group proof forbids it as sole activation proof, and employer is one of the six readings on that list",
+      "an employer name appearing on a pay statement or payslip. That is the finance neighbour's record, not a career fact; the discriminating evidence is a labelled pay-period/account/statement structure",
+      "a source_type of email, calendar, archive or design_creative alone - file_kind_plausible is constitutionally never-alone",
+      "a bare 4-digit number read as a recruiting cycle. 00's narrow-date rule: filenames contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'",
+      "membership in a download session that happened to bundle several PDFs. 00: 'A session should never be treated as proof of topic'",
+      "a company logo or letterhead visible in an image with no OCR text; and, for a screenshot of a job portal, the absence of EXIF - 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'",
+      "an authoring/creator metadata string naming an employer. 00: 'It should avoid using authorship or creator identity as a destination dimension'"
+    ]
+  },
+  "work_types": [
+    "resume",
+    "cover letter",
+    "job description",
+    "offer letter",
+    "employment agreement",
+    "interview schedule",
+    "interview preparation notes",
+    "application confirmation",
+    "reference letter",
+    "performance review",
+    "separation letter",
+    "professional certification certificate",
+    "work sample or case study"
+  ],
+  "grouping_reasons": [
+    "one recruiting process: one company, one role, one cycle - 00's named example of the label is 'a career packet EY Internship Application', and 00 lists 'one course, project, application, recruiting process, photo event, or submission packet' among the single organizing reasons a coherent group may have",
+    "one resume across its draft and revision family (the universal version_family fact, not a career fact)",
+    "one employer across the employment lifecycle (offer, agreement, reviews, separation)",
+    "a shared supporting document that belongs to more than one process - 00: 'a resume may support multiple recruiting processes', and 'A file may validly belong to more than one accepted group'. Multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, not by refusal. 00 records the recommendation verbatim - 'a Career template may define company → role or recruiting cycle → document type' - but a dimension may only branch on a field the schema declares, and this placeholder declares none (D1 as narrowed; _CONTRACT rule 15; CONNECTION PR-6: the recommendation is 'held as prose until the schema lands'). Recorded as prose so R1c/P10 can restore it the moment the field rows are decided: company first, because a document type such as an offer letter is unintelligible without the employer, exactly as 00 argues that 'A work type such as Homework 3 is meaningful only after the course is known'; then role or recruiting cycle, because one company can run several processes; then document type last. Not time-first: 00 - 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The user may still reverse or flatten this; it is a recommendation, never a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "spreadsheet",
+      "presentation",
+      "design_creative"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".xlsx",
+      ".pptx"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Resume - Joseph Yung - 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename contains the token 'Resume'",
+        "page-one heading blocks read Experience, Education, Skills in reverse-chronological order",
+        "several employer names appear as section labels",
+        "a sibling file Resume v3.docx shares the normalized filename stem"
+      ],
+      "facts_legal": [
+        "version_family",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact: the career schema declares no field rows (D1 as narrowed), so activation legitimises the universal facts only",
+        "an employer fact from the most recent job listed - the document lists employers, it does not belong to one",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EY Internship Application.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists Resume.pdf, Cover Letter.docx, Transcript.pdf, Certificate.pdf, signed form",
+        "archive name contains an organization-gazetteer hit and the token 'Application'",
+        "manifest read without extraction to disk"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any career-domain fact - no field rows exist to hold company or document type yet",
+        "that the members share a purpose because they arrived in one archive alone; the packet reading is a candidate group for review, and 00's own manifest sentence makes the manifest the evidence, not the outer name",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Offer Letter - Summer Analyst.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an organization name at word boundary",
+        "labelled body lines: role title, start date, base compensation figure",
+        "signature block with a countersignature line"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any career-domain fact - the placeholder schema declares none",
+        "a finance fact (institution / account_type / record_type) from the compensation figure; an offer states pay, it is not an account record",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-14 at 10.21.08.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region reads 'Application submitted' beside an employer name and a requisition-shaped identifier",
+        "filename carries the platform's default screenshot pattern"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone (00's rule); the display resolution plus the filename pattern are what may support it, and conflicting signals abstain",
+        "any career-domain fact - none is declared",
+        "a recruiting cycle from the requisition number's digits"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE Interview scheduling - Analyst role.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to an organization domain",
+        "labelled subject slot carries an interview term and a role title",
+        "thread identifier and two attachment names: Interview Guide.pdf, Location.pdf"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any career-domain fact - none is declared",
+        "that source_type = email makes this career on its own",
+        "a contact fact used as a folder proposal - 00 keeps address-book data privacy-protected rather than a proposal basis"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Interview - Feb 12 - 2pm.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot: an organization name plus 'First-round interview'",
+        "labelled start/end times, organizer address, one attendee"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "activation from source_type = calendar; the content in the SUMMARY slot is what fires, per the .ics fixture",
+        "any career-domain fact - none is declared",
+        "an event fact in the photos sense; this is not a capture"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Cover Letter (final)(2).docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose: no heading, no form field; the body argues a fit for an unnamed role",
+        "filename carries a duplicate-style suffix",
+        "DOCX author metadata names a template producer, not the writer"
+      ],
+      "facts_legal": [
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a version-family fact from the '(2)' suffix alone - 00's adversarial suite names 'duplicate suffixes on unrelated files'; a content hash or stem family is what supports it",
+        "an employer fact from the DOCX author or producer metadata",
+        "any career-domain fact - none is declared; this file is the needs_llm case"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ADP Pay Statement Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer name in a labelled header cell",
+        "table rows labelled gross pay, deductions, net pay, pay period",
+        "a payroll provider's producer metadata"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "tax_year"
+      ],
+      "must_not_conclude": [
+        "that this is career material because it carries an employer name and employment context - it is the finance neighbour's record (the collision fixture for this node)",
+        "a tax_year from a bare 4-digit token; an explicit labelled year pattern is required",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Official Transcript.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school name and seal in a page-one heading",
+        "table rows of course codes, credits and grades",
+        "arrived inside the recruiting packet archive above"
+      ],
+      "facts_legal": [
+        "school",
+        "term",
+        "subject"
+      ],
+      "must_not_conclude": [
+        "that being a member of a recruiting packet writes a career fact onto it, or that being a career supporting document erases its academic facts - both fact sets stand (this is the also_holds case, not a collision)",
+        "any career-domain fact - none is declared",
+        "a folder path; the same facts may later be organized school-first or process-first"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "recruiter.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "labelled slots: name, organization, email address, phone number"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any activation at all for placement purposes - 00 says contact data 'should normally be privacy-protected rather than used to create folder proposals'",
+        "an employer fact from the ORG slot",
+        "a group formed from the shared organization string"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance",
+      "signal": "both a pay statement and an offer letter carry an employer name plus employment context. The discriminating evidence is structural: a labelled pay-period / account / statement table is the finance record; an offer, acceptance or start-date term in a letterhead document is career. One evidence item (the employer name) must never count for both."
+    },
+    {
+      "domain": "college_applications",
+      "signal": "a 'why us' persuasive document and a set of supporting records (resume, transcript, certificate, ID) look the same on both sides. The discriminating evidence is the target pair: an admissions cycle beside a target university is college_applications; a role title beside an employer is career. An organization name alone discriminates nothing and activates neither."
+    },
+    {
+      "domain": "academic",
+      "signal": "a transcript, certificate or course-completion record inside a recruiting packet carries school and course context. The discriminating evidence is 00's own academic rule - a course-code pattern together with academic context is academic; role/offer/application language around the same document is career. The pair also carries also_holds_with, so this signal exists to keep ONE evidence item from counting twice."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "college_applications",
+      "signal": "00's shared-material case, applied on this side: 'a resume may support multiple recruiting processes' and 'A transcript may be part of several application packets' sit in the same sentence, and the adversarial suite names 'shared resumes across applications'. One resume file may legally carry the college-applications fields (application_document_type, purpose, target_university) on admissions evidence and career facts on recruiting evidence - disjoint evidence, both fact sets kept. Provenance: design.",
+      "provenance": "design"
+    },
+    {
+      "domain": "academic",
+      "signal": "a transcript or certification record is an academic artifact (school, term, subject) that is simultaneously a recruiting supporting document. Same structure as 00's abstract that is Research and Applications at once; 00 does not write this pair out, so this is an extension of a named domain. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "an executed employment agreement, NDA or separation agreement is career material and legal material on one file; 00's privacy list names 'employment materials' and 'legal records' in the same corpus sentence. legal is a field-less safety placeholder, so today the join carries protection, not fields - the same shape CONNECTION uses for finance/medical. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Independent Records",
+    "Review Later",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's privacy sentence names this material directly: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. Compensation figures, signed agreements, references and recruiter correspondence sit inside 'employment materials'. Only 00's phrase is asserted here; the handling class is P7's and is not set.",
+  "open_question": "Which canonical field keys the career schema gets when S3/D1's deferral lifts (owed before P10, because a destination dimension first needs one), and specifically whether the three concepts 00's Career template names - the employer, the role-or-recruiting-cycle, and the document type - reuse existing canonical keys or need new ones. Reuse is not obviously safe: 'institution' is scoped to a finance record issuer, 'client' is the counterparty of the our_firm role split rather than an employer of record, and 'application_cycle' is an admissions cycle. Minting versus reusing is a decision about the product's shared vocabulary, so this row records the question and writes no field rows."
+}

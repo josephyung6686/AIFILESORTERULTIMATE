@@ -1,0 +1,450 @@
+{
+  "id": "academic",
+  "kind": "schema",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Academic",
+  "one_line": "The fact schema that becomes legal when a file's own evidence shows it was produced or received by studying or teaching a specific course of study: school, term, subject, instructor, work_type.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "Academic files may use school, term, course, instructor, and work type",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [
+    {
+      "field": "school",
+      "type": "string",
+      "example": "Columbia",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it: \"Academic files may use school, term, course, instructor, and work type\". Ceiling is validated, not direct, because the rule family that confirms it is a schools gazetteer hit matched at a word boundary plus role context that separates the holder's own school from an institution the file is addressed to; 00 forbids the name on its own: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A school name read out of PDF or DOCX author/producer metadata is not this fact — \"PDF metadata should be treated as supporting evidence, not as truth\"."
+    },
+    {
+      "field": "term",
+      "type": "string",
+      "example": "Spring 2026",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it: \"Academic files may use school, term, course, instructor, and work type\". Rule family: dedicated academic-term patterns, never generic date parsing — \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\" A filesystem timestamp, a due date, or a calendar DTSTART year is evidence about the file, not a term fact."
+    },
+    {
+      "field": "subject",
+      "type": "string",
+      "example": "BUSIB 4300",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it as course — \"Academic files may use school, term, course, instructor, and work type\" — and D6 (ratified 2026-08-21) makes subject the stored key. Rule family is 00's own pattern-plus-context shape: \"BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”\" The context term must describe the document itself, not a list inside it; a course-code token in a resume's coursework enumeration is a low-weight late-body occurrence — \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\"."
+    },
+    {
+      "field": "instructor",
+      "type": "string",
+      "example": "Prof. Nakamura",
+      "reliability_ceiling": "direct",
+      "destination_eligible": false,
+      "provenance": "design",
+      "why": "00 names it: \"Academic files may use school, term, course, instructor, and work type\". Ceiling is direct only from an explicitly labelled slot — a syllabus table row or form field whose label reads Instructor, which is what 00's table extraction preserves: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\" From prose, a filename or OCR it stays possible, and no rule family promotes it because no person gazetteer exists in this product's scope. Not destination-eligible, per the canonical row and 00: \"It should avoid using authorship or creator identity as a destination dimension.\" It is a search, explanation and review field."
+    },
+    {
+      "field": "work_type",
+      "type": "enum",
+      "example": "syllabus",
+      "reliability_ceiling": "validated",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00 names it: \"Academic files may use school, term, course, instructor, and work type\", and its members are values, not nodes — 00's tree shows Syllabus, Homework and Lectures as branches under one course, and \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" Rule family: a work-type vocabulary term in a high-weight zone (filename, title, page-one heading, slide-one title) together with coursework structure or another academic signal. This is the one academic field a sparse file can carry alone: HW 3.pdf can reach work_type and still have no subject."
+    }
+  ],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a course-code-shaped token in a high-weight zone (filename, document title, page-one or slide-one heading) co-occurring with one of 00's five academic context terms — syllabus, lecture, credits, instructor, semester — describing the document itself",
+      "a dedicated academic-term pattern (Spring 2026, AY 2024-25, Michaelmas Term 2024 shapes) co-occurring with a course-code-shaped token or a coursework work-type term",
+      "a work-type vocabulary term in a high-weight zone together with coursework document structure (numbered problems, a grading or reading schedule, a lecture deck's slide sequence)",
+      "a schools-gazetteer hit matched at a word boundary together with academic role context (registrar, transcript, course listing, enrollment language) rather than admissions or employment language",
+      "a labelled Instructor slot in a table cell or form field on a document already carrying course or term evidence",
+      "an ICS SUMMARY or DESCRIPTION field carrying a course-code-shaped token plus academic context, where source_type=calendar contributed only as a file-kind signal"
+    ],
+    "needs_llm": [
+      "an unlabelled prose document whose only academic signal is topic and register — the model must decide whether it reads as coursework or as an application essay, and return unknown when it cannot cite support",
+      "OCR of a photographed or screenshotted assignment page where the course token is present but the surrounding words are not one of the five context terms",
+      "an archive whose members mix coursework and application documents, where the question is whether one shared purpose explains the packet or a course does",
+      "a syllabus or timetable in a language whose term and course-code vocabulary the deterministic pattern catalogue does not cover",
+      "a document that uses a programme or module name in prose instead of a code-shaped token (Introduction to Organic Chemistry, Michaelmas tutorial sheet)"
+    ],
+    "never_alone": [
+      "a university or school name alone — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "a bare 4-digit number alone — 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\", so 4300 is neither a term nor a course on its own",
+      "a course-code-shaped token with no academic context describing the document — 00's own adversarial list includes \"course-code patterns that are actually ZIP codes or device models\"",
+      "a course-code-shaped token appearing inside a resume's education or relevant-coursework enumeration: the document is a recruiting artifact, the token sits in a late low-weight zone, and no coursework work_type applies to the file itself",
+      "a homework- or assignment-shaped filename alone (HW 3.pdf) as proof of a school, term or course — it may support work_type and nothing more",
+      "source_type alone: text_document, presentation, spreadsheet, calendar or archive membership never activates this schema without content evidence",
+      "an instructor or person name alone, including a DOCX or PDF author field, which may name a template, a prior editor or a script",
+      "a parent folder called School, Classes or Uni alone — folder context is a clue, and 00 requires that existing structure not be silently reinterpreted"
+    ]
+  },
+
+  "proposed_context_terms": [
+    "problem set",
+    "midterm",
+    "final exam",
+    "office hours",
+    "prerequisite",
+    "grading policy",
+    "course description",
+    "assignment due",
+    "reading list",
+    "units",
+    "enrollment",
+    "registrar"
+  ],
+
+  "work_types": [
+    "syllabus",
+    "lecture",
+    "homework",
+    "problem set",
+    "exam",
+    "quiz",
+    "lab report",
+    "essay",
+    "notes",
+    "reading",
+    "project",
+    "presentation",
+    "course schedule",
+    "gradebook",
+    "transcript",
+    "certificate"
+  ],
+
+  "grouping_reasons": [
+    "one course in one term — 00: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\"",
+    "one assignment across its drafts, joined by the universal version family rather than by any academic fact",
+    "one course-material neighbourhood in which sparse files are context-supported members only — 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+    "one school and term study period, when several courses share the same enrollment evidence"
+  ],
+
+  "template": {
+    "dimension_order": ["school", "term", "subject", "work_type"],
+    "why": "00 states this order outright — \"An Academic template may define school → term → course → work type\" — and gives the reason a parent must come first: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" instructor is excluded because it is not destination-eligible. This is a recommendation, not a filesystem: 00's own worked example offers course → term → work type and school → course as alternatives the user may pick, and the user can reverse, remove or flatten any level.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "calendar"
+    ],
+    "extensions": [".pdf", ".docx", ".pptx", ".md", ".txt", ".xlsx", ".csv", ".jpg", ".heic", ".png", ".zip", ".ics"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Syllabus BUSIB 4300 Spring 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename contains a course-code-shaped token and the word Syllabus",
+        "PDF title metadata reads BUSIB 4300 Syllabus",
+        "page-one heading reads Spring 2026",
+        "a page-one table row labelled Instructor",
+        "PDF producer string names a word-processor, not a person"
+      ],
+      "facts_legal": ["subject", "term", "work_type", "instructor"],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the producer or author metadata",
+        "target_university from a university name in the page header",
+        "a second term because a drop deadline in the body names another date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "HW 3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is homework-shaped",
+        "body contains the phrase Homework 3 and equations",
+        "no course-code token, no school name, none of the five academic context terms",
+        "mutual semantic retrieval with a syllabus, a lecture deck and a midterm in the same directory"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "subject from the neighbouring syllabus",
+        "term from the neighbourhood",
+        "school from the neighbourhood",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PHYS1401 Lecture 08 - Rotational Dynamics.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "filename carries a course-code-shaped token and the word Lecture",
+        "slide-one title repeats the course code",
+        "speaker notes name the instructor and a week number",
+        "no term string anywhere in the deck"
+      ],
+      "facts_legal": ["subject", "work_type", "instructor"],
+      "must_not_conclude": [
+        "term from the file's modification timestamp",
+        "term from a week number",
+        "school because the deck's footer carries a university logo caption"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "no text layer; the frame is a photograph of a handwritten worked problem sheet",
+        "camera-pattern filename",
+        "sits in the same directory as a course's lecture decks"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from the directory it sits in",
+        "subject from a neighbouring syllabus",
+        "term from the capture date",
+        "that no academic fact can ever exist here — OCR re-runs recognition under a new cache key and may then supply work_type"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-02-11 at 10.14.32.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads PHYS 1401 — Homework 3 — Due Feb 18",
+        "OCR text also contains a course navigation menu and a submit button label"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone",
+        "term from the due date",
+        "that submission occurred",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "invite.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY field reads PHYS1401 Midterm Review",
+        "DTSTART and DTEND fields present",
+        "ORGANIZER is a university mail address"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone",
+        "term from the DTSTART year",
+        "school from the organizer's mail domain alone",
+        "instructor from the organizer address"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Gradebook BUSIB4300 Spring2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "filename carries a course-code-shaped token and a term-shaped token",
+        "sheet name repeats the course code",
+        "header row names assignments; the first column holds other people's names and scores",
+        "workbook author metadata names a script"
+      ],
+      "facts_legal": ["subject", "term", "work_type"],
+      "must_not_conclude": [
+        "instructor from the workbook author metadata",
+        "that the named students are facts about this file's holder",
+        "a folder path",
+        "school from the course code alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Official_Transcript_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registrar heading and seal caption in the title zone",
+        "issuing school name in the page-one heading",
+        "a table whose rows each hold a term, a course code and a grade",
+        "a verification code in the footer"
+      ],
+      "facts_legal": ["school", "work_type"],
+      "must_not_conclude": [
+        "one subject value for the file when the table holds many course rows",
+        "one term value for the file when the table holds many terms",
+        "target_university from the issuing school",
+        "a target_university fact because the file was found inside one application packet"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Personal Statement.docx, Transcript.pdf, Resume.pdf, Certificate.jpg and Form.pdf",
+        "outer archive name is vague",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from any member filename",
+        "that the whole archive is coursework",
+        "school from the transcript member without inspecting it",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Senior Thesis Draft 3 - BIO 4990.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a course-code-shaped token, a draft ordinal, and the word Thesis",
+        "page-one heading names a supervising lab and a project identifier",
+        "body carries a methods section and a reference list",
+        "an earlier draft with the same stem exists in the same directory"
+      ],
+      "facts_legal": ["subject", "work_type", "instructor"],
+      "must_not_conclude": [
+        "that the research facts replace the academic facts, or the reverse",
+        "venue from a journal named in the reference list",
+        "term from the draft ordinal",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Columbia Essay.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Why Columbia?",
+        "body names the writer's current high school and a graduation term",
+        "no course-code token and none of the five academic context terms",
+        "prose addresses an admissions reader"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "school = Columbia, which here is the addressed institution and not the writer's own school",
+        "subject",
+        "work_type = essay as coursework",
+        "term from the graduation term named in the prose"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Resume_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "education section names a university and an expected graduation term",
+        "a line reading Relevant coursework: BUSIB 4300, PHYS 1401",
+        "document structure is a one-page resume with employment and skills sections",
+        "no syllabus, lecture, credits, instructor or semester term describes the document itself"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from the relevant-coursework enumeration",
+        "school from the education section as an academic-domain fact",
+        "term from the expected graduation date",
+        "work_type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "college_applications",
+      "signal": "both sides can be evidenced by one university name and by essay-shaped prose. The discriminating evidence: the applications side needs a target-institution plus admissions-cycle or portal pair; the academic side needs a course-code-plus-context pair, a coursework work type, or registrar or enrollment language naming the holder's own school. Neither may take a bare university name."
+    },
+    {
+      "domain": "research",
+      "signal": "a lab report, thesis or figure can be evidenced from either side. The discriminating evidence: research needs a project identifier, lab or venue; academic needs a course code with academic context, a term pattern, or a coursework work type. A course-numbered thesis legitimately clears both on disjoint evidence, which is why this pair also carries also_holds_with."
+    },
+    {
+      "domain": "career",
+      "signal": "a resume or recruiting document carries the applicant's own school and a graduation term and may list course codes in an education section. The discriminating evidence: the academic side needs the academic context term to describe the document itself, in a high-weight zone, not to appear inside a late enumeration; a document whose own structure is a resume takes neither subject nor work_type."
+    }
+  ],
+
+  "also_holds_with": [
+    {
+      "domain": "college_applications",
+      "signal": "one file may legally carry both schemas on disjoint evidence: a transcript keeps school and work_type while the packet supplies purpose and target_university. 00 lists exactly this packet: \"an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission\", and \"A file may validly belong to more than one accepted group\".",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "a course-numbered thesis, senior project or lab report carries subject and work_type from its course evidence and project, lab or artifact_type from its own research evidence. 00's own two-schema case is the neighbouring one: \"An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.\"",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "a photographed page of coursework activates photos from camera EXIF and academic from the OCR text — disjoint evidence, two fact sets, no merge. 00: \"Hw 5.pdf may be a photographed homework page with no usable text layer\".",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career",
+      "signal": "a transcript, course-completion certificate or professional-certification record carries school, term and work_type from its own academic evidence while serving a recruiting process — the same disjoint-evidence shape as the applications packet. Career is a field-less placeholder schema (PR-6), so this asserts co-activation, not a field overlap. Authored to reciprocate the edge the career node states toward academic.",
+      "provenance": "inference"
+    }
+  ],
+
+  "falls_through_to": [
+    "Independent Records",
+    "Reading Inbox",
+    "Review Later"
+  ],
+
+  "role_split": [
+    {
+      "field": "school",
+      "other_field": "target_university",
+      "neighbor": "college_applications",
+      "why": "same entity type, different role: the institution the holder attends versus the institution an application is addressed to. 00: \"It should avoid using authorship or creator identity as a destination dimension\" is the neighbouring rule; the role separation itself is 00's distinct-facets sentence, and the canonical field list already records the pair."
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 counts this material in the personal corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" Transcripts, gradebooks and graded work carry grades, and teaching-side files carry other people's names. Which handling class applies is P7's and is not set here.",
+
+  "open_question": "Does potentially_sensitive attach to the whole Academic domain, or only to its grade-bearing and other-people-bearing work types (transcript, gradebook, graded work, class rosters)? Marking the whole domain would gate ordinary coursework out of cloud dossiers; marking only some work types makes sensitivity depend on a fact that is itself only validated. Joseph's call, not this node's."
+}

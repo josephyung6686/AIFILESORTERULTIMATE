@@ -1,0 +1,517 @@
+{
+  "id": "travel.bookings-confirmations",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Travel bookings and confirmations",
+  "one_line": "The transactional records that make a journey usable: e-ticket itinerary receipts, boarding passes, rail and ferry tickets, lodging reservations, rental confirmations, travel vouchers, and changes or cancellations. They ordinarily use the Finance schema's issuing institution and record_type; account_type or tax_year remains legal only when separately explicit, and the trip itself remains an accepted P9 group or a user-created branch, never a fact copied from neighboring files.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a labelled passenger-transport record structure on the file itself: a record issuer or carrier in a letterhead, sender, issuer slot, or structured provider slot together with a booking reference or ticket identifier, a passenger slot, and a route segment carrying departure and arrival places or times. The issuer role supplies institution; the document structure supplies record_type. A carrier named only inside an itinerary segment is not automatically the record issuer.",
+      "a labelled lodging-reservation structure: an issuer or property in a positionally weighted slot together with a reservation identifier, guest slot, check-in and check-out slots, and a property address or lodging-unit slot. A hotel name plus a date is only a clue; the reservation structure is the evidence.",
+      "a labelled vehicle-rental structure: provider and reservation identifier together with pickup and drop-off places and times and a reserved vehicle or class. A location pair without the reservation fields does not activate this situation.",
+      "a bar-coded boarding pass or e-ticket itinerary receipt whose decoded structured fields carry a document kind, operating carrier, flight or service identifier, travel date, origin, and passenger or check-in data. The decoder output is structured evidence; the barcode image or a route-shaped filename alone is not.",
+      "an Apple Wallet pass package whose manifest and pass.json identify the boardingPass style and carry an issuer or transit provider plus labelled passenger, origin, destination, departure, gate, boarding, or seat data. The package may expose a grouping identifier for related legs, but that identifier supports a group and never writes a trip fact.",
+      "an email or HTML confirmation whose labelled sender or embedded reservation object identifies the issuer and whose labelled subject or structured type identifies a flight, lodging, train, coach, ferry, or rental reservation, with a reservation identifier and the corresponding route, stay, or pickup/drop-off slots. Email or HTML alone never fires.",
+      "an iCalendar VEVENT whose SUMMARY or DESCRIPTION is travel-specific and whose own structured fields include a provider or organizer, a reservation identifier or management URL, DTSTART and DTEND, and a route, property, station, airport, or pickup location. source_type = calendar contributes only routing; an ordinary event with dates and a LOCATION is not a booking.",
+      "an archive manifest that, without unpacking to disk, shows a coherent packet of itinerary receipts, boarding passes, lodging confirmations, rail tickets, or rental vouchers. The manifest can make the archive a candidate travel packet; issuer facts from individual members stay on those members and are not copied to the outer archive."
+    ],
+    "needs_llm": [
+      "a multi-provider itinerary from an online travel agency: deciding which organization issued the record, which names are operating carriers or properties, and whether the outer document is one itinerary receipt or a packet. The model must cite the labelled or structured evidence and may leave institution unknown.",
+      "an unlabelled prose message from a host, carrier, or travel agent whose wording implies an arrival, stay, transfer, or schedule change but carries no reservation heading or stable labelled slots. Indirect language may support record_type only after bounded interpretation and validation.",
+      "an OCR capture of an airline app, booking site, hotel voucher, or paper ticket: deciding whether the pixels contain an actual travel record, a purchase receipt, a generic gate reminder, or a photograph of a scene. The capture can retain Photos facts on its own evidence while the travel reading is judged separately.",
+      "the word booking or confirmation on a restaurant, medical appointment, event, conference registration, equipment reservation, or service appointment. The model may compare the supplied record structure, but the shared word never settles the travel reading.",
+      "whether flight, rail, lodging, and rental records form one trip group when they use different provider identifiers. The result is a reviewable P9 membership supported by compatible itinerary evidence; it never creates event, location, institution, or record_type facts on a sparse member.",
+      "a multilingual voucher or local carrier ticket whose route and reservation structure are legible but whose document-kind labels are not covered by the proposed context terms. The model must cite the extracted text and return unknown if the function is still ambiguous.",
+      "a cancellation, disruption, rebooking, or refund message that refers to a prior reservation without repeating its route or stay details. It may join the earlier booking through an explicit identifier, but the earlier file's facts are not copied onto it."
+    ],
+    "never_alone": [
+      "the words booking, reservation, confirmation, itinerary, ticket, voucher, check-in, or boarding alone. Restaurants, appointments, events, deliveries, and software systems use the same vocabulary.",
+      "an airline, hotel, rail operator, travel agency, airport, station, or city name alone. The organization or place can be an employer, conference venue, cited example, merchant, author, or ordinary prose subject.",
+      "an airport-code-shaped pair, flight-number-shaped token, route arrow, gate, terminal, seat, room, or platform token alone. The boarding-gate fixture is intentionally sparse and may not be turned into a particular trip.",
+      "a short alphanumeric string that resembles a booking reference. It can equally be an order, case, application, device, invoice, or event identifier unless a labelled reservation slot or travel structure gives it a role.",
+      "a passenger, guest, renter, or account-holder name. A person's name is sensitive evidence and not a destination dimension; it also does not prove that the document is a booking.",
+      "a currency amount, fare, rate, total, or payment-card tail. The same evidence supports an ordinary receipt, invoice, reimbursement, or account record and must be resolved by the document's own structure.",
+      "a date, date range, city pair, hotel address, or pickup location. Travel dates are not tax_year, and a foreign place plus a date does not establish a trip or a study-abroad program.",
+      "source_type or extension alone, including text_document, email, calendar, image, ocr, archive, .pdf, .eml, .html, .ics, .pkpass, .png, or .zip. File kind is routing evidence only.",
+      "membership in a download, email, interview, conference, exchange-program, or reimbursement session. A session can retrieve neighbors but is not proof of topic or purpose.",
+      "missing EXIF on an image. It is not proof of a screenshot and says nothing about whether the pictured content is a travel record."
+    ]
+  },
+  "proposed_context_terms": [
+    "booking reference",
+    "reservation confirmed",
+    "passenger",
+    "guest",
+    "e-ticket",
+    "itinerary receipt",
+    "boarding pass",
+    "departure",
+    "arrival",
+    "check-in",
+    "check-out",
+    "pickup",
+    "drop-off",
+    "rebooked",
+    "cancelled"
+  ],
+  "work_types": [
+    "e-ticket itinerary receipt",
+    "flight booking confirmation",
+    "boarding pass",
+    "rail e-ticket",
+    "coach or ferry ticket",
+    "lodging reservation",
+    "rental-car reservation",
+    "travel-agency itinerary",
+    "travel voucher",
+    "schedule-change or rebooking notice",
+    "cancellation notice",
+    "travel-booking refund confirmation"
+  ],
+  "grouping_reasons": [
+    "one accepted trip across its flight, rail, lodging, and rental records. Each member keeps only facts supported by its own evidence; the trip label is a P9 group or user label, not a copied file fact",
+    "one reservation across confirmation, ticket issuance, check-in, boarding pass, schedule change, cancellation, and refund, anchored by an explicit booking or ticket identifier rather than an issuer name alone",
+    "connected itinerary legs explicitly grouped by one booking reference or a Wallet grouping identifier, with route and time compatibility checked and conflicting legs retained as outliers",
+    "one booking document re-downloaded, reissued, or updated: the universal duplicate_family and version_family facts, never a travel-specific field",
+    "travel arranged for another accepted purpose, such as an interview, conference, or study-abroad period. The booking can join that purpose group while its company, venue, or school context remains group evidence rather than a fact copied onto the booking"
+  ],
+  "template": {
+    "dimension_order": [
+      "record_type",
+      "institution"
+    ],
+    "why": "This is a deliberately shallow placeholder recommendation. record_type leads because, inside an accepted trip branch, boarding passes, lodging reservations, rail tickets, and rental confirmations are intelligible functional children; institution is an optional second split when repeated issuers make it useful. account_type is omitted because a booking is not evidence of a financial account, and a loyalty number does not change that. tax_year is omitted because departure, stay, and purchase dates are not tax years. The desired parent is the accepted trip, but the Finance schema cannot express it: the trip remains a P9 group or user-created branch and is never smuggled into dimension_order. If no accepted trip exists, the honest outcomes are a shallow record_type branch, flattening, or Receipts and Confirmations. 00 says: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".eml",
+      ".msg",
+      ".html",
+      ".ics",
+      ".pkpass",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Cathay Pacific eTicket Itinerary Receipt - 6H3K2L.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "document title names an e-ticket itinerary receipt and page-one issuer branding names an airline",
+        "labelled passenger, booking-reference, and e-ticket-number slots",
+        "segment table carries flight number, HKG and LAX airport codes, and labelled departure and arrival times",
+        "fare and payment summary appears below the itinerary"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "account_type from a frequent-flyer number; a loyalty identifier is not a financial-account type",
+        "tax_year from the travel or purchase date",
+        "an event or trip fact from the route; Finance does not legalise event",
+        "the passenger name as a destination field",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "CX880-HKG-LAX.pkpass",
+      "source_type": "archive",
+      "observations": [
+        "pass-package manifest contains pass.json and signed assets",
+        "pass.json identifies the boardingPass style and a transit provider",
+        "labelled structured fields carry passenger name, origin, destination, departure, gate, boarding group, and seat",
+        "a grouping identifier links this leg to another pass"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "activation from the .pkpass extension or package shape alone; Wallet also carries event tickets, coupons, and generic passes",
+        "a trip or event fact from groupingIdentifier; it is grouping evidence, not a file fact",
+        "account_type from a loyalty-program field",
+        "tax_year from the departure date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Booking confirmed - The Hoxton Amsterdam.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to the property's booking domain",
+        "subject names a confirmed booking",
+        "body carries a labelled reservation identifier, guest slot, check-in and check-out slots, room type, property address, and total",
+        "attachment slot names Reservation.pdf"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email or the word confirmed alone",
+        "account_type from a loyalty number or saved-card tail",
+        "tax_year from the stay dates",
+        "an event value called Amsterdam Trip; no accepted trip evidence has been supplied",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Eurostar e-ticket 8A3K9.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier mark and e-ticket heading in the document title area",
+        "labelled booking reference and passenger slot",
+        "journey table carries London and Paris stations, departure time, train number, coach, and seat",
+        "machine-readable ticket code below the journey table"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a flight record merely because the structure resembles an airline boarding pass",
+        "tax_year from the journey date",
+        "identity activation from the passenger name alone",
+        "a trip value from the city pair",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Hertz rental confirmation 546323.html",
+      "source_type": "text_document",
+      "observations": [
+        "page title and embedded reservation object identify a rental-car reservation",
+        "structured provider and reservation-identifier slots",
+        "labelled renter, vehicle class, pickup place and time, and drop-off place and time",
+        "price summary and cancellation terms"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "location as a Finance fact; that canonical field is not legal under this schema",
+        "account_type from a membership number",
+        "tax_year from pickup or booking dates",
+        "a trip group from one rental record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Hotel reservation - Kyoto.ics",
+      "source_type": "calendar",
+      "observations": [
+        "VEVENT carries UID, SUMMARY, DTSTART, DTEND, LOCATION, ORGANIZER, DESCRIPTION, and URL fields",
+        "SUMMARY identifies a hotel reservation and ORGANIZER identifies the property",
+        "DESCRIPTION carries a labelled confirmation number and management URL",
+        "DTSTART and DTEND cover the stay"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar; an ordinary VEVENT has the same generic fields",
+        "tax_year from DTSTART",
+        "event = Kyoto Trip from the LOCATION field",
+        "account_type from ORGANIZER or URL",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-06-11 at 09.02.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG has an exact display resolution and a screen-capture software metadata slot",
+        "OCR identifies an airline app and a boarding-pass heading",
+        "OCR regions carry passenger name, flight number, HKG and LAX, boarding time, gate, and seat",
+        "the file has no native document structure beyond the pixels"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that missing camera EXIF proves screenshot origin; the positive display-resolution and software signals support media_type",
+        "an account_type or tax_year from pixels",
+        "event = Los Angeles Trip from the route",
+        "that the capture and the underlying record are the same file kind",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_7751.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera Make, Model, DateTimeOriginal, and sensor-shaped dimensions are present",
+        "paper edges and perspective distortion show a photographed document",
+        "OCR returns a carrier, boarding-pass heading, passenger, flight, origin, destination, date, gate, and seat",
+        "the background contains part of an airport lounge"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that camera EXIF erases the finance reading; capture evidence and record evidence are disjoint and both may stand",
+        "an event or location fact for the pictured journey from the boarding-pass text",
+        "tax_year from either DateTimeOriginal or the flight date",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Gate B12 - Boarding 18.20.png",
+      "source_type": "ocr",
+      "observations": [
+        "screen-origin metadata supports a screenshot hypothesis",
+        "OCR recovers only Gate B12 and Boarding at 18:20",
+        "no airline, flight, route, passenger, booking reference, or travel date appears",
+        "a nearby accepted trip group contains several rich booking records"
+      ],
+      "facts_legal": [
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "ANY Finance fact from the sparse gate text",
+        "institution, record_type, or a particular trip from neighboring records",
+        "that a gate number identifies a route or booking",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Japan Trip Documents.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists flight/e-ticket.pdf, hotel/confirmation.eml, rail/kyoto-ticket.pdf, and identity/passport-scan.pdf",
+        "member names show several record kinds and more than one issuer",
+        "the outer filename supplies a user label but no structured trip fact",
+        "archive inspection does not unpack members to disk"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "one institution from a mixed-provider packet",
+        "an event fact called Japan Trip from the outer filename",
+        "member-level account_type, tax_year, institution, or record_type facts copied onto the archive",
+        "that the passport-shaped member may enter a cloud dossier",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hilton_ASCB2026_reservation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "hotel letterhead and reservation-confirmation heading",
+        "labelled confirmation number, guest, check-in, check-out, room, property address, and total",
+        "ASCB 2026 appears only in a conference-rate line",
+        "no abstract, session, presenting-author, or research-artifact structure"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a research project, venue, or artifact_type from the conference-rate line",
+        "that conference co-arrival changes the document's own function",
+        "tax_year from stay dates",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Flight confirmation - ORD Feb 11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "travel-agent issuer and flight-confirmation heading",
+        "labelled booking reference, passenger, carrier, route, departure time, and fare",
+        "a company name appears only in the billed-to line",
+        "the file arrived beside a recruiter thread and interview schedule"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "employer, role, or recruiting-stage facts from the billed-to line or neighboring thread",
+        "purpose = interview travel; purpose is not a Finance field",
+        "account_type or tax_year",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "eticket_MXP_2026-09-01.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier and e-ticket receipt heading",
+        "labelled booking reference, passenger, route, and travel date",
+        "a foreign city and date range match a nearby exchange-program packet",
+        "the file itself contains no enrollment, host-school, course, credit, or exchange marker"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "school, term, subject, or work_type from the nearby exchange files",
+        "that a shared download session proves study-abroad purpose",
+        "tax_year or a trip event",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Dinner reservation confirmation - OpenTable.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and subject carry reservation and confirmation language",
+        "body has restaurant, date, time, party size, address, and confirmation identifier",
+        "no passenger, route, lodging stay, vehicle pickup, or transport-provider structure",
+        "no amount or payment record"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY travel-booking Finance fact; this is the tempting false file for reservation language",
+        "institution or record_type from the word confirmation alone",
+        "a travel event from the address and date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "See you Tuesday.eml",
+      "source_type": "email",
+      "observations": [
+        "unlabelled prose says the flat will be ready Tuesday and gives a street address",
+        "sender is a person's mailbox rather than a labelled property or travel provider",
+        "no reservation identifier, issuer, check-in label, check-out label, total, or management URL",
+        "the message sits beside richer lodging and flight records"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "institution or record_type without bounded interpretation and cited evidence",
+        "membership in a trip as a file fact",
+        "a lodging reservation merely because neighboring files are bookings",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "Reciprocal. A travel purchase confirmation carries an issuer, order or booking identifier, and total just like an ordinary e-receipt. The discriminating evidence is the travel-record structure: a labelled passenger or guest, route or stay segment, booking reference, and seat, room, check-in, check-out, pickup, or drop-off slots put the item here; a payment total with no journey or stay structure remains an ordinary receipt. A route, gate, or date range still does not prove a particular trip.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "travel.trip-photos",
+      "signal": "Reciprocal. The confusable evidence item is an image whose OCR carries boarding-pass, ticket, or reservation wording. The discriminator is positive content: a transactional travel-record structure with an issuing institution and booking or ticket reference belongs here, while camera evidence of a scene with no such record structure belongs to trip photos. A photographed record can activate Finance and Photos on disjoint evidence, but it is not a scene photograph merely because it was made with a camera.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.study-abroad",
+      "signal": "Reciprocal. Flight, rail, and hotel records can share a foreign city and date range with exchange paperwork and often arrive in the same session. A booking reference, passenger or guest slot, and transactional itinerary or stay layout belong here; institution plus exchange, enrollment, course, or credit evidence belongs to study abroad. Session co-arrival and a foreign place are retrieval clues only.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.conference-presentation",
+      "signal": "Reciprocal. A conference-rate hotel or transport confirmation names the same meeting and city as the holder's research artifacts. A reservation code, guest or passenger, itinerary or stay dates, and payment or booking structure make it a travel record; abstract, session, presenting-author, poster, or slide-deliverable structure makes it a conference research artifact. A conference name inside a booking is context, not research evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "Reciprocal. Interview travel may name the hiring company, arrive with a recruiter thread, and share an interview date. A labelled booking reference, passenger, carrier or property, itinerary or stay, and fare or reservation structure remains a travel record wherever it came from; employer, role, and recruiting-stage facts require their own application or interview evidence. The surrounding session never changes the document's function.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The primary fallback. 00 places 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents' in this residual when no reliable deeper association lands. A recognized booking can still remain here when no accepted trip or useful branch exists.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The fallback for a sparse or time-sensitive capture whose OCR supports only a gate, boarding time, or vague reminder and no accepted trip, application, or event. It preserves the Gate B12 case without inventing a journey or forcing a Finance fact.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Travel records routinely expose passenger or guest names, reservation identifiers, exact future schedules, routes, properties, and sometimes loyalty, payment, or passport-adjacent data. 00 says that the corpus can include private correspondence and GPS metadata, and it keeps paths, complete extracted text, OCR output, image EXIF, GPS, group memberships, and raw sensitive values local. This row assigns only potentially_sensitive; D2 leaves the authoritative handling classification to P7's ClassificationRecord, and no handling class is authored here.",
+  "open_question": "NJ-R1a-2 remains unresolved: does travel deserve a small schema using existing canonical fields such as event, location, record_type, and capture_year? The current Finance template can express only a shallow record_type/institution recommendation; it cannot encode trip then record type, and this node must not silently add event to Finance or mint a duplicate trip field. Until Joseph decides, the trip is an accepted P9 group or user-created branch, sparse records copy no trip fact, and isolated items fall through to Receipts and Confirmations or Temporary Screenshots."
+}

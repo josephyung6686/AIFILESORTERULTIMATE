@@ -1,0 +1,423 @@
+{
+  "id": "business_operations.vendor-management",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Vendor and supplier relationship management",
+  "one_line": "The ongoing buy-side governance apparatus for an established supplier: a supplier register entry joined to onboarding approval, standing-evidence and expiry tracking, periodic performance review, remediation, and offboarding state. It is not activated by supplier role, an organisation name, an invoice, a purchase event, or a contract instrument alone; it survives only where the corpus evidences that reusable governed lifecycle. Absorbs the legacy row biz.vendor-management (ROW). J-DEPTH placeholder: it recognizes the situation and writes NO field rows because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a supplier-onboarding or new-vendor form structure pairing a legal entity name, a registration or tax identification slot, a remittance or bank-detail block, and a nominated contact - the bank-detail block being the one that makes this row's material fraud-sensitive rather than merely commercial.",
+      "a supplier register structure: one row per supplier with a supplier identifier, a category, a status, an internal relationship owner, a spend band and a review date. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a diligence-evidence structure: an insurance certificate naming an insured party, a cover type and an expiry; a financial or credit check report on a named entity; a security or compliance attestation naming a standard and a validity period; a signed supplier code of conduct.",
+      "a due-diligence questionnaire structure - a long question set answered by the supplier about their controls, sub-processors, staff and finances, returned as a completed form.",
+      "a performance-review structure pairing a supplier with periodic metrics against agreed measures - a scorecard, a service review pack, or a quarterly business review deck presented BY the supplier.",
+      "a relationship-correspondence structure: escalation letters, remediation plans, notice of concern, or offboarding and exit-transition documents naming one supplier throughout."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating the supplier-relationship reading from the sourcing event that chose them, the signed contract that binds them, the invoices that pay them and the register entry that risk keeps on them - all five name the same entity, often in the same folder, and the boundary between this row and its two siblings is the weakest in the family. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding which SIDE of a relationship a document is on: a supplier's own quarterly review deck about their performance is, to their customer, vendor management, and to the supplier themselves it is account management of a customer. The same PDF is both, to two different holders.",
+      "an insurance certificate or a compliance attestation with no covering context, which could equally be the holder's OWN certificate rather than a supplier's.",
+      "a purpose-coherent supplier pack whose members are individually unremarkable - an onboarding form, two certificates, a questionnaire, a scorecard and a signed policy. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a company name alone, read directly across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - a company name appears as supplier, customer, employer, competitor, insurer, regulator and cited third party, and this is exactly the row where treating it as an anchor would be most tempting and most wrong.",
+      "an invoice or a purchase order alone. Every supplier relationship generates hundreds, and an invoice is a transaction record - this is the tempting false file for this row, and reading it in would swallow the finance side whole.",
+      "the words vendor, supplier or partner in a filename alone: partner names a business-development counterparty, a law-firm principal and a spouse.",
+      "a certificate-shaped document alone: an insurance or compliance certificate is issued to the holder's own organisation just as often as to a supplier.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a bare 4-digit number read as a year, a supplier number, or a registration.",
+      "membership in a download session that dropped a supplier pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "supplier",
+    "vendor",
+    "supplier onboarding",
+    "new vendor form",
+    "supplier register",
+    "approved supplier list",
+    "remittance details",
+    "due diligence",
+    "questionnaire",
+    "certificate of insurance",
+    "employers liability",
+    "professional indemnity",
+    "credit check",
+    "financial standing",
+    "sub-processor",
+    "supplier code of conduct",
+    "modern slavery",
+    "anti-bribery",
+    "relationship owner",
+    "scorecard",
+    "supplier performance",
+    "quarterly business review",
+    "service review",
+    "remediation plan",
+    "escalation",
+    "offboarding",
+    "exit transition"
+  ],
+  "work_types": [
+    "supplier onboarding or new-vendor form",
+    "supplier register or approved-supplier list",
+    "due diligence questionnaire and response",
+    "insurance certificate or cover evidence",
+    "financial, credit, or sanctions check report",
+    "security or compliance attestation supplied by the vendor",
+    "signed supplier code of conduct or policy acknowledgement",
+    "supplier scorecard or performance report",
+    "service review or quarterly business review pack",
+    "escalation, remediation, or notice correspondence",
+    "offboarding, exit, or transition record"
+  ],
+  "grouping_reasons": [
+    "one supplier across the relationship: onboarding form, certificates, questionnaire, scorecards and reviews, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one diligence round - the questionnaire and every certificate collected to answer it, produced on one occasion and expiring together.",
+    "one review cadence across its periods - a scorecard re-saved quarterly is a version family, not four domains.",
+    "an expiring certificate joins the supplier's neighbourhood without acquiring a supplier fact when the certificate names only the insured: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single insurance certificate received by email is a standalone record until something ties it to a relationship."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - and this row carries an additional, independent reason to be cautious even if fields were licensed. Held as prose: the natural anchor is the supplier, then the document function - onboarding, diligence, performance, exit - with the review period last, since “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” and a scorecard is unintelligible before the reader knows which supplier it scores. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The independent caution: a supplier-first tree is precisely an ORGANISATION used as a collector, and 00 rules that out - “A folder should not become a collection point for everything produced by the same person or organization.” The defence is that here the counterparty IS the situation rather than merely the author, but the line is thin enough that the level should be the user's choice rather than the catalogue's default, and the user has that choice: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”"
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "presentation",
+      "image",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "New supplier form - Meridian Logistics.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for legal entity name, trading name, registration number, tax identification and registered address",
+        "a remittance block carrying a sort code and an account number",
+        "a nominated contact with a direct dial and an email",
+        "an internal approval box with two initials"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that a supplier form is ordinary commercial paperwork: the remittance block is bank account detail, and 00 requires the immediate transition for an account record",
+        "an entity name as an anchor on its own evidence",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Approved supplier list 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per supplier with a supplier code, category, status, relationship owner, annual spend band and next review date",
+        "a conditional-format column flagging expired insurance",
+        "several hundred rows",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a supplier fact copied onto any file that mentions one of the listed entities",
+        "a spend figure or a status as a fact of the product's own",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Meridian - certificate of insurance 2026-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an insurer's certificate naming an insured entity, three cover types, limits of indemnity and a period of insurance",
+        "a policy number and an underwriter reference",
+        "an expiry date within twelve months",
+        "no reference to the holder's own organisation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the insured entity is a supplier rather than the holder's own organisation - the certificate does not say, and this is the ambiguity that makes an entity name insufficient alone",
+        "which of this row and finance.insurance-corporate owns it: the holder's OWN certificate is an insurance record and a SUPPLIER's certificate is diligence evidence, and the same layout serves both",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DDQ response - Meridian v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a long numbered question set with the supplier's typed answers beneath each",
+        "sections on data protection, sub-processors, staff vetting and financial standing",
+        "named employees of the supplier with job titles",
+        "a version token and a completion date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row, business_operations.compliance-audit and business_operations.risk-register owns it - a diligence questionnaire is relationship evidence, control evidence and a risk input at once",
+        "a control effectiveness or a compliance conclusion of the product's own from an answer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Meridian invoice 2026-0417.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled invoice header with an invoice number, a supplier entity, a total and a tax line",
+        "line items and payment terms",
+        "a purchase order reference",
+        "the same entity name as the supplier pack"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the supplier is named and the document is a transaction rather than a relationship artifact - this is the collision fixture, and it belongs to the bookkeeping or receipts side",
+        "a relationship fact from a matching entity name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "QBR - Meridian Q1 2026.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "service metrics against agreed measures, an issues slide and a roadmap slide",
+        "the supplier's own slide master and branding",
+        "attendee lists from both organisations",
+        "an actions table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "which side of the relationship the holder is on from the branding alone - the identical deck is vendor management to the customer and customer account management to the supplier who authored it",
+        "a performance judgement of the product's own from a metrics slide",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Signed MSA - Meridian - executed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a master services agreement with numbered clauses and schedules",
+        "an execution page with two wet signatures and a commencement date",
+        "no extractable text layer until OCR",
+        "a term and notice clause"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row alone: an executed instrument is business_operations.contract-administration's anchor, and this row holds the relationship AROUND it - the second fixture, and the family's thinnest boundary",
+        "a signature as an identity fact",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Supplier scorecard H1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per supplier with delivery, quality, responsiveness and cost columns",
+        "a weighted total and a rating band",
+        "a comments column naming individual account managers at the supplier",
+        "a pivot sheet by category"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a rating or a band as a fact of the product's own; no number in this catalogue is a threshold",
+        "that named individuals at a counterparty are ordinary business content - the comments column is written commentary on identifiable people",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FW updated bank details - urgent.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot claims changed remittance details for a named supplier",
+        "sender address resembles but does not match the supplier's usual domain",
+        "one attachment named as a letter on letterhead",
+        "an urgency instruction in the body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the claimed details are the supplier's - the product must not write, normalise or act on a payment fact, and a bank-change instruction is the single most impersonated document in this whole domain",
+        "the attachment's contents from its filename - it is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The sourcing event and the relationship it starts name the same supplier and share the same folder. The discriminating evidence: a solicitation reference, competing bids, an evaluation matrix and an award or regret letter is the EVENT and belongs to sourcing; an onboarding form, a register entry, a certificate set and a scorecard is the ongoing relationship and belongs here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "The family's thinnest boundary. The discriminating evidence: an executed instrument with clauses, schedules and signature pages, plus the obligations register, notice dates and renewal correspondence that run it, supports contract administration; the counterparty's own standing - diligence, insurance, performance, exit - supports this row. A supplier file in real life contains both, which is why the pair is stated here and owed reciprocally. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "The mirror image of this row: the same artifacts - onboarding, reviews, scorecards, escalations - seen from the other side of the relationship. The discriminating evidence is which direction money and service flow, which a single document frequently does not state. This is 00's role split biting in a third place: “A consulting document may mention the author’s firm and the client organization.” Provenance: design for the role split, inference for the reading.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "Third-party risk lives in both: a supplier questionnaire feeds an organisational register, and a supplier risk row names the same entity. The discriminating evidence: one row per SUPPLIER with diligence answers and a relationship owner supports this row; one row per RISK with likelihood, impact and treatment supports the register. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "Supplier attestations, security certifications and audit reports supplied by a vendor are simultaneously diligence evidence and control evidence. The discriminating evidence: an external standard, a control reference and an assurance opinion supports the audit row; the collection of that evidence as a condition of dealing with one supplier supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Invoices, remittances, statements and payment records name the supplier constantly and vastly outnumber the relationship documents. The discriminating evidence: a transaction - an invoice number, a total, a tax line, a payment reference - is a financial record; a standing artifact about the counterparty is this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "An insurance certificate is diligence evidence when it covers a SUPPLIER and an insurance record when it covers the HOLDER, and the two are typographically identical. The discriminating evidence is only the insured party's identity against the holder's own entity, which is why an entity name alone is insufficient here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "Supplier agreements, NDAs and framework terms are legal instruments as well as relationship documents, and a personal or household service agreement has the same shape with no organisation at all. The discriminating evidence: an executed agreement read as an instrument supports the legal row; a supplier register, diligence set or performance record supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "A supplier file routinely holds one document under two schemas on disjoint evidence: the execution structure, clauses and schedules of a signed agreement for legal, and the register, diligence and renewal-review structure around it for this schema. legal is a field-less safety placeholder, so the join carries protection on one side and fields on neither, and where they co-activate the protective ordering runs first. AUTHORED ONE-WAY HERE: the landed legal rows do not name business_operations, and R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone certificate, attestation or register export with no accepted supplier group around it - the most common outcome, since these arrive one at a time by email. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a questionnaire, scorecard or review deck whose SIDE of the relationship is unresolved - the ambiguity this row cannot settle from one file. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for an onboarding form carrying bank details, an executed agreement, or a bank-change instruction - account-shaped material that must not travel as ordinary commercial content. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for the transactional side this row must not absorb - an isolated supplier invoice, remittance advice or order confirmation. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected diligence pack, which is how questionnaire responses are commonly returned. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "business_operations.customer-account-management",
+      "why": "00's own role-split pair, biting here in its buying-side form: “A consulting document may mention the author’s firm and the client organization.” “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.” The identical review deck, scorecard or onboarding pack is vendor management to the BUYING organisation and account management to the SELLING one, and the third role - the counterparty as supplier - has no canonical key, which is why the schema row records `supplier` as owed by the contract-administration template rather than minting it here. Both fields named are canonical keys; this row declares no field rows and writes none. Provenance: design for the pair; inference for the reading.",
+      "provenance": "design"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two distinct reasons, and the first is the unusual one. A supplier onboarding form carries bank account details, and a bank-change instruction purporting to come from a supplier is among the most impersonated documents in commercial life - so this row's material is not merely confidential but a live target, and the product must never write, normalise or act on a payment fact found in one. That material is account-shaped in 00's plain sense and warrants the immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The second reason is ordinary: diligence responses name a counterparty's staff, its finances and its security posture under confidentiality, and 00's corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "NJ-BO-VM-1: is a supplier register joined to onboarding approval, evidence-expiry tracking, scorecards and remediation or exit state enough reusable governance structure to preserve this template, or should it collapse into the business_operations default while contract obligations stay in contract-administration? This pass keeps it, but expressly rejects supplier role or value as the distinction. NJ-BO-VM-2: the buy-side counterparty role has no canonical key; this row proposes none. NJ-BO-VM-3: an isolated QBR, scorecard or certificate may not reveal whether the holder is buyer, seller or subject, so the system must abstain without corpus-side evidence. NJ-BO-VM-4: supplier bank-change instructions require a fraud-safe handling decision beyond this catalogue row; no payment fact is written here."
+}

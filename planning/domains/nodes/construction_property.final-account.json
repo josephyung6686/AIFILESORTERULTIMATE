@@ -1,0 +1,408 @@
+{
+  "id": "construction_property.final-account",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Contract payment cycle, retention and final account",
+  "one_line": "The organizational situation of money AS THE CONTRACT SEES IT: a construction contract pays in a repeating cycle - the party doing the work applies for a cumulative valuation, the other side issues a notice or a certificate saying what it considers due, retention is withheld against future release, and at the end the whole thing is reconciled into a single agreed final account of additions and omissions. The organizing anchor is the CONTRACT and its numbered valuation cycle, not a supplier and not a ledger period, which is why this is a different situation from bookkeeping even though every document in it carries a total. Absorbs the legacy row cons.final-account (ROW) - the interim cycle and the closing settlement are one continuous account and cannot be filed apart from each other. Gist-level placeholder (J-IND): it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an application-for-payment structure: a numbered valuation or application, a valuation date, a GROSS cumulative valuation, a line deducting the amount previously certified, a retention deduction expressed as a percentage of the gross, and a net amount now due. The cumulative-minus-previously-certified arithmetic is the discriminating shape - an ordinary invoice states one period's charge and never subtracts what it billed last month. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a payment-notice structure: a notice naming the sum the issuer considers due and the basis on which that sum was calculated, dated against a payment cycle - a due date and a final date for payment - rather than against ordinary invoice payment terms.",
+      "a pay-less or withholding notice: the same contract and valuation reference, a LOWER sum than the one applied for, and reasons for the deduction. It exists only in answer to a specific application, which makes the pair a structural unit.",
+      "a certificate structure: an interim or final certificate signed by a named contract administrator, quantity surveyor, architect or employer's agent, CERTIFYING a sum owed by one party to another rather than demanding a sum for the signer's own account.",
+      "a retention statement: a running account of amounts withheld with a two-stage release - part at practical completion, the balance at the end of the defects period. A two-stage release schedule appears nowhere else in this product's corpus.",
+      "a final-account structure: an original contract sum, a schedule of ADDITIONS AND OMISSIONS (variations, provisional-sum adjustments, loss and expense, fluctuations), an adjusted total, and wording to the effect that the account is agreed in full and final settlement.",
+      "a measured-works build-up whose line items are priced against a bill of quantities or a schedule of rates and carry a percentage-complete or quantity-to-date column."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "which side of the payment cycle the file sits on. The same valuation exists in the payer's file as a certificate and in the payee's as an application, with substantially identical numbers; only purpose separates them. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a draft final account still under negotiation from the agreed one, when both are spreadsheets with identical tabs, no version token in the filename, and different totals.",
+      "deciding whether an unlabeled spreadsheet of additions and omissions is a final account, a variation register, or an internal cost report - three different situations with the same columns.",
+      "recognising that a settlement letter or an email exchange, not any document called an account, is the operative agreement that closed the account.",
+      "a photographed day-work sheet that has been priced up in the same image - part timesheet, part valuation substantiation.",
+      "a valuation pack whose members are individually unremarkable - a summary, a measure, a variation schedule, photographs and a delay narrative - and coherent only by purpose. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a money total, a currency token or a percentage alone. Retention reads as a percentage; so does VAT, so does a discount, so does a completion figure. This is the single most tempting false signal in the row.",
+      "an invoice header alone. A demand for payment with an invoice number and payment terms is a bookkeeping transaction even when a construction firm issued it - this is the collision fixture, and finance.small-business-bookkeeping owns it.",
+      "the word final in a filename alone - it is the most overloaded version token in any corpus and says nothing about a contract account.",
+      "a client's, employer's or contractor's organisation name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number, which here is as likely to be a valuation number, a drawing number, a contract number or a rate as a year.",
+      "membership in a download session that pulled a whole valuation pack from a portal at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "valuation",
+    "interim valuation",
+    "application for payment",
+    "payment notice",
+    "pay less notice",
+    "withholding notice",
+    "due date",
+    "final date for payment",
+    "interim certificate",
+    "final certificate",
+    "certified sum",
+    "retention",
+    "moiety",
+    "release of retention",
+    "practical completion",
+    "defects liability period",
+    "making good",
+    "gross valuation",
+    "previously certified",
+    "contract sum",
+    "adjusted contract sum",
+    "additions and omissions",
+    "provisional sum",
+    "loss and expense",
+    "fluctuations",
+    "measured works",
+    "schedule of rates",
+    "bill of quantities",
+    "day works",
+    "full and final settlement"
+  ],
+  "work_types": [
+    "application for payment",
+    "interim valuation and build-up",
+    "payment notice",
+    "pay less or withholding notice",
+    "interim certificate",
+    "final certificate",
+    "retention statement",
+    "retention release request",
+    "draft final account",
+    "agreed final account",
+    "schedule of additions and omissions",
+    "loss and expense summary",
+    "day-work sheet priced for valuation",
+    "settlement or full-and-final letter",
+    "remittance advice"
+  ],
+  "grouping_reasons": [
+    "one contract-payment settlement lifecycle: application for payment -> valuation or certification -> payment notice or pay-less notice -> payment with retention withheld -> staged retention release -> final reconciliation. This ordered state change, rather than the word final or the presence of money, is what earns a template distinct from the construction-project branch root and from accounting",
+    "one valuation cycle: the application, the payment notice, any pay-less notice, the certificate and the remittance, held together by a valuation reference and a date. The pay-less notice and the application it answers must never be separated - the pair is the evidence, not either half.",
+    "one contract's whole valuation series read as a running account, because each valuation is meaningless without the one before it: the arithmetic is cumulative by construction.",
+    "one final account across its drafts, which is a version family before it is anything else, and where the differences between drafts are the negotiation.",
+    "a valuation and the substantiation attached to it - measures, day-work sheets, photographs, variation instructions - purpose-coherent and content-incoherent.",
+    "no group at all is a valid outcome: a single remittance advice, or one certificate that arrived alone, is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the CONTRACT or project, then the payment stage - interim cycle versus final account - then, inside the interim cycle only, the numbered valuation. The valuation number must sit under the contract and not above it, because valuation 07 identifies nothing on its own and every contract has one. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” Not time-first, even though the cycle is periodic: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - a monthly-folder tree would scatter one contract's running account across two or three calendar years and break exactly the continuity that makes the arithmetic checkable. Privacy caveat specific to this row: a valuation build-up discloses margin, preliminaries and often a subcontractor's own rates, a retention or pay-less dispute is an allegation about a named counterparty's performance, and a final account states what a business was actually worth on one job - none of which should acquire automatic internal depth or reach a model prompt by default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".xls",
+      ".docx",
+      ".csv",
+      ".eml",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Valuation 07 - application for payment.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a summary tab with gross cumulative valuation, less previously certified, less retention, net now due",
+        "a measure tab with bill references, quantities to date and rates",
+        "a variations tab listing instruction numbers with agreed and provisional sums",
+        "a header cell repeating a contract reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "which side issued it: the identical workbook is circulated to the certifier and comes back as a certificate",
+        "a project fact copied onto every other spreadsheet in the same folder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Interim Certificate No 7.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate heading with a certificate number and a valuation date",
+        "a certified sum stated as due from employer to contractor",
+        "a due date and a final date for payment",
+        "a signature block naming a contract administrator"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the certified sum equals the applied-for sum - the difference is the point of the document",
+        "the named certifier as a destination dimension: authorship is never a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pay Less Notice - Valuation 07.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same contract and valuation reference as the application",
+        "a sum lower than the one applied for, with the basis of calculation",
+        "numbered reasons for each deduction, several naming defective or incomplete work",
+        "a date stated to be before the final date for payment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the deductions are true - they are one party's asserted position, and the product records the document, not the argument",
+        "a defect fact about a named subcontractor read out of the reasons",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Final Account - draft 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "an original contract sum row",
+        "additions and omissions listed against instruction numbers",
+        "a loss and expense block with a narrative column",
+        "an adjusted contract sum and a balance against amounts already certified"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that draft 3 is the agreed account - a later draft or a letter may be the operative one",
+        "an agreed total as a product fact when the sheet is a negotiating position",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Settlement letter - full and final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a letter naming the contract and a single figure",
+        "wording that the sum is accepted in full and final settlement of all claims",
+        "a countersignature block",
+        "a reference to a schedule that is not attached"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a legal conclusion about what was released - the operative effect of a settlement is legal.personal-legal-matters' or a lawyer's, never this product's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "INV-2291.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled invoice number, an invoice date and payment terms",
+        "a single works description line and a tax line",
+        "bank details and a remittance instruction",
+        "the same client as the contract"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a demand for payment with an invoice number and terms is a bookkeeping transaction even on a construction job - this is the collision fixture and finance.small-business-bookkeeping owns it",
+        "a valuation fact copied onto it because it names the same client - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Retention release - second moiety.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statement of retention held with two dated release lines",
+        "a reference to the end of a defects liability period",
+        "a certificate of making good referenced but not attached",
+        "a net sum requested"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the defects period has actually expired - the document asserts it",
+        "a project completion fact inferred from a release request",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_2201_daywork_week12.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a signed day-work sheet on a pad",
+        "names, hours and plant items in handwriting",
+        "a site signature and a date",
+        "OCR recovers the date and some of the hours, and mangles the names"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "hours as a fact from unreliable OCR of handwriting",
+        "a worker's name as a destination dimension - the sheet names individuals and this row does not become a personnel file",
+        "which of construction_property.timesheet and this row owns it: priced for a valuation it is substantiation, unpriced it is a labour record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "valuation_pack_v07.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a summary PDF, two spreadsheets, a folder of photographs and a delay narrative",
+        "mixed member types",
+        "a portal-generated name carrying a number",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - members are extracted as their own files, and the photographs inside are construction_property.progress-photos' situation, not this one",
+        "that a session that downloaded the pack proves its topic - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The sharpest collision in the row: every valuation eventually becomes an invoice and a ledger entry, and the same client, the same works and the same total appear on both. The discriminating evidence: cumulative arithmetic - a gross valuation less previously certified less retention - together with a contract payment cycle supports this row; an invoice number, tax treatment, payment terms and a posting or nominal reference supports bookkeeping. A total alone discriminates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "Variations are priced INSIDE a final account, so a schedule of additions and omissions appears in both files. The discriminating evidence: an instruction number with a narrative of entitlement, a contractual clause cited and a cause-and-effect argument supports the variation row; the reconciliation of the whole contract sum with amounts already certified supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.subcontract",
+      "signal": "Payment applications and payment notices run down the chain in exactly the same form, so the firm's own application to its client and its subcontractor's application to it are structurally identical documents. The discriminating evidence: which agreement the reference names - a subcontract or order reference with the firm as payer supports the subcontract row; the main contract reference with the firm as payee supports this row. A valuation number alone discriminates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "The project row is the container that gives a valuation its meaning, and a project folder holds valuations among everything else. The discriminating evidence: the payment cycle apparatus - applications, notices, certificates, retention - supports this row; award documents, programmes, instructions, correspondence and the general project record support the project row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.quote-estimate",
+      "signal": "A priced schedule of measured works looks the same before and after the work is done. The discriminating evidence: a validity period, an acceptance line and no reference to work already carried out supports the quote row; a percentage-complete or quantity-to-date column and a deduction of what was previously certified supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.timesheet",
+      "signal": "Day-work sheets are labour records that become valuation substantiation once priced. The discriminating evidence: rates, a valuation reference and a claimed sum supports this row; hours, names and a payroll or allocation purpose supports the timesheet row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "Both sit on an executed contract and cite the same clauses. The discriminating evidence: an obligations register, notice periods, renewal dates and the management of the agreement supports contract administration; the periodic movement of money under the agreement supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Reciprocal to that row's own construction collision: a bill of quantities and a pricing schedule are shared shapes. The discriminating evidence: a solicitation reference, a submission deadline and competing responses supports the sourcing row; payment under an awarded contract supports this row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone certificate, notice or settlement letter with no accepted contract group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for the transactional side this row must not absorb - an isolated invoice or a remittance advice. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an unlabeled schedule of additions and omissions, or a draft account whose status is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected valuation pack or an unreadable portal export, both routine where certification runs through a client's payment portal. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A valuation build-up discloses what a business actually costs and earns - preliminaries, margin, and frequently a subcontractor's own rates held in confidence. A pay-less notice is a written allegation of defective or incomplete work against a named counterparty, and day-work substantiation names individual workers and their hours. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and account statements and employment materials of this kind fall inside it. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "The node itself stands on a distinct contract-payment settlement lifecycle: application, valuation or certification, notice, payment with retention, release and final reconciliation. The unresolved seam is narrower: where that lifecycle should fall through to finance.small-business-bookkeeping for a small trade business whose application for payment and invoice are one monthly artefact. For a main contractor the contract account and accounting ledger are different systems; for a two-person firm forcing them apart may split one working series in half. A second presentation question remains: whether a quantity surveyor should be offered a view that separates the closing final account from the interim cycles. This row does not create a second node for that view because the closing balance is arithmetically continuous with amounts previously certified."
+}

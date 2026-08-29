@@ -1,0 +1,310 @@
+{
+  "id": "creative.illustration",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Illustration",
+  "one_line": "REFUSED. Illustration is a drawn or painted work type inside the creative default; layers, sketches, revisions, commissions, exports and rights records do not establish a separate organizational situation.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Illustration fails the template node test. Its strongest signals—raster or vector artwork, layers, brushes, sketches, reference boards, same-stem revisions and rendered exports—are already the creative schema's default making-record evidence and also occur in graphic design, brand identity, game art, editorial work and motion assets. A commissioned illustration may have a brief, client correspondence, approval rounds, delivery package and licence, but those are the distinct counterparty, revision, handoff and rights workflows, not properties of illustration; the same workflows can span photography, design, copy and video. The creative placeholder declares no fields, so medium, style, subject, technique and deliverable format cannot become dimensions. Illustration therefore remains a work_type or artifact_type value under the creative default, with client-engagement, deliverable-handoff and licensing-rights handling their own situations when independently evidenced. Unreleased artwork, third-party references and licence terms remain potentially sensitive under the enclosing creative record.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored for this template's activation. A readable working document with layers, brushes, artboards or a same-stem export family supports the creative schema's making record but cannot distinguish illustration from other authored visual work.",
+      "A signed commission or rights document can establish a client or licence workflow when labelled role, grant, territory or term evidence is present; it does not establish illustration as the medium of the work."
+    ],
+    "needs_llm": [
+      "deciding whether a flat painted image is authored work, a downloaded reference, a portfolio case study, a stock asset or a photograph of a physical illustration",
+      "deciding whether a visual reference board and sketch set belong to one illustration brief or are a personal study unrelated to a commission",
+      "matching an untitled layered file to a named commission when only preview text, layer names and nearby correspondence overlap",
+      "deciding whether an organisation named in a brief is the commissioner, publisher, subject, depicted brand or merely a reference",
+      "deciding whether an exported PNG or PDF is an internal proof, an approved deliverable, a portfolio sample or an archive copy",
+      "deciding whether a licence or release governs the illustration itself, a reference asset, a model, a property or a downstream use"
+    ],
+    "never_alone": [
+      "a design_creative source type or .psd, .kra, .clip, .procreate, .ai, .svg, .tif, .png or .jpg extension; extensions route extraction and do not identify an authored illustration",
+      "the words illustration, artwork, drawing, painting, sketch, character, editorial or cover in a filename; those labels can describe a work type, reference, portfolio item or requested output",
+      "brush names, layer names, canvas dimensions, transparent background, colour profile or pixel density; these are artifact observations and do not establish a project, client or stage",
+      "a publisher, agency, brand, author or client name without labelled role-bearing text; the same name can identify commissioner, subject, licensor, maker or depicted entity",
+      "a version token such as v4, final or approved; it is universal version-family evidence and never proves approval or delivery",
+      "a single flat image, visual similarity, a shared palette or a bounded download session; each can describe a reference or unrelated image set",
+      "a maker's author metadata or a folder named Illustrations, Art or Commissions; authorship and curated vocabulary are supporting retrieval evidence, not destination facts",
+      "absence of a client; self-initiated illustration and paid illustration can share every file-format and layer signal"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "one named illustration or commission across sketches, working files, revisions, proofs and exports",
+    "one client engagement across multiple illustration and non-illustration outputs",
+    "one delivery or handoff set recognised by a manifest, recipient and format variants rather than by medium",
+    "one rights or release record attached to a work or reference asset without copying rights facts onto sparse images",
+    "one version family or existing curated project group, subject to P9 evidence rather than filename propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the creative schema declares no fields. If R1c later adopts the creative proposals such as project, stage, artifact_type and client, illustration remains a work_type or artifact_type value under that common project-first structure. A style, technique, subject, canvas size or format level would scatter one work across labels and exports; commission and rights levels belong to independently evidenced engagement and licensing workflows. Not time-first: illustration is authored work, not capture-based media.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "image",
+      "text_document",
+      "presentation",
+      "archive",
+      "email",
+      "calendar",
+      "contacts",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".psd",
+      ".kra",
+      ".clip",
+      ".procreate",
+      ".ai",
+      ".svg",
+      ".tif",
+      ".png",
+      ".jpg",
+      ".pdf",
+      ".docx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Moth_Character_Sketches_07.kra",
+      "source_type": "design_creative",
+      "observations": [
+        "layered painting document has sketch, ink and colour groups",
+        "filename carries a named subject-shaped stem and version token",
+        "preview shows a moth character but no client or recipient role"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an illustration template activation",
+        "that Moth is a commissioned client or project fact",
+        "a stage from Sketches or 07",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Moth_Character_Approved.png",
+      "source_type": "image",
+      "observations": [
+        "flat transparent PNG shares the sketch stem",
+        "image has a character illustration and pixel dimensions",
+        "no embedded approval, recipient or source-layer evidence is present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "approval or delivery from Approved in the filename",
+        "that it is authored rather than downloaded",
+        "project or client facts copied from a nearby source",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Picture_Book_Brief.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled brief states audience, page count, tone and required art delivery",
+        "publisher and author appear in labelled roles",
+        "deadline and revision expectations are written in the body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every requested illustration exists",
+        "that the brief itself is an illustration artifact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Editor_notes_round2.eml",
+      "source_type": "email",
+      "observations": [
+        "body references page numbers and quoted image filenames",
+        "sender and recipient have publisher and artist domains",
+        "requests are phrased as changes but contain no proof of implementation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that all requested changes happened",
+        "that the sender is the client without a labelled role",
+        "that round 2 is a folder dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Picture_Book_Art_Delivery.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest contains flattened TIFFs, web JPEGs, a PDF proof and a README",
+        "README names page assignments and output specifications",
+        "archive has no transmission or acceptance record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "delivery or approval from the archive name",
+        "that all members are illustrations rather than supporting documents",
+        "member facts copied from archive paths",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Watercolour_Technique_Reference.jpg",
+      "source_type": "image",
+      "observations": [
+        "single image is a downloaded scan of a watercolour page",
+        "download metadata and browser naming are present",
+        "no local layered source or commission neighbourhood exists"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that the corpus owner painted it",
+        "an illustration project",
+        "a subject or style fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Illustrator_Portfolio_Case_Study.pdf",
+      "source_type": "presentation",
+      "observations": [
+        "presentation explains a campaign's brief and shows polished illustrations",
+        "pages include mockups and captions but no editable sources",
+        "document is arranged to demonstrate the maker's capabilities"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the case study is the making record",
+        "that pictured sources exist locally",
+        "creative activation solely from depicted artwork",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Model_and_Property_Release.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "signed form names a person and location, usage scope, territory and term",
+        "form refers to a shoot or reference session but does not identify the authored illustration file",
+        "rights language is explicit"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the release activates illustration",
+        "that its rights apply to every nearby image",
+        "that the named person is the illustrator",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career",
+      "signal": "The same rendered illustration can be a creative export or a portfolio case-study page. A case study whose purpose is demonstrating the maker's capabilities belongs to career; editable sources, proofs and delivery files remain creative. The image's illustrated content does not decide its organizational purpose.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "A flat JPG or PNG may be an authored illustration, a photograph of a physical drawing, or a downloaded reference. Layer/source/export evidence supports creative making; camera capture metadata and event chronology support photos. Appearance alone cannot distinguish the records.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A durable brief, source, release or export without recoverable creative project evidence remains an independent record.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "An isolated flat image without authored-work or project evidence is not an illustration situation.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "Downloaded visual studies, scans and inspiration images belong to reference material when their purpose is consumption rather than making.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Ambiguous feedback, approvals and package records require later resolution rather than a medium-based activation.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased commissions, children's or private subjects, client briefs, contact details, third-party reference assets, signed releases and licence terms may be sensitive. The protection follows the enclosing creative project, client engagement or rights record; illustration does not create a separate handling rule.",
+  "open_question": "NEEDS-JOSEPH: after the creative schema receives fields, should illustration be exposed as a non-activating work_type/artifact_type or style value? Recommended: retain it as a searchable value under the creative default; do not create a medium-specific node or dimension. Separately, client commissions and rights packets should be tested by their own workflow rows rather than inferred from the word illustration."
+}

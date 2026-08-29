@@ -1,0 +1,496 @@
+{
+  "id": "applications.scholarship-fellowship",
+  "kind": "template",
+  "schema_id": "college_applications",
+  "parent_id": null,
+  "name": "Scholarship and fellowship applications",
+  "one_line": "The organizational situation of applying for money rather than for admission: one applicant assembles many small packets addressed to sponsoring organizations that are usually not universities, reuses one essay family and one supporting-document set across all of them, and is required to attach financial-need documentation that is protected material in its own right.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": "Passes on two of the three differentiators outright, and on the third as a flagged recommendation. (1) DETECTION SIGNALS differ decisively from the schema's default template: that template's primary deterministic rule is a schools-gazetteer hit plus admissions-role context, and most sponsors here are foundations, civic clubs, professional societies, employers, and government programs that no schools gazetteer contains — so this situation is carried by award-and-eligibility language, not by an institution name. (2) PRIVACY RULES differ: financial-need documentation (a tax return, an aid report, a parent income letter, a bank confirmation) is constitutive of a need-based scholarship packet rather than incidental to it, which puts material 00 orders into immediate protection inside the ordinary working set of this branch — 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' The undergraduate packet's privacy load is an identification document; this one's is a tax record, and the handling differs in which neighbour co-activates. (3) RECOMMENDED DIMENSIONS differ, and the reversal is flagged rather than asserted (see template.why and open_question). No new field is minted and the schema's field list is not copied.",
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them. The legal facts here are college_applications' — target_university, application_cycle, application_document_type, purpose — plus the schema's search-side school and the universal fields. The one strain this situation puts on that list (a sponsor that is not a university sitting in target_university) is recorded in open_question and was deliberately NOT resolved by minting a field; ROSTER.md NJ-R1a-6 already holds the fork.",
+  "proposed_fields": [],
+  "proposed_fields_note": "None. The obvious temptation — a sponsor or awarding_organization key beside target_university — is exactly the failure mode the roster forbids for this row, and the canonical list already carries organization-shaped keys in other roles (institution, lab, venue, client) whose role sentences do not fit an application addressee. Minting a fourth would be a private synonym. Recorded as a question for Joseph instead.",
+  "recognition": {
+    "deterministic": [
+      "an award-and-eligibility context term in a high-weight zone (filename, document title, page-one heading) — scholarship, fellowship, award, bursary, grant-in-aid, stipend, eligibility, nomination — co-occurring with an applicant-side document-role phrase (personal statement, application form, essay prompt, recommendation form, applicant name). The award term carries the situation; an organization name never does on its own, and 00's reason generalizes from universities to sponsors: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.' Matching is word-boundary and positionally weighted, both by 00's own requirement — 'It should use word-boundary matching rather than substring matching.' and 'It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.'",
+      "a labelled scholarship-application form slot read as a structured field — an award-applied-for slot, an award-cycle slot, an applicant-status slot, an expected-enrollment slot — which yields application_document_type and application_cycle directly rather than by inference. 00 licenses the reliability, not the pattern: 'A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field.' The values sit in cells, which is why the DOCX/PDF table extractor matters here — 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.'",
+      "an award-decision letterhead that pairs a sponsoring organization with a named award and an outcome word (awarded, declined, waitlisted, renewed), which yields application_document_type directly and target_university as the sponsor value it names",
+      "an archive manifest whose members are the applicant-side supporting-document set beside an award-named member, read without unpacking. This is 00's own archive shape applied to a sponsor rather than a university: a ZIP of a transcript, personal statement, resume, certificate and form is 'meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'.",
+      "a dedicated cycle or academic-term pattern occurring beside award context, which is what may fill application_cycle. Never a loose number: 00 requires that 'Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.'",
+      "an existing user-created folder name that already expresses an award or a scholarship season, read as parent-folder context about the files inside it. 00 allows the reading — 'Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.' — and forbids acting on the folder itself: 'The system learns from existing folders but must not silently reorganize them.'"
+    ],
+    "needs_llm": [
+      "an unlabelled personal essay whose only signal is that its prompt asks about financial need, community service, leadership, or hardship. The model must decide whether it is addressed to a sponsor, to an admissions office, or is coursework, and must cite the sentence that says so — 'It must return unknown where support is insufficient.'",
+      "an OCR-derived capture that must be judged as a sponsor's application portal rather than a generic image — 00's own framing of the task is to recognize 'application portal rather than a generic image'",
+      "a heterogeneous set whose only shared property is the submission itself. 00 lets the model 'identify a shared purpose across a heterogeneous packet', which is this situation's normal case: 'The documents are content-incoherent but purpose-coherent.'",
+      "a fellowship document naming both a funding program and a host university, where only one of them is the addressee. 00's adversarial suite already names the neighbouring failure — 'multiple institutions in one application essay' — and this is its sponsor-plus-host variant.",
+      "deciding whether an award-shaped document is an application the holder submitted or a record of money already received, when the outcome word is absent and only an amount and an organization are present"
+    ],
+    "never_alone": [
+      "the word scholarship, fellowship, or award alone. This is the tempting false file for this node: a tuition invoice, a bursar statement, an aid disbursement notice, a resume honours line, and a framed certificate all carry the word, and none of them is an application addressed to a sponsor. Alone the word names no addressee, no cycle, and no applicant-side role.",
+      "an organization name alone — the sponsor-side reading of 00's rule that a university name alone 'should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization'",
+      "a bare 4-digit number as application_cycle. 00: file names and documents frequently contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'.",
+      "a SOURCE_TYPE or an extension alone (.pdf, .xlsx, .zip, .ics). 00 requires the engine to 'treat the file extension as a routing signal rather than an assumption about meaning'.",
+      "membership in a tightly bounded download session as proof of purpose — 00 allows the session only as the weaker support and states 'A session should never be treated as proof of topic'",
+      "packet or folder membership alone as proof of target_university on a shared supporting document. 00: 'A transcript may be part of several application packets' — and in this situation one transcript and one resume are typically attached to every sponsor at once.",
+      "the presence of a financial-need document as proof that this template is active. A tax return, an aid report, and an income letter are produced for filing, for aid, and for lending as well as for a scholarship; the need document evidences the neighbour at least as strongly as it evidences this node.",
+      "the absence of EXIF as proof that an image of a sponsor portal is a screenshot — 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'"
+    ]
+  },
+  "proposed_context_terms": [
+    "scholarship",
+    "fellowship",
+    "award",
+    "bursary",
+    "stipend",
+    "eligibility",
+    "nomination",
+    "financial need",
+    "applicant status",
+    "award letter",
+    "disbursement",
+    "renewal"
+  ],
+  "proposed_context_terms_note": "Proposal, not design. 00 lists five academic context terms verbatim and names 'admissions language, a portal, a checklist, or a clearly targeted essay' as the direct-application-evidence families; it lists nothing for awards. These tokens are R2's and R6's to accept, refine, or reject. No regex and no threshold is written here.",
+  "work_types": [
+    "personal statement",
+    "scholarship essay",
+    "application form",
+    "eligibility questionnaire",
+    "recommendation form",
+    "nomination letter",
+    "transcript copy",
+    "resume or CV",
+    "financial-need documentation",
+    "budget or expense worksheet",
+    "portfolio or work sample",
+    "sponsor portal record",
+    "award letter",
+    "decline notice",
+    "renewal or progress report",
+    "acceptance or thank-you letter"
+  ],
+  "work_types_note": "These are values of the schema's application_document_type field, discovered at runtime, never roster nodes. 00's own packet listing for the neighbouring situation is the shape: 'An accepted Columbia application packet may include an essay draft, admissions checklist, portal screenshot, transcript, resume, certificate, and identification document.'",
+  "grouping_reasons": [
+    "one named award from one sponsor in one cycle — the smallest honest packet here, often only two or three files",
+    "one scholarship season: many sponsors, one applicant, one reusable essay family and one reusable supporting-document set. Purpose-coherent and content-incoherent at once — 'The documents are content-incoherent but purpose-coherent.'",
+    "drafts of one essay held together by the universal version_family, which in this situation spans sponsors rather than sitting inside one packet",
+    "one supporting document attached to many sponsor packets without gaining a sponsor fact from any of them — 00 allows the overlap: 'A file may validly belong to more than one accepted group'",
+    "an application and its own outcome document (submission, award letter or decline notice) as one thread"
+  ],
+  "template": {
+    "dimension_order": [
+      "application_cycle",
+      "application_document_type",
+      "target_university"
+    ],
+    "why": "A departure from the schema's default order, recommended for this situation and flagged rather than asserted. The default is institution-first — 00's own Applications example produces 'Applications/UChicago/2026/Supplemental Essays' — and that order works when a handful of institutions each receive a substantial packet. This situation has the opposite shape: one applicant addresses many sponsors in one season, most of them receiving one essay and one form. Institution-first therefore lands on the exact structural warning 00 gives the canvas — 'It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders. It should recommend flattening when a dimension does not materially improve retrieval.' Cycle first, then what the document is, keeps the reusable essay family and the shared supporting set together where the applicant actually looks for them, and leaves the sponsor as the deepest split so it only opens where a sponsor genuinely produced several files — 00's uneven-depth rule: 'each branch should offer the dimensions that are actually present in its member groups and show what each split would create.' THE DEPARTURE, STATED PLAINLY: 00's practical rule for this class of material is that 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders', and its named exception is capture media, not this. The reason the scatter concern does not bite here is that a scholarship season does not continue into the next one — the cycle IS the workflow unit rather than an arbitrary calendar cut — but that is a judgement about a real corpus, not a design sentence, so the fork is recorded in open_question. Either way this is a recommendation: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.' purpose is destination-eligible on the schema and is deliberately absent from this order: a flat purpose-coherent packet is the separate situation the applications.purpose-packet template holds, not a second dimension here. school is excluded because the schema forbids it as a folder level for this domain, and 00 forbids the collector shape it would create: 'It should avoid using authorship or creator identity as a destination dimension.'",
+    "time_first": true,
+    "time_first_note": "True in the literal sense that a cycle field is first, and NOT a claim of 00's photo exception ('Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.'). It is set true so the departure is visible to R1c and to the canvas rather than buried in prose, and 00's live structural feedback is what should settle it in front of a real corpus: 'The user sees the actual branch counts before committing.'"
+  },
+  "privacy_rules": [
+    "Financial-need documentation is the working material of this branch, not an exception to it: a tax return, an aid report, a parent income letter, or a bank confirmation attached to a need-based application is material 00 orders into immediate protection — 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' Protection precedes any model path for those members even while the essay beside them is an ordinary cloud-eligible dossier.",
+    "A packet member that is protected does not make the packet protected, and the packet does not de-protect the member. The branch is mixed by construction, and the sensitivity fact is per file.",
+    "Amounts, household-income values, and applicant identifiers are search-and-review material only. They may never become a folder level, and no dimension in this template can be filled from them.",
+    "A sponsor portal capture may carry an application ID and an applicant name in its OCR region; the OCR text stays local by 00's boundary, and only the resolved sponsor and document-role facts should reach a dossier.",
+    "This row records only that the situation is potentially_sensitive. The handling class is P7's vocabulary and is not assigned here."
+  ],
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "calendar"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "zip",
+      "png",
+      "jpg",
+      "eml",
+      "ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Community Foundation Scholarship - Personal Statement.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename pairs an organization-shaped token with the word Scholarship and a document-role phrase",
+        "page-one heading names an award and states a submission deadline",
+        "body narrates the writer's own high school and hometown at length",
+        "DOCX core properties name a prior editor"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school = the writer's high school written into target_university — 00: 'The system must separate roles that happen to contain the same entity type.' and 'Those are not the same field.'",
+        "application_cycle from the year token inside the deadline sentence without a dedicated cycle pattern",
+        "authored_by as a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scholarship Application Form.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots in table cells: Applicant name, Date of birth, Award applied for, Award cycle, Expected enrollment term, Household income, Signature",
+        "sponsoring organization logo and name in the header zone",
+        "body paragraphs carry instructions only; every value is in a cell"
+      ],
+      "facts_legal": [
+        "application_document_type",
+        "target_university",
+        "application_cycle",
+        "purpose",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from the household-income value or from the applicant's identity values",
+        "that the expected-enrollment slot is the application_cycle — two labelled slots, two different facts",
+        "that the sponsor in the header licenses school as well; the slot names the addressee"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Award Letter - Regional Scholarship 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letterhead names a sponsoring organization",
+        "body states an award amount and instructs disbursement to a named school's bursar",
+        "an outcome word appears in the first line"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose",
+        "application_cycle"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school = the bursar's institution from one mention in a disbursement sentence",
+        "that an award amount makes this a finance record rather than the outcome of an application",
+        "that the letter's own sent date is the application_cycle"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NSF GRFP Personal Statement v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a funding-program acronym, a document-role phrase, and a version ordinal",
+        "body sets out a proposed research plan and names a lab and an advisor",
+        "three sibling files share the same normalized stem"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "application_cycle = 4 from the version ordinal",
+        "that the newest draft supersedes the others as a fact rather than as a version-family relationship",
+        "that the named lab and project become this template's facts — they are the research schema's, held on the same file at the same time"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Official Transcript.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letterhead names the issuing school; page-one heading reads Official Transcript",
+        "a term-by-term table of courses and grades",
+        "the same content hash appears beneath two different sponsor folders"
+      ],
+      "facts_legal": [
+        "school",
+        "term",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from either surrounding sponsor folder — 00: 'A transcript may be part of several application packets'",
+        "purpose = scholarship application from packet membership alone",
+        "an arbitrary primary home between the two packets when the frozen tree has no shared-material branch"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tax Return 2025 - Parent Copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading names a tax form and a filing year",
+        "labelled income and dependant lines carry the values",
+        "the file sits in a folder whose name carries an award token"
+      ],
+      "facts_legal": [
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose = scholarship application from the parent folder's name alone — folder context is a purpose clue about the files inside it, and this file's own evidence says tax record",
+        "that packet membership converts a protected financial record into an application document",
+        "any cloud dossier for this file before protection is applied"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "FAFSA Student Aid Report 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading names a federal student-aid report and an aid year",
+        "a labelled expected-contribution figure",
+        "a list of schools the report was released to",
+        "the word aid appears throughout; the word scholarship appears once, in a definitions footnote"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose = scholarship application — this is the collision fixture for this node: an aid record is not an application addressed to a sponsor",
+        "target_university from any school listed as a release recipient",
+        "that the single footnote occurrence of the word scholarship is award context; 00 weights position, and a footnote is not a heading"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grant Proposal - Budget Justification.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names include Budget, Personnel, and Justification",
+        "cells name a principal investigator, a lab, and a project code",
+        "a funder program line sits in the first sheet's header row"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose = scholarship application — the second collision fixture: this funds a named project through a lab, not a person's study, and belongs to research.grants-funding",
+        "target_university from the funder program name",
+        "that a funding application is this template merely because both are addressed to a funder"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-02-11 at 09.22.03.png",
+      "source_type": "image",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region reads a sponsor portal page: an award name, an applicant ID, and the words Application submitted",
+        "filename carries a capture-time-shaped stamp"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "application_cycle from the capture stamp — the stamp records when the portal was photographed, not which cycle it belongs to",
+        "media_type = screenshot from the absence of EXIF alone",
+        "that the applicant ID in the OCR region may leave the device"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "scholarship_packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking; members include a personal statement, a resume, a transcript, a tax form, and a recommendation form",
+        "outer archive name carries an award word but no sponsor and no cycle"
+      ],
+      "facts_legal": [
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from one member filename alone",
+        "that the members inherit the archive's facts — the manifest is evidence about the archive, and each member is re-evidenced on its own bytes",
+        "that the archive should be extracted to disk to settle the question"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Essay.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename is a bare document-role word and nothing else",
+        "body is a short personal narrative naming no award, no sponsor, no deadline, and no prompt",
+        "three siblings in the same folder each carry a sponsor-shaped token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university or purpose from the sponsor-named siblings or from the folder name — this is the HW-3 shape for this node, and 00 is explicit: 'The graph does not automatically copy those missing facts onto sparse files.'",
+        "an application_document_type value beyond what the file's own body supports"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Re Your Fulbright application - next steps.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line pairs a program name with the word application",
+        "sender address on a program-office domain",
+        "body names a review stage and states a grant year; a host university is named once as a placement",
+        "sent date in the header"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_cycle",
+        "purpose",
+        "application_document_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a folder level built from the sender address",
+        "target_university = the host university named as a placement — the addressee is the funding program, and this is the sponsor-plus-host case the model must cite its way through",
+        "application_cycle from the sent date rather than from the stated grant year"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Scholarship deadline - Rotary.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY pairs a sponsor-shaped token with the word Scholarship and the word deadline",
+        "start time and no end time; organizer is the applicant's own address; no attachment"
+      ],
+      "facts_legal": [
+        "target_university",
+        "purpose"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that source_type = calendar contributed anything on its own — it is file-kind plausibility only, and a calendar is a SOURCE_TYPE, never a domain",
+        "application_cycle from the event start time"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Merit Award Certificate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a single decorative page naming a recipient, an award, and a sponsoring organization",
+        "no cycle, no prompt, no form structure, no applicant-side language",
+        "no accepted packet contains it"
+      ],
+      "facts_legal": [
+        "target_university",
+        "application_document_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose = scholarship application — a certificate evidences an outcome, not that this holder's files contain the application that produced it",
+        "application_cycle from the ceremonial date line without a dedicated pattern"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.student-financial-aid",
+      "signal": "The shared evidence item is an aid-or-award word beside an institution and an amount — it appears identically on a scholarship application, an aid report, an award letter, and a tuition bill. The discriminating evidence is direction and authorship of the document: this side needs applicant-side submission structure (a prompt, an essay, a labelled application form, an eligibility questionnaire, an outcome letter answering a submission), the neighbour needs account-and-disbursement structure (an aid year, an expected-contribution figure, a bursar ledger line, a statement issuer). Fixture: FAFSA Student Aid Report 2026.pdf activates the neighbour, not this node, even though it carries the word scholarship.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.grants-funding",
+      "signal": "The shared evidence item is a funding application addressed to a funder: both sides produce a statement, a budget, a CV, and letters, and the words award, funding, and proposal support either. The discriminator is what is being funded — a person's study or training against a personal record spine (this node) versus a named project with a lab, a principal investigator, and a project code (the neighbour). Fixture: Grant Proposal - Budget Justification.xlsx is the neighbour's; NSF GRFP Personal Statement v4.docx is this node's and legitimately carries research facts too, which is the also-holds case rather than the collision.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "Both are applicant-side packets and share every document kind — essay, form, transcript, resume, portal capture — so the document kind discriminates nothing. The discriminating evidence is what the addressee is deciding: admission and enrollment (admissions language, an entry-term slot, a program-applied-to slot, a decision letter about a place) versus money (an award name, an eligibility clause, a stipend or amount, a need-documentation requirement). A university's own scholarship office sits exactly on this line and is the case that must reach review rather than be absorbed either way.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.graduate-professional",
+      "signal": "Fellowship material and graduate-admission material arrive in one folder, in one season, sharing a statement family and a CV. The discriminator is the same one: a degree-granting admissions office deciding enrollment versus a funder deciding an award. 00's rule against silent absorption is what governs the overlap — 'an application packet does not silently absorb a document with a conflicting target institution' — and a fellowship whose addressee is a funding program is exactly such a conflict inside a grad-application packet.",
+      "design_cite": "an application packet does not silently absorb a document with a conflicting target institution",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by finding: also_holds_with joins schemas only (CONNECTION.md section 5), and this is a template row. The joins this situation exercises are already authored on the college_applications schema — research (the fellowship research statement that keeps its project and lab facts), academic (the transcript copy), identity (the ID and DOB-bearing form). One pair this node's evidence supports and the schema does not yet assert is college_applications with finance, on disjoint evidence: an award letter that also instructs a disbursement, and a need-documentation member that is a financial record in its own right. Recorded for R1c to consider at the schema level; a template may not author it.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "00's own description fits this branch's leftovers: 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'. An award certificate or a decline notice with no accepted packet is exactly that. Fixtures: Merit Award Certificate.pdf, Award Letter - Regional Scholarship 2026.pdf and Re Your Fulbright application - next steps.eml when no award group is accepted.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: 'files whose meaning is partly understood but whose final location requires a future decision' — the dominant residual for this situation, because the sparse essay is its characteristic unresolved file. Fixtures: Essay.docx, scholarship_packet.zip when no sponsor resolves, Scholarship deadline - Rotary.ics, and the two collision fixtures once they are routed away from this node.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The residual home this situation needs that the undergraduate packet does not carry as working material. 00 defines it for 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials', requires it to 'normally remain local-only and must not cause filenames or content to be exposed in model prompts', and licenses surfacing it alone: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' Fixtures: Tax Return 2025 - Parent Copy.pdf, FAFSA Student Aid Report 2026.pdf, Scholarship Application Form.pdf when its identity slots dominate.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A sponsor-portal capture whose OCR yields no award and no organization has 'no accepted project, trip, application, or event relationship'. Fixture: Screenshot 2026-02-11 at 09.22.03.png when its OCR is unusable.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "target_university",
+      "other_field": "school",
+      "neighbor": "academic",
+      "why": "The split this situation strains hardest. A scholarship personal statement describes the applicant's own school at length while being addressed to a sponsor, so one document carries both roles and the schools gazetteer hits the wrong one first. 00 states the rule and the exact case: 'The system must separate roles that happen to contain the same entity type.' and, of the essay that names the writer's school and the university it is addressed to, 'Those are not the same field.' The canonical list already records the split; this row names the neighbour holding the other role. Note the second strain, which is NOT resolved here: the target-side value is frequently not a university at all.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A need-based scholarship packet requires the applicant to attach financial documentation, so tax records and account material sit inside this branch's ordinary working set rather than at its edge, alongside the identity slots on the forms and the educational records copied in as support. 00's own listing of the corpus this posture exists for names them together: 'identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. This row records only that the situation is potentially sensitive; the handling class is P7's and is not assigned here.",
+  "open_question": "Two, both for Joseph or R1c and neither resolved here. (1) THE ADDRESSEE KEY, already open as ROSTER.md NJ-R1a-6: this situation's target is usually a foundation, a civic club, a professional society, an employer, or a government program, yet the only target-side Applications key is target_university. No field was minted. The three options stand as recorded — sponsor names are simply values of target_university, or the key is renamed to a broader target concept as a one-key D6-style decision, or a role_split sibling is added. Nothing in this node's dimension_order or recognition depends on which is chosen; only the key's name changes. (2) THE ORDER FORK: this node recommends application_cycle before application_document_type before target_university, reversing the schema's institution-first default because a scholarship season is many one-file sponsors, and 00 warns against a level that 'creates a large number of tiny folders'. The counter-argument is 00's own practical rule that for document and record domains subject comes before time. The honest resolution is the one 00 builds into the canvas — show the real branch counts on a real corpus and let the user choose — so this order should be treated as a recommendation to test, not a finding."
+}

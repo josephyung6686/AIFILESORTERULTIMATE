@@ -67,7 +67,7 @@ file_id              internal, stable across renames and moves
 content_hash         + hash algorithm; the identity of a file *version* (§8.2)
 current_path         used for filename-derived observations only, never stored on a fact
 mime_type / detected_format
-sensitivity_state    (§8.2 file record) — see the open question on its relationship to P7
+sensitivity_state    (§8.2 file record) — P1 projection of P7's `ClassificationRecord` (D2, D7). P6 does not own this column and does not create a `sensitivity_status` field row.
 ```
 
 Append-only: P6 writes `events` rows through P1 and never mutates them (see Provenance below).
@@ -198,7 +198,7 @@ The organization language of the product. **Not** created automatically at runti
 
 ```text
 field_key            stable identifier — the role, not the entity type (§3.8)
-                     e.g. course, term, work_type, target_university, authored_by,
+                     e.g. subject, term, work_type, authored_by,
                           target_school, our_firm, client, purpose, project, event
 display_name
 scope                universal | academic | college_applications | research
@@ -238,6 +238,13 @@ Domain fields, exactly as §3.11's table names them and no more:
 | Photos | capture year, event, location, people, camera information, media type |
 | Code | project, repository, programming language, artifact type |
 
+> **That table is a literal transcription of §3.11 and is deliberately left unchanged. Two of its
+> words are NOT stored field keys.** `course` (Academic) is the design's prose for the field whose
+> stored key is **`subject`** (**D6**), and `target university` (College applications) is prose for
+> **`target_school`** (**D8**). Both are aliases; the `fields` catalogue carries neither as a row.
+> The transcription stays literal so the §3.11 citation remains checkable — but an author reading
+> it to build `FIELD_ROWS` must take the stored keys, not these words.
+
 §3.11 also states that each domain carries "several additional fields used only for search, privacy
 protection, explanation, or later review" — it names none of them. Those are deferred, not invented
 here.
@@ -249,7 +256,7 @@ system sees a new course, project, company, university, or event (§3.12).
 
 ```text
 value_id
-field_id             a value belongs to exactly one field (§3.12)
+field_key             a value belongs to exactly one field (§3.12)
 canonical_value      the normalized form — "University of Chicago"
 raw_variants[]       every raw wording observed — "U Chicago" (§2.8)
 display_label        the user's preferred rendering — "UChicago" (§2.8);
@@ -267,7 +274,7 @@ that justify the connection" (§3.12).
 ```text
 fact_id
 file_id                    (P1)
-field_id
+field_key
 value_id
 reliability_state          one of the six (§3.13)
 origin                     which producer created it — deterministic extractor | rule |
@@ -303,11 +310,11 @@ after extraction, so the observation layer (P4) does not carry it and neither do
 How P6 sets it:
 
 - It is set **only** on supersession. When a new fact supersedes an earlier fact for the same
-  `(file_id, field_id)`, the surviving row gets `preferred = true` and the superseded row
+  `(file_id, field_key)`, the surviving row gets `preferred = true` and the superseded row
   `preferred = false`. Both rows, both states, and both evidence chains remain readable (§8.2).
 - It is set **only by the resolver** — never by an extractor, never by P8, never as a side effect of
   a model proposal.
-- A `user_confirmed` fact is always the preferred row for its `(file_id, field_id)`; §3.13's ordering
+- A `user_confirmed` fact is always the preferred row for its `(file_id, field_key)`; §3.13's ordering
   is not negotiable and `preferred` never reverses it.
 - **`preferred` is a pointer, not a strength.** It never enters the §3.6 contradiction check, never
   breaks a §3.7 margin tie, and never makes a fact destination-eligible. A reader that wants
@@ -330,7 +337,7 @@ records its refusals.
 unresolved_id
 file_id                    (P1)
 content_hash               (P1) — the abstention is per file *version* (§8.2, §3.4)
-field_id                   the field that was attempted — required
+field_key                   the field that was attempted — required
 reason                     one of the values below — required
 attempted_producers[]      direct | rule | llm — which §3.5 routes were tried
 evidence_refs[]            the observation keys considered, where any were (may be empty)
@@ -360,10 +367,10 @@ Rules that make the row trustworthy:
 1. `unresolved` is **not a fact**. It carries no `value_id`, no reliability state, and is absent from
    every fact read including the proposal-eligible read. It is not a weaker `possible`.
 2. It obeys the same negative contract as `file_facts`: no path, destination, folder or group column.
-3. A later fact for the same `(file_id, content_hash, field_id)` does not delete the row — it
+3. A later fact for the same `(file_id, content_hash, field_key)` does not delete the row — it
    supersedes it, and the row remains readable as the record of what was once refused (§8.2, §8.7).
 4. `budget_deferred` and `privacy_withheld` are **not** abstentions. §8.6 requires deferred work be
-   "visible as deferred, never as 'understood and found unimportant'"; conflating them would report a
+   mark the deferred stage, and leave the file or group in review rather than guessing (§8.6), which "avoids the false impression that an unprocessed file was understood and found unimportant"; conflating them would report a
    budget stop as a considered refusal.
 
 ### The six reliability states (§3.13)
@@ -403,10 +410,11 @@ labeled form field. Filesystem timestamps are direct; dates recovered from text 
 not, and take the §3.10 path.
 
 **Rule-validated (§3.5)** — a pattern match *plus* a strict context check. The design's worked
-requirement, literal and required: `BUSIB 4300` becomes a course fact **only** when a course-code
+requirement, literal and required: `BUSIB 4300` becomes a `subject` fact **only** when a course-code
 pattern is found together with academic context — **"syllabus", "lecture", "credits", "instructor",
 or "semester"**. A course-code-shaped string with no such context in its surrounding context window
-yields no course fact.
+yields no `subject` fact. (**D6**: the stored key is `subject`; "course" is the design's prose for
+the same field. "Course-code" here describes the *shape of the string*, which is unaffected.)
 
 **The §3.5 context-term check is case-insensitive** (N-6). §3.5 writes its five terms in lowercase
 and states no matching rule, so P6 states one: a term matches regardless of the case it appears in.
@@ -450,12 +458,17 @@ download session rule below (G6).
 creator-identity field is ever `destination_eligible`.
 
 **Domain activation (§3.11)** — the universal set applies to every file. A domain schema activates
-only when evidence indicates that domain is plausible; `target university` is not a field every file
+only when evidence indicates that domain is plausible; `target_school` is not a field every file
 is expected to have. One file may carry facts from several domains simultaneously without either
 being dropped — §3.11's worked case is an abstract holding `project = PVA/RDP` and
 `document type = abstract` *and* `purpose = university application` and
 `target university = UChicago`. P6 preserves all four; deciding which perspective determines
 physical location is not P6's decision (§3.11, §3.14).
+
+> **The worked case keeps the design's own words; two of them are not stored keys.** `document
+> type` is the design's generic word for whichever field the active domain declares —
+> `application_document_type` here — and `target university` is prose for **`target_school`**
+> (**D8**). Quoted so the §3.11 citation stays checkable; an implementer stores the keys.
 
 **Producer, creator and author metadata — the discount rule (§2.2, §2.3).** M4: nobody owned this
 and both sections require it. There is no marker on the observation; P4 emits the value with
@@ -471,7 +484,7 @@ By` and their per-format equivalents):
    weak clue about the document, it is a fact about the software.
 2. **Demotion.** Any other producer/creator/author metadata value is *supporting evidence, not
    truth* (§2.2) and *supporting information only* (§2.3). It may populate an authorship role field
-   (§3.8 `authored_by`) and nothing else; it may never populate a topic, purpose, project, course,
+   (§3.8 `authored_by`) and nothing else; it may never populate a topic, purpose, project, subject,
    institution or target field on its own; and §3.8 already makes every authorship field
    `destination_eligible = FALSE`. §2.3's reason is the binding one: the value "may identify a prior
    editor, a document template, or a script rather than the meaningful subject or purpose."
@@ -654,17 +667,35 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Schema**
 1. `fields`, `values`, `file_facts` exist with the shapes above; `file_facts` contains no path,
    destination, folder, or group column (§3.14).
-2. All six universal fields, `download_session`, and all six §3.11 domain field sets are present,
-   and no field outside them (§3.11, and the "such as" reading recorded under `fields`). Career and
-   recruiting, identity, medical and legal have no field rows and must not acquire any (S3).
+2. All six universal fields, `download_session`, all six §3.11 domain field sets, **§3.8's four
+   role fields** (`authored_by`, `target_school`, `our_firm`, `client`) and **`capture_date`** are
+   present, and no field outside them (§3.11, and the "such as" reading recorded under `fields`).
+   Career and recruiting, identity, medical and legal have no field rows.
+
+   > **Amended 2026-08-22.** Three changes, each closing a contradiction inside this document.
+   > **(a) §3.8's roles are IN.** Round 1's F-1: the design names them outright and Done-means 13
+   > and 22 both require `authored_by` to exist, so the old "no field outside them" made two of this
+   > SPEC's own Done-means unwritable. **(b) `capture_date` is IN** (F3): Done-means 5 requires it,
+   > §3.2 derives it from EXIF `DateTimeOriginal`, and it is distinct from both `creation_date`
+   > (filesystem/document timestamp, §3.2's own contrast) and `capture_year` (§3.11's Photos
+   > destination dimension). **(c) "and must not acquire any (S3)" is STRUCK** (D1, narrowed by
+   > Joseph 2026-08-21): the deferral stands on its own, and a test forbidding the row made P6's
+   > suite the thing that would reject a later deliberate reversal of S3 — a decision arriving as a
+   > regression. They still have no field rows today; nothing may add one silently.
 3. A new value auto-creates on first sight; a new field cannot be created at runtime by any
    producer, including the LLM path (§3.12, §3.5).
 
 **Observation → fact**
 4. Given the §3.2 fixture — filename `Syllabus BUSIB 4300 Spring 2026.pdf`, PDF title
    `BUSIB 4300 Syllabus`, page-one heading `Spring 2026` — P6 produces exactly the three facts
-   §3.2 names (course, term, work type), each with evidence refs to the observations that supported
-   it, and each observation's `raw value` unchanged afterwards (§3.2, §2.8).
+   §3.2 names (**`subject`**, term, work type), each with evidence refs to the observations that
+   supported it, and each observation's `raw value` unchanged afterwards (§3.2, §2.8).
+
+   > **Amended by D6, 2026-08-21.** This item said `course`. §3.2's own sentence is *"the system can
+   > create facts such as subject = BUSIB 4300"*, and §3.1 and §3.12 agree; only §3.11's Academic
+   > row says "course". The stored field key is `subject` -- a field key is a join handle and two
+   > spellings are two columns -- and §3.11's word survives inside quotations as prose for the same
+   > field. The `fields` catalogue carries a `subject` row and no `course` row.
 5. An EXIF `DateTimeOriginal` observation produces `capture date` as a `direct` fact, and the EXIF
    observation remains separately readable (§3.2).
 6. P6 resolves a fixture whose `source type` is unknown to it, with no per-format branching
@@ -673,7 +704,7 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Refusals — these are the point of the part**
 7. `submit` produces no `MIT` fact; `uncertainty` produces no `UNC` fact (§3.7, §8.5).
 8. A course-code-shaped string with no academic context term in its surrounding context produces no
-   course fact (§3.5). Positively: the same string with `context_before: "Syllabus — "` — P4's
+   `subject` fact (§3.5). Positively: the same string with `context_before: "Syllabus — "` — P4's
    skeleton fixture 1, capital S — **does** produce one, because the §3.5 context check is
    case-insensitive (N-6, B8(a)).
 9. Two candidates within the margin of each other fill nothing (§3.7).
@@ -687,8 +718,16 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 13. An `authored_by` value is never returned as destination-eligible (§3.8).
 
 **Multi-fact and history**
-14. One file simultaneously holds `project`, `document type`, `purpose`, and `target university`
-    with no field dropped and no domain forced to win (§3.11).
+14. One file simultaneously holds `project`, the active domain's document-type field, `purpose`,
+    and `target_school` with no field dropped and no domain forced to win (§3.11).
+
+    > **Amended 2026-08-22 by D8 and the `document type` ruling.** This item said `document type`
+    > and `target university`. Neither is a stored field key, so as written the item could not be
+    > tested — it named two things the `fields` catalogue does not contain. `document type` is
+    > whichever field the active domain declares (`application_document_type` for College
+    > applications, `artifact_type` for Research/Code); the school concept's stored key is
+    > `target_school`, with "target university" an alias. §3.11's worked case is unchanged —
+    > only the names this item is checked against are.
 15. Re-resolution under a bumped extractor version or a changed prompt fingerprint creates a new
     fact that supersedes the old one; the old fact, its state, and its evidence remain readable,
     with the reason it was superseded (§3.4, §8.2).
@@ -698,7 +737,12 @@ Each item is assertable against P4-shaped fixtures with no other part implemente
 **Deterministic operation**
 17. The whole of items 4–10, 13–16 and 18–27 pass with P8 absent and no model configured — the
     Wave 2 requirement and the walking skeleton's `P6 resolve it to ONE validated fact
-    (course = X) with its evidence link`.
+    (subject = X) with its evidence link`.
+
+    > **Amended by D6, 2026-08-22.** This quoted the walking skeleton's pre-D6 wording,
+    > `course = X`. `02-segmentation-map.md:190` now reads `subject = X`, and the stored
+    > field key is `subject` everywhere. Caught by a Task 27 author, whose guard asserts
+    > `"(course = X)" not in text` so it cannot silently return.
 
 **Abstention is a record, not a gap (B7)**
 18. Every refusal asserted in items 7–12 also writes an `unresolved` row naming the field attempted
@@ -843,8 +887,11 @@ joint review, not later.
    not share a cache slot. [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 3. Is `purpose` a universal field or an Applications-domain field? §3.9 requires it to be
    "first-class"; §3.11's universal list omits it and places it only under College applications.
-4. Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's Academic
-   row) the same field under two names, or two fields?
+4. ~~Are `subject` (§3.1's `subject = BUSIB 4300`, §3.12's field list) and `course` (§3.11's
+   Academic row) the same field under two names, or two fields?~~ **CLOSED — D6, 2026-08-21: one
+   field, and its stored key is `subject`.** A field key is a join handle, so two spellings would be
+   two columns. §3.11's "course" is the design's prose for the same field and survives inside
+   quotations; the `fields` catalogue carries `subject` and no `course`.
 5. Finance has a fact schema in §3.11 but is a *safety* domain in §3.15, "detected and protected
    before any cloud or automated placement decision is allowed". Does the Finance fact schema
    activate at launch, or does detection-and-protection precede any field extraction? **[seam with
@@ -866,16 +913,28 @@ joint review, not later.
     facts — two `validated` facts asserting conflicting course codes on one file. Reject both,
     surface both as competing candidates, or defer to the internal score §3.13 permits but declines
     to make authoritative?
-11. **[seam]** `sensitivity status` is a universal *fact* (§3.11), a *sensitivity state* on the file
-    record (§8.2), and a *handling class* in the privacy gate (§8.4). One record or three? Which part
-    writes it, and does a user reclassification (§8.4) arrive as a `user_confirmed` fact?
+11. ~~**[seam]** `sensitivity status` is a universal *fact* (§3.11), a *sensitivity state* on the
+    file record (§8.2), and a *handling class* in the privacy gate (§8.4). One record or three?~~
+    **CLOSED — D2, 2026-08-21.** P7's `ClassificationRecord`, keyed `(file_id, content_hash)`, is
+    authoritative. `files.sensitivity_state` is its projection, written through P1's
+    `set_sensitivity_state`. `Unreadable or unclassified` is a **gate outcome, not a file fact**, so
+    it never enters that column. P7 authors its own §8.4 audit record and P1 stores (M8).
+
+    **Two residues, both still open.** Whether P6 keeps a `sensitivity status` field row beside P7's
+    record — round 1 F-2 found it has no producer, so create none until asked (NEEDS-JOSEPH C5).
+    And whether a user reclassification arrives as a `user_confirmed` fact, which D2 did not reach.
 12. **[seam]** §2.8's observation record ends with a "reliability state" field, and §3.13 defines six
     reliability states for *file facts*. Do observations use the same six-value enum, a different
     one, or is the §2.8 field something else? P4 and P6 must agree before either is frozen.
-    *Status:* P4 has since published an answer — §3.13's six-state vocabulary, with extractors able
-    to write only `direct` and `possible` (P4 D11) — and asks P6 to confirm it. `04-resolutions.md`
-    does not adjudicate it, so P6 does not close it unilaterally; it is a one-line confirmation for
-    the joint review. P6's rules are written to be correct under P4's answer.
+    *Status:* **CLOSED — ratified by Joseph 2026-08-20 (C1).** One vocabulary: §3.13's six states,
+    and extractors may stamp only `direct` and `possible` (P4 D11). P6 **states** this rather than
+    re-asking it; a seventh state or a separate observation-level vocabulary is now a contract
+    revision, not an open alternative. P6's rules were already written to be correct under this
+    answer, so nothing in this SPEC changes but the status of the question.
+    Consequence P6 must carry: catalogue 01 (`planning/deferred-catalogues/`) is the suppression
+    list this vocabulary uses — a match yields no fact in any field, `unresolved` with reason
+    `discounted_tool_metadata`, never a demotion to `possible`. It is INJECTED data, never imported
+    into `src/extractors/`.
 
 **Closed by `04-resolutions.md`** — retained here so other specs citing these numbers still resolve.
 The numbering above is left with gaps rather than shifted, because P2, P4 and P5 cite these by

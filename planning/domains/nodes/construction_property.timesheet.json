@@ -1,0 +1,290 @@
+{
+  "id": "construction_property.timesheet",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Labour timesheets and site attendance",
+  "one_line": "REFUSED (J-IND). The legacy row trade.timesheet named a document type, not an organizational situation: its contents split cleanly into contractual daywork evidence (construction_property.variation-claim), the statutory site attendance roll (construction_property.site-health-safety), the daily labour allocation record (construction_property.site-diary), and hours-for-pay (hr.payroll-benefits-administration on the employer side, finance.payroll-received on the receiving side). The residue has no detection signal of its own, no dimension order distinct from the diary's, and a privacy posture that belongs to the hr schema rather than to this one. Coverage is routed rather than lost; see refuse_reason.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Refused. The row is a document type wearing a situation's clothes, and its three real contents each belong to a row that already exists — two of them in this same family and one in another schema whose privacy posture is stricter than this one's.\n\n(1) WHAT IS ACTUALLY IN IT. A construction 'timesheet' is three different documents that share a table shape. A SIGNED DAYWORK SHEET, countersigned by the client's agent, is contractual evidence that extra work was done at cost — its purpose is to be produced in support of a change, which is construction_property.variation-claim's situation. A SITE ATTENDANCE or INDUCTION REGISTER is a statutory roll of who was on site — its purpose is safety and fire evacuation, which is construction_property.site-health-safety's situation. A LABOUR ALLOCATION SHEET recording hours against trades and cost codes is the numeric half of the daily record, which is construction_property.site-diary's situation and is named in that row's work_types. What is left after those three is hours-against-rates for the purpose of paying someone, which is hr.payroll-benefits-administration's situation on the employer side and finance.payroll-received's on the receiving side.\n\n(2) DETECTION SIGNALS: none of its own that survive the split. The candidate signal was 'a table of names against hours', which is never-alone by exactly 00's own reasoning about role ambiguity — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — read across to a person's name in an hours table, where the same token is an employee, a subcontractor's operative, a self-employed labourer, a visitor and an agency worker. The one signal that might have been distinctive, a SITE or COST-CODE column, is a discriminator BETWEEN the existing rows rather than evidence for a new one: it is what tells the site reading from the pay reading, and it is recorded as such on construction_property.site-diary and hr.payroll-benefits-administration.\n\n(3) DIMENSIONS: identical to the schema's default, and empty in any case because construction_property declares no fields (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). A tree of site → week → timesheet is the diary's tree with one leaf renamed.\n\n(4) PRIVACY RULES: different from this schema's default — and that is an argument for routing the material AWAY from here, not for a node. Hours, rates, deductions and attendance for named individuals are employment and pay data; 00's corpus sentence names the category directly, the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Filing it under a construction branch would put employee pay data in a tree whose neighbours are quotes and drawings, and whose posture was written for commercial rather than personal material. Where the pay reading fires, the hr row's stricter posture must win.\n\nCONNECTION.md section 2 states the test the row fails: a template row exists only when its detection signals, recommended dimensions, or privacy rules differ from its schema's default template. This row differs on the third only, and differs by belonging somewhere else. Section 9's second forbidden failure mode is the general form of the mistake — work types and formats as nodes — and 'timesheet' is a work_type value, listed as one on construction_property.site-diary. Inventing a node to save the legacy id trade.timesheet is the 574's original error, and the coverage is not lost: it is routed, reciprocally, to four rows that already claim it.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None asserted. The row is refused, and writing detection signals for a refused row would create exactly the never-firing node the refusal exists to prevent. The signals that WOULD have been written here are recorded on the rows that received the coverage: the labour-return structure on construction_property.site-diary, the register-with-signature-column structure on construction_property.site-health-safety, and the daywork-sheet structure on construction_property.variation-claim."
+    ],
+    "needs_llm": [
+      "None asserted, for the same reason. The one genuinely hard determination in this material — whether an hours table is a site record or a pay record — is recorded as a discriminating signal on the collisions of the receiving rows, where it can actually be used."
+    ],
+    "never_alone": [
+      "a table of names against hours. This was the row's only candidate signal and it is constitutionally never-alone: the same shape is a payroll run, a shift rota, a volunteer roster, a billable-time export, a care visit log and a school attendance register.",
+      "a person's name alone. In an hours table one token is an employee, a subcontractor's operative, a self-employed labourer, an agency worker and a visitor at once — 00's own role-ambiguity reasoning, stated there about a university: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” Recorded as inference, because 00 writes that sentence about a university, not a worker.",
+      "the word 'timesheet', 'hours' or 'attendance' alone.",
+      "a site or cost-code column alone. It is the discriminator BETWEEN existing rows — site reading versus pay reading — and not evidence for a row of its own.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None asserted. The groups this material really joins already exist elsewhere: one site across one period (construction_property.site-diary), one payroll period (hr.payroll-benefits-administration), one variation supported by signed dayworks (construction_property.variation-claim), and one site's induction and attendance roll (construction_property.site-health-safety)."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and empty in any case by binding contract: construction_property declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). The absence of a distinguishing dimension order is itself part of the refusal — site → week → timesheet is construction_property.site-diary's recommended tree with one leaf renamed, which is what CONNECTION.md section 2 and ALIGNMENT both call the schema's default template under a second name.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".jpg",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Labour allocation w-c 09-03-26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "operative names down the rows, five dated columns across, hours in the cells",
+        "a cost-code column",
+        "a second tab listing plant standing time",
+        "no rates, no deductions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row",
+        "any construction_property fact — the schema declares no field rows",
+        "an employment fact about a named operative",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Daywork sheet 018 - signed by CA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "hours and plant recorded for work done outside the contract scope",
+        "a countersignature by a contract administrator",
+        "a reference to an instruction number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — the countersignature and the instruction reference make it construction_property.variation-claim's contractual evidence",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Induction register - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names, employers, induction dates and signature columns",
+        "a site heading and induction topic",
+        "the register is maintained as a serial site-safety record"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — the register-with-signature-column structure and induction purpose make it construction_property.site-health-safety's",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Payroll timesheet import - March.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names, hours, hourly rates, overtime multipliers and a payroll period header",
+        "a tax reference column",
+        "no site and no cost code"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — rates, deductions and a payroll period make it hr.payroll-benefits-administration's on the employer side and finance.payroll-received's on the receiving side, both stricter than this schema",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employer payroll register - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "multiple employees appear in recurring rows under one labelled payroll period",
+        "columns distinguish gross pay, tax, pension and other deductions, and net pay",
+        "the workbook contains no site narrative, plant record, instruction reference or induction purpose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — this is the employer-side payroll apparatus routed to hr.payroll-benefits-administration, not the employee-received statement owned by finance.payroll-received",
+        "finance.payroll-received merely because payroll words and gross-to-net columns appear; that row expressly rejects the holder's multi-employee payroll run",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "timesheet.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photograph of a paper sheet with a grid of hours",
+        "two legible names and a week-ending date",
+        "no site, no rates, no signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "anything at all beyond the universal facts: this is the row's emblematic file and it shows the problem — the sheet is honestly ambiguous between four situations and the correct outcome is abstention, “conflicting signals should lead to abstention rather than an invented classification”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Agency worker timesheet - signed - Meridian.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an agency's letterhead, a worker name, a client site and hours",
+        "a client authorising signature",
+        "a rate schedule appended"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — an agency timesheet is a supply-of-labour billing document, which is construction_property.subcontract's payment cycle on one reading and hr.payroll-benefits-administration's on the other",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Billable hours export Q1.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "people, dates, matters and hours with rates",
+        "a client billing column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row, or of the construction schema at all — this is law_practice.time-and-billing's material and it is here to show how generic the row's only candidate signal was",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Shift rota April.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names against dated shift slots",
+        "a coverage total row",
+        "no hours worked, only hours planned"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "activation of this refused row — a rota is a plan, not a record, and it matches the candidate signal perfectly, which is the point",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for any member of this material that carries pay rates, deductions, tax references or attendance for named individuals — employment and pay data about people who are mostly not the holder. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for the emblematic case: a photographed sheet of hours whose situation is genuinely undecidable between four rows. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a signed daywork sheet arriving alone, with no contract or claim file around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected payroll and time-and-attendance system exports are ordinary in this material. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Set despite the refusal, because the material still exists and still has to be handled honestly wherever it lands. Hours, rates, deductions and attendance for named individuals are employment and pay data, and 00's corpus sentence names the category directly: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. The sensitivity is in fact part of the refusal's reasoning — this posture is the hr schema's rather than construction_property's, and material carrying it should be routed to the stricter row rather than filed under a construction branch. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Whether the legacy id was reaching for something narrower that this refusal throws away with it — specifically a SMALL-TRADE row for a sole trader's or two-person firm's own record of hours worked per job, which is neither a payroll run nor a site diary and which currently has no obvious home: construction_property.trade-job holds the job and hr.payroll-benefits-administration presumes an employer. If that is what was meant, the honest fix is a new narrow row named for that situation, not the reinstatement of this one — and minting a replacement id is outside what a single node agent may do, so it is recorded here for R1c rather than acted on."
+}

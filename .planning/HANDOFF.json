@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-25T09:35:59.781Z",
+  "phase": "P8",
+  "phase_name": "llm-harness-validator",
+  "phase_dir": "planning/parts/P8-llm-harness-validator",
+  "plan": 8,
+  "task": 1,
+  "total_tasks": 12,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Freeze vocabularies and immutable contracts",
+      "status": "in_progress",
+      "progress": "Implementation committed as dd94ee3. Spec compliance review and code quality review were NOT run. Subagent reported DONE_WITH_CONCERNS.",
+      "commit": "dd94ee3"
+    }
+  ],
+  "remaining_tasks": [
+    {"id": 1, "name": "Spec + quality review of Task 1, then mark complete", "status": "in_progress"},
+    {"id": 2, "name": "Deterministic fingerprint and dossier identity", "status": "not_started"},
+    {"id": 3, "name": "Append-only storage", "status": "not_started"},
+    {"id": 4, "name": "Eligibility, suppression, budgets", "status": "not_started"},
+    {"id": 5, "name": "Release-consuming transport", "status": "not_started"},
+    {"id": 6, "name": "Universal validation", "status": "not_started"},
+    {"id": 7, "name": "Site A fact validation", "status": "not_started"},
+    {"id": 8, "name": "Sites B–E fixtures", "status": "not_started"},
+    {"id": 9, "name": "Compose Gate.release branches / run_call", "status": "not_started"},
+    {"id": 10, "name": "P2 stage output", "status": "not_started"},
+    {"id": 11, "name": "No-bypass / no-invention guards", "status": "not_started"},
+    {"id": 12, "name": "Walking skeleton", "status": "not_started"}
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {
+      "decision": "Ship P8 via subagent-driven development on branch build/p6-p7-first-packages, working in place (no new worktree).",
+      "rationale": "Uncommitted P1–P7 assembly had to stay available for later P8 tasks; user asked to ship P8 in this session.",
+      "phase": "P8"
+    },
+    {
+      "decision": "Task 1 public __all__ is Dossier, P8Verdict, Refusal, ValidationUnavailable, NeedsConsent. Do not export run_call until Task 9.",
+      "rationale": "Frozen surface in planning/30-p8-p9-connection-contract.md; run_call does not exist yet.",
+      "phase": "P8"
+    },
+    {
+      "decision": "Do not implement P9 in this slice.",
+      "rationale": "P9 plan still needs body fixes; user asked only to ship P8.",
+      "phase": "P8"
+    }
+  ],
+  "uncommitted_files": [
+    ".superpowers/ (untracked SDD briefs/reports; do not need to commit unless useful)",
+    ".planning/HANDOFF.json",
+    ".planning/.continue-here.md"
+  ],
+  "next_action": "Resume SDD: independently spec-review then quality-review commit dd94ee3 (P8 Task 1). Fix any MUST-FIX findings in a follow-up commit. Only then dispatch Task 2.",
+  "context_notes": "Controller was mid-P8 ship. Task 1 implementer finished; spec reviewer Task call was interrupted when the user paused to go offline. Codex may still be running in terminal 78 on domain/planning work — P8 file set is src/llm_harness/, tests/p8/, and later the two named integration tests. Do not git add -A."
+}

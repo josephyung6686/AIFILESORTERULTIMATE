@@ -1,0 +1,460 @@
+{
+  "id": "business_operations.support-operations",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Customer support and service desk operations",
+  "one_line": "The organizational situation of RUNNING SUPPORT for the people who use a product or service: the case and ticket record itself, the queue and service-level reporting built from it, the knowledge-base and macro content that answers repeat questions, and the escalation, on-call and runbook procedures that route the hard ones. The organizing anchor is the SUPPORT FUNCTION AS A CONTINUOUS QUEUE - a stream of individually small third-party interactions - which is what separates it from managing one named customer relationship and from the bounded efforts the rest of this family holds. Absorbs the legacy rows ops.support-operations (ROW) and soft.helpdesk-ticket (FOLD) - an internal IT service desk and an external customer support desk are one situation with two audiences. Placeholder launch: it recognizes the situation and writes NO field rows, because the business_operations schema declares none (PR-6; D1's deferral stands). Researched to J-DEPTH: the node test is argued leg by leg against the family's stated default template, and the FORMAT charge - that a ticket, a chat log and a mail thread are containers rather than a situation - is answered head-on rather than assumed away.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity whose desk this is - one company among the two a person keeps books for, or the internal IT function inside it",
+      "why_no_existing_key": "SECONDED, NOT MINTED. This row proposes no key of its own and adopts the one already proposed by the landed business_operations schema row, to be adjudicated once, there. The row-specific argument for it: this template folds an INTERNAL service desk (soft.helpdesk-ticket) and an EXTERNAL customer desk (ops.support-operations) into one situation, and `organization` is the only proposed key that can carry which desk a file came from without naming a requester. The row-specific argument AGAINST it, stated because it is real: in a single-entity corpus the value is constant and the level is one of 00's two validator failures outright, so this row seconds the key on the schema row's own condition that it stay a template-time check rather than an automatic level. Provenance: proposal, seconding an existing proposal.",
+      "destination_eligible": false,
+      "reliability_ceiling": "possible",
+      "provenance": "proposal"
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "example": "Q2 FY26 on an SLA report; but far more often 2026-05, a calendar month",
+      "why_no_existing_key": "SECONDED WITH A STATED RESERVATION. The schema row's argument holds - no canonical key carries a management calendar, and `tax_year` would quietly assert a statutory meaning this material does not have. The reservation is this row's alone and R1c should weigh it: a support desk reports on an OPERATIONAL period - a week, a month, a rolling thirty days - far more often than on a fiscal one, and the recurring artifact here is `tickets_export_2026-05.csv`, not an FY-labelled deck. If `fiscal_period` lands as a strictly fiscal key, this row will need a period concept it does not have; it does NOT mint one here, because a monthly-operational variant would be exactly the synonym the contract forbids. Provenance: proposal, seconding an existing proposal with a scope doubt attached.",
+      "destination_eligible": true,
+      "reliability_ceiling": "possible",
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands), and this row's exports are dense in third-party personal data, so the precondition is load-bearing here. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a ticket-export structure whose header row pairs a case or ticket identifier with a requester name or email, a status, a priority, a created and a resolved timestamp, an assigned agent and a queue or category. Identifier plus requester plus status plus agent in one header is the shape, and it is close to unique. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a threaded case structure: a single case rendered as a chronological sequence of alternating requester and agent messages, each stamped and attributed, with a resolution note at the end.",
+      "a service-level structure pairing a target with an attainment - first response, time to resolve, backlog, volume by category - reported per period against a stated commitment.",
+      "a knowledge-article structure: a titled how-to or troubleshooting document with a symptom, a cause, a resolution and applies-to metadata, written for a support audience rather than a customer marketing one.",
+      "a macro, canned-response or template-reply structure: a set of short pre-written replies keyed by scenario, held in one file.",
+      "an escalation or on-call structure pairing severity levels with response commitments, a rota of named individuals and contact routes, and an invocation procedure.",
+      "a satisfaction-survey export: one row per closed case with a score and a free-text comment naming an agent."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "separating a support case export from a CRM opportunity export, a bug tracker export, an employee-relations case list, a clinical or legal caseload, or a complaints register - all are identifier-plus-person-plus-status tables and only their vocabulary differs. Getting this wrong is how a caseload of patients or clients would be read as a helpdesk queue. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "deciding whether a troubleshooting document is internal knowledge-base content (this row) or customer-facing product documentation.",
+      "a single support email thread saved out of a mailbox, with no ticket identifier and nothing to distinguish it from ordinary correspondence.",
+      "whether an escalation runbook belongs to support or to the engineering on-call rotation it shares names with.",
+      "a purpose-coherent support pack whose members are individually unremarkable - a ticket export, an SLA chart, three screenshots and a draft article. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a ticket-shaped identifier alone. INC-, REQ-, CASE- and bare numeric references are minted by bug trackers, change systems, order systems and legal matter registers too - this is the tempting false file for this row.",
+      "the words ticket, case, support, incident or issue in a filename alone: case names a legal matter, a clinical case and an HR case, and incident names an outage and a workplace accident.",
+      "a status-and-priority column pair alone: every tracker ever written has one.",
+      "an extension or a source_type alone. 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a year, a ticket number, or a priority.",
+      "a screenshot alone, and the absence of camera EXIF is not proof that an image is a screenshot - support corpora are full of customer-supplied screenshots, and neither their presence nor their metadata establishes this domain.",
+      "membership in a download session that dropped a support export at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "a chat transcript, a call recording, a saved mail thread or a screen-share file taken as evidence OF THIS ROW because a support desk produced it. Each of those is a container and a SOURCE_TYPE, and the roster triage already dropped eighteen legacy ids that were nothing but such containers. This row activates on the QUEUE STRUCTURE and on the four authored structures below it - the service-level report, the knowledge article, the escalation matrix, the satisfaction export - never on the transport a message arrived in. 00 is explicit that the container is a routing decision, not a meaning: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a recurring name - one agent, one queue owner, one company - appearing across many files, taken as the thing that binds them. A support corpus is the worst case in this family for exactly this, because two or three agent names sign thousands of records. 00 names it as a stop rule: the system “should not form a supported group when there is no valid anchor, when the graph is connected only by embeddings, when one high-frequency entity acts as the only bridge”."
+    ]
+  },
+  "proposed_context_terms": [
+    "ticket",
+    "case number",
+    "service desk",
+    "helpdesk",
+    "queue",
+    "assigned agent",
+    "requester",
+    "first response",
+    "time to resolution",
+    "service level agreement",
+    "SLA breach",
+    "backlog",
+    "escalation",
+    "priority",
+    "severity",
+    "on call",
+    "rota",
+    "knowledge base",
+    "article",
+    "macro",
+    "canned response",
+    "troubleshooting",
+    "workaround",
+    "root cause",
+    "customer satisfaction",
+    "CSAT",
+    "deflection",
+    "reopened"
+  ],
+  "work_types": [
+    "ticket or case export",
+    "individual case thread or transcript",
+    "service-level or queue performance report",
+    "knowledge-base or troubleshooting article",
+    "macro, canned response, or reply template",
+    "escalation matrix, on-call rota, or runbook",
+    "customer satisfaction survey export",
+    "support policy, scope, or service catalogue entry",
+    "customer-supplied evidence - screenshot, log excerpt, recording",
+    "agent training or quality-assurance record"
+  ],
+  "grouping_reasons": [
+    "one case: the thread, the customer-supplied screenshots, the log excerpt and the resolution note, held together by purpose rather than content. “The documents are content-incoherent but purpose-coherent.”",
+    "one reporting period: the export, the charts built from it and the commentary written on top - a purpose-coherent set produced on one date.",
+    "one article across its revisions - a knowledge-base document re-saved as the product changes is a version family.",
+    "one recurring export across periods - a monthly ticket dump is a series, and duplicate detection matters more here than anywhere else in this family because the same rows reappear in every dump.",
+    "a customer-supplied screenshot sitting beside a case thread joins its neighbourhood without acquiring a case fact: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single saved support email with no identifier is standalone correspondence."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch. Held as prose for the pass that may license fields: the natural anchor is the product or service being supported, then the document function - case material, reporting, knowledge content, procedure - with the reporting period last, because “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” and a queue chart is unintelligible before the reader knows which service it measures. Not time-first, even though the material arrives as a stream: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The privacy caveat here is stronger than elsewhere in this family and constrains the recommendation directly: a per-CUSTOMER level must NOT be recommended, because it would create a folder named after a third party holding everything they ever complained about, which is both an aggregation the user did not ask for and precisely the collector 00 warns against - “A folder should not become a collection point for everything produced by the same person or organization.” Any depth over case material should be shallow and approved, and “Protected branches should have configurable redaction in the canvas and review screens”."
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "email",
+      "image",
+      "ocr",
+      "presentation",
+      "archive",
+      "audio_video",
+      "code_structured"
+    ],
+    "extensions": [
+      ".csv",
+      ".xlsx",
+      ".eml",
+      ".pdf",
+      ".docx",
+      ".md",
+      ".png",
+      ".jpg",
+      ".json",
+      ".zip",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "tickets_export_2026-05.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "machine-generated filename with a period token",
+        "header row reads ticket id, requester, requester email, subject, status, priority, created, resolved, agent, queue",
+        "several thousand rows",
+        "a free-text description column containing customer prose"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that a table of short cells is low-risk: this file is a bulk register of named third parties, their email addresses and their problems, and it is the most exposing single artifact in this family",
+        "a customer fact copied onto any other file that mentions the same name",
+        "that the free-text column may be summarised into a model prompt outside the user's policy",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Case 88214 - full thread.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a chronological sequence of alternating requester and agent messages, each timestamped and attributed",
+        "a ticket identifier repeated in the header of every page",
+        "an attachment reference and a resolution note",
+        "a customer's signature block with a direct dial number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a person fact used as a folder proposal - a per-customer level is exactly what this row's template refuses to recommend",
+        "a resolution or a fault attribution as a fact of the product's own",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "SLA report Q2.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "charts of first-response and resolution attainment against stated targets",
+        "a volume-by-category breakdown and a backlog trend",
+        "an agent leaderboard slide naming individuals",
+        "a corporate slide master"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "an attainment or a breach as a fact of the product's own; every figure here is a raw observation and none is a threshold",
+        "that an agent leaderboard is ordinary business content - it is individual performance data about named employees and reaches hr's posture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "KB - resetting a locked account.md",
+      "source_type": "text_document",
+      "observations": [
+        "a symptom, cause and resolution structure with numbered steps",
+        "applies-to metadata naming product versions",
+        "an internal-only marking and a last-reviewed date",
+        "no customer named anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and code.software-project owns it when the article lives in a documentation repository beside source",
+        "that an internal-only marking is a P7 handling class; it is an observation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-14 at 09.13.22.png",
+      "source_type": "image",
+      "observations": [
+        "a screen capture of an application error dialog",
+        "no camera EXIF",
+        "a browser tab strip visible along the top edge showing unrelated personal tabs",
+        "sits in a folder beside a case thread"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a case fact from the neighbouring thread - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that missing EXIF proves this is a screenshot; the absence of metadata is not evidence",
+        "activation of this row from a screenshot alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "matters_open_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads matter reference, client, matter type, status, fee earner, opened, last activity",
+        "one row per matter",
+        "a value column and a limitation-date column",
+        "no product and no queue"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the identifier-person-status-assignee table is present in full and this is a legal caseload - this is the collision fixture, and reading a client list as a support queue is the concrete harm the row's never_alone entries guard against",
+        "a support fact from a status column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "chat_transcript_2026-05-14_1409.txt",
+      "source_type": "text_document",
+      "observations": [
+        "a plain-text sequence of alternating speaker turns with clock times and first names only",
+        "no case identifier, no status, no priority, no queue and no agent field",
+        "a machine-generated filename carrying a date and a time and nothing else",
+        "opens mid-conversation and ends without a resolution note"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row. THIS IS THE FORMAT FIXTURE, and it points the opposite way to matters_open_2026.xlsx: that file has this row's structure and belongs to a neighbour, while this file was genuinely produced by a support desk and still must not fire the row, because everything it carries is a CONTAINER - a transcript - and containers are SOURCE_TYPES rather than domains",
+        "that a support desk having produced a file makes the file this row's evidence",
+        "a case fact from a neighbouring thread that happens to share the date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "On-call rota and escalation matrix.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a severity table pairing levels with response commitments",
+        "a rota naming individuals by week with mobile numbers",
+        "an invocation procedure with a bridge number and a passcode",
+        "a document-control table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a rota is ordinary business content: it carries personal mobile numbers for named staff and a conference passcode, which is credential-shaped material",
+        "which of this row and business_operations.risk-register owns it - an escalation procedure is also a continuity artifact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "csat_responses.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per closed case with a score and a free-text comment",
+        "comments name individual agents and occasionally criticise them",
+        "a requester email column",
+        "machine-generated filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a score as a fact of the product's own",
+        "that a satisfaction export is about customers only - it is simultaneously unsolicited written commentary on named employees",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "session_recording_88214.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "a screen-share recording from a support session",
+        "container metadata names a conferencing application",
+        "no transcript exists at scan time",
+        "sits beside the case thread"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a case fact from the neighbouring thread or from the identifier-shaped token in the filename",
+        "that the file is harmless because it is unreadable at scan time: a screen-share of a customer's own machine can show their inbox, their documents and their credentials",
+        "that transcription or frame extraction may proceed outside the user's policy; any model path is gated by P7 first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "Both rows hold material about the same named customers and often the same export tooling. The discriminating evidence: a stream of individually small cases with agents, priorities and resolution times supports this row; an account plan, a business review deck, an adoption summary and a renewal preparation anchored on ONE named account supports account management. Provenance: inference. RECIPROCATED, and confirmed from the other side: that row's deepened file rejects a support ticket export from its own examples and says why - it holds it \"as a `collides_with` against `support-operations` instead\" because \"That row's own file refuses a per-customer dimension for exactly this material\". The contested bytes both rows now name are the SAME: an outage record, which is a major-incident ticket here and an escalation summary there. The one open disagreement is stated on both sides rather than smoothed: this row forbids a per-counterparty level outright for bulk queue exports, that row wants one user-approved for a bounded relationship file, and it has recorded the clash as NJ-BO-CAM-4. This row does not overrule it and accepts that formulation of the difference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "An internal service desk sits beside the estate it services, and a device-management export and a ticket export both key on the same machines and the same people. The discriminating evidence: a request, an agent and a resolution supports this row; an asset tag, an entitlement and a custody assignment supports the inventory row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A bug tracker export and a ticket export are the same table, and knowledge-base articles frequently live in a documentation repository. The discriminating evidence: an external or internal requester, a service level and an agent assignment supports this row; a component, a branch, a release version and a repository residence supports the software project. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "A matter register is an identifier-plus-client-plus-status-plus-fee-earner table, structurally indistinguishable from a ticket export. The discriminating evidence: a matter type, a limitation or key date, a fee earner and a client counterparty supports the matter row - and carries a confidentiality posture this row must not override; a queue, a priority and a resolution time supports this row. This is the row's fixture because misreading it would file a client caseload in an operations branch. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "An HR case list uses case identifiers, statuses, assigned handlers and dates in the same layout, and an internal service desk genuinely receives HR-adjacent requests. The discriminating evidence: an employee as the SUBJECT of the case, a process name (grievance, disciplinary, capability) and a confidentiality frame supports the hr row; a product or service fault and an agent resolution supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.retrospective-postmortem",
+      "signal": "A major-incident review is produced out of the support queue and cites the same ticket identifiers. The discriminating evidence: the operational case record and its service-level reporting supports this row; a timeline plus a causal analysis plus remediation commitments supports the retrospective. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "Escalation matrices, on-call rotas and invocation procedures are filed by support and by continuity alike, in the same document. The discriminating evidence: severity-to-response commitments for routine service supports this row; a recovery time objective, a critical-activity analysis and a continuity test supports the register row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home for a recognised ticket export, case thread, satisfaction export or on-call rota when no accepted support group or approved branch exists - because every one of those names third parties or staff in bulk. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a report or an unlabeled tracker whose service association is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone knowledge article, service catalogue entry or support policy carrying no third party. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The correct home for the customer-supplied or agent-captured screenshot that this row must not absorb on the strength of a neighbouring case. 00 names it among the residual homes for images with no strong link, and the screenshot family is the one 00 explicitly warns must not be concluded from missing metadata.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an untranscribed session recording or a password-protected export. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the densest concentration of third-party personal data in the business_operations family, and it arrives in bulk rather than one document at a time: a single monthly ticket export is a register of thousands of named people, their email addresses, their direct dial numbers and, in the free-text column, whatever they wrote about their own problem - which routinely includes account numbers, addresses, and health or financial circumstances offered as context. A screen-share recording adds the customer's own desktop. 00 names the corpus - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and an account-shaped record inside a support thread warrants 00's immediate transition: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and the aggregation danger is why this row's template refuses a per-customer dimension outright - “A folder should not become a collection point for everything produced by the same person or organization.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether an INTERNAL IT service desk and an EXTERNAL customer support desk should remain one row. The roster folded soft.helpdesk-ticket here and the shapes are genuinely identical, but the audiences differ in the way that matters most to this product: an internal desk's requesters are the holder's own colleagues, which pulls the material toward hr's and the IT function's postures, while an external desk's requesters are customers, which pulls it toward the commercial rows. This pass kept the fold on detection grounds and flags that the privacy consequence differs. A second question this row cannot settle: what a support export of thousands of named people should be permitted to do at all in a local-first product - the row states that it must not acquire a per-customer branch, but whether such a file should be organised, merely represented, or left untouched is a P7 and P10 policy question, not a catalogue one."
+}

@@ -1,0 +1,418 @@
+{
+  "id": "creative.sound-design",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Sound design and audio post for picture",
+  "one_line": "Audio authored to sit under something else - effects, foley, atmospheres, production dialogue, score placement and the mix that ties them to a picture version - together with the self-recorded sound library that outlives any one job. Its two anchors are a TIMECODE (a described sound owed at a stated position against a named cut) and a CATEGORY (a recording filed by what it is, deliberately not by the job it first served). It is not the picture edit and its approval chain (creative.post-production), not a song being recorded (creative.music-session), not a spoken programme (creative.podcast-episode), and not a governed inventory evidenced by vendor, order and licence (creative.stock-asset-library). PLACEHOLDER J-IND row written to J-DEPTH: the creative schema declares NO field rows, so activation unlocks recognition, the sensitivity posture and the universal facts only, and this row recommends no serialized dimension.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present, and—only under an explicit privacy and compute policy—speech-to-text transcripts.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The creative schema declares no field rows, so nothing here writes a domain fact and nothing here opens a folder level. Detection exists so this material is recognised, kept under the sensitivity posture, and offered honestly rather than scattered by extension. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "A BROADCAST-WAVE SLOT: a .wav whose bext chunk carries an Originator, an OriginationDate and a TimeReference sample-count offset, and/or an iXML block carrying scene, slate, take, per-track names and a circled-take mark. This is a labelled structured slot, not free text, so it is direct-reliability evidence in 00's sense; a music bounce, a podcast edit and a purchased library MP3 do not carry it. It is the single most sound-specific structure in this family and no landed creative sibling lists it.",
+      "A SOUND REPORT: a dated document naming a production and a shooting day and listing scene/slate/take rows with a channel-to-source track assignment (BOOM, LAV-<name>, PLANT), wild tracks, circled takes, and a header stating sample rate and timecode frame rate. It is the audio counterpart of the camera report - strictly formatted and machine-legible - and it is a different document from a post review note because it inventories what was captured rather than commenting on what was cut.",
+      "A SPOTTING OR CUE LIST: rows of timecode-in (and often timecode-out) paired with a prose description of a sound that does NOT yet exist (\"01:12:04:08 - door groan, needs to feel structural\"), naming the picture version the timecodes are valid against. The diagnostic is the tense: a review note responds to an artefact, a spotting row commissions one. A reel or version reference is part of the structure because the timecodes are void without it.",
+      "A CONFORM HANDOFF: an .aaf, .omf or .edl whose interior enumerates audio track names in departmental groups (DIA/DX, FX, BG/AMB, MX) with source-media references and a start timecode, sitting beside a picture reference file of the same duration. The whole reason this artefact exists is a department boundary crossing at picture lock, which is precisely what makes it evidence of the audio side rather than of the edit that produced it.",
+      "A STEM OR M&E SPLIT SET: two or more full-length exports of identical duration sharing one stem and differing only by a departmental token (DX / MX / FX, or M&E against a full mix), optionally with a channel-layout token (5.1, 7.1.4, ATMOS, STEREO). The multiplicity and the equal durations ARE the signal; one long .wav is nothing. The set exists so the same picture can be rebuilt for another territory, which is a purpose no other creative sibling's delivery set has.",
+      "A SELF-RECORDED LIBRARY SHAPE: a run of .wav files whose filenames are built from descriptive category tokens in a stable slot order (category, subject, action, qualifier, index - `AMB_Rain_Gutter_Overflow_Heavy_02.wav`), whose embedded metadata names a recordist and a recording date, and around which there is NO vendor record, order confirmation or licence document. The absent purchase apparatus is what separates this from creative.stock-asset-library; the present category grammar is what separates it from an untitled bounce.",
+      "\"Compressed archives should yield their manifests without extraction\" - an archive whose manifest holds an editable session plus track-name families in departmental groups, a picture reference, a spotting or cue document and a stem set under one production stem. Archive paths alone never supply a conclusion here.",
+      "A FOLEY OR ADR STRUCTURE: repeated same-stem takes whose tokens name a performed action or a character line rather than a musical part (`FOLEY_Sc14_Footstep_Gravel_T04`, `ADR_MAYA_Ln112_T02`), recorded against a picture reference. Take repetition alone is music-session's signal too; the action-or-line vocabulary is what makes it this row's."
+    ],
+    "needs_llm": [
+      "deciding whether an audio file exists to sit under a picture, to be a song, to be a spoken programme, or to be an inventory component, when the filename is a device default and the metadata is generic",
+      "deciding whether a described sound in a prose note is a spotting request, a client comment on a delivered mix, or a line of a screenplay's action description",
+      "deciding whether a run of same-stem takes is foley, ADR, a music overdub or a rehearsal, when no track-name vocabulary survives in the filenames",
+      "deciding whether a self-recorded library file was made for a specific job, harvested from one, or recorded speculatively - the three are indistinguishable in the bytes and only the surrounding corpus can suggest it",
+      "deciding whether a full-length export is a mix, a stem, an M&E or a reference bounce when the departmental token is abbreviated, missing or in another language",
+      "deciding whether raw production dialogue contains private speech recorded between takes, which governs handling before any transcript is contemplated"
+    ],
+    "never_alone": [
+      "a .wav, .aiff, .mp3, .ptx, .aaf, .omf, .edl, .caf or .zip extension. \"the file extension as a routing signal rather than an assumption about meaning\" - a .wav is the shared currency of music-session, podcast-episode, stock-asset-library and this row, and settles nothing.",
+      "the words sound, audio, mix, master, stem, final, foley, SFX, ambience or design in a filename, folder name or heading. `Sound` names a department, and a department is an organisation-shaped label; `Final Mix.wav` is ambiguous between this row and creative.music-session in both directions.",
+      "a production or client name on its own. The tempting false file is `Harbour Film_Edit_v12.prproj`: it carries the same production name, and it is creative.post-production's picture timeline, not this row's.",
+      "the presence of audio tracks inside an edit project. Every picture timeline has them; that is the edit's own material, not a handoff to audio.",
+      "a timecode-shaped token by itself. `01:12:04:08` in a document proves a time-based medium and nothing about which department owns the document; a bare 8-digit or 4-digit number proves less than that.",
+      "a take number by itself. Take families are creative.music-session's signal as much as this row's; only the track-name or action vocabulary discriminates.",
+      "long duration, silence, or the ABSENCE of speech. An M&E and a failed recording are both dialogue-free, and absence is never evidence.",
+      "a descriptive category filename with no embedded metadata and no neighbouring library. One file named `Rain_Heavy_01.wav` is a lone file, not a library; the run is the signal.",
+      "a device-default recorder name such as `REC0031.WAV` or `ZOOM0007.WAV`. This is the field-recorder analogue of an untitled camera file and it belongs to no domain until something around it speaks."
+    ]
+  },
+  "work_types": [
+    "production dialogue recording",
+    "sound report",
+    "spotting or cue list",
+    "conform handoff",
+    "editorial session",
+    "foley take",
+    "ADR take",
+    "designed effect",
+    "atmosphere or ambience bed",
+    "field recording",
+    "library asset",
+    "predub or premix",
+    "stem set",
+    "M&E deliverable",
+    "final mix master",
+    "mix review note",
+    "deliverable specification"
+  ],
+  "grouping_reasons": [
+    "same production reference plus a shared reel or version token across a session, a spotting document, a stem set and a picture reference",
+    "one timecode neighbourhood: a spotting row, the take recorded against it, and the cue that appears at the same position in a later mix",
+    "a same-stem departmental family whose members share duration and differ only by DX/MX/FX/M&E and a channel-layout token",
+    "a category neighbourhood in a self-recorded library: shared leading category tokens plus a shared recordist and recording date, grouped WITHOUT acquiring any project from the job the recordings later served",
+    "a shooting-day neighbourhood joining a sound report to the day's numbered recordings by scene and slate, where the report is the labelled member and the recordings are the sparse ones"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY BINDING CONTRACT, NOT BY JUDGEMENT: a dimension may only branch on a field the same entry's schema declares, and creative declares none, so the recommendation is held here as prose. THIS ROW DIFFERS FROM THE CREATIVE DEFAULT TEMPLATE BY SPLITTING IT IN TWO. The default is client-where-genuinely-plural, then project, then stage, then artifact_type, not time-first. The PROJECT-BOUND half of this material takes that default unchanged and claims no difference: \"a parent dimension should provide the context required to understand the child. A work type such as Homework 3 is meaningful only after the course is known\" - `Reel 2 Predub FX v04` is meaningless without the picture, exactly as Homework 3 is meaningless without the course. The LIBRARY half must NOT take it. A self-recorded ambience filed under the film it was first cut into is destroyed as a reusable asset, because reuse across unrelated jobs is the only reason it was kept; its parent dimension is the sound's own category, which is a key the creative schema does not have and which this placeholder deliberately does not mint. That is the row's dimension-level difference from its default, and it is also its largest open question (see open_question item 2). NOT TIME-FIRST, and this row explicitly declines the capture exception it looks entitled to. \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\" A field recording is capture-based, but its defining aspect is what it is a recording OF, not when it was made - a rain recording is sought by weather and surface, never by the afternoon it happened - so this row stays with \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The creative anchor grants time-first to creative.shoot-day-media and creative.raw-photo-catalogue by name and to nobody else; this row does not claim it. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "audio_video",
+      "design_creative",
+      "text_document",
+      "spreadsheet",
+      "archive",
+      "filesystem",
+      "email",
+      "opaque_binary",
+      "ocr",
+      "image"
+    ],
+    "extensions": [
+      ".wav",
+      ".bwf",
+      ".aiff",
+      ".caf",
+      ".flac",
+      ".mp3",
+      ".m4a",
+      ".ptx",
+      ".ptf",
+      ".nks",
+      ".rpp",
+      ".logicx",
+      ".aaf",
+      ".omf",
+      ".edl",
+      ".mov",
+      ".mp4",
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".txt",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Harbour Film_R1_AAF_v05.aaf",
+      "source_type": "audio_video",
+      "observations": [
+        "interior enumerates audio track names in departmental groups: DIA-1, DIA-2, FX-1, BG-1, MX-1",
+        "each track references source media by name that the file does not contain",
+        "a start timecode and a reel token R1 appear in the file metadata",
+        "a version-shaped token _v05 in the filename, with _v03 and _v04 present on the same stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any creative fact - the schema declares no fields, so activation writes nothing",
+        "that the picture edit belongs to this row because the AAF came out of it",
+        "that v05 supersedes anything; a version token orders a family, it does not grant approval"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_SoundReport_Day03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header states 48 kHz / 24 bit and a timecode frame rate",
+        "rows of scene, slate and take with per-channel track assignment BOOM / LAV-MAYA / PLANT-CAR",
+        "wild-track rows carrying a description instead of a slate",
+        "circled-take marks in a dedicated column, and a named recordist in the footer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the named recordist is an author fact - authorship is never a destination",
+        "that a circled take is the take that was used; circling is a capture-side recommendation, not an edit decision"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "HRB_Sc14_T03_A.wav",
+      "source_type": "audio_video",
+      "observations": [
+        "bext chunk carries Originator, OriginationDate and a TimeReference sample-count offset",
+        "iXML block names SCENE 14, TAKE 3, TRACK1 BOOM, TRACK2 LAV-MAYA, CIRCLED true",
+        "filename tokens repeat the scene and take that the iXML block states independently",
+        "a sibling run HRB_Sc14_T01_A.wav through HRB_Sc14_T05_A.wav shares the stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "the content of the speech - \"only under an explicit privacy and compute policy—speech-to-text transcripts\"",
+        "that the character token on a lav track identifies a real person; it names a role"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_Spotting_Notes_R2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "rows of timecode-in and timecode-out with prose descriptions of sounds to be created",
+        "a header naming the picture version the timecodes are valid against",
+        "a column marking whether each cue is FX, foley or ambience",
+        "no reference to any existing audio file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any described cue exists as a file",
+        "that this is a review note - it commissions rather than responds"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_R1_Predub_FX_v04.ptx",
+      "source_type": "design_creative",
+      "observations": [
+        "an authored working file whose interior is named tracks in departmental groups, referencing audio it does not contain",
+        "a picture reference and a session start timecode are named in the session metadata",
+        "same-stem _v01 through _v04 sit beside it, and a same-stem .wav export sits beside those",
+        "a peak-cache sidecar of the same stem is present and carries no independent content"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the peak cache is evidence of anything; it is a machine-generated derivative",
+        "that a predub is a final mix"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Harbour Film_M&E_51_R1-R6_20260714.wav",
+      "source_type": "audio_video",
+      "observations": [
+        "duration equals the duration of the delivered master",
+        "a channel-layout token 51 and a reel-span token R1-R6",
+        "an embedded tag naming the production and the deliverable type",
+        "no dialogue is present across the whole duration"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the absence of dialogue proves this is an M&E - absence is never evidence, and the token plus the matched duration are what carry it",
+        "a territory or a language; an M&E enables a dub, it does not name one"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Film_Stems_DX-MX-FX_R3.zip",
+      "source_type": "archive",
+      "observations": [
+        "\"Compressed archives should yield their manifests without extraction\" - the manifest lists three members of identical duration sharing one stem",
+        "members differ only by a departmental token DX, MX, FX",
+        "a delivery specification document sits in the same manifest",
+        "member paths inside the archive encode a folder layout"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path - the interior layout of the archive is not a destination proposal",
+        "that a stem set is a master"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "AMB_Rain_Gutter_Overflow_Heavy_02.wav",
+      "source_type": "audio_video",
+      "observations": [
+        "filename is built from category tokens in a stable slot order, and roughly forty sibling files share the leading AMB_Rain_ tokens",
+        "embedded metadata names a recordist and a recording date",
+        "no vendor name, order confirmation, invoice or licence document exists anywhere near it",
+        "the same file's name appears as a linked-asset reference inside two sessions belonging to unrelated productions"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "the production it was first used in - reuse across unrelated jobs is the reason it exists and inheriting one job's name would destroy it",
+        "a capture-date-first home; capture is real here but is not this material's defining aspect"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Harbour Film_Mix_Approval_20260801.eml",
+      "source_type": "email",
+      "observations": [
+        "body approves a named mix for reels R1-R6 subject to one fix at a stated timecode",
+        "an attachment name repeats the master's stem",
+        "sender and recipient addresses are present and are treated as potentially sensitive"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that approval of the mix approves the picture; the two approvals are different records with different owners"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Audio 1.wav",
+      "source_type": "audio_video",
+      "observations": [
+        "application-default name, no embedded tags, no bext scene or take block",
+        "sits inside a folder whose other members carry a production stem and a reel token",
+        "modification time falls inside the run of the neighbouring session's versions"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a production, a reel or a cue copied from a neighbour",
+        "a folder path",
+        "that folder membership is a fact about this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North Star_S04_Mix_Recall_03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "THE COLLISION FIXTURE. Contains the word Mix, a channel list, per-channel processing settings and a version index - every surface feature of an audio-post document",
+        "names a song and its performers, and references take and playlist families",
+        "carries no timecode against any picture and no cue, scene or reel reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is sound-design evidence because it is a mix document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CityAmbience_TransitLoop_03.wav",
+      "source_type": "audio_video",
+      "observations": [
+        "SECOND COLLISION FIXTURE, and it is creative.stock-asset-library's own named fixture",
+        "descriptive category filename identical in grammar to this row's self-recorded library shape",
+        "an order confirmation email, a vendor licence PDF and a pack manifest name the same product"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a category-shaped audio filename is this row's evidence; the acquisition apparatus around it decides",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "REC0031.WAV",
+      "source_type": "audio_video",
+      "observations": [
+        "device-default recorder filename, no bext scene or take block, no descriptive tokens",
+        "a creation time and a duration are the only evidence present",
+        "no neighbouring library run and no production stem anywhere in the folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a field recording, a foley take or a voice memo - the bytes support none of them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.post-production",
+      "signal": "THE LOAD-BEARING COLLISION AND THE REASON THIS ROW NEARLY REFUSED. That row's own one_line reaches \"moving-image or audio production\" through \"edit, review, grade or mix\", so on its face this row is one of its lifecycle stages - a work_type value, not a node. The discriminating evidence, stated in one direction: post-production detects a PICTURE-SIDE PROJECT MANIFEST - bins, timelines and sequences referencing source media and proxies, review notes on an existing cut, a delivery QC sheet and an approval record. This row detects a SOUND-SIDE APPARATUS post-production's signal list does not contain at all: a broadcast-wave scene/take slot, a sound report, a spotting list that commissions rather than responds, a departmental conform handoff, an M&E, and a self-recorded library that belongs to no production. Stated in the other direction: this row must never claim `Harbour Film_Edit_v12.prproj`, `Harbour Film_Rough Cut 03.mov` or `Harbour Film_Delivery_QC.xlsx` merely because they carry audio tracks and the same production name. THE SHARED FIXTURE ON BOTH SIDES is `Harbour Film_R1_AAF_v05.aaf`: it is post-production's output and this row's input, and the honest reading is that the same bytes end one situation and begin another. R1c should decide whether that duplication is tolerable or whether this row's project-bound half should be folded into post-production, leaving only the library half (see open_question item 1).",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.music-session",
+      "signal": "That row has already argued this boundary against this one and named the fixtures; this entry adopts its wording rather than reopening it. Its claim: `Harbour Film_Sound_Mix_05.aaf` remains sound-design evidence, and `North Star_S04_Mix_Recall_03.pdf` must not be claimed by sound design solely because it contains mix notes. Accepted in both directions. The discriminator: audio being made AS a release, with song identity, performer roles, take/playlist families and music delivery variants, is music-session; audio being made TO SIT UNDER something, with cue, scene, timecode, reel, foley or effects evidence, is this row. A film score is the deliberate hard case: a composer's own session is music-session, while the same cue arriving as a stem inside a departmental split set is this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.stock-asset-library",
+      "signal": "That row's own fixture `CityAmbience_TransitLoop_03.wav` is the collision, and the filename grammar is identical to this row's `AMB_Rain_Gutter_Overflow_Heavy_02.wav`. Its test is acquisition, provenance and licence pairing, or demonstrated cross-project reuse of a governed component; where a vendor record, order confirmation or licence names the asset, it is that row and not this one. Reciprocally, that row must not claim a self-recorded field library merely because the files are catalogue-shaped: a recordist and a recording date with no purchase apparatus anywhere is this row's evidence, and its fifth deterministic signal - a self-made component pack with a manifest and specimen - is the exact seam R1c must arbitrate.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.podcast-episode",
+      "signal": "That row has already argued this boundary and this entry accepts it verbatim in substance: podcast evidence is an episode lifecycle and a spoken-programme release; sound-design evidence is a brief or picture/sound cue, designed effects, library delivery or post-production asset with no show-episode anchor. Reciprocally, this row must not claim a speech-led multitrack merely because it contains dialogue tracks and a mix, and must not claim an episode's music bed merely because it is a bed. The shared fixture shape is a dialogue-plus-effects multitrack with a generic name; both rows abstain on it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.game-art-asset",
+      "signal": "Game audio is the case where this row's library shape and that row's asset pipeline produce nearly identical corpora: category-named .wav files, variation runs, and a middleware project that references them. The discriminator is which structure explains the folder - an engine or middleware project with build, platform and integration structure is that row, and a timecode-and-picture apparatus or a picture-free descriptive library is this one. Reciprocally, this row must not claim a middleware bank merely because its members are sounds, and that row must not claim a self-recorded source library merely because a game later consumed it. Shared fixture: a variation run such as `AMB_Rain_Gutter_Overflow_Heavy_02.wav` referenced from a middleware project.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.film-production",
+      "signal": "That row owns the production as an organised undertaking - schedules, call sheets, crew and cast, shooting days - and its never_alone list already refuses `.wav` and `.aaf` extensions on their own. The seam is `Harbour Film_SoundReport_Day03.pdf`, which is simultaneously a shooting-day record and this row's capture inventory. Stated both ways: film-production may hold it as a day's paperwork without acquiring any cue, track-assignment or mix reading; this row may hold it as the labelled member that makes the day's numbered recordings legible, without acquiring a shooting schedule, a crew list or a call time. Neither may copy the other's facts onto the day's sparse recordings.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reference Clips",
+      "why": "The commonest correct outcome for the library half when no work and no acquisition record surround it. \"Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.\" The clause \"does not belong to a current project\" is exactly the state a speculative field recording is in.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for the normal case in this world, because device-default recorder names and untitled bounces outnumber labelled files. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" `Audio 1.wav`, `REC0031.WAV` and a bare `Final Mix.wav` all land here rather than being assigned by extension.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exceptional here: proprietary session packages, peak and cache sidecars, and password-protected client deliveries. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone sound report, deliverable specification or mix approval with a durable purpose and no recoverable production group. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row inherits the creative posture and adds ONE reason that is genuinely its own and appears on no other creative sibling: RAW PRODUCTION AUDIO IS AN INADVERTENT RECORDING OF PRIVATE SPEECH. A lavalier left open between takes, a recorder rolling before the slate and a wild track captured on a live location contain named people talking off-script, and no release contemplated it. Unlike an unpublished poster, the harm is not disclosure of the work but disclosure of a person, and unlike a call sheet it is not visible in the file's metadata - it is only reachable by listening or transcribing, which is precisely what 00 fences: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present, and—only under an explicit privacy and compute policy—speech-to-text transcripts.\" Against that, the governing rule is unchanged: \"Privacy policy must be enforced before content reaches any model or external connector.\" The inherited reasons also apply - an unreleased mix is confidential by default, ADR and dialogue stems name cast, and a client's pre-announcement material is the client's secret rather than the maker's. This row does NOT carry is_safety_domain and assigns NO handling class; handling vocabulary is P7's.",
+  "open_question": "THREE, and the first is why this row was nearly refused. (1) THE POST-PRODUCTION OVERLAP IS REAL AND R1c MUST SETTLE IT. `creative.post-production`'s one_line covers \"moving-image or audio production\" including \"mix\", which makes this row's project-bound half arguably a stage VALUE inside that row rather than a node. The alternatives: (a) KEEP BOTH AS WRITTEN - post-production detects picture-side project manifests and approval chains, this row detects the sound-side apparatus (broadcast-wave scene/take slots, sound reports, spotting lists, conform handoffs, M&E sets, self-recorded libraries) that appears nowhere in post-production's signal list; costs one shared fixture, `Harbour Film_R1_AAF_v05.aaf`, being claimed by both. (b) FOLD THE PROJECT-BOUND HALF INTO post-production and keep this row as the sound-library-and-recording row only; costs the spotting list, the sound report and the M&E a home in a row that does not currently name them, and costs this row its name. (c) REFUSE THIS ROW ENTIRELY and route the project-bound half to post-production, the song half to music-session and the library half to stock-asset-library; costs the coverage of self-recorded, unlicensed, uncatalogued field material, which is the one thing none of the three currently detects. This row recommends (a) and flags that (b) is the second-best answer. Note that post-production's `collides_with` is currently EMPTY, so this edge is not yet reciprocal - recorded as a RECOMMENDATION to R1c, not an edit to that file. (2) THE LIBRARY HALF WANTS A DIMENSION THE SCHEMA CANNOT GIVE. A self-recorded library's correct parent is the sound's own category, not a project. No canonical key holds it; `artifact_type` names the kind of document, not what a recording is OF. NO KEY IS PROPOSED HERE, deliberately - minting one on a field-less placeholder is the 574's mistake at the point of maximum temptation. Recorded for R1c alongside the creative anchor's own rights-and-licence hole. (3) LIVE AND INSTALLATION SOUND HAVE NO EDGE HERE. `creative.theatre-production` and `creative.exhibition` both contain cue lists and designed audio, and a QLab cue list is structurally close to a spotting list. No edge is written because their organizing anchor is a performance run or an installation rather than a picture version, and because neither has landed for this pass to align against. Alternatives for R1c: add reciprocal `collides_with` on the cue-list fixture, or state that live cueing is those rows' and only picture-locked cueing is this row's."
+}

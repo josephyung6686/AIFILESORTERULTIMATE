@@ -1,0 +1,403 @@
+{
+  "id": "research.lab-notebook-protocols",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Lab notebooks, protocols and experiment records",
+  "one_line": "Bench-owned research material: standing protocols and SOPs, lab-notebook pages, experiment records, instrument exports and sample logs — the half of a research corpus that is owned by a lab rather than by a manuscript, and that frequently carries no project token at all.",
+  "launch": "full",
+  "provenance": "inference",
+  "design_cite": "00 names this material inside the launch scope — \"academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects\" — and names a protocol as one of the three research group seeds: \"For a research group, it might be a manuscript, abstract, or protocol with a known project identifier\". The situation described here is the case that sentence's final clause does NOT cover: a protocol with no known project identifier. Everything beyond that reading is marked inference.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "why": "The template half of the node test asks whether detection signals, recommended dimensions, or privacy rules differ from the schema's default template (CONNECTION.md section 2). All three differ, and the first two differ for the same underlying reason.\n\n1. DETECTION SIGNALS. Every deterministic signal on the research schema row is conditioned on a project identifier or on manuscript/venue evidence: a project token beside research-artifact structure, a submission-lifecycle term beside manuscript or venue evidence, a zone-restricted venue gazetteer hit, a submission-packet archive manifest. This situation's characteristic files carry none of those. A standing SOP has a procedure-plus-materials structure and a lab header and no project token, no venue, and no lifecycle stage. An instrument export is an opaque binary or a per-run archive. A notebook page is OCR of handwriting. The signals below fire on bench provenance — procedure structure, labelled ELN entry blocks, sample-provenance column headers, run-and-settings manifests — which is a different evidence family, not a restatement.\n\n2. DIMENSIONS. The schema default is project then stage then artifact_type. This row drops stage from the order entirely (a standing procedure has no workflow position, and an instrument run's stage is not a manuscript's) and puts lab ahead of project, because the material's stable owner is the lab: one protocol is reused across several of the holder's projects, so a project-first order must either duplicate it or pick one project arbitrarily. That is a genuinely different recommended order over the same schema's fields, which is what a template row is for.\n\n3. PRIVACY RULES. The sharper rule here is unlike either the schema's or its siblings': participant, subject or patient identifiers appear INLINE in ordinary bench records — a sample log column, a notebook page margin — with no form structure, no approval block and no consent language to flag them, whereas research.ethics-compliance's material announces itself through labelled approval slots. Protection here must be triggered by content inside a file that otherwise looks like a spreadsheet of readings."
+  },
+
+  "fields": [],
+  "fields_note": "Empty by design, not by omission: a template references its schema's fields and never copies the list (CONNECTION.md section 3, rule 1). The fields this situation uses are the research schema's project, stage, artifact_type, lab and venue, plus the schema row's search-side authored_by. dimension_order below branches only on lab, project and artifact_type, all three declared by research and all three destination_eligible on their canonical rows. stage stays legal as a fact and is deliberately not a dimension here (see template.why); venue is legal but almost never populated by bench material.",
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "numbered procedure steps co-occurring with a materials, reagents or equipment list in the same document, plus a version or effective-date header line — the SOP fingerprint. This fires WITHOUT a project token, which is the signal the research schema row does not have: its equivalent clause requires the project identifier to co-occur",
+      "a labelled electronic-lab-notebook entry block — Experiment ID, Date, Performed by, Protocol, Project as labelled slots — which is 00's direct-fact path for \"a labeled form field\" and is the one shape in this situation that reaches direct rather than validated",
+      "a spreadsheet header row over bench-provenance columns (a sample or specimen id, a collection or run date, an operator, a storage location, a protocol reference) rather than over computed or statistical columns; 00 requires spreadsheet extraction to yield \"workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\", and it is the header row, not the extension, that carries the signal",
+      "an instrument-export archive manifest whose members are a series of per-run data files beside a settings, method or calibration file, read without unpacking — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+      "a repeated sample- or run-code-shaped token appearing across a dated page sequence, a spreadsheet column and an export filename in the same neighbourhood, where at least one of those occurrences sits in a labelled slot",
+      "an organization gazetteer hit at a word boundary in a protocol header or an ELN entry block beside a bench-role context term (protocol, procedure, reagents, instrument, bench, facility) — 00: \"It should use word-boundary matching rather than substring matching.\" A bare organization hit is struck by the never-alone rule below",
+      "a negative check that runs before this situation is preferred over research.ethics-compliance: the document carries NO labelled approval slots (Protocol Title, Principal Investigator, Approval Date), no consent language and no participant-facing sections. A bench protocol and an IRB protocol share the word and almost nothing else"
+    ],
+    "needs_llm": [
+      "whether an OCR'd handwritten page is a lab-notebook entry, a lecture note, a meeting note or a personal list — handwriting supplies structure that no rule can read",
+      "whether a photographed bench object (a gel, a plate, a whiteboard, an instrument screen) is an experimental record or an ordinary photograph; the camera EXIF is identical in both cases",
+      "whether a document titled Protocol is a bench SOP, a clinical or IRB protocol, a study design, or a networking specification",
+      "whether a lab named in a protocol header owns the procedure or is merely the source it was adapted from — an adapted-from line and an owned-by line look the same to a gazetteer",
+      "whether a standing procedure belongs to any project at all, which is the question that decides whether the project dimension can be filled or must flatten to a scoped fallback",
+      "whether an unlabelled column of identifiers in a sample log is anonymised sample codes or participant identifiers, which is the trigger for the privacy rule on this row"
+    ],
+    "never_alone": [
+      "numbered steps beside an ingredients or parts list alone. This is the tempting false file for exactly this row: a scanned recipe card, an assembly manual and an appliance install guide all match the SOP structure exactly. Fixture: Kimchi_recipe_scan.pdf, whose honest home is 00's Reference Clips — \"saved visual inspiration, product references, quotes, recipes, short article captures, code snippets\". A research-role context term or a lab-owned header must accompany the structure",
+      "the words lab, protocol, procedure, results or bench in a filename alone — Lab 4 writeup.docx is a course lab report and belongs on the academic side, where the discriminating evidence is \"a course-code pattern together with academic context\"",
+      "a sample-, run- or plate-code-shaped token alone: an order number, an SKU, a ticket id and a firmware build all take the same shape",
+      "a bare 4-digit number as a year, a run or a plate id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a source_type or an extension alone. .raw is a camera raw file at least as often as an instrument export, .csv is a bank export at least as often as a sample log, and 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "camera EXIF alone in either direction: its presence does not make a bench photo an ordinary photo event, and its absence proves nothing at all, since \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+      "a date in a page corner alone as proof that a scanned page is a notebook entry",
+      "a filename alone on an unreadable instrument file — 00: \"the system should not infer a purpose from their filename alone\"",
+      "a parent folder named for a project or a lab alone, with no member file carrying in-file evidence — 00: \"The system learns from existing folders but must not silently reorganize them.\"",
+      "membership in one download or import session — 00: \"A session should never be treated as proof of topic\""
+    ]
+  },
+
+  "work_types": [
+    "protocol",
+    "standard operating procedure",
+    "lab notebook page",
+    "electronic lab notebook entry",
+    "experiment record",
+    "instrument export",
+    "sample log",
+    "calibration record",
+    "reagent or inventory list",
+    "safety or training record",
+    "bench photo"
+  ],
+  "work_types_note": "These are VALUES of the research schema's artifact_type field, discovered at runtime like any value. None is a roster node and none licenses a child schema. Several (protocol, lab notebook page) are already on the research schema row's list; the bench-specific ones (instrument export, sample log, calibration record, safety or training record, bench photo) are this situation's additions to the same value list, which is a value-list note for R1c, not a field proposal.",
+
+  "grouping_reasons": [
+    "one experiment run: a notebook page, an instrument export, a sample-log row block and one or more bench photos sharing a run or sample code",
+    "one protocol's version family across its revisions, including the scanned annotated copy someone marked up at the bench",
+    "one lab's shared protocol and SOP library, reused unchanged across several of the holder's projects — the grouping reason that has no project fact in it at all",
+    "one instrument or facility's exports across runs, where the settings or method file is the anchor and the per-run files are context-supported members",
+    "a sparse instrument file or an unlabelled bench photo joins a run neighbourhood as a context-supported member without acquiring a project fact — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+
+  "template": {
+    "dimension_order": ["lab", "project", "artifact_type"],
+    "why": "Two departures from the research schema's default order, both forced by the material.\n\nlab BEFORE project, because bench material's stable owner is the lab and its project association is often absent or plural. One RNA-extraction SOP is used by three of the holder's projects; a project-first order must duplicate it, pick one project arbitrarily, or drop it into a global catch-all. Leading with lab satisfies the rule 00 states for ordering — \"a parent dimension should provide the context required to understand the child\" — because a protocol or an instrument export is intelligible from the lab that owns it even when no project is named, whereas the reverse is not true.\n\nstage DROPPED from the order. A standing procedure has no workflow position, and an instrument run's lifecycle is not a manuscript's. stage remains a legal fact on this schema and is metadata-only for this situation; branching on it would open the level 00 warns about, one that \"repeats a concept already expressed in the parent\" or produces empty branches.\n\nWhere project is unknown — the shared-protocol case — the branch stops at lab and the artifact_type level sits directly beneath it, using 00's uneven-depth rule: \"The product should not force every branch to use the full template or have the same number of levels\", and \"each branch should offer the dimensions that are actually present in its member groups\". Where a scoped fallback is preferred to a shortened branch, that is 00's scoped General under a meaningful parent, \"rather than sending it to a global Unsorted folder\".\n\nKnown weakness, stated rather than hidden: a single-lab corpus makes the lab level one child, and 00's canvas is expected to catch that — \"It should warn when a level produces only one child\" — after which the user flattens it and the order reads project then artifact_type. That is the recommendation working, not failing: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"\n\nAll three dimensions are fields the research schema declares and all three are destination_eligible on their canonical rows. venue is legal here but is never a dimension: bench material has no venue. See open_question for the lab-named-after-its-PI hazard this row inherits from the schema and makes sharper by putting lab first.",
+    "time_first": false,
+    "time_first_why": "A lab notebook is intrinsically chronological, which makes this the strongest non-photo candidate for a time-first order in the whole research schema — and it still must not take one. 00 confines the exception: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material\", against the general rule that \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" A notebook is a document domain. The deeper reason is mechanical and is recorded in open_question: the research schema declares no destination-eligible time field at all, so a date level here could not be filled by any legal fact."
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "spreadsheet",
+      "image",
+      "opaque_binary",
+      "archive",
+      "calendar",
+      "email"
+    ],
+    "extensions": [".docx", ".pdf", ".xlsx", ".csv", ".tif", ".png", ".heic", ".raw", ".fcs", ".zip", ".ics", ".eml"],
+    "never_alone": true,
+    "note": "Plausibility only, never proof (CONNECTION.md section 5, invariant 2). The roster assigns spreadsheet to research.dataset-analysis, image to photos and ocr to the photos capture templates as file_kind_owner; a sample log, a bench photo and a scanned notebook page are nevertheless this situation's material, which is why the collides_with entries below carry the discriminating evidence instead of the source_type doing the work. Whether file_kind_owner claims exclusivity or primary interest is R1c's to settle."
+  },
+
+  "file_examples": [
+    {
+      "filename": "Protocol_RNA-extraction_v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered procedure steps followed by a materials and reagents list",
+        "a header line naming a lab beside the words version and effective date",
+        "no project token anywhere in the document",
+        "no venue, no submission language, no approval or signature block",
+        "two copies of the same content sit under two different project directories"
+      ],
+      "facts_legal": ["artifact_type", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the directory a copy happens to sit in — a shared procedure has no single project, and that is the whole reason this template does not lead with project",
+        "stage, which a standing procedure does not have",
+        "venue from the lab's institution name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SOP-014 Autoclave sterilisation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a document-control header: an SOP number, an effective date, a review date, an approver name",
+        "numbered steps and a safety-precautions section",
+        "an institution name in the footer of every page and nowhere else",
+        "no project token, no lab-group name, no author beyond the approver"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from the institution name in the page footer — 00's positional rule weights a footer below a title, and \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+        "project, which a facility-wide SOP does not have",
+        "authored_by as a destination dimension from the approver — 00: \"It should avoid using authorship or creator identity as a destination dimension.\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ELN_export_PVA-RDP_exp-114.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "repeated labelled entry blocks: Experiment ID, Date, Performed by, Protocol, Project",
+        "the Project slot holds the project token; the Protocol slot names the RNA-extraction procedure",
+        "each entry is followed by free-text observations and an embedded results table",
+        "an export footer names the notebook software and version"
+      ],
+      "facts_legal": ["project", "artifact_type", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "a destination dimension from the Performed by slot",
+        "stage from the entry dates — a notebook entry has a date, not a workflow position",
+        "that the export software named in the footer says anything about the content; 00 warns that producer and creator metadata \"may be stale, generic, or generated by a tool rather than a person\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Notebook_2026-03_p14_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; OCR of a photographed handwritten page",
+        "a date in the page corner, a repeated sample-code-shaped token, a procedure name",
+        "several low-confidence OCR regions and one struck-through block",
+        "a signature-shaped mark at the page foot"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from a sample-code prefix",
+        "lab from the notebook owner's name at the page foot",
+        "a date-first folder level: this schema declares no destination-eligible time field, so the corner date is a universal fact and never a dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SampleLog_PVA-RDP_2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a header row over bench-provenance columns: sample_id, collection_date, operator, freezer box, protocol ref",
+        "a labelled cell reading Project above the project token on the first sheet",
+        "one further column holds date-of-birth-shaped values and a second holds free-text clinical notes",
+        "a bare four-digit box number repeated down a column"
+      ],
+      "facts_legal": ["project", "artifact_type", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "any participant identifier, date of birth or clinical note as a field value — that content triggers protection, it does not become a fact",
+        "tax_year or record_type: spreadsheet is a source_type, not a finance signal",
+        "a year or a term from the four-digit box number",
+        "that the roster's file_kind_owner for spreadsheet settles this file — the discriminator is bench provenance columns versus computed analysis columns"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Run07_platereader.raw",
+      "source_type": "opaque_binary",
+      "observations": [
+        "no dedicated extractor; safe metadata-only indexing",
+        "filename carries a run number and an instrument word",
+        "size and timestamps only",
+        "sits beside twelve sibling files with sequential run numbers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project or artifact_type from the filename — 00: \"the system should not infer a purpose from their filename alone\"",
+        "a year from the bare run number",
+        "that .raw means an instrument export rather than a camera raw file",
+        "an empty extraction — 00: \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "IMG_4102.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: make, model, lens, DateTimeOriginal, GPS",
+        "the frame is a gel tray on a bench with a handwritten label card in shot",
+        "OCR of the label card reads a sample-code-shaped token and a date",
+        "captured within minutes of eleven near-identical frames"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the label card's sample code alone",
+        "that camera EXIF settles the file as an ordinary photo event and closes the research reading — the two are disjoint evidence about one file",
+        "lab or location from GPS, which stays local"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Instrument_export_2026-03-11.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists twelve per-run data files, one method file and one calibration file",
+        "member names share a run-code prefix; no member carries a project token",
+        "no member is extracted to disk",
+        "uncompressed size is available from the manifest"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence, and \"the normal scan should never extract archive contents to the filesystem\"",
+        "project from the run-code prefix",
+        "that the outer archive name means anything on its own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Kimchi_recipe_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of a handwritten card: an ingredients list followed by numbered steps",
+        "quantities, timings and a fermentation temperature",
+        "a personal name at the head of the card",
+        "no organization name, no sample codes, no instrument or reagent vocabulary"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "artifact_type = protocol from the numbered-steps-plus-materials structure alone — this is the false file that structure alone would take",
+        "lab from the personal name",
+        "project or any research fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Lab 4 writeup.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading reads Lab 4: Conservation of Momentum",
+        "a course-code-shaped token appears beside the words instructor and semester",
+        "sections read Procedure, Data, Discussion",
+        "a due date and a grading rubric reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this situation from the words lab, protocol, procedure or results — the discriminating evidence is \"a course-code pattern together with academic context\", which puts the file on the academic side",
+        "project from the course code",
+        "artifact_type from the Procedure heading"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IRB_Protocol_PVA-RDP_2026_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled approval slots: Protocol Title, Principal Investigator, Department, Approval Date",
+        "numbered procedure steps beside a materials and participants section",
+        "consent language and a participant-facing information sheet as later sections",
+        "a signature block and an approval stamp"
+      ],
+      "facts_legal": ["project", "artifact_type", "lab"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row owns the file: the labelled approval slots, the consent language and the participant sections are research.ethics-compliance's discriminating evidence, and the bench-protocol signal above runs a negative check for exactly them",
+        "participant identifiers as any field value",
+        "medical field values, because the medical schema is a field-less safety placeholder that activates for protection only"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Confocal booking — 2026-03-11 14:00.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY names an instrument and a booking window",
+        "LOCATION names a core facility; organizer and attendee addresses are present",
+        "no project token, no sample code, no protocol reference in the event body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from the facility name alone — the never-alone rule strikes a bare organization hit",
+        "that calendar as a source_type makes this situation plausible by itself",
+        "project from the run that happened that afternoon — that is neighbourhood context, not this file's evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.coursework",
+      "signal": "One evidence item — the vocabulary of lab, protocol, procedure, materials, results, discussion, and a numbered-steps-plus-materials structure — supports both, because an undergraduate lab report is written in the shape of a protocol. The discriminating evidence is what the structure sits beside: a course-code pattern with academic context (00: \"a course-code pattern together with academic context\"), an instructor slot, a term pattern, a due date or a rubric puts the file on academic.coursework; a lab-owned header, reagent or instrument vocabulary, sample codes or an ELN entry block puts it here. Neither side may take the bare word lab. Fixture: Lab 4 writeup.docx.",
+      "provenance": "design"
+    },
+    {
+      "domain": "research.ethics-compliance",
+      "signal": "The word protocol, and a numbered-procedure structure, are one evidence item that supports both sibling templates on the same schema. The discriminating evidence is the approval apparatus: labelled slots (Protocol Title, Principal Investigator, Approval Date), consent language, participant-facing sections and a signature or stamp belong to ethics-compliance; a version-and-effective-date header, a reagents or equipment list, and bench-role vocabulary with no approval block belong here. This row's deterministic list carries the negative check as a named signal. Fixture: IRB_Protocol_PVA-RDP_2026_signed.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "A spreadsheet header row over sample-shaped columns is one evidence item claimed by both sibling templates, and the roster makes research.dataset-analysis the file_kind_owner of spreadsheet. The discriminating evidence is column semantics, not format: bench-provenance columns (collection date, operator, storage location, protocol reference) record where material came from and belong here; computed columns, statistics, chart sheets, or an analysis script or notebook in the same neighbourhood record what was derived from it and belong there. One workbook can genuinely be both, in which case the honest outcome is the schema's own facts and a user decision, not a silent win. Fixture: SampleLog_PVA-RDP_2026.xlsx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "A clinical-shaped evidence item — a date of birth, a diagnosis or medication term, an assay result beside a patient or subject identifier — supports both. The discriminating evidence is whose data and in whose frame: a bench record is keyed by sample or subject codes inside a protocol-and-project frame, with an operator rather than a clinician and no provider, appointment or claim structure; the holder's own health record names the holder, a provider or clinic, and a visit or result date. On a genuine tie the safety side's protection path runs regardless — medical is a safety domain and 00 requires that \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\". Fixture: SampleLog_PVA-RDP_2026.xlsx.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty deliberately. Two of the fixtures above genuinely carry two schemas on disjoint evidence — SampleLog_PVA-RDP_2026.xlsx (research + medical protection) and IMG_4102.HEIC (research + photos) — but CONNECTION.md section 5 makes also_holds_with a schema-to-schema edge only, and this row is a template. The research schema row already carries the research-to-medical also_holds_with edge, which is the correct home for it; the research-to-photos case is recorded here as a file-level also_schema annotation and reported to R1c in the research notes. Where the dispatch prompt's edge table appears to allow a template to author also_holds_with, CONNECTION wins.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The roster's own must-consider residual for this id, and the honest home for the large middle of this material: an instrument export, a scanned notebook page or an ELN entry whose meaning is legible but whose project is not. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" Fixtures: Notebook_2026-03_p14_scan.pdf, Instrument_export_2026-03-11.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Instrument output with no extractor and password-protected data archives are ordinary here, and 00 gives them this home: \"password-protected archives, unreadable documents, damaged files, and unknown formats\". Fixture: Run07_platereader.raw.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A facility-wide SOP, a completed safety-training certificate or an equipment-service notice has a durable purpose and no project association — 00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". Fixtures: SOP-014 Autoclave sterilisation.pdf, Protocol_RNA-extraction_v2.docx when no lab owner is evidenced.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A bench record carrying participant identifiers inline has no safe shallow home other than the protected one, which 00 defines for \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" and which \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixtures: SampleLog_PVA-RDP_2026.xlsx, IRB_Protocol_PVA-RDP_2026_signed.pdf.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [],
+  "role_split_note": "None authored here. The split this situation touches — lab (the organization that produced the work) against school (the institution the holder attends) — is already recorded on the research schema row, and role_split lives in the canonical field list (CONNECTION.md section 6), not on a template. The intra-situation tension worth reporting to R1c is that lab is doing two jobs in bench material: the group that OWNS a protocol and the core facility that RAN an instrument. That is not a second field this row may mint; it is a value-resolution question, and it is noted in the research file rather than turned into a key.",
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Not because bench work is private in itself, but because of one specific shape: participant, subject or patient identifiers appear inline in ordinary lab records — a column in a sample log, a margin note on a notebook page, a label card visible in a bench photo — with no form structure, approval block or consent language to announce them, so a file that looks like a spreadsheet of readings can carry protected content. 00 requires such material to enter protection at once: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\". Unpublished results and unreleased methods sit here too. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Two, both of which decide someone's real folder structure and neither of which this node may close. (1) TIME. A lab notebook is chronological by construction — 'the March 2026 notebook' is how its owner refers to it — but the research schema declares no destination-eligible time field, so this template cannot offer a date level at all: capture_year is the photos schema's, term is academic's, tax_year is finance's, and creation_date is a universal seeded destination_eligible false. Joseph's call: does the research schema gain a destination-eligible time field for bench records, or is the honest answer that notebooks branch by lab and project and stay chronological only inside a folder? Minting one here would be exactly the private-field failure R1 exists to prevent. (2) LAB AS A FOLDER LEVEL. This row puts lab first, which sharpens the hazard the research schema row already recorded: a lab is very often named after its principal investigator, so a lab level can quietly become the authorship collector 00 forbids — \"It should avoid using authorship or creator identity as a destination dimension.\" A PI-named lab is either an organization (a real dimension) or creator identity (metadata only). This row's whole recommendation depends on the first reading."
+}

@@ -1,0 +1,475 @@
+{
+  "id": "business_operations.board-governance",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Board and governance meeting materials",
+  "one_line": "The recurring cycle of a CONSTITUTED BODY — a board, a committee, a trustee body, a members' meeting — running under terms of reference and producing a decision record that has standing outside the room: notices and convening papers, the numbered pack, individual board papers, minutes, written resolutions, attendance and quorum records, conflict declarations and delegated-authority matrices. The anchor is the BODY and its cycle, not any one topic and not any one meeting — which is what separates it from an ordinary team meeting record. Gist-level placeholder (J-IND): it recognises the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The business_operations schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row's sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a convening structure: a document naming a constituted body, a meeting date and time, a venue or dial-in, and either a quorum statement or a notice-period statement. The notice is the cycle's opening artifact and it is unlike any other document in this family.",
+      "a pack structure: a cover page naming the body and the date, followed by a NUMBERED index of papers with item references, each item naming an author or sponsor and a decision-or-noting marker. The index is the discriminating structure — a team deck has no paper numbering and no noting/decision column.",
+      "a minute structure: an attendance and apologies list, numbered items matching a prior agenda, a resolution or decision block with proposer and seconder or an agreed-by line, and an actions table with owners and dates. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a written-resolution structure: a document titled as a resolution of a named body, carrying a recital block, an operative 'IT WAS RESOLVED' clause, and a signature or circulation block with director or trustee names — passed without a meeting, so it has no agenda and no attendance.",
+      "a governing-instrument structure: terms of reference, a schedule of matters reserved, or a delegated-authority matrix — a table of decision types against approval levels and monetary thresholds. These are the body's own constitution and they recur with a review date.",
+      "a recurring calendar entry whose labelled SUMMARY names a constituted body and whose attendee slots resolve to one organisation's addresses, with a recurrence rule present. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” The CONTENT is what fires; source_type = calendar contributes only as a file-kind signal (CONNECTION-EXAMPLES fixture 5).",
+      "parent-folder context naming a body, a committee, or a meeting date, treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this world is commercially confidential and often confidential to a THIRD party, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "separating a real minute from a blank minute TEMPLATE, a sample pack published by a governance institute, or a course case study. The structure is identical with the values removed, and published examples are written to look real. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a constituted body from a management meeting that merely adopted governance furniture — a leadership team that writes 'minutes' and 'actions' but has no terms of reference, no quorum and no resolutions. This is the boundary with the sibling business_operations.meeting-record.",
+      "a purpose-coherent board packet whose members are individually unremarkable — a cover note, a finance appendix, a policy draft, a legal memo, a slide deck and a blank feedback form. “The documents are content-incoherent but purpose-coherent.”",
+      "unlabelled governance prose: a chair's letter, a board effectiveness reflection, a succession note with no header furniture at all.",
+      "whether a document naming trustees, directors or councillors belongs to a company, a charity, a union, or a public authority — the vocabulary is nearly identical and the owning family differs.",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "an agenda, an attendance list, or a minutes heading alone. Every organisation, club and project team on earth produces those, and this is the tempting false file for this row.",
+      "governance vocabulary alone — board, committee, resolution, quorum, apologies, chair. A corporate-governance textbook chapter, a saved regulator guidance PDF and a training deck are dense in it and none is a body's own record. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "a recurring calendar entry alone, without content evidence of a constituted body's business.",
+      "a company, charity, or regulator gazetteer hit alone. 00 states the ambiguity for a university — “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — and a company name is worse, appearing as employer, customer, supplier, competitor, regulator, and as the letterhead of a document that is merely ABOUT the holder. Stated as inference; 00 writes that sentence about a university, not a company.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session that emptied a document-management system or a mail thread's attachments at once. “A session should never be treated as proof of topic”",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — a corporate template stamps the same entity on every blank form it ever generated.",
+      "a bare 4-digit number read as a fiscal year, an entity number, a contract number, or a document version."
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of meeting",
+    "terms of reference",
+    "quorum",
+    "apologies",
+    "in attendance",
+    "minutes",
+    "draft minutes",
+    "approved minutes",
+    "resolution",
+    "IT WAS RESOLVED",
+    "proposer",
+    "seconder",
+    "matters arising",
+    "matters reserved",
+    "delegated authority",
+    "board paper",
+    "for decision",
+    "for noting",
+    "register of directors",
+    "register of members",
+    "conflict of interest",
+    "declaration of interest",
+    "annual general meeting",
+    "extraordinary general meeting",
+    "proxy",
+    "chair's action",
+    "company secretary",
+    "trustee",
+    "non-executive"
+  ],
+  "work_types": [
+    "notice of meeting or convening paper",
+    "agenda",
+    "board or committee pack and its papers index",
+    "individual board paper or briefing note",
+    "draft minutes",
+    "approved minutes",
+    "written or circular resolution",
+    "resolution register",
+    "attendance and quorum record",
+    "conflict-of-interest declaration or register",
+    "terms of reference",
+    "schedule of matters reserved or delegated-authority matrix",
+    "statutory register extract (directors, members, PSC)",
+    "proxy, poll, or voting record",
+    "AGM or EGM material",
+    "board evaluation or effectiveness review",
+    "chair's or secretary's correspondence"
+  ],
+  "grouping_reasons": [
+    "one meeting occurrence of one body: the notice, the agenda, the pack and its papers, the minutes and the actions — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one body across its cycle: the same committee's packs and minutes over a year, joined by an exact body name and a meeting-date series rather than by similar filenames.",
+    "one decision as it travels — a paper, its resolution, the register entry and the resulting filing. This is the reason most likely to tempt a body label onto a sparse member, which is exactly what must not happen. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one repeatedly re-exported pack, joined by the universal duplicate_family and version_family facts rather than by any business fact — draft, final and 'FINAL (2)' packs are the normal state of this world.",
+    "no group at all is a valid outcome: a stray set of terms of reference is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two different bodies' minutes in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry's schema declares, and business_operations declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row's open_question. The recommendation, held as prose: the constituted BODY first (it is the thing a secretary actually files by, and unlike an entity name it is not the collector level 00's template validator rejects — “use an author or organization merely as a collector”), then the meeting occurrence or cycle, then the document function (notice / pack / minute / resolution). An entity level only where the corpus genuinely spans more than one entity — “A folder should not become a collection point for everything produced by the same person or organization.” Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "ocr",
+      "image",
+      "archive",
+      "audio_video"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".pptx",
+      ".xlsx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Board pack - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover page naming a board and a meeting date",
+        "a numbered index of papers with for-decision and for-noting markers",
+        "an attendance and apologies page",
+        "an embedded finance appendix with budget, forecast and variance columns",
+        "a registered-office footer with a registration-number-shaped token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "a body or a fiscal period as a stored fact — both are proposed keys awaiting R1c",
+        "that a pack is one document for grouping purposes: its papers are separately meaningful and separately sensitive",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Audit Committee - minutes - approved 2026-02-11.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an attendance and apologies list of named individuals",
+        "numbered items matching a prior agenda",
+        "a resolution block with an agreed-by line",
+        "an actions table with owners and due dates",
+        "a header marking the document as approved at a later meeting"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that the approved copy supersedes the draft as a FACT of this row's own — draft and approved are a version_family relation, which is a universal fact",
+        "a person fact from an attendance list; names of attendees are not a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Written resolution - allotment of shares.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title naming a resolution of the directors of a named company",
+        "a recital block and an operative resolved clause",
+        "a circulation and signature block with director names and dates",
+        "no agenda and no attendance list"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that the absence of an agenda means this is not governance material — a written resolution is passed without a meeting",
+        "which sibling owns it: the same instrument is also the source document for a registry filing (business_operations.corporate-regulatory-filings) and for a cap-table record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Terms of Reference - Remuneration Committee v2.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a version, owner, approver and review-date header block",
+        "numbered clauses on membership, quorum, and duties",
+        "a footer naming an entity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact — the schema declares no field rows",
+        "that a version header proves an adopted instrument rather than a downloaded model document",
+        "an hr conclusion from the committee's subject matter; the document names no employee",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Board minutes template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a full minute structure — attendance, numbered items, resolution block, actions table",
+        "every value slot empty or carrying bracketed placeholders",
+        "a governance institute's brand in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the shape is complete and the record is not — this is the collision fixture for the whole row",
+        "an entity fact from a brand in a footer",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Leadership team meeting notes 2026-03-04.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a meeting header, an attendee line, bulleted discussion items",
+        "an actions list with owners",
+        "no terms of reference, no quorum statement, no resolution"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: no constituted body and no resolution — the sibling business_operations.meeting-record owns ordinary meeting notes",
+        "a governance conclusion from the words 'minutes' or 'actions' alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Board meeting - quarterly.ics",
+      "source_type": "calendar",
+      "observations": [
+        "a labelled SUMMARY naming a board and a cadence",
+        "a recurrence rule and a LOCATION naming a boardroom",
+        "attendee slots on one corporate domain",
+        "no papers content in the event body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that a calendar file is a domain — calendar is a SOURCE_TYPE and the .ics fixture forbids it (CONNECTION-EXAMPLES fixture 5)",
+        "a body fact from a meeting title alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "FW Board papers - please treat as confidential.eml",
+      "source_type": "email",
+      "observations": [
+        "a labelled subject slot naming the body and a date",
+        "a recipients slot resolving to a small distribution list",
+        "six attachment names — an agenda, four papers and a finance appendix",
+        "a short boilerplate body with a confidentiality footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the attachments' contents from their filenames — each attachment is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "board-portal-export-2026Q1.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing packs, minutes, registers and a remuneration appendix in dated folders",
+        "the archive is password-protected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a purpose fact from the manifest alone",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-03-12 at 14.02.09.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR text showing a board-portal page with a paper list and a voting control",
+        "no document header and no labelled slot",
+        "a system-generated filename with a capture timestamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a body, a date, or a decision from a portal chrome with no labelled slot",
+        "a screenshot conclusion from any image property — “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any business_operations fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Unanimous Board Consent - Equity Grants and FMV Approval.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a heading identifying the board of a named company and a unanimous written consent",
+        "resolutions approving a common-stock fair market value and individual option grants",
+        "completed director signature blocks",
+        "an attached schedule listing grantees, grant types, quantities and plan references"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: these are the same bytes the landed finance.cap-table-equity row names as its own fixture, and the equity-grant and FMV resolutions are the specific evidence while the board heading and signatures are the generic evidence. This is the row's second collision fixture and it runs in the opposite direction to the template fixture - a real file that must not be LOST to this row",
+        "that the absence of an agenda or attendance makes it non-equity material; a written resolution has neither by construction",
+        "any business_operations fact - the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "The load-bearing collision for this row, and the one both siblings must state. Agendas, attendance, minutes and action tables are the same structures in both. The discriminating evidence: a constituted body with terms of reference, a quorum statement, and a resolution or decision record with standing supports this row; a team, project or stand-up record with owners and next steps and no constitution supports the meeting-record row. Meeting vocabulary discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.governance",
+      "signal": "A charity's trustee board, a union's executive committee and an association's council produce byte-identical notices, packs and minutes. The discriminating evidence is owner type: a trustee or member-body vocabulary, a charity or union registration slot, and a purpose-of-the-association framing supports nonprofit.governance; a share-capital, director and commercial-counterparty framing supports this row. Governance shape alone activates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.corporate-secretarial",
+      "signal": "A practitioner running a client's company secretarial work produces exactly these documents for someone else's body. The discriminating evidence: a matter identifier, an engagement or client framing, or a time-recording or billing anchor supports law_practice.corporate-secretarial; the same minute held by the entity it is ABOUT, with no matter anchor, supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.public-authority-record",
+      "signal": "Council, agency and school-board meetings publish notices, agendas and minutes in the same shape, and often publicly. The discriminating evidence is which side the holder is on: a statutory power, a public-notice obligation, or a published-agenda framing supports the authority row; a private body's own confidential pack supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "Board consent to a share issuance, an option grant or a fair market value sits exactly on this seam, and the SAME BYTES are already a fixture on the landed cap-table launch row: \"Unanimous Board Consent - Equity Grants and FMV Approval.pdf\". Every structural signal this row owns fires on it - a named body, a written resolution passed without a meeting, completed director signature blocks - and this row still must not take it. The discriminating evidence, in this direction: equity content is the specific evidence and governance shape is the generic evidence, so where a capitalization ledger, a share or grant structure, an issuance resolution, or a valuation structure is present, the finance safety schema wins; that row's own rule already forbids “Finance activation from the board heading, signatures, or company name alone”. In the other direction: a written resolution of the same body that appoints a director, adopts terms of reference, approves a policy or notes a management account has no equity content at all, and cap-table-equity must not take it on a board heading and director signatures, which its own never_alone entry already refuses - “a signature block, board heading, governing-law clause, or e-signature envelope alone. These are generic legal-document structures”. The board heading is never-alone on BOTH sides, and that agreement is what makes the seam safe. The edge is currently ONE-WAY: the landed row does not name this row, which is an instance of the schema row's NJ-BO-4 and is recorded rather than fixed, because this row may not edit a landed launch row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "A resolution is routinely the SOURCE document for a registry filing, so the same text exists in both situations. The discriminating evidence: a body's own signed resolution with a circulation block supports this row; a registry form, a submission reference, or an authority's acknowledgement supports the filings row. Both are often in one folder and P10 chooses later. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "An audit committee's papers are simultaneously a governance cycle and an audit record. The discriminating evidence: a pack index, attendance and resolutions support this row; a finding, a corrective action with an owner and a due date, or an auditor's report structure supports the compliance-audit row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The commonest honest outcome for a real-looking pack whose body, entity, or side is unresolved — frequent in this world because packs are forwarded, re-exported and kept by individuals. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Where a governance artifact names individuals, remuneration, legal advice or a transaction in progress, the protective home is the correct one. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone governance artifact carrying no cycle around it — terms of reference, a delegated-authority matrix, a single certificate. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected board-portal exports are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The right home for a downloaded model minute, a governance-institute template, or a saved best-practice pack — the tempting false files of this row. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Board and committee material concentrates, in one document, several categories 00 names in its corpus sentence — the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records” — because a routine pack carries a remuneration appendix (employment materials), a finance appendix (account statements), and a legal memo (legal records) behind one cover page. Second, and as inference rather than a design claim: much of it is confidential to people who are not the user — named directors, named employees, a counterparty in a transaction that has not been announced — so the exposed party cannot consent to what the product does. That argues for the cautious setting. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank or infer a P7 handling class.",
+  "open_question": "NJ-BO-GOV-1 (renumbered this pass from NJ-BO-4, which the deepened schema row now uses for the missing reciprocal edges): whether a constituted BODY is an acceptable branch anchor in v1. It is the level a company secretary actually files by, and unlike a bare entity name it is not the vanity collector 00's template validator rejects - but a folder named for a remuneration or audit committee discloses, in the filesystem namespace, that the material exists and what it concerns, which no field-level privacy rule can undo. Alternatives: a shallow user-approved body level with no automatic internal depth (this row's provisional posture, cheap and reversible, still discloses); no body level with function first (safe, but scatters one committee's year across four function folders); or a body level under a user-chosen neutral label (preserves the shape, removes the disclosure, but nothing in the catalogue owns the mapping). It is Joseph's call and it does not depend on whether business_operations ever gets field rows. NJ-BO-GOV-2 (new this pass): the constituted-but-non-resolving body - an executive committee with terms of reference that passes no resolutions - sits exactly on the business_operations.meeting-record seam, constitution present and standing absent. This row's provisional answer is abstain to Review Later; it cannot be settled unilaterally because that sibling is being deepened in parallel and this row may not edit it. R1c must land one answer on both rows at once. This row also carries the schema row's open questions by inheritance, in particular the fiscal_period proposal, which this row's annual governance cycle wants and which it SECONDS rather than minting a variant of."
+}

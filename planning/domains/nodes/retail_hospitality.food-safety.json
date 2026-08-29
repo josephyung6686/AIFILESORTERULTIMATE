@@ -1,0 +1,430 @@
+{
+  "id": "retail_hospitality.food-safety",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Food safety and hygiene records (the statutory diary)",
+  "one_line": "The situation in which a trading kitchen or food counter KEEPS THE CONTEMPORANEOUS DIARY that proves food was handled safely - not one document type, but a PACK of dissimilar artefacts whose shared job is to be producible on demand: temperature and probe logs, cleaning schedules for food-contact surfaces, delivery acceptance checks with temperature-on-arrival, batch and use-by TRACEABILITY from goods-in through use or disposal, and the incident or corrective-action note when a check failed. Its anchor is a CONTROL POINT inside a site - a fridge, freezer, hot-hold, probe, prep surface or delivery bay - against which a READING IS SET AGAINST A TOLERANCE and an INITIAL or signature closes the row. It is not the schema's food-safety work_type wearing a node's name: it differs from the family default in the level that organises it (the control point, not the trading occasion), in what it must gather to be readable (a multi-class diary pack no other sibling requires as one group), and in its privacy rule, which inverts the family's guest posture into staff-facing check signatures, missed-check allegation-adjacent notes, and occasional illness or allergen medical-adjacent content. A PLACEHOLDER TEMPLATE researched to J-DEPTH: it declares NO field rows (the schema declares none under PR-6 as D1 narrowed it) and therefore recommends NO serialised dimension order, holding its differing default as prose.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on everything below: each entry is a DETECTION signal and never an extraction licence. The schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where this row's sensitivity says so, and offered honestly for a user decision. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "THE READING-AGAINST-TOLERANCE SIGNAL, and the only one strong enough to fire alone. A recurring schedule or grid carrying, per row, a DATE, a CHECK DESCRIPTION or CONTROL-POINT identity, a READING or tick, a TARGET or TOLERANCE, a CORRECTIVE-ACTION slot, and an INITIAL or signature slot - repeated across a period. It is the ARITHMETIC OR PASS/FAIL RELATIONSHIP between reading and tolerance plus the contemporaneous signature that fires, not any word in the filename. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "THE CONTROL-POINT HEADER. A labelled identity SMALLER THAN A SITE naming the thing being controlled - Fridge 1, Walk-in freezer, Hot hold A, Probe 3, Prep fridge, Delivery bay - bound in the same header block to a site or trading unit and often to a check class (opening, closing, mid-service, delivery, deep clean). The sub-site control point is this row's most distinctive header, because no other sibling in this family needs to name a piece of food-control equipment as its organising level.",
+      "THE INSTRUMENT SHAPE. A pre-printed diary sheet: date and check columns fixed, an EMPTY reading column ruled for handwriting, a target printed beside it, a corrective-action line, and an initials column - frequently a photograph or scan of a paper clipboard. This fires as a member of the diary even when some cells are blank, because the blank sheet is the instrument of a continuous obligation. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.”",
+      "THE TRACEABILITY CHAIN. A record that joins a BATCH, LOT or DELIVERY identity to a USE-BY or BEST-BEFORE date and to a USE, DISPOSAL or TRANSFER event - often a goods-in page and a use-out page under the same batch token. The chain is what separates food-safety traceability from a supplier delivery note (which stops at receipt) and from a stock count (which has no batch-to-use link).",
+      "THE DELIVERY-ACCEPTANCE CHECK. A goods-in sheet whose distinguishing columns are TEMPERATURE ON ARRIVAL, ACCEPT/REJECT, and often a vehicle or seal check, keyed to a delivery date and a supplier - distinct from ordered-versus-received quantity variance. Temperature-on-arrival plus accept/reject is this row's; shortage columns against an order reference are `retail_hospitality.supplier-order`'s.",
+      "THE INCIDENT AND CORRECTIVE-ACTION NOTE. A dated prose or form record naming a failed check, a contaminated or out-of-temperature product, a guest illness allegation, the action taken, and usually a NAMED OPERATIVE or manager in a labelled role slot. This is the artefact that turns a diary miss into a record about a person, and it is the one that carries this row's sharpest sensitivity."
+    ],
+    "needs_llm": [
+      "Deciding whether a daily-signed checklist is FOOD-CONTROL or GENERAL SITE OPENING/CLOSING. Both are recurring signed grids. The discriminator is whether the rows name food-control objects and tolerances (fridge, freezer, probe, hot-hold, food-contact surface, allergen, use-by) or general premises and trading readiness (lights, till float, door locks, standards photo). Filenames cannot settle this; “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "Deciding whether a delivery sheet is a FOOD-SAFETY ACCEPTANCE CHECK or a SUPPLIER-ORDER GOODS-IN NOTE. Both arrive with a supplier logo and a date. Temperature-on-arrival plus accept/reject decides for this row; ordered-versus-received quantity columns plus an order reference decide for supplier-order. Where both structures sit on one sheet, both situations are present on disjoint columns and neither should erase the other.",
+      "Deciding whether a cold-chain or fridge log protects FOOD or MEDICINES. Drug names, a controlled schedule, a dispensary or CD cabinet identity, or witnessed destruction support `clinical_practice.pharmacy-operations`; food-business, kitchen, allergen, use-by-for-sale, or catering language supports this row. Temperature readings and batch-and-expiry columns alone discriminate neither.",
+      "Reading a photograph or scan of a completed handwritten temperature or cleaning sheet. OCR over biro readings and initials is unreliable per cell, but the RULED GRID plus target column plus initials column is legible as structure even where the numbers are not, and structure is what activates.",
+      "Reading whether an illness or allergen complaint is a FOOD-SAFETY INCIDENT (corrective action, product withdrawn, authority notification) or GUEST-FEEDBACK (rating, response, goodwill). The same guest names appear in both; surrounding structure decides.",
+      "Reading an archive manifest to decide whether a zip is one site's food-safety pack (temp logs, cleaning, delivery checks, traceability, incidents) or an unrelated compliance bundle - without unpacking it. “Compressed archives should yield their manifests without extraction, while disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved.”",
+      "In every case above, abstention is required when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE WORDS `FOOD SAFETY`, `HYGIENE`, `HACCP`, `TEMPERATURE LOG`, `PROBE`, `CLEANING SCHEDULE`, `TRACEABILITY` OR `CCP`, standing alone anywhere - filename, sheet tab, heading or folder name. This is this row's constitutional never-alone and it is the direct answer to the charge that the row is a document-type label: `Temperature log.xlsx` with no reading-against-tolerance grid and no control-point identity is not evidence of a diary, and the same words appear across facilities cleaning, pharmacy cold chain, manufacturing process control and downloaded blank compliance packs.",
+      "A CHECKLIST STRUCTURE, standing alone. A dated tick sheet with initials appears identically in food safety, workplace health and safety, site inductions and store opening packs. What fires here is the FOOD-CONTROL OBJECT plus a tolerance or corrective-action slot, not the checklist shape.",
+      "A DATE, however diary-shaped. `2026-03-14.xlsx` is shared with every trading, payroll and accounts artefact. The schema already made a bare date the family's least discriminating token.",
+      "A TRADE NAME, PREMISES ADDRESS OR FOOD-BUSINESS OPERATOR NAME, standing alone. Role ambiguity is worse than a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A hospitality trade name is the operator, an employer, a supplier, a competitor and a cited example.",
+      "AN OPERATIVE'S OR MANAGER'S NAME OR INITIALS. A signature slot is never-alone as evidence and must never become a folder level - it would publish a missed-check or incident branch naming a member of staff, and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”",
+      "A FOOD OR DISH PHOTOGRAPH, standing alone. A picture of a plated dish or a fridge interior is `photos` evidence until a ruled diary sheet, a control-point header or a traceability table claims it.",
+      "A BLANK TEMPLATE OR DOWNLOADED COMPLIANCE PACK. A specimen temperature log and a completed one are the same sheet with the readings removed; a franchise operations manual is instructions ABOUT checks with no diary period. Purpose without contemporaneous readings does not activate."
+    ]
+  },
+  "work_types": [
+    "temperature or probe log - fridge, freezer, hot-hold or core-temperature diary with targets and initials",
+    "cleaning schedule - food-contact surfaces and equipment, signed per period",
+    "delivery acceptance check - temperature-on-arrival, accept/reject, seal or vehicle check",
+    "traceability or batch record - batch/lot received, use-by, use-out or disposal",
+    "opening or closing food-control checks - the food-specific subset of a site's daily checks",
+    "incident or corrective-action note - failed check, contamination, withdrawal, guest illness allegation",
+    "allergen control record - guest-facing allergen communication check or kitchen allergen process diary (not the menu costing matrix)",
+    "training attendance for a named food-hygiene procedure - only when filed as diary evidence of who was signed off to perform a check, never as an HR personnel file"
+  ],
+  "grouping_reasons": [
+    "ONE SITE DIARY PERIOD, and this is the row's defining group: every temperature sheet, cleaning schedule, delivery acceptance check, traceability page and incident note for ONE trading unit across ONE continuous period. The members are structurally different documents - a blank ruled form, a photograph of a clipboard, a spreadsheet, a signed PDF, an email - and are purpose-coherent rather than content-coherent. “The documents are content-incoherent but purpose-coherent.” This is the group that makes the row a template rather than a work_type value: a food-safety work_type would file the temp log and the cleaning schedule as two unrelated documents of two different types.",
+    "ONE CONTROL POINT OVER TIME - successive fridge or probe sheets for the same equipment - joined because they are comparable, and this is the only sense in which this row's material is time-ordered. It is a diary series, not a calendar, and it must not promote time above the control point.",
+    "ONE INCIDENT PACK: the failed check sheet, the corrective-action note, any withdrawal or disposal record, and any guest illness correspondence that belongs to the same event - purpose-coherent even where membership shares no content.",
+    "ONE BATCH TRACEABILITY CHAIN: goods-in page, use-out page and disposal note joined by an exact batch or lot token, never by the supplier's name alone.",
+    "One repeatedly re-exported compliance dump, joined by the universal duplicate_family and version_family facts rather than by any food-safety fact.",
+    "No group at all is a valid and common outcome. A lone blank template, a lone hygiene rating certificate with no diary beside it, or a lone delivery note with no temperature-on-arrival columns has not demonstrated a diary pack and should fall through rather than be given an invented one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, exactly as the schema anchor is: PR-6 leaves this family with no field rows and a dimension may branch only on a field the schema declares, so the recommendation is held as prose. THIS IS WHERE THIS ROW DIFFERS FROM THE FAMILY DEFAULT, and the difference is one level deep and real. The family default is TRADING UNIT (conditional) then TRADING OCCASION then OPERATIONAL RECORD FUNCTION. This row's recommendation is TRADING UNIT (conditional, on the same terms) then CONTROL POINT then RECORD PERIOD then FUNCTION - and the inserted CONTROL POINT level is the whole difference. It is inserted because in no other situation in this family is the occasion SUBDIVIDED BY EQUIPMENT: a trading session belongs to a till, a booking to a date, a licence to a premises, a count to a room, but a food-safety diary is executed as simultaneous readings of disjoint control points - Fridge 1, Walk-in, Hot hold A, Probe 3 - each with its own sheet, its own initials and its own corrective actions, and flattening them puts four unrelated ruled sheets in one undifferentiated pile at exactly the moment an inspector or the operator is asking which unit failed. The level is CONDITIONAL for the same reason the site level is: a single-fridge cafe would gain a one-child branch naming its only cold unit, and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” NOT TIME-FIRST, and this row is a hard test of that rule because every artefact is named by a day: the date identifies the diary entry; it does not root the tree — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A photographed paper sheet's capture date is not the trading date it covers, and the capture exception belongs to media alone: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” TWO LEVELS ARE FORBIDDEN OUTRIGHT HERE: PRODUCT or dish (a branch per menu item), and the OPERATIVE'S NAME (a staff-facing missed-check branch). Any order recommended remains editable — “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".xls",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Fridge temps March.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed paper sheet with a printed grid",
+        "one row per day with morning and evening readings, a target column and an initials column",
+        "two rows carrying a handwritten corrective-action note",
+        "header names Fridge 1",
+        "OCR confidence low across the handwritten cells",
+        "no EXIF camera make, the image having come through a messaging app"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any retail_hospitality fact - the schema declares none",
+        "a capture date as a trading date - the photograph's date is when the sheet was photographed, not the period it covers",
+        "that this is business_operations.compliance-audit evidence; a self-signed daily diary is not an assessment occurrence"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Probe log - core temps - Week 12 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns Date, Dish, Core temp C, Target, Pass/Fail, Initials, Corrective action",
+        "header names Probe 3 and Kitchen",
+        "several Fail rows with reheating or discard notes"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a dish name as a group anchor or folder level",
+        "any medical fact from a core temperature"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Cleaning schedule - food contact - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "rows naming prep surfaces, boards, slicer, probe wipe and wash-up",
+        "daily and weekly columns with initials",
+        "a deep-clean row with a dated supervisor signature",
+        "no lease, contractor or meter identity anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a cleaning schedule word alone activates - food-contact objects plus signed diary structure are required",
+        "that this is business_operations.facilities-workplace premises cleaning"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Delivery check - Brakes 28 Mar 2026 - temps on arrival.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "supplier name and delivery date",
+        "columns for product, vehicle temp, product temp on arrival, accept/reject, initials",
+        "two lines rejected for temperature",
+        "NO ordered-versus-received quantity columns and NO purchase-order reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is retail_hospitality.supplier-order - shortage columns and an order reference are absent",
+        "a supplier name as a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Traceability - batch 4417 chicken thighs - use out.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "batch token 4417 with use-by date",
+        "goods-in date and supplier",
+        "use-out rows naming dates and dishes or disposal",
+        "no stock valuation and no count-versus-book pair"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a batch token alone is manufacturing production identity - this is a received batch being used, not a lot the operator issued",
+        "any patient or clinical fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Incident - Fridge 1 out of temp 14 Mar 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "dated narrative of a failed morning reading",
+        "product withdrawn and discarded list",
+        "named duty manager and the operative who missed the evening check",
+        "corrective-action and follow-up slots"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a named operative makes this an hr personnel record",
+        "guilt, negligence or a legal finding from the narrative"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Food-safety pack - Camden - March 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names Fridge temps, Probe log, Cleaning schedule, Delivery checks, Traceability, Incidents",
+        "one site and one month across members",
+        "archive not extracted"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact from the zip filename alone",
+        "that members should be extracted to classify the pack — “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Food hygiene inspection report - 12 Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "authority letterhead and premises address",
+        "hygiene rating score",
+        "schedule of contraventions with deadlines",
+        "inspector name and visit date",
+        "sitting beside the operator's own temperature logs in the same folder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is the row's primary evidence - THIS IS THE COLLISION FIXTURE: an assessment occurrence / permission outcome that LOOKS like food-safety because it is about hygiene",
+        "that custody by the operator activates government",
+        "any finding as a stored compliance fact"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Opening checks March - Camden.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "daily signed grid",
+        "rows for lights, till float, door locks, toilets, and one row for Fridge 1 temp",
+        "mostly general site readiness with a minority food-control line"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a single fridge line converts a general opening pack into this row's whole claim - store-operations owns the pack; the fridge line may JOIN without copying facts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Fridge temps - CD cabinet - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "temperature grid with targets and initials",
+        "header names CD cabinet and controlled drugs",
+        "batch and expiry columns on a facing register page in the same export"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a temperature grid alone is kitchen food safety - medicines cold-chain context decides for clinical_practice.pharmacy-operations",
+        "any patient fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Blank temperature log - FSA style.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "printed grid with target column and initials column",
+        "no readings, no site name, no period filled",
+        "downloaded template watermark"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a diary period or control point from a blank form",
+        "activation from food-safety vocabulary alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Guest complaint - suspected food poisoning 15 Mar.eml",
+      "source_type": "email",
+      "observations": [
+        "guest names a meal and a date",
+        "alleges illness after dining",
+        "operator reply attaches Fridge temps March.jpg and an incident note"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a medical diagnosis or clinical claim",
+        "that guest-feedback owns the attached diary and incident exclusively - feedback owns the complaint voice; this row owns the diary evidence the reply produced"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Food safety archive 2019-2024 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted container; manifest unreadable",
+        "filename carries the row's constitutional never-alone words and a year range"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a diary, a control point, a period or a sensitivity result from a filename",
+        "that the container should be opened to classify it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BOTH SIDES: `Food hygiene inspection report - 12 Feb 2026.pdf` - THAT ROW owns assessment-occurrence material with a request-to-evidence-to-finding-to-sign-off chain performed by a party structurally distinct from the party assessed (and it already authored that the statutory food-hygiene inspection with a premises rating is NOT its claim); THIS ROW owns the OPERATIVE'S OWN CONTEMPORANEOUS DIARY the inspection pulls FROM (`Fridge temps March.jpg`, signed cleaning schedules, delivery acceptance checks), discriminated by self-recorded reading-against-tolerance versus an external finding schedule. RECIPROCAL: THIS ROW MUST NOT TAKE the inspector's report, rating determination or contravention schedule as if it were a diary; COMPLIANCE-AUDIT MUST NOT TAKE the daily signed temperature or cleaning sheet merely because an audit later cites it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.premises-licensing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Food hygiene inspection report - 12 Feb 2026.pdf` (and the hygiene rating certificate derived from it) - THAT ROW owns the PERMISSION-TO-TRADE / rating outcome keyed to a premises address as the operator's copy of what it must produce to prove it may trade; THIS ROW owns the diary pack that sits beside it (`Fridge temps March.jpg`, cleaning, delivery checks, traceability). Discriminated by whether the artefact is an AUTHORITY DETERMINATION with a rating or conditions annex, or a SELF-SIGNED OPERATIVE DIARY. RECIPROCAL: THIS ROW MUST NOT TAKE a premises licence grant, conditions annex or rating certificate; PREMISES-LICENSING MUST NOT TAKE temperature logs, probe sheets or batch traceability merely because they support a hygiene rating. The schema's work_types already split 'food safety record' from 'premises permission record' including hygiene inspection; this edge records that split with one shared fixture. Contested with compliance-audit's earlier hand-off of the inspection report to this id — see NJ-RH-FS-3. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.store-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Opening checks March - Camden.pdf` - THAT ROW owns the GENERAL SITE OPENING/CLOSING PACK (lights, till float, door locks, standards, rota-against-trade) even when one line names Fridge 1; THIS ROW owns a sheet whose ROWS ARE MAJORITY FOOD-CONTROL OBJECTS WITH TOLERANCES (`Fridge temps March.jpg`, food-contact cleaning schedule, probe log). Discriminated by whether food-control structure is the pack's purpose or a minority line inside a premises-readiness checklist. RECIPROCAL: THIS ROW MUST NOT TAKE a rota, a standards photo audit or a maintenance call; STORE-OPERATIONS MUST NOT TAKE a dedicated temperature or probe diary merely because it was filed in the site pack. That sibling has not landed; R1c owes reciprocity in the same words. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BOTH SIDES: a Brakes delivery PDF - THIS ROW owns `Delivery check - Brakes 28 Mar 2026 - temps on arrival.pdf` because its distinguishing columns are TEMPERATURE ON ARRIVAL and ACCEPT/REJECT; THAT ROW owns `Delivery note 2026-03-28 - Brakes - 2 lines short.pdf` because its distinguishing columns are QUANTITIES ORDERED AGAINST QUANTITIES RECEIVED under an ORDER REFERENCE. Discriminated by which variance the sheet is about - temperature acceptance versus quantity shortage. Where one physical sheet carries both column sets, both situations are present on disjoint evidence and neither erases the other. RECIPROCAL: THIS ROW MUST NOT TAKE a shortage/credit cycle; SUPPLIER-ORDER MUST NOT TAKE a temperature-on-arrival check merely because a supplier logo is present. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.pharmacy-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: a fridge temperature grid with targets and initials - THIS ROW owns `Fridge temps March.jpg` when the header and surrounding pack are FOOD/KITCHEN (Fridge 1, kitchen, allergen, use-by-for-sale); THAT ROW owns `Fridge temps - CD cabinet - March 2026.pdf` when the cold chain protects MEDICINES (CD cabinet, controlled schedule, dispensary, witnessed destruction). Discriminated by the STOCK THE LOG PROTECTS and the custody apparatus beside it, never by the temperature grid alone - the neighbour already stated that temperature readings and batch-and-expiry columns alone discriminate neither against warehouse records, and this row adopts that honesty. RECIPROCAL: THIS ROW MUST NOT TAKE a controlled-drugs cold-chain or accountable medicines register; PHARMACY MUST NOT TAKE a kitchen fridge diary merely because both are ruled temperature sheets. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "SAME FIXTURE BOTH SIDES: a cleaning schedule PDF - THIS ROW owns `Cleaning schedule - food contact - March 2026.pdf` because its rows name FOOD-CONTACT surfaces and equipment under a food-hygiene diary with corrective-action slots; THAT ROW owns premises cleaning, contractor schedules, waste transfer and meter readings as OCCUPIER ADMINISTRATION OF THE PLACE. Discriminated by food-contact / food-hygiene structure versus premises-services structure. RECIPROCAL: THIS ROW MUST NOT TAKE a landlord cleaning contract or a washroom services log; FACILITIES MUST NOT TAKE a food-contact cleaning diary merely because the word cleaning appears. The schema anchor already drew administration-of-the-place versus evidence-of-the-trade; this row confirms it from below. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.workplace-health-safety",
+      "signal": "SAME FIXTURE BOTH SIDES: a signed checklist that looks like a risk control - THAT ROW owns an ASSESSMENT INSTRUMENT (hazard / persons at risk / existing controls / residual / further action / assessor / review date under a stated duty), e.g. a fire risk assessment; THIS ROW owns the OPERATIVE DIARY of food-control readings (`Fridge temps March.jpg`, probe log) which is the material an assessment or inspection later pulls FROM. Discriminated by assessment-instrument slots versus reading-against-tolerance diary slots. RECIPROCAL: THIS ROW MUST NOT TAKE a fire risk assessment, DSE assessment or accident book as food safety; HR-WHS MUST NOT TAKE a temperature log or food-contact cleaning schedule merely because an operative signed it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.guest-feedback",
+      "signal": "SAME FIXTURE BOTH SIDES: `Guest complaint - suspected food poisoning 15 Mar.eml` - THAT ROW owns the GUEST VOICE (rating or free-text complaint, channel, operator response as reputation management); THIS ROW owns the DIARY AND INCIDENT EVIDENCE the response produces or attaches (`Fridge temps March.jpg`, `Incident - Fridge 1 out of temp 14 Mar 2026.docx`). Discriminated by whether the artefact's job is to record what the guest said or to record what the kitchen checked and corrected. RECIPROCAL: THIS ROW MUST NOT TAKE a platform review export or a goodwill-gesture log; GUEST-FEEDBACK MUST NOT TAKE temperature logs or batch traceability merely because an illness allegation mentioned food. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.menu-recipe-costing",
+      "signal": "SAME FIXTURE BOTH SIDES: an allergen grid - THAT ROW owns the MENU/COSTING allergen MATRIX (items down, fixed allergen set across, contains/may-contain/free, built with yield and selling price); THIS ROW owns an ALLERGEN CONTROL DIARY OR COMMUNICATION CHECK (signed confirmation that allergen information was verified for a service, or a process check that a recipe change updated the matrix). Discriminated by costing-and-menu structure versus signed control-check structure. RECIPROCAL: THIS ROW MUST NOT TAKE a gross-profit build-up or printed menu as food safety; MENU-RECIPE-COSTING MUST NOT TAKE a probe log or fridge diary merely because a dish name appears. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "SAME FIXTURE BOTH SIDES: an incident / corrective-action write-up - THAT ROW owns a quality EVENT with NCR/CAPA identity, containment, accountable corrective action and effectiveness closure over PRODUCTION AT SCALE; THIS ROW owns a kitchen incident note tied to a FAILED DIARY CHECK OR GUEST ILLNESS ALLEGATION at a trading site (`Incident - Fridge 1 out of temp 14 Mar 2026.docx`). Discriminated by production NCR/CAPA apparatus versus food-control diary failure at a selling premises. RECIPROCAL: THIS ROW MUST NOT TAKE a factory CAPA register; MANUFACTURING MUST NOT TAKE a kitchen fridge-failure note merely because both say corrective action. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "SAME FIXTURE BOTH SIDES: `Food hygiene inspection report - 12 Feb 2026.pdf` - GOVERNMENT owns the AUTHORITY'S side (register, inspection programme, determination, casework) when owner-or-custodian evidence shows a public body; THIS FAMILY owns the OPERATOR'S retained copy. Discriminated by CUSTODY, not content - receipt of an authority-issued document does not activate government. THIS ROW specifically owns only the diary pack beside that copy, not the authority determination itself (see premises-licensing collision). RECIPROCAL: THIS ROW MUST NOT TAKE a licensing authority's register or another operator's file; GOVERNMENT MUST NOT TAKE a trader's temperature logs merely because an inspector asked for them. The schema anchor stated the licensing/hygiene custody seam; this row narrows its own claim. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The default home for a durable standalone food-safety artefact with no diary pack assembled around it - a lone hygiene rating certificate, a blank template, a single cleaning page. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” This row activates on a PACK and a CONTROL POINT series; a single orphan sheet has not demonstrated one.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for the row's genuinely undecidable middle: a mixed opening-checks pack with one fridge line, a scanned sheet whose handwriting OCR could not read, an archive whose manifest is suggestive but not conclusive. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when diary material is in substance a record about a NAMED MEMBER OF STAFF or a guest illness allegation - a missed-check incident naming an operative, a complaint naming a diner and a meal. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for the transactional single document that arrives with food-safety material and is not a diary - an isolated delivery confirmation without temperature-on-arrival columns. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The home for the password-protected food-safety archive and any unreadable compliance-system binary, without manufacturing a diary from a filename. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for a positively evidenced screen capture of a probe or fridge app screen where OCR does not establish a reading-against-tolerance diary structure.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THIS IS THE ROW'S THIRD DIFFERENCE FROM THE SCHEMA DEFAULT, AND IT IS AN INVERSION RATHER THAN A NARROWING. The family's stated posture exists because its everyday, highest-volume output is personal data about members of the public - reservation exports, dietary notes, identity scans at check-in. A food-safety diary corpus contains almost NONE of that on ordinary days: no guest is named on a fridge sheet. What this row carries instead is three different risks. First, STAFF-FACING ALLEGATION-ADJACENT DATA: a missed check, a corrective-action note and an incident write-up name the operative who should have signed and the manager who investigated - one inferential step from blame, about people in a continuing relationship with the holder. Second, OCCASIONAL MEDICAL-ADJACENT GUEST CONTENT: an illness complaint or allergen incident joins a private individual's health allegation to a meal and a date, which raises posture without creating a clinical claim. Third, the DIARY IS ITSELF REGULATORY EVIDENCE: producing it is the point, so careless model exposure of raw sheets can disclose both staff identity and control failures. Operative consequences: operative and manager names must never become a folder level or group anchor; incident and illness files should be recognised from the minimum necessary excerpt locally; “Privacy policy must be enforced before content reaches any model or external connector.” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Where an incident reads as an investigation of a named individual, Protected Records is the correct residual, not a tidier place in the diary. Sensitivity in this phase is only none or potentially_sensitive; no handling class is assigned - P7 owns that vocabulary.",
+  "open_question": "NJ-RH-FS-1 (the row's sharpest dimensional question): the CONTROL POINT level is this row's entire dimensional difference from the family default, and it is also the level most likely to be a one-child branch. Alternative A: recommend it conditionally, exactly as the schema makes the site level conditional, firing only where a corpus shows two or more disjoint control points under one site diary. Alternative B: drop it and let the site-plus-period hold every sheet flat. This row proposes A; if B is chosen the dimensional leg fails and the row rests on pack-grouping and privacy alone. NJ-RH-FS-2: whether a mixed `Opening checks` pack with a minority fridge line activates store-operations only, with the fridge line joining without copying facts (this row's proposal), or whether any food-control line promotes the whole pack here. NJ-RH-FS-3: ownership of `Food hygiene inspection report - 12 Feb 2026.pdf`. compliance-audit already handed the statutory food-hygiene inspection with premises rating to this id; the schema's work_types place hygiene inspection under premises permission; this row claims only the diary beside the report and gives the report itself to premises-licensing. R1c must pick one home for the report bytes and make all three rows say the same thing. NJ-RH-FS-4: schema-level coactivation intent with government (operator copy of inspection plus authority casework on disjoint custody) and with photos (photographed clipboard sheets) cannot be recorded on a template because also_holds_with is schema-to-schema only; for R1c to place on the retail_hospitality schema if it agrees. NJ-RH-FS-5: if D1 or PR-6 is lifted, this row would want the schema's already-proposed `site` plus a control-point concept and a diary-period concept; it mints neither and proposes no field key."
+}

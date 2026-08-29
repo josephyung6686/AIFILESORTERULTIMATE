@@ -1,0 +1,533 @@
+{
+  "id": "creative.periodical-issue",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Periodical issue production (one instalment of a recurring publication)",
+  "one_line": "The making record of ONE INSTALMENT of a publication that will have another one - a magazine, journal, newspaper or zine issue - where many pieces by many hands are allocated to a bounded run of page positions and closed on a date. Its distinguishing objects are a FLATPLAN, a page-by-page allocation grid that exists before most of its contents do and assigns each position to a piece, an advertisement or house material; a BOOK or multi-document master that imposes continuous pagination across documents it does not contain; a COMPOUND ISSUE DESIGNATOR (volume-and-number, issue number, season) that recurs across sibling folders rather than only across sibling files; THIRD-PARTY SUPPLIED MATERIAL - press-ready advertisement files the maker did not author and cannot edit, sitting inside the maker's own container with a trafficking record beside them; and, in the scholarly subset, a PEER-REVIEW LAYER of anonymised manuscripts, reviewer reports and decision letters keyed by one submission identifier. It is not one finished work (creative.graphic-design-project, creative.book-manuscript), not the artwork's journey to press (creative.print-production), not a brand's owned-property publishing programme (creative.content-marketing), and not a periodical someone COLLECTS rather than makes (Reading Inbox, research). PLACEHOLDER ROW (J-IND, written to J-DEPTH): it writes NO field rows and therefore recommends NO serializable folder dimensions - the creative schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). Activation unlocks recognition, the sensitivity posture and the universal facts only.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "creative projects",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. Detection exists so an instalment's material is recognised as one making record, kept local where the sensitivity posture says so, and offered honestly rather than scattered across contributors and formats. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "FLATPLAN / PAGE-BUDGET ALLOCATION structure: a grid document - spreadsheet rows, or a drawn grid inside a layout file - whose cells are PAGE POSITIONS across a bounded total, each position assigned to a named piece, to an advertisement, or to house material, with a per-position status column, and with the total page count fixed before the contents exist. This is the single most discriminating object in this row and it belongs to no other creative sibling: creative.content-marketing's editorial calendar allocates DATES to pieces that do not yet exist, creative.print-production's imposition sheet allocates ALREADY-FINISHED pages to press signatures, and neither is a slot budget inside one bounded object. Marked as this row's own evidence, provenance inference from named real document types (flatplan, folio map, pagination grid), not from a quotation.",
+      "BOOK or MULTI-DOCUMENT MASTER structure: a container document that names member documents it does not contain and imposes continuous pagination and shared masters across them - an InDesign .indb book file, a chapter/section collection, a folio-linked set. 00 requires the extractor to yield exactly the pointing half of this shape for creative formats: \"Design and creative formats such as PSD, AI, SVG, Figma exports, CAD files, and 3D files should at minimum yield filename, format, dimensions or canvas properties, embedded metadata, layers or artboards where accessible, linked asset names, and preview text\". The creative anchor generalises that to a LINKED-ASSET structure at the placed-media level; this row's variant sits one level up, at the DOCUMENT-SET level, which is what makes an issue one object rather than a folder of layouts.",
+      "COMPOUND ISSUE DESIGNATOR RECURRING ACROSS SIBLING FOLDERS: a volume-and-number, issue-number or season token that appears not only across the files of one folder but across ADJACENT folders in a series (214, 215, 216; Vol 47 No 1 through No 4), together with an imprint or colophon block or a registered serial identifier. The recurrence across instalments is the load-bearing half; the token alone is in never_alone, because a single downloaded article carries the same token and is the row's collision fixture.",
+      "THIRD-PARTY SUPPLIED MATERIAL INSIDE THE MAKER'S OWN CONTAINER: press-ready files whose producing application, colour profile and trim geometry differ from everything else in the folder, for which NO working file exists anywhere on the disk, accompanied by a trafficking or insertion record listing positions, sizes and a materials-received status. No other creative sibling routinely holds finished material the maker did not author and may not alter; creative.stock-asset-library holds bought material, but bought material is used INSIDE a work, whereas this material occupies a page position of its own.",
+      "MANY-CONTRIBUTOR, ONE-DEADLINE structure: a set of same-generation short source documents by DIFFERENT named authors, each carrying its own byline, standfirst or caption furniture, clustered in one deadline neighbourhood. The contrast that makes it discriminating is creative.book-manuscript, where many same-generation documents share ONE author across chapters, and creative.short-form-writing, where one writer's many pieces are spread across many deadlines.",
+      "PEER-REVIEW structure (scholarly subset): one submission identifier reused across a manuscript, its numbered revision, one or more reviewer reports and an editorial decision letter, with author blocks stripped and prose line-numbered. This is the structure that carries this row's distinct privacy rule and it exists nowhere else in the creative family.",
+      "MASTHEAD or COLOPHON page: a page whose content is the roster of the publication itself - editor, contributor list, imprint, subscription and serial block - recurring near-identically across instalments. Its recurrence is what identifies it; its content is never_alone, because a publication name is an organisation name."
+    ],
+    "needs_llm": [
+      "Deciding whether a numbered, dated, recurring set is an ISSUE SERIES or a VERSION FAMILY. `_v3`, `Round 2` and `Issue 47` are the same filename shape, and 00 already collects duplicate and version-family signals universally; only reading what the numbers index separates a serial position from a revision.",
+      "Deciding whether a shelf of instalments is one the corpus owner MAKES or one they COLLECT. A folder of twelve issue PDFs is indistinguishable by filename from a folder of twelve downloaded issues. The discriminator is the presence of pre-publication states - working files, drafts, proofs, supplied ad material - and its absence is the row's most common false positive.",
+      "Reading a flatplan out of a layout file where the grid is drawn rather than tabulated, and separating it from a contents page, which looks similar and is a finished artefact rather than an allocation.",
+      "Separating INVARIANT title-level material (masthead master, grid template, style sheet, contributor agreement boilerplate) from the instalment's own material, so the invariants are not copied into every instalment folder.",
+      "Deciding whether an anonymised manuscript is a peer-review artefact or simply a document whose author metadata happens to be absent - the absence of an author block is not evidence of anonymisation, the same way missing EXIF is not proof of a screenshot."
+    ],
+    "never_alone": [
+      "A SERIAL IDENTIFIER, DOI OR VOLUME-AND-NUMBER TOKEN ALONE. This is the row's sharpest never_alone because it is exactly the collision fixture: a single article PDF downloaded for reading carries an ISSN, a DOI, a volume, a number and a page range, and fires every surface signal this row has. Without sibling pieces from the same instalment, a flatplan, a working file or a submission identifier on the disk, none of it activates this row.",
+      "A PUBLICATION OR MASTHEAD NAME ALONE. 00's rule against an organisation name as proof is directly on point: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A publication title has precisely that ambiguity - the maker's employer, a client, a market they pitch, or merely a place they read.",
+      "A BARE PAGE-RANGE OR FOLIO TOKEN (`p044-051`, `_p47`, `folio 12`). Page positions occur in scanned documents, in imposition files belonging to creative.print-production, and in any PDF's own furniture.",
+      "THE WORD `Issue` PLUS A NUMBER. It is a newsletter send counter, a support ticket, a comic, a tracker export and a periodical instalment, and only one of those is this row.",
+      "A DATE-SHAPED OR SEASON TOKEN (`Winter 2026`, `2026-03`). Treating a date as proof of periodicity is this row's own characteristic failure, and 00 reserves time-primacy for a different kind of material entirely: \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.\"",
+      "AN EXTENSION ALONE, and `.indd` most of all - the ordinary working format of creative.graphic-design-project and of creative.publishing-title. 00 makes format insufficient on its own everywhere.",
+      "A CONTRIBUTOR SURNAME IN A FILENAME. It is authorship, and 00 puts authorship below placement-relevant facts: \"Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.\"",
+      "A DOWNLOAD SESSION that gathered several files from one publisher's site. \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\" This is how a collected archive impersonates a produced one."
+    ]
+  },
+  "proposed_context_terms": [
+    "flatplan",
+    "folio map",
+    "masthead",
+    "colophon",
+    "standfirst",
+    "byline",
+    "issue close",
+    "on sale",
+    "insertion order",
+    "rate card",
+    "submission id",
+    "reviewer report",
+    "editorial decision",
+    "errata"
+  ],
+  "work_types": [
+    "flatplan or folio map",
+    "issue master or book file",
+    "page layout for one piece",
+    "contributor manuscript",
+    "sub-edited copy or galley",
+    "caption, standfirst and furniture sheet",
+    "contents page",
+    "masthead or colophon page",
+    "cover",
+    "supplied advertisement material",
+    "ad traffic or insertion record",
+    "press-ready issue file",
+    "issue archive or digital edition",
+    "peer-review packet",
+    "editorial decision letter",
+    "contributor agreement",
+    "corrections or errata"
+  ],
+  "grouping_reasons": [
+    "one instalment of a recurring publication - everything carrying its designator, however format-incoherent",
+    "one page position across its supplied material, its proof and its trafficking record",
+    "one instalment's contributor set and the material each of them supplied",
+    "one press cycle: close date, galley, press file, archive edition",
+    "one submission across its revisions, its reviewer reports and its decision",
+    "the invariant title-level material shared by every instalment, grouped so it is NOT copied into each one",
+    "an existing per-issue folder the maker already made and numbered"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT, on the same ground as the creative anchor: a dimension may only branch on a field the entry's schema declares, and this schema declares none. The recommendation is therefore prose, and THIS ROW'S DIMENSIONS DO DIFFER FROM THE ANCHOR'S DEFAULT - which is one of the three legs it passes the node test on. The anchor's default, if option (b) of NJ-R1a-1 is ever taken, is client, then project, then stage, then artifact_type. This world needs a level the default does not have and cannot borrow: the INSTALMENT. The honest order here is title-as-project, then the issue designator, then stage or artifact_type - and the issue designator maps to no candidate key. It is not `project` (the project is the title, and collapsing them makes every instalment a separate work, losing the series); it is not `stage` (stage is progression toward acceptance, and Vol 47 No 3 is a serial POSITION, not a step); it is not `artifact_type` (that names the document, not the container it sits in). That gap is recorded in open_question as NJ-PERIODICAL-1 and NO KEY IS PROPOSED, because minting one on a field-less schema at the point of maximum temptation is the 574's mistake. NOT TIME-FIRST, and the argument matters because this is the creative row most likely to claim it wrongly: an instalment is dated, but its designator is a serial position that files beside No 2 regardless of when it actually went to press, and press dates slip while numbers do not. 00 grants time-primacy elsewhere - \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material\" - and the anchor names creative.shoot-day-media and creative.raw-photo-catalogue as the only two siblings entitled to it. This row is not one of them. The general rule applies instead: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The parent-context test fixes the rest of the order - \"a parent dimension should provide the context required to understand the child\" - and `p047_feature.indd` is meaningless without its instalment exactly as Homework 3 is meaningless without the course. A per-contributor level is explicitly rejected: it is authorship, and it is the collector shape 00's validator rejects when it must not \"create meaningless one-child levels\". Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "design_creative",
+      "text_document",
+      "spreadsheet",
+      "image",
+      "archive",
+      "filesystem",
+      "ocr",
+      "email",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".indd",
+      ".indb",
+      ".indt",
+      ".idml",
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".txt",
+      ".xlsx",
+      ".csv",
+      ".tif",
+      ".jpg",
+      ".png",
+      ".eps",
+      ".ai",
+      ".zip",
+      ".eml",
+      ".ics",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Issue 214 flatplan v6.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a grid whose first column runs 1 to 116 as page positions, not as row numbers",
+        "a labelled column whose values alternate between an editorial slug and an advertisement descriptor",
+        "a per-position status column with workflow values and a contributor column of surnames",
+        "a version-shaped token in the stem and five same-stem predecessors in the folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a `people` fact from the contributor column; `people` is a photos-schema key and is seeded destination-ineligible",
+        "that the advertisement rows make this a finance or business_operations record - a rate column is not a transaction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MAG_214_Book.indb",
+      "source_type": "design_creative",
+      "observations": [
+        "a container document whose interior lists eleven member .indd documents it does not contain",
+        "a continuous page-numbering setting and a shared master applied across members",
+        "member paths resolve to files in a sibling folder",
+        "no page content of its own"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the member documents may be re-filed away from the container that references them by name",
+        "that the eleven members are eleven works; they are eleven positions in one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "214_p044-051_Feature_Okonjo_SUBBED.indd",
+      "source_type": "design_creative",
+      "observations": [
+        "a page range, a contributor surname and a workflow token in one stem",
+        "eight spreads with content-descriptive layer names and a links panel naming images not contained",
+        "the same three-digit prefix appears on nineteen other files in the folder and on folders named 213 and 215",
+        "text frames carry a byline and a standfirst"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a contributor-based destination from the surname; \"Authorship is usually metadata; the document’s purpose, project, subject, or target is more informative for placement.\"",
+        "that the page range is a fact rather than a possible clue",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Okonjo_feature_DRAFT3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose with no page numbers, no issue token and no publication name anywhere in the text",
+        "tracked changes attributed to two named editors and a comment thread",
+        "a word-count property close to a round number",
+        "sits in a folder whose siblings all carry the 214 prefix"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "an instalment designator copied from its neighbours; the file says nothing about which issue it is for, and the neighbourhood is a grouping reason, not an extraction licence",
+        "an editor identity as a destination",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Trellick_FullPage_p047_CMYK_PDFX1a.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a single-page flattened PDF with an output intent naming a CMYK press profile and trim and bleed boxes",
+        "a producing application that appears on no other file in the folder",
+        "a page-position token in the stem and an organisation name that is not the publication's",
+        "no working file with this stem exists anywhere on the disk"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the named organisation is a `client`; an advertiser is a counterparty of the publication's commercial side, not the commissioner of this work, and the role has no key - see open_question",
+        "that this file may be re-filed into the maker's own delivery or portfolio set; it is a third party's material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Issue214_ad_traffic_2026-03-02.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows keyed by page position with advertiser, size, materials-received flag and a deadline column",
+        "a rate column with currency-formatted values",
+        "an insertion-order reference in a labelled column",
+        "the page positions cross-reference the flatplan exactly"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a finance record from the rate column; a schedule of agreed prices is not a statement, an invoice or a transaction",
+        "an advertiser list as a people or organisation destination",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Vol47_No3_press_PDFX1a.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "116 continuously paginated pages with a masthead page carrying an imprint and serial block",
+        "an output intent naming a press profile; trim, bleed and slug geometry present",
+        "a compound volume-and-number token in the stem and in the page furniture",
+        "a same-stem preflight report sits beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that this row owns the press transition; the imposition, plate and proof-approval chain around this same file is creative.print-production's evidence and the collision entry carries the discriminator",
+        "a publication date from the file's own creation timestamp",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "JCHM-2026-0142_R1_anonymised.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a submission identifier in the stem that also appears on three other files in the folder",
+        "a revision token, continuous line numbering, and an author block replaced by a placeholder",
+        "a cover note addressed to an editor listing numbered responses",
+        "the document-properties author slot is populated and does not match the placeholder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "an author identity from the properties slot; recovering a name the document deliberately removed is the specific harm this row's privacy rule exists to prevent",
+        "that the absence of an author block is itself evidence of anonymisation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reviewer 2 report - JCHM-2026-0142.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered comments split into a section addressed to the author and a section addressed to the editor",
+        "a recommendation line drawn from a small closed vocabulary",
+        "the same submission identifier as the manuscript",
+        "no signature and no named author in the body"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "a reviewer identity from any metadata slot, a filename, or a writing-style inference",
+        "that the confidential-to-editor section may be summarised into a prompt or a preview",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sandoval_2026_JChemMat_v18_p221-229.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "publisher letterhead, a serial identifier, a DOI, a volume-and-number token and a page range 221-229",
+        "received, revised and accepted dates on page one",
+        "no other file on the disk carries this volume, this number or this publisher",
+        "arrived inside a bounded download session with four unrelated papers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is active - THIS IS THE COLLISION FIXTURE; the file was received, not assembled, and no flatplan, sibling piece, working file or submission identifier exists to support it",
+        "a topic or a project from the download session; \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\"",
+        "a group from the publisher's name alone; \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Issue 47 - The Thursday Note.eml",
+      "source_type": "email",
+      "observations": [
+        "a labelled sender, a labelled send date and a subject carrying the word Issue and a number",
+        "an HTML body by a single author with an unsubscribe footer and a canonical web address",
+        "no page positions, no second contributor, no supplied material and no bounded total",
+        "forty-six same-shaped predecessors exist, each one piece long"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row is active - SECOND COLLISION FIXTURE; the number is a send counter, not a page-budgeted instalment, and the material is creative.content-marketing's",
+        "that recurrence plus numbering is sufficient evidence of a periodical instalment",
+        "a recipient list as a fact of any kind",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Issue214_contributor_uploads.zip",
+      "source_type": "archive",
+      "observations": [
+        "a member manifest listing a .docx, three .tif files at print resolution, a .txt of captions and a signed agreement PDF",
+        "member names carry three different contributor surnames",
+        "the archive stem carries the instalment designator; no member does",
+        "read from the manifest without unpacking"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any creative fact - the schema declares none",
+        "that the archive's designator may be written onto its members as a fact; the manifest is evidence of enclosure, not of authorship or assignment",
+        "that the signed agreement is merely packaging - it carries a third party's identifying details and governs the file's handling",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.content-marketing",
+      "signal": "THE CLOSEST SIBLING AND THE ROW'S HARDEST BOUNDARY. Both worlds are continuing programmes with a calendar, many pieces and a numbered recurrence. The confusable evidence is a numbered, dated, recurring set of published pieces. The discriminating evidence is WHAT THE NUMBER INDEXES and WHAT THE PLAN ALLOCATES: this row's plan allocates PAGE POSITIONS inside a bounded total that is fixed before the contents exist, and its number indexes an instalment that closes; content-marketing's calendar allocates DATES on an open-ended schedule to pieces addressed to permanent public locations, and its number, where one exists, is a send counter. Same fixture on both sides: `Issue 47 - The Thursday Note.eml` - this row reads it and abstains, content-marketing claims it on the slug-and-canonical-address evidence. The reciprocal statement content-marketing must carry: a bounded page budget with third-party supplied material occupying positions in it is never a content-marketing programme, however regular its cadence."
+    },
+    {
+      "domain": "creative.print-production",
+      "signal": "The confusable evidence is a press-ready PDF of a whole instalment with an output intent, trim geometry and a preflight report. The discriminating evidence is which transition the file documents: this row owns the ASSEMBLY of many pieces into pages, print-production owns the transition of finished artwork to a press - imposition, plates, colour proofing, the printer's paperwork and the run. Same fixture bytes on both sides: `Vol47_No3_press_PDFX1a.pdf` is legitimately the instalment's final assembled state AND the file handed to the press, and this row claims neither reading exclusively. The reciprocal: print-production must not claim the FLATPLAN, which allocates slots before any artwork exists and is not a press document; this row must not claim the imposition sheet, the plate set or the proof-approval chain."
+    },
+    {
+      "domain": "creative.publishing-title",
+      "signal": "The confusable evidence is a publisher's production apparatus - manuscripts, typeset pages, a book file, an imprint block, an ISBN or ISSN-shaped identifier - around text moving to print. The discriminating evidence is RECURRENCE AND MULTIPLICITY: a title is one work by one author or editorial hand, finished once, with no next instalment, no page budget shared with advertisements, and no volume-and-number series; an instalment is one of many, page-budgeted, multi-authored, and followed by another. Same fixture on both sides: an `.indb` book file - this row reads it as an instalment master only when a designator recurs across ADJACENT folders, publishing-title reads it as a title master when the folder has no successor. Reciprocal boundary owed from publishing-title's side; that node has not landed yet and this is recorded as a recommendation to R1c, not written into their file."
+    },
+    {
+      "domain": "creative.short-form-writing",
+      "signal": "The confusable evidence is a short piece with a byline, a standfirst and a word count, drafted and revised. The discriminating evidence is WHOSE CORPUS IT IS: short-form-writing is one writer's many pieces across many outlets and many deadlines, filed by the writer; this row is many writers' pieces for ONE instalment of one outlet, filed by whoever assembles it. Same fixture on both sides: `Okonjo_feature_DRAFT3.docx` - the writer's own copy is short-form-writing's, the copy sitting inside the 214 folder beside nineteen siblings and a flatplan is this row's, and the bytes can be identical. This is also the case where neither should fire: a lone draft with no outlet evidence and no instalment neighbourhood falls through, because \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    },
+    {
+      "domain": "creative.graphic-design-project",
+      "signal": "The confusable evidence is layout working files with spreads, content-descriptive layers and a links panel naming placed media. The discriminating evidence is whether the layout is A WORK or A POSITION: a poster, a report or a piece of collateral is complete in itself and is graphic-design-project's; a layout whose stem carries a page range, whose pagination is continuous with documents it does not contain, and which is enumerated in a flatplan, is a slot in something larger. The reciprocal: graphic-design-project must not claim an instalment's member documents merely because they are .indd files, and this row must not claim a standalone layout because a publication made it."
+    },
+    {
+      "domain": "creative.journalism-reporting",
+      "signal": "Also listed under also_holds_with, and both edges are true of different files. The COLLISION arises where the same reported story is claimed by both on the same evidence - the draft, the byline, the deadline. The discriminating evidence is the reporting apparatus: notes, recordings, contact material, obtained documents and source-protection posture are reporting's and must never be pulled into an instalment folder's filing just because the story ran there; page position, sub-edited copy and furniture are this row's and are not part of the reporting record. The reciprocal is owed from journalism-reporting's side; that node has not landed and this is a recommendation to R1c."
+    },
+    {
+      "domain": "research",
+      "signal": "The confusable evidence is a scholarly article with a serial identifier, a DOI, a volume-and-number token, page numbers and received/accepted dates. The discriminating evidence is DIRECTION: this row is the PRODUCTION side of a journal issue - submissions, reviews, decisions, assembled pages - while research's material is articles CONSUMED as part of an active project. Same fixture on both sides: `Sandoval_2026_JChemMat_v18_p221-229.pdf` - research may claim it where an active project explains it; this row must not, and where neither explains it the honest home is Reading Inbox: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\""
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "The confusable evidence is a set of finished, exported pages presented in order with no working files - which is exactly what a portfolio of published tearsheets looks like and exactly what an issue archive PDF looks like. The discriminating evidence is what the set is FOR: tearsheets selected across several instalments, ordered for showing, sitting beside a resume or a rate sheet, are career's; a complete continuously-paginated instalment with its own masthead, contents and advertisements is this row's. The reciprocal: this row must not claim a curated tearsheet set because the pages came from periodicals, and portfolio-work-samples must not claim a whole instalment because the maker's name is in the masthead."
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "The confusable evidence is a static-site or documentation repository that publishes a serialised web edition - dated content directories, a manifest, an issues or posts folder, numbered instalment slugs. The discriminating evidence is which structure explains the folder: a manifest, lockfile and source layout is code and its internal layout is preserved rather than re-filed; a page-budget allocation and multi-document master over binary layout sources is this row. The reciprocal: code must not claim an assets or content directory's authored material merely because a repository encloses it, and this row must not propose re-filing anything inside a preserved repository root."
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "The confusable evidence is a screen capture of an instalment's pages, a proof view or a comment thread, carrying the same visible content as the layout it depicts. The discriminating evidence is media type and origin: a capture of a page is a picture of evidence, not the evidence, and the absence of camera metadata is not proof of anything. The reciprocal: this row must not absorb a screenshot into an instalment's set on visual similarity, and screenshot-captures must not claim a supplied advertisement PDF because it renders as an image."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "creative.journalism-reporting",
+      "signal": "A reported story that runs in an instalment is legitimately BOTH, on disjoint evidence: the assignment, the notes, the recordings and the obtained documents on one side; the page position, the sub-edited copy, the furniture and the flatplan row on the other. This is 00's stated shape - \"One file may hold facts from more than one domain without losing information.\" Neither reading may suppress the other, and where the reporting side carries source material the protective posture governs handling regardless of which reading is more informative for placement. Listed as a collision as well, because the SAME bytes can also be claimed wrongly when the reporting reading is asserted with no reporting apparatus present at all."
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "signal": "A contributor agreement, a photograph licence for a specific page, a syndication grant and a reprint permission are simultaneously the instalment's paperwork and the rights record of a named piece. The evidence is disjoint - the instalment designator, the page position and the contributor set on one side; the usage grant, its territory and its term on the other. The rights side is where the family's one genuinely field-shaped hole sits, and this row proposes no key for it."
+    },
+    {
+      "domain": "legal",
+      "signal": "A signed contributor agreement, a model or property release supplied with a photographic feature, and a pre-publication legal read are legally operative instruments AND instalment paperwork. Disjoint evidence: a numbered clause set, defined terms, a parties block and an execution block on one side; the designator and the page position on the other. Where the instrument carries a person's identifying details the protective posture governs the file's handling whichever reading is more informative."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "THE MOST IMPORTANT FALLTHROUGH THIS ROW HAS, because it is where the row's commonest and most convincing false positive belongs - a periodical someone COLLECTS rather than makes, whether one downloaded article or a shelf of back issues. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" The clause \"no active research, course, or project association\" is the exact test, and it is the residual side of the produced-versus-collected seam.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for real-looking instalment material whose designator, position or side is unresolved - the normal case here, because contributor drafts and supplied material routinely carry no instalment token at all. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A lone assembled instalment PDF or a single supplied advertisement with a durable purpose and no group around it. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The route this row needs that the creative anchor does not: peer-review material whose whole point is that a third party's identity stays unrecoverable, and supplied third-party material under embargo. \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" The local-only and no-prompt-exposure clauses are the operative half here, not the enumeration.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Ordinary rather than exceptional in this world: contributor upload archives, password-protected supplied material and layout packages no approved extractor reads. \"Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The creative anchor's four reasons all apply here and are not restated. TWO REASONS ARE THIS ROW'S OWN, and they are the third leg on which it passes the node test. (1) PEER-REVIEW ANONYMITY IS A STRUCTURAL CONFIDENTIALITY, NOT A DISCLOSURE RISK. In the scholarly subset the protected thing is not the work but the LINK between a person and a document: a reviewer's identity, an author's identity behind an anonymised manuscript, and an editor-only section of a report. The harm is de-anonymisation, which no other creative row faces, and it is irreversible in the way 00 describes - \"Revocation cannot necessarily retract data already sent to an external provider, so the product must communicate that distinction clearly.\" The practical rule this generates is unique in the family: a document-properties author slot that contradicts a stripped author block must be treated as something to protect rather than something to extract. (2) THIRD-PARTY MATERIAL THE MAKER CANNOT CONSENT FOR. Supplied advertisement files are an advertiser's unreleased campaign creative, sitting inside the publication's own folder under an embargo the publication did not set and cannot waive; contributor uploads carry third parties' releases, addresses and signatures. The anchor's client-confidence reason covers the commissioner's secret; this is a party with no relationship to the maker's filing agent at all. Against both: \"Privacy policy must be enforced before content reaches any model or external connector.\" This row does NOT carry is_safety_domain - that flag stays with 00's four - and it assigns no handling class, which is P7's vocabulary.",
+  "open_question": "Three, and the first is the row's own honest gap. (1) NJ-PERIODICAL-1 - THE INSTALMENT HAS NO KEY, AND IT IS THIS ROW'S DEFINING LEVEL. Even if option (b) of NJ-R1a-1 is taken and the creative schema declares `project`, `stage`, `artifact_type`, `client`, none of the four can carry a volume-and-number or issue designator: `project` is the TITLE, and collapsing the instalment into it turns every issue into a separate work and loses the series; `stage` is progression toward acceptance, while a designator is a serial POSITION that does not move; `artifact_type` names the document, not the container it occupies. The alternatives: (a) leave the instalment unexpressed, so a periodical corpus groups by instalment but can never branch on it - what this row does today, and it costs the row the one folder level its own material most obviously wants; (b) mint an instalment or serial-position key on the shared vocabulary - the honest fit, but it is a decision about the product's field table that one template row must not make on a schema that declares no fields at all, and it immediately raises whether the level may nest under a title level; (c) treat the designator as a VALUE inside `artifact_type` - cheap, and wrong in the way the 574 was wrong, because it puts a container identity into a document-type vocabulary. NO FIELD IS PROPOSED. Recorded for R1c. (2) THE ADVERTISER IS A THIRD ROLE AND `role_split` IS EMPTY BECAUSE OF IT. The anchor already splits `client` from `our_firm` and this row does not re-declare that split. What it cannot express is that a publication has a counterparty who is neither: an advertiser buys a position INSIDE the maker's own work rather than commissioning it, and reading an advertiser name into `client` would make the publication appear to be working for its own advertisers. There is no third key and none is proposed; the refusal is written into the supplied-advertisement fixture's must_not_conclude instead. Confirm that a two-role split is sufficient, or open the question properly at schema level. (3) THE PRODUCED-VERSUS-COLLECTED SEAM'S MIDDLE. This row draws the seam by the presence of pre-publication states and routes the collected end to Reading Inbox. What it cannot settle is the archivist: someone who keeps a complete, deliberately curated run of a publication they do not make - a zine collector, a librarian, a researcher with a full journal run - whose folders are numbered, dated and serially complete and whose material has no working files at all by design. Reading Inbox is a poor home for a curated permanent collection, and this row is the wrong home for material its owner never made. The alternatives are a residual the user defines themselves, which 00 explicitly supports, or a separate collecting row that is not this one's business to propose."
+}

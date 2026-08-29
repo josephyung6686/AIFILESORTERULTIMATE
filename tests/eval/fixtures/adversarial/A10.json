@@ -1,0 +1,12 @@
+{"case_id": "A10", "wording": "documents with corrupted text layers",
+ "attacks": "extraction routing", "sections": ["§2.2", "§2.7", "§2.4"],
+ "assert_against": "stage", "dimension": "extraction", "subject_ref": "A10::doc::routing",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"ocr_fallback": true, "triggered_by": "no_usable_facts"},
+ "forbidden_value": {"ocr_fallback": true, "triggered_by": "language_quality_heuristic"},
+ "extraction_runs": [{"run_id": "A10-run", "file_id": "A10-file",
+                      "content_hash": "sha256:A10", "extractor_name": "pdf.native",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "partial",
+                      "coverage": {"units": "pages", "processed": 4, "total": 4},
+                      "observation_count": 0}]}

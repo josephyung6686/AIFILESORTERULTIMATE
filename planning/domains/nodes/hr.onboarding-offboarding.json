@@ -1,0 +1,518 @@
+{
+  "id": "hr.onboarding-offboarding",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Joiner and leaver processes",
+  "one_line": "The employer-side working record of moving one person or one cohort ACROSS the employment boundary on a single effective date: a task-and-owner matrix spanning IT, payroll, facilities, security and the hiring manager, running in one of two provisioning directions - grant on a start date, revoke on a last working day - together with the induction material delivered against it and the receipts, acknowledgements and forms that show each task completed. It is not the offer that preceded it, not the policy it acknowledges, not the asset it hands over, not the identity document it collects, and not the individual's own copy of any of those. PLACEHOLDER ROW (J-IND): the hr schema declares no canonical field rows under PR-6, so this row writes none and its dimension recommendation is held as prose for R1c.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "fields_note": "Empty by contract on two independent grounds. A template may not copy its schema's field list, and the hr schema anchor declares no canonical field rows at all under PR-6 (D1's deferral stands). The legal fact set on any file this row recognizes is therefore the universals - file type, creation date, language, duplicate family, version family, sensitivity status - plus whatever R1c promotes from the hr schema row's four proposed keys. Nothing below treats a proposed key as though it existed.",
+  "proposed_fields": [
+    {
+      "key": "people_cycle",
+      "type": "string",
+      "example": "September 2026 intake; or the 2026-11-14 leaver event for one named individual",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `people_cycle` is already proposed by the hr schema row; this row asks R1c to adjudicate it with this situation's evidence in front of it, because this row is the strongest case in the hr family for the key existing AND the strongest case against the hr row's own prose ordering. An intake or a leaver event is the only thing that makes a checklist, an induction agenda, a handover receipt, an acknowledgement and an exit note intelligible together - the same argument 00 makes when it says a homework item is meaningless without the course. No existing canonical key can carry it: `creation_date` says when bytes were made and is routinely months off the effective date; `fiscal_period` and `tax_year` are accounting calendars; `term` is academic; `project` is bounded delivery work with milestones rather than one status change on one date. This row proposes NO key of its own and specifically refuses to mint a joiner/leaver direction key - see recognition and work_types, where direction is a VALUE.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed true, and proposed as the LEADING level for this situation only - which differs from the hr schema row's prose default of work type first. A cohort cycle name discloses far less than an employee name while still making every member intelligible. The single-leaver case is the exception that must be handled by policy rather than by default, because a folder named for one departure discloses the departure; see open_question NJ-ONB-4.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled intake, cohort, start-date or last-working-day slot is a direct observation. Deciding that it names the cycle THIS file serves is not: the same date appears as document date, effective date, probation end, payroll cut-off and notice expiry, and a cohort name is an internal alias that reorganisations change. No rule family in the design licenses validating it, and this row invents none.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "A TASK-AND-OWNER MATRIX CONVERGING ON ONE EFFECTIVE EMPLOYMENT DATE. The file's rows or lines are process tasks, each carrying an owning function (IT, payroll, facilities, security, manager, HR) and a completion state, and the whole set is scoped to a single start date or last working day for a named person or a named cohort whose employment status changes on that date. All four axes together are the signal - tasks, owners, completion states, one effective date. Any three of them describe an ordinary project plan or an operations runbook.",
+      "PROVISIONING DIRECTION. The task vocabulary is unmistakably a grant set (account created, mailbox provisioned, equipment issued, badge issued, payroll set up, induction booked, buddy assigned, probation start) or unmistakably a revoke set (account disabled, mailbox delegated, equipment returned, badge surrendered, access removed, final pay calculated, exit interview held, references handover). Direction is what distinguishes the two halves of this row from each other, and its presence beside an employment-status change is what distinguishes both halves from every other hr sibling: no other personnel situation has a provisioning axis at all.",
+      "A COMPLETED NEW-STARTER FORM whose labelled slots jointly gather payroll setup, statutory identity, and personal-emergency information for one person who has not yet started - bank account and sort code beside national insurance or tax identifier beside emergency contact and next of kin, with a start date slot. The JOINT gathering is the signal; a bank detail form alone is finance, an identity number alone is identity, an emergency contact alone is a personal record.",
+      "AN INDUCTION OR ORIENTATION AGENDA scoped to a start date rather than to a curriculum: day and session and presenter and room slots running across a first day or first week, with welcome, org-chart, benefits-enrolment, systems-access and policy-walkthrough sessions, and no course code, syllabus, module structure, assessment or continuing-professional-development framing.",
+      "A RETURN-OF-PROPERTY OR ACCESS-REVOCATION RECEIPT that names a last working day and enumerates items or entitlements surrendered, signed by both the leaver and a receiving function. The last-working-day slot is what separates it from an ordinary asset movement record.",
+      "AN ARCHIVE WHOSE MANIFEST JOINTLY LISTS a contract or offer, a policy acknowledgement, an identity or right-to-work item, a payroll setup form, and an equipment or access item, under one person's name. No single member proves this row; the joint manifest does, and the correct response to it is a purpose-coherent group whose identity-bearing members are routed out, not absorbed.",
+      "AN EMAIL OR CALENDAR ITEM whose structured participants and summary anchor a named joiner or leaver event - a first-day induction invitation carrying the joiner, the manager and a room, or an exit interview invitation carrying the leaver and HR. Source type never activates alone; the participant-plus-named-event structure does."
+    ],
+    "needs_llm": [
+      "Whether an unlabelled onboarding checklist is about an EMPLOYEE crossing the employment boundary or a CLIENT, CUSTOMER, VENDOR, TENANT, PATIENT or SOFTWARE USER being taken on. The vocabulary is identical - onboarding, welcome pack, checklist, access provisioned, kickoff, first 30 days - and only the subject of the tasks discriminates. A counterparty organisation with an engagement, KYC, credit or contract anchor is business_operations.customer-account-management or vendor-management; a natural person acquiring an employment status is this row.",
+      "Whether an induction deck is joiner-scoped delivery or a general training curriculum. A deck that exists only because someone started this week is this row; a course with modules, a completion roster spanning tenured staff, and a development framework is hr.training-development, even when its first module is titled Induction.",
+      "Whether an exit narrative is a leaver PROCESS record or an employee-relations CASE narrative. Candid criticism of named managers, a termination reason, an allegation, or a settlement discussion pulls it toward hr.employee-relations regardless of the checklist it was filed beside.",
+      "Whether a heterogeneous joiner packet is, in 00's words, \"purpose-coherent despite topic diversity, which members appear to be supporting materials rather than unrelated records, and whether any member conflicts with the proposed purpose.\" A right-to-work passport scan does conflict: it is identity's own evidence and its protection must run first.",
+      "Whether a probation or thirty/sixty/ninety-day review is the closing act of this row's process or the opening act of hr.performance-cycle. Unsettled by the design docs; see open_question NJ-ONB-3.",
+      "Whether unlabelled prose describing a first week - a personal diary, a manager's notes, a blog draft - is an employer-side process record at all. Most such prose is not, and abstention is the correct answer."
+    ],
+    "never_alone": [
+      "The words onboarding, offboarding, induction, orientation, welcome, new starter, new joiner, day one, first 90 days, exit, leaver, or handover. Every one of them is used verbatim by client onboarding, vendor onboarding, tenant move-in, patient intake, product user-onboarding specifications, and software installation guides. This is the single most tempting false positive on the node and the reason `Client onboarding checklist - Meridian Ltd.xlsx` is carried as a file example.",
+      "A checklist shape alone - task column, owner column, tick boxes, percentage complete. That is a universal working-document shape shared by project plans, launch runbooks, audit request lists, moving-house lists and wedding planning.",
+      "A start date, a last working day, an effective date, or any bare date or date range. A date qualifies a process; it cannot establish one.",
+      "An employee name, employee number, job title, manager name, department, or the employer's own name, letterhead or email domain. The hr schema row already forbids these; this row inherits the prohibition and adds that a signature block on a handover form is not employment evidence.",
+      "An asset tag, serial number, hostname, licence entitlement or equipment identifier. business_operations.it-asset-inventory owns a form anchored on one asset identifier with no employment content, and this row must not take it back merely because a person signed it.",
+      "A policy, handbook, code of conduct or procedure document itself, including one whose title says Induction. business_operations.policy-handbook owns the controlled document; only the person-anchored acknowledgement of it can reach this row.",
+      "An identity document - passport, visa, right-to-work evidence, national identifier card - or a scan of one. Collecting it is a joiner task, but the document is identity's evidence and identity's protection runs first. Presence of such a scan in a folder is never proof this row fired.",
+      "An org chart, a benefits summary, a seating plan, or a systems-access list. Each is a business_operations or hr.org-design-headcount artifact that induction merely reuses.",
+      "Source type or extension alone, including spreadsheet, presentation, archive, email, calendar, image, ocr, contacts and pdf.",
+      "Membership of a download session, a mailbox folder, or a parent directory named Onboarding, New Starters, Joiners, Leavers, HR, People, or Admin.",
+      "Absence of EXIF as proof that a photograph of an induction sign-in sheet, a signed handover form or a completed starter form is a screenshot.",
+      "A resignation letter, an offer letter, a contract of employment, or a reference request considered on its own. Each has a career reading as the individual's own evidence and a career.employer-side-hiring reading as recruitment output; only employer-side process structure around it can reach this row."
+    ]
+  },
+  "proposed_context_terms": [
+    "start date",
+    "last working day",
+    "first day",
+    "new starter",
+    "joiner",
+    "leaver",
+    "induction",
+    "orientation",
+    "probation",
+    "notice period",
+    "right to work",
+    "pre-employment check",
+    "access provisioned",
+    "account disabled",
+    "equipment issued",
+    "return of property",
+    "final pay",
+    "exit interview",
+    "buddy",
+    "handover"
+  ],
+  "work_types": [
+    "joiner checklist or onboarding tracker for one person or one intake cohort",
+    "pre-employment and right-to-work check record (the CHECK record, not the identity document itself)",
+    "new-starter data collection form: payroll setup, statutory identifier, emergency contact",
+    "induction or orientation agenda, welcome pack, or first-week schedule",
+    "induction attendance, sign-in or completion record",
+    "policy, handbook or code acknowledgement signed by one named joiner",
+    "equipment, access or credential issue receipt tied to a start date",
+    "probation plan, thirty/sixty/ninety-day plan, or probation confirmation record",
+    "leaver checklist or offboarding tracker",
+    "resignation acceptance, notice acknowledgement or leaving-date confirmation held employer-side",
+    "return-of-property and access-revocation receipt",
+    "knowledge or duties handover document produced for a departure",
+    "exit interview record, leaver survey response, or leaver-feedback summary",
+    "final pay, accrued-leave and benefits-cessation instruction raised by the leaver process",
+    "reference, service-confirmation or leaving-statement issued on departure"
+  ],
+  "grouping_reasons": [
+    "One joiner's process from acceptance through start date to probation confirmation, across checklist, forms, receipts, acknowledgements and induction material that share no topic and no format.",
+    "One intake cohort, where a tracker, an induction agenda, an attendance record and a set of per-person receipts belong together because they serve the same start date.",
+    "One leaver's process from notice through last working day, across checklist, handover document, property receipt, final-pay instruction and exit record.",
+    "One induction session delivery - agenda, deck, attendance sheet, feedback form - which may group even when no single member names an employee.",
+    "A sparse member such as an unlabelled first-day agenda may join an accepted group by neighbourhood WITHOUT receiving the group's cycle, unit or person facts. This is the row's most frequent grouping case and its most frequent way to go wrong.",
+    "No group is valid when a lone checklist-shaped file lacks an employment-status change; a protected or independent residual placement is safer than inventing a joiner."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY PR-6, not by absence of a recommendation. The hr schema declares no canonical field rows, and a template may only branch on a field its own schema declares, so no level can be encoded here yet. The recommendation held for R1c, and it deliberately DIFFERS from the hr schema row's prose default of work type first: for this situation the people cycle should LEAD - the intake or the departure event - then work type as the leaf, with workforce unit inserted only where a corpus genuinely spans several units. The reason is evidential rather than aesthetic. One joiner process emits exactly one of each work type: one checklist, one starter form, one acknowledgement, one handover receipt, one induction agenda. Leading with work type therefore scatters a single person's process across five sibling folders and puts each member next to a stranger's member of the same type, which is the opposite of what the group exists to express. Leading with the cycle keeps the process whole and keeps the induction material - which names nobody - in the same place as the receipts that do. The person is never a level: a folder bearing a joiner's or a leaver's name publishes personnel-record membership, and for a single leaver even the cycle level does so. Not time-first: the effective date is an anchor slot inside the cycle, not a filing axis, and creation dates on these files routinely sit months away from the date that matters.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "contacts"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "New joiner checklist - J Patel - start 2026-09-01.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "single sheet; columns are task, owning function, due relative to start, completed flag, completed date",
+        "owning function column contains HR, IT, Payroll, Facilities and Manager on different rows",
+        "tasks include contract returned, right to work checked, payroll set up, laptop issued, building access granted, induction booked",
+        "one start date appears in the title and again in a labelled header cell"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any hr fact as canonical - the schema declares none under PR-6",
+        "that the laptop task makes this an asset record",
+        "that the right-to-work task licenses reading or moving the identity document it refers to",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "New joiners - September intake tracker.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per joiner; columns combine joiner name, employee ID, start date, manager, department, induction, equipment, payroll and completion status",
+        "separate owner columns assign HR, IT, payroll and facilities tasks",
+        "the same fixture bytes the hr schema anchor carries; named identically here so both rows agree"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a workforce_member or people_cycle fact before R1c promotes the keys",
+        "that the embedded equipment column makes the workbook an IT inventory",
+        "that a cohort tracker may be summarised with names intact in a general summary",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "New starter form - completed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for bank account and sort code, national insurance or tax identifier, date of birth, home address, emergency contact and next of kin",
+        "a start date slot and a signature block",
+        "no employer process structure beyond the form itself"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the bank slot makes this a finance account record",
+        "that the identifier slot makes this an identity core document - it is a COPY of one datum, not the document",
+        "that this file may reach a cloud model; 00 requires protected material to remain local-only and not expose filenames or content in model prompts",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Right to work check - passport scan.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a passport biographical page, taken on a phone, held in a folder named New Starters",
+        "no form, no checklist, no employer letterhead, no task or owner structure in the bytes",
+        "OCR would recover a machine-readable zone and a document number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row fired - it did not; the folder name is never-alone and the bytes are an identity document",
+        "that a joiner process exists because a right-to-work task exists somewhere else",
+        "that purpose coherence with a joiner packet licenses absorbing this member into an hr group",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Induction day 1 - welcome deck.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides titled Welcome, Who we are, Your first week, Benefits enrolment, Getting your systems access, Who to ask",
+        "an org-chart slide and a floor-plan slide reused from other decks",
+        "no employee named anywhere; no course code, module structure, syllabus or assessment"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the org-chart slide makes this an establishment plan",
+        "that the benefits slide makes this a compensation record",
+        "a training curriculum from the word induction",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Handbook acknowledgement - J Patel - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one named employee, one handbook version, an acknowledgement date and a signature, all in labelled slots",
+        "the governing handbook text is not contained in the file",
+        "the same fixture bytes business_operations.policy-handbook names on its side of the boundary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the governing handbook; business_operations.policy-handbook owns the controlled document",
+        "a workforce_member fact before R1c",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Laptop handover form - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "asset tag, serial number, model and condition in labelled slots",
+        "an issue-or-return checkbox, a date, and signatures from custodian and IT",
+        "the same fixture bytes business_operations.it-asset-inventory names, which already records this as a co-activation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.it-asset-inventory owns it - both anchors can be present and P10 chooses from an accepted group later",
+        "an employment fact from a signature block",
+        "that this row fired when the form carries only an asset identifier and no employment content",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Leaver checklist - last day 2026-11-14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "task, owner, due and completed columns as on the joiner sheet, but every task is a revocation: accounts disabled, mailbox delegated, laptop returned, badge surrendered, VPN removed, final pay raised, exit interview held",
+        "a last working day in a labelled header cell",
+        "a knowledge-handover row pointing at a separate document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a reason for leaving; the file states a date, not a cause",
+        "an employee-relations case from the existence of a departure",
+        "that the final-pay row makes this a payroll register",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Exit interview notes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose under three headings: what worked, what did not, would you return",
+        "three managers named and criticised by name",
+        "no case reference, no allegation framing, no investigator"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that criticism of a named manager constitutes a grievance; hr.employee-relations needs case structure",
+        "the leaver's identity from the managers named in the prose",
+        "that this may be summarised with names intact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client onboarding checklist - Meridian Ltd.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "task, owner, due and completed columns - structurally identical to the joiner checklist",
+        "tasks are KYC check, conflict check, engagement letter signed, credit terms agreed, portal access granted, kickoff booked, welcome pack sent",
+        "the subject of every task is a company, and an engagement reference appears in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row fired - it did not; the word onboarding and the checklist shape are both never-alone",
+        "an employment status change; no natural person acquires one here",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "onboarding-pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists contract of employment, handbook v4.2, handbook acknowledgement, new starter form, right-to-work scan, IT request form and an induction agenda",
+        "members span five different schemas and share no topic",
+        "one person's name recurs across four of the seven member filenames"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that purpose coherence licenses absorbing the right-to-work scan or the contract into an hr group; each member keeps its own schema and the strictest side governs exposure",
+        "that every member shares every fact carried by any other member",
+        "that the archive may be unpacked to a cloud model",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Day 1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a single page of times, session titles and room names",
+        "no date, no year, no employer, no person, no letterhead",
+        "sits in a directory beside an induction deck and two signed acknowledgements"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a people cycle, a workforce unit or an employee copied from the neighbouring files",
+        "that neighbourhood membership is activation; a file may join a group without this template firing on its own bytes",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "The boundary is the moment of acceptance, and both sides hold paper on either side of it. CAREER.EMPLOYER-SIDE-HIRING MUST NOT TAKE a checklist, induction agenda, starter form, acknowledgement, receipt or probation record that exists only because someone is now starting; those are post-acceptance process. THIS ROW MUST NOT TAKE the requisition, the job description, the candidate pipeline, the interview scorecard, the reference request or the offer letter itself, all of which exist whether or not anyone accepts. Shared fixture bytes: `Offer Letter - Summer Analyst.pdf` - hiring's output, and this row's trigger, but never this row's evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employment-records",
+      "signal": "Same bytes, opposite custody. CAREER.EMPLOYMENT-RECORDS MUST NOT TAKE an employer's cohort tracker, an induction attendance roster, or a leaver task matrix merely because each line could be copied to one individual. THIS ROW MUST NOT TAKE an individual's own copy of their welcome email, their signed acknowledgement, their handover note or their leaving statement when no employer-side task, owner or roster structure is present; on a personal laptop that is the individual's employment evidence. Shared fixture bytes: `Handbook acknowledgement - J Patel - signed.pdf` and `Welcome to Meridian - your first week.eml`. The discriminator is employer-side process structure, not whose disk holds the file. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "THE COLLISION FIXTURE OF THIS NODE. Client, customer and vendor onboarding use this row's exact vocabulary and exact shape - onboarding, welcome pack, checklist, access provisioned, kickoff, first 30 days, tasks with owners and completion states against one go-live date. BUSINESS_OPERATIONS.CUSTOMER-ACCOUNT-MANAGEMENT MUST NOT TAKE a checklist whose subject is a natural person acquiring an employment status. THIS ROW MUST NOT TAKE a checklist whose subject is a counterparty organisation with an engagement, KYC, conflict, credit or contract anchor. Shared fixture bytes: `Client onboarding checklist - Meridian Ltd.xlsx`, carried in this row's file examples precisely as the file that must NOT activate it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "Reciprocates a boundary that row already settled from its side and named as one-way. BUSINESS_OPERATIONS.POLICY-HANDBOOK MUST NOT TAKE an acknowledgement, attestation or induction checklist anchored on one named joiner. THIS ROW MUST NOT TAKE the governing document itself, which is a controlled document with an owner, a version and a review date and which exists independently of any joiner - including one titled Induction Policy. Shared fixture bytes, named identically on both sides: `Handbook acknowledgement - J Patel - signed.pdf` (this row) and `Employee Handbook v4.2.pdf` (that row). Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "Reciprocates the edge that row wrote and flagged as owed. BUSINESS_OPERATIONS.IT-ASSET-INVENTORY MUST NOT TAKE a checklist spanning accounts, payroll, induction and access, nor anything identifying a named person as an employee. THIS ROW MUST NOT TAKE a form anchored on one asset identifier with no employment content, nor a standing device register, nor an entitlement export, merely because a joiner signed for a machine. Shared fixture bytes, named identically on both sides: `Laptop handover form - signed.pdf`. Where both anchors are genuinely present the file co-activates and this row's stricter handling governs the person-identifying members. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.training-development",
+      "signal": "Induction is the contested word. HR.TRAINING-DEVELOPMENT MUST NOT TAKE a first-day or first-week agenda that exists only because someone started, nor an induction sign-in sheet tied to one start date. THIS ROW MUST NOT TAKE a curriculum, a module structure, a completion roster spanning tenured staff, a development plan or a mandatory-training matrix, even when its first item is named Induction. Shared fixture bytes: `Induction completion roster - Sept 2026 intake.xlsx`, which carries a start-date cohort AND a course-completion structure and is the genuine hard case. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "Every dismissal produces both a case and a leaver checklist, from the same event on the same day. HR.EMPLOYEE-RELATIONS MUST NOT TAKE the revocation task matrix, the property receipt, the handover document or the final-pay instruction, which are identical whether the departure was a resignation or a dismissal. THIS ROW MUST NOT TAKE the allegation, the investigation evidence, the hearing record, the outcome letter, the appeal or a settlement agreement. Shared fixture bytes: `Termination - J Patel - final pack.zip`, whose manifest holds both families and which must be split rather than assigned whole. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.payroll-benefits-administration",
+      "signal": "The joiner's payroll setup and the leaver's final pay sit on this seam. HR.PAYROLL-BENEFITS-ADMINISTRATION MUST NOT TAKE the checklist task that says payroll set up, nor the starter form as a payroll master record, nor the leaver checklist because it mentions final pay. THIS ROW MUST NOT TAKE a pay run, a payroll register, an employer remittance, a benefits enrolment file or a statutory payroll filing, all of which recur on a payroll calendar rather than on one person's effective date. Shared fixture bytes: `Final pay calculation - leaver Nov 2026.xlsx`. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "Collecting an identity document is a joiner task; holding one is not this row's business. IDENTITY.CORE-DOCUMENTS MUST NOT TAKE the employer's check RECORD - the dated, signed attestation that a check was performed - which is process evidence. THIS ROW MUST NOT TAKE the passport, visa, identity card or birth certificate itself, or a scan of one, under any circumstances, including when it arrives inside a purpose-coherent joiner packet; identity's protection runs first and this row's group must be assembled around it, not over it. Shared fixture bytes: `Right to work check - passport scan.jpg`. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "business_operations",
+      "signal": "A joiner or leaver checklist is simultaneously an employer personnel process and an IT, facilities and access-management work record; an acknowledgement simultaneously evidences a controlled policy version. Both schemas may hold disjoint facts about the same bytes. This row's stricter handling governs the person-identifying members. Inherited from the hr schema row's own also_holds_with; this row narrows it to the joiner and leaver fixtures."
+    },
+    {
+      "domain": "identity",
+      "signal": "A completed new-starter form and a right-to-work packet member carry statutory identifiers and identity documents inside an employer process. Co-activation is lawful and necessary, but it is asymmetric: identity's protection runs first, identity facts stay identity's, and nothing in this row licenses copying an identifier into a process fact. Inherited from the hr schema row's protection posture and narrowed to this situation."
+    },
+    {
+      "domain": "legal",
+      "signal": "A contract of employment, a settlement agreement and a restrictive-covenant reminder issued on departure are both process members and legal instruments. Legal status does not erase the joiner or leaver process structure around them, and process membership does not make this row the owner of the instrument. Inherited from the hr schema row."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "The material names a person as a joiner, leaver, or subject of a starter form, exit record or final-pay instruction, but no employer-side process structure establishes this row - or the process is established and the member is an identity, health, payroll or candid-narrative item. 00: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\""
+    },
+    {
+      "template": "Independent Records",
+      "when": "A durable standalone joiner or leaver artifact names nobody and belongs to no accepted group - an unlabelled first-day agenda, an induction deck with no cohort, a blank handover template, a generic welcome pack. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\""
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "career.employment-records",
+      "this_role": "The employer administering the crossing: task owners, completion states, cohort roster, and the receipts the employer keeps as proof the process ran.",
+      "other_role": "The individual's own evidence of the same crossing: their welcome email, their copy of what they signed, their leaving statement, their reference."
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "this_role": "The person crossing the employment boundary, of whom equipment issue and return are two tasks among many.",
+      "other_role": "The asset itself, of which custody by this person is one episode in a longer register."
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This situation carries a sensitivity profile that is different in KIND from the hr schema's default, not merely stronger. A joiner packet is the densest concentration of identity-schema material anywhere in the employer's filing world - passport or right-to-work scan, statutory identifier, bank account for payroll setup, date of birth, home address, next of kin, and often a background check - assembled in one place, at one moment, under one person's name, by a process whose own purpose coherence makes absorbing them look correct. It is not. The distinctive rule this row asserts is a refusal: the packet's purpose coherence must never launder an identity document into an ordinary process folder; identity's protection runs first and the group forms around that member. The leaver half carries a second, separate exposure: the existence of a leaver file is itself the disclosure that someone left, an exit narrative is candid about named third parties who never consented to be recorded, and a departure whose cause is disciplinary is one file away from an employee-relations case. Consequently employee-identifying members of this situation must be protected before any cloud step, raw content must not appear in general summaries, and automated movement requires explicit policy. No handling class is assigned here; that is P7's.",
+  "open_question": "NEEDS-JOSEPH NJ-ONB-1: settle whether a purpose-coherent joiner packet may absorb its identity-document member. This row says no - identity's protection runs first and the group forms around that member, which is why `Right to work check - passport scan.jpg` is carried as a file example whose correct outcome is that this row does NOT fire. The alternatives are (a) absorb the member into the hr group under the strictest-side rule, which makes the group's exposure surface as wide as its worst member; (b) route the member to identity/Protected Records and let the group hold a reference to it, which is what this row recommends and which the current contract does not obviously permit; (c) refuse to group packets containing identity members at all, which is safe and loses the process. NEEDS-JOSEPH NJ-ONB-2: decide whether this is one row or two. The roster glued the legacy hr.offboarding into it. The two halves share the task-and-owner-against-one-effective-date shape exactly, which is a real argument for one row with direction as a VALUE - this row refused to mint a direction key for that reason. But their sensitivity profiles differ (a leaver file discloses a departure; a joiner file discloses identity documents) and a dismissal-driven departure has a claimant in hr.employee-relations that no joiner has. Alternatives: keep one row; split into hr.onboarding and hr.offboarding; or keep one row and route disciplinary departures wholly to employee-relations. NEEDS-JOSEPH NJ-ONB-3: fix where onboarding ENDS. Day one, the end of a first week, thirty/sixty/ninety days, or probation confirmation are all defensible, and the choice decides whether a probation review is this row's closing act or hr.performance-cycle's opening one. This row lists probation records in work_types and flags the overlap rather than asserting it. NEEDS-JOSEPH NJ-ONB-4: this row asks for `people_cycle` to LEAD its dimension order, which contradicts the hr schema row's prose default of work type first, and asks for it to be destination-eligible, which interacts with NJ-HR-2. The single-leaver case is the sharp edge: a folder named for one departure discloses the departure, so if the key leads it must lead for cohorts and be suppressed for individuals - a conditional this row can recommend but cannot encode."
+}

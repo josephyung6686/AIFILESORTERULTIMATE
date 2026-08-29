@@ -1,0 +1,451 @@
+{
+  "id": "engineering.stage-gate-review",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Stage-gate and formal design reviews (the gate record and its decision)",
+  "one_line": "The record of one formal review event held to authorise a development programme's passage from one lifecycle stage to the next: the entrance/exit criteria assessed, the pack assembled against those criteria, the board that sat, the disposition it returned (proceed, proceed with actions, hold, recycle, cancel), and the action register that conditions the exit. It is constituted by a decision-on-progression relation, not by the phrase 'design review' and not by the technical artifacts the pack cites, which remain their own siblings' evidence.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_detection_signals": true,
+    "distinct_detection_signals_why": "The engineering schema's ten deterministic signals are all controlled-definition structures: drawing title block, requirements structure, technical data package manifest, engineering-change structure, BOM/product structure, analysis package, verification matrix, prototype/build record, archive manifest over those, and parent-folder context. None of them is a decision-on-progression structure, and a gate record can be fully constituted with zero drawings, zero requirement identifiers and zero revisions in it. The discriminating structures here are a criteria table whose rows are criteria identifiers assessed met/partial/not-met/waived against one named review event; a decision slot whose value is a disposition on progression rather than on a revision; and a finding-keyed action register carrying owner, due date and closure evidence. The schema does list 'design review package' among its work_types, and that is exactly the objection this row had to defeat: the work-type value names the artifact, while this row is the review event and its decision, which is why a blank Design Review Checklist Template.docx carries the work-type word and is still not this row.",
+    "distinct_dimension_order": true,
+    "distinct_dimension_order_why": "The schema's researched default is project, then design_item, then lifecycle_stage, then engineering_artifact_type. This row drops design_item and promotes lifecycle_stage to second position, giving project, then lifecycle_stage, then engineering_artifact_type. The reason is evidential, not aesthetic: a gate is held on a programme, and one gate pack routinely spans many design items or names none at all, so a design_item level opens a branch this material's facts cannot fill, and filling it would mean copying one assembly's identity onto a whole-programme decision. That is the propagation error 00 forbids when it warns against copying a course fact onto a sparse homework file. The order is empty in the machine-readable field under PR-6; the recommendation is recorded in template.why.",
+    "distinct_privacy_rules": false,
+    "distinct_privacy_rules_why": "Stated honestly: this leg does not carry the row. The value is potentially_sensitive, identical to the engineering schema's. The difference is of degree and of reason, not of kind: a hold or cancel disposition is commercially damaging before announcement and a named-board record attributes accountability to individuals, so the material is time-sensitive in a way a drawing is not. That is a reason to inherit the schema's protection carefully, not a new rule, and no handling class is asserted here. The row survives the node test on legs one and two, which CONNECTION.md's disjunctive test permits."
+  },
+  "fields": [],
+  "fields_note": "Binding and empty. The engineering schema declares no fields under PR-6 and D1's deferral, and _CONTRACT rule 12 forbids a template copying its schema's list. Where file_examples name facts_legal they name the engineering schema row's PROPOSED keys (project, design_item, lifecycle_stage, engineering_artifact_type, revision_or_baseline), which are pending R1c adjudication and are referenced, not re-declared. If R1c rejects lifecycle_stage in favour of widening canonical `stage`, this row's recommended second dimension changes name but not role.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Empty deliberately. The one genuinely new thing on this row is the decision outcome itself (proceed / proceed with actions / hold / recycle / cancel), and no canonical key holds it. It is parked in open_question rather than minted, for two reasons: it is a value with a small closed range rather than a role, and it is not destination-eligible, because filing a programme's records under its outcomes scatters one gate's pack across folders named for verdicts. The gate identity is already carried by the schema's proposed lifecycle_stage; minting gate_id would make a second claimant for the field change-order's memo explicitly assigned to this row.",
+  "recognition": {
+    "deterministic": [
+      "a review record joining a named review or gate identifier to a decision slot whose value is a disposition on progression (proceed, proceed with actions, hold, recycle, cancel, approved to enter next phase), plus a review date and named approvers; the disposition-on-progression slot is the signal, never the words design review alone",
+      "an entrance or exit criteria table whose rows are criteria identifiers, whose columns carry required-evidence references and a met / partially met / not met / waived status, and whose header binds the whole table to one named review event",
+      "an action or finding register whose rows are keyed to findings raised at one named review and carry owner, due date, closure evidence and open/closed status; an unkeyed action log is the programme's standing log and is not this row",
+      "a review pack whose section structure follows a criteria list for one named gate and whose members are references to controlled artifacts (drawing numbers, requirement identifiers, report titles) rather than the artifacts themselves",
+      "a regulated design-review record naming the design stage reviewed, the date, the results, and the individuals who participated including one identified as having no direct responsibility for the stage under review; the independent-reviewer slot is a labelled structural feature, not prose",
+      "a readiness assessment whose structure is a criteria set scored against a named threshold event (test readiness, production readiness, operational readiness) and which closes with an authorisation to proceed",
+      "an archive manifest that exposes a criteria sheet plus a decision or minutes record under one gate identifier, without extracting members to disk",
+      "filename or parent-folder gate tokens (Gate 3, G3, PDR, CDR, SRR, TRR, KDP-C, Gateway 3, design freeze) raise plausibility only after one of the structures above is present; alone they are values"
+    ],
+    "needs_llm": [
+      "whether a review gates the technical maturity of a designed item (this row) or the budget, benefits and change-readiness of a programme (business_operations.project-delivery) when both packs use the same criteria-table shape",
+      "whether a heading reading Design Review marks a recorded formal review with criteria and a disposition, or an informal team walkthrough whose minutes are ordinary meeting notes",
+      "whether an action register belongs to one review event or is the programme's standing action log carried forward across many meetings",
+      "whether a decision approving a set of engineering changes is a gate disposition, a change-board disposition on affected items and revisions, or genuinely both",
+      "whether a pass/fail summary table inside a pack is verification evidence in its own right or a citation of a verification report that lives elsewhere",
+      "whether a go/no-go on a research programme turns on design maturity of a defined item or on whether a scientific question was answered"
+    ],
+    "never_alone": [
+      "the words design review, gate review, phase gate, PDR, CDR, stage gate or go/no-go. They are document-type and event-type words, and the engineering schema already carries 'design review package' as a work_type VALUE. Tempting false file: Design Review Checklist Template.docx, a blank pro-forma with no programme, no date, no board and no decision, which carries every one of those words and records nothing.",
+      "a gate number token alone (Gate 3, G3, Phase 2, Stage 4). It is a bare number wearing a prefix, and 00's stop rules already refuse a bare four-digit number as proof; this is weaker still, because the same token names a project phase, a payment milestone, a building storey, a release train and a chapter.",
+      "a meeting invitation or an attendee list naming a review. A calendar event says a review was scheduled; it is not the record that one was held or what it decided. Tempting false file: Invitation - CDR Brake Pedal Assembly (Fri 11 Mar).ics.",
+      "a milestone row in a schedule naming a gate. A plan asserts that a gate will occur; the plan is engineering.project or business_operations.project-delivery evidence, and no disposition can be read from a planned date.",
+      "an approval or signature block alone. Signature blocks sit on drawings, change notices, purchase orders, invoices, contracts and timesheets; on this row the signature is only meaningful beside a disposition on progression.",
+      "an action register with owner and due-date columns alone. That shape is any programme's action log; without keys back to findings of a named review it belongs to business_operations.project-delivery.",
+      "a company, programme or product name plus the word review. Read across from 00 on organisation names: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A programme name says which undertaking, not that a gate decision was recorded.",
+      "the presence of technical artifacts in a folder called Review. A pack is made of other rows' evidence; the folder name is filesystem context and 00 keeps context from firing a schema on its own."
+    ]
+  },
+  "proposed_context_terms": [
+    "entrance criteria",
+    "exit criteria",
+    "success criteria",
+    "gate decision",
+    "proceed with actions",
+    "recycle",
+    "review board",
+    "chairperson",
+    "independent reviewer",
+    "action item owner",
+    "closure evidence",
+    "waiver",
+    "deviation approved",
+    "readiness review",
+    "design freeze",
+    "authority to proceed"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only and does not list these. They are proposed here rather than on a sibling because engineering.automotive-program's refusal explicitly routed gate vocabulary (design freeze, gateway) to this row, and engineering.change-order's memo routed lifecycle-stage evidence here; taking the terms elsewhere would leave them unowned.",
+  "work_types": [
+    "gate or phase review decision record",
+    "design review minutes",
+    "entrance criteria checklist",
+    "exit or success criteria assessment",
+    "review action-item register",
+    "gate review pack or deck",
+    "waiver or deviation approved at a gate",
+    "test readiness assessment",
+    "production readiness assessment",
+    "operational readiness assessment",
+    "independent review team report",
+    "peer review record",
+    "go / no-go memo",
+    "design freeze notice"
+  ],
+  "work_types_note": "Values of the engineering schema's work_type enum, never nodes. Two of them (design review package, verification plan/procedure/report) already appear on the schema row's own list, which is expected: this row is the review event, and the pack is one artifact the event produces.",
+  "grouping_reasons": [
+    "one gate event: the invitation that scheduled it, the criteria sheet assessed at it, the pack presented, the minutes, the decision memo and the action register it opened",
+    "one programme's successive gates in sequence, so the decision trail from concept gate to release gate is legible as a series rather than scattered by artifact type",
+    "one action raised at a gate and the closure evidence that discharged it, preserving the link rather than copying the gate fact onto the evidence file",
+    "a sparse Notes.docx sitting beside a criteria sheet and a decision memo may join the gate neighbourhood without acquiring a project or lifecycle_stage fact; activation and grouping stay separate"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty in the machine-readable field because PR-6 leaves the engineering schema with no declared destination-eligible keys, and this row will not silently encode an order before its keys are legal. The researched recommendation, conditional on R1c, is project, then lifecycle_stage, then engineering_artifact_type. Two departures from the schema default, each argued. First, design_item is dropped: a gate is held on a programme, one pack routinely spans many items or names none, and a design_item level would either sit empty or be filled by copying one assembly's identity onto a whole-programme decision. Second, lifecycle_stage rises to second position because the gate IS the organising fact here, which is the same asymmetry engineering.change-order recorded from its side when it dropped lifecycle_stage as the dimension that belongs to this row. Project stays first under 00: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" One optional branch: where a corpus is a single programme, project collapses and lifecycle_stage leads. The user may reverse, remove, add or flatten this.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".msg",
+      ".eml",
+      ".ics",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "CDR_BPA-210_Critical-Design-Review_2026-03-11_Minutes.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header binds one review name, one programme and one date",
+        "a board table listing attendees with review roles (chair, systems, quality, independent reviewer)",
+        "an entrance-criteria list with met / not met marks and evidence references",
+        "a decision line reading Proceed with actions, followed by fourteen numbered actions each with an owner and a due date"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage",
+        "engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item from the BPA-210 token in the filename when the minutes cover the whole braking system",
+        "a revision_or_baseline from drawing numbers merely cited in the evidence column",
+        "that the cited DVT report's pass/fail results are this file's verification evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gate-3_Entrance-Criteria_Checklist.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry criteria identifiers; columns carry required evidence, status (met / partial / not met / waived), assessor and waiver reference",
+        "a header row naming one gate and one programme",
+        "no decision cell anywhere in the sheet"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage",
+        "engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a gate outcome; the criteria were assessed, the disposition is not in this file",
+        "that a waived criterion means the gate was failed",
+        "a design_item from the parts named in evidence references"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PDR_Action-Items_Register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows carry action identifiers keyed to review finding numbers",
+        "columns: description, owner, raised-at review, due date, closure evidence, status",
+        "column shape is indistinguishable from an ordinary project action log except for the review-finding key"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage",
+        "engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "an owner name as a destination dimension; 00 forbids authorship or creator identity as a folder level",
+        "that an open action means the gate was not passed",
+        "this row from the owner/due-date columns alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "MY27-XJ_Gateway-3_Design-Freeze_Review-Pack.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "cover slide names one programme, one gateway and one date",
+        "section headings follow the gateway's criteria list",
+        "content slides are reference tables of drawing numbers, requirement identifiers and report titles rather than the artifacts themselves",
+        "a closing slide reserved for the decision, left blank in the pre-read copy"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage",
+        "engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a model year from the MY27 token; it is a bare four-digit-shaped number wearing a prefix",
+        "an automotive-specific domain; engineering.automotive-program is a refused row and assigned this fixture here",
+        "a decision from a pack that contains no disposition"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Design-Review-Record_DHF-04_2026-02-19.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "names the design stage reviewed, the date, and every individual present",
+        "one participant is labelled as having no direct responsibility for the stage under review",
+        "results and approval signatures at the foot; filed as a controlled quality record with a document number"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage",
+        "engineering_artifact_type"
+      ],
+      "must_not_conclude": [
+        "a medical or patient domain from a device context; nothing here is about a person's health",
+        "that the controlled-record numbering makes it a quality-system procedure rather than a review record",
+        "a design_item when the record names a design stage of a device family"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-11 at 10.42.13.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR of a projected slide reading Gate 3 Decision: HOLD, with two bullet reasons",
+        "no EXIF camera fields",
+        "capture timestamp in the filename"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "the gate date from the capture timestamp; the capture is evidence of when a picture was taken",
+        "that missing EXIF proves this is a screenshot; 00 refuses absent EXIF as screenshot proof",
+        "a project fact from two OCR'd bullet lines with no programme name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Gate3_Review_Pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a deck, a criteria sheet, three requirement PDFs, one verification report and one cost-forecast workbook",
+        "member names share one gate token",
+        "read as a manifest without extracting members to disk"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage"
+      ],
+      "must_not_conclude": [
+        "that the cost-forecast workbook becomes engineering evidence by sharing an archive",
+        "that the verification report stops being engineering.verification-validation's evidence",
+        "an engineering_artifact_type for the packet as a whole when its members have different ones"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Invitation - CDR Brake Pedal Assembly (Fri 11 Mar).ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY names a review and a subsystem",
+        "eleven attendees with organiser and required/optional roles",
+        "a location and a duration; no criteria, no disposition"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a review was held or what it decided",
+        "a lifecycle_stage from the review acronym in a meeting subject",
+        "an attendee list as evidence of a review board"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ CDR sign-off - one open action.eml",
+      "source_type": "email",
+      "observations": [
+        "chair's message stating the review is closed subject to action 7",
+        "quoted thread carries the criteria summary",
+        "labelled mail slots: from, date, subject; the disposition is in prose, not a slot"
+      ],
+      "facts_legal": [
+        "project",
+        "lifecycle_stage"
+      ],
+      "must_not_conclude": [
+        "a disposition read from the subject line alone",
+        "that a sender's seniority substitutes for a named approval slot",
+        "an engineering_artifact_type when the mail is correspondence about a record rather than the record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Phase-2-Gate-Review_Steering-Committee.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "criteria table identical in shape to a technical gate's",
+        "criteria are budget variance, benefits realisation, change-readiness and vendor status",
+        "a decision slide reading Approved to proceed to Phase 3",
+        "no design item, no drawing, no requirement identifier anywhere in the deck"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "this row; the collision fixture, and it belongs to business_operations.project-delivery",
+        "an engineering domain from gate vocabulary and a criteria table",
+        "that a steering committee is a technical review board"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Design Review Checklist Template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "every heading this row's vocabulary contains",
+        "empty programme, date, board and decision fields",
+        "a footer with a form number and an issue date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a project, a lifecycle_stage or a decision; a pro-forma records nothing",
+        "this row from document-type words; that is the never_alone case"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Notes.docx",
+      "source_type": "text_document",
+      "observations": [
+        "three paragraphs of unlabelled prose about open concerns",
+        "sits in a folder beside a criteria sheet and a decision memo",
+        "names no programme, no gate, no date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a project or lifecycle_stage copied from its neighbours",
+        "that folder membership activates the schema"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "a criteria table plus a proceed/hold disposition on a programme",
+      "why": "Fixture bytes Phase-2-Gate-Review_Steering-Committee.pptx. Direction one: this row owns a gate whose criteria are the technical maturity of a designed item - requirements baselined, design defined, analyses closed, verification planned or complete. Direction two: project-delivery owns a gate whose criteria are budget, schedule, benefits, resourcing and vendor readiness, and whose board is a steering committee authorising spend. The structures are near-identical, which is why the discriminator has to be the criteria content, never the gate vocabulary. When one board does both in one sitting the pack is a genuine two-group case, not a merge.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "an approval or disposition slot beside affected engineering content",
+      "why": "Fixture bytes ECR-1187_BPA-210_Bushing-Material.pdf. Direction one: change-order owns a disposition on a configuration item's revision - affected item, from/to revision, technical reason, effect, approval. Direction two: this row owns a disposition on a programme's authority to progress, which may cite or approve a batch of changes without becoming one. That row's memo already argued the seam from its side: a gate review is about lifecycle stage, precisely the dimension change-order drops; this side accepts that assignment and names the same fixture. A change approved at a gate is the case where both hold.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "pass/fail results tabulated beside requirement identifiers",
+      "why": "Fixture bytes BPA-210_DVT-07_Verification-Report.pdf. Direction one: verification-validation owns the report that links requirement identifiers to method, configuration-under-test and result. Direction two: this row owns the gate that consumes it, and a pack reproducing a pass/fail summary is citing evidence, not producing it. The rule in both directions: the file that carries the test procedure and the article configuration is theirs; the file that carries the criteria assessment and the disposition is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.project",
+      "signal": "a programme identity with milestone or phase structure",
+      "why": "Fixture bytes Vehicle-Programme-Timing-Plan_MY27.xlsx. Direction one: engineering.project is the branch root carrying programme identity and forward plan, including scheduled gate rows. Direction two: this row is the record that one scheduled gate was actually held and what it returned. A planned gate date is theirs; a disposition is this row's. engineering.automotive-program's refusal already split its milestones half between these two rows in exactly this way.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.commissioning-handover",
+      "signal": "an acceptance decision with signatures on a technical package",
+      "why": "Fixture bytes a design review deck held during the commissioning window. Direction one: commissioning-handover owns a relation between two parties in which custody or acceptance transfers, and its memo already assigns a design review held during commissioning to this row as the counterexample that defeats its own objection one. Direction two: this row accepts that fixture and returns the reciprocal - a Factory Acceptance Test certificate or a taking-over certificate is theirs even though it looks like a gate, because its decision transfers custody rather than authorising progression, and lifecycle_stage has nowhere to record who took custody.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "signal": "a requirements baseline presented for approval",
+      "why": "Fixture bytes SYS-REQ-042_Braking-System-Requirements_RevB.docx. Direction one: requirements-specification owns the document whose rows are requirement identifiers with allocation, rationale and verification method. Direction two: this row owns the review at which such a document is baselined; a system requirements review record is this row even though its subject is the specification. The specification does not become a gate record by being approved, and the gate record does not become a specification by listing what it approved.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-planning",
+      "signal": "a readiness assessment closing with an authorisation to start production",
+      "why": "Fixture bytes a Production Readiness Review pack. Direction one: this row owns the readiness gate as a decision on whether the design and its evidence are mature enough to release to production. Direction two: production-planning owns the execution consequence - the plan, the schedule, the release to the shop floor. The seam: if the criteria are about the state of the design definition, it is this row; if they are about capacity, tooling availability and sequencing, it is theirs. A single PRR pack can carry both and then both hold at schema level.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "a go / no-go decision on a programme with criteria and a board",
+      "why": "Fixture bytes a stage-gate decision memo on an R&D candidate. Direction one: research owns the gate whose criteria are whether a question was answered, whether a hypothesis survived, whether data supports continuation - a decision about knowledge. Direction two: this row owns the gate whose criteria are the maturity of a defined design item's definition and evidence. An R&D portfolio gate with no design item under review is research's; the moment the criteria list drawings, requirements or verification status of a named item, it is this row's, and a translational programme may legitimately produce both records.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "a release readiness checklist with sign-off",
+      "why": "Fixture bytes a go/no-go release checklist in a repository. Direction one: code owns readiness structures that live inside a repository and refer to builds, branches, test suites and deploy targets. Direction two: this row owns gates on a physical or system design item's lifecycle. A release checklist committed to a repo is code's even when the employer builds hardware, echoing the engineering schema's own rule that a repository is not engineering merely because its employer builds hardware; a gate record that reviews a firmware baseline as a component of a product baseline may hold both.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract, not by judgement. _CONTRACT rule 14 restricts also_holds_with to schema-to-schema pairs and restricts collides_with to same-kind pairs, so a template row may write collisions to templates and no co-activations at all. The genuine co-activations for this material - a gate deck that is simultaneously governed project evidence, a production readiness pack that is simultaneously execution evidence, an R&D gate that is simultaneously knowledge evidence, a firmware gate that is simultaneously repository evidence - are all already carried on the engineering schema row's also_holds_with (manufacturing, code, research, business_operations, construction_property). Re-asserting them at template level would widen the schema's edges from below.",
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The default residual for this row, because its characteristic failure is a file that is visibly about a decision but whose gate, programme or outcome cannot be established from its own evidence: an undated criteria sheet, a pack with a blank decision slide, a mail thread about a sign-off, a bare action register.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the standalone signed record with durable meaning and no reachable programme group: a countersigned design review record, a one-off approval certificate, a blank controlled pro-forma with a form number.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty. The split this material most wants is the board that DECIDED against the team that PRESENTED, and both sides are authorship. 00 keeps authorship out of destinations, no canonical key holds either role, and minting a reviewer key to solve one template's problem is the move that produced thousands of private field names in the overnight pass. The independent-reviewer slot stays a deterministic signal, not a field.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Inherits the engineering schema's value and adds no rule. Gate records carry unannounced hold and cancel decisions, named individual accountability, waivers against safety-relevant criteria, supplier performance judgements and, in regulated device work, controlled quality records. The difference from a drawing is timing and attribution rather than kind, and no handling class is assigned here; 00's binding rule that privacy policy is enforced before any model or connector receives content governs.",
+  "open_question": "NEEDS-JOSEPH NJ-SGR-1: the gate disposition (proceed / proceed with actions / hold / recycle / cancel) has no canonical key. Alternatives: (a) leave it as content, findable by search and never a dimension - what this row recommends, because filing a programme under verdict words scatters one gate's pack; (b) mint decision_outcome as a search-and-privacy field with destination_eligible false; (c) fold it into the engineering schema's proposed lifecycle_stage, which would conflate the stage reviewed with the verdict returned. NJ-SGR-2: is a formal review its own lifecycle_stage value, or a distinct fact about an event that occurs between stages? engineering.change-order's memo assigns lifecycle_stage to this row, but a gate sits at a boundary, and a CDR pack legitimately carries both 'detailed design' and 'entering qualification'. NJ-SGR-3: where do governance gates with a technical annex go - one record activating both this row and business_operations.project-delivery, or a primary-criteria test that picks one? The Phase-2-Gate-Review fixture is currently decided by criteria content, which is a needs_llm judgement rather than a deterministic rule. NJ-SGR-4: if R1c widens canonical `stage` instead of accepting lifecycle_stage (NJ-ENG-1), this row's recommended second dimension must be renamed; it is recorded here so the dependency is not silent."
+}

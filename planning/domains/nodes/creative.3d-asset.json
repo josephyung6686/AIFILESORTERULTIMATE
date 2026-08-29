@@ -1,0 +1,96 @@
+{
+  "id": "creative.3d-asset",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "3D modelling, texturing and rendering",
+  "one_line": "A 3D asset lifecycle joining a brief or build record to model, material, rig, scene or render sources, versioned review, delivery manifests and evidenced use rights; an isolated model or rendered image is not enough.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a labelled brief, ticket or statement of work that identifies an asset purpose, requested deliverable, source package and reviewer or recipient, followed by matching 3D source or output evidence",
+      "a manifest or scene README that joins model geometry, material/texture dependencies, rigs or cameras, exports and a stable asset identifier",
+      "a review packet naming exact asset versions or render outputs, recording requested changes, and linking to a later revision or acceptance record",
+      "a delivery packet with an asset manifest, dependency/license notes, recipient or destination, and an explicit handoff or acceptance record",
+      "a rights or usage record naming the asset or package and permitting a stated game, film, product, architectural, marketing, or publication use"
+    ],
+    "needs_llm": [
+      "deciding whether a model is a creative asset, BIM/construction model, engineering/manufacturing model, scientific visualization, game asset, or code-generated output",
+      "matching differently named source scenes, textures, caches, exports and previews when manifests, embedded links, metadata or review references establish one asset family",
+      "deciding whether a render is an authored output, supplied client material, downloaded reference, portfolio image, photograph, or screenshot",
+      "deciding whether a review, delivery, acceptance, or license applies to the whole package or only named files, variants, platforms, territories, or time windows",
+      "deciding whether an archive member inherits package context; archive paths and neighboring files do not by themselves write facts onto every member"
+    ],
+    "never_alone": [
+      "a .blend, .fbx, .obj, .gltf, .glb, .usd, .abc, .ma, .mb, .c4d, .max, .3ds, .spp, .exr, .png, .jpg, .tif, .mp4 or .zip extension",
+      "a filename containing model, asset, mesh, texture, rig, render, scene, final, v02, approved, export or delivery",
+      "a software name, renderer name, folder called Assets/Models/Renders, version suffix, timestamp, or download session",
+      "a single 3D file, preview, turntable, render, screenshot, texture sheet, or cache without an evidenced purpose and source/review/delivery relationship",
+      "visual similarity, a public asset-library page, missing EXIF, a client/studio name, or an author field without role-bearing lifecycle evidence",
+      "a repository, procedural script, CAD/BIM title block, manufacturing drawing, or game build without the creative asset chain"
+    ]
+  },
+  "proposed_context_terms": [
+    "3D asset", "model", "mesh", "material", "texture", "UV", "rig", "scene", "render", "turntable", "asset pack", "lookdev", "bake", "LOD", "export", "handoff", "review", "approval", "usage rights", "dependency manifest"
+  ],
+  "work_types": [
+    "3D brief", "blockout", "model source", "sculpt source", "material or texture source", "UV or bake output", "rig or animation source", "scene file", "render or preview", "asset manifest", "review markup", "approved revision", "delivery package", "usage-rights record"
+  ],
+  "grouping_reasons": [
+    "one named asset from brief or request through source files, dependencies, previews, review revisions and delivery",
+    "one version family when stable asset identifiers, manifests or review references join successive revisions",
+    "one dependency set when textures, fonts, HDRIs, meshes, caches and licenses are explicitly referenced by the scene or manifest",
+    "one handoff when the manifest, exported package, recipient and acceptance/use record refer to the same asset release",
+    "no group for an isolated render, downloaded stock model, unrelated cache, public reference, or repository whose object is code"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The creative schema declares no field rows, so no folder dimensions are legal at launch. Asset name, stage, software, renderer, format, platform, polygon budget and delivery channel remain values or retrieval metadata until a future creative schema decision. The lifecycle is not time-first: build, review, delivery and use rights can have separate clocks.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "email", "calendar", "design_creative", "image", "ocr", "audio_video", "archive", "opaque_binary", "code_structured"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".pptx", ".eml", ".msg", ".ics", ".blend", ".fbx", ".obj", ".gltf", ".glb", ".usd", ".abc", ".ma", ".mb", ".c4d", ".max", ".3ds", ".spp", ".exr", ".png", ".jpg", ".tif", ".mp4", ".mov", ".zip", ".7z"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {"filename": "Orbital Drone Asset Brief.pdf", "source_type": "text_document", "observations": ["labelled purpose, target platform, deliverables, source dependencies and reviewer", "requests a low/high detail model, material set and turntable"], "facts_legal": [], "must_not_conclude": ["that the asset exists", "approval, ownership or usage rights", "a folder path"], "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "orbital_drone_scene_v07.blend", "source_type": "design_creative", "observations": ["scene README names an asset identifier and references mesh, UV, texture and rig dependencies", "filename carries a revision token"], "facts_legal": ["version_family"], "must_not_conclude": ["that v07 is approved or delivered", "that linked assets are licensed", "that it is not an engineering model", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "orbital_drone_textures_4k.zip", "source_type": "archive", "observations": ["manifest lists texture maps, color space, source scene reference and third-party HDRI", "archive includes a license note"], "facts_legal": [], "must_not_conclude": ["that every member is creative", "delivery or acceptance from packaging", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Drone lookdev review R3.pptx", "source_type": "presentation", "observations": ["slides label exact render views and asset revision", "review comments request material and silhouette changes"], "facts_legal": [], "must_not_conclude": ["that changes were made", "approval from the word R3", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "RE drone asset accepted.eml", "source_type": "email", "observations": ["recipient and sender roles are stated", "body accepts a named export manifest and lists excluded source files"], "facts_legal": [], "must_not_conclude": ["copyright transfer", "approval of unnamed variants", "platform-wide rights", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"},
+    {"filename": "drone_release_manifest.xlsx", "source_type": "spreadsheet", "observations": ["rows map asset IDs to export formats, platform, dependencies and recipient", "header references the accepted revision"], "facts_legal": [], "must_not_conclude": ["that listed rights are granted without governing terms", "that all source assets are included", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"},
+    {"filename": "drone_usage_rights_signed.pdf", "source_type": "text_document", "observations": ["signed instrument names asset IDs and permitted promotional use", "limits territory, duration and excluded third-party textures"], "facts_legal": [], "must_not_conclude": ["rights for unnamed variants", "ownership of source files", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"},
+    {"filename": "drone_turntable_final.mp4", "source_type": "audio_video", "observations": ["video metadata and README refer to the asset identifier and accepted export", "no embedded license or recipient record"], "facts_legal": [], "must_not_conclude": ["that publication is permitted", "that every frame is approved", "authorship from rendering style", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "AeroSim/geometry_generator.py", "source_type": "code_structured", "observations": ["repository contains procedural geometry code and tests", "README treats generated meshes as build artifacts, not authored deliverables"], "facts_legal": ["file_type", "version_family"], "must_not_conclude": ["creative asset activation from mesh generation", "that generated output is present", "a folder path"], "also_schema": "code", "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "CNC housing assembly Rev D.step", "source_type": "opaque_binary", "observations": ["CAD metadata and accompanying drawing identify tolerances, material and manufacturing issue", "no lookdev, render, review or creative delivery chain"], "facts_legal": ["file_type", "version_family"], "must_not_conclude": ["creative 3D asset activation", "that a preview is a render", "a folder path"], "also_schema": "construction_property", "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "vintage_robot_reference.jpg", "source_type": "image", "observations": ["single downloaded image has no local brief, source scene, review or rights join", "may be a reference or stock image"], "facts_legal": ["file_type", "creation_date", "media_type", "sensitivity_status"], "must_not_conclude": ["that the corpus owner authored a 3D asset", "model or license facts", "a folder path"], "also_schema": "photos", "group_without_copying_facts": false, "falls_through_if_inactive": "One-Off Images"}
+  ],
+  "collides_with": [
+    {"domain": "creative.game-art-asset", "signal": "Both may contain meshes, textures, rigs, exports and platform manifests; game-art owns interactive/game-engine evidence, while this row covers a broader 3D source-to-review-to-handoff chain."},
+    {"domain": "code", "signal": "Procedural generators, repositories and build scripts can produce meshes; code owns the repository and executable workflow when the asset lifecycle is not independently evidenced."},
+    {"domain": "photos", "signal": "Rendered stills, turntables and screenshots are image or video files; photos owns photographic capture evidence, while this row requires authored 3D source or manifest lineage."},
+    {"domain": "construction_property.drawings-revisions", "signal": "CAD/BIM models may be 3D files with revisions; controlled title blocks, tolerances, issue status and construction transmittals indicate the construction domain rather than creative asset production."},
+    {"domain": "creative.licensing-rights", "signal": "A license or release may name a 3D asset; rights owns the governing rights instrument, while this row activates only when the instrument joins a specific asset lifecycle."},
+    {"domain": "career.portfolio-work-samples", "signal": "A portfolio may display the same render or model; career owns capability presentation when the local build/review/delivery chain is absent."}
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A brief, manifest, model or delivery record without a recoverable asset chain remains a standalone record."},
+    {"residual_template": "Review Later", "why": "Unjoined versions, ambiguous model types and unsupported approval claims require review."},
+    {"residual_template": "One-Off Images", "why": "An isolated render, turntable frame or screenshot without source lineage is an image."},
+    {"residual_template": "Reading Inbox", "why": "Downloaded reference models, texture libraries and tutorials are consumed material."},
+    {"residual_template": "Protected Records", "why": "A standalone signed license, acceptance, release or rights schedule remains protected evidence."},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable proprietary scenes or encrypted archives cannot establish the lifecycle chain."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased designs, client briefs, source geometry, licensed textures or HDRIs, proprietary techniques, recipient information, product or security models, and restricted usage terms may be sensitive. A public-looking render does not prove public permission.",
+  "open_question": "NJ-3D-1: Should a future creative schema expose a compact project/stage/artifact_type set for 3D asset lifecycles, or remain fieldless? Recommendation: preserve this placeholder until that schema decision. NJ-3D-2: When a 3D asset is both a general creative deliverable and a game-engine asset, should the two templates co-hold on one source package or activate independently by purpose evidence?"
+}

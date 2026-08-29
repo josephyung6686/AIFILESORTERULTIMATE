@@ -1,0 +1,188 @@
+{
+  "list_id": "identifier_classes",
+  "title": "08/02 — Identifier classes (what \"redacted identifiers\" means)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P7 (injected). P7 already stores identifier_class as an opaque string on the redacted_identifier item kind and in redaction_manifest; this file is the closed list behind that string.",
+  "consumer": "the gate's redaction step: a redacted_identifier request names one of these class_ids; the gate looks up the class, applies its transform_id from catalogue 03, and records the class in redaction_manifest. The section-8.4 audit record's 'whether values were redacted' is answerable per item because the manifest names the class.",
+  "design_anchor": {"source": "00", "quote": "selected excerpts, redacted identifiers, candidate labels, non-sensitive metadata, and evidence references"},
+  "rules_preamble": [
+    "**Closed list.** A class_id outside this list is a load error at the injection site, mirroring P7's treatment of its own vocabularies. Adding a class is a revision of this file, reviewed as such.",
+    "**An identifier names a person or an instrument; a fact describes the file.** A course code is a fact; a Social Security number is an identifier. The non_members array is as binding as the entries: nothing there may ever be treated as an identifier class, because redacting it would delete the very evidence the dossier exists to carry.",
+    "**always_local: true means the value cannot appear in a cloud dossier even redacted** — its transform must be a dropping transform (drop_span, drop_gps), so nothing derived from the value survives into the released payload. The redaction_manifest still records that a drop occurred, which is how the audit record stays able to answer what left the device.",
+    "**jurisdiction_dependent: true means R5 owns the value patterns** (shapes, checksums, label wordings per jurisdiction); this file owns only the class, its transform, and its locality.",
+    "**Examples are fake.** Every example below is structurally plausible and deliberately not a real person's data.",
+    "**Redaction is not extraction.** Catalogue 06 refused personal-data patterns on the extraction side because a finder would write the values into raw_value and context windows. These classes exist on the gate side: the span is located at release time for the purpose of NOT sending it."
+  ],
+  "entries": [
+    {
+      "class_id": "government_id_number",
+      "display_name": "Government-issued identifier",
+      "examples": ["passport no. X1234567 (invented)", "SSN-shaped 000-12-3456 (000-prefix is never issued)", "NI-shaped QQ 12 34 56 C (QQ prefix is never issued)", "driver's licence no. D0000-00000-00000 (invented)"],
+      "why_this_is_an_identifier_not_a_fact": "it exists to pick out one person against a government register; knowing it adds nothing to where a file belongs, and a course code or university name never picks out a person",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": true,
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}, {"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}],
+      "notes": "covers passport, national ID, tax ID, driver's licence and visa control numbers as one class; the dossier never needs to distinguish WHICH register a number belongs to, and one class keeps the token vocabulary small"
+    },
+    {
+      "class_id": "financial_account_number",
+      "display_name": "Financial account locator",
+      "examples": ["IBAN GB29 NWBK 6016 1331 9268 19 (the standard illustrative IBAN)", "account no. 00001234 (invented)", "sort code 00-00-00"],
+      "why_this_is_an_identifier_not_a_fact": "it addresses one account at one institution; the INSTITUTION is a legitimate finance-schema fact, the locator is not — placement never needs the number",
+      "transform_id": "keep_last_n",
+      "always_local": false,
+      "jurisdiction_dependent": true,
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}],
+      "notes": "keep_last_n mirrors the convention account holders already recognize from their own statements; n is catalogue 03's injected slot with no default"
+    },
+    {
+      "class_id": "payment_card_number",
+      "display_name": "Payment card number",
+      "examples": ["4111 1111 1111 1111 (industry test PAN)", "5555 5555 5555 4444 (industry test PAN)"],
+      "why_this_is_an_identifier_not_a_fact": "a PAN addresses one card; no folder dimension or fact field ever needs it",
+      "transform_id": "keep_last_n",
+      "always_local": false,
+      "jurisdiction_dependent": false,
+      "provenance": "proposal",
+      "design_cites": [],
+      "notes": "00 never names payment cards; proposed because card numbers appear inside account statements and receipts the excerpts may quote. ISO/IEC 7812 shape with a Luhn check digit — the validation lives with the caller that compiles patterns, never as a number in this file"
+    },
+    {
+      "class_id": "authentication_secret",
+      "display_name": "Authentication secret (key material, token, password)",
+      "examples": ["-----BEGIN PRIVATE KEY----- MIIEvA… (truncated invented)", "ghp_0000000000000000000000000000000000 (invented token shape)", "correct-horse-example (an invented passphrase)"],
+      "why_this_is_an_identifier_not_a_fact": "a secret authenticates; it is not even ABOUT anything — no fact field could hold it and no dossier question is answered by any part of it",
+      "transform_id": "drop_span",
+      "always_local": true,
+      "jurisdiction_dependent": false,
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}, {"source": "00", "quote": "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local."}],
+      "notes": "the clearest 'raw sensitive value' in the always-local set; even keep_last_n would leak entropy, so the transform is a full drop and no partial form exists"
+    },
+    {
+      "class_id": "email_address",
+      "display_name": "Email address",
+      "examples": ["jane.doe@example.com", "j.d.1999@example.org"],
+      "why_this_is_an_identifier_not_a_fact": "it addresses one person's mailbox; P5 already marks address values as potentially sensitive at emission, and 00's own generic-hub warning (a personal email address as a false bridge) shows why it must not travel as content",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": false,
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "while treating addresses and message content as potentially sensitive"}],
+      "notes": "an organizational domain can be a legitimate fact (an institution); the MAILBOX is the identifier. The transform replaces the whole address; if a dossier legitimately needs the domain half, that is a candidate_label or metadata_field decision for the caller, never a partial redaction"
+    },
+    {
+      "class_id": "phone_number",
+      "display_name": "Telephone number",
+      "examples": ["+1 555 0100 (reserved fictional range)", "+44 7700 900000 (reserved fictional range)"],
+      "why_this_is_an_identifier_not_a_fact": "it addresses one person's line; section 2.9 names phone numbers among VCF yields that are privacy-protected rather than folder-proposal material",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": true,
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "names, organizations, email addresses, phone numbers, and address-book metadata"}],
+      "notes": "numbering-plan shapes vary by jurisdiction — R5's patterns"
+    },
+    {
+      "class_id": "person_name",
+      "display_name": "Personal name",
+      "examples": ["Jane Q. Doe", "A. N. Other"],
+      "why_this_is_an_identifier_not_a_fact": "in a protected file's excerpt a name identifies the data subject. The tension is real and stated: 'people' is a legitimate Photos-domain fact field, and authorship names populate authored_by — those are FACT uses, populated locally by P6. This class governs the name's appearance inside RELEASED TEXT of sensitive material, which is the section-8.4 display-facet 'names' concern, not the fact layer",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": false,
+      "provenance": "inference",
+      "design_cites": [{"source": "00", "quote": "The user can choose whether names, previews, thumbnails, OCR text, or location data are shown."}, {"source": "00", "quote": "names, organizations, email addresses, phone numbers, and address-book metadata"}],
+      "notes": "no name-finding gazetteer exists or is wanted; the class is applied where a detector rule or the caller has already located a name span (a patient-name label's adjacent value, a VCF name value). Free-text name recognition is out of scope by design"
+    },
+    {
+      "class_id": "postal_address",
+      "display_name": "Postal address",
+      "examples": ["1 Example Street, Springfield, ZZ 00000 (invented)"],
+      "why_this_is_an_identifier_not_a_fact": "it locates one person's residence; 'location' as a Photos fact is an event-level place name, which stays a fact — the street-level address of a person is the identifier",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": true,
+      "provenance": "inference",
+      "design_cites": [{"source": "00", "quote": "names, organizations, email addresses, phone numbers, and address-book metadata"}],
+      "notes": "address formats are jurisdictional; R5's patterns. Applied on located spans (a statement's address block, a VCF address value), never by free-text address mining"
+    },
+    {
+      "class_id": "date_of_birth",
+      "display_name": "Date of birth",
+      "examples": ["01 JAN 1990 (as printed on an invented biodata page)"],
+      "why_this_is_an_identifier_not_a_fact": "a birth date quasi-identifies a person in combination with name or region; a CAPTURE date or document date is a fact about the file and stays one — only the label-anchored birth-date value is this class",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": false,
+      "provenance": "proposal",
+      "design_cites": [],
+      "notes": "applied only where a rule located the span via a Date of Birth / DOB label; bare dates are never swept, which keeps section 3.10's narrow-date discipline intact"
+    },
+    {
+      "class_id": "medical_record_number",
+      "display_name": "Medical record number",
+      "examples": ["MRN 0000123 (invented)", "NHS-shaped 000 000 0000 (000-prefix illustrative)"],
+      "why_this_is_an_identifier_not_a_fact": "it picks out one patient at one provider; the PROVIDER or record type may be legitimate facts, the number never is",
+      "transform_id": "replace_with_class_token",
+      "always_local": false,
+      "jurisdiction_dependent": true,
+      "provenance": "proposal",
+      "design_cites": [],
+      "notes": "00 names 'medical document' and 'medical information' but no design sentence names record numbers — proposed per the dispatch's explicit invitation, marked so Joseph can refuse it"
+    },
+    {
+      "class_id": "gps_coordinates",
+      "display_name": "GPS coordinates",
+      "examples": ["40.0000, -73.0000 (rounded illustrative pair)"],
+      "why_this_is_an_identifier_not_a_fact": "a coordinate pair locates a person's home, school, or workplace to the metre; the EVENT or place-name fact ('Japan Trip 2025') carries the organizational meaning without the precision",
+      "transform_id": "drop_gps",
+      "always_local": true,
+      "jurisdiction_dependent": false,
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local."}],
+      "notes": "GPS is in the always-local set by name, so it can never appear in a dossier even redacted; the class exists because coordinates also occur INSIDE text (a maps screenshot's OCR, a geotagged export's caption), where the always-local item-kind rule alone would not catch them. drop_gps removes the pair entirely — coarsening to a city would be an invented value, and the transform catalogue forbids generalization"
+    }
+  ],
+  "non_members": [
+    {"value_kind": "course codes (BUSIB 4300, PHYS1401)", "why": "facts — 00's own worked example of a validated fact; redacting one would delete the dossier's evidence"},
+    {"value_kind": "university and institution names", "why": "facts and candidate labels; ambiguous in ROLE (authoring school vs target), which is a role_split concern, not an identity concern"},
+    {"value_kind": "company, lab, venue, project identifiers (PVA/RDP)", "why": "domain-schema facts; the dossier exists to carry them"},
+    {"value_kind": "work types, document types, terms (syllabus, Spring 2026)", "why": "facts; values of schema fields"},
+    {"value_kind": "camera make/model, capture year, media type", "why": "Photos-domain facts; EXIF as a BLOCK is already always-local as an item kind, which is a different mechanism from identifier redaction"},
+    {"value_kind": "group labels and display names (PHYS1401 — Spring 2026)", "why": "candidate_label item kind, already user-visible vocabulary"},
+    {"value_kind": "file paths, complete extracted text, OCR output, file hashes, EXIF blocks, user edits, group memberships", "why": "the always-local SET is enforced at the item-kind level by the gate — nothing here is expressible as a releasable item, so no identifier class is needed to redact it; listing them as classes would wrongly imply an excerpt could carry them redacted"},
+    {"value_kind": "protected characteristics (race, religion, orientation, health status as a category, union membership)", "why": "refused as a detection vocabulary entirely — see catalogue 01 ref-protected-characteristics-gazetteer and RESEARCH.md NEEDS-JOSEPH; an identifier class here would require exactly the gazetteer the refusal forbids"}
+  ],
+  "refused": [
+    {
+      "id": "ref-characteristic-classes",
+      "refuses": "identifier classes for protected characteristics",
+      "why": "enumerating them would instruct the extractor to look for them (overnight NEEDS-JOSEPH); the question of detect-to-protect vs decline-to-model is Joseph's and stays open",
+      "design_cites": [{"source": "NEEDS-JOSEPH-overnight", "quote": "a catalogue that enumerated them would be instructing the extractor to look for them"}]
+    },
+    {
+      "id": "ref-ip-and-device-identifiers",
+      "refuses": "IP addresses, MAC addresses, device serials as v1 classes",
+      "why": "real identifiers, but no detector rule or dossier path in v1 locates them, and a class nothing produces is dead vocabulary; add when a rule needs them"
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-organization-as-identifier",
+      "question": "Is an ORGANIZATION name ever an identifier (a therapist's practice name identifies the patient's condition by implication)?",
+      "both_sides": "Treating organizations as identifiers would redact the institution facts dossiers legitimately need (00 names institution as a Finance field). The narrow case — sensitive-by-implication provider names — is real but unresolvable without the characteristic-category decision, so it waits with it.",
+      "blocked": false
+    },
+    {
+      "id": "unc-partial-vs-token-for-accounts",
+      "question": "financial_account_number uses keep_last_n while government_id_number uses full token replacement — should they agree?",
+      "both_sides": "Statement convention makes trailing digits recognizable and low-risk for accounts; government IDs have no such convention and their tails are higher-entropy identifiers in themselves. Split is deliberate; Joseph may prefer uniformity.",
+      "blocked": false
+    }
+  ]
+}

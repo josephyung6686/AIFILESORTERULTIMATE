@@ -202,15 +202,27 @@ plan_version            null at A and B; required at C, D, E              (§8.8
 policy_version          privacy/consent + placement policy in force        (§8.4, §8.8)
 allowed_vocabulary      the closed set the response may draw from          (per site, below)
 evidence_items[]        evidence_ref, kind, location, excerpt_span,
-                        reliability_state, support_kind: direct | context  (§2.8, §3.13, §4.4)
+                        reliability_state, basis: direct-anchor
+                        | context-supported                                (§2.8, §3.13, §4.4)
 conflicts[]             known conflicting facts and suppressed candidates  (§4.4, §6.6)
 budget                  max_dossier_tokens, reduction_rung_applied         (§8.6)
 release                 P7's `Released` — absent means no call is possible (§8.4, B2)
 ```
 
-`support_kind` is supplied by the dossier builder, never inferred by P8. §4.4 is explicit that the
+`basis` is supplied by the dossier builder, never inferred by P8. §4.4 is explicit that the
 dossier *"explicitly distinguishes direct evidence from inferred context"*; it is what makes the
 `accept_direct` / `accept_context_supported` split decidable rather than a judgement call.
+
+**It is P9's vocabulary, under P9's name** (MINOR 6's rule: the part that owns the concept names it).
+This field was `support_kind: direct | context` and was wrong twice. **P9 already publishes
+`support_kind` for something else** — the six retrieval channels on `Membership.support[]`
+(`shared-validated-fact`, `duplicate-or-version-link`, …) — so one name meant two things across the
+seam where P9's groups become P8's dossiers, and a validator checking "the" `support_kind` vocabulary
+would reject every valid value from the other side. And `direct | context` was a third spelling of
+`Membership.basis = direct-anchor | context-supported`, which P8's own `accept_direct` /
+`accept_context_supported` outcomes already use. One concept, one name, one spelling: P9's.
+Which of P9's three `basis` values can reach a given call site is the per-site question below;
+this rule fixes the vocabulary, not the eligibility.
 
 **Per-site payload — the four sites side by side.** Every row is quoted from the design; nothing is
 added by the merge:
@@ -439,8 +451,10 @@ re-calling a model, which is what makes shadow mode (§8.5) affordable.
 **P2's envelope (B7).** P8 emits P2 `stage_output` with `stage_id = llm_interpretation` — stage 5 of
 §8.5's closed ten, and the only stage P8 owns. `P8` is **not** a member of that enumeration and must
 never appear in the field. Each output carries `inputs[]`, an explicit abstention value, a distinct
-budget-deferral value, and the version tuple `(model_id, prompt_fingerprint, validator_version,
-policy_version)`, already recorded per verdict.
+budget-deferral value, and P2's live seven-field version tuple `(extractor_versions,
+graph_algorithm_version, prompt_fingerprint, model_identifier, template_library_version,
+placement_scorer_version, analysis_tiers_enabled)`. `validator_version` and `policy_version` remain
+inside P8's opaque payload and verdict/report records; they are not P2 version-tuple axes.
 
 **P8's result → the envelope's vocabulary.** `stage_output.outcome` is P2's five-value enumeration,
 **not** P8's five-value `Verdict.outcome`. They are different vocabularies and this table is the only

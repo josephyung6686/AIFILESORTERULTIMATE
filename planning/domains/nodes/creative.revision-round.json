@@ -1,0 +1,185 @@
+{
+  "id": "creative.revision-round",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Critique, feedback and revision rounds",
+  "one_line": "REFUSED. A revision round is not an organizational situation: it is a version-family/group relationship inside one creative project or client engagement, linking what was shown, the feedback received, the variant made in response, and any approval. The same cycle occurs in research manuscripts, construction drawings, engineering designs, code review and ordinary office documents, so `_R2`, comments and approval language cannot activate a creative template. Coverage remains intact through universal `version_family` metadata, P9 grouping, the active project's template, and residual review for unattached feedback. The fieldless placeholder creative schema licenses no dimensions, and this row has no distinct privacy rule. Absorbs legacy `studio.revision-round` without rebuilding a relationship as a node.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three node-test legs. (1) Detection: `_v3`, `_R2`, `FINAL`, comments, tracked changes, proof annotations and approval messages are real evidence of a universal version family or a file-neighborhood edge, but none is creative-specific. The design explicitly makes version family universal: “a small shared set of universal file facts, such as file type, creation date, language, duplicate family, version family, and sensitivity status.” A revision cycle requires multiple records and relations; it is not a per-file schema activation. The strongest creative evidence—a brief, named job, working-file structure or delivery set—activates the creative project or client engagement, not a round. (2) Dimensions: empty by contract because `creative` declares no fields. Even if `project`, `stage`, `artifact_type` and `client` are later adopted, round/revision is a `stage` value or accepted-group label beneath the project, not a new template. A round-first collector would scatter one work across `R1`, `R2`, and `R3`. (3) Privacy: comments may be candid and unreleased work may be confidential, but those rules attach to the containing engagement or project and apply equally to its brief, working files and handoff. No different posture exists. Therefore the row is neither the schema default nor a distinct template; it is graph structure plus values.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None authored for template activation. A same-stem run of byte-different files with ordered version tokens is deterministic evidence for the universal `version_family` fact, not for this template or even for the creative schema.",
+      "A closed feedback cycle can be assembled only as P9 graph structure: a presented variant, a dated or threaded response that identifies it, a later variant whose changes answer that response, and an explicit acceptance or supersession record. That structure is useful and real, but graph edges carry file ids, never template ids; it therefore proves the refusal rather than saving the node."
+    ],
+    "needs_llm": [
+      "matching free-prose comments to the exact variant they discuss when filenames, attachment names and quoted thumbnails disagree",
+      "deciding whether a later variant answers requested changes or is an independent alternative; this may support a reviewable edge but may not write causation as fact without explicit evidence",
+      "distinguishing approval of a concept, approval to proceed, approval of copy and final release approval when the message says only `looks good`",
+      "deciding whether several simultaneous variants are alternatives within one round or separate works"
+    ],
+    "never_alone": [
+      "`v2`, `rev B`, `R3`, `FINAL`, `approved`, `amends`, `comments`, `proof` or `feedback` in a filename; the same vocabulary occurs across research, legal, construction, engineering, code and office records",
+      "a comment count, tracked-changes stream, annotation layer or PDF sticky notes; these establish review activity but not creative activation",
+      "high text, pixel or layer similarity between files; similarity supports retrieval and version-family review but does not establish direction, round number or approval",
+      "filesystem creation or modification order; copies, exports and downloads can reverse the real review sequence",
+      "an email subject beginning `Re:` or a thread containing an attachment; thread membership is context, not proof that the message critiques that attachment",
+      "a client, reviewer, studio or brand name without a labelled role; an organisation can commission, author, review, supply or merely be mentioned",
+      "a `design_creative` source type or creative extension; extension is a routing signal, never meaning",
+      "membership in one folder named `Revisions`, `Feedback`, `WIP` or `Final`; a curated folder aids retrieval but does not create facts",
+      "a bounded download or export session; session proximity cannot establish a feedback-to-variant causal edge",
+      "the absence of an approval record; silence does not mean rejected, pending or abandoned"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "No template grouping authored. P9 may assemble one reviewable cycle from explicit attachment identity, quoted filenames, version-family membership, dated feedback, response notes and approval records without activating this row or copying facts between members.",
+    "A file may belong both to its project group and to a version family. Those overlapping memberships are the designed graph behavior, not evidence for another organizational template."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused and because the creative placeholder schema declares no fields. A revision-round level would be structurally wrong even after field adoption: one named work remains the intelligible parent, while round is a stage/group label within it. The user may browse a cycle in the graph without freezing `R1/R2/R3` as folders. Not time-first: sent time, comment time, export time, approval time and filesystem time are different observations.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Northwind_Logo_R1.pdf",
+      "source_type": "text_document",
+      "observations": ["filename has a job-shaped stem and `R1` token", "six logo variants are shown on labelled boards", "footer says `Presented 12 Aug 2026`"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that R1 is a creative schema fact or folder level", "that the file was actually sent to a client", "that every board is a separate project", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Northwind logo round 1.eml",
+      "source_type": "email",
+      "observations": ["reply quotes the attachment name `Northwind_Logo_R1.pdf`", "body requests a heavier wordmark and rejects variant 4", "labelled sender and recipient slots cross an organisation boundary"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["a client fact solely from the sender domain", "that every requested change was implemented", "that the email itself belongs to a revision-round template", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Northwind_Logo_R2.ai",
+      "source_type": "design_creative",
+      "observations": ["filename shares the job stem and advances to `R2`", "artboards include variants named Heavy Wordmark and Mark 04B", "document history is later than R1 but filesystem creation time is earlier after migration"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["that R2 causally answers the email without comparing the requested and observed changes", "that filesystem chronology is review chronology", "a project, stage or artifact_type fact because creative declares none", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwind_R2_markup_JL.pdf",
+      "source_type": "text_document",
+      "observations": ["PDF annotations name three page regions", "comment author initials `JL` are repeated", "one note says `use 04B, blue needs legal check`"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["the identity or organizational role of JL from initials", "final approval from selection of one alternative", "that annotation metadata is destination-bearing authorship", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Logo feedback - phone photo.jpg",
+      "source_type": "image",
+      "observations": ["camera EXIF and capture timestamp are present", "OCR sees handwritten arrows and `more space` over a printed logo proof", "no project name is visible"],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type"],
+      "must_not_conclude": ["a creative project from OCR alone", "which version was marked up", "that proximity to Northwind files copies their project identity", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "APPROVED - Northwind logo.eml",
+      "source_type": "email",
+      "observations": ["subject contains `APPROVED`", "body says `04B is approved for the board presentation; legal still needs to clear blue`", "no attachment is present"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["final release approval; the body limits approval to a presentation and records an unresolved check", "which exact bytes are approved without an attachment identity or content hash", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Northwind_Logo_FINAL_v3_FINAL.ai",
+      "source_type": "design_creative",
+      "observations": ["filename contains `FINAL` twice and `v3`", "four artboards remain, including unused alternatives", "no embedded approval reference exists"],
+      "facts_legal": ["file_type", "creation_date", "version_family"],
+      "must_not_conclude": ["approval or delivery from filename tokens", "that unused artboards are approved deliverables", "that this is the handoff master", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Northwind_Logo_Handoff_2026-08-24.zip",
+      "source_type": "archive",
+      "observations": ["manifest read without extraction lists SVG, EPS, PDF and PNG variants plus README.txt", "README lists colour spaces and intended uses", "archive contains no feedback or annotated working files"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["that a delivery set is a revision round", "that every member is approved merely because it is packaged", "member facts from archive paths", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A-201_Ground-Floor-Plan_Rev-C.pdf",
+      "source_type": "text_document",
+      "observations": ["title block carries drawing number A-201, revision C and issue status", "revision table records dated changes and issuer initials", "sheet contains architectural plan geometry"],
+      "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["creative.revision-round activation from revision control", "that Rev C is current without the project issue register", "creative project facts", "a folder path"],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Manuscript_R2_response-to-reviewers.docx",
+      "source_type": "text_document",
+      "observations": ["table pairs reviewer comments with author responses", "heading names a manuscript and second review cycle", "tracked changes remain in the document"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": ["creative activation from a feedback-response structure", "that R2 is a creative stage", "a folder path"],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone marked proof or versioned file with durable purpose but no recoverable project association belongs here rather than in a synthetic round collector. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Unattached comments, ambiguous approvals and feedback messages whose target version cannot be resolved need a future decision. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A photographed markup with no recoverable project association is an isolated image, not sufficient evidence for a revision situation. “One-Off Images may hold isolated image files that are neither screenshots nor members of a coherent photo event.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Candid critique, unreleased work and named counterparties can require local-only handling even when no project can be resolved. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded so refusal does not drop protection. Feedback may contain candid assessments of named people, unreleased concepts, embargoed campaign details, client strategy and internal approval disputes. This posture belongs to the containing project or engagement and applies equally to the variants and handoff; it does not distinguish a revision-round template. No P7 handling class is assigned here.",
+  "open_question": "NEEDS-JOSEPH: whether product UI should expose a named `revision cycle` view or typed graph edge family joining presented variant → feedback → responding variant → approval. Option (a), recommended here: derive a reviewable cycle from universal version_family facts and P9 evidence without adding a roster node or field. Option (b): add a universal graph relation vocabulary in a later graph decision, still not a creative template. Option (c): adopt `stage` on the creative schema and permit user-confirmed round labels as values. This row cannot choose among P9/P6 product changes and mints none."
+}

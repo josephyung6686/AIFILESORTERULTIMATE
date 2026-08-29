@@ -1,0 +1,383 @@
+{
+  "id": "nonprofit.volunteer-management",
+  "kind": "template",
+  "schema_id": "nonprofit",
+  "parent_id": null,
+  "name": "Volunteer management",
+  "one_line": "REFUSED. This row fails all three legs of CONNECTION section 2's template test against its own schema, and it fails them on the schema's own text rather than on an argument this pass had to construct. Leg one: the nonprofit schema's DEFAULT deterministic list already contains, as its eighth item, 'A VOLUNTEER-PROGRAMME structure' spelled out in full - the non-employment agreement, the rota of named volunteers, the induction or training record and the expense claim with no gross pay, no tax code and no deduction lines. There is no detection signal this template could add that the schema has not already declared as its default; a template whose signals are a verbatim subset of its schema's is the schema's default template. Leg two: the schema declares no fields under PR-6, so dimension_order is empty here as it is for every template in this family, and the ONE dimension that would have made this row's order differ - the named volunteer - is forbidden by the schema's own template rule that a named third party may never be a folder level. What is left, association then counterparty then period then function, is the schema default with the counterparty slot filled by a value. Leg three: the schema is already at potentially_sensitive, its sensitivity_why already names volunteer files, and a volunteer is a LESS exposed third party than the safeguarded child and the service user the schema's posture was written for - so this row's privacy rules are not stricter, not different, and arguably weaker. Beneath all three sits the defect the schema anchor itself recorded in NJ-NP-4: the discriminator that separates a volunteer packet from an hr packet is the ABSENCE of payroll structure. A row whose identity is the absence of something cannot activate, because there is no evidence item to cite. The coverage is real and it is already owned: the association-side agreement, rota, induction and hours activate the nonprofit schema on the schema's own signal; recruitment, role descriptions, applications, references, training records and anything carrying a gross-to-net line are hr; background checks are the schema's safeguarding structure plus identity.core-documents; expense claims are Receipts and Confirmations or finance; and the legacy pers.volunteering row - the individual's own certificate, hours log and thank-you - is excluded from this schema by ROLE exactly as the schema excludes a donor-side receipt, and falls to Independent Records.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Duplicate of its own schema's default template on detection signals, identical to it on dimensions, and no stricter on privacy - CONNECTION section 2: 'A template row exists only if its detection signals, recommended dimensions, or privacy rules differ from its schema's default template.' Secondarily, its only proposed discriminator against hr is an absence (no payroll structure), and a row defined by the absence of evidence has nothing to cite; 'A model that cannot cite sufficient evidence must return unknown.' Refusing is the correct outcome rather than inventing a filing world to keep the id.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "The word VOLUNTEER itself, anywhere - in a filename, a title, a role column, a letterhead or a document-type phrase. This is the finding that killed the row and it is recorded here so a later pass cannot reopen it cheaply. The schema already strikes 'A volunteer or trustee ROLE word alone'; what this pass adds is that the word is not merely insufficient, it is the ENTIRE proposed content of the node. Strip it from every fixture below and each one lands unambiguously in hr, in the nonprofit schema's own default, in identity, or in a residual. Nothing is left over for a template to hold.",
+      "A rota or shift-roster STRUCTURE alone - one row per named person, one column per dated shift, a role column. The identical structure is an hr staff roster, a religious-institution liturgical rota (which is discriminated by its rite or occasion column, not by the word volunteer), and a government parks task-day schedule. The structure names a scheduling artefact, not a relation, and it resolves no side.",
+      "The ABSENCE of payroll structure - no gross pay, no tax code, no deduction lines. Recorded explicitly as a never-alone because it was this row's proposed primary discriminator and it is not evidence at all. An absence cannot be cited, cannot be quoted back to a user in an explanation, and is indistinguishable from a payroll file whose deduction sheet was simply not exported. The asymmetry the schema states holds and is enough on its own: any gross-to-net structure anywhere makes the file hr, and no absence anywhere makes a file this row's.",
+      "An unpaid-hours count or hours ledger alone. A logged hour is a quantity, not a relation. The same ledger shape serves a court-ordered community-service return, a school service-hour requirement, a professional-body CPD log and a timesheet - and in the first two the labour is given in exchange for discharge of a sentence or a graduation credit, which fails the nonprofit schema's non-exchange precondition outright.",
+      "A background-check, disclosure or barred-list reference alone. Already the schema's own safeguarding signal, and on the checked person's side an identity document. It attaches to a named person and a role; it says nothing about whether that role is paid."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused, and it would have been empty even if the row had survived - the schema declares no fields under PR-6 and a dimension may only branch on a field the same schema declares. That emptiness is itself part of the refusal argument rather than an excuse for it: with no fields, the only way this template could have differed from its schema's default order was in the PROSE recommendation, and its prose recommendation is the schema's own sentence with the counterparty slot filled in - association, then the non-exchange counterparty, then the period, then the document function. The one variant that would genuinely have differed, putting the individual volunteer at a level, is prohibited by the schema's own rule that a named third party may never be a folder level, for the reason 00 gives: 'The default posture must therefore be local-first and data-minimizing.' Not time-first; a volunteer programme's periods are content periods, never capture dates.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".ics",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Volunteer rota - summer 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one column per shift date, one row per named person",
+        "a role column with values such as steward, driver, kitchen",
+        "an adjacent sheet of expense claims with mileage and receipts and no gross pay, tax code or deduction column",
+        "a note referring to signed volunteer agreements held elsewhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it. THIS IS THE DISPOSITIVE FIXTURE AND IT IS NOT MINE: it is reproduced verbatim from nonprofit.json's OWN file_examples, where the schema already works it through as an illustration of its default. The single best file this template could name is the file its schema uses to demonstrate that it needs no such template",
+        "that the named people become stored facts or folder levels",
+        "an hr fact from the absent payroll structure - the absence discriminates nothing; a gross-to-net line appearing anywhere makes the whole file hr and hr's protection governs",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Volunteer agreement - Sam Okoro - signed 2026-03-04.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an agreement between a named association and a named individual",
+        "a clause stating that the agreement is binding in honour only and is not a contract of employment",
+        "an expenses clause covering out-of-pocket costs and naming no rate of pay",
+        "signature blocks for the individual and a volunteer coordinator"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the non-employment clause is THIS row's signal. It is the nonprofit schema's own eighth deterministic signal, written out there in full. A positive textual clause is real evidence and it activates the SCHEMA; it does not create a second node under the schema that recognises the same clause again",
+        "that the individual's name is a fact or a dimension",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Volunteer role description - Befriending Volunteer.docx",
+      "source_type": "text_document",
+      "observations": [
+        "purpose, main tasks, person specification, time commitment, location and reporting line",
+        "a line reading 'This is a voluntary role and is not paid'",
+        "a closing date and an application address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "anything nonprofit-specific. Delete the word voluntary and this is a job description; the structure is hr's recruitment lifecycle and hr owns it. 'Volunteer' occupies a role or employment-type SLOT in that structure - it is a value, and 'Values auto-create at runtime' is the reason a value can never be a roster row",
+        "that the association's charitable status promotes an hr artefact into the nonprofit schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Volunteer application form and reference request.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled applicant slots for name, address, availability and relevant experience",
+        "two referee blocks with a request-for-reference cover letter",
+        "a self-declaration section about unspent convictions",
+        "a consent signature for a criminal-record check"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an application-and-reference packet is distinctive here. It is hr's own recruitment structure and applications.scholarship-fellowship's individual-applicant structure at once, and the only nonprofit-flavoured token in it is the word volunteer on the header",
+        "the referees' names as facts",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Disclosure certificate - 001234567890.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate number, an issuing authority, a named subject with a date of birth",
+        "a workforce or barred-list line and a position applied for",
+        "a printed issue date and no expiry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is volunteer-specific. The nonprofit schema's SAFEGUARDING signal already names 'a background-check or barred-list record tied to a named person and a role', and on the checked person's own side the same bytes are an identity document held by identity.core-documents. The position line may read volunteer, employee, contractor or trustee - the structure is identical in every case",
+        "that detection licenses movement. This is detected in order to be protected",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Volunteer expenses claim - mileage - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a claimant name, dates, journeys, a mileage rate and a total",
+        "attached fuel and parking receipts",
+        "an authorising signature and a reimbursement date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a reimbursement is a non-exchange relation. It is a repayment of a cost actually incurred - value for value - and the nonprofit schema's precondition is not met by it at all. On the association's side it is an ordinary expense record; on the claimant's side it is finance",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Certificate of appreciation - 200 hours - Riverside Food Bank.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an association letterhead and a named individual",
+        "an hours figure and a date range",
+        "a signature from a coordinator and no reference number and no register around it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the legacy row pers.volunteering lands here. It does not, and this is the clearest demonstration: the nonprofit schema is the ASSOCIATION's side, and it excludes the giver's own copy by role exactly as it excludes a donor-side receipt to finance. The individual's certificate, hours log, reference letter and thank-you are the individual's record, they carry a durable purpose and no group, and 00 names their home - 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+        "an organization fact from the letterhead",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Casual staff rota - summer 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one column per shift date, one row per named person, a role column",
+        "a hidden sheet with hourly rate, gross, tax code and net columns",
+        "the same association letterhead and charity number as the volunteer rota beside it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "THE COLLISION FIXTURE, stated as the pair it belongs to. Sitting beside 'Volunteer rota - summer 2026.xlsx' in the same folder, the two files are byte-similar in their visible sheet and differ only in a sheet one of them happens to contain. This one is hr outright. The other is the nonprofit schema's default. There is no third thing for a volunteer-management template to be, and if the deduction sheet had been dropped on export the two would be indistinguishable",
+        "that a charity number in the header changes either verdict - the schema strikes charitable-status tokens first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Sunday service rota - Advent 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per dated occasion, columns for officiant, readers, servers and musicians",
+        "a rite or lectionary reference column",
+        "a repeating seasonal calendar rather than a project period"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a rota is this row's evidence. nonprofit.religious-institution already authored this seam in the opposite direction - its liturgical-cycle signal says a rota with no rite or occasion column is 'nonprofit.volunteer-management or hr'. With this row refused the residue of that sentence resolves to hr or the nonprofit schema default, and R1c should record that so the landed neighbour's pointer does not dangle",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "CAS hours log - Spring 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "dated activity rows with hours, a supervisor signature column and a reflection column",
+        "a running total against a stated requirement",
+        "a school programme header and a coordinator's approval line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that unpaid hours make it nonprofit. The labour is given in exchange for a graduation credit, so the schema's NON-EXCHANGE precondition fails; the requiring institution is a school and the record is the student's. A court-ordered community-service return has the same shape and the same defect - labour in exchange for discharge of a sentence - and is legal or government",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Volunteer programme 2026 - handover.zip",
+      "source_type": "archive",
+      "observations": [
+        "member paths encoding agreements, rotas, induction slides, expense claims and a checks spreadsheet",
+        "a members list read from the manifest without unpacking",
+        "no single reference token repeated across the members"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that a coherent folder name creates a node. The manifest is inspected without unpacking and what it reveals is a MIXTURE whose members route separately - agreements and rotas to the nonprofit schema default, induction and checks to hr and safeguarding, claims to Receipts and Confirmations. A directory a coordinator happened to name is an organisation of a person's disk, not a fact schema",
+        "a folder path"
+      ],
+      "also_schema": "hr",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Task day - Compartment 12 coppicing.ics",
+      "source_type": "calendar",
+      "observations": [
+        "an organiser on a public-authority domain, a compartment reference, a meeting point and a tools list",
+        "attendee slots for named individuals",
+        "a recurring monthly pattern"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "SAME FIXTURE, OTHER SIDE. This is government.parks-public-lands' own fixture, and its research memo records that it 'nearly authored an eighth collision' against this row and declined. The discriminator it named is the owner-role test: a public authority running a work party on land it manages is authority-side, not a private association's record. With this row refused the near-collision is moot and the reciprocal it asked R1c for is not owed",
+        "the attendees as facts",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "nonprofit",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Volunteer rota - summer 2026.xlsx' - and this is not a collision, it is the refusal. The fixture is the SCHEMA's own worked file_example, and the schema's eighth deterministic signal already recognises the whole volunteer-programme structure by name: the non-employment agreement, the rota of named volunteers, the induction record and the expense claim with no payroll lines. This row owns nothing; the schema owns all of it and detects it under its default template. Discriminated by nothing, which is the point - CONNECTION section 2 states the consequence, that 'a template that would only repeat its schema's fields and dimension order is not a node - it is the schema's default template'.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Volunteer rota - summer 2026.xlsx' against 'Casual staff rota - summer 2026.xlsx' in one folder - identical visible sheets, identical role columns, identical named-person rows. This row would have owned the first, hr owns the second, and the discriminating evidence is a gross-to-net structure PRESENT in hr's copy and ABSENT from this one. That asymmetry is the whole case against the row: hr's side cites something, this row's side cites nothing. The rule that survives the refusal is hr's alone and it is one-directional - any payroll structure anywhere makes the file hr and hr's privacy posture governs, and no absence makes a file this row's. The same asymmetry disposes of role descriptions, applications, references, induction and training records, which are hr's recruitment and training structures with the word volunteer in an employment-type slot.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.religious-institution",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Sunday service rota - Advent 2026.xlsx' - a spreadsheet of named people against dated occasions that both rows would read as theirs. That landed row owns it, discriminated by the RITE or OCCASION column and the repeating liturgical calendar, and its own text cedes the residue to 'nonprofit.volunteer-management or hr'. With this row refused, that residue - a rota with names and shifts and no rite column - resolves to hr where any payroll structure appears and to the nonprofit schema's default otherwise. Recorded for R1c so the landed neighbour's pointer is redirected rather than left dangling; this row edited nothing there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.parks-public-lands",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Task day - Compartment 12 coppicing.ics' - a work-party calendar entry with named attendees that reads as a volunteer rota and as a land-management task record at once. That landed row owns it, discriminated by the OWNER ROLE - a public authority scheduling work on land it manages, evidenced by the organiser domain and the compartment reference, versus a private association's own programme. Its research memo states it declined to author this collision because the owner-role test was already carried elsewhere; the refusal here confirms that judgement and cancels the reciprocal it offered R1c.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "SAME FIXTURE BOTH SIDES: 'Disclosure certificate - 001234567890.pdf' - a criminal-record or barred-list certificate naming a person, a date of birth and a position. identity.core-documents owns the holder's own copy as an identity document; the nonprofit schema owns the association's copy under its safeguarding signal, which already names background-check and barred-list records explicitly. Discriminated by WHOSE FILESYSTEM it sits on, not by the certificate, which is byte-identical in both hands. Nothing in it is volunteer-specific - the position line reads volunteer, employee, contractor or trustee with no change of structure - so this row never had a claim on it.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The primary home for the legacy pers.volunteering coverage, which is the individual's own side and is excluded from the nonprofit schema by role. A certificate of appreciation, an hours log, a thank-you letter, a reference from a coordinator: durable purpose, no group, no association-side register around them. 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world: an expense reimbursement, a shift sign-up confirmation from a scheduling platform, a training-course booking, a fundraiser ticket. 'Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Named because this world's characteristic isolated file is a list of named third parties or a check on one of them - a rota of volunteers with phone numbers, a disclosure certificate, a reference, a self-declaration of convictions. Where nothing activates confidently the protective home is the cheap error. 'Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest home for the refusal's own failure mode: a rota, an agreement or a handover archive whose SIDE and whose paid-or-unpaid status are both unresolved, which is frequent precisely because the discriminator is an absence. 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.'",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "Role descriptions, model volunteer agreements, sector guidance on volunteer management and downloaded good-practice toolkits are reading material, not operative records, and topic will not separate them from the real thing - 'Topic answers what a file is about, while purpose answers what the file was for.'",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Set at the schema's level and NOT above it, which is itself the third leg of the refusal. The material is genuinely exposing - a rota is a list of named third parties with availability and often contact details, a reference discloses one person's opinion of another, a self-declaration of unspent convictions and a disclosure certificate are among the most protected records a small association holds - and 00's corpus sentence covers them. But the nonprofit schema is already at potentially_sensitive, its sensitivity_why already reasons about volunteer files by name, and the party exposed here is an adult who chose the relationship, which is a weaker claim than the schema's own subjects: a safeguarded child, a service user, a person disclosing under need. A template earns a node on privacy only by being STRICTER than its schema's default, and this row is not; it is the same or looser. The practical rules therefore live where they already worked: hr's posture governs any file with payroll structure, the schema's safeguarding rule governs checks and concerns, and Protected Records catches the isolated named-person list. No handling class is set - that is P7's.",
+  "open_question": "Three, all recorded because the refusal creates obligations rather than closing them. (1) NJ-VM-1, the dangling pointer: nonprofit.religious-institution's landed liturgical-cycle signal routes a rite-less rota to 'nonprofit.volunteer-management or hr', and nonprofit.political-campaign's landed text routes a canvasser rota here while itself noting that this row is weak. Both now point at a refused id. Alternatives for R1c: (a) redirect both to hr-or-schema-default, which is what this pass believes correct and what the refusal implies; (b) if R1c instead resurrects the row, both pointers stand unchanged and this refusal must be reversed with an argument that answers the absence-discriminator problem. This row edited neither neighbour. (2) NJ-VM-2, the legacy id pers.volunteering: the roster hint folds the INDIVIDUAL's volunteering record into an ASSOCIATION-side row, and the two sides cannot share a node - the schema itself excludes giver-side copies by role. This pass routes the individual side to Independent Records and, where an award or a role goes onto a CV, to the career family. Alternatives: (a) accept residual routing, which is what the refusal does; (b) if R1c judges that an individual's accumulated volunteering record is a real filing world, it belongs on a PERSONAL schema, not on nonprofit, and it should be proposed there as a new row rather than salvaged here. (3) NJ-VM-3, the general form of the absence problem: unpaid-versus-paid is not the only seam in this roster whose discriminator is a missing structure - the same shape recurs wherever a family is defined by what a document does NOT contain. If R1c wants such rows to be admissible at all, it must first name what positive evidence stands in for the absence; until it does, this row's refusal should be treated as the precedent."
+}

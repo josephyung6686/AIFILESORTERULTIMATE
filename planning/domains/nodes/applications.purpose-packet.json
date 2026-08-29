@@ -1,0 +1,438 @@
+{
+  "id": "applications.purpose-packet",
+  "kind": "template",
+  "schema_id": "college_applications",
+  "parent_id": null,
+  "name": "Purpose-defined application packet",
+  "one_line": "One submitted set kept together because it was submitted together — transcript, ID, personal statement, resume, certificate, research abstract — organised flat around the purpose it served rather than around an addressee institution, because the set has none, or has several, and splitting it would destroy the only thing its members share.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "00 names this situation, its example, and the user's freedom over it in one paragraph: \"the evidence and group review may reveal a purpose-defined packet, such as Chinese University Application Materials, containing a transcript, ID, personal statement, resume, certificate, and research abstract\", \"The system can present that packet as a preserved or proposed branch alongside institution-based organization\", and \"The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design in which general supporting materials live under an application packet while essay drafts are organized by institution.\"",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "The node test asks whether detection signals, recommended dimensions, or privacy rules differ from the schema's default template. All three do. (1) Signals: the schema's default and applications.undergraduate-packet both fire on a resolved addressee institution; this row fires on the opposite evidence — an archive manifest whose members are the supporting-document set with no institution on the outer name, an existing user-created folder whose name expresses purpose rather than an institution, and a co-present set of compatible record types that is content-incoherent. (2) Dimensions: the default order leads on target_university; this row's recommendation is flat and leads on purpose, and it must, because the packet frequently has no single addressee and 00 forbids inventing one. (3) Privacy: the packet's defining composition includes an identification document, so the branch is protected by its membership rather than by any one member's filename, and the archive that carries it is inspected without ever being unpacked to disk. It also owns the submission-archive evidence in the roster, which no other applications row may claim.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an archive manifest read without unpacking whose member names are the application supporting-document set. This is 00's own worked case and this template's defining signal: \"A ZIP file named submission.zip may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague.\" The manifest is evidence about the archive; 00 also fixes what may be read from it — \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\" — and forbids the shortcut: \"the normal scan should never extract archive contents to the filesystem\".",
+      "an existing user-created folder whose name pairs application or submission language with a target system, programme or country term rather than with one institution, read as parent-folder context. 00's own instance is \"an existing Chinese University Application Materials directory\", and it treats such a folder as intent: \"A carefully curated existing folder should be treated as a strong expression of user intent\", plus \"Purpose may be supported strongly by an existing user-created folder name or explicit language in a form or portal.\" It is context for the files inside it, never a rename target and never a fact copied onto a sparse member.",
+      "a labelled checklist, submission receipt or upload-manifest slot listing the documents required or received — a structured slot, not prose, which is why it reads as an explicit source. 00 says where such values live: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs\", and it names a checklist among the direct application evidence families.",
+      "a co-present set of compatible record types in one bounded location — 00's own measurable-clue list for a purpose packet: \"compatible record types such as a transcript, resume, personal statement, recommendation form, certificate, or ID\" gathered under \"explicit application or submission language\". The record-type composition is a clue and the application language is what makes it evidence; composition alone is listed under never_alone because a recruiting packet and a personal-records folder have the same composition."
+    ],
+    "needs_llm": [
+      "judging that a heterogeneous set serves one workflow at all. This is the situation 00 built the model step for: \"The documents are content-incoherent but purpose-coherent\", and the model \"may identify a shared purpose across a heterogeneous packet\". 00 also states why a similarity engine cannot do it: \"A content-similarity system will tend to split them; a human may intentionally keep them together because they were submitted as one application package.\"",
+      "returning the purpose fact itself, which 00 gates on direct evidence rather than on the set's existence: \"The LLM may return purpose = university application submission only if the dossier includes direct application evidence, such as admissions language, a portal, a checklist, or a clearly targeted essay.\"",
+      "reading a multilingual packet whose filenames reveal nothing and whose documents are not in the interface language. 00 protects this case explicitly at the extraction layer — \"The system should not use unreliable global language-quality checks that incorrectly punish multilingual or mathematics-heavy documents\" — and the interpretation that follows is language work rules cannot do.",
+      "deciding, over an accepted branch, whether the material is one flat purpose packet or one institution's packet. 00 leaves the decision with the user and calls the template a proposal: \"The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.\"",
+      "judging an OCR'd capture as a submission checklist or upload confirmation rather than a generic image — 00: \"A screenshot is always a screenshot of something\", and only its OCR decides which."
+    ],
+    "never_alone": [
+      "a tightly bounded download session as proof that a set is a packet. This is the tempting false file for this template specifically, because a Downloads burst looks exactly like a submitted set: a transcript, a resume, a certificate and an ID saved within minutes of each other. 00 rules on it twice — \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact\", and \"A tight download session alone is never sufficient: it is a retrieval clue that may bring the files together, but not proof of their shared purpose.\" It enters only as what 00 calls it: \"a purpose clue and a review aid, not a basis for automatic semantic propagation\".",
+      "record-type composition alone — a transcript, a resume, a certificate and an ID sitting together with no application or submission language anywhere. The identical composition is a job-application packet (career.recruiting) or a personal-records folder. Fixture: Job Application - Deloitte.zip, whose manifest is this template's shape and whose addressee is an employer.",
+      "an archive extension or a SOURCE_TYPE alone. A .zip does not make a packet; 00 treats the extension as a routing signal \"rather than an assumption about meaning\", and an archive of holiday photographs or a source-code release has the same outer shape.",
+      "a university name alone anywhere in the packet — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" In this template the rule bites hardest, because a packet member's issuing school is routinely mistaken for an addressee the packet does not have.",
+      "packet membership as proof of any member's facts. The grouping firewall is 00's: \"The graph does not automatically copy those missing facts onto sparse files.\" A member of an accepted packet gains a reviewable membership record, not a purpose fact and not a target_university.",
+      "an existing folder name whose words are generic — Documents, Scans, New Folder. Only a folder name that carries application or submission language is the signal 00 describes.",
+      "a bare 4-digit number as application_cycle, because filenames carry \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\".",
+      "the absence of EXIF as proof that a packet member is a portal screenshot — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"OCR text density is also not a reliable screenshot detector\"."
+    ]
+  },
+  "routes_away_when": [
+    "the evidence resolves exactly one addressee institution for the file or the branch — an admissions prompt naming it, an admissions-office letterhead or sender domain, a portal status line, a labelled programme-applied-to slot. That is applications.undergraduate-packet, which 00 contrasts with this row in the same paragraph.",
+    "the same single-addressee evidence appears with statement-of-purpose, CV, writing-sample and advisor material → applications.graduate-professional",
+    "the addressee is an employer or a recruiting process rather than a school → career.recruiting, on the addressee's role in the document, never on the document kind",
+    "the addressee is a sponsoring organisation the applicant would not attend → applications.scholarship-fellowship",
+    "the set is a guardian's record naming a minor applicant → applications.k12-admission, whose privacy rule differs",
+    "no application or submission language exists anywhere and the members are simply the holder's own records → the members are evidenced individually and this template does not fire at all"
+  ],
+  "proposed_context_terms": [
+    "application materials",
+    "supporting documents",
+    "submission",
+    "submitted",
+    "required documents",
+    "upload",
+    "application checklist",
+    "personal statement",
+    "applicant",
+    "admissions"
+  ],
+  "proposed_context_terms_note": "Proposal, not design. 00 names the direct-application-evidence families (\"admissions language, a portal, a checklist, or a clearly targeted essay\") and the measurable clues for a purpose packet (\"explicit application or submission language\", \"an existing user folder name\", \"filenames containing supporting-material terms\"); the specific tokens above are R2's and R6's to accept, refine or reject. No regex and no threshold is written here.",
+  "work_types": [
+    "personal statement",
+    "transcript",
+    "identification document",
+    "resume",
+    "award certificate",
+    "research abstract",
+    "recommendation form",
+    "application form",
+    "application checklist",
+    "submission confirmation",
+    "portal record",
+    "test score report",
+    "language test certificate",
+    "financial support document"
+  ],
+  "work_types_note": "Values of application_document_type, discovered at runtime, never roster rows. The first six are 00's own listing of what this packet holds: \"a transcript, ID, personal statement, resume, certificate, and research abstract\". A submission archive is deliberately absent from this list: an archive is a SOURCE_TYPE, and turning a format into a document-type value is the same error as turning it into a schema.",
+  "grouping_reasons": [
+    "one submitted set whose members are content-incoherent and whose only shared property is the submission — 00: \"an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission\"",
+    "one archive manifest's member list, read without unpacking, when the members are the supporting-document set",
+    "one existing user-created folder that already expresses the purpose, adopted rather than rebuilt",
+    "a shared supporting document attached to more than one packet without gaining an addressee from either — 00: \"A file may validly belong to more than one accepted group\", and \"A transcript may be part of several application packets\"",
+    "an outlier excluded on its own conflicting addressee, because \"an application packet does not silently absorb a document with a conflicting target institution\""
+  ],
+  "template": {
+    "dimension_order": [
+      "purpose"
+    ],
+    "why": "Flat, and led by purpose, because that is what 00 recommends for this situation and because the alternative is unbuildable here. 00: \"The user may keep it as one flat purpose folder\", of a packet \"containing a transcript, ID, personal statement, resume, certificate, and research abstract\". target_university cannot lead: this packet frequently has no single addressee, and forcing an institution level would require writing one onto shared members, which 00 forbids twice over — \"A transcript may be part of several application packets\", and \"If no shared branch exists, the system should not arbitrarily choose one university. It should abstain or ask the user to choose a primary home.\" application_document_type cannot lead either, because it is the level whose parent gives it meaning: \"a parent dimension should provide the context required to understand the child\" — a folder of loose Certificates is exactly the fragmentation the flat packet exists to prevent. One dimension is a real recommendation, not an empty one: 00 asks the canvas to warn when a level \"repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders\", to \"recommend flattening when a dimension does not materially improve retrieval\", and it accepts uneven depth outright — \"a two-file application packet may remain a single folder\", \"The product should not force every branch to use the full template or have the same number of levels.\" This stays a recommendation: \"the user can reverse, remove, add, or flatten dimensions\", and \"The template is a recommendation mechanism, not a rule that erases purposeful heterogeneity.\"",
+    "optional_branch_patterns": [
+      "an optional document-type level inside a packet large enough to earn it, using 00's own member split: \"essay drafts go to Essays; checklists and portal screenshots go to Forms and Portal Records; transcripts, resumes, and certificates go to Supporting Materials\". Offered only when it would not produce a crowd of one-file folders, since \"each branch should offer the dimensions that are actually present in its member groups\".",
+      "the hybrid 00 names verbatim: \"general supporting materials live under an application packet while essay drafts are organized by institution\" — this template holding the shared members while applications.undergraduate-packet holds the addressed ones.",
+      "adopting the user's existing folder as the branch instead of proposing a new one — 00 treats it \"as user-created structure that can be preserved, adopted as a branch, merged with a proposal, or left untouched\".",
+      "splitting the packet by target institution, which is the user's stated option and hands the branch to applications.undergraduate-packet rather than restructuring it here.",
+      "a scoped General child when a member's role never resolves — 00: \"It should also support a scoped General or Other branch within a meaningful parent\", instead of a global catch-all."
+    ],
+    "validation_constraints": [
+      "no member gains a fact by living in the branch: purpose and target_university must come from the member's own evidence, never from packet membership — \"The graph does not automatically copy those missing facts onto sparse files\"",
+      "the branch must not absorb a member whose own evidence names a conflicting addressee — \"an application packet does not silently absorb a document with a conflicting target institution\"",
+      "purpose may not be filled from a bounded download session: \"A tight download session alone is never sufficient\"",
+      "an existing user folder adopted as this branch is not renamed, flattened or reorganised by the template — \"Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure\", and \"The system learns from existing folders but must not silently reorganize them\"",
+      "an archive is never unpacked to disk to populate the branch; the manifest is the evidence and the archive stays one file",
+      "authorship never becomes a level — \"It should avoid using authorship or creator identity as a destination dimension\": no recommender, no signer, no DOCX-author folder",
+      "a protected member does not lose its protection by joining the packet; classification precedes any model or placement path, and its filename and content stay out of prompts"
+    ],
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "archive",
+      "text_document",
+      "image",
+      "ocr",
+      "email"
+    ],
+    "extensions": [
+      ".zip",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml"
+    ],
+    "never_alone": true,
+    "note": "archive is this template's owned evidence in the roster (00's submission.zip) and is the one SOURCE_TYPE that routes here rather than to applications.undergraduate-packet — but only through its manifest, and never on the extension alone."
+  },
+  "file_examples": [
+    {
+      "filename": "submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without unpacking; member names include a transcript, a personal statement, a resume, a certificate and a form",
+        "outer archive name carries no institution, no cycle and no purpose word",
+        "member count and uncompressed size recorded; no source-code manifest markers"
+      ],
+      "facts_legal": [
+        "purpose",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from one member filename alone",
+        "that the members inherit the archive's purpose fact — the manifest is evidence about the archive, and each member is re-evidenced on its own bytes when it exists as a file",
+        "that the archive should be unpacked to disk to confirm any of this"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "个人陈述.docx",
+      "source_type": "text_document",
+      "observations": [
+        "parent folder is named Chinese University Application Materials",
+        "filename is non-Latin and reveals nothing to a Latin-token matcher",
+        "body is first-person prose; no institution named anywhere in it",
+        "universal language fact resolves to Chinese"
+      ],
+      "facts_legal": [
+        "purpose",
+        "application_document_type",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a folder path, and in particular not the existing folder's own path written as a fact",
+        "target_university from the folder name — it names a university system, not one institution",
+        "that the existing folder may be renamed or flattened to match a template",
+        "a low text quality verdict from the script alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Transcript.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Official Transcript; issuing institution in the letterhead zone",
+        "term-by-term table of courses and grades",
+        "the same content hash appears in two accepted packets"
+      ],
+      "facts_legal": [
+        "school",
+        "term",
+        "work_type",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university — the institution on the page is the issuer, and \"A transcript may be part of several application packets\"",
+        "purpose from packet membership alone",
+        "an arbitrary choice between the two packets when the tree holds no shared-material branch"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "ID card scan.jpg",
+      "source_type": "image",
+      "observations": [
+        "OCR region carries an identity-document layout: name, date of birth, document number",
+        "camera EXIF absent; the image is a flatbed scan",
+        "the file sits beside the packet's other members"
+      ],
+      "facts_legal": [
+        "sensitivity_status",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose from sitting beside the packet's other members",
+        "a folder level built from the identity values on the card",
+        "that its filename or OCR text may enter a model prompt — this is the material 00 keeps local"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PVA-RDP Abstract.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title carries a project identifier; abstract structure with methods and results",
+        "packet context names an institution and a submission",
+        "no admissions prompt anywhere in the document itself"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "purpose",
+        "target_university"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "dropping either fact set to force one physical home — 00: \"An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago\"",
+        "that belonging to the research group excludes it from the packet, or the reverse"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Resume 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "headings for education, experience, skills",
+        "several organisation names, none in an addressee role",
+        "a 4-digit token in the filename",
+        "the same content hash appears in an application packet and in a recruiting folder"
+      ],
+      "facts_legal": [
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university from a school named in the education section",
+        "application_cycle from the filename number",
+        "purpose from packet membership — the same resume supports a recruiting process, which is 00's own adversarial case of shared resumes across applications"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Checklist screenshot.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region lists required documents: transcript, personal statement, resume, identification",
+        "no institution name anywhere in the recognised text"
+      ],
+      "facts_legal": [
+        "purpose",
+        "application_document_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university — the checklist names documents, not an addressee",
+        "media_type = screenshot from the absence of EXIF alone",
+        "application_cycle from the capture stamp"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Job Application - Deloitte.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names a resume, a cover letter, a transcript and a certificate — the same record-type composition as a submission packet",
+        "one member filename carries an employer name and the word offer",
+        "no admissions, enrolment or entry-term language anywhere in the manifest"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose = university application from the composition — this is the collision fixture for this template, and composition alone is never-alone evidence",
+        "target_university from the transcript member's issuing school",
+        "that this template fires at all: the addressee is an employer, which routes to career.recruiting"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Application Materials.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive is password-protected; the manifest cannot be read",
+        "outer filename carries application-shaped words and nothing else",
+        "size and timestamps are readable; no member names are"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose from the filename — 00: \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "that the archive may be forced open or brute-forced; it is \"marked as unreadable or partially inspected rather than forced open\"",
+        "a member list, a packet, or a branch of any depth"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Scan 001.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "PDF with no text layer; OCR recovers a stamped certificate heading and a name",
+        "no institution in an addressee role, no cycle, no application language",
+        "sits inside a folder whose other members are evidenced packet documents"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "purpose or application_document_type from the neighbouring members — this is the HW 3 shape for this domain: a membership record may exist while the fact does not",
+        "an institution from the certificate's issuer line read as an addressee"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Documents received - application submitted.eml",
+      "source_type": "email",
+      "observations": [
+        "subject pairs submission language with a received-documents phrase",
+        "body lists the uploaded document set; sender is a centralised application platform, not one institution",
+        "sent date in the header; body states a submission deadline, not an entry term"
+      ],
+      "facts_legal": [
+        "purpose",
+        "application_document_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "target_university — the platform is not an institution the applicant would attend, and the released-to list is an addressee for none of them",
+        "application_cycle from the sent date",
+        "a folder level built from the sender address"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "Reciprocal of the edge that row already authored. Same schema, same documents, same vocabulary; the discriminating evidence is whether one addressee institution resolves for the file or the branch. An institution-addressed essay, portal record, checklist or letter points there; a submitted set whose members are content-incoherent, whose outer archive or folder names no institution, and whose only shared property is the submission points here. 00 puts both on one branch and leaves the choice with the user: \"The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design in which general supporting materials live under an application packet while essay drafts are organized by institution.\" Fixtures: submission.zip here, Why Columbia - final.docx there.",
+      "design_cite": "The system can present that packet as a preserved or proposed branch alongside institution-based organization",
+      "provenance": "design"
+    },
+    {
+      "domain": "applications.graduate-professional",
+      "signal": "The same addressee test as the undergraduate row, on a different document set: a statement-of-purpose, CV, writing-sample and advisor bundle submitted as one archive is this template's shape until one programme resolves as the addressee, at which point it is that row's. Neither side may be decided by the institution name, which is the same gazetteer on both, nor by the archive itself.",
+      "design_cite": null,
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "The transcript and the certificate are members of this packet and are also standalone academic records. The discriminating evidence is the role of the institution on the page: an issuer letterhead with registrar language fills school and belongs to the record situation; only evidenced submission context makes the same file a packet member, and it gains no addressee by joining. Fixture: Transcript.pdf, which must keep its issuing-school facts in either home.",
+      "design_cite": "A transcript may be part of several application packets",
+      "provenance": "design"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "The identification document is 00's own named member of this packet and is simultaneously a standalone identity record. The discriminating evidence is never the ID itself — its layout, number and date of birth say nothing about an application — but the surrounding submission evidence, which is packet-level and therefore may not be written onto the ID as a fact. Whichever side holds it, protection runs first and its filename and content stay out of model prompts. Fixture: ID card scan.jpg.",
+      "design_cite": "A university application packet can contain an identification document, transcript, resume, certificate, and academic abstract",
+      "provenance": "design"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "A resume, cover letter, transcript and certificate submitted as one set have the identical composition on both sides, which is exactly why composition is never-alone evidence here. The discriminating evidence is the addressee's role in the set's own documents — an admissions or enrolment context versus an employer or recruiting process — never the document kinds and never the archive. Fixtures: Job Application - Deloitte.zip on that side, submission.zip on this one; Resume 2026.pdf must gain an addressee from neither.",
+      "design_cite": null,
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the exact shape of a manifest that reads as a packet while no purpose evidence resolves. Fixtures: submission.zip when nothing supports the purpose fact, Scan 001.pdf, 个人陈述.docx when its folder is not adopted.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This template's evidence is an archive manifest, so the archive that cannot be read is its characteristic failure. 00's residual covers \"password-protected archives, unreadable documents, damaged files, and unknown formats\" and prefers representation over movement. Fixture: the password-protected Application Materials.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The packet's defining composition includes an identification document, and an unaccepted packet leaves that member isolated — 00's \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\", which \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixture: ID card scan.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — the shared member that outlives every packet it was submitted to. Fixtures: Transcript.pdf, Resume 2026.pdf, the submission-confirmation email.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "target_university",
+      "other_field": "school",
+      "neighbor": "academic.transcripts-credentials",
+      "why": "Same entity type, different role, and the split this template needs most: its members are precisely the documents that carry an issuing school on their face and no addressee at all. 00 requires the separation — \"The system must separate roles that happen to contain the same entity type\" — and the canonical list already holds the pair, so this row references it rather than minting anything. Because the recommended branch carries no institution level, the split here protects the fact rather than the folder: an issuer name must never be promoted into target_university to justify a level this template does not propose.",
+      "design_cite": "distinct facets, such as authored_by and target_school, or our_firm and client"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The packet is potentially sensitive by composition rather than by any one filename: 00's own listing of what it contains is \"a transcript, ID, personal statement, resume, certificate, and research abstract\", and it lists among the highly personal corpus \"identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\". Two situation-specific consequences follow that the schema's default does not carry. First, the archive: the manifest is read and the contents are never extracted, because \"the normal scan should never extract archive contents to the filesystem\", and an encrypted one is represented rather than forced. Second, a protected member keeps its protection inside the branch — \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\" — so a packet member never becomes prompt-eligible by virtue of the packet being accepted. This row records only that the situation is potentially sensitive; the handling class is P7's and is not assigned here.",
+  "open_question": "What names this branch? The recommended dimension is purpose, but 00's own instance of the branch is a user folder name — \"an existing Chinese University Application Materials directory\" — while the accepted group carries a display label and the fact carries a normalised value. Three different strings can name one level, and this template is the row where they visibly diverge; which one P10 writes as the node label is not settled here. Second, inherited and unresolved above this node: whether purpose stays Applications-scoped (NJ-3 / PR-1), which matters more here than anywhere else because purpose is this template's only dimension — a purpose-coherent packet outside admissions would have no row to land on. Third, the schema row's open question about widening target_university for addressees that are not universities is what this situation keeps meeting: a packet addressed to a system, a platform or a programme has no university to name at all."
+}

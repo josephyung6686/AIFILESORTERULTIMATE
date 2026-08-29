@@ -1,0 +1,375 @@
+{
+  "id": "construction_property.mortgage-brokering",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Mortgage and property finance brokering — refused duplicate of Finance lending",
+  "one_line": "REFUSED: a broker's fact find, evidence checklist, lender submission, decision in principle, offer and suitability letter are stages and work-type values inside the Finance borrowing lifecycle already held by finance.loans-mortgage. Property is collateral or transaction subject, and broker is a counterparty role; neither creates a construction_property template with distinct dimensions, detection, or privacy rules. Absorbs the legacy label prop.mortgage-brokering without preserving its mistaken node.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Reverses the gist draft after the required cross-family comparison. The node test fails on all three legs. (1) DETECTION: fact-find blocks, evidence checklists, affordability assessments, lender submissions, decisions in principle, offers and suitability letters are borrowing-application and advice stages already inside finance.loans-mortgage, whose landed row expressly covers the application and closing packet through servicing and release. They distinguish a lending case from generic Finance, but do not distinguish a construction_property situation from that Finance template. A property address or mortgage word is never-alone; property is collateral/subject, not a separate organizational structure. (2) DIMENSIONS: client -> case -> stage is a professional-client workflow, but the construction_property anchor's default is property/site -> instruction -> document function. Replacing property with client does not justify putting the row on this schema; Finance already supplies account_type -> record_type for the same lifecycle, while a broker case identifier is a P9 grouping anchor rather than a legal field. (3) PRIVACY: third-party payslips, bank statements, identity scans and credit material require protection, but finance.loans-mortgage already states the same stricter packet-level privacy rule for applications and closing packets. Broker custody changes who holds the bytes, not the content-based protection rule. The role test also fails: broker, borrower, lender, conveyancer and valuer are counterparties around one loan/property transaction; role words and custody alone are not nodes. Keeping this row would duplicate Finance because the loan concerns property and would repeat the 574's industry-label mistake.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a fact-find structure: a long structured questionnaire capturing a client's income, expenditure, dependants, employment, credit history and objectives, in labelled slots rather than prose. A form that inventories a household's whole financial life in one document exists in no other situation here. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "an evidence-pack checklist: a covering list requiring three months of payslips, three months of bank statements, identity and address evidence and an accountant's certification, with received and outstanding ticks against each. The CHECKLIST framing - somebody chasing documents from somebody else - is the discriminating shape.",
+      "a lender-decision structure: a decision in principle or agreement in principle with a reference, a maximum lending figure, a validity period and stated conditions - and, later, a formal offer with a loan amount, rate, term and conditions precedent.",
+      "an affordability or criteria assessment: a stress-tested calculation of income against commitments, or a comparison sheet of lenders' products with rates, fees and criteria for one client.",
+      "a suitability or recommendation letter: prose addressed to a named client explaining why one product was chosen over alternatives, together with a disclosure of fees and commission arrangements.",
+      "a procuration-fee or commission statement from a lender to the adviser, naming cases and amounts - which is the adviser's own money and not the client's.",
+      "a regulatory-shaped pack around all of it: an initial disclosure document, a client agreement, a consent to credit search, and a vulnerability or advice note."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "whose file it is. A payslip, a bank statement and a passport scan look identical whether they are the client's own records or an adviser's copy of them, and the difference decides who the material belongs to. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating a case that completed from one that was declined or abandoned, when the file contains the same documents either way.",
+      "recognising a suitability letter as the document that explains the whole file, when it is unlabelled prose on a letterhead.",
+      "deciding whether a lender product sheet is case-specific advice material or generic marketing.",
+      "an evidence pack that is purpose-coherent and content-incoherent: payslips, statements, a passport, a P60 and a credit report, coherent only as one case. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a lender's or a bank's name alone - it is on the client's own statements, the marketing email, the offer and the commission statement alike, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a client's or any person's name alone.",
+      "a payslip, a bank statement or a passport scan alone. These are the most protection-critical documents in the corpus and they are identical whether held by their subject or by an adviser - this is the row's central never-alone and the reason the seam with finance and identity is stated as ownership rather than as content.",
+      "a property address alone: a case may name a property, several properties, or none at all if it is a remortgage in principle.",
+      "a money total or a rate token alone.",
+      "a bare 4-digit number, as likely a case reference, a product code or a sort-code fragment as a year.",
+      "membership in a download session that pulled a client's whole evidence pack at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "fact find",
+    "client agreement",
+    "initial disclosure",
+    "decision in principle",
+    "agreement in principle",
+    "DIP",
+    "affordability",
+    "stress test",
+    "loan to value",
+    "criteria",
+    "product transfer",
+    "remortgage",
+    "first time buyer",
+    "buy to let",
+    "bridging",
+    "packaging",
+    "case submission",
+    "case reference",
+    "suitability letter",
+    "recommendation",
+    "protection review",
+    "procuration fee",
+    "commission disclosure",
+    "consent to credit search",
+    "credit report",
+    "proof of income",
+    "proof of deposit",
+    "gifted deposit letter",
+    "accountant certificate",
+    "offer issued",
+    "case completed",
+    "case declined"
+  ],
+  "work_types": [
+    "fact find or client questionnaire",
+    "initial disclosure document and client agreement",
+    "evidence checklist",
+    "proof-of-income evidence supplied by the client",
+    "proof-of-deposit or gifted-deposit evidence",
+    "identity and address evidence supplied by the client",
+    "credit report or search consent",
+    "affordability or criteria assessment",
+    "lender product comparison",
+    "case submission or packaging pack",
+    "decision in principle",
+    "mortgage offer",
+    "suitability or recommendation letter",
+    "declined or withdrawn case note",
+    "procuration fee or commission statement",
+    "protection or insurance review attached to the case"
+  ],
+  "grouping_reasons": [
+    "one case: the fact find, the evidence pack, the submission, the decision, the offer and the suitability letter, held together by a client and a borrowing purpose rather than by content. This is the row's defining group.",
+    "one client across successive cases - a purchase, a remortgage three years later, a further advance - which is a different and equally real axis, and the one that most tempts the product to carry an old income figure onto a new case. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one evidence pack as a sub-bundle inside a case, which is where the protected material concentrates and where a group summary would leak it.",
+    "an adviser's commission statement covering many cases, which is the adviser's own record and belongs with their business rather than with any one client.",
+    "no group at all is a valid outcome: a single decision in principle that went nowhere is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty because the row is refused, and empty independently because construction_property declares no fields. The apparent client -> case -> stage order is evidence against this schema assignment: it is the same bounded borrowing case that finance.loans-mortgage already groups across application, closing and servicing, expressed from an intermediary's custody perspective. A counterparty role and a case-stage vocabulary do not create a second template."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Fact find - Okonkwo - 2026-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for income, expenditure, dependants, employment and objectives",
+        "a credit-history section with declared adverse entries",
+        "a signature and a date",
+        "an adviser reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "income, dependants or health information extracted as facts for organisation purposes - this is a third party's whole financial life and protection precedes extraction",
+        "a client name as a destination dimension without the user deciding it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Evidence checklist - case 88213.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a list of required documents with received and outstanding columns",
+        "dates chased and dates received",
+        "a case reference",
+        "notes naming a lender's criteria"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that an outstanding tick means a document is absent from the corpus",
+        "the case reference read as a year or a property identifier",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Payslips Nov-Jan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "three months of payslips for a named individual",
+        "employer, gross, deductions and net",
+        "a national insurance or tax identifier",
+        "supplied by a client to an adviser"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "whose file this is from the document alone: identical bytes are the individual's own record in finance.payroll-received and a third party's copy here, and the difference is ownership, not content",
+        "employment or salary facts for organisation purposes",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "DIP - Nationwide - ref 771204.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a decision in principle with a reference and a maximum lending figure",
+        "a validity period",
+        "stated conditions and a credit-search note",
+        "a lender letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a decision in principle is an offer - it is an indication with an expiry, and treating it as lending would be exactly the invented conclusion 00 forbids",
+        "a borrowing capacity fact carried onto a later case",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Suitability letter - Okonkwo.docx",
+      "source_type": "text_document",
+      "observations": [
+        "prose addressed to a named client explaining a recommendation",
+        "alternatives considered and rejected",
+        "a fee and commission disclosure",
+        "an adviser signature"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the recommendation as advice the product endorses or summarises",
+        "a client's circumstances restated in a group summary - the letter narrates them in prose and a summary would republish them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mortgage offer - 14 Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a lender's offer with loan amount, rate and term",
+        "conditions precedent naming a property",
+        "a valuation figure",
+        "an expiry date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this row owns it outright: the same offer is the borrower's own lending record (finance.loans-mortgage) and a member of the conveyancing pack (construction_property.sale-purchase) - three legitimate homes, authored as collisions in all directions",
+        "a debt fact copied onto the client's other files",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Procuration fees - Q1.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows of case references with lender names and fee amounts",
+        "a period and a total",
+        "client surnames in one column",
+        "a payment date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of a client case: this is the ADVISER'S OWN income and finance.small-business-bookkeeping owns it - the collision fixture, and the row must not drag a business revenue record into a client folder",
+        "a client fact from a surname column",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Scan_ID_and_utility.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed passport page beside a utility bill",
+        "glare across the machine-readable zone",
+        "OCR partially recovers a name and an address",
+        "no case reference anywhere in the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any placement decision before protection: 00 - “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.”",
+        "an identity fact from partial OCR of a document belonging to somebody who is not the user",
+        "that the absence of a case reference means it is the user's own identity document - identity.core-documents holds that reading and both are live",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "case_88213_submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a fact find, statements, payslips, two identity scans and a submission summary",
+        "mixed member types",
+        "a case reference in the name",
+        "password protected"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - members are extracted as their own files and each protected on its own terms",
+        "that an encrypted pack may be opened or summarised because its name looks routine",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary residual for this row, and the correct one for the majority of its members - identity documents, bank statements, payslips, offers and suitability letters belonging to somebody other than the user, with no accepted case group. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for the row's few unprotected members - a checklist, a generic product sheet - with a durable purpose and no case group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a case whose status - completed, declined, abandoned - is unresolved, which is the row's most common ambiguity. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for the password-protected submission packs and lender portal exports that are this row's routine delivery format. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for isolated transactional members - a fee receipt, a commission statement line - that this row should not absorb into a client group. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the most protection-first row on the schema, and the reason is not the subject matter but the OWNERSHIP: almost every document in the file belongs to somebody other than the person whose computer it sits on. A broker's case folder holds a client's identity documents, months of their bank statements, their payslips, their credit report, their declared dependants and health circumstances, and a suitability letter that narrates all of it back in prose. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and identity documents, account statements and employment materials head that list. The design is explicit about when protection begins: “A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.” And about the limits: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Two consequences specific to this row: a group summary would republish a client's circumstances in one place, and a client-first folder tree would put private individuals' names in folder names. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "NEEDS-JOSEPH NJ-CP-MB-1: confirm that the legacy label is retired rather than re-rostered as a Finance sibling. The evidence does not support a construction_property node, and creating finance.mortgage-brokering would still duplicate finance.loans-mortgage unless Joseph intends intermediary custody to be a first-class template distinction across Finance. If custody is intended to create templates, the rule must apply consistently to accountants, insurance brokers, investment advisers and legal representatives; if not, broker material remains a reviewable case group under finance.loans-mortgage. NJ-CP-MB-2: decide whether a user-approved client level is ever permitted over third-party financial evidence. This refusal does not resolve that product-policy question; it routes protected members through Finance and Protected Records without proposing a client-first tree."
+}

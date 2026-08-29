@@ -1,0 +1,306 @@
+{
+  "id": "creative.self-initiated-work",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Self-initiated professional creative practice",
+  "one_line": "REFUSED. Work a professional makes with no client is identified by the ABSENCE of a client, which is not evidence; and the one dimension it could still offer - everything this maker made for themselves - is the collector level 00's template validator rejects by name ('use an author or organization merely as a collector'). The material's real homes already exist: the sibling creative.* rows take back everything that has a positive signal of its own, and the residual library takes the rest.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the template half of the node test (CONNECTION.md section 2: 'A template row exists only if its detection signals, recommended dimensions, or privacy rules differ from its schema's default template') on all three limbs, and fails a fourth test that 00 states about this row's shape explicitly and in advance.\n\n1. DETECTION SIGNALS - the row's defining condition is the absence of a signal, and absence never activates. The roster hint says it plainly: this is work made 'with no client', 'using the same tools, formats and filenames as their paid work'. Strip the client and what remains - a .psd with layers, a RAW file with EXIF, a .docx with headings - is byte-for-byte the schema's own material. The positive evidence in this world belongs to the sibling rows: a brief, a purchase order, a client name in a labelled slot, an invoice number. Every one of those is creative.client-engagement's or creative.creative-brief's. So the only candidate 'signal' this row could author is a negated one - client_not_found - and the activation algorithm (CONNECTION.md section 4) has no such input: step 1 collects deterministic signals FOR a schema, step 2 strikes schemas whose entire support is never-alone, and step 7's stated outcome is CONNECTION.md's, not a signal at all: 'An empty set is a correct outcome, not a failure' - the file routes to residual review. A row that fires exactly when the engine has found nothing is the empty activation set wearing a template id. 00 makes the same point about images from the other direction - 'the system must not mistake the absence of EXIF for proof that an image is a screenshot' - and the principle generalizes: a missing field is not a fact about the file, it is a fact about the search.\n\n2. RECOMMENDED DIMENSIONS - 00 names this exact level as an invalid one. The only thing every file in this row shares is who made it, and 00's custom-template validator is written to refuse precisely that: the engine must check that a proposed template does not 'repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group'. A Self-Initiated branch is the author-as-collector level with the author's name left implicit because there is only ever one author on a personal machine. 00 states the same prohibition twice more in the role-split passage - 'It should avoid using authorship or creator identity as a destination dimension. A folder should not become a collection point for everything produced by the same person or organization' - and closes it with the replacement rule this row cannot satisfy: 'Authorship is usually metadata; the document's purpose, project, subject, or target is more informative for placement.' The purpose here is 'made it for myself', which is a statement about authorship in different words. The grouping stop rules bar the same thing at P9 - the system should not form a supported group 'when one high-frequency entity acts as the only bridge' - and on a personal corpus the maker is the highest-frequency entity there is.\n\n3. PRIVACY RULES - identical to the schema's, and if anything laxer. Client work carries the confidentiality (an NDA, an unreleased campaign, a named individual in a model release - creative.licensing-rights' material). Unclienting a file removes obligations, it does not add any. The only sensitivity this row raises is the same one every creative row raises: a proprietary source file that cannot be read, which 00 already handles globally ('unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty'). No third-limb licence.\n\n4. 00 ALREADY PLACED THIS MATERIAL, AND NOT IN THE TEMPLATE LIBRARY. 'Personal Projects' appears twice in 00, both times as a user-chosen TOP-LEVEL location on the canvas, never as a detection template. First as a root: 'Potential roots might include Desktop, Documents, Academic, Personal Projects, or a dedicated archive location.' Then as a placement the USER makes at the horizontal pass, against the engine's own suggestion: the user 'can drag an accepted group into a top-level branch, merge Applications with Career if that matches their style, place a research group under Personal Projects rather than Research, or delete a suggested top-level area entirely'. That sentence is this row's whole content and it is already owned - by P10's canvas and by the user's hand. Note what it does NOT say: it does not say the engine detects that the research group is personal. It says the user moves it there. Self-initiated is a destination the user chooses, not a fact the engine extracts, and CONNECTION.md keeps those apart absolutely ('Do not write paths as facts').\n\n5. THE PROFESSIONAL-VERSUS-HOBBY SEAM, ANSWERED IN BOTH DIRECTIONS, AND NEITHER DIRECTION YIELDS A NODE. If the maker is a working professional, the material is indistinguishable from their paid work minus a client - so the sibling rows take it back on its own positive evidence, and they already do: a novel chapter goes to creative.book-manuscript on its chapter structure whether or not a publisher exists; a personal short film goes to creative.post-production on its project file and its unlinked media; a self-released record goes to creative.music-session on its session file; textures kept for reuse go to creative.stock-asset-library, whose roster one_line_hint defines it as material that 'belongs to no one project' - the roster's words, not 00's - and which is therefore the honest home for the unattached half of a working practice. None of those rows asks whether anyone paid. If instead the maker is a hobbyist, the material is exactly what the residual library was built for and 00 names it there by name - Reference Clips holds 'saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project', One-Off Images holds 'images with no event, project, reference collection, or photo-family association', and Review Later holds 'files whose meaning is partly understood but whose final location requires a future decision'. So the seam this row was supposed to straddle has a floor on both sides and nothing in the middle. That is the definition of a label.\n\n6. THIS DOES NOT CONTRADICT career.portfolio-work-samples, WHICH SURVIVED. That row is worth contrasting because it is superficially the same shape - the maker's own work, no client - and it is a node. The difference is that it has a positive purpose signal in the bytes: work 'selected and framed to be SHOWN to someone', evidenced by a portfolio PDF's cover page, a case-study narrative, a curated Selected Works archive, a reel. Selection leaves traces. Not-having-a-client leaves none. 00 licenses purpose as a first-class facet for exactly the case where files share a purpose and share no content - its worked example is 'a purpose-defined packet, such as Chinese University Application Materials, containing a transcript, ID, personal statement, resume, certificate, and research abstract' - and the test is whether the purpose is legible in the material. Showing is; making-for-oneself is not.\n\n7. WHERE IT DIVERGES FROM code.scratch-prototypes, AND WHERE IT AGREES. It agrees on the core: both rows are the complement of their schema's detection rule, and a complement is not a signal set. It diverges on why the dimension fails. Scratch code fails because NO field is reachable - no repository, no project value, only a flattenable artifact_type. This row fails the opposite way: the fields ARE reachable (a personal project has a project name, a stage, an artifact type, as legibly as a client one does) - they are simply the SAME fields filled the same way as the schema's default, plus one extra level that 00 forbids. Scratch code has nothing to file by; this row has plenty to file by and none of it is 'self-initiated'. Both land on refuse, by different arguments, and neither argument is weakened by the other.\n\n8. THE LEGACY ROW IS ABSORBED, NOT DROPPED. pers.creative-project's coverage survives in full and in more detail than it had: every genuinely creative artifact reaches a sibling creative.* row on its own evidence, design_creative source files are owned by career.portfolio-work-samples' file_kind_owner assignment until the creative schema lands its own, and unattached material reaches the six residual homes recorded in falls_through_to. Nothing is lost by refusing; what is lost by minting is a Self-Initiated branch that every file in a solo practitioner's corpus is eligible for, which is the one-child-level and empty-branch failure 00's validator tests for.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "THE DEFINING ONE: the absence of a client name, brief, purchase order or invoice anywhere in the file or its folder. This is not weak evidence, it is not evidence - it is the outcome of a search, and CONNECTION.md section 4 has no negated-signal input. 00's parallel is exact: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'. This is the tempting false signal for this id specifically, because it is the ONLY thing every file in the id would share.",
+      "source_type = design_creative alone, or a creative extension alone (.psd, .ai, .indd, .blend, .aep, .prproj, .sketch, .fig). 00: the engine should 'treat the file extension as a routing signal rather than an assumption about meaning', and file_kind_plausible is constitutionally never sufficient (CONNECTION.md section 5, invariant on that edge). A .psd tells you a raster editor wrote it; it does not tell you whether anyone paid for it.",
+      "The maker's own name, in EXIF Artist, a PDF Author slot, an XMP creator field, a signature layer, or a filename stem. This is the author-as-collector case and 00 bars it twice - 'It should avoid using authorship or creator identity as a destination dimension' and, in the template validator, 'use an author or organization merely as a collector'. On a personal machine this token matches nearly every file, which is also 00's grouping stop rule: no group 'when one high-frequency entity acts as the only bridge'.",
+      "A folder named Personal, Personal Projects, Side Projects, Experiments, or Passion Project. 00 treats Personal Projects as a user-chosen top-level ROOT ('Potential roots might include Desktop, Documents, Academic, Personal Projects, or a dedicated archive location') and as a user's drag on the canvas, not as a detected fact - and separately, 'The system learns from existing folders but must not silently reorganize them'. A folder name is a destination the user already chose, not evidence the engine may re-derive.",
+      "A version- or finality-shaped filename token (v7, final, FINAL, concept, wip, draft, untitled, copy 3). These are the native dialect of ALL creative work, clienteles included - creative.brand-identity's own hint is built around logo_final_v3_FINAL.ai - and 00's adversarial material names 'duplicate suffixes on unrelated files' as an observed failure mode. A token that is equally dense on both sides of the client line cannot discriminate the sides.",
+      "An organisation, venue, band, event or brand name appearing in the artwork itself. A speculative poster for a real festival names that festival exactly as a commissioned one does. 00's institution rule generalizes: 'A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - subject, client, and mere depiction are the same three roles here, and the pixels do not say which.",
+      "Download-session or same-folder membership with other unclienteled work. 00: 'A session should never be treated as proof of topic', and the folder equivalent is weaker still - a self-initiated piece and a client job routinely share one Work folder because the maker uses one workflow for both, which is the roster hint's own premise.",
+      "A bare 4-digit number in a filename or a folder (2026, 1080, 4000). 00 warns these are often 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values' - and in this world they are overwhelmingly pixel dimensions, DPI, colour temperatures and export presets.",
+      "The absence of a licensing or rights document beside the work. Releases and licences are creative.licensing-rights' positive evidence; their absence is only the absence of that row's evidence, and cannot be borrowed as this row's presence.",
+      "OCR of creative-looking text inside another format - a screenshot of someone else's artwork, a photographed sketchbook page in a message thread. The bytes are an image or a message; the creative content in them is depiction, not authorship."
+    ]
+  },
+  "work_types": [],
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "No order is authored, for two reasons that stack. First, by contract: the creative schema declares no field rows (PR-6; D1's deferral stands; _CONTRACT rule that a dimension may only branch on a field its schema declares), so no dimension on this schema is authorable by anyone yet - that constraint is shared with all 41 creative.* rows and is not itself a refusal. Second, and specific to this row: even after the creative schema lands its fields, the order this situation would recommend is the schema's default order - project, then stage or artifact_type, exactly as 00 states it generally ('For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders') - with one extra level bolted above it whose value is always the same and whose name is the author. 00's validator refuses that level in advance: a template must not 'create meaningless one-child levels' and must not 'use an author or organization merely as a collector', and the canvas is told to undo it after the fact too - 'It should warn when a level produces only one child' and 'It should recommend flattening when a dimension does not materially improve retrieval'. A Self-Initiated branch on a solo practitioner's disk produces exactly one child on one side and, on the other, an empty branch whenever the practice is entirely commissioned - which is 00's sixth validator check, 'produce empty branches when tested against the accepted group'. The user may of course still create a Personal Projects root by hand; 00 says so directly, and it is a canvas action, not a template.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Untitled-3.psd (on Desktop)",
+      "source_type": "design_creative",
+      "observations": [
+        "editor default name plus an index; no self-describing title anywhere",
+        "layer names read Layer 1, Layer 1 copy, bg, type",
+        "canvas dimensions and an embedded colour profile are readable",
+        "no linked asset resolves to a folder containing a brief, a purchase order or an invoice"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "self-initiated from the fact that no client name was found - absence of a search hit is not a fact about the file",
+        "a project value from the enclosing folder name",
+        "a purpose from the filename: 00 - 'the system should not infer a purpose from their filename alone'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The id's most canonical file, and it activates nothing. Every observation it offers is either universal (dimensions, profile) or never-alone (extension, default name). What the id wanted to conclude from it is the one thing the bytes cannot say."
+    },
+    {
+      "filename": "Nightwork_poster_A2_v7.ai (beside Invoice_2026-014_Acme.pdf)",
+      "source_type": "design_creative",
+      "observations": [
+        "artboard sized to a standard A2 trim with bleed marks",
+        "a version-shaped token in the stem",
+        "a PDF two files away carries a labelled invoice number and a client organisation name",
+        "the .ai file itself names no organisation in any readable slot"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row is refuted or confirmed by the neighbour - the neighbour is a DIFFERENT file, and activation runs 'per file version from that file's own evidence' (CONNECTION.md section 1)",
+        "a client fact copied onto the .ai: 'The graph does not automatically copy those missing facts onto sparse files'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "THE FIXTURE THAT DECIDES THE REFUSAL. The only evidence in this neighbourhood that could ever separate self-initiated from commissioned lives in a DIFFERENT file, and it is creative.client-engagement's evidence, positively stated. This row would have to activate on a sibling's absent document - which is neither a per-file signal nor its own. When the invoice is present the client row fires; when it is deleted, nothing fires, and P9 may still group the two without either file gaining the other's facts."
+    },
+    {
+      "filename": "IMG_9042.CR3 (in 2026-04-11/, alongside a commissioned shoot from the same camera)",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF with make, model, lens and DateTimeOriginal",
+        "a .xmp sidecar with develop settings and a star rating",
+        "the same body and the same card session produced a delivered client job earlier that day",
+        "no model release, no shot list, no call sheet anywhere above"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a personal frame and a commissioned frame from one card are different domains - the EXIF is identical and 00 requires abstention where signals conflict: 'conflicting signals should lead to abstention rather than an invented classification'",
+        "an event fact from the date folder alone"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images",
+      "note": "The roster hint's premise made literal - 'the same tools, formats and filenames'. The photos schema activates on real camera evidence and creative.raw-photo-catalogue owns the camera-original archive; creative.commissioned-shoot owns the job when a brief or release exists. This row's proposed discriminator is invisible to every extractor that touched the file."
+    },
+    {
+      "filename": "Nightwork_ch3_draft.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading structure with a chapter number and a running title",
+        "tracked changes and margin comments from a named reader",
+        "word count and revision history in document metadata",
+        "no publisher, agent or contract named anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an unpublished manuscript is a different organizational situation from a contracted one - the chapter structure is the signal, and it is the same either way"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later",
+      "note": "COLLISION FIXTURE 1 - a file that looks like this row's and is creative.book-manuscript's on its own positive evidence. The discriminator is chapter structure, which that sibling authors and which does not care who commissioned the book. This is limb 5 of the refusal in one file: every sibling takes its material back without asking about the client."
+    },
+    {
+      "filename": "Portfolio_JYung_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page with the maker's name and a date range",
+        "sequenced project spreads each with a short narrative and a role line",
+        "captions naming several different organisations across the spreads",
+        "outline bookmarks per project"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "self-initiated from the presence of the maker's own name on the cover - that is the author-as-collector signal, not a situation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "note": "COLLISION FIXTURE 2, and the one that shows what a legitimate near-neighbour looks like. Already career.portfolio-work-samples' fixture, and that row is NOT refused - because selection and framing for an audience leave positive traces in the bytes (cover, sequence, narrative, role line). Making-something-for-oneself leaves none. Same maker, same absence of a live client, opposite verdicts, and the difference is entirely whether the purpose is legible."
+    },
+    {
+      "filename": "sketchbook/2026-03-14 hand studies.jpg",
+      "source_type": "image",
+      "observations": [
+        "phone-camera EXIF; a flat photograph of a paper page",
+        "dozens of sibling images in one dated folder with the same shape",
+        "no title, no project name, no linked working file",
+        "OCR returns a few handwritten words at low confidence"
+      ],
+      "facts_legal": [
+        "capture_year"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a professional practice from the subject matter - drawing is what hobbyists and professionals both do",
+        "a project fact from the folder name sketchbook"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images",
+      "note": "The hobby half of the seam, and 00 already houses it: One-Off Images holds 'images with no event, project, reference collection, or photo-family association'. Nothing about calling the maker a professional changes what this file offers an extractor."
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 11.03.17.png (in a folder named refs)",
+      "source_type": "image",
+      "observations": [
+        "platform screenshot naming convention with a timestamp",
+        "no camera EXIF",
+        "OCR recovers a handle, a caption and interface chrome",
+        "the depicted artwork is somebody else's"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this is the maker's own work - it depicts another person's, and depiction is not authorship",
+        "screenshot status from missing EXIF: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips",
+      "note": "The look-alike this row would have swallowed. 00 places it by name: Reference Clips holds 'saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project'. A personal-projects branch is a magnet for exactly this material, and absorbing it would be the fragmentation the residual library exists to prevent."
+    },
+    {
+      "filename": "Nightwork_scene01.blend",
+      "source_type": "opaque_binary",
+      "observations": [
+        "proprietary format; no text, no readable layer or artboard structure",
+        "filename stem matches several other files across the disk",
+        "large size and a recent modification time",
+        "no sidecar, no manifest, no linked-asset list the engine can read"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a project fact from a shared filename stem alone",
+        "emptiness - 00: 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty'"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted",
+      "note": "The unreadable case, which this row shares with every creative.* sibling and therefore cannot claim. creative.3d-asset owns the situation on the schema side; the safe representation is 00's global rule."
+    },
+    {
+      "filename": "personal_project_final.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction; members are mixed - a .psd, four .png exports, a .txt and a .mp3",
+        "outer name contains both a purpose-shaped word and a finality-shaped word",
+        "no member is a brief, a contract or an invoice",
+        "member timestamps span several months"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a domain from the outer filename - 'personal project' in a stem is a name the maker typed, and 00 forbids inferring a purpose from a filename alone for exactly this kind of file",
+        "one situation for all members: the manifest shows a source file, exports and an audio member, which the sibling rows would take separately"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later",
+      "note": "The archive packet case. It is the closest thing to a positive signal this row will ever get - a human-typed folder or archive name saying the words - and it is precisely the never-alone, user-already-chose-this-destination case. 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open' applies when it is locked."
+    },
+    {
+      "filename": "Copyright registration - series 'Nightwork'.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled registration number and a filing date in structured slots",
+        "an issuing authority named in a heading",
+        "the maker named as claimant in a labelled slot",
+        "a title of work matching several other files by stem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the artwork's situation follows the certificate's - the certificate is a record about the work, not a member of it",
+        "a client - a claimant is an author role, not a commissioner"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records",
+      "note": "The one document in this world that is genuinely produced only by self-initiated practice - and it still is not this row's. It is creative.licensing-rights' material by document type, it co-holds with the legal safety schema on its own evidence, and unattached it is 00's Independent Records: 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'. If the strongest self-initiated-only artifact routes elsewhere, the row has no floor of its own."
+    },
+    {
+      "filename": "brushpack_grain_04.abr (in a folder of textures and presets)",
+      "source_type": "opaque_binary",
+      "observations": [
+        "vendor-shaped stem with an index",
+        "sits with dozens of similar files reused across many pieces",
+        "no single project references it exclusively",
+        "some siblings carry a purchase receipt two folders up"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that reusable material belongs to whichever piece last opened it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips",
+      "note": "The unattached-tooling half of a working practice, which the id might have claimed as 'experiments'. creative.stock-asset-library already owns it by its roster definition - material that 'belongs to no one project' - and does so whether the practice is paid or not."
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The honest majority outcome and the roster's own must-consider residual for this id. An unclienteled working file is the textbook case of 00's definition: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' The engine can see that it is creative work and cannot see whose; that is partly understood, and the decision is the user's. Fixtures: Untitled-3.psd, Nightwork_poster_A2_v7.ai, Nightwork_ch3_draft.docx, personal_project_final.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The hobby-and-inspiration half of the seam, which 00 names outright: 'Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.' The clause 'does not belong to a current project' is this row's whole population described as a residual. Fixtures: the refs screenshot, brushpack_grain_04.abr.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00: 'One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.' A personal frame or a photographed sketchbook page that joins no accepted group is exactly an image with no association, and routing it to a personal-practice branch on the strength of its maker is the collector level 00's validator refuses. Fixtures: IMG_9042.CR3, 2026-03-14 hand studies.jpg.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.' The durable paperwork a self-initiated practice generates - a registration certificate, a self-published ISBN assignment, a competition entry confirmation, a finished portfolio PDF with no accepted showcase group - is that shape. Fixtures: the copyright registration, Portfolio_JYung_2026.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "This world produces unreadable material at a high rate, and 00 requires it be represented rather than forced or emptied: 'unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty', and 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'. Fixtures: Nightwork_scene01.blend, a locked personal_project_final.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The capture whose OCR resolves nothing usable. 00 defines the home for screenshots that 'appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship' - the mood-board grab taken in a hurry, kept because it might matter, attached to nothing. Named separately from Reference Clips because the discrimination between a deliberately saved reference and a stray capture is R3's accepted-evidence work, not this row's.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "none",
+  "sensitivity_why": "Recorded as none, and its being none is the third limb of the refusal. Removing a client from a creative file removes obligations rather than adding them: the NDA, the unreleased campaign, the named individual in a model release and the confidential brief are all creative.client-engagement's and creative.licensing-rights' material, not this row's. What remains - a personal artwork, a draft, a sketch - carries no protected class 00 names. Where a self-initiated piece does contain identifying material (a portrait of a friend, a private journal draft), it raises the same rule any file raises and is handled by the safety domains on that file's own evidence; no handling class is assigned here, those being P7's.",
+  "open_question": "Four items handed onward, none of which rescues this row.\n\n(1) NEEDS-JOSEPH, dependency on NJ-R1a-1 (creative schema fields). This refusal does not depend on that question and would stand whichever way it resolves - limbs 1, 2 and 4 are about signals, the collector level and 00's placement of Personal Projects, none of which a field set touches. But it should be recorded that this row was assessed against a schema that currently declares NO fields (PR-6; D1's deferral stands), so its second limb is argued conditionally: even after the creative schema lands project, stage, artifact_type and client, the order this situation would recommend is the schema's default plus one author-as-collector level. If a later pass gives the creative schema a field whose value genuinely differs between commissioned and self-initiated work AND which is extractable from the artifact rather than from a neighbouring invoice, this refusal is worth revisiting. I could not name such a field; the candidate everyone reaches for is client, and its absence is the negated signal limb 1 rules out.\n\n(2) FOR R1c, a schema-row edge finding. The creative schema row will need falls_through_to entries covering Review Later, Reference Clips, One-Off Images, Independent Records and Unsupported or Encrypted, because the unattached material this refused row was meant to catch now arrives at the schema's own fallthrough. That edge belongs on the schema, not here, and this row authors no edges.\n\n(3) FOR R1c, a reciprocal boundary that is now UNOWNED. creative.client-engagement's discriminator - a client name in a labelled slot, a brief, a purchase order, an invoice - is the positive half of a boundary whose negative half has just been refused. That is correct, but it means nothing on the roster records what happens to a creative file when the client evidence is simply missing. The answer is 'the sibling rows on their own evidence, then residual', and it should be written into creative.client-engagement's own never_alone list as the reciprocal note (its client evidence must not be copied to neighbouring files in the same folder - the Nightwork_poster_A2_v7.ai fixture). Recorded here rather than authored there, because that row is another agent's.\n\n(4) FOR R1c or R3, a genuine open discrimination this row surfaced and could not settle. Where does the unattached working file of a WORKING PROFESSIONAL go - Review Later, or the sibling row that owns its medium with a null project? Both are defensible: Review Later is honest about the engine's uncertainty, but a professional with hundreds of such files would find Review Later swamped, which is the fragmentation 00 built the residual library to avoid. This is a real product question about residual volume, not a template question, and it is exactly the kind of thing 00 leaves to 'user-defined residual areas such as Things to Read, Ideas, Shopping Research, Memes, Travel, Receipts to Process, Clips, or Stuff to Sort, because residual organization is highly personal and should not be dictated by a universal taxonomy'. A user-defined 'Ideas' or personal-practice residual area is 00's own answer to the thing this row was reaching for - and it is a user-defined residual, not a roster node."
+}

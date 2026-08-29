@@ -1,0 +1,387 @@
+{
+  "id": "photos.screenshot-captures",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Screenshots",
+  "one_line": "Captures whose origin is a screen rather than a lens: grabs of portals, receipts, conversations, errors, maps and documents, plus screen recordings — legible only through OCR, and never proven by what their metadata lacks.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "Photos supported by image events and screenshot groups",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "pixel dimensions matching an exact known display resolution (the injected screen_resolutions list, deferred-catalogue 02) together with PNG format and a screen-capture tool named in a software-metadata slot — 00 states the combination and its ceiling: \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification\"",
+      "a labelled software slot (EXIF Software / ProcessingSoftware, or a PNG text chunk named Software) whose value names a screen-capture or screen-recording tool — a labelled structured slot, so the observation is direct even though the media_type conclusion it supports is not",
+      "an operating-system grab-tool filename pattern carrying an explicit date-and-time token, parsed by a dedicated pattern rather than by fuzzy parsing — 00: \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching\"",
+      "no camera Make/Model slot present WHILE an exact display-resolution match and a screen-capture software slot are both present — the support is the two positive signals; the missing slot contributes nothing on its own",
+      "conflict detection: camera EXIF present alongside a display-resolution match, which must abstain rather than pick a side — 00: \"conflicting signals should lead to abstention rather than an invented classification\", and \"camera EXIF is strong photo evidence\"",
+      "a video container whose frame dimensions match an exact display resolution and whose creation-time and software tags name a screen-recording tool",
+      "OCR routed on the ordinary rule, which is what makes the capture legible at all — 00: \"OCR should therefore run when a file yields no usable text and no usable metadata, including scanned PDFs, confirmed screenshots, and opaque images without EXIF\"",
+      "exact and perceptual hash agreement identifying re-saved or re-shared copies of one grab — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\"",
+      "parent-folder context that excludes the file from organization entirely: a descendant of a software project root, which 00 rejects as a destination — \"It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod\""
+    ],
+    "needs_llm": [
+      "deciding what the capture is OF, once OCR text exists — 00 lists the possibilities and refuses to let the image alone answer: a file \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"",
+      "recognizing an application-portal record and handing the file back to the ordinary placement engine instead of filing it here — 00: \"determine that an OCR’d screenshot is an application portal rather than a generic image\", and \"The LLM should recognize the admissions confirmation, retrieve the accepted Columbia application group and approved application branches, and return the file to the normal group-aware placement engine\"",
+      "separating a saved reference capture (a recipe, a product listing, a quote, an article excerpt) from a transactional confirmation, where the two look identical as pixels and differ only in what the text is doing",
+      "reading a non-Latin or low-quality capture whose OCR needs interpretation before any field can be filled — one of 00's own adversarial cases, \"screenshots with unreadable OCR\"",
+      "concluding that nothing connects the capture to anything, which must remain an available answer — 00: \"The model must be allowed to conclude that no meaningful association exists.\""
+    ],
+    "never_alone": [
+      "absence of EXIF — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and the tempting false file is the one 00 names, \"stripped EXIF on messaging-app photographs\": a re-encoded WhatsApp JPEG of a real photograph has no EXIF and is not a screenshot",
+      "OCR text density — 00: \"OCR text density is also not a reliable screenshot detector because receipts, document scans, whiteboards, and photographs of pages can all contain dense text\"",
+      "PNG format alone, and an image extension alone — 00 treats the extension as \"a routing signal rather than an assumption about meaning\", and file_kind_plausible is constitutionally never-alone",
+      "a filename beginning with a grab-tool word alone: a downloaded or re-saved image can carry a screenshot-shaped name while carrying camera EXIF, and a real grab can be renamed to anything",
+      "an exact display-resolution match alone: a photograph cropped or exported to a common panel size lands on the same pair, which is why 00 pairs the resolution with PNG format and software metadata rather than using it by itself",
+      "a bare 4-digit number anywhere in the filename or OCR read as a capture year — 00 warns these are \"course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a filesystem creation or modification timestamp read as a capture time; a restore, sync or re-save rewrites it, and 00 requires the engine to recompute \"instead of assuming that time only moves forward\"",
+      "an entity read out of OCR text treated as an event or a trip — 00's own case: \"It must not invent a folder called Travel/Flight Gate B12 or assume that a gate number identifies a particular trip.\"",
+      "a university, merchant or institution name in OCR alone, which 00 forbids as sole proof because such a name \"can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+      "a bounded download or capture session read as the topic of the captures inside it — 00: \"A session should never be treated as proof of topic\"",
+      "a place name read off a captured map treated as the location of the capture; the screen was somewhere, the map was showing somewhere else"
+    ]
+  },
+
+  "proposed_context_terms": [],
+
+  "work_types": [
+    "screenshot",
+    "screen recording",
+    "window capture",
+    "region capture",
+    "scrolling capture",
+    "phone screen capture"
+  ],
+
+  "grouping_reasons": [
+    "a run of captures sharing one display geometry and a tight capture-time span, offered as one reviewable set rather than as a fact on any member",
+    "a near-duplicate family of one screen found by exact and perceptual hash — a re-saved, re-shared or cropped copy of the same grab",
+    "captures whose OCR carries the same accepted group's anchor evidence (an application portal alongside that application's essays and checklist), which is a P9 membership record and never a fact written onto the capture",
+    "captures the user already keeps in one curated folder, which 00 treats as an expression of intent — \"existing folder structures should mainly be preserved\""
+  ],
+
+  "template": {
+    "dimension_order": ["media_type", "capture_year"],
+    "why": "This differs from the Photos schema's default order (capture_year then event) in both levels, which is what makes it a node rather than a restatement. media_type leads because it is the only fact this material reliably has and the only one that separates it from photos.camera-events under a shared Photos parent; 00 already writes the two as separate things under that parent — \"Photos supported by image events and screenshot groups\". event, the schema default's second level, is the fact a screenshot characteristically cannot supply: a capture that does acquire an accepted event or packet association stops being this template's material and returns to the ordinary group-aware placement engine, which is exactly what 00 does with the admissions confirmation. capture_year is second rather than first because 00's time-first exception is justified by capture date being \"a defining aspect of the material\", and for a screenshot the defining aspect is what was on the screen — legible only through OCR — while the date serves the review lifecycle 00 describes for temporary captures. Where the user has already made screenshots their own root, the media_type level has one child and should be flattened away, leaving capture_year leading; 00 asks for exactly that feedback, warning \"when a level produces only one child\". location and people are not offered: a screenshot has no GPS fix, and a name on a captured screen is not a person in the capture. All of this is a recommendation — 00: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "ocr", "audio_video", "archive"],
+    "extensions": [".png", ".jpg", ".jpeg", ".heic", ".webp", ".gif", ".mov", ".mp4", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Screenshot 2026-03-14 at 10.22.31.png",
+      "source_type": "image",
+      "observations": [
+        "PNG format; pixel dimensions equal an exact known display resolution",
+        "a software-metadata slot names a screen-capture tool",
+        "no camera Make or Model slot present",
+        "filename carries an explicit date-and-time token in a grab-tool pattern",
+        "OCR region carries a bank name, an account label and a balance figure"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the missing camera slots; the support is the resolution, the PNG format and the software slot together",
+        "capture_year as a direct fact when only the filename carries the date — a filename token is a possible clue, not a labelled metadata slot",
+        "an account_type or institution fact strong enough to file the capture as a financial record; the finance reading is the other schema's, on its own evidence",
+        "any of this OCR text in a cloud dossier — protection precedes any model path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screen Shot 2025-11-02 at 4.09.55 PM.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution with a screen-capture software slot",
+        "OCR region reads that a named university's application has been submitted",
+        "OCR region carries portal navigation wording and a submission timestamp line"
+      ],
+      "facts_legal": ["media_type", "capture_year", "target_university", "application_document_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "application_cycle from the year in the filename",
+        "that the capture stays here — 00 sends this file back to the ordinary placement engine once the admissions confirmation is recognized",
+        "school from the same university name; the role is addressee, not the holder's own institution"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_4821.png",
+      "source_type": "image",
+      "observations": [
+        "PNG format, no EXIF of any kind",
+        "camera-shaped IMG_#### filename pattern",
+        "pixel dimensions match neither a known display resolution nor a sensor shape",
+        "OCR has not run, so no text evidence exists"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "media_type = screenshot from the absent EXIF",
+        "media_type = photo from the camera-shaped filename",
+        "a folder path",
+        "any capture fact at all — 00 leaves this file's reading open until evidence arrives, and re-running after OCR is a new cache key, not a revision of this answer"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_0912.PNG",
+      "source_type": "image",
+      "observations": [
+        "PNG format; pixel dimensions equal an exact known phone-panel resolution",
+        "an EXIF block exists carrying a DateTimeOriginal slot, with no Make or Model slot",
+        "filename is a camera-shaped IMG_#### pattern, which points the opposite way from the dimensions"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = photo from the IMG_#### filename — a filename pattern with no metadata behind it is never alone",
+        "camera_information, because no camera identity slot exists",
+        "location, because no GPS fix exists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Screenshot_20260118-093412_Messages.jpg",
+      "source_type": "image",
+      "observations": [
+        "JPEG at an exact display resolution with a device grab-tool filename pattern",
+        "OCR region carries a conversation: message bubbles, personal names and a phone number"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "people from the names in the thread — the names are on the screen, not in the capture",
+        "an event from what the conversation discusses",
+        "that the correspondence content may be summarised in a shared group view or sent to a cloud model by default"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Screen Recording 2026-02-03 at 14.20.11.mov",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata present with a creation-time tag and a duration",
+        "frame dimensions equal an exact known display resolution",
+        "a software tag names a screen-recording tool"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "a transcript — 00 allows speech-to-text \"only under an explicit privacy and compute policy\"",
+        "an event from the recording's duration or filename",
+        "that the recording joins a photo event because its date falls inside one"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Screenshot 2026-04-02 at 10.15.03.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution with a screen-capture software slot",
+        "OCR region carries a stack trace, a file path with a src directory, and a package name",
+        "no repository marker or package manifest exists beside the file on disk"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "repository or project from a path that appears inside OCR text — 00 anchors code on repository roots and package manifests, which are structural evidence on disk, not characters on a screen",
+        "programming_language as a fact that files the capture as a code artifact",
+        "membership in a project because the traceback mentions one"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "docs/img/error-state.png (inside a checked-out repository)",
+      "source_type": "image",
+      "observations": [
+        "PNG at an exact display resolution with a screen-capture software slot — it genuinely is a grab",
+        "a package manifest and a repository marker sit at an ancestor directory",
+        "the file is referenced by a README in the same tree"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that this template's branch applies at all — the file is a descendant of a software project root, which 00 excludes from organization",
+        "a capture_year folder level for a project asset",
+        "a residual home; the correct outcome is that the project structure is preserved and the file is left where it is"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": null
+    },
+    {
+      "filename": "IMG_5120.HEIC (a photograph of a laptop screen)",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make, Model and DateTimeOriginal slots present; lens and ISO present",
+        "pixel dimensions are sensor-shaped, not a display resolution",
+        "OCR region carries dense on-screen text, including a browser chrome row",
+        "perspective distortion and a moiré pattern are visible in the frame"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the on-screen content or from the OCR density — a photograph of a screen is a photograph, and camera EXIF is the stronger signal",
+        "that this template owns the file; it belongs to the camera-photo situation",
+        "an event from the capture time alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-06-11 at 09.02.44.png",
+      "source_type": "image",
+      "observations": [
+        "PNG at an exact display resolution with a screen-capture software slot",
+        "OCR region carries an order number, a merchant name, a line-item total and a delivery date"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "tax_year from the year token in the filename",
+        "institution as a filing fact from a merchant name alone",
+        "that the capture is the record; the merchant's own emailed receipt, if it exists, is a different file with its own evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-05-20 at 21.03.10.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution with a screen-capture software slot",
+        "OCR region carries an ingredient list and numbered method steps",
+        "no institution, project, course or account wording appears anywhere in the text"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a folder path",
+        "a project or event association for a saved reference",
+        "that the capture is unresolved merely because it joins nothing — 00 keeps saved recipes and captures as retrievable reference material with no current project"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "screenshots-2026-01.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest lists many PNG members carrying grab-tool filename patterns",
+        "manifest carries member paths, names and uncompressed sizes; no member is extracted to disk",
+        "the outer archive name carries a year-month token"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "capture facts for the members from the archive's own timestamp",
+        "one event for the whole archive because it arrived in one download session",
+        "member-level media_type conclusions before the members are read as members"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is an image with no camera EXIF. On one side a real photograph re-encoded by a messaging platform or a web download has been stripped of its metadata — 00 names it as an adversarial case, \"stripped EXIF on messaging-app photographs\" — and on the other a genuine grab never had any. Absence discriminates nothing: 00 states outright that \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\". The discriminating evidence is positive on each side: camera Make/Model, GPS and sensor-shaped dimensions point at the camera-event situation; an exact display resolution together with PNG format and a screen-capture software slot point here. When both appear on one file — the photograph of a screen — the item counts for neither: \"conflicting signals should lead to abstention rather than an invented classification\". Fixtures: IMG_4821.png, IMG_5120.HEIC, IMG_0912.PNG."
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "Both situations are captures whose content is a document, and OCR text is the shared evidence item for both — 00 warns that text density settles nothing, \"because receipts, document scans, whiteboards, and photographs of pages can all contain dense text\". The discriminator is origin, not content: an exact display resolution plus a screen-capture software slot means the document was on a screen; camera EXIF, scanner-device metadata or page-shaped geometry means the document was a physical page. Fixtures: Screenshot 2026-06-11 at 09.02.44.png (a receipt that was never paper) against a photographed or scanned page."
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "One OCR item — a merchant name, an order number and a total — supports both readings. The discriminator is whether the file IS the record or a capture OF it: an emailed or downloaded receipt carries its own document structure, sender and labelled fields, while this material carries screen-origin metadata and no document structure at all. The capture keeps media_type either way; what it must not do is acquire institution, account_type or tax_year strong enough to be filed as a financial record on the strength of pixels. Isolated captures of this shape go to the Receipts and Confirmations residual, which 00 defines for exactly \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\"."
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Two different items collide here and both resolve the same way. OCR of a terminal or editor window yields source code, paths and package names, which look like code evidence but are characters on a screen; 00 anchors code on structure instead, telling the engine to \"rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text\". Conversely a real grab living inside a checked-out repository is a project asset, and 00 excludes it from placement — \"It should also reject descendants of software project roots indicated by files such as package.json, requirements.txt, Cargo.toml, or go.mod\". The discriminating evidence in both directions is a manifest or repository marker on disk beside the file. Fixtures: Screenshot 2026-04-02 at 10.15.03.png, docs/img/error-state.png."
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "The portal capture is 00's own worked case and its own instruction: a capture whose OCR reads \"Your Columbia University application has been submitted\" \"should not be treated as a generic screenshot\", and the model should \"return the file to the normal group-aware placement engine\". The shared evidence item is the OCR'd institution name, which alone activates neither side because such a name can appear in many roles. The discriminating evidence is admissions-portal wording — a submission or status statement addressed to the holder — which makes the application reading the better-supported one for that item; the capture keeps media_type as a fact of its own. Fixture: Screen Shot 2025-11-02 at 4.09.55 PM.png."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The primary and expected outcome, and 00 defines the residual in this situation's own words: it holds \"screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship\". It is also where an illegible capture lands — \"An unreadable screenshot with no useful OCR, no EXIF, and no graph context should be labeled as a generic screenshot or unresolved image and either remain in place or enter an approved Screenshot Inbox\" — and 00 attaches a non-destructive, time-aware review lifecycle to exactly this material. Fixtures: Screen Shot 2025-11-02 at 4.09.55 PM.png when no application group is accepted, IMG_0912.PNG, Screenshot_20260118-093412_Messages.jpg, Screen Recording 2026-02-03 at 14.20.11.mov, Screenshot 2026-04-02 at 10.15.03.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "00: \"images with no event, project, reference collection, or photo-family association\". This is where the image whose media_type never resolves belongs — the file that is not established as a screenshot and not established as a photograph — since calling it a screenshot to justify the screenshot residual would be the invented classification 00 forbids. Fixtures: IMG_4821.png, IMG_5120.HEIC.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "00 names this material inside the residual by name — \"saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project\" — and treats the routing as learnable: \"If the user repeatedly places product screenshots into Reference Clips, the system records that as a user preference\". Fixture: Screenshot 2026-05-20 at 21.03.10.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "00's residual for \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\", and its own screenshot example is transactional — the boarding-gate capture that may be \"classified as a travel-related temporary confirmation\" without inventing a trip. Fixture: Screenshot 2026-06-11 at 09.02.44.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "A capture of an account screen, an identity document or a credential is the same protected material as the record itself. 00's residual covers \"sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials\" and requires that it \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts\". Fixture: Screenshot 2026-03-14 at 10.22.31.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — the shape of an archive of captures whose members have not been read as members, where the outer file is understood and its contents are not. Fixture: screenshots-2026-01.zip.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [
+    {
+      "field": "target_university",
+      "other_field": "school",
+      "neighbor": "applications.undergraduate-packet",
+      "why": "An institution name recovered from OCR arrives with no role marker at all: the same characters appear on an admissions portal addressed to the holder and on the holder's own course page. 00 requires the separation — \"The system must separate roles that happen to contain the same entity type\" — and forbids the name alone from deciding anything. The split matters here because this template proposes no institution level: the protection is on the fact, not the folder, and an institution read off a captured screen must never be promoted into target_university to justify a branch this template does not recommend. The pair already exists on the canonical list, so this row references it and mints nothing.",
+      "design_cite": "The system must separate roles that happen to contain the same entity type"
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The content of a capture is whatever was on the screen, and 00's own list of what that may be spans the protected and the harmless in one sentence: a file \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\". OCR is the only thing that makes any of it legible, and 00 puts OCR output behind the local boundary by name — \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local\" — and makes its display a user choice: \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" This template is therefore the one where the privacy rule bites hardest, because the material cannot be understood without producing exactly the artifact that must not travel. Handling classes are not assigned here.",
+
+  "open_question": "Two forks, both about someone's real filesystem rather than about evidence. First, where this branch sits and how deep: the schema row already asks whether media_type may open a folder level, and this template's recommendation only answers it for the case where screenshots and camera photos share a Photos parent. 00 names a Photos/Temporary Screenshots location for the RESIDUAL and no location for a non-residual screenshot branch, so whether an accepted screenshot branch is Photos/Screenshots/<year>, a top-level Screenshots root, or nothing at all — with every capture left in place and merely searchable, which 00 records as a real user preference — is Joseph's. Second, 00 mentions \"an approved Screenshot Inbox\" alongside the nine residual names without saying whether it is a user-defined residual area distinct from Temporary Screenshots or the same home under a different label; this node routes to Temporary Screenshots and records the ambiguity rather than resolving it."
+}

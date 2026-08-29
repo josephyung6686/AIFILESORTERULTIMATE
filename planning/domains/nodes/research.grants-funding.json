@@ -1,0 +1,429 @@
+{
+  "id": "research.grants-funding",
+  "kind": "template",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Grant proposals and funding",
+  "one_line": "The situation of asking for and then accounting for research money: a proposal packet assembled against one solicitation and one deadline, and afterwards the award notice, progress reports and sponsor correspondence that share the award identifier.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends 00's named Research schema — \"Research files may use project, stage, artifact type, lab, and venue\" — into one of the organizational situations 00's own template-library sentence covers: \"organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections\". 00 names no grant field and no grant template, so provenance is inference, not design. The two design sentences this row leans on hardest are the packet rule — \"The documents are content-incoherent but purpose-coherent\" — and the template-shape sentence that makes a metadata-only field a legal template output: \"metadata-only fields, sensitivity policy, and example paths\".",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": {
+    "differs_from_schema_default": true,
+    "limbs": {
+      "detection_signals": "Different, and none of them is on the research schema row. That row's deterministic list is manuscript-, protocol- and venue-shaped: artifact structure beside a project token, submission-lifecycle terms, an archive manifest of manuscript plus figures plus cover letter, a zone-restricted venue gazetteer hit, and the repository-marker precedence check. This situation fires on funding-opportunity vocabulary (program solicitation, notice of award, period of performance, budget justification, indirect cost), on labelled Award Number and Reporting Period slots, on a workbook whose sheet labels are personnel / fringe / equipment / indirect rather than sample-shaped columns, and on a sponsor organization hit carrying a funding role. A funder is not a venue: the research schema's venue rule family would mis-file every one of these.",
+      "recommended_dimensions": "Different by a deliberate narrowing. The schema default is project then stage then artifact_type; this row recommends project then stage and holds artifact_type as a metadata-only field, because a submitted proposal is 00's purpose-coherent packet and splitting it by artifact type scatters the narrative, budget, justification, biosketches and letters that went out as one submission.",
+      "privacy_rules": "Different. The research schema's sensitivity reasoning is human subjects and unpublished work. This situation's dominant privacy fact is compensation: a proposal budget names individuals beside salary, fringe and person-month columns, which is the \"employment materials\" category 00 lists among sensitive personal content, and sponsor correspondence adds mail addresses 00 requires be handled \"while treating addresses and message content as potentially sensitive\"."
+    },
+    "not_a_node_check": "No child schema and no new roster row is proposed for any grant artifact: proposal narrative, budget, biosketch, letter of support, award notice and progress report are VALUES of artifact_type, listed under work_types below."
+  },
+
+  "fields": [],
+  "fields_note": "Empty by design, not by omission. A template references its schema's fields and never copies them (CONNECTION.md section 3). The legal fields here are the research schema's: project, stage, artifact_type, lab, venue, plus authored_by as a search/review field. 00: the LLM \"may extract only fields allowed by the relevant schema\".",
+
+  "proposed_fields": [
+    {
+      "key": "sponsor",
+      "type": "string",
+      "gazetteer": "orgs",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "The funding organization has no home on the research schema. lab is the organization that PERFORMS the work; venue is where an artifact is published or presented, and calling a funding agency a venue is the role confusion 00 warns about when it lists the ways one organization string can appear: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\". our_firm and client are the engagement role pair and their canonical roles are a firm and its counterparty. institution is the closest existing key by meaning, but its canonical role is finance's record-issuing institution and the research schema does not declare it.",
+      "preferred_resolution": "REUSE, NOT MINTING. The recommendation to R1c is (a) declare the existing canonical key institution on the research schema and let this template branch on it, rather than (b) minting sponsor as a new key role-split against lab. Reuse is preferred because a second organization key that means what an existing key already means is exactly the 574's failure mode. Either way the decision is R1c's or Joseph's; this row branches on neither and stands on project and stage alone, so nothing here depends on the answer.",
+      "recorded_as": "role_split below (lab vs institution) and open_question"
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "a funding-opportunity term pattern (program solicitation, funding opportunity announcement, notice of award, period of performance, budget justification, indirect cost, facilities and administrative) co-occurring with a project identifier or a sponsor organization hit in a filename, document title, or page-one heading zone — 00 weights position for exactly this reason: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\"",
+      "a labelled slot in a structured source naming Award Number, Reporting Period, Program Solicitation, Principal Investigator or Sponsor — 00's direct-fact path, which it defines as reading from \"a labeled form field\"",
+      "a workbook whose sheet names or header cells combine personnel, fringe, equipment and indirect or F&A with currency columns and person-month columns, read through 00's spreadsheet extraction: \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". Budget structure, not currency alone, is the signal",
+      "an archive manifest whose member names combine a narrative or project description, a budget workbook, a budget justification, biosketches, letters of support and a data-management plan — read without unpacking, because \"the normal scan should never extract archive contents to the filesystem\", using what 00 says an archive yields: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\"",
+      "an OCR region naming a sponsor's submission portal beside a submitted, received or under-review status line — 00 makes this OCR's main job, not a rescue path, because \"A screenshot is always a screenshot of something\"",
+      "an email whose sender domain matches a sponsor organization and whose subject carries an award-identifier-shaped token beside a decision or reporting word, using the mail evidence 00 specifies: \"Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\"",
+      "a sponsor organization gazetteer hit (R4's content, orgs) matched at a word boundary — \"It should use word-boundary matching rather than substring matching\" — PLUS a funding-role context term in the same zone; the bare hit is struck by the never-alone rule below"
+    ],
+    "needs_llm": [
+      "whether a proposal-shaped document is a research grant proposal, a fellowship or scholarship application (an applications situation), or a consulting statement of work — all three carry deliverables, a timeline and a budget table, and the discriminator is often only in prose",
+      "stage from unlabelled prose: a cover note saying the resubmission responds to the panel's concerns, or that this is the final year's report, where no lifecycle term pattern fires",
+      "whether an award-identifier token names a project already evidenced in the corpus or an unrelated award — 00 gives the model exactly this kind of bounded question and requires it to \"return unknown where support is insufficient\"",
+      "whether a budget workbook is a proposed budget (this situation), an executed expense ledger (a finance situation), or a results workbook (the dataset situation on the same schema)",
+      "whether a heterogeneous archive is one submission packet against one solicitation or an unrelated download bundle — 00's purpose question, asked from a dossier: \"whether the files plausibly serve one shared workflow, whether the group is purpose-coherent despite topic diversity\"",
+      "whether a letter in the packet is a letter of support for this proposal or an unrelated recommendation letter written for a person"
+    ],
+    "never_alone": [
+      "the token 'grant' or 'funding' in a filename alone. THE tempting false file for this row: Grant_Wilson_recommendation_letter.pdf is a person's given name at a clean word boundary, so 00's word-boundary rule does not save it — only the absence of a sponsor, a solicitation and a budget does. This is the MIT-inside-submit failure moved one level up, from substring to role",
+      "a sponsor or agency name alone. 00: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" — and an agency named once in a published paper's acknowledgements line is the same ambiguity: it says the work was funded, not that this file is a funding record",
+      "currency columns or a budget-shaped table alone. Invoices, expense ledgers, consulting statements of work, event budgets and personal spreadsheets all have them; the discriminating evidence is the solicitation, award-identifier or period-of-performance context beside them",
+      "a bare 4-digit number as a fiscal year, an award year or a project id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\". In this situation it is just as likely a solicitation number, a CFDA-style program number or a budget line code",
+      "a deadline date, a calendar event or a portal due-date line alone: a deadline is evidence that something is due, not that this file is the thing due, and \"Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching\"",
+      "a source_type or extension alone — spreadsheet, archive, email, ocr and calendar all appear here and none of them makes this situation plausible; 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a parent folder named for a sponsor or an award alone, with no member file carrying its own in-file evidence — 00 keeps folder context a clue: \"The system learns from existing folders but must not silently reorganize them\"",
+      "membership in a bounded download session in which a solicitation PDF was saved — \"A session should never be treated as proof of topic\""
+    ]
+  },
+
+  "work_types": [
+    "proposal narrative",
+    "project summary",
+    "project description",
+    "budget",
+    "budget justification",
+    "biosketch",
+    "current and pending support",
+    "letter of support",
+    "data management plan",
+    "facilities and resources statement",
+    "solicitation",
+    "award notice",
+    "progress report",
+    "final report",
+    "no-cost extension request",
+    "subaward agreement",
+    "effort report",
+    "sponsor correspondence"
+  ],
+  "work_types_note": "VALUES of the research schema's artifact_type field, discovered at runtime like any value — 00: \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" None is a roster node and none licenses a child schema. The research schema row already lists grant proposal; the rest are this situation's additions to the same value list, for R1c to fold in.",
+
+  "grouping_reasons": [
+    "one submission against one solicitation and one deadline: the narrative, budget, budget justification, biosketches, letters of support and data-management plan that went out together — 00's packet argument applies word for word, \"The documents are content-incoherent but purpose-coherent\", and here the packet is held together by a solicitation rather than an admissions portal",
+    "one award across its reporting periods: the notice, each progress report, a no-cost extension request and the final report, joined by a shared award identifier",
+    "one budget across its version family: the submitted budget, the revised budget requested at just-in-time, and the justification that tracks each",
+    "a sparse member — an unlabelled budget justification, a biosketch, a letters-of-support scan — joins the packet neighbourhood as a context-supported member WITHOUT acquiring the project fact. 00: \"The graph does not automatically copy those missing facts onto sparse files\""
+  ],
+
+  "template": {
+    "dimension_order": ["project", "stage"],
+    "why": "project leads for 00's stated reason — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" — and because the parent must make the child intelligible: \"a parent dimension should provide the context required to understand the child\". A stage such as awarded, or an artifact such as a budget justification, is unreadable without knowing which proposal it belongs to. stage is second and it is the dimension that earns its place here: this situation's whole shape is a before-and-after, pre-award drafting versus post-award reporting, and that is the split a funded holder actually navigates by. artifact_type is deliberately NOT a folder level in this recommendation — it is metadata-only, which 00 names as a legal template output (\"metadata-only fields, sensitivity policy, and example paths\") — because a submitted proposal is a purpose-coherent packet and branching it by artifact type scatters the narrative, budget, justification, biosketches and letters that were submitted as one thing. 00 makes exactly this choice available for the analogous packet: \"The user may keep it as one flat purpose folder, nest it under Applications, split it by target institution, or choose a hybrid design\". What this situation would most want as a first dimension is the sponsor, and it cannot have one: no organization key on the research schema carries the funding role (see proposed_fields and open_question), so this row recommends nothing it cannot fill — a dimension on a field the schema does not declare opens a tree level no fact can reach. Everything above is a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "archive", "email", "ocr", "image", "calendar", "presentation"],
+    "extensions": [".docx", ".pdf", ".xlsx", ".csv", ".zip", ".eml", ".png", ".ics", ".pptx"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "NSF_CAREER_ProjectDescription_v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "page-one heading reads Project Description, with Intellectual Merit and Broader Impacts subheadings below it",
+        "a header line names a program solicitation beside a solicitation-identifier-shaped token",
+        "the project token appears in the filename and again in the first paragraph",
+        "the filename carries a version suffix",
+        "core properties record an author string naming a prior editor"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the v4 suffix — a version suffix is a version_family signal, not a workflow position",
+        "venue from the funding agency's name — an agency is not a publication venue",
+        "a destination dimension from authored_by, and the author string may be stale or tool-generated anyway"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PVA-RDP_budget_FY26_sponsor.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names read personnel, fringe, equipment, indirect",
+        "a labelled header cell names a sponsor organization",
+        "named individuals appear beside salary, fringe-rate and person-month columns",
+        "a fiscal-year-shaped token sits in the filename",
+        "the project token is in the filename"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "account_type, institution or an account-holder reading of the sponsor name — a proposed project budget is not an account record",
+        "tax_year from the fiscal-year token without an explicit date-pattern match",
+        "any individual's salary line as a field value — it is protected content, not a fact",
+        "artifact_type = dataset from the fact that this is a workbook: spreadsheet is a source_type, not a signal"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Budget_Justification.docx",
+      "source_type": "text_document",
+      "observations": [
+        "prose paragraphs headed Personnel, Travel and Other Direct Costs",
+        "no project token anywhere in the document",
+        "no sponsor name, no solicitation identifier",
+        "sits in the same directory as the budget workbook and the narrative"
+      ],
+      "facts_legal": ["artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the neighbouring workbook's filename — 00: \"The graph does not automatically copy those missing facts onto sparse files\"",
+        "stage from the word Justification",
+        "lab from the people named in the personnel paragraph"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ProgressReport_reporting-period_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form slots: Award Number, Reporting Period, Principal Investigator, Organization",
+        "sections headed Accomplishments, Products, Participants",
+        "a certification and signature block on the last page"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage", "lab", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "term from the reporting-period dates — a funding period is not an academic term, and term values come only from dedicated term patterns",
+        "participant names as any field value",
+        "project from the award number alone unless that number resolves to a project this file also evidences"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Award_Notice_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sponsor letterhead over an award-identifier-shaped token",
+        "an obligated-amount line and a period-of-performance line",
+        "the holder's institution is named as the recipient organization",
+        "no project token anywhere in the document"
+      ],
+      "facts_legal": ["artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the award identifier — an identifier is a value in search of a project, not a project fact",
+        "lab from the recipient institution name alone — the never-alone rule strikes a bare organization hit",
+        "tax_year from a fiscal-year-shaped token in the period-of-performance line"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "submission_package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a project description, a budget workbook, a budget justification, three biosketches, a current-and-pending-support document, two letters of support and a data-management plan",
+        "several member names carry the same solicitation token",
+        "file count and uncompressed size recorded; no member extracted to disk"
+      ],
+      "facts_legal": ["project", "artifact_type", "stage"],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence",
+        "that the outer archive name means anything on its own",
+        "purpose as a field value: under PR-1 purpose is a college_applications field, and this packet is not an admissions packet — the packet coherence here is a grouping reason, not a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-02-15 at 16.02.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region reads a sponsor submission-portal banner beside a status line reading submitted",
+        "OCR region reads a temporary tracking identifier and a due-date line",
+        "no project token in any OCR region"
+      ],
+      "facts_legal": ["stage", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "project from the tracking identifier",
+        "a term or a capture_year from the due date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE Award notification — PVA-2026.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a program officer at a sponsor's domain; several recipient addresses present",
+        "subject carries an award-identifier token beside a decision word",
+        "body quotes a panel summary; a reply chain and one attachment name are present"
+      ],
+      "facts_legal": ["stage", "artifact_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the award identifier in the subject alone",
+        "authored_by as a destination dimension from the sender — 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "that the addresses or body may be treated as ordinary content: 00 requires mail be handled \"while treating addresses and message content as potentially sensitive\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grant deadline — NSF CAREER.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY names an agency and the word deadline",
+        "a due date, an organizer address and one attendee",
+        "no project token in the event body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "stage from the word deadline — a deadline says something is due, not that this file is the thing due",
+        "a sponsor or lab from the organizer's mail domain",
+        "that calendar as a source_type makes this situation plausible by itself"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Biosketch_2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a professional-biography table listing positions, honours and a selected-publications list",
+        "no project token, no solicitation, no budget",
+        "the same filename appears in the submission package manifest"
+      ],
+      "facts_legal": ["artifact_type", "authored_by"],
+      "must_not_conclude": [
+        "a folder path",
+        "project from packet membership alone — membership is not a fact",
+        "venue from a journal name in the selected-publications list: those describe cited works, and 00 weights a late-page or reference-style occurrence below a filename, title or page-one heading",
+        "lab from the positions table"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Fellowship_Application_2026_ResearchStatement.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a research statement over sectioned prose, addressed to a named foundation's fellowship programme",
+        "a cycle-shaped token and an application-portal reference on page one",
+        "the applicant's own CV and two recommendation-letter filenames sit in the same directory",
+        "no budget workbook, no solicitation identifier, no period of performance"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this situation from the presence of a funder name plus a research statement — the discriminating evidence is a target institution and an application cycle, which puts the file on the college_applications schema and the applications.scholarship-fellowship situation",
+        "project from the research statement's topic",
+        "artifact_type = proposal narrative from the prose shape alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Statement_of_Work_ClientCo_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a deliverables-and-milestones table beside day rates and a payment schedule",
+        "two organization names in the signature block, one of them the holder's own firm",
+        "no solicitation, no sponsor programme, no award identifier, no period-of-performance line"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this situation from budget-shaped currency tables alone — that is the never-alone rule for currency structure",
+        "project from the engagement name",
+        "that the our_firm / client roles may collapse into lab and a funder: the payer of an engagement and the sponsor of an award are different roles even where the same gazetteer matches both"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grant_Wilson_recommendation_letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "salutation reads To the Admissions Committee",
+        "the token Grant occurs at a clean word boundary — as a person's given name in the filename and in the signature block",
+        "no sponsor, no budget, no solicitation, no award identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "this situation from the token Grant — a word-boundary match is not a role match, which is the MIT-inside-submit failure moved from substring to role",
+        "artifact_type = letter of support: a recommendation letter written for a person is not a letter of support for a proposal",
+        "a sponsor from the letterhead institution"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "applications.scholarship-fellowship",
+      "signal": "One evidence item — a funder organization beside a deadline, a research statement and a set of supporting letters — supports both. The discriminator is who is being funded and through what: a fellowship or scholarship application is addressed to a target institution or foundation for a person, in an application cycle, and its fields are target_university, application_cycle and application_document_type; a grant proposal is scoped to a named project against a solicitation with a period of performance, and its fields are project, stage and artifact_type. Fixture: Fellowship_Application_2026_ResearchStatement.docx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "A workbook of personnel, equipment and indirect lines in currency columns supports both. The discriminator is proposed-versus-executed and whose ledger it is: an entity-scoped record of actual transactions against accounts is the bookkeeping situation; a project-scoped budget tied to a solicitation or award identifier is this one. Fixture: PVA-RDP_budget_FY26_sponsor.xlsx. finance is a safety domain, so on a genuine tie its protection path runs regardless of which situation wins the item.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.dataset-analysis",
+      "signal": "Both situations sit on the research schema and both own spreadsheets — the roster names research.dataset-analysis file_kind_owner of spreadsheet — so the source_type cannot discriminate. The discriminating evidence is inside the workbook: sample-shaped column headers with replicate and reading columns and calibration sheets are the analysis situation; personnel, fringe and indirect sheets with currency and person-month columns beside a sponsor name are this one. Fixture: PVA-RDP_budget_FY26_sponsor.xlsx against results_batch07.xlsx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "A proposal document with deliverables, a timeline and a costed table supports both. The discriminator is the role pair the document carries: our_firm and client on a signed engagement versus a project identifier and a sponsor solicitation on a proposal. Fixture: Statement_of_Work_ClientCo_2026.pdf.",
+      "provenance": "inference"
+    }
+  ],
+
+  "also_holds_with": [],
+  "also_holds_with_note": "Deliberately empty, and it is not an omission. CONNECTION.md section 5 restricts also_holds_with to schema-to-schema pairs, so a kind: template row may not author one; where the dispatch prompt reads more loosely, CONNECTION wins. The co-holding this situation genuinely produces is recorded per file instead: Biosketch_2026.docx carries also_schema career (a field-less safety-adjacent placeholder that writes no field rows, so co-activation changes what is searchable and protected, not what is extracted), and a human-subjects proposal co-holds medical through the edge the research SCHEMA row already carries. Both belong on the schema row, and neither is re-authored here.",
+
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — an award notice or a signed progress report whose project cannot be resolved is precisely that: durable, and unattached. Fixtures: Award_Notice_signed.pdf, Grant deadline — NSF CAREER.ics.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" A budget workbook or an unlabelled budget justification whose project is unresolved is understood as a budget and unplaceable as a packet member. Fixtures: PVA-RDP_budget_FY26_sponsor.xlsx, Budget_Justification.docx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00: \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\" A portal confirmation capture with no resolvable project is time-sensitive and unattached. Fixture: Screenshot 2026-02-15 at 16.02.11.png.",
+      "provenance": "design"
+    }
+  ],
+
+  "role_split": [
+    {
+      "field": "lab",
+      "other_field": "institution",
+      "other_domain": "finance",
+      "why": "Same entity type, different role: the organization that PERFORMS the funded work versus the organization that FUNDS it. One string can be both across two files — a university is a lab's home on a manuscript and a pass-through sponsor on a subaward — which is 00's own ambiguity list: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\". The §3.8 shape that licenses the split is the pair 00 states outright, \"distinct facets, such as authored_by and target_school, or our_firm and client\". Recorded as a finding, not as an edit: the canonical row for institution carries an empty role_split_with and is not declared by the research schema, so widening either is R1c's or Joseph's. This row branches on neither.",
+      "provenance": "inference"
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A proposal budget names individuals beside salary, fringe-rate and person-month columns, which is the \"employment materials\" category 00 lists among the sensitive personal content a corpus can hold, and sponsor correspondence adds mail material 00 requires be handled \"while treating addresses and message content as potentially sensitive\". Unfunded and under-review proposals are also unpublished work whose exposure matters to the holder. The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+
+  "open_question": "Sponsor-first versus project-first, and it decides someone's real folder structure. A holder with awards from three agencies usually navigates by sponsor (the agency sets the report formats, the deadlines and the rules), while a holder with one long-running project navigates by project. This row recommends project then stage because no organization key on the research schema carries the funding role — recommending a sponsor dimension would open a tree level no fact can fill. Joseph's call, in two parts: (1) may the existing canonical key institution be declared on the research schema so this situation can branch on the funder, or is a sponsor role-split against lab wanted instead (reuse is recommended over minting); (2) if a sponsor dimension lands, does it lead, or does project still lead with sponsor held as metadata? A second, smaller finding for R1c: the research schema row's falls_through_to omits Review Later and Temporary Screenshots, yet fixtures on this row and on research.project-workspace fall through to both."
+}

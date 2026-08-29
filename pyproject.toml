@@ -1,0 +1,41 @@
+[project]
+name = "database-agent"
+version = "0.1.0"
+requires-python = "==3.12.*"
+dependencies = []
+
+[project.optional-dependencies]
+# `pytest-randomly` is not optional tooling: every guard in this suite is a
+# claim about behaviour, and a guard that only holds in one collection order
+# is a guard that holds by accident. Order independence is checked, not hoped.
+#
+# RUN IT AS: python3 -m pytest tests/ -p randomly --randomly-dont-reset-seed
+#
+# The flag is required and the reason is not this project's fault. pytest-randomly
+# reseeds every RNG advertised through the `pytest_randomly.random_seeder` entry
+# point, and any `thinc` (spaCy) in the same interpreter advertises one that hands
+# `numpy.random.seed` an out-of-range value. Every test then errors in setup AND
+# teardown, which reads as thousands of failures and is none of them. Order
+# randomisation is what this suite wants; seed resetting is what it does not.
+dev = ["pytest>=8", "pytest-randomly>=3.15"]
+# The deployment layer (`src/readers/`) and ONLY it. `dependencies` above stays
+# empty on purpose: P5's SPEC says it "adds no third-party runtime dependency" and
+# every format reader is a caller-supplied callable, so the libraries are installed
+# by a deployment that chose them, never by the part that consumes their output.
+# pyobjc pins are macOS-only, which is where §2.7 puts Apple Vision.
+readers = [
+    "pdfminer.six>=20231228",
+    "pyobjc-framework-Vision>=10.0; sys_platform == 'darwin'",
+    "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

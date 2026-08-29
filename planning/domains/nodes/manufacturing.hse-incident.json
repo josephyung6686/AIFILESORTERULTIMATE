@@ -1,0 +1,475 @@
+{
+  "id": "manufacturing.hse-incident",
+  "kind": "template",
+  "schema_id": "manufacturing",
+  "parent_id": null,
+  "name": "HSE incident and near-miss records",
+  "one_line": "The record of an event in which a person was harmed or nearly was: the report of what happened, the investigation of why, the statements and scene evidence, the notification to a regulator, and the actions taken because of it. Its anchor is a dated event and a person's exposure to harm — not a product, a lot, an instrument or a purchase — and it is the one manufacturing situation whose principal sensitivity is a third party's health and identity rather than the holder's commercial secrets. Placeholder row written to J-DEPTH; fields: [] under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an injury or illness incident-report structure with labelled slots for the date and time of the event, the location or line, the task being performed at the time, what happened, the injury or illness and the affected body part, the treatment given, and whether the person returned to work; the co-occurrence of an event time, a person role and a harm description is the signal, never the word incident",
+      "a near-miss or hazard-observation structure with a labelled event identifier, the observed hazard or unsafe condition, an explicit no-injury or no-harm outcome, an immediate action taken, an owner and a closeout status — and carrying no product, lot, instrument, specification or measured-result slot at all",
+      "an incident-investigation structure joining a sequence-of-events narrative to a named causal method (a five-why chain, Ishikawa or fishbone cause categories, or an immediate-cause / underlying-cause / root-cause ladder) and a set of dated actions all tied to one incident identifier",
+      "a statutory injury log whose repeated rows carry case number, employee job title, date of the event, where the event occurred, description of injury or illness and body part, and mutually exclusive outcome columns for death, days away from work, job transfer or restriction, and other recordable cases, bounded to one establishment and one calendar year; the OSHA Form 300 Log of Work-Related Injuries and Illnesses is the named example and the OSHA Form 300A summary is its per-establishment annual total sheet",
+      "a regulator notification or submission acknowledgement naming an incident identifier, a reportable-event category and a submission reference — the RIDDOR F2508 online submission confirmation is the named example; the acknowledgement is a record of a notified event, not a purchase confirmation",
+      "a witness or operator statement: a first-person narrative of one dated event, the declarant's role at the time, a signature and date block, and a reference to an incident identifier",
+      "a signed attendance or acknowledgement sheet for a toolbox talk, safety stand-down or briefing whose subject names an incident identifier or the specific hazard the incident exposed, distinguishing it from a scheduled training record by that back-reference",
+      "an archive whose manifest links one incident identifier across a report, an investigation, statements, scene photographs and action records; the manifest is read without unpacking the archive to disk"
+    ],
+    "needs_llm": [
+      "an unlabelled shift-notebook page, handwritten near-miss card or scanned logbook where the harm, the event time and the location are only in prose or OCR",
+      "an email thread in which the harm description, the containment decision and the corrective action are distributed across replies with no labelled form anywhere in the bytes",
+      "deciding whether a photograph of a machine, guard or floor is incident-scene evidence or a routine maintenance, inspection or work-instruction illustration, when the only discriminator is surrounding or embedded text",
+      "separating an incident-triggered revision of a risk assessment or work instruction from a scheduled periodic review of the same document, where the two produce near-identical bytes",
+      "deciding whether a property-damage-only or dangerous-occurrence report belongs here or with an asset failure record, when no person is named as exposed"
+    ],
+    "never_alone": [
+      "the words incident, incident report, accident, near miss or investigation alone — information-technology, information-security, clinical, customer-service and insurance corpora all file documents carrying those exact words",
+      "a safety-sounding department, programme or organisation name alone (EHS, Health and Safety, Zero Harm, Safety Committee); an organisation name is never-alone evidence",
+      "a person's name alone in any role — the harmed party, a witness, the investigator or the approver; roles that share an entity type must be separated, not collapsed",
+      "an injury or body-part word appearing in free text, with no dated event structure around it",
+      "a bare date, a bare four-digit reference token, or a hazard word in a filename (guard, spill, fall, lockout, forklift) with no event structure",
+      "a safety data sheet, hazard pictogram, chemical name or exposure-limit table — these are reference material about a hazard, not a record that an event occurred",
+      "a photograph of a machine or a floor with no event anchor; and missing EXIF is not evidence that an image is scene documentation",
+      "a file extension, a folder path, or a shared download session"
+    ]
+  },
+  "work_types": [
+    "injury or illness incident report",
+    "near-miss, hazard observation or unsafe-condition report",
+    "dangerous occurrence or property-damage-only event report",
+    "first-aid or treatment log entry",
+    "incident investigation and root-cause file",
+    "witness, operator or supervisor statement",
+    "incident scene photograph, sketch or measurement record",
+    "regulator notification or submission acknowledgement",
+    "statutory injury log or annual establishment summary",
+    "corrective or preventive action arising from an incident",
+    "safety alert, stand-down, toolbox talk or lessons-learned bulletin",
+    "incident-triggered revision of a risk assessment, permit or work instruction",
+    "return-to-work, restricted-duty or absence record arising from an event"
+  ],
+  "grouping_reasons": [
+    "an exact incident identifier shared between a report, an investigation, statements, photographs, a regulator acknowledgement and action records",
+    "an exact event date-time plus the same named location or line, where no incident identifier was ever issued (common for near-miss cards)",
+    "an archive or export manifest that already binds the members of one incident pack",
+    "an explicit back-reference from a safety alert, toolbox talk or revised risk assessment to one incident identifier"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract because the manufacturing schema declares no canonical fields. The recommendation held as prose is site, then the incident event, then record type — deliberately unlike the schema's default subject-first branches, because an HSE incident routinely has no product, no lot, no instrument and often no asset to sit under. This row is the one place in the schema where a calendar dimension has real evidence rather than convenience: the statutory injury log and its annual summary are per-establishment, per-calendar-year documents, so a year level under site is defensible for the log family specifically. It is still not recommended as the top level, because putting year first would scatter a single incident's report, statements, photographs and actions across calendar folders. No level is ever the harmed person, the witness or the investigator: 00 says the system 'should avoid using authorship or creator identity as a destination dimension' and that 'A folder should not become a collection point for everything produced by the same person or organization' — the same reasoning applies with more force to a person who is the subject of a harm record. Severity, recordability and reportability are judgements this catalogue must not make, so none of them is proposed as a dimension.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "presentation",
+      "opaque_binary"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "eml",
+      "pptx",
+      "zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Injury and Illness Incident Report - 2026-03-11 - Line 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for date and time of event, where the event occurred, what the employee was doing before the incident, what happened, the injury or illness and the part of body affected, and whether the person was treated in an emergency room",
+        "employee identity block including name and job title, and a treating-facility field",
+        "completed-by name, title and date at the foot; this is the OSHA Form 301 shape"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the event is recordable, reportable, work-related, severe or anyone's fault",
+        "a health fact about the named employee, or that this is the corpus owner's own medical record",
+        "a product or lot, merely because Line 4 makes a product"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Near miss card NM-2026-0188 coolant spill aisle 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled event identifier, observed hazard, explicit no-injury outcome, immediate action taken, owner and closeout status",
+        "no product, lot, instrument, specification, measured result or disposition slot appears anywhere in the document",
+        "reporter may be anonymous or a job title only"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an asset fact, because an aisle is not a controlled asset identifier",
+        "that a near miss is a lesser or non-record because no one was hurt"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IR-2026-014 hand laceration press 12 - investigation 5 Why.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sequence-of-events narrative with times, a five-why chain, immediate and underlying causes, and a dated action table with owners",
+        "one incident identifier repeated in the header and in every action row",
+        "an asset identifier for the press appears in the equipment section"
+      ],
+      "facts_legal": [
+        "site",
+        "asset",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the stated root cause is correct, or that any action closed the risk",
+        "a quality_event fact — an investigation of harm to a person is not a nonconformance of the product"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Log of Work-Related Injuries and Illnesses 2025 - Plant 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated rows carrying case number, employee job title, date of event, where the event occurred, description of injury and body part, and mutually exclusive outcome columns for death, days away, job transfer or restriction, and other recordable cases",
+        "establishment name and a single calendar year in the sheet header; this is the OSHA Form 300 shape",
+        "several named or job-titled individuals appear in one file"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a per-person fact, a rate, a trend or a compliance verdict from the row counts",
+        "that a row's outcome column may be copied onto a member of an incident pack"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RIDDOR F2508 submission confirmation - IR-2026-014.eml",
+      "source_type": "email",
+      "observations": [
+        "regulator-system sender, a submission reference, a reportable-event category, and the incident identifier in the subject",
+        "acknowledgement body naming the notifying organisation and the date of notification",
+        "no attachment; the confirmation is the record"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the event was in fact reportable, or that notification discharged any duty",
+        "that this is a receipt or a transactional confirmation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Witness statement - operator B shift - IR-2026-014.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "first-person narrative of one dated event, the declarant's role at the time, and a signature and date block",
+        "the incident identifier appears in the header",
+        "the declarant is a third party, not the corpus owner"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the account is accurate, or that any named person acted wrongly",
+        "a destination level named for the declarant or for anyone the statement names"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IMG_4417 press 12 guard position.jpg",
+      "source_type": "image",
+      "observations": [
+        "capture timestamp close to the event time in the incident report, and a machine with a guard visible",
+        "no embedded text; the only link to the event is the surrounding pack or an exact time and location match",
+        "may carry a device model and a capture time"
+      ],
+      "facts_legal": [
+        "site",
+        "asset"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "record_type = incident scene photograph from the image alone",
+        "an incident fact copied from a neighbouring file merely because the two group"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Toolbox talk 2026-03-18 machine guarding after IR-2026-014 - signed sheet.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "scanned attendance sheet with printed topic line, a date, and handwritten names and signatures",
+        "the topic line carries an explicit back-reference to one incident identifier",
+        "OCR recovers the topic reliably and the handwritten names poorly"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "a competence or training fact about any named attendee",
+        "that a scheduled training record without the back-reference belongs to this incident"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Incident pack IR-2026-014.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a report, an investigation, two statements, three photographs, a regulator acknowledgement and an action-closeout sheet",
+        "one incident identifier binds every member named in the manifest",
+        "members carry mixed source types and mixed sensitivity"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the pack may be unpacked to disk to improve classification",
+        "that pack membership creates an incident fact on a sparse member such as a photograph"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Site safety inspection Plant 2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "hazard, control, responsible role and closeout columns, with an inspection date and an inspector",
+        "no event narrative, no harmed or exposed person, and no incident identifier anywhere",
+        "the same fixture appears in the manufacturing schema's own default file list"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an incident fact — a planned inspection is not an event record",
+        "that the presence of the word safety activates this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NCR-2026-041 cracked housing.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled event identifier, affected product and lot, requirement versus observed condition, containment, disposition and approval",
+        "the harm is to an article, not to a person; no injury, body part, treatment or exposure slot exists",
+        "the same fixture appears in the manufacturing schema's own default file list"
+      ],
+      "facts_legal": [
+        "product",
+        "batch_lot",
+        "quality_event",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "an incident fact from the shared words event, containment, root cause and closure",
+        "that a cracked housing implies anyone was exposed to harm"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Safety Data Sheet - Coolant XR-40.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered sections for hazard identification, composition, first-aid measures, handling and storage, and exposure controls",
+        "hazard pictograms and injury vocabulary throughout, and no dated event or person anywhere",
+        "issued by the chemical supplier, not by the holder"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an incident fact from first-aid and injury vocabulary",
+        "a site or asset fact, because a data sheet is about a substance and not about a place"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Employers liability claim EL-88421 - IR-2026-014.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "insurer name, policy number, claim reference, claimant, loss date and reserve or settlement amounts",
+        "the incident identifier appears as a cross-reference in the description-of-loss field",
+        "signed by a broker or claims handler, not by a plant role"
+      ],
+      "facts_legal": [
+        "site",
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a claim record is the incident record, or that the claim narrative may overwrite the investigation",
+        "a liability, fault or settlement conclusion"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle accident report VAN-14 2026-02-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "driver name and licence reference, vehicle registration and fleet number, third-party details, a diagram of the collision, and a police or insurer reference",
+        "the event is on a public road, not inside a controlled plant boundary",
+        "no site, line or production asset appears"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a manufacturing site or asset fact from a fleet number",
+        "that any road collision involving an employee is a plant HSE incident"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HSE incident register 2026 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive; no manifest and no member names are readable",
+        "the filename carries the words HSE, incident and a year",
+        "nothing else about the contents can be established"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any site, event, person, count or sensitivity result from the filename",
+        "that the archive should be opened or moved to establish its contents"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "manufacturing.nonconformance-capa",
+      "signal": "SAME FIXTURE BOTH SIDES: `CAPA-2026-012 effectiveness review.docx` opened in response to IR-2026-014 — this row owns the event record of harm to a person (event date-time, exposed person role, injury or no-injury outcome, witness statements, regulator notification), the neighbour owns the nonconformance and corrective-action workflow anchored on a product, lot, process or requirement (requirement-versus-observed condition, containment, disposition, effectiveness verification), discriminated by whether the subject of the harm is a person or an article: an injury, body-part, treatment or exposure slot supports this row, a specification, disposition or affected-lot slot supports the neighbour, and a file carrying both is two records in one packet rather than one row's evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.safety-case",
+      "signal": "SAME FIXTURE BOTH SIDES: `Machine guarding risk assessment - Press 12 - rev C.pdf` reissued after IR-2026-014 — this row owns the retrospective record that an event occurred and what changed because of it, the neighbour owns the prospective demonstration that a plant, machine or process is acceptably safe (hazard identification, control hierarchy, residual-risk argument, revision control), discriminated by the presence of a dated event and an exposed person: a revision note back-referencing one incident identifier supports this row's pack membership, while the assessment's own hazard-and-control structure and revision history stay with the neighbour, and a scheduled periodic revision with no back-reference is the neighbour's alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.environmental-compliance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Spill report 2026-05-09 - coolant to surface drain.pdf` — this row owns the event where a person was harmed or exposed, the neighbour owns the release, emission, discharge or permit-limit exceedance measured against an environmental consent, discriminated by the receptor named in the report: a person, an injury or an exposure supports this row, a receiving medium, a consent or permit condition, a monitored limit or a notified environmental regulator supports the neighbour, and a spill that both injured an operator and breached a discharge consent is genuinely both and must not be silently assigned to one.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-health-safety",
+      "signal": "SAME FIXTURE BOTH SIDES: `Site safety inspection Plant 2.pdf` and an accident report bearing the identical form layout — this row owns events inside an operating plant with a controlled production line, process or machine, the neighbour owns events on a construction, refurbishment or property site under a professional instruction, discriminated by the surrounding operational anchor rather than by the form: a line, cell, production shift, process area or production asset supports this row, while a project or contract reference, a principal contractor or designer role, a work package, a subcontractor or a phase of construction supports the neighbour; a fit-out injury inside a factory building belongs to the neighbour despite the address.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.risk-register",
+      "signal": "SAME FIXTURE BOTH SIDES: `HSE risk register 2026 - Plant 2.xlsx` — this row owns the individual dated event and its investigation, the neighbour owns the standing management artefact of enumerated risks with owners, ratings, treatments and review dates, discriminated by whether the rows are events that happened or risks that might: a repeated event date, location and outcome per row supports this row (a statutory injury log is an event log, not a risk register), while a likelihood-and-impact grid, a treatment plan and a next-review date support the neighbour, and an incident that adds a register line does not convert the register into an incident record.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.driver-compliance",
+      "signal": "SAME FIXTURE BOTH SIDES: `Vehicle accident report VAN-14 2026-02-02.pdf` — this row owns events within a controlled plant boundary involving production work, the neighbour owns driver and vehicle events governed by transport rules (licence, tachograph or hours-of-service record, roadworthiness, roadside check, public-road collision), discriminated by where the event happened and what governs it: a line, process area or production asset supports this row, while a vehicle registration, driver licence reference, road location, third-party or police reference supports the neighbour; a forklift striking a pedestrian inside the plant is this row's, a delivery van collision on the road is not.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "SAME FIXTURE BOTH SIDES: an occupational-health report or fitness-for-work assessment naming the person injured in IR-2026-014 — this row owns the employer-side record that an event occurred, held about a third party, the neighbour owns the corpus owner's own clinical record held by or for them, discriminated by whose corpus and whose body: a clinician-to-employer report with an employer addressee, an incident identifier and a restriction or fitness opinion supports this row's pack while carrying independent health evidence, whereas the same clinical letter in the injured person's own corpus, addressed to them, is the neighbour's; membership never converts a third party's health data into the holder's medical facts, and neither row may be used to route the other's file into a shallower privacy posture.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.insurance-corporate",
+      "signal": "SAME FIXTURE BOTH SIDES: `Employers liability claim EL-88421 - IR-2026-014.pdf` — this row owns the operational record of the event and its investigation, the neighbour owns the policy and claim lifecycle (insurer, policy number, claim reference, claimant, reserve, settlement, renewal), discriminated by which slots carry the substance: an event narrative, causal analysis and corrective actions support this row, while a policy or claim reference, a reserve or settlement figure and an insurer or broker signatory support the neighbour, and a claim file's description-of-loss field is a cross-reference to an incident and never a replacement for the incident record.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The principal fallback. Injury reports, statutory injury logs, witness statements, occupational-health correspondence and claim files name identified third parties and describe their bodies and treatment. 00 says Protected Records \"may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" That is the correct default posture for this row's core evidence, and it is a materially stricter fallback than the manufacturing schema's own residual set, which does not route to Protected Records at all.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00 says Independent Records \"may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" A de-identified near-miss card, a safety alert, a regulator acknowledgement or a blank incident form has durable purpose and names no one, so it does not need the protected posture and should not be pushed there merely for carrying the word incident.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00 says Review Later \"may hold files whose meaning is partly understood but whose final location requires a future decision.\" An OCR-poor logbook page, an untitled investigation fragment, or a property-damage report with no named exposed person should abstain rather than manufacture an event, a site or a person role.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 says Unsupported or Encrypted \"may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.\" An encrypted incident register or a proprietary EHS-system export must be represented without inferring a site, an event count or a sensitivity result from its filename.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the one manufacturing situation whose principal sensitivity is a third party's health and identity rather than the holder's commercial secrets. An injury report carries a named person, their job, their injury and affected body part, their treatment and treating facility; a statutory injury log carries many such people in one sheet; witness statements attribute conduct to named individuals; occupational-health correspondence is clinical. Commercial exposure is secondary but real, since incident and investigation files reveal plant layout, machine condition, staffing and control failures that also appear in claims and enforcement. The row assigns no handling class — that is P7's — and it must not infer recordability, reportability, severity, work-relatedness, fault, liability, fitness for work, or any retention or notification duty. Person names in every role stay search and privacy observations and never become destination dimensions.",
+  "open_question": "NJ-HSE-1: the manufacturing schema proposes `quality_event` as its controlled-event key, and its own NJ-MFG-2 asks whether that should instead be a broader canonical `case`/`event`. This row is the concrete pressure on that question: a safety event is not a quality event, and forcing an injury under `quality_event` would misdescribe it, but minting a parallel `incident` key would fragment the same concept across schemas. Alternatives for R1c: (a) widen `quality_event` to any controlled event with an identifier and a closure state, (b) mint one shared `case` key and let each schema constrain its values, (c) keep them separate and accept two near-identical keys. NJ-HSE-2: whether an incident identifier may ever appear in a visible folder label, given that a branch named for one event, on a small site, can identify the person it happened to. NJ-HSE-3: whether the statutory-log family may carry a calendar-year dimension under site while the rest of the row stays event-anchored, or whether one row must have one dimension recommendation. NJ-HSE-4: whether third-party health data inside a business corpus needs a distinct privacy treatment from the holder's own health data, which `medical.personal-health-records` assumes."
+}

@@ -1,0 +1,292 @@
+{
+  "id": "logistics.last-mile-pod",
+  "kind": "template",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Last-mile delivery and proof of delivery",
+  "one_line": "The final handover record for one parcel or consignment at its delivery point: an attempt or delivery event, recipient or safe-place outcome, timestamp, location evidence, signature or scan, package condition and any refusal, damage or exception. A doorstep image, address, tracking event, appointment or signature alone is not proof of this situation. Placeholder template: the logistics schema remains field-less pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a proof-of-delivery record whose labelled or structured slots join one consignment or parcel reference to delivered/attempted status, date/time, delivery point or geocoded event, recipient or safe-place outcome, and a receiver signature, scan, PIN or carrier event acknowledgement",
+      "a delivery-app event export whose rows join tracking or consignment identity to driver/route stop, event timestamp, GPS or delivery-zone evidence, recipient status, signature/PIN/photo indicator and exception code",
+      "a doorstep photo submission whose native message or form metadata binds the image to one delivery reference and event, while the image itself shows parcel, door/hand-off context or exception condition; camera EXIF alone never establishes delivery",
+      "a delivery exception structure joining parcel/consignment identity to attempted-delivery time, reason such as refused, inaccessible, damaged or safe-place, driver note, recipient communication and reattempt/return outcome",
+      "a recipient signature or electronic acceptance packet pairing shipment identity with signer/recipient role, delivered time/place, package count or condition and carrier system event; a signature image detached from these roles is not enough",
+      "a locker, collection-point or neighbour handover record joining parcel reference to compartment/pickup point, release timestamp, recipient code or scan and collection status",
+      "a last-mile damage or shortage report joining one parcel/consignment to package condition at delivery, photographs or inspection, recipient exception, carrier review and claim/return status",
+      "a carrier delivery-status feed that includes final-mile event semantics and package/consignment identity, not merely generic in-transit timestamps; the row-level status and attempt/delivery reason are required",
+      "an email or message whose native sender/recipient/subject and body or attachment bind a parcel reference to a completed delivery, failed attempt, safe-place instruction or recipient dispute, with a delivery event cited",
+      "an archive manifest exposing one parcel's label, route event, doorstep image, signature capture, exception note and claim/return records; the manifest is inspected without unpacking and does not propagate facts to members",
+      "a delivery receipt scan or OCR page whose own labels preserve parcel identity, recipient/attempt status, delivered time/place and acknowledgement, even when handwriting or print is partly degraded"
+    ],
+    "needs_llm": [
+      "whether an image shows a completed doorstep delivery, an attempted delivery, a staged parcel, a warehouse pallet or an unrelated product photograph when no reference is legible",
+      "whether a delivery address is a final destination, depot, safe place, sender address, carrier office or camera capture location when role labels are incomplete",
+      "whether a signature, PIN or scan indicates recipient acceptance, driver completion, a locker release or only an internal status update",
+      "whether a damage/shortage note was recorded at final delivery, during warehouse receipt, in transit or after opening, and whether it is allegation or verified condition",
+      "whether a carrier status export's last event represents actual delivery, a failed attempt, neighbour/safe-place handover, collection-point arrival or return-to-sender",
+      "whether a parcel label or QR code in a photograph binds to the same consignment as a nearby POD record; barcode visibility alone cannot establish ownership or event",
+      "whether an email thread or customer message is a delivery confirmation, a planned appointment, a complaint, a returns request or an automated marketing notice",
+      "whether a mixed archive contains one parcel event or many unrelated stops and recipients; member facts must not be copied across the archive",
+      "whether OCR-poor handwritten proof preserves enough event and recipient-role structure to activate, with unknown returned when evidence cannot be cited",
+      "whether a calendar collection/delivery appointment became a completed handover without a separate scan, signature, photo or carrier event",
+      "multilingual last-mile forms, safe-place instructions and exception descriptions outside the local delivery vocabulary"
+    ],
+    "never_alone": [
+      "the words delivered, delivery, doorstep, proof of delivery, POD, attempted, refused, safe place, parcel, courier, recipient or signature alone",
+      "a parcel, tracking, consignment, order, route, locker, PIN, barcode, QR code or delivery-reference token outside a labelled role and event structure",
+      "an address, door number, GPS coordinate, map, timestamp or geotag alone; each can describe a plan, depot, sender, receiver, route or camera capture",
+      "a parcel, pallet, doorstep, signature, driver, uniform, vehicle or delivery-app screenshot alone",
+      "a carrier, courier, marketplace, retailer, buyer, seller or recipient name alone",
+      "a delivered/failed status, scan, PIN, photo, signature, safe-place note or exception word alone",
+      "a purchase order, invoice, order confirmation, shipping label, carrier tracking page or returns label alone",
+      "a source_type or extension alone, including PDF, spreadsheet, image, OCR, email, calendar, archive or opaque binary",
+      "a parent folder named Deliveries, POD, Parcels, Shipping, Courier, Orders or Returns alone",
+      "membership in one download, upload, email thread, portal session or archive alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "missing EXIF as proof that an image is a screenshot, or present GPS as proof that a photograph was taken at the delivery point",
+      "a carrier event timestamp without a package/consignment identity and final-mile attempt or handover semantics"
+    ]
+  },
+  "work_types": [
+    "proof of delivery receipt",
+    "driver delivery-app completion event",
+    "doorstep delivery photograph",
+    "recipient signature or PIN acceptance",
+    "safe-place or neighbour handover record",
+    "locker or collection-point release record",
+    "failed-delivery or reattempt notice",
+    "refused-delivery or return-to-sender record",
+    "damage, shortage or tamper-at-delivery report",
+    "delivery dispute and carrier claim packet",
+    "last-mile status export",
+    "delivery-point scan or OCR receipt",
+    "delivery appointment outcome"
+  ],
+  "grouping_reasons": [
+    "one parcel/consignment across label, route stop, attempt, doorstep image, signature/PIN, recipient message and final status",
+    "one failed delivery across attempt event, reason, safe-place or collection instruction, reattempt and return-to-sender evidence",
+    "one damage or shortage exception across delivery photo, receiver note, carrier review, claim, replacement and return records",
+    "one locker, neighbour or safe-place handover across release code, scan, recipient confirmation and dispute evidence",
+    "one delivery route's final-mile events when each member retains its own parcel identity and no stop's recipient fact is copied to another",
+    "a sparse doorstep photo, email or calendar entry may join an accepted delivery group without receiving parcel, recipient, address or delivery facts; grouping does not copy labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "The logistics schema declares no legal fields under PR-6, so this template does not write consignment, carrier, asset, site or record_type dimensions. Conditional on R1c promoting those proposals, the useful projection is consignment/parcel -> delivery event or record_type, with route or depot only where those are genuinely the file's subject. Recipient names, delivery addresses, coordinates, safe-place details and driver identities are evidence and privacy-sensitive values, not default folder dimensions. This differs from logistics.shipment's full custody dossier because last-mile POD is a final-handover situation with recipient/attempt semantics, event proof and delivery exceptions; it should not require the upstream bill-of-lading, customs or origin chain. It is not time-first: 00 says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" No executable dimension is claimed until R1c licenses a canonical key.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".mp4",
+      ".bin"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "POD_Consignment-CN-4021.jpg",
+      "source_type": "image",
+      "observations": ["image shows a parcel at a doorway with a carrier-app overlay and partly legible consignment reference", "camera EXIF and capture time are present", "recipient, delivery status and exact address are not fully legible"],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type", "sensitivity_status"],
+      "must_not_conclude": ["delivery or recipient acceptance from the image alone", "delivery address from GPS", "that the parcel belongs to the nearby CMR", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Driver-App-Completed_CN-4021.json",
+      "source_type": "code_structured",
+      "observations": ["payload fields identify parcel/consignment, route stop, event time, delivery status and recipient/driver scan state", "location evidence and exception code are separate fields", "no raw image is embedded in the payload"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["recipient identity beyond the labelled role", "that a GPS point is a home address", "physical package condition without a cited image or note", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Recipient-Signature_CN-4021.pdf",
+      "source_type": "text_document",
+      "observations": ["form joins consignment reference to delivered-at time/place, recipient role, package count and signature block", "delivery status and damage/shortage boxes are labelled", "carrier acknowledgement and receiver acknowledgement are distinct"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["signature authenticity or legal acceptance", "that recipient is owner of the goods", "absence of a damage tick as proof of perfect condition", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Failed-Attempt_CN-4021.eml",
+      "source_type": "email",
+      "observations": ["native sender/recipient/subject identify an attempted delivery and consignment reference", "body contains failed-attempt reason, reattempt window and collection-point instruction", "no completed delivery event is attached"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that a reattempt occurred", "recipient identity from the sender address alone", "delivery from an appointment window", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Locker-Release_CN-4021.csv",
+      "source_type": "spreadsheet",
+      "observations": ["rows join parcel reference to locker/collection point, release scan, code status, pickup time and collection state", "recipient notification state is separate from collection confirmation", "no origin shipment or carrier contract fields are present"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["recipient identity from a locker code alone", "collection before a pickup event", "that a parcel was not damaged before locker placement", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Damage-at-Door_CN-4021.pdf",
+      "source_type": "text_document",
+      "observations": ["receiver/driver roles and consignment reference are labelled", "package condition, seal, shortage and photograph references are recorded at final handover", "claim review and settlement status are separate from the allegation"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["damage timing before last-mile custody", "claim liability or payment", "that the receiver's account is correct without review", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Scanned-POD_CN-4021.pdf",
+      "source_type": "ocr",
+      "observations": ["PDF has no usable text layer and OCR recovers partial parcel reference, recipient/attempt status, date and signature labels", "handwritten safe-place note is visible but incomplete", "scanner metadata names a device rather than a carrier or recipient"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["recipient, address or delivery status where OCR is unreadable", "delivery from scanner metadata", "signature authenticity", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Last-Mile-Events_CN-4021.csv",
+      "source_type": "spreadsheet",
+      "observations": ["rows contain package reference, stop sequence, attempt/delivery/return event, timestamps and exception codes", "some rows have driver and geofence fields", "the export contains many parcels and no single delivery subject"],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one recipient or address for the whole export", "delivery completion from an event label without package context", "facts from one row on another parcel", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Delivery-Archive_CN-4021.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists label, route event, doorstep image, signature capture, failed-attempt notice and damage claim", "archive has not been unpacked", "one member name references a different parcel and requires member-level review"],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["one recipient, address or status for every member", "delivery from the archive name", "that all listed members are final-mile evidence", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Delivery-Appointment_CN-4021.ics",
+      "source_type": "calendar",
+      "observations": ["event names a planned delivery window and address", "organizer, attendee and start/end fields are present", "no completed scan, signature, photo or exception event is attached"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["that delivery occurred", "recipient acceptance from an attendee", "address role from the calendar event alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Parcel-Return-Label_CN-4021.pdf",
+      "source_type": "text_document",
+      "observations": ["return label identifies parcel reference, carrier, origin/destination and barcode", "reason-for-return or recipient acceptance is absent", "label is prepared for movement but does not prove a failed final-mile attempt"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": ["that the parcel was returned", "why the recipient returned it", "delivery failure from a return label alone", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Pallet-At-Warehouse.jpg",
+      "source_type": "image",
+      "observations": ["camera photo shows a pallet and carrier label in a warehouse", "no final recipient, doorstep, handover or delivery-event evidence is visible", "EXIF capture time is present"],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type", "sensitivity_status"],
+      "must_not_conclude": ["last-mile delivery from a label or pallet image", "recipient or delivery address", "that the pallet was delivered rather than received/held", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "logistics.shipment",
+      "signal": "SAME FIXTURE BYTES: Recipient-Signature_CN-4021.pdf. logistics.last-mile-pod wins when final-handover event, recipient/attempt status and delivery proof are central; logistics.shipment wins when the same bytes are one member of a full consignment custody dossier spanning origin, carrier, customs, packages and destination, and a signed page alone cannot establish the upstream movement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.route-dispatch",
+      "signal": "SAME FIXTURE BYTES: Delivery-Appointment_CN-4021.ics. last-mile-pod wins when the same bytes are tied to a completed delivery attempt or handover evidence; logistics.route-dispatch wins when they are a working-day plan of driver, vehicle, ordered stops and planned-versus-actual route performance, and an appointment alone proves neither execution nor receipt.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.fleet-vehicle",
+      "signal": "SAME FIXTURE BYTES: Driver-App-Completed_CN-4021.json. last-mile-pod wins when the same bytes document a parcel's final-mile event and recipient/exception outcome; logistics.fleet-vehicle wins when they are vehicle, driver, licensing, telematics or operator-compliance records, and a driver or vehicle identifier does not itself prove a delivery.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.returns-warranty",
+      "signal": "SAME FIXTURE BYTES: Parcel-Return-Label_CN-4021.pdf. last-mile-pod wins when the same bytes are linked to a failed delivery, recipient refusal or carrier return event; retail_hospitality.returns-warranty wins when return authorization, customer refund/replacement and product-return disposition are central, and a return label alone proves neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "SAME FIXTURE BYTES: Failed-Attempt_CN-4021.eml. last-mile-pod wins when delivery attempt, parcel reference and final-mile event are evidenced; business_operations.customer-account-management wins when the same bytes are a customer complaint/service interaction and the shipment event is incidental, and a recipient message alone cannot establish either workflow.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "SAME FIXTURE BYTES: Damage-at-Door_CN-4021.pdf. last-mile-pod wins when final delivery condition, recipient exception and carrier handover are central; manufacturing.production-record wins when the same bytes are an incoming product/lot inspection or quarantine disposition, and a package condition note does not decide whether damage occurred in transit or manufacturing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "SAME FIXTURE BYTES: Scanned-POD_CN-4021.pdf. last-mile-pod wins when OCR recovers parcel, final-mile event and acknowledgement structure; photos.scanned-documents wins when the same bytes are retained as a scanned image/document without a delivery-event relation, and OCR text or a signature-like mark alone is insufficient.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Receipts and Confirmations",
+    "Independent Records",
+    "Review Later",
+    "One-Off Images",
+    "Temporary Screenshots",
+    "Unsupported or Encrypted",
+    "Protected Records"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recipient names, home or workplace addresses, geolocation, delivery schedules, driver and vehicle identifiers, package contents, safe-place instructions, signatures, PINs, photographs and claims can expose personal routines, access information or commercial movements. This row assigns no handling class; P7's file-level classification and local/cloud policy remain authoritative.",
+  "open_question": "NJ-LOG-POD-1: R1c must decide whether this template reuses logistics proposals `consignment`, `carrier`, `asset`, `site` and `record_type`, and whether a final-mile event needs a neutral global key. NJ-LOG-POD-2: Should a signed or photographed POD be mutex with logistics.shipment, or may the same bytes activate both the complete consignment and final-mile templates when their evidence roles are independently present? NJ-LOG-POD-3: Delivery images, return labels and failed-attempt emails may also support Photos, Retail/Hospitality, Business Operations and Manufacturing; should P9 represent coactivation, or must a user choose custody/purpose? This template deliberately authors no also_holds_with edge. NJ-LOG-POD-4: R2/R4 must settle deployment-specific parcel, consignment, geofence, locker and carrier event validation; no regex, address inference, recipient identity or legal delivery threshold is asserted here."
+}

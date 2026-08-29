@@ -1,0 +1,36 @@
+[
+  {
+    "run_id": "run-ocr-1", "file_id": "file-book", "content_hash": "sha256:book",
+    "extractor_name": "ocr.apple_vision", "extractor_version": "2.4.1",
+    "source_type": "ocr", "analysis_tier": "ocr",
+    "config": {"dpi": 200, "languages": ["en", "zh-Hans"], "recognition": "accurate"},
+    "config_fingerprint": "sha256:cfg-ocr", "completeness": "capped",
+    "coverage": {"units": "pages", "processed": 40, "total": 312},
+    "observation_count": 118,
+    "started_at": "2026-08-19T00:00:00+00:00",
+    "finished_at": "2026-08-19T00:04:00+00:00", "failure_reason": null
+  },
+  {
+    "run_id": "run-native-1", "file_id": "file-syllabus", "content_hash": "sha256:syl",
+    "extractor_name": "pdf.native", "extractor_version": "1.0.0",
+    "source_type": "text", "analysis_tier": "native",
+    "config": {}, "config_fingerprint": "sha256:cfg-native",
+    "completeness": "complete",
+    "coverage": {"units": "pages", "processed": 3, "total": 3},
+    "observation_count": 7,
+    "started_at": "2026-08-19T00:00:00+00:00",
+    "finished_at": "2026-08-19T00:00:02+00:00", "failure_reason": null
+  },
+  {
+    "run_id": "run-broken-1", "file_id": "file-broken", "content_hash": "sha256:brk",
+    "extractor_name": "pdf.native", "extractor_version": "1.0.0",
+    "source_type": "text", "analysis_tier": "native",
+    "config": {}, "config_fingerprint": "sha256:cfg-native",
+    "completeness": "unreadable",
+    "coverage": {"units": "pages", "processed": 0, "total": 12},
+    "observation_count": 0,
+    "started_at": "2026-08-19T00:00:00+00:00",
+    "finished_at": "2026-08-19T00:00:01+00:00",
+    "failure_reason": "damaged"
+  }
+]

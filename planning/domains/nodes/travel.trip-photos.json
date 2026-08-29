@@ -1,0 +1,312 @@
+{
+  "id": "travel.trip-photos",
+  "kind": "template",
+  "schema_id": "photos",
+  "parent_id": null,
+  "name": "Trip photographs",
+  "one_line": "The captures of one journey away from home: a multi-day run of photographs and clips whose event value is the trip itself and whose places are where the trip went.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Extends 00's named Photos schema — \"Photos may use capture year, event, location, people, camera information, and media type\" — into one of the organizational situations 00's own library sentence covers: the library spans \"common organizational situations such as academic programs, university applications, recruiting processes, client engagements, research workflows, financial records, travel, legal matters, creative projects, software repositories, personal administration, and photo collections\". 00 names travel as a situation and gives this node its example event value (\"Japan Trip 2025\" appears in 00's list of values a system may create), but 00 states no trip template and no trip detection rule. Everything below that goes past those two spans is marked inference or proposal and carries no quotation marks.",
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "EXIF GPS present on a capture and resolved to a place name, together with EXIF camera make/model and an EXIF DateTimeOriginal on the same file — 00: \"Camera EXIF, GPS, and capture time can support deterministic photo-event proposals\". The coordinate is evidence; the stored value is the resolved place name",
+      "a run of captures from one camera identity whose DateTimeOriginal values fall on consecutive days and whose resolved places form a cluster distinct from the corpus's habitual capture cluster. This is a CROSS-FILE signal: it belongs to P9's neighbourhood and to the template fit that happens after grouping, never to per-file schema activation, which sees one file's own evidence only",
+      "the same consecutive-day span covered by a second camera identity — a phone beside a camera body, or a travel companion's shared album — with agreeing resolved places",
+      "an existing user-created folder whose name reads as a trip label, taken as parent-folder context only — 00: \"A carefully curated existing folder should be treated as a strong expression of user intent.\" It is evidence for an event value the user may accept, never a written fact on its own",
+      "HEIC decoded rather than skipped, so an Apple-centric trip corpus is not silently excluded — 00: \"HEIC support must be included explicitly\"",
+      "a filename-convention match from the deferred camera_filename_patterns catalogue, which emits a filename-zone observation at possible reliability and nothing stronger",
+      "exact and perceptual hash agreement folding a shared album's re-sent copies into one duplicate family — 00: \"Exact hashes and perceptual hashes can identify duplicates and near-duplicates\"",
+      "container, codec and creation-time metadata on a video clip taken inside the same span"
+    ],
+    "needs_llm": [
+      "naming the trip in words a user would recognise when the metadata offers only a device, a date span and a place cluster — the event value is the kind of value the system creates at runtime, not something a metadata slot spells out",
+      "deciding whether a multi-day displaced capture run is a trip at all: a work assignment, a relocation, a hospital stay, a semester abroad and a family visit produce the same metadata shape",
+      "deciding whether two adjacent displaced runs are one trip with a stopover or two separate trips",
+      "reading a photographed sign, menu or museum placard where OCR text is the only location evidence",
+      "deciding whether an OCR'd capture taken during the trip is a trip photograph or a photographed record whose facts belong to another active schema — 00: an opaque image \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\""
+    ],
+    "never_alone": [
+      "a single geotagged capture away from the habitual place cluster. This is the tempting false file: a wedding one afternoon two hours from home has camera EXIF, a timestamp and a displaced GPS fix, and it is a camera event, not a trip",
+      "a place name in a filename or a parent folder (Japan.jpg, a folder named Kyoto). Matching is word-boundary — 00: \"It should use word-boundary matching rather than substring matching\" — and no place gazetteer exists in the catalogue set yet, so this signal has no list behind it today",
+      "absence of EXIF — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\", and \"Messaging platforms and downloaded web images often strip metadata from real photographs\"",
+      "a bare 4-digit number in a filename read as a capture year",
+      "a boarding-pass, flight-number or gate string recovered by OCR read as the trip itself — 00: \"It must not invent a folder called Travel/Flight Gate B12 or assume that a gate number identifies a particular trip.\"",
+      "a bounded download session, or a shared-album archive downloaded in one go, read as one trip — 00: \"A session should never be treated as proof of topic\" and \"A tight download session alone is never sufficient\"",
+      "source_type image, or an image extension, on its own",
+      "a filesystem creation or modification timestamp read as a capture time — a restore, a sync or a re-encode rewrites it",
+      "an itinerary, hotel confirmation or boarding pass sitting nearby writing a trip event onto a sparse capture — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+    ]
+  },
+
+  "work_types": [
+    "photo",
+    "video clip",
+    "panorama",
+    "burst",
+    "live photo",
+    "screenshot",
+    "scan or photographed document"
+  ],
+
+  "grouping_reasons": [
+    "one trip: a consecutive-day capture run whose resolved places cluster away from the habitual cluster",
+    "the same span covered by a second device or by a travel companion's shared album",
+    "an existing user-made trip folder whose label the user accepts as the event value",
+    "a duplicate or near-duplicate family created by re-sending the same shots between travellers",
+    "a photographed record taken inside the trip's span — a ticket, a bill, a placard — which joins the neighbourhood while keeping its own domain's facts"
+  ],
+
+  "template": {
+    "dimension_order": ["event", "location"],
+    "why": "The trip is the dimension that makes its children intelligible — 00: \"a parent dimension should provide the context required to understand the child\" — and a place under a trip reads (Kyoto inside a Japan trip) where a trip under a place does not. This node departs from the Photos schema's default order, and the departure is the reason it is a node rather than the schema's default template. 00 makes photos the time-first exception — \"Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material\" — but a trip value in this product's own vocabulary carries its own year (\"Japan Trip 2025\"), so a year level above it is the case 00 tells the canvas to warn about, a level that \"repeats a concept already expressed in the parent\", and a year level below one trip is the case where \"a level produces only one child\" — except for a trip crossing New Year, where a year level splits one trip in half. 00 does not treat year as the only opening for this material: it puts the choice to the user as branching \"by year, event, location, or remain mostly flat\", so event and location are both offered tops in 00's own sentence, and this node recommends which of them a trip should use. location is recommended only where the trip actually visited more than one resolved place: 00 says \"each branch should offer the dimensions that are actually present in its member groups\". capture_year and media_type stay destination-eligible on the schema and are available if the user reinstates them; camera_information and people are not folder levels here. This is a recommendation, not a filesystem — 00: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" Reinstating capture_year at the top returns this branch to the schema's default order, which is exactly the reversal 00 licenses.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": ["image", "ocr", "audio_video", "archive"],
+    "extensions": [".heic", ".jpg", ".jpeg", ".png", ".dng", ".raf", ".nef", ".cr2", ".mov", ".mp4", ".zip"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make and Model slots carry a phone make and model",
+        "EXIF DateTimeOriginal slot carries a timestamp",
+        "EXIF GPS slots carry a coordinate that resolves to a place far from the corpus's habitual capture cluster",
+        "filename matches the Apple/DCF convention in the camera_filename_patterns catalogue",
+        "HEIC decoded explicitly rather than skipped"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event value naming a trip from one coordinate and one timestamp — a trip is a run, and the run is a group-level reading the user still accepts",
+        "people from a face in the frame",
+        "that the coordinate itself is the stored location value, or that it may leave the machine"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "DSC_0771.JPG",
+      "source_type": "image",
+      "observations": [
+        "EXIF Make/Model carry a mirrorless body; LensModel and ISO present",
+        "EXIF DateTimeOriginal falls inside the same consecutive-day span as the phone captures",
+        "no GPS slot present — the body has no receiver"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a location copied from a sibling capture's GPS fix",
+        "an event value because the file sits between two files that have one",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "20260101_004512.jpg",
+      "source_type": "image",
+      "observations": [
+        "filename matches the Android timestamp convention in the camera_filename_patterns catalogue",
+        "EXIF DateTimeOriginal present and on the first day of a new year",
+        "GPS resolves to the same place cluster as captures dated four days earlier, which carry the previous year"
+      ],
+      "facts_legal": ["capture_year", "location", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "two events because the capture_year differs from its siblings' — this is the file that makes a year level split one trip",
+        "a capture_year read out of the filename digits when the EXIF slot is missing; the filename is a possible clue",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "IMG_5620.jpg (photographed passport data page at check-in)",
+      "source_type": "image",
+      "observations": [
+        "EXIF camera make/model and DateTimeOriginal present — it really was taken with a phone, inside the trip's span",
+        "OCR region carries travel-document identity wording and a document number line"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "an event, or membership in the trip, for a protected record",
+        "capture_year or location as folder levels here — 00: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\"",
+        "any content of this file in a cloud dossier"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2025-12-28 at 06.12.44.png",
+      "source_type": "image",
+      "observations": [
+        "PNG at pixel dimensions equal to a known display resolution, with screen-capture software metadata and no camera EXIF",
+        "OCR carries a carrier name, a flight number and a gate",
+        "filename contains an explicit date pattern"
+      ],
+      "facts_legal": ["media_type", "capture_year"],
+      "must_not_conclude": [
+        "a trip event from the gate or the flight number — 00: \"It must not invent a folder called Travel/Flight Gate B12 or assume that a gate number identifies a particular trip.\"",
+        "media_type = screenshot from the missing EXIF; the support is resolution, format and software metadata together",
+        "capture_year as a direct fact — a filename date is not a labelled metadata slot",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_5533.jpg (photographed restaurant bill)",
+      "source_type": "image",
+      "observations": [
+        "EXIF camera make/model, DateTimeOriginal and GPS present, inside the trip's span and cluster",
+        "OCR region carries a merchant name, a currency amount and a date line"
+      ],
+      "facts_legal": ["capture_year", "location", "camera_information", "media_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "that the capture reading replaces the record reading, or the reverse",
+        "a record_type or an institution from this schema — those are the finance schema's fields and become legal only if that schema activates on this file's own evidence",
+        "an event value from the merchant's place name alone"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "IMG_5701.jpg (photographed museum placard, indoors)",
+      "source_type": "ocr",
+      "observations": [
+        "EXIF camera make/model and DateTimeOriginal present; no GPS fix indoors",
+        "OCR region carries a place name, an exhibit title and a date range"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "media_type", "location"],
+      "must_not_conclude": [
+        "a location from a place-shaped word with no capture context, and no place gazetteer exists yet to match it against",
+        "an event value from the exhibit title",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "MVI_0143.MOV",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata present, creation-time tag present, duration present",
+        "sits inside an existing user-created folder whose name reads as a trip label"
+      ],
+      "facts_legal": ["capture_year", "media_type", "event"],
+      "must_not_conclude": [
+        "event as a direct fact — the folder name is user-created evidence that becomes an event value only once the user accepts it",
+        "a transcript; 00 allows speech-to-text \"only under an explicit privacy and compute policy\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Japan Trip 2025 shared album.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists media filenames following two different camera conventions",
+        "no member is extracted to disk — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "the outer name reads as a trip label"
+      ],
+      "facts_legal": ["media_type"],
+      "must_not_conclude": [
+        "capture facts from the archive's own timestamp — the members, once read, are the capture evidence",
+        "one event for every member because the outer name says so, or because one download session brought them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_8890.jpg (wedding two hours from home, one afternoon)",
+      "source_type": "image",
+      "observations": [
+        "EXIF camera make/model, DateTimeOriginal and GPS present",
+        "the GPS fix resolves to a place other than the habitual cluster",
+        "every capture from this camera identity that day falls inside a single afternoon, and the next day's captures are home again"
+      ],
+      "facts_legal": ["capture_year", "camera_information", "location", "media_type"],
+      "must_not_conclude": [
+        "a trip — one displaced afternoon is a camera event; this is the collision fixture for photos.camera-events",
+        "an event value at all without clustering plus user acceptance",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Hotel confirmation - Kyoto - 2025-12-29.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "PDF text layer carries a booking reference, a property name, a date range and an amount",
+        "no capture metadata of any kind",
+        "the filename contains a place name"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this schema activates because a place name appears in the filename",
+        "an event, a location or a capture_year — no capture evidence exists on this file",
+        "a folder path",
+        "that this record and the trip's photographs are one fact set; they are one neighbourhood at most"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "photos.camera-events",
+      "signal": "The confusable evidence item is one geotagged capture whose place is not the habitual one. It supports a camera event and a trip identically. The discriminating evidence is duration and continuity: a trip is a run of consecutive days whose resolved places stay displaced, while a wedding, a day trip or a conference afternoon returns home the same day. One capture, or one afternoon, is never the trip reading."
+    },
+    {
+      "domain": "travel.bookings-confirmations",
+      "signal": "The two halves of one journey, and the confusable evidence item is an image whose OCR carries booking wording — a photographed or screenshotted boarding pass, ticket or reservation. The discriminating evidence is whether the file's own content is a transactional record with an issuing institution and a reference, or a capture of a scene. 00 forbids the shortcut in either direction: \"It must not invent a folder called Travel/Flight Gate B12 or assume that a gate number identifies a particular trip.\""
+    },
+    {
+      "domain": "identity.immigration-visa",
+      "signal": "A photographed passport or visa page is taken by the same camera, inside the same span and cluster, so the capture evidence is genuine and would propose a trip home for a protected record. The discriminating evidence is document-identity wording in the OCR region, and protection precedes any placement or model path — 00: \"A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately\"."
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "Screenshots taken during a trip — a map, a booking, a gate board — fall inside the trip's date span and would be swept into it by the span alone. The discriminating evidence is 00's own signal hierarchy: \"capture time, GPS, and sensor-shaped dimensions reinforce it\" for a photograph, against an exact display resolution with PNG format and software metadata for a screenshot, and \"conflicting signals should lead to abstention rather than an invented classification\"."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": ["One-Off Images"],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A trip capture run is a continuous, dated record of where a household was and, by implication, where it was not, and its raw form is exactly what 00 keeps behind the local boundary: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\" Display is the user's choice, not the template's — \"The user can choose whether names, previews, thumbnails, OCR text, or location data are shown.\" A trip corpus is also where photographed identity documents, boarding passes and bills sit inside an ordinary photo run, so this template's privacy rule is stricter than the schema default: a member whose OCR carries document-identity or account wording leaves the trip reading and enters protection first. Handling classes are not assigned here.",
+
+  "open_question": "Does the trip template keep 00's time-first exception or override it? 00 names photos as the one domain where \"time often belongs first because capture date is a defining aspect of the material\", and this node recommends event → location instead, because a trip value carries its own year and a year level either repeats the parent, produces one child, or splits a New Year trip in two. The counter-case is a large multi-year corpus, where Photos/2026/ is how many people already browse and where trip labels are unstable until the user names them. This node recommends and 00 lets the user reverse; whether the recommendation should default to the schema's order for corpora spanning many years is a decision about someone's real filesystem. Related and already recorded upstream: ROSTER.md NJ-R1a-2, whether travel deserves a small schema, since neither photos nor finance can express trip → record type and this node holds only the capture half."
+}

@@ -1,0 +1,361 @@
+{
+  "id": "academic.online-course",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Online course (MOOC)",
+  "one_line": "Self-paced study bought or enrolled on a course platform: a downloaded lesson series with captions, exercise notebooks, a completion certificate and an order confirmation — course-shaped material that usually carries no term and whose institution evidence is a provider, not a registrar.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "node_test": "Passes on three of the licensed differences, not on work types or extensions. (1) Detection signals differ: the dominant evidence here is a sequence-numbered lesson series in audio_video plus a caption sibling — 00 says audio and video files should yield \"duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present\" — and provider-plus-completion language, none of which the coursework template's registrar/term/course-code signals reach. (2) The recommended dimensions differ: term is dropped by default because self-paced platform study frequently produces no term evidence at all, and 00's term rule admits only dedicated patterns. (3) The privacy contour differs: the bulk of this material is published third-party media carrying no personal content, while the personal residue is a named certificate, an order receipt and an enrollment mail rather than coursework's grades and rosters.",
+
+  "fields": [],
+  "proposed_fields": [],
+
+  "recognition": {
+    "deterministic": [
+      "a course-provider gazetteer hit (R4's content, matched at a word boundary — 00: \"It should use word-boundary matching rather than substring matching.\") in a high-weight zone together with self-paced-study language describing the document itself (enrollment, module, lesson, course completion — proposed_context_terms, not 00's five)",
+      "a sequence-numbered lesson filename shape (an ordinal pair before a lesson title) recurring across sibling files in one directory, where those siblings are audio_video or presentation and an embedded title tag repeats one course title across them",
+      "a caption or subtitle file whose stem matches a sibling lesson media file's stem — the same evidence 00 expects inside the media (\"subtitles or captions where present\"), detached into its own text-bearing file",
+      "certificate-of-completion language in the title zone naming both a provider and a course title, with no licensing-board, credit-hour or renewal language present",
+      "the Academic schema's own rule with provider-shaped institution evidence: \"a course-code pattern together with academic context\" where the co-occurring institution token resolves to a provider or platform rather than to registrar, enrollment or transcript language",
+      "an order-confirmation or enrollment slot pair in a labelled document or mail header (order identifier plus a course title line item), which 00's email extraction surfaces as a structured slot rather than prose"
+    ],
+    "needs_llm": [
+      "a lecture caption transcript whose only content is subject-matter prose — the model must decide whether a recurring phrase is the course title or merely the topic, and must return unknown when it cannot cite a title-zone or embedded-tag occurrence",
+      "a downloaded PDF that reads equally as a course reading and as a research paper, where no provider or lesson-sequence evidence exists on the file itself",
+      "an OCR'd platform dashboard where progress language is present but no course-code-shaped token and no provider name appear",
+      "an archive whose members mix exercise notebooks, slide decks and a certificate: is the shared explanation one purchased course, or a code project that happens to contain teaching material?",
+      "a lesson media file whose filename is opaque and whose only signal is an embedded title tag in a language the deterministic provider and lesson-sequence catalogues do not cover"
+    ],
+    "never_alone": [
+      "a provider or university name alone — 00 names this exact ambiguity and names the provider role inside it: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "source_type audio_video alone, or a video extension alone — a downloaded film, a podcast episode and a screen recording are the same shape; 00: the engine should \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a sequence-numbered filename alone: a camera burst, a scanned book, a ripped album and a lesson series all produce ordinal-prefixed siblings",
+      "a bulk download session alone, which is how a whole course usually arrives on disk — 00: \"A session should never be treated as proof of topic\"",
+      "the word Certificate alone, which equally fits a professional licence, an insurance certificate, a share certificate and a birth certificate",
+      "a week-shaped token alone as a term: 00 admits only dedicated term patterns — \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\"",
+      "a bare 4-digit number alone, which may be a course identifier, a video bitrate, an order number or a year",
+      "a parent folder named after a provider alone — folder context is a clue, and 00 requires existing structure be read as evidence of habit rather than silently reinterpreted"
+    ]
+  },
+
+  "proposed_context_terms": [
+    "enrolled",
+    "enrollment",
+    "self-paced",
+    "module",
+    "lesson",
+    "course completion",
+    "certificate of completion",
+    "cohort",
+    "audit",
+    "course id",
+    "verification code",
+    "playback speed"
+  ],
+
+  "work_types": [
+    "lecture video",
+    "lecture slides",
+    "caption transcript",
+    "quiz",
+    "exercise",
+    "assignment",
+    "project",
+    "reading",
+    "notes",
+    "certificate",
+    "course schedule"
+  ],
+
+  "grouping_reasons": [
+    "one purchased or enrolled course on one provider, across its lesson media, caption siblings, exercise files and certificate",
+    "one lesson across its media file and its caption file — a derivation pair, not a duplicate family and not a version family",
+    "one enrollment across its order confirmation, its confirmation mail and its later certificate: content-incoherent, purpose-coherent",
+    "a bulk download that brought a whole course down at once, which enters only as the possible-grade clue 00 allows and never as proof of topic"
+  ],
+
+  "template": {
+    "dimension_order": ["school", "subject", "work_type"],
+    "why": "Same parent-context rule as the schema's default template — 00: \"a parent dimension should provide the context required to understand the child\" — so the provider (held in school, per this row's roster hint) precedes the course, and the course precedes the work type: Certificate or Week 4 Quiz is unintelligible until the course is known. term is dropped from the recommended order rather than reordered, because self-paced platform study routinely produces no term evidence at all and 00 admits no fuzzy substitute for it; a level no fact can fill is exactly what 00 warns against — \"It should recommend flattening when a dimension does not materially improve retrieval.\" OPTIONAL BRANCH PATTERN: where a provider runs dated cohorts and a dedicated term pattern actually matches, term may be inserted between school and subject, restoring the schema's default order. time_first is false for the reason 00 gives document domains: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" All three dimensions are destination-eligible fields the Academic schema declares; instructor is excluded because it is not destination-eligible. This is a recommendation — the user may reverse, remove, add or flatten any level, and a provider-flat course-first order is a reasonable choice for someone who studies with one provider only.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "audio_video",
+      "text_document",
+      "presentation",
+      "code_structured",
+      "archive",
+      "image",
+      "ocr",
+      "email"
+    ],
+    "extensions": [".mp4", ".mkv", ".m4v", ".vtt", ".srt", ".pdf", ".pptx", ".ipynb", ".py", ".zip", ".png", ".eml"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "03_05_Gradient Descent in Practice.mp4",
+      "source_type": "audio_video",
+      "observations": [
+        "filename carries an ordinal pair before a lesson title",
+        "eleven sibling files in the same directory share the ordinal-prefix shape",
+        "container metadata carries duration and codec information and an embedded title tag reading the course title",
+        "no camera or capture metadata"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "a folder path",
+        "term from the container creation time",
+        "school from the ordinal shape or from the directory name alone",
+        "instructor from a speaker name heard in the audio, which is not extracted evidence unless a transcript exists"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "03_05_Gradient Descent in Practice.en.vtt",
+      "source_type": "text_document",
+      "observations": [
+        "stem matches the sibling media file exactly; extension and cue-timing structure mark it a caption file",
+        "body is continuous spoken prose with timing cues, no headings",
+        "the course title appears once, spoken, in the opening cue",
+        "subject-matter vocabulary dominates every other line"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "subject from the dominant subject-matter vocabulary — a topic is not a course",
+        "subject from a single spoken occurrence in a low-weight zone: 00 holds that \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\"",
+        "instructor from a self-introduction in the opening cue",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Certificate of Completion - Machine Learning - 8KZQ2R4YXN3P.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone reads Certificate of Completion",
+        "provider name and course title in the page-one heading, with an authoring university named in smaller type beneath the provider",
+        "a verification line carrying an opaque identifier that repeats in the filename",
+        "the holder's full name in the body; an issue date; no credit hours, no licence number, no expiry"
+      ],
+      "facts_legal": ["school", "subject", "work_type"],
+      "must_not_conclude": [
+        "instructor, which no slot on this certificate names",
+        "term from the issue date",
+        "target_university from the authoring university named beneath the provider — that role field belongs to an application, not to a completed course",
+        "that this is a professional licence or an accredited credential, which the absent licence, credit-hour and renewal language rules out",
+        "a folder path"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Week 4 Quiz - Attempt 1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled header block with slots reading Course, Module and Score",
+        "the Course slot holds a course title, the Module slot a week-shaped token",
+        "numbered questions with selected answers below",
+        "no provider name anywhere on the page"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "term from the week-shaped token in the Module slot",
+        "school, because no provider or institution evidence exists on this file",
+        "that the score is a fact about anything other than this attempt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-03-02 at 21.10.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads a course title, a progress line, and the labels Continue lesson and My learning",
+        "OCR text also contains a provider wordmark and a navigation menu",
+        "no course-code-shaped token anywhere in the recognized text"
+      ],
+      "facts_legal": ["subject", "school"],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "work_type, because a dashboard is not a course artifact",
+        "term from the progress line",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "course-materials.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists slides.pdf, notebooks/assignment_1.ipynb, notebooks/assignment_2.ipynb, data/train.csv and certificate.pdf",
+        "manifest contains no package manifest, no README and no repository marker",
+        "outer archive name is generic",
+        "no member is opened to disk during the normal scan — 00: \"Archives should be inspected without being unpacked to disk.\""
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from any member filename",
+        "school from the certificate member without inspecting it",
+        "that the notebook members make this a code project — 00: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text.\"",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "assignment_2.ipynb",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook metadata names a kernel; cells alternate markdown prompts and short code answers",
+        "the first markdown cell repeats a numbered exercise instruction",
+        "no package manifest, no repository marker and no project identifier anywhere in the notebook or its directory",
+        "sibling files are numbered the same way"
+      ],
+      "facts_legal": ["work_type"],
+      "must_not_conclude": [
+        "project or repository, which have no structural evidence here",
+        "subject from an imported library name",
+        "programming_language as a folder level — the canonical row marks it not destination-eligible",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Your enrollment is confirmed - order 4471-0092.eml",
+      "source_type": "email",
+      "observations": [
+        "sender domain and subject line name a course provider and a course title",
+        "body carries an order identifier, a line-item price and a link to the course",
+        "sent date present; no term, no course code",
+        "recipient address is the holder's own"
+      ],
+      "facts_legal": ["school", "subject"],
+      "must_not_conclude": [
+        "work_type, because a purchase record is not a course artifact",
+        "term from the sent date",
+        "that study happened — a purchase evidences enrollment, not coursework",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "notes.txt",
+      "source_type": "text_document",
+      "observations": [
+        "short bullet list of definitions and one worked derivation",
+        "no course title, no provider, no lesson ordinal, none of 00's five academic context terms",
+        "mutual semantic retrieval with the caption files of one lesson series in the same directory",
+        "modification time falls inside the same bulk download session as those lessons"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from the neighbouring lesson series",
+        "school from the neighbourhood or from the session",
+        "work_type = notes as a course artifact without evidence on the file itself",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PHYS1401 Lecture 08 - Rotational Dynamics.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "filename carries a course-code-shaped token and the word Lecture",
+        "slide-one title repeats the course code; a footer names a university and a lecture hall",
+        "speaker notes reference an office-hours time and a graded problem set due date",
+        "no provider name, no lesson ordinal pair, no completion or enrollment language"
+      ],
+      "facts_legal": ["subject", "work_type"],
+      "must_not_conclude": [
+        "that this template fires — this is the coursework situation: the institution evidence is the holder's own enrolled university, not a provider",
+        "school from the footer's university name alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Certified Solutions Architect - Associate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "title zone reads a certification name and the word Certified",
+        "body carries a credential identifier, an issue date and an expiry date",
+        "an issuing body's seal caption and a registry-verification URL",
+        "no course title, no lesson series, no provider course id"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this template fires — expiry, a credential registry and an issuing body make this a professional credential, not a course completion",
+        "subject from the certification name",
+        "school from the issuing body",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "academic.coursework",
+      "signal": "both are lecture-and-exercise material carrying a course title and a work type, and one evidence item — the word Lecture beside a course-shaped token — supports either. The discriminating evidence: coursework needs registrar-, enrollment- or term-side evidence naming the holder's own institution, or a dedicated term pattern; this template needs provider-plus-self-paced evidence — a course-provider hit with completion, module or enrollment language, or a lesson-ordinal series with a matching caption sibling. A university that appears as the course provider is the trap 00 names by role, and neither side may take a bare institution name."
+    },
+    {
+      "domain": "academic.continuing-education",
+      "signal": "the closest neighbour on the roster: both are provider-run courses ending in a completion certificate, and a certificate PDF is one evidence item that supports either. The discriminating evidence: continuing education carries credit-hour, accreditation, licensing-board or renewal-cycle language tying the course to a professional obligation; this template carries none of that and instead carries platform artifacts — a lesson-ordinal media series, caption siblings, a course-order receipt. Where a file carries both, neither side takes the item. Whether these are one organizational situation is recorded in open_question."
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "a completion certificate and a professional licence are the same document shape, and the holder's name plus a credential identifier is one evidence item supporting either. The discriminating evidence: a licence or certification carries an expiry or renewal date, an issuing authority with a registry, and a credential number that verifies against that registry; a course completion carries a provider, a course title and a course-completion verification id with no expiry."
+    },
+    {
+      "domain": "code.notebooks-experiments",
+      "signal": "an exercise notebook and an experiment notebook are the same source_type with the same cell structure, and the notebook itself is one evidence item supporting either. The discriminating evidence, 00's own: code needs \"local structural evidence, including repository roots and package files\" — a manifest, a repository marker, a project identifier; the course side needs a numbered exercise prompt inside the notebook plus sibling course artifacts (a lesson series, slides, a certificate) with no repository markers present."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    "Reading Inbox",
+    "Review Later",
+    "Independent Records",
+    "Receipts and Confirmations"
+  ],
+
+  "role_split": [],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The bulk of this material is published third-party course media that carries no personal content at all — the privacy contrast with the coursework situation, whose grades and rosters dominate. The personal residue is narrow but real: the completion certificate carries the holder's full name and a verification identifier, the order confirmation carries a purchase record, and the enrollment mail is a mail file, which 00 requires be handled \"while treating addresses and message content as potentially sensitive\". Which handling class applies is P7's and is not set here.",
+
+  "open_question": "Two forks, both Joseph's. (1) One file can name two institutions — the platform that hosted the course and the university that authored it — and only one canonical key, school, is available to hold either; this row follows its roster hint and puts the provider in school, so the authoring university currently has nowhere to land and is recorded as a must_not_conclude rather than a fact. Minting a second institution key would be a canonical-field change, not a template's decision. (2) academic.online-course and academic.continuing-education may be one organizational situation: both are provider-run, certificate-terminated and usually termless, and the split rests entirely on whether a professional obligation (credit hours, a licensing board, a renewal cycle) is present. If Joseph reads that as a value distinction rather than a situational one, one of the two rows should be withdrawn at R1c rather than both padded."
+}

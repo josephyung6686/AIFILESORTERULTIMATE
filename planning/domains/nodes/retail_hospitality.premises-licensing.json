@@ -1,0 +1,624 @@
+{
+  "id": "retail_hospitality.premises-licensing",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Premises licensing and permissions (the operator's own permission-to-trade file)",
+  "one_line": "The long-running file an OPERATOR keeps of the permissions a named premises must hold to trade at all: the application, the grant, the numbered conditions, each variation and temporary notice, the responsible-person appointments, the notices and hearing papers, and any review pack — keyed to a PREMISES ADDRESS and a schedule of LICENSABLE ACTIVITIES with permitted hours, not to an entity identifier and a filing period. It is recognised by the PERMISSION-TO-TRADE structure the schema already names, sharpened here into a CONTINUING PERMISSION life rather than a trading session: the same licence reference recurs across years of application, grant, variation and review. It is not the word licence, not a Companies House confirmation statement, not an authority's register or determination case, not a food-hygiene temperature diary, and not a lease alienation consent. A PLACEHOLDER TEMPLATE: it writes NO field rows and recommends NO folder dimensions, because the retail_hospitality schema declares none (PR-6, D1 as narrowed).",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry below: each is a DETECTION signal and never an extraction licence. The schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where this row's sensitivity says so, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "THE PERMISSION-TO-TRADE structure, sharpened to OPERATOR CUSTODY. A document keyed to a PREMISES ADDRESS rather than to an entity identifier, carrying a licence or registration reference, a schedule of LICENSABLE ACTIVITIES each with its own permitted hours, a conditions annex or numbered conditions schedule, and often a named responsible individual in a labelled role slot (designated premises supervisor, food business operator, premises manager, licence holder). The same structure appears in the schema's recognition union; this row fires when the holder's side is the OPERATOR who must produce the permission on demand, not the authority that granted it.",
+      "THE CONTINUING-PERMISSION LIFE across several files sharing ONE licence or premises reference: an application, a grant or certificate, a conditions annex, a variation or transfer, a temporary event notice keyed to the same premises, and optionally a review or hearing pack. The reference recurring across years is the signal; a single standalone certificate with no neighbourhood is not enough on its own and falls through.",
+      "A RESPONSIBLE-PERSON APPOINTMENT structure: a consent, nomination or appointment form naming a natural person in a labelled licensing role for a named premises, with a personal-licence number or equivalent credential reference beside the premises-licence reference. The pairing of person-role and premises-reference is what fires; a personal licence alone is not this row.",
+      "A PUBLIC-NOTICE-OF-APPLICATION OR HEARING structure held in the operator's pack: a blue notice, newspaper notice, or licensing-subcommittee hearing agenda naming the premises address, the proposed activities or variation, and a representations deadline — arriving as correspondence TO the operator or as a copy the operator must display, not as the authority's own caseworking file.",
+      "A TEMPORARY OR OCCASIONAL permission keyed to a named premises and a dated window: Temporary Event Notice, occasional licence, late-night authorisation for one date — carrying the premises address, the activity, and a start/end that is not a lease term and not a trading-session Z-read.",
+      "Parent-folder context naming licensing, premises licence, DPS, food business registration, TENs or a licence reference, treated as a clue that raises plausibility once one of the structures above is already present. Folder context never fires alone.",
+      "An email whose labelled subject slot names a licence, variation, hearing, TEN or premises reference AND whose body or attachment-name slot carries a conditions schedule, application form, hearing agenda or fee demand. The reference-plus-instrument pairing is what fires; a council sender domain alone does not.",
+      "An archive whose MANIFEST names a licence pack, a variation bundle, a review file or a hearing bundle for one premises — read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+      "A scan or photograph of a DISPLAYED licence summary or wall certificate — positive image evidence plus OCR of a premises address, licence number and permitted hours. “A screenshot is always a screenshot of something—a receipt, application portal, conversation, code problem, document, calendar, or research figure—and without OCR the product sees only an image with a weak filename.” Missing EXIF proves neither display nor permission."
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's ordinary pack mixes STATUTORILY DISPLAYABLE instruments with PROTECTED application and review material about named individuals. A model step runs under the user's policy and after P7. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "WHOSE CUSTODY IS THIS — the row's central determination, shared with government.permit-licensing. Identical bytes of a premises-licence certificate, conditions schedule or inspection report exist on the authority's side and on the operator's side. The operator's pack sits beside the operator's own application drafts, fee receipts, responsible-person consents and display copies; the authority's case sits beside representations, officer reports, register maintenance and determination minutes. Where custody does not settle, this row must not activate. “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”",
+      "Separating a CONTINUING PREMISES PERMISSION from a PERSONAL CREDENTIAL, a software or content licence, a lease alienation consent, a hot-works permit to work, or a Companies House filing that happens to name the same trading style.",
+      "Separating a LIVE permission file from a BLANK application form, a solicitor's specimen pack, a franchise operations-manual specimen, a training exercise, or a downloaded guidance PDF. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "A purpose-coherent licence pack whose members are individually unremarkable: the application PDF, a scanned DPS consent, a newspaper notice clipping, a fee receipt, a hearing agenda and the issued certificate. “The documents are content-incoherent but purpose-coherent.”",
+      "Deciding whether a food-hygiene inspection report in the same folder is this row's permission neighbourhood or retail_hospitality.food-safety's operative diary — the report alone is not decisive; see collides_with.",
+      "Reading a photographed wall certificate or a handwritten blue-notice photograph where OCR is weak and the most legible tokens are a trade name and an address.",
+      "A licensing instrument in a language whose premises, activity-hours and responsible-person vocabulary the deterministic catalogue does not cover.",
+      "In every case above, abstention is the required outcome when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE WORD `licence` / `license` / `permit` / `authorisation`, STANDING ALONE. Software EULAs, content licences, driving licences, marriage licences, parental consent forms, hot-works permits to work, alienation licences under a lease, and `Review Later` all carry it. What fires this row is never the word; it is the premises-keyed activity-hours-and-conditions structure under operator custody.",
+      "A LICENCE OR CASE NUMBER, STANDING ALONE. The same reference is printed on the authority's copy and on the licensee's copy; a bare token discriminates nothing and invents no permission fact.",
+      "A TRADE NAME OR PREMISES ADDRESS, STANDING ALONE. The reasoning is read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the same name is the holder's site, a landlord's demise, an authority's register row, a competitor named in a market note, and a party venue on a private invitation.",
+      "A DOCUMENT-TYPE WORD, STANDING ALONE — application, grant, variation, review, notice, certificate. The schema already warns that a row resting on one is the default template wearing a name; these are function values inside the permission life, not the row's identity.",
+      "A NAMED RESPONSIBLE PERSON (DPS, FBO, licence holder, manager). The name is a literal observation and must never become a group anchor or a folder level: the design warns against a level that creates “a large number of tiny folders”, and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”",
+      "A HYGIENE RATING NUMBER OR STICKER IMAGE, STANDING ALONE. Ratings appear on marketing pages, third-party listing scrapes and newspaper stories; without the permission or inspection structure around them they are not this row.",
+      "A DATE OR LICENCE YEAR, STANDING ALONE. Nearly every file in this world is dated; a year-first tree would scatter one permission's life across calendar folders.",
+      "POSSESSION OF A DISPLAYED CERTIFICATE PHOTO. A tourist's photograph of a pub's wall licence, a journalist's image, and the operator's own display copy share the pixels; custody and the surrounding pack discriminate, not the image."
+    ]
+  },
+  "proposed_context_terms": [
+    "premises licence",
+    "premises license",
+    "licensable activities",
+    "permitted hours",
+    "licensing objectives",
+    "designated premises supervisor",
+    "DPS",
+    "food business operator",
+    "FBO",
+    "personal licence",
+    "licence holder",
+    "conditions annex",
+    "operating schedule",
+    "variation of licence",
+    "minor variation",
+    "transfer of licence",
+    "review of licence",
+    "Temporary Event Notice",
+    "TEN",
+    "blue notice",
+    "newspaper notice",
+    "representations",
+    "licensing sub-committee",
+    "hearing agenda",
+    "street trading consent",
+    "late night refreshment",
+    "regulated entertainment",
+    "alcohol retail",
+    "club premises certificate",
+    "food business registration",
+    "hygiene rating",
+    "display of licence summary"
+  ],
+  "work_types": [
+    "premises licence or registration application",
+    "grant, certificate or summary for display",
+    "full conditions annex or operating schedule",
+    "variation, minor variation or transfer application and determination copy",
+    "Temporary Event Notice or occasional permission",
+    "responsible-person consent, nomination or appointment",
+    "personal licence copy held only as a member of a premises pack",
+    "public notice of application, blue notice photograph, newspaper notice",
+    "hearing agenda, representations pack or review papers held by the operator",
+    "licensing fee demand, payment receipt or acknowledgement",
+    "authority inspection or rating outcome retained in the permission neighbourhood"
+  ],
+  "grouping_reasons": [
+    "ONE PERMISSION over its life: the application, grant, conditions, each variation, each TEN and any review for one premises reference — a long-running file whose members may be years apart. “The documents are content-incoherent but purpose-coherent.”",
+    "ONE VARIATION CYCLE: the variation application, the public notice, the hearing papers and the amended conditions that close it, joined by the recurring licence reference.",
+    "ONE RESPONSIBLE-PERSON CHANGE: the outgoing consent, the incoming nomination, the personal-licence copy and the authority acknowledgement for one appointment.",
+    "Duplicate and version families remain universal relationships; a re-issued summary, a consolidated conditions schedule and a corrected certificate do not acquire new facts from their neighbourhood.",
+    "No group is a valid outcome for a standalone issued certificate or notice with no pack around it: “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT: PR-6 leaves the retail_hospitality schema with no field rows, and a dimension may only branch on a field the same schema declares. The recommendation is therefore held as prose, and it is stated here because the node test requires this row to say how it differs from the schema's default — which reads: the TRADING UNIT only where the corpus spans more than one, then the TRADING OCCASION (session, count, order cycle, booking, function, licensed premises), then the OPERATIONAL RECORD FUNCTION, not time-first. THIS ROW KEEPS THE THREE-LEVEL SHAPE BUT REWRITES THE MIDDLE LEVEL'S MEANING: the occasion is not a dated trading session but the CONTINUING PERMISSION (the premises-licence or registration reference for one place). Function then splits as application / grant-and-conditions / variation / temporary notice / review-and-hearing / responsible-person appointment. Trading period and licence year sit INSIDE the permission, never above the site — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” — and the time-first exception belongs to capture alone: “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” A licence year is a content period, not a capture date. TWO ABSOLUTE PROHIBITIONS: a NAMED DPS, FBO, licence holder or objector must never become a dimension, and a bare licence number must never become a visible branch label without user-approved redaction, because a permission reference resolves in public registers to a person and often a home address. Site remains conditional (only where the corpus spans more than one trading unit). Any order remains editable — “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.” Whether the schema's proposed `trading_occasion` may legally stretch to a continuing permission, or whether a later permission-reference concept is required, is NJ-PL-1; this row mints nothing.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "presentation",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".zip",
+      ".pptx",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Premises Licence Application - The Bell, Wharf Street - PL-2026-0881.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled premises address and applicant slots",
+        "enumerated licensable activities with proposed hours",
+        "operating-schedule / conditions-offered section",
+        "named designated premises supervisor slot with a personal-licence number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "that the application will be granted or that the activities are lawful",
+        "a site or permission reference as a stored domain fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Premises Licence - The Mill Tavern - certificate and summary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issued instrument naming the holder, the premises and a licence reference",
+        "summary of licensable activities and permitted hours suitable for display",
+        "no authority case apparatus — no officer report, no representations, no register-maintenance rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "that possession establishes authority-side custody — THIS IS THE COLLISION FIXTURE with government.permit-licensing",
+        "that the licence is current or the conditions are met",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Premises Licence PL-2026-0881 - full conditions annex.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered conditions schedule keyed to the same licence reference as the certificate",
+        "activity-specific hour limits and mandatory conditions",
+        "premises plan reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "that every condition is being complied with",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Licence variation - extend hours - notice of application.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "existing licence reference plus proposed change to permitted hours",
+        "premises address and applicant block",
+        "representations deadline and licensing-authority contact block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "that the variation was granted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "DPS consent form - Jordan Lee - The Bell.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled consent by a named natural person to be designated premises supervisor",
+        "personal-licence number beside the premises-licence reference",
+        "signature and date slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "that Jordan Lee is currently the DPS or is suitable",
+        "a person name as a group anchor or folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Personal Licence - Jordan Lee - PLH-44192.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issued personal licence naming a natural person and a licensing authority",
+        "photograph and personal-licence number",
+        "no premises address and no licensable-activities schedule for a place"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a personal credential alone activates this row — it joins only as a member of an accepted premises pack",
+        "any identity fact beyond universal sensitivity handling",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Temporary Event Notice - Ashcroft wedding - 6 Jun 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "premises address and dated activity window",
+        "licensable activities for one occasion",
+        "applicant and licensing-authority acknowledgement block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "that this is an event-production run sheet or a booking confirmation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Licensing Sub-Committee hearing - The Bell - agenda and papers.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "hearing date, premises address and licence reference",
+        "officer report summary and list of representations",
+        "received as correspondence to the operator / applicant rather than as a council case export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact — the schema declares none",
+        "authority-side custody from receipt of an authority-authored agenda",
+        "that named objectors may become branch labels",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Food hygiene inspection report - 12 Feb 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "premises address and food-business operator slot",
+        "numbered hygiene findings with scores and a rating outcome",
+        "inspection date and enforcing-authority block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a hygiene rating alone is a premises-licence fact — THIS IS THE COLLISION FIXTURE with retail_hospitality.food-safety",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Licensing fee receipt - PL-2026-0881 - 2026 annual.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "payment amount, payee council account and licence reference",
+        "receipt or acknowledgement number",
+        "premises address in the narrative"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any finance ledger fact from membership in a licence pack",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Licence pack - The Bell PL-2026-0881.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists application, certificate, conditions annex, DPS consent, fee receipt and variation notice",
+        "one recurring licence reference across member names",
+        "no authority register extract or officer working papers in the manifest"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from members not listed on the manifest — archive contents are not extracted to classify",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_1422 - licence summary on bar wall.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a framed licence summary behind a bar",
+        "OCR candidates for a premises name, licence number and permitted hours",
+        "camera capture metadata may be present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "operator custody from the image alone — a guest or journalist can photograph the same wall",
+        "a capture date as a licence effective date",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Confirmation statement - The Bell Ltd - Companies House.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "entity identifier and filing period",
+        "officer and PSC sections keyed to the company, not to a premises address",
+        "no licensable-activities schedule and no permitted hours"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a trading style shared with a pub makes this a premises permission — THIS IS A FALSE FRIEND for business_operations.corporate-regulatory-filings",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Alienation licence - Unit 4 Wharf Street - landlord consent.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "landlord and tenant blocks under a lease",
+        "consent to assign or underlet a demise",
+        "no licensable-activities schedule and no licensing-authority grant"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the word licence makes this a premises-trade permission — THIS IS A FALSE FRIEND for construction_property.commercial-lease",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "EPOS software licence key - Square for Restaurants.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "software product name, licensee entity and licence key",
+        "end-user licence terms",
+        "no premises address with licensable activities"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a software licence is a premises permission",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Blank premises licence application form - specimen.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "empty labelled slots for premises, activities and DPS",
+        "guidance footnotes",
+        "no completed applicant identity and no licence reference issued"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a blank form is a live permission file",
+        "any retail_hospitality fact — the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.permit-licensing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Premises Licence - The Mill Tavern - certificate and summary.pdf` — literally the same issued instrument, held by the council and by the publican. THIS ROW OWNS the OPERATOR'S custody of its own application, grant, conditions, variation, TEN, responsible-person consents and display copies — the permission it must produce on demand, sitting beside fee receipts and operator-side drafts. THAT ROW OWNS the AUTHORITY'S case apparatus: representations, officer reports, register maintenance, determination minutes and renewal runs. Discriminated by CUSTODY APPARATUS, not by content or by the shared licence reference (the reference is printed on both copies and decides nothing). Where custody does not settle, neither activates. RETAIL_HOSPITALITY.PREMISES-LICENSING MUST NOT TAKE a licensing register extract, another operator's application, or a council policy statement; GOVERNMENT.PERMIT-LICENSING MUST NOT TAKE a trader's own licence pack merely because the issuer is a council.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: `Confirmation statement - The Bell Ltd - Companies House.pdf` sits with that row; the premises-licence certificate for the same trading style sits here. THIS ROW OWNS instruments keyed to a PREMISES ADDRESS and a schedule of licensable activities with permitted hours, grantable to whoever operates the place. THAT ROW OWNS periodic compelled returns keyed to an ENTITY IDENTIFIER and a PERIOD, made by the entity about itself. Discriminated by KEYING: place-and-activities versus entity-and-period. A shared trade name decides nothing. RETAIL_HOSPITALITY.PREMISES-LICENSING MUST NOT TAKE a confirmation statement, annual accounts filing or PSC register because the company runs a pub; BUSINESS_OPERATIONS.CORPORATE-REGULATORY-FILINGS MUST NOT TAKE a premises-licence conditions annex because the licensee is a limited company.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.food-safety",
+      "signal": "SAME FIXTURE BOTH SIDES: `Food hygiene inspection report - 12 Feb 2026.pdf` — authority-issued, premises-addressed, held by the operator. THIS ROW may retain the report only as a MEMBER of an accepted permission neighbourhood (the pack the premises must be able to produce). THAT ROW OWNS the OPERATIVE FOOD-SAFETY SITUATION: temperature and probe logs, cleaning schedules, delivery checks, traceability and the inspection outcome as evidence of the kitchen's contemporaneous control. Discriminated by STRUCTURE AROUND THE REPORT: activity-hours-and-conditions / licence reference neighbourhood supports this row; daily-signed-check diaries and batch-traceability neighbourhood supports food-safety. A hygiene rating sticker alone supports neither. The schema work_type that listed hygiene inspection under premises permission is recorded as NJ-PL-2 rather than treated as a licence to steal food-safety's core artefact.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.commercial-lease",
+      "signal": "SAME FIXTURE BOTH SIDES: `Alienation licence - Unit 4 Wharf Street - landlord consent.pdf` — the word licence and a premises address appear on both sides of the seam. THIS ROW OWNS public-authority permission to carry on licensable trading activities at a place. THAT ROW OWNS the landlord's consent under a lease to assign, underlet or alter a demise. Discriminated by ISSUER AND INSTRUMENT: a licensing authority plus licensable activities and permitted hours supports this row; a landlord/tenant block under a lease with no activity-hours schedule supports the lease row. RETAIL_HOSPITALITY.PREMISES-LICENSING MUST NOT TAKE rent reviews, dilapidations or alienation consents because the tenant is a cafe; CONSTRUCTION_PROPERTY.COMMERCIAL-LEASE MUST NOT TAKE a premises-licence grant because the demise is a shop.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Licensing fee receipt - PL-2026-0881 - 2026 annual.pdf` — a paid council fee with a licence reference. THIS ROW may group the receipt as a MEMBER of the permission life. THAT ROW OWNS the ACCOUNTING reading: payee, amount, tax treatment, nominal posting and period. Discriminated by whether the evidence used is the permission neighbourhood or the ledger apparatus. Membership never converts the receipt into a licensing fact, and the licence reference never becomes a finance account identity.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.store-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: a site 'compliance pack' folder containing `Premises Licence - The Mill Tavern - certificate and summary.pdf` beside opening-checks sheets and a rota. THIS ROW OWNS the PERMISSION LIFE inside that pack. THAT ROW OWNS the SITE'S DAY-TO-DAY OPERATING RECORD — rotas against forecast trade, opening and closing checks, standards audits, reactive maintenance. Discriminated by STRUCTURE: activity-hours-and-conditions / continuing licence reference supports this row; daily-signed operational checks and labour-against-forecast supports store-operations. Neither may swallow the whole folder on a trade name alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.event-production",
+      "signal": "SAME FIXTURE BOTH SIDES: `Temporary Event Notice - Ashcroft wedding - 6 Jun 2026.pdf` can sit beside a wedding run sheet for the same date. THIS ROW OWNS the PERMISSION INSTRUMENT (TEN / occasional licence) keyed to premises and activities. THAT ROW OWNS putting the event on — brief, supplier schedule, run sheet, on-the-day log, reconciliation. Discriminated by whether the file is an authorisation instrument or a delivery plan. A wedding date shared across both decides nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "DELIBERATE NON-COLLISION ON THE MUST-CONSIDER LIST, recorded so it is not silently skipped. Licensing packs do not move goods; delivery notes and consignments do not grant permission to trade. No shared fixture was found on which both rows would claim the same bytes. If a later corpus shows a mobile-trading or street-trading consent travelling with a vehicle run sheet, R1c should add a reciprocal edge then — not invent one now.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "THE PRIMARY FALLTHROUGH for a standalone issued certificate, summary, TEN acknowledgement or public notice with durable purpose but no permission pack around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Required when the material is a named-person suitability, DPS consent, personal-licence photograph, objector representation or review witness statement with no safe accepted group. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "An isolated licensing-fee receipt or payment acknowledgement with no permission neighbourhood. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome when custody, permission-continuity or the food-safety versus licensing neighbourhood cannot be settled. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture or casual photograph of a licensing portal, register page or wall certificate where OCR does not establish operator custody or an accepted pack. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A password-protected licence-pack archive or unreadable case-system dump. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THIS ROW'S PRIVACY RULE DIFFERS FROM THE FAMILY DEFAULT IN A SPECIFIC WAY, and that difference is a node-test leg rather than atmosphere. The schema's family posture is driven by GUEST and consumer personal data (bookings, complaints, dietary notes). This row's sensitive material is about NAMED RESPONSIBLE PERSONS and OBJECTORS: DPS and FBO home addresses, personal-licence numbers and photographs, suitability and disclosure evidence, neighbour representations, and review witness statements. At the same time the corpus is deliberately MIXED — the licence summary is meant to be displayed on the wall and the register row is public, while the application pack behind the same reference is not. Publication of the display copy must not lower the posture of the pack that produced it (the same public-source / private-linkage trap guest-feedback records for review exports). “Privacy policy must be enforced before content reaches any model or external connector.” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” Named persons must not become branch labels. No handling class is invented here; P7 owns classes.",
+  "open_question": "NEEDS-JOSEPH: (1) NJ-PL-1 — WHETHER `trading_occasion` STRETCHES TO A CONTINUING PERMISSION. The schema proposes `trading_occasion` for dated capacity-bearing occasions and names 'licensed premises' in the default prose; a premises licence is not capacity-bearing and spans years. Alternatives: widen `trading_occasion` to admit continuing permissions (this pass's reading, minting nothing); mint a permission-reference concept later under a lifted PR-6; or keep the middle level as prose-only forever. (2) NJ-PL-2 — HYGIENE INSPECTION OWNERSHIP. The schema work_type listed 'hygiene inspection report' under premises permission, while food-safety's situation owns the operative diary the inspection assesses. Alternatives: food-safety owns all hygiene inspection outcomes and this row never groups them; this row may retain them only as pack members (this pass); or dual candidacy forces Review Later. food-safety is still owed and must say the same thing. (3) NJ-PL-3 — PERSONAL LICENCE ALONE. Alternatives: always identity/Protected Records unless an exact premises-pack reference exists (this pass); allow personal-licence files to activate this row for sole traders; or route all personal licences to identity regardless of neighbourhood. (4) NJ-PL-4 — VISIBLE LICENCE-NUMBER BRANCHES. A permission reference resolves in public registers to a person and often a home address. Alternatives: never destination-eligible; destination-eligible only as a redacted display label; or user-confirmed only. (5) NJ-PL-5 — RECIPROCAL ON government.permit-licensing. That row already names the Mill Tavern certificate as the licensee's copy; this row now authors the operator-side reciprocal. R1c should confirm both edges name the same fixture and neither claims authority-side register exports."
+}

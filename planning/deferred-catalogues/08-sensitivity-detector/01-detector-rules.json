@@ -1,0 +1,795 @@
+{
+  "list_id": "sensitivity_detector_rules",
+  "title": "08/01 — Sensitivity detector rules (what enters a protected state, and how we know)",
+  "version": "1.0",
+  "authored": "2026-08-21",
+  "owner": "P7 (injected). D2, ratified 2026-08-21: the detector is P7's, injected, and — until this catalogue is wired — unwritten. This file is the injected rule content, not a P7 module.",
+  "consumer": "a caller-built classification pass, run per file version over P4 observations, P5 sensitivity-signal rows, and P6's activation output, injected into P7's classification path. No module under src/privacy/ may hold these rules, patterns, or label lists at module level; the caller loads this JSON and compiles the patterns (same discipline as catalogues 02-07).",
+  "write_shape": {
+    "what_a_fired_rule_emits": {
+      "rule_id": "this catalogue's id, carried in the section-8.2 structured explanation",
+      "kind": "the rule's kind (null for basis = safety_domain rules); carried in the structured explanation, never a new column — P7's ClassificationRecord has no kind field and this catalogue invents no P7 columns or event types",
+      "basis": "detector | safety_domain — two of P7's three basis values; `user` is never a catalogue rule",
+      "protected": "the rule's boolean; true engages the three section-8.4 prohibitions verbatim",
+      "handling_class_ceiling": "the most protective class this rule ALONE may justify; the detector proposes, P7 assigns the class and owns the vocabulary",
+      "evidence_refs": "observation_keys per the rule's evidence_refs_shape; non-empty whenever basis = detector (P7 SPEC Contract out section 2)"
+    },
+    "homes": "D2 (ratified 2026-08-21): P7's ClassificationRecord keyed (file_id, content_hash) is authoritative; files.sensitivity_state is its projection via P1's set_sensitivity_state. Nothing in this shape is storage-specific, so a fired rule writes through either home unchanged if D2 is ever revisited."
+  },
+  "rules_preamble": [
+    "**Absence of a classification is never Public/low.** That resolution is P7's (absence resolves to unreadable_unclassified). This catalogue only says what happens when a rule DOES fire and what evidence it cites.",
+    "**Every detector rule is a conjunction.** No rule fires on a bare pattern, a bare filename, a bare extension, or a bare gazetteer hit. The model is 00's course-code discipline: \"BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as\" the named context terms.",
+    "**Format is never a class.** `.pdf` is not medical; `.csv` is not a credential export. Extension and source_type appear below only as conjuncts, mirroring the never-alone invariant on file_kind_plausible (CONNECTION section 5).",
+    "**Grouping is never an input.** Rules fire per file version on that file's own observations, signals, and activation — never on group membership. This is why the detector still fires on isolated residual material: 00: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" A fired rule is what lets the gate deny cloud for a file P10 never placed (the Protected Records residual, 00 section 7.3).",
+    "**No numeric thresholds.** Every count is a named injected slot with no default. Digits inside pattern strings describe document formats (an MRZ line's alphabet, a code-grid shape), never a decision threshold.",
+    "**No regex reaches src/.** Patterns live here as data; a later caller compiles them.",
+    "**Word-boundary matching** for every label and term list, per 00: \"It should use word-boundary matching rather than substring matching.\"",
+    "**P5's signals are consumed, never re-derived.** Email addresses, message content, and VCF values already carry P5's `potentially sensitive` signal rows (src/extractors/long_tail.py). Rules below key on those stored rows; no rule re-detects an email address.",
+    "**User revision outranks every rule.** 00: \"The classification is itself evidence-backed and can be revised by the user.\" A user_confirmed reclassification supersedes any rule's output; negative feedback stores the observation keys the rule fired on so the same signal does not resurface the same false protection (P7 SPEC, Correction learning)."
+  ],
+  "kinds": {
+    "design": [
+      {"kind": "passport", "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]},
+      {"kind": "tax_statement", "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]},
+      {"kind": "medical_document", "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]},
+      {"kind": "authentication_key", "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]},
+      {"kind": "account_record", "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]}
+    ],
+    "proposed": [
+      {"kind": "identity_document", "provenance": "proposal", "defense": "00 names visas beside passports in both protected-record sentences, and names 'identity documents' in the section-8.4 corpus list; driver's licences, national ID cards and civil-status certificates are the same material class. Joseph may refuse the kind; the passport rules stand without it.", "design_cites": [{"source": "00", "quote": "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold."}, {"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]},
+      {"kind": "legal_record", "provenance": "proposal", "defense": "00 names 'legal documents' among sub-threshold protected records and 'legal forms' inside the Protected Records residual; legal is also one of the four safety domains.", "design_cites": [{"source": "00", "quote": "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold."}, {"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}]},
+      {"kind": "credential_store", "provenance": "proposal", "defense": "00 names 'credentials' in the Protected Records residual and in the section-8.4 corpus list, and names a handling class 'Highly sensitive or credential-bearing'. Distinct from authentication_key (key material itself): a credential store is a file whose purpose is holding many credentials — 2FA backup codes, password-manager exports.", "design_cites": [{"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}, {"source": "00", "quote": "Highly sensitive or credential-bearing"}]},
+      {"kind": "private_correspondence", "provenance": "proposal", "defense": "00 names 'private correspondence' in the section-8.4 corpus list and marks message content potentially sensitive at extraction. NOT in the immediate-protected five, so rules of this kind set protected: false and propose a class ceiling only.", "design_cites": [{"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}, {"source": "00", "quote": "while treating addresses and message content as potentially sensitive"}]},
+      {"kind": "contact_record", "provenance": "proposal", "defense": "The kind name extends the five; the protection itself is a design sentence — VCF output 'should normally be privacy-protected rather than used to create folder proposals'.", "design_cites": [{"source": "00", "quote": "should normally be privacy-protected rather than used to create folder proposals"}]}
+    ]
+  },
+  "injected_slots": [
+    {"slot": "min_label_hits", "meaning": "how many DISTINCT labels from a rule's label list must be observed, at word boundaries, for the label-cluster signal to hold", "owner": "configuration; no default here"},
+    {"slot": "min_value_bearing_labels", "meaning": "how many of the matched labels must sit adjacent to a populated value span — the completed-vs-blank-form discriminator", "owner": "configuration; no default here"},
+    {"slot": "min_code_lines", "meaning": "how many consecutive code-shaped lines make a backup-code grid", "owner": "configuration; no default here"},
+    {"slot": "min_populated_rows", "meaning": "how many populated data rows a tabular signal (password export, statement transaction table) requires", "owner": "configuration; no default here"},
+    {"slot": "min_secret_assignments", "meaning": "how many secret-named assignments with non-placeholder values an env-style file requires", "owner": "configuration; no default here"},
+    {"slot": "tax_form_identifier_gazetteer", "meaning": "jurisdiction tax-form identifiers as VALUES (e.g. the strings naming a wage statement or a return form in one jurisdiction). This catalogue holds the TYPE; R5 fills the jurisdiction's values", "owner": "R5 (jurisdiction values)"},
+    {"slot": "national_id_label_gazetteer", "meaning": "jurisdiction labels for national identifiers (the label wordings, per jurisdiction)", "owner": "R5 (jurisdiction values)"},
+    {"slot": "account_locator_patterns", "meaning": "jurisdiction value shapes for account locators (IBAN-style, routing/sort-code-style)", "owner": "R5 (jurisdiction values)"},
+    {"slot": "legal_caption_gazetteer", "meaning": "jurisdiction court-caption and instrument wordings extending the generic English markers held here", "owner": "R5 (jurisdiction values)"}
+  ],
+  "entries": [
+    {
+      "id": "det-passport-mrz",
+      "name": "Passport machine-readable zone",
+      "kind": "passport",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "mrz_line_pair", "source": "an OCR text unit or extracted text unit (P4 text_units; observations span into it)", "pattern": "two consecutive lines each matching ^[A-Z0-9<]{40,44}$ with the first beginning P[A-Z<]", "notes": "ICAO 9303 TD3 shape; OCR noise motivates the tolerant length band in the pattern, which describes a document format, not a threshold"},
+        {"signal": "scanned_or_photographed_carrier", "source": "P5 source_type image, or a PDF routed to OCR (text_layer_absent)", "pattern": null, "notes": "00's protected example is 'a scanned passport'; the MRZ arriving via OCR of an image or scanned PDF is the realistic carrier"}
+      ],
+      "fire_condition": "both signals; no count slot — a well-formed MRZ line pair is singular evidence",
+      "never_alone": [
+        "the word 'passport' anywhere — a novel, a travel checklist, a visa-requirements article",
+        "a run of '<' characters in a diff, ASCII art, or an HTML fragment",
+        "an image with no OCR text — absence of text is not evidence of anything"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each MRZ-line observation (OCR region location and context fields preserved)",
+        "observation_key of the routing/format observation that establishes the scanned carrier"
+      ],
+      "false_positive_notes": [
+        "A museum or news photograph that includes a legible passport MRZ would fire; that is the over-protective direction and the user can revise (00: the classification 'can be revised by the user').",
+        "A specimen passport image in a design mock-up fires; acceptable for the same reason.",
+        "A visa-requirements blog post never fires: prose contains the word, not the MRZ shape."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]
+    },
+    {
+      "id": "det-passport-biodata-labels",
+      "name": "Passport biodata-page label cluster",
+      "kind": "passport",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "biodata_label_cluster", "source": "OCR text or extracted text observations", "labels": ["Passport No", "Passport Number", "Surname", "Given Names", "Nationality", "Date of Birth", "Place of Birth", "Date of Issue", "Date of Expiry", "Authority"], "notes": "word-boundary matched; distinct-label count against min_label_hits"},
+        {"signal": "populated_values", "source": "label-adjacent value spans in the same text unit", "pattern": null, "notes": "labels adjacent to populated value spans, counted against min_value_bearing_labels — a blank application form has the labels and no values"}
+      ],
+      "fire_condition": "biodata_label_cluster at or above min_label_hits AND populated_values at or above min_value_bearing_labels",
+      "never_alone": [
+        "any single label — 'Nationality' appears on conference registration forms, 'Date of Birth' on nearly every form in existence",
+        "a blank passport-application form: labels present, values absent",
+        "the label list translated into prose — an article explaining what a biodata page contains"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched label observation (zone and container_path preserved)",
+        "observation_key of each label-adjacent value observation"
+      ],
+      "false_positive_notes": [
+        "Passport-application FORMS (blank) are the main false friend; the populated-values conjunct is the discriminator.",
+        "A completed application form fires — and should: a completed form carries the same identifiers as the document.",
+        "Visa pages and residence permits share several labels; they fire this rule as passport-kind, which is the right protection with an imprecise kind label — kind flows into the explanation, not into a column, so the cost is explanatory only."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]
+    },
+    {
+      "id": "det-tax-form-completed",
+      "name": "Completed jurisdiction tax form",
+      "kind": "tax_statement",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "tax_form_identifier", "source": "gazetteer hit via tax_form_identifier_gazetteer (R5's values), word-boundary matched, positionally weighted toward filename / title / page-one heading", "pattern": null, "notes": "this catalogue names the type — a jurisdiction form identifier — and holds no jurisdiction values"},
+        {"signal": "tax_context_terms", "source": "extracted text observations", "labels": ["tax year", "taxable income", "tax withheld", "withholding", "adjusted gross income", "tax return", "self assessment"], "notes": "distinct-term count against min_label_hits"},
+        {"signal": "populated_values", "source": "labeled cells or label-adjacent value spans (P4 table locations from section 2.3, or labeled-cell observations from section 2.9 spreadsheets)", "pattern": null, "notes": "counted against min_value_bearing_labels — the completed-vs-template discriminator"}
+      ],
+      "fire_condition": "tax_form_identifier AND tax_context_terms at or above min_label_hits AND populated_values at or above min_value_bearing_labels",
+      "never_alone": [
+        "a bare form identifier — the same string appears in instructions pages, news articles, and accounting course material",
+        "the words 'tax' or 'tax year' alone — receipts, invoices, and accounting syllabi all carry them",
+        "a blank downloaded template (the prompt's W-9 case): identifier and labels present, populated values absent"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of the form-identifier observation (its zone records where it appeared — filename, title, heading)",
+        "observation_key of each matched context-term observation",
+        "observation_key of each populated labeled-value observation"
+      ],
+      "false_positive_notes": [
+        "Blank agency templates downloaded from the issuing authority's site are the named false friend; the populated-values conjunct is the discriminator, and producer metadata is deliberately NOT used (P6 owns the tool-string discount; catalogue 01).",
+        "A textbook chapter reproducing a filled example form fires; over-protective direction, user-revisable.",
+        "Instructions documents ('Instructions for ...') carry the identifier and context terms but few populated labeled values."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]
+    },
+    {
+      "id": "det-tax-statement-labels",
+      "name": "Tax statement without a form identifier",
+      "kind": "tax_statement",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "tax_statement_labels", "source": "extracted text or OCR observations", "labels": ["tax year", "taxable income", "tax withheld", "gross pay", "net pay", "employer", "tax code", "year to date"], "notes": "distinct-label count against min_label_hits; covers issued statements and payslip-like documents no form gazetteer names"},
+        {"signal": "populated_values", "source": "label-adjacent value spans or labeled cells", "pattern": null, "notes": "counted against min_value_bearing_labels"},
+        {"signal": "document_carrier", "source": "P5 source_type in (text_document, spreadsheet, image-with-OCR)", "pattern": null, "notes": "a routing conjunct, never sufficient — file_kind_plausible is constitutionally never-alone"}
+      ],
+      "fire_condition": "tax_statement_labels at or above min_label_hits AND populated_values at or above min_value_bearing_labels AND document_carrier",
+      "never_alone": [
+        "'income' or 'employer' alone — recruiting documents, job postings, budgeting spreadsheets",
+        "a spreadsheet with a column header containing 'tax' — a price list with a VAT column is a receipt-shaped document, not a tax statement",
+        "the carrier signal by itself — .pdf is not a tax statement"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched label observation",
+        "observation_key of each populated labeled-value observation"
+      ],
+      "false_positive_notes": [
+        "Payslips fire here; whether a payslip is a tax statement or an account record is a kind-labeling ambiguity, not a protection error — both kinds protect.",
+        "Invoices with tax lines are the main false friend; they lack the year-scoped labels ('tax year', 'year to date') that anchor this rule, and isolated invoices are 00's Receipts and Confirmations residual material: \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\"."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}, {"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]
+    },
+    {
+      "id": "det-medical-clinical-document",
+      "name": "Clinical document about an identified patient",
+      "kind": "medical_document",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "patient_identity_labels", "source": "extracted text or OCR observations", "labels": ["Patient Name", "Patient", "Date of Birth", "DOB", "MRN", "Medical Record Number", "NHS Number"], "notes": "distinct-label count against min_label_hits; the patient-identity half is what separates a record from reading material"},
+        {"signal": "clinical_content_labels", "source": "extracted text or OCR observations", "labels": ["Diagnosis", "Medications", "Prescription", "Discharge Summary", "Discharge Date", "Attending Physician", "Lab Results", "Referral", "Allergies", "History of Present Illness"], "notes": "distinct-label count against min_label_hits"},
+        {"signal": "populated_values", "source": "label-adjacent value spans", "pattern": null, "notes": "counted against min_value_bearing_labels"}
+      ],
+      "fire_condition": "patient_identity_labels at or above min_label_hits AND clinical_content_labels at or above min_label_hits AND populated_values at or above min_value_bearing_labels",
+      "never_alone": [
+        "clinical vocabulary alone — a medical journal article, a biology assignment, a pharmacology lecture deck: 00's Reading Inbox holds exactly this (\"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\")",
+        "'Date of Birth' alone, or a hospital name in a footer — a hospital's public newsletter",
+        "the word 'medical' anywhere"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched patient-identity label observation",
+        "observation_key of each matched clinical label observation",
+        "observation_key of each populated labeled-value observation"
+      ],
+      "false_positive_notes": [
+        "The decisive discriminator is patient identity PLUS clinical content: a published case report anonymizes the patient block; a student's pathology notes have clinical content and no patient labels; an appointment-reminder email has patient identity and no clinical content (it may still classify via private_correspondence).",
+        "Veterinary records fire; over-protective, user-revisable.",
+        "A blank intake form has the labels; the populated-values conjunct is the discriminator."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}, {"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]
+    },
+    {
+      "id": "det-medical-eob",
+      "name": "Explanation of benefits / insurer claim statement",
+      "kind": "medical_document",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "eob_labels", "source": "extracted text or OCR observations", "labels": ["Explanation of Benefits", "Claim Number", "Amount Billed", "Plan Paid", "Patient Responsibility", "This is not a bill", "Provider", "Service Date", "Allowed Amount"], "notes": "distinct-label count against min_label_hits; 'Explanation of Benefits' or 'This is not a bill' plus claim-money labels is the realistic shape"},
+        {"signal": "populated_values", "source": "label-adjacent value spans or labeled cells", "pattern": null, "notes": "counted against min_value_bearing_labels"}
+      ],
+      "fire_condition": "eob_labels at or above min_label_hits AND populated_values at or above min_value_bearing_labels",
+      "never_alone": [
+        "'claim' alone — warranty claims, insurance marketing, expense claims",
+        "'This is not a bill' quoted inside an article about medical billing",
+        "a health-plan brochure: labels explained, no populated claim values"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched EOB label observation",
+        "observation_key of each populated labeled-value observation"
+      ],
+      "false_positive_notes": [
+        "An EOB sits on the healthcare-insurance seam: finance-domain facts (institution, record_type) may co-activate with the medical safety placeholder (CONNECTION PR-8). The rule's kind stays medical_document; the co-activation is P6's business, not this rule's.",
+        "Dental and vision EOBs share the labels and fire correctly."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]
+    },
+    {
+      "id": "det-auth-key-material",
+      "name": "Private key material (PEM / OpenSSH / keystore)",
+      "kind": "authentication_key",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "design",
+      "ceiling_provenance_note": "the class name itself — 'Highly sensitive or credential-bearing' — names credential-bearing material; this is the one ceiling a design phrase supports directly",
+      "signals": [
+        {"signal": "private_key_armor", "source": "extracted text observations (E3 structured text)", "pattern": "-----BEGIN (RSA |EC |DSA |ED25519 |ENCRYPTED |OPENSSH )?PRIVATE KEY-----", "notes": "the armor header of PEM-encoded (RFC 7468 textual encoding) or OpenSSH private keys; the header plus a base64 body is the material itself"},
+        {"signal": "key_body", "source": "the same text unit", "pattern": "at least one subsequent line of base64-alphabet text before an -----END marker", "notes": "excludes a bare header pasted into prose"}
+      ],
+      "fire_condition": "both signals; filename conventions (id_rsa, id_ed25519, *.pem, *.key, *.p12, *.pfx) are supporting context only and never required or sufficient",
+      "never_alone": [
+        "'-----BEGIN PUBLIC KEY-----' or '-----BEGIN CERTIFICATE-----' — public material, not a secret",
+        "the phrase 'private key' in prose — a cryptography textbook, a blog post, lecture slides",
+        "a file named id_rsa or *.pem with no key content — the filename alone infers nothing (00: \"the system should not infer a purpose from their filename alone\")"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of the armor-header observation (text_span into the containing text unit; context fields preserved)"
+      ],
+      "false_positive_notes": [
+        "A README documenting the armor format with a truncated example fires if the example includes a body; over-protective, user-revisable, and arguably correct if the example is a real key.",
+        "Test fixtures in cloned repositories mostly never reach P5 — P3 excludes descendants of software project roots — so the repo-key false-positive class is largely pre-filtered.",
+        "Binary keystores (.p12/.pfx) without extractable text cannot fire this rule; they surface as unreadable/metadata-only and stay unclassified, which resolves to unreadable_unclassified at the gate — never to public."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}, {"source": "00", "quote": "Highly sensitive or credential-bearing"}]
+    },
+    {
+      "id": "det-env-secret-assignments",
+      "name": "Environment/config file carrying live secrets",
+      "kind": "authentication_key",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "design",
+      "signals": [
+        {"signal": "secret_named_assignment", "source": "extracted text observations from E3 (env/config/dotfile text)", "pattern": "(?i)\\b[A-Z0-9_]*(SECRET|TOKEN|PASSWORD|PASSWD|API_?KEY|PRIVATE_?KEY|ACCESS_?KEY)[A-Z0-9_]*\\s*[=:]\\s*\\S+", "notes": "assignment shape with a secret-suggesting key name AND a non-empty value; count against min_secret_assignments"},
+        {"signal": "non_placeholder_value", "source": "the assigned value span", "placeholder_markers": ["<", ">", "changeme", "change-me", "your-", "xxxx", "example", "dummy", "REDACTED", "TODO"], "notes": "a value containing a placeholder marker does not count; the markers are data, extendable without touching src/"}
+      ],
+      "fire_condition": "secret_named_assignment count at or above min_secret_assignments, counting only assignments passing non_placeholder_value",
+      "never_alone": [
+        "an .env.example / .env.template — assignments present, values placeholder or empty",
+        "the word SECRET in source-code identifiers or documentation",
+        "a shell script exporting non-secret configuration (PATH, LOCALE)"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each qualifying assignment observation (the KEY name and location; the VALUE span is what the redaction transforms drop)"
+      ],
+      "false_positive_notes": [
+        "Most real .env files live inside project roots P3 already excludes; the ones this rule exists for are the stray copies on Desktop/Downloads — exactly the isolated sensitive material the Protected Records residual describes.",
+        "CI config with encrypted secret references (secretRef, vault paths) names secrets without containing them; those values look placeholder-like and mostly fail the value conjunct.",
+        "An API key inside a code snippet saved as a reference clip fires; over-protective, user-revisable."
+      ],
+      "provenance": "inference",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}]
+    },
+    {
+      "id": "det-account-statement",
+      "name": "Institution account statement",
+      "kind": "account_record",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "statement_labels", "source": "extracted text or OCR observations", "labels": ["Account Number", "Statement Period", "Statement Date", "Opening Balance", "Closing Balance", "Available Balance", "Sort Code", "IBAN", "Routing Number", "Statement of Account"], "notes": "distinct-label count against min_label_hits"},
+        {"signal": "account_locator_value", "source": "label-adjacent value span matching a shape from account_locator_patterns (R5's values), or a masked form (trailing digits after a mask run)", "pattern": null, "notes": "the value half; masked forms ('ending 1234' shapes) count"},
+        {"signal": "transaction_table", "source": "table-region observations (sections 2.3/2.9 table and labeled-cell locations)", "pattern": null, "notes": "populated rows counted against min_populated_rows; optional strengthener — fire_condition names which conjuncts are required"}
+      ],
+      "fire_condition": "statement_labels at or above min_label_hits AND account_locator_value; transaction_table strengthens but is not required (a one-page balance letter is still an account record)",
+      "never_alone": [
+        "the word 'account' alone — 'your account' in marketing email, a 'create an account' screenshot",
+        "a purchase receipt — 00's Receipts and Confirmations residual holds \"isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents\"",
+        "a personal budgeting spreadsheet with a 'Balance' column — no institution labels, no account locator"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched statement-label observation",
+        "observation_key of the account-locator value observation",
+        "observation_keys of the table-region observations when the transaction_table signal held"
+      ],
+      "false_positive_notes": [
+        "Utility and card statements fire alongside bank statements; all are account records in 00's sense.",
+        "An invoice with the seller's own bank details (IBAN in the footer) is the sharpest false friend: it can match statement_labels ('IBAN') plus a locator value. The label list requires statement-scoped labels ('Statement Period', balances) beyond the locator to reach min_label_hits, so the ordinary invoice stays out; a borderline invoice that fires is over-protected, not exposed.",
+        "Brokerage and pension statements fire via the same labels."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately."}, {"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]
+    },
+    {
+      "id": "det-id-drivers-licence",
+      "name": "Driver's licence (scan or photo)",
+      "kind": "identity_document",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "licence_labels", "source": "OCR text observations", "labels": ["Driver License", "Driver's License", "Driving Licence", "DL No", "Lic No", "Class", "Endorsements", "Restrictions", "Expires", "Date of Birth", "Height", "Eyes"], "notes": "distinct-label count against min_label_hits; the physical-descriptor labels (Height, Eyes) are strong discriminators against forms that merely ask for a licence number"},
+        {"signal": "image_or_scan_carrier", "source": "P5 source_type image, or a PDF routed to OCR", "pattern": null, "notes": "conjunct only"}
+      ],
+      "fire_condition": "licence_labels at or above min_label_hits AND image_or_scan_carrier",
+      "never_alone": [
+        "'driver's license' in a car-rental checklist or an application form asking for one",
+        "'Class' + 'Restrictions' in a course-registration context",
+        "a DMV/DVLA information page"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched label observation (OCR region locations preserved)"
+      ],
+      "false_positive_notes": [
+        "A form that asks for licence details is text-first, lacks the descriptor labels, and usually lacks the image carrier.",
+        "A movie still or stock photo showing a prop licence fires; over-protective, user-revisable."
+      ],
+      "provenance": "proposal",
+      "design_cites": [{"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]
+    },
+    {
+      "id": "det-id-travel-visa",
+      "name": "Travel visa (sticker/stamp scan)",
+      "kind": "identity_document",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "visa_labels", "source": "OCR text observations", "labels": ["Visa", "Type/Class", "Entries", "Duration of Stay", "Valid From", "Valid Until", "Passport No", "Control Number", "Issuing Post"], "notes": "distinct-label count against min_label_hits; 'Visa' alone never counts (see suppressor)"},
+        {"signal": "payment_card_suppressor", "source": "the same text unit", "labels": ["Visa ending", "credit card", "debit card", "card number", "cardholder", "CVV"], "notes": "a NEGATIVE conjunct: when payment-card context terms co-occur and travel-document labels do not reach min_label_hits, the rule must not fire — 'Visa' the payment network is the named false friend"},
+        {"signal": "image_or_scan_carrier", "source": "P5 source_type image, or a PDF routed to OCR", "pattern": null, "notes": "conjunct only"}
+      ],
+      "fire_condition": "visa_labels at or above min_label_hits AND image_or_scan_carrier AND NOT payment_card_suppressor",
+      "never_alone": [
+        "the word 'Visa' — receipts and statements say 'Visa ending 1234'",
+        "visa-requirements articles and embassy information pages",
+        "a flight-booking confirmation mentioning visa requirements (Receipts and Confirmations residual material)"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched visa-label observation",
+        "observation_key of any suppressor observation, recorded so the negative evidence is inspectable"
+      ],
+      "false_positive_notes": [
+        "The suppressor is asymmetric on purpose: it can only block, never fire; a document with BOTH real visa labels above min_label_hits and card context (a scanned wallet spread) fires, which is the protective direction.",
+        "E-visa approval PDFs (text-first, no image) miss the carrier conjunct; they usually fire det-passport-biodata-labels instead via the shared passport-number labels."
+      ],
+      "provenance": "proposal",
+      "design_cites": [{"source": "00", "quote": "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold."}, {"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}]
+    },
+    {
+      "id": "det-id-national-id-labeled",
+      "name": "National identifier beside its jurisdiction label",
+      "kind": "identity_document",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "national_id_label", "source": "gazetteer hit via national_id_label_gazetteer (R5's values), word-boundary matched", "pattern": null, "notes": "the label wording is jurisdiction-owned; this catalogue owns only the class"},
+        {"signal": "adjacent_id_value", "source": "a value-shaped span adjacent to the label, shape supplied per-label by the same R5 gazetteer", "pattern": null, "notes": "label AND adjacent populated value — the textbook-chapter case has the label and no adjacent personal value"}
+      ],
+      "fire_condition": "both signals for at least one label-value pair",
+      "never_alone": [
+        "the label with no adjacent value — a blank form field, a textbook 'Social Security' chapter, a policy article",
+        "a bare digit run — 00: file names and documents \"contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+        "a student ID beside a course code — scanned homework: the label gazetteer holds national-identifier labels, never campus labels"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of the label observation and observation_key of the adjacent value observation, as a pair"
+      ],
+      "false_positive_notes": [
+        "This rule is deliberately label-anchored: a free-standing pattern for national IDs would sweep phone numbers, order numbers, and course IDs. The value never fires without its label.",
+        "The value span this rule cites is exactly what catalogue 02's government_id_number class redacts; catalogue 06 refused these patterns on principle for the extraction side (a finder would write the values into raw_value and context windows) — HERE the finder serves the gate, and the found span is redaction input, not a fact."
+      ],
+      "provenance": "proposal",
+      "design_cites": [{"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]
+    },
+    {
+      "id": "det-id-civil-certificate",
+      "name": "Civil-status certificate (birth/marriage)",
+      "kind": "identity_document",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "certificate_title", "source": "title / heading / OCR observations, positionally weighted", "labels": ["Certificate of Birth", "Birth Certificate", "Certificate of Marriage", "Marriage Certificate", "Certificate of Live Birth"], "notes": "title-position match; word-boundary"},
+        {"signal": "registrar_labels", "source": "the same document's text", "labels": ["Registrar", "Registration District", "Entry No", "Certified Copy", "Record of Birth", "County of", "State File Number"], "notes": "distinct-label count against min_label_hits"},
+        {"signal": "award_suppressor", "source": "title zone", "labels": ["Certificate of Completion", "Certificate of Achievement", "Certificate of Participation", "Certificate of Appreciation"], "notes": "NEGATIVE conjunct: award and course certificates are 00's Independent Records residual material, not identity documents"}
+      ],
+      "fire_condition": "certificate_title AND registrar_labels at or above min_label_hits AND NOT award_suppressor",
+      "never_alone": [
+        "the word 'certificate' — award certificates: 00's \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs\"",
+        "'Registrar' alone — university registrars sign transcripts",
+        "genealogy-site screenshots of historical records (they fire; see false_positive_notes)"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of the title observation (zone shows title position)",
+        "observation_key of each matched registrar-label observation"
+      ],
+      "false_positive_notes": [
+        "Genealogy research: a historical stranger's birth certificate fires identically to the user's own. Over-protective and unresolvable from content alone; user revision is the designed remedy.",
+        "Academic transcripts share 'Registrar' but not the certificate titles; they carry educational-record sensitivity that this catalogue deliberately does NOT model (see uncertain)."
+      ],
+      "provenance": "proposal",
+      "design_cites": [{"source": "00", "quote": "identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records"}]
+    },
+    {
+      "id": "det-legal-court-filing",
+      "name": "Court filing bearing a case caption",
+      "kind": "legal_record",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "court_caption", "source": "page-one heading / title observations, positionally weighted", "labels": ["IN THE UNITED STATES DISTRICT COURT", "IN THE HIGH COURT OF", "SUPERIOR COURT OF", "IN THE COUNTY COURT", "BEFORE THE"], "notes": "generic English caption openers held here as data; legal_caption_gazetteer (R5) extends per jurisdiction"},
+        {"signal": "case_structure_labels", "source": "the same document", "labels": ["Case No", "Cause No", "Docket No", "Plaintiff", "Defendant", "Petitioner", "Respondent"], "notes": "distinct-label count against min_label_hits"}
+      ],
+      "fire_condition": "court_caption in a heading-position zone AND case_structure_labels at or above min_label_hits",
+      "never_alone": [
+        "'v.' alone — sports fixtures, debate topics, law-school reading lists",
+        "a published judgment saved as reading material — it fires (see false_positive_notes); what never fires is a NEWS ARTICLE about a case, which lacks the caption-in-heading position",
+        "a law student's case brief — body-text mentions of parties without the caption structure"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of the caption observation (zone records heading position)",
+        "observation_key of each matched case-structure label observation"
+      ],
+      "false_positive_notes": [
+        "The unavoidable ambiguity: a downloaded public judgment and the user's own filing look identical. The rule fires on both — over-protection of reading material rather than exposure of a real legal record. A user who files legal reading into Reading Inbox will revise; the negative-feedback record keeps it revised.",
+        "Legal-domain safety activation (saf-legal-activation) catches contracts and instruments this caption rule does not."
+      ],
+      "provenance": "proposal",
+      "design_cites": [{"source": "00", "quote": "Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold."}, {"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}]
+    },
+    {
+      "id": "det-legal-notarized-instrument",
+      "name": "Notarized or executed instrument",
+      "kind": "legal_record",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "notary_block", "source": "extracted text or OCR observations", "labels": ["Notary Public", "My commission expires", "Sworn before me", "Subscribed and sworn", "Witness my hand and official seal", "Apostille"], "notes": "distinct-label count against min_label_hits"},
+        {"signal": "party_or_date_values", "source": "label-adjacent populated value spans (names, dates)", "pattern": null, "notes": "counted against min_value_bearing_labels — an executed instrument names parties and dates; a blank notary template does not"}
+      ],
+      "fire_condition": "notary_block at or above min_label_hits AND party_or_date_values at or above min_value_bearing_labels",
+      "never_alone": [
+        "'Notary Public' in a blank template or a notary-services advertisement",
+        "an article explaining apostilles",
+        "a signature line alone — every cover letter has one"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched notary-block label observation",
+        "observation_key of each populated party/date value observation"
+      ],
+      "false_positive_notes": [
+        "Powers of attorney, affidavits, deeds and wills all fire through the notary block — the highest-stakes documents in a personal corpus, which is the point.",
+        "Ordinary signed contracts without notarization do not fire this rule; they are left to legal-domain safety activation, because a rule broad enough to catch every contract would protect every signed permission slip."
+      ],
+      "provenance": "proposal",
+      "design_cites": [{"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}]
+    },
+    {
+      "id": "det-credential-2fa-backup-codes",
+      "name": "Two-factor backup / recovery codes",
+      "kind": "credential_store",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "design",
+      "signals": [
+        {"signal": "recovery_heading", "source": "heading / title / page-one observations", "labels": ["backup codes", "recovery codes", "two-factor", "2FA", "Save your backup codes", "each code can only be used once"], "notes": "distinct-term count against min_label_hits"},
+        {"signal": "code_grid", "source": "the same text unit", "pattern": "(?im)^\\s*[a-z0-9]{4,6}[- ]?[a-z0-9]{4,6}\\s*$", "notes": "consecutive short code-shaped lines, counted against min_code_lines; the digits in the pattern describe the code shape services emit, not a threshold"}
+      ],
+      "fire_condition": "recovery_heading at or above min_label_hits AND code_grid at or above min_code_lines",
+      "never_alone": [
+        "any short code list — discount codes, gift cards, software licence keys, Wi-Fi vouchers",
+        "the word 'recovery' alone — data-recovery articles, fitness plans",
+        "a screenshot of the 2FA setup INSTRUCTIONS page with no codes"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched heading-term observation",
+        "observation_key of the code-grid region observations (spans locate the grid; the code values themselves are what the transforms drop)"
+      ],
+      "false_positive_notes": [
+        "Software licence-key sheets share the grid but not the recovery vocabulary; they stay out via the heading conjunct.",
+        "These arrive overwhelmingly as screenshots or print-to-PDF pages, so the OCR path is the realistic carrier; the rule is carrier-agnostic on purpose."
+      ],
+      "provenance": "inference",
+      "design_cites": [{"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}, {"source": "00", "quote": "Highly sensitive or credential-bearing"}]
+    },
+    {
+      "id": "det-credential-password-export",
+      "name": "Password-manager or browser credential export",
+      "kind": "credential_store",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "highly_sensitive_credential_bearing",
+      "ceiling_provenance": "design",
+      "signals": [
+        {"signal": "credential_header_set", "source": "column-header observations (section 2.9 spreadsheets: column headers are a named yield) or structured-data keys", "header_sets": [["url", "username", "password"], ["name", "url", "username", "password"], ["Title", "Username", "Password", "URL"], ["login_uri", "login_username", "login_password"]], "notes": "any listed header set, matched as a set against the file's column headers; case-insensitive, word-boundary"},
+        {"signal": "populated_rows", "source": "visible cell values / structured records under those headers", "pattern": null, "notes": "counted against min_populated_rows — a header row alone is a template"}
+      ],
+      "fire_condition": "credential_header_set AND populated_rows at or above min_populated_rows",
+      "never_alone": [
+        "a bookmarks export — url + title, no password column",
+        "a 'password policy' or 'how to choose a password' document",
+        "a CSV with an empty password column — a signup-tracking sheet"
+      ],
+      "evidence_refs_shape": [
+        "observation_key of each matched column-header observation",
+        "observation_keys of the populated-row cell observations that met the count (the password cell values themselves are drop-transform input, never dossier content)"
+      ],
+      "false_positive_notes": [
+        "A user's manually-kept accounts spreadsheet with these headers fires — correctly; it IS a credential store regardless of which tool wrote it.",
+        "KDBX and other encrypted vault formats have no extractable columns; they surface unreadable/metadata-only and resolve to unreadable_unclassified at the gate."
+      ],
+      "provenance": "inference",
+      "design_cites": [{"source": "00", "quote": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials"}, {"source": "00", "quote": "Highly sensitive or credential-bearing"}]
+    },
+    {
+      "id": "det-correspondence-email-content",
+      "name": "Email file with P5 message-content signals",
+      "kind": "private_correspondence",
+      "basis": "detector",
+      "protected": false,
+      "protected_note": "00 does not put correspondence in the immediate-protected five; this rule classifies without protecting, so the mode matrix (hybrid keeps sensitive files local) still applies. Whether correspondence should ALSO be protected is in NEEDS-JOSEPH.",
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "p5_email_sensitivity_rows", "source": "P5's stored sensitivity-signal rows for this file's runs (extraction_sensitivity_signal, keyed by observation_key), with basis strings naming section 2.9's email clauses", "pattern": null, "notes": "consumed, never re-derived — P5 already marked address values and body/link-zone content; sensitivity_signals_for(conn, run_id) is the read surface"},
+        {"signal": "email_source_type", "source": "P5 source_type = email", "pattern": null, "notes": "conjunct only; the signal rows are the evidence"}
+      ],
+      "fire_condition": "email_source_type AND at least one p5_email_sensitivity_row (presence, not a count — P5 emits one row per located sensitive value, and one is sufficient for a class proposal)",
+      "never_alone": [
+        "source_type email with zero stored P5 signal rows — an empty or headers-only file",
+        "an email address found in a non-email document (P5 signals address values only in email zones; an address in a syllabus footer is contact info on a public document)",
+        "a newsletter — it fires (it is an email with content); the CEILING is what keeps a newsletter's classification proportionate, and user revision handles the rest"
+      ],
+      "evidence_refs_shape": [
+        "the observation_keys already stored on the P5 signal rows — the detector cites P5's keys verbatim, adding nothing"
+      ],
+      "false_positive_notes": [
+        "Mailing-list archives and newsletters classify as sensitive_personal-at-most despite being effectively public; the cost is a local-first bias for material the user can release, which is the designed default direction (00: \"The default posture must therefore be local-first and data-minimizing.\")."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "while treating addresses and message content as potentially sensitive"}]
+    },
+    {
+      "id": "det-contact-directory",
+      "name": "Contacts file (VCF) with P5 signals",
+      "kind": "contact_record",
+      "basis": "detector",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "p5_contacts_sensitivity_rows", "source": "P5's stored sensitivity-signal rows with the Contacts basis (every VCF value carries one — long_tail.py marks all values of a contacts-source file)", "pattern": null, "notes": "consumed, never re-derived"},
+        {"signal": "contacts_source_type", "source": "P5 source_type = contacts", "pattern": null, "notes": "conjunct only"}
+      ],
+      "fire_condition": "contacts_source_type AND at least one p5_contacts_sensitivity_row",
+      "never_alone": [
+        "source_type contacts with zero stored values — an empty VCF",
+        "a photographed business card — it routes as image + OCR, not contacts, and a single card is not an address book",
+        "an email signature block inside a document"
+      ],
+      "evidence_refs_shape": [
+        "the observation_keys already stored on the P5 signal rows"
+      ],
+      "false_positive_notes": [
+        "A single-card .vcf attachment (one shared contact) fires the same as a full address book; 00's 'normally' allows the user to release it, and the protection default is the stated posture.",
+        "protected: true is the direct reading of section 2.9's 'privacy-protected'; the same sentence's 'normally' is why user revision must stay cheap here."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "should normally be privacy-protected rather than used to create folder proposals"}]
+    },
+    {
+      "id": "saf-finance-activation",
+      "name": "Finance safety-domain activation",
+      "kind": null,
+      "safety_domain": "finance",
+      "basis": "safety_domain",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "schema_activation", "source": "P6's active_domains(content_hash) containing the finance schema, whose roster row carries is_safety_domain: true (CONNECTION section 5: the row attribute replaced a safety_for edge)", "pattern": null, "notes": "the activation IS the evidence; its own supporting evidence remains inspectable through P6"}
+      ],
+      "fire_condition": "finance ∈ active_domains(content_hash)",
+      "never_alone": [
+        "an activation supported only by never-alone evidence cannot exist — CONNECTION's activation step 2 strikes a schema whose entire support is a file_kind_plausible hit or a bare gazetteer hit, so this rule inherits the never-alone discipline from upstream rather than restating it",
+        "a bank name alone therefore never reaches this rule",
+        "a currency symbol or an amount column alone never activates finance"
+      ],
+      "evidence_refs_shape": [],
+      "evidence_refs_note": "basis = safety_domain: P7 SPEC requires non-empty evidence_refs only for basis = detector; the structured explanation names the activated schema and P6 holds its evidence",
+      "false_positive_notes": [
+        "The open breadth question — does EVERY finance-activated file protect, including a grocery receipt that activated finance on real evidence? — is NEEDS-JOSEPH (scope of 'detects and protects'). Until answered, this rule protects broadly; the cost is user revisions on receipts, never exposure."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed."}, {"source": "CONNECTION", "quote": "activates like any other, but its activation unlocks **protection plus its small schema only**"}]
+    },
+    {
+      "id": "saf-identity-activation",
+      "name": "Identity safety-domain activation",
+      "kind": null,
+      "safety_domain": "identity",
+      "basis": "safety_domain",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "schema_activation", "source": "P6's active_domains(content_hash) containing the identity placeholder schema (field-less under D1 as narrowed; is_safety_domain: true)", "pattern": null, "notes": "identity activation in practice fires FROM this catalogue's detector rules feeding P6; this rule exists so a P6-side activation from any other legitimate evidence still protects"}
+      ],
+      "fire_condition": "identity ∈ active_domains(content_hash)",
+      "never_alone": [
+        "inherited from activation step 2 — a bare gazetteer or file_kind_plausible hit never activates",
+        "a person's name alone never activates identity",
+        "the word 'passport' alone never activates identity"
+      ],
+      "evidence_refs_shape": [],
+      "evidence_refs_note": "basis = safety_domain; see saf-finance-activation",
+      "false_positive_notes": [
+        "The passport worked example (CONNECTION-EXAMPLES 4) is this rule plus det-passport-*: activation yields protection plus the small schema only, residual_candidate stays true when safety-only, and the residual home is Protected Records."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed."}, {"source": "CONNECTION", "quote": "P7 classification runs before any model or placement path"}]
+    },
+    {
+      "id": "saf-medical-activation",
+      "name": "Medical safety-domain activation",
+      "kind": null,
+      "safety_domain": "medical",
+      "basis": "safety_domain",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "schema_activation", "source": "P6's active_domains(content_hash) containing the medical placeholder schema (field-less under D1 as narrowed; is_safety_domain: true)", "pattern": null, "notes": "co-activation with finance on an EOB is expected (also_holds_with); both protections agree"}
+      ],
+      "fire_condition": "medical ∈ active_domains(content_hash)",
+      "never_alone": [
+        "inherited from activation step 2",
+        "clinical vocabulary in reading material should not have activated medical; if it did, the fix belongs in the activation signals, and the user's revision here feeds that correction"
+      ],
+      "evidence_refs_shape": [],
+      "evidence_refs_note": "basis = safety_domain; see saf-finance-activation",
+      "false_positive_notes": [
+        "Health-adjacent lifestyle content (fitness plans, recipes) must not activate medical upstream; this rule adds no reach beyond what activation grants."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed."}]
+    },
+    {
+      "id": "saf-legal-activation",
+      "name": "Legal safety-domain activation",
+      "kind": null,
+      "safety_domain": "legal",
+      "basis": "safety_domain",
+      "protected": true,
+      "handling_class_ceiling": "sensitive_personal",
+      "ceiling_provenance": "inference",
+      "signals": [
+        {"signal": "schema_activation", "source": "P6's active_domains(content_hash) containing the legal placeholder schema (field-less under D1 as narrowed; is_safety_domain: true)", "pattern": null, "notes": "catches contracts and instruments the caption/notary rules deliberately leave alone"}
+      ],
+      "fire_condition": "legal ∈ active_domains(content_hash)",
+      "never_alone": [
+        "inherited from activation step 2",
+        "the word 'agreement' alone never activates legal — terms-of-service downloads and license texts are ubiquitous"
+      ],
+      "evidence_refs_shape": [],
+      "evidence_refs_note": "basis = safety_domain; see saf-finance-activation",
+      "false_positive_notes": [
+        "Software licenses (LICENSE.txt) mostly never arrive — P3 excludes project trees; a stray license text that activates legal is over-protected, not exposed."
+      ],
+      "provenance": "design",
+      "design_cites": [{"source": "00", "quote": "Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed."}]
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-format-as-class",
+      "refuses": "any rule of the shape extension/source_type → handling class or protected state (.pdf → medical, .csv → credential export, .vcf without P5 signal rows)",
+      "why": "format is a routing signal, never meaning; file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2), and the dispatch instruction 'padding detector rules is how you get .pdf → medical' is the failure this row guards. Every rule above uses carrier signals as conjuncts only."
+    },
+    {
+      "id": "ref-filename-only",
+      "refuses": "any rule firing on a filename alone ('passport.jpg', 'taxes 2025.pdf', 'id_rsa')",
+      "why": "00: \"the system should not infer a purpose from their filename alone\" — stated for unreadable files and a fortiori for protection, where a filename-fired classification would be evidence_refs pointing at nothing but a name. Filenames appear above only as supporting context.",
+      "design_cites": [{"source": "00", "quote": "the system should not infer a purpose from their filename alone"}]
+    },
+    {
+      "id": "ref-protected-characteristics-gazetteer",
+      "refuses": "a detection gazetteer of protected characteristics (race, religion, orientation, union membership, and the rest)",
+      "why": "00 does not ask the product to detect these in order to file them, and the overnight review already flagged that \"a catalogue that enumerated them would be instructing the extractor to look for them\". The question of whether to detect-to-protect or decline-to-model goes to NEEDS-JOSEPH; this catalogue does not fill the list.",
+      "design_cites": [{"source": "NEEDS-JOSEPH-overnight", "quote": "a catalogue that enumerated them would be instructing the extractor to look for them"}]
+    },
+    {
+      "id": "ref-ocr-density-as-signal",
+      "refuses": "text density, OCR volume, or 'looks like a document photo' as a sensitivity signal",
+      "why": "the same discipline P5 applies to screenshots: dense text describes receipts, whiteboards, and book pages alike. Sensitivity rules key on named labels and shapes, never on volume."
+    },
+    {
+      "id": "ref-unauthorized-transcription-as-signal",
+      "refuses": "consuming P5's UnauthorizedTranscription as a detector input",
+      "why": "the dispatch prompt lists it beside the P5 signals, but live code (src/extractors/long_tail.py) makes it an exception that propagates — a contract violation about the CALL, not stored evidence about the file. Nothing is persisted for a rule to cite, so a rule keyed on it would have empty evidence_refs by construction. Recorded here so the divergence from the prompt is deliberate and visible."
+    },
+    {
+      "id": "ref-money-amounts",
+      "refuses": "currency symbols or amount columns as finance-protection evidence",
+      "why": "receipts, price lists, budgets and homework all carry amounts; 00 routes isolated transactional documents to the Receipts and Confirmations residual, not to protection."
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-safety-activation-breadth",
+      "question": "Does 'detects and protects them before any cloud or automated placement decision is allowed' protect EVERY file that activates a safety schema (every receipt that legitimately activates finance), or only the protectable core the detector rules name?",
+      "both_sides": "Broad: the sentence says 'Finance ... material', not 'some finance material', and over-protection is user-revisable. Narrow: protecting every receipt makes hybrid mode nearly useless for the finance-adjacent bulk of a real corpus, and 00's residual library expects isolated receipts to be placeable. The saf-* rules above implement BROAD until Joseph rules; also raised as the NJ-2 seam (protect-then-extract vs extract-under-protection).",
+      "blocked": false
+    },
+    {
+      "id": "unc-employment-educational-kinds",
+      "question": "The section-8.4 corpus list names 'employment materials' and 'educational records'; no rule above protects either. Should they get proposed kinds?",
+      "both_sides": "For: they sit in the same corpus sentence as identity documents. Against: coursework and recruiting are the product's launch domains — protecting them wholesale would gate the exact material the product exists to organize, and 00 lists them as things the corpus 'can include', not things that 'enter a protected state'. Left unauthored; transcripts remain catchable by user reclassification and (where they carry national-ID values) by det-id-national-id-labeled.",
+      "blocked": false
+    },
+    {
+      "id": "unc-archive-manifest-names",
+      "question": "Should an archive whose MANIFEST names protected-looking members (passport.jpg inside submission.zip) classify the archive?",
+      "both_sides": "For: section 2.5 makes manifest names real evidence, and an application packet archive plausibly holds an ID. Against: a manifest name is a filename, and filename-only inference is refused above; the archive's contents were never read, so evidence_refs would cite names only. Left unauthored — the conservative outcome is that an uninspectable archive resolves unreadable_unclassified, which the gate already denies.",
+      "blocked": false
+    },
+    {
+      "id": "unc-localized-labels",
+      "question": "Every label list above is English. Localized biodata, tax, medical and notary wordings are absent.",
+      "both_sides": "Same position as catalogue 04's localized screenshots and 07's localized document names: easy to add, impossible to choose correctly without knowing the corpus languages. The OCR language ratification (English + CJK + Western European) says which languages will produce TEXT; the labels for those languages need a decision, likely folded into R5's jurisdiction work.",
+      "blocked": false
+    },
+    {
+      "id": "unc-chat-exports",
+      "question": "Messaging-app chat exports (.txt WhatsApp exports, Telegram JSON) are private correspondence with no email source_type and no P5 signal rows.",
+      "both_sides": "A timestamp-prefixed-line pattern could catch WhatsApp exports, but the same shape matches server logs and lab notebooks. No honest conjunction found without a corpus; recorded so the gap is visible rather than discovered later.",
+      "blocked": false
+    },
+    {
+      "id": "unc-partially-completed-forms",
+      "question": "min_value_bearing_labels draws the completed-vs-blank line, but a form with one field filled (a name on an otherwise blank W-9-shaped form) sits on the line.",
+      "both_sides": "Protect-on-one-value is the safe direction (a name on a tax form is already personal data); requiring more reduces noise. This is exactly why the count is an injected slot: the value is Joseph's or the deployment's, never this file's.",
+      "blocked": false
+    }
+  ]
+}

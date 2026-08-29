@@ -1,0 +1,78 @@
+{
+  "id": "clinical_practice.teaching-material",
+  "kind": "template",
+  "schema_id": "clinical_practice",
+  "parent_id": null,
+  "name": "Medical teaching material and grand rounds",
+  "one_line": "REFUSED after deepening: teaching structure belongs to academic teaching or coursework; clinical specialty is a topic value, while decks, handouts, cases, assessments, attendance sheets, and recordings are document or work types.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "REFUSED, reversing the gist verdict. (1) FIELDS: clinical_practice declares none, so this template cannot express session, audience, specialty, educator, or learner. The leg is unsatisfiable, not a pass. (2) DETECTION: objectives, intended audience, lecture framing, assessments, rubrics, simulation scripts, feedback, attendance, and recordings are education structures already covered by academic.teaching or academic.coursework. Cardiology, grand rounds, MRCP, ward, and hospital are topic or organization values. Practitioner versus learner is useful, but it is precisely academic.teaching's instructor-side versus academic.coursework's learner-side boundary; occupation adds no relation. (3) DIMENSIONS: this row legally recommends none. Its prose wish—session or series, then function—is academic organization populated with clinical values. (4) PRIVACY: surviving identifiers in notes, pixels, metadata, audio, or pasted chart text trigger P7 and clinical_practice or patient-chart on their own evidence. A genuinely anonymised case has no subject_of_record relation; it is education about a clinical topic. Privacy is important but cannot blanket-rescue the node. (5) DOCUMENT TYPES: slides, handouts, cases, item banks, station briefs, marking schemes, sign-in sheets, feedback, and recordings are work/document types and SOURCE_TYPES, not nodes. (6) DELETION TEST: remove clinical terms, hospital names, clinician titles, presenter names, extensions, and words such as rounds, case, lecture, and tutorial—all never-alone. The remaining objectives/audience/assessment/session structure is academic teaching. Nothing remains that is true here and false there. (7) COLLISION FIXTURES: a named patient belongs to patient-chart or the clinical safety schema; a governance band belongs to protocol-guideline; a portfolio purpose belongs to career/credentialing; abstract and venue evidence belongs to research. “Topic answers what a file is about, while purpose answers what the file was for.” Groups can overlap without propagating clinical facts. (8) COVERAGE: authored masters and cohort administration route to academic.teaching; received decks and revision material to academic.coursework or academic.continuing-education; real case records to patient-chart/clinical_practice; governed instructions to protocol-guideline; conference outputs to research; credentials to career; uncertain files to residuals. Reopen only for a routinely kept artifact with a relation not expressible by those owners. None was found.",
+  "fields": [],
+  "proposed_fields": [],
+  "proposed_context_terms": [],
+  "recognition": {
+    "deterministic": [
+      "None. Every teaching-frame signal is academic teaching/coursework with clinical topic values; every patient-bearing signal independently belongs to the clinical safety schema or patient-chart.",
+      "For receiving rows only: objectives plus audience supports education; a labelled real subject beside a different responsible clinician supports clinical_practice; an approval/effective/review governance band supports protocol-guideline."
+    ],
+    "needs_llm": [
+      "Nothing routes here. A bounded model may distinguish an authored master from a received learner copy for academic.teaching versus academic.coursework, and must return unknown when neither role is evidenced.",
+      "A purportedly anonymised case is checked for surviving identifiers before any model path. Identifiers activate protection and clinical review; their absence does not make clinical topic a node."
+    ],
+    "never_alone": [
+      "clinical specialty, anatomical, disease, drug, or procedure vocabulary alone",
+      "teaching, lecture, rounds, tutorial, simulation, case, or journal club alone",
+      "objectives, intended audience, answer key, rubric, or slide structure offered as specifically clinical evidence",
+      "an age-and-sex descriptor or initials offered as proof of anonymisation",
+      "a hospital, university, college, society, regulator, or provider name alone",
+      "a presenter, clinician title, learner name, author, or producer string alone",
+      "a bare number read as case, curriculum, session, registration, or year",
+      "source_type or extension alone",
+      "a folder called Teaching, Rounds, Lectures, Cases, CPD, or Education alone",
+      "one download/export session; “A session should never be treated as proof of topic”"
+    ]
+  },
+  "work_types": [],
+  "grouping_reasons": [
+    "No group is created by this refused row. Academic teaching may group one authored session's deck, handout, assessment, attendance, recording, and feedback on their own evidence.",
+    "A teaching-purpose group may contain a case, guideline excerpt, and conference deck without copying clinical facts: “The graph does not automatically copy those missing facts onto sparse files.”",
+    "A practitioner may belong to educator and learner groups; role is evaluated per artifact and remains reviewable when unresolved."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused and because clinical_practice declares no fields. Session then material function is education organization with clinical topic values, while presenter identity is forbidden: “It should avoid using authorship or creator identity as a destination dimension.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["presentation", "text_document", "image", "ocr", "audio_video", "spreadsheet", "email", "archive", "opaque_binary"],
+    "extensions": [".pptx", ".key", ".pdf", ".docx", ".jpg", ".png", ".tif", ".mp4", ".m4a", ".xlsx", ".eml", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {"filename":"Grand rounds - chest pain in the young - 2026-03-11.pptx","source_type":"presentation","observations":["session, date, presenter","objectives and audience","case-discussion rhythm","no verified identifier in visible text"],"facts_legal":["file_type","creation_date","language","version_family","sensitivity_status"],"must_not_conclude":["this refused node","verified anonymisation without checking notes, media, metadata, and pixels","a folder path"],"also_schema":"academic","group_without_copying_facts":false,"falls_through_if_inactive":"Protected Records"},
+    {"filename":"case 4 - 68yo with chest pain.docx","source_type":"text_document","observations":["chart-like headings","age-and-sex descriptor","discussion questions","no real identifier found"],"facts_legal":["file_type","creation_date","language","sensitivity_status"],"must_not_conclude":["patient-chart without a real subject","verified anonymisation","this refused node","a folder path"],"also_schema":"academic","group_without_copying_facts":false,"falls_through_if_inactive":"Review Later"},
+    {"filename":"IM-0001-0007.jpg","source_type":"ocr","observations":["radiograph export","OCR finds surname, hospital number, and study date in pixels","beside a lecture deck"],"facts_legal":["file_type","creation_date","sensitivity_status"],"must_not_conclude":["that neighbouring teaching material anonymises it","screenshot from missing EXIF","this refused node","a folder path"],"also_schema":null,"group_without_copying_facts":true,"falls_through_if_inactive":"Protected Records"},
+    {"filename":"Sepsis pathway v4.2 - ratified 2026-01.pdf","source_type":"text_document","observations":["approval body, effective date, review date","decision steps","no objectives or audience"],"facts_legal":["file_type","creation_date","language","version_family"],"must_not_conclude":["teaching ownership from proximity","this refused node","a folder path"],"also_schema":null,"group_without_copying_facts":true,"falls_through_if_inactive":"Independent Records"},
+    {"filename":"MRCP practice questions with answers.docx","source_type":"text_document","observations":["option lists","answer key","curriculum code","author/receiver role absent"],"facts_legal":["file_type","creation_date","language"],"must_not_conclude":["educator or learner role without evidence","this refused node","a folder path"],"also_schema":"academic","group_without_copying_facts":true,"falls_through_if_inactive":"Review Later"},
+    {"filename":"feedback summary - teaching March.xlsx","source_type":"spreadsheet","observations":["per-item ratings","comments name teacher","respondent initials","sheet per session"],"facts_legal":["file_type","creation_date","sensitivity_status"],"must_not_conclude":["product competence judgment","harmless staff identifiers","this refused node","a folder path"],"also_schema":"academic","group_without_copying_facts":true,"falls_through_if_inactive":"Protected Records"},
+    {"filename":"attendance - simulation day.pdf","source_type":"ocr","observations":["session title and date","handwritten names, roles, signatures","poor OCR"],"facts_legal":["file_type","creation_date","sensitivity_status"],"must_not_conclude":["person facts from illegible text","clinical structure from topic","this refused node","a folder path"],"also_schema":"academic","group_without_copying_facts":true,"falls_through_if_inactive":"Protected Records"},
+    {"filename":"GMT20260311-140302_Recording.mp4","source_type":"audio_video","observations":["conference-app metadata","timestamp filename","no transcript","neighbour deck names rounds"],"facts_legal":["file_type","creation_date","duplicate_family","sensitivity_status"],"must_not_conclude":["session copied from deck","safe content because untranscribed","this refused node","a folder path"],"also_schema":"academic","group_without_copying_facts":true,"falls_through_if_inactive":"Protected Records"},
+    {"filename":"Teaching portfolio 2026.zip","source_type":"archive","observations":["manifest lists decks, feedback, certificates, appraisal forms","partitioned by requirement","members not extracted during scan"],"facts_legal":["file_type","creation_date","duplicate_family","sensitivity_status"],"must_not_conclude":["portfolio purpose propagates one schema","this refused node","a folder path"],"also_schema":null,"group_without_copying_facts":true,"falls_through_if_inactive":"Protected Records"}
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template":"Protected Records","why":"For files carrying or plausibly carrying real patient, learner, or staff identifiers. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”","provenance":"design"},
+    {"residual_template":"Independent Records","why":"For durable standalone handouts, certificates, or de-identified teaching documents with no accepted academic group.","provenance":"inference"},
+    {"residual_template":"Reading Inbox","why":"For received decks, papers, and guidelines with no active course, teaching, research, or project association.","provenance":"inference"},
+    {"residual_template":"Review Later","why":"For unresolved educator-versus-learner role and unverified de-identification. “Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.”","provenance":"design"},
+    {"residual_template":"Unsupported or Encrypted","why":"For encrypted portfolios, proprietary decks, and untranscribed recordings that cannot be safely inspected.","provenance":"inference"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Sensitivity remains real but does not rescue the node. Identifiers may survive in images, notes, metadata, recordings, attendance, and feedback. “Privacy policy must be enforced before content reaches any model or external connector.” Protection attaches to observations and receiving schemas, not a clinical-teaching category.",
+  "open_question": "(1) R1c must repoint any neighbour that names this refused id; this pass edits none. (2) Decide whether unverified de-identification defaults to Protected Records even when academic teaching evidence is strong. This pass recommends yes as privacy policy while rejecting it as grounds for a node."
+}

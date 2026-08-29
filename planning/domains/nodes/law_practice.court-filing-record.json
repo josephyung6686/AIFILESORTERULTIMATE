@@ -1,0 +1,492 @@
+{
+  "id": "law_practice.court-filing-record",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Filing, service and docket records",
+  "one_line": "The TRANSMISSION RECEIPT layer of a matter, not the matter's documents: the artefacts whose own subject is that a document moved - that it was lodged with a registry at a stated moment, that the registry accepted or rejected it, that a stamped or conformed copy came back, that it reached named recipients by a named method, and that a register recorded the event. Its evidence is a moment and a destination asserted by an authority that is NEITHER the holder NOR the client - a court electronic-filing system, a clerk, a process server, a carrier - which is precisely why the law_practice DEFAULT TEMPLATE cannot see it: the default requires an artefact whose labelled slots separate a practitioner role from a client role, and a notice of electronic filing has no client slot at all. It is not activated by the words filed, lodged or served, by a court caption, by a date-and-time stamp, by a case or docket number, or by a court email domain. It holds neither the document that was filed (its siblings own that on the document's own evidence) nor the court's decisions (`law_practice.orders-and-judgments`), and it does not decide whether any filing or service was timely, valid, effective or complete.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "THE PRECONDITION, AND IT IS WHAT MAKES THIS ROW SOMETHING OTHER THAN A FILENAME FILTER. These are activation signals only; the schema declares no field rows, so nothing here becomes a fact. An accepted signal is a TRANSMISSION-EVENT STRUCTURE, and it needs BOTH legs: (i) a moment - a date and usually a time - asserted in a LABELLED SLOT by an issuer who is neither the holder nor the holder's client (a court or tribunal electronic-filing system, a registry or clerk, a process server, a postal or courier carrier); and (ii) a DESTINATION SET - either an accepting registry named as the receiver, or an enumerated list of recipients each paired with a method of delivery. A moment without a destination is a timestamp. A destination without an authority-asserted moment is a distribution list. Neither fires. Apply the deletion test the schema inherits from `business_operations.organisational-records`: strike every entity name, every case number and every document-type word, and the two-legged event structure must still be standing.",
+      "AN ELECTRONIC-FILING NOTICE OR SUBMISSION CONFIRMATION - the family's cleanest signal and the one the schema's own default provably cannot recognise, because the artefact is machine-generated and contains no practitioner-and-client role pair. Its structure is a generator identity (a court system, a filing-service provider) plus a labelled slot set: a case or proceeding identifier, a DOCUMENT OR ENTRY NUMBER assigned by the receiver, a filed-on or submitted-on moment carried to the minute and frequently with a timezone, the filing party or filer account, and a recipient block that PARTITIONS recipients into those notified electronically and those who must be served by other means. The entry-number-plus-moment pair is the discriminating structure; the court's name and the word FILED are struck tokens. Read through 00's direct-fact path, \"a labeled form field\", and through its position rule, since these slots sit in the header zone rather than in running text.",
+      "A STAMP-ZONE OVERLAY on an otherwise ordinary document. This is a POSITIONAL and LAYERED observation, not a vocabulary one, and it is what separates a filed copy from the byte-similar draft beside it: a band or box applied ON TOP of the original page layout - clipping or overlapping the underlying text, rotated, or in a different rendering layer - carrying a received or filed or entered word, a date and a time, a registry or clerk identity, and often a per-page counter (page N of M, or a control number) stamped at the same coordinates on EVERY page. The overlay is the evidence. The underlying document belongs to whichever sibling its own body supports.",
+      "A PROOF, CERTIFICATE OR AFFIDAVIT OF SERVICE: labelled slots pairing a DESCRIPTION OF THE DOCUMENT SERVED with, for each recipient, a name, a SERVICE ADDRESS or electronic address, a METHOD (personal, substituted, left with, mail, email, portal, publication), and a date and time of service, closed by a server's signature, statement or licence number. This is the family's most third-party-dangerous artefact and it is detected in order to be protected: it is a table of other people's home addresses, and several of those people are not parties.",
+      "A DOCKET, REGISTER OR CASE-HISTORY EXTRACT: a repeating dated ROW structure where each row carries an entry number, a date, a filing-party column and a description of one event, over one proceeding - together with a retrieved-on or printed-on line naming the account that pulled it. The repeating-row register is the signal; a caption at the top of it is not. A docket extract is an INDEX of filing events, which is why it lives here and not with the documents it lists.",
+      "A CARRIER OR TRACKED-DELIVERY CONFIRMATION used as service evidence: a return receipt with a tracking identifier and a delivery moment, a courier proof-of-delivery with a signature image and a recipient name, a portal or gateway delivery receipt. It qualifies only when its own slots name the document or proceeding it evidences; a bare tracking confirmation is a shipping record and this row does not claim it.",
+      "A REJECTION, DEFICIENCY OR RETURN NOTICE, named explicitly because its meaning is the OPPOSITE of every other signal here and it is issued by the same generator with the same slots: the case identifier and submission moment appear, plus a labelled REASON FOR REJECTION and a resubmission or cure instruction. It is evidence that a document was NOT accepted. The product records the observation and concludes nothing about consequence, timeliness or cure.",
+      "A FILING-FEE OR FEE-WAIVER RECORD whose transaction slots are bound to a proceeding: an amount and a payment confirmation number sitting in the SAME labelled slot set as a case identifier and a submission moment. Without the proceeding binding this is finance's on finance's own evidence, and the row concedes it below.",
+      "AN E-FILING ENVELOPE OR LODGEMENT PACKET read as an archive WITHOUT unpacking, where the manifest shows one submission identifier over a small coherent set - a transmittal or index, the submitted documents, and a receipt or acknowledgement - because \"the normal scan should never extract archive contents to the filesystem\". Member paths are observations and become facts on no member."
+    ],
+    "needs_llm": [
+      "DECIDING WHETHER THE ARTEFACT IS THE RECEIPT OR THE DOCUMENT, which is this row's own boundary against its siblings and is unresolvable from vocabulary. A conformed pleading is one file carrying two things: a stamp zone (this row) and a pleading body (`law_practice.pleadings`). The model must be able to say which layer it is citing, and when it cannot, the document's own body wins because the stamp is the weaker claim.",
+      "DECIDING WHICH SIDE FILED. The same notice of electronic filing reaches the filer and every other counsel of record, byte-identical apart from a recipient block. Whether the holder's firm lodged the document or merely received notice that the other side did is frequently unrecoverable, and the answer changes nothing about protection but everything about grouping. Abstain when it cannot be cited: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "SEPARATING A FILING RECEIPT FROM AN ORDINARY TRANSACTIONAL CONFIRMATION. A fee receipt, a portal payment confirmation and a courier delivery notice have the structure 00 assigns to the transactional residual. The binding to a proceeding is the only discriminator, and it is often present only as an unlabelled reference line.",
+      "SEPARATING A DOCKET EXTRACT RETRIEVED FOR AN ACTIVE MATTER FROM ONE DOWNLOADED OUT OF INTEREST. A public docket for a famous case, a docket pulled for research, and a docket pulled for the holder's own filing are the same artefact. Purpose is the only test that works; topic will not do it.",
+      "READING AN UNLABELLED OR JURISDICTION-SPECIFIC SERVICE RECORD - a prose attendance note recording personal service, a handwritten server's log, a bailiff or sheriff return in another language, a stamp whose registry markings no approved pattern covers. This row defines no court list, no registry gazetteer and no jurisdiction catalogue, and jurisdiction is never a field or a dimension here.",
+      "DECIDING WHETHER A NOTICE FOR A SEALED, RESTRICTED OR REDACTED FILING MAY BE EXCERPTED AT ALL. The notice frequently names a document the holder is not permitted to circulate. Local interpretation of the minimum necessary slot set, or abstention: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\"",
+      "DISTINGUISHING A REGISTRY STAMP FROM A SCANNER, FAX OR MAILROOM STAMP. All four apply a dated overlay in the header zone. Only one is asserted by a receiving authority, and the difference is in the issuer identity inside the band, not in the fact that a band exists."
+    ],
+    "never_alone": [
+      "THE WORDS FILED, LODGED, SERVED, RECEIVED, ENTERED, CONFORMED, SUBMITTED or ACCEPTED - in a filename, a header, a stamp or running text. This is the row's existential risk and it is struck first: every one of them appears on drafts named for aspiration, on templates, on internal cover sheets, on tax and regulatory correspondence, and on the schema's own precedent bank.",
+      "A DATE-AND-TIME OVERLAY ALONE, however official it looks. A scanner writes one, a fax header writes one, a mailroom writes one, a PDF printer writes one, and a firm's own document-assembly footer writes one. The issuer inside the band is the evidence; the band is not.",
+      "A COURT, TRIBUNAL, REGISTRY, CLERK, SHERIFF, PROCESS-SERVER or FILING-SERVICE NAME ALONE, read across by inference from 00's reasoning that a single organisation name resolves nothing because the same name occupies many roles. A court name appears on this row's receipts, on the pleadings it received, on published opinions, on public research downloads, on the schema's precedent bank and on a law student's coursework.",
+      "A CASE NUMBER, DOCKET NUMBER, ENTRY NUMBER, ENVELOPE NUMBER, TRACKING NUMBER, CONFIRMATION NUMBER, CONTROL NUMBER or BATES-SHAPED TOKEN ALONE. An identifier supplies LINKAGE only once its own labelled role is established, and its digits are never a date - 00's narrow-date rule covers numbers that look like years but are other values.",
+      "A COURT-SYSTEM EMAIL DOMAIN, A NO-REPLY SENDER, OR AN AUTOMATED-MESSAGE SHAPE ALONE. Notification mail from a filing system, a case-law alert service, a bar association, a docket-monitoring subscription and a marketing list share all three properties.",
+      "A COURT CAPTION ALONE. A caption is `legal`'s deterministic signal and it is satisfied identically by a public filing anyone downloaded. It is never evidence that a transmission occurred, still less that the holder caused it.",
+      "A FILENAME SUFFIX - FILED, STAMPED, CONFORMED, AS-FILED, SERVED, FINAL, EXECUTED - or a folder named Filings, Service, Docket or Court. A folder name is an unlabelled position; a suffix is an author's intention, not a registry's act. The version fact must come from hashes or explicit revision markers, never from a `-final` suffix.",
+      "DOWNLOAD-SESSION, THREAD OR CURRENT-DIRECTORY MEMBERSHIP - and this row is unusually exposed to it, because pulling a docket typically downloads twenty documents in one browser session: \"A session should never be treated as proof of topic\". A batch that arrived together is a session, not a filing event and not a matter.",
+      "PUBLIC AVAILABILITY of the docket, the filing or the register as proof that the local copy, its stamp zone, its service list or the surrounding matter is low-sensitivity or eligible for a cloud prompt. Restated here because this row's artefacts are the most tempting instance of the mistake in the whole schema.",
+      "A PERSON'S NAME OR A SERVICE ADDRESS ALONE. The strictest instance: a proof of service is a list of third-party addresses, so a bare name is simultaneously the least discriminating evidence and the most dangerous.",
+      "A SIGNATURE IMAGE, A SEAL IMAGE, A BARCODE or A QR CODE ALONE. Delivery notes, notarised commercial documents, event tickets, parcel labels and marketing mail all carry them.",
+      "AN EMAIL DELIVERY OR READ RECEIPT ALONE. It is a mail-system artefact; only an explicit binding to a served document brings it here.",
+      "A SOURCE TYPE OR EXTENSION ALONE, including every one this row lists. file_kind_plausible is constitutionally never-alone.",
+      "MATCHING PARTY NAMES, CAPTIONS, COURTS OR DATES ACROSS TWO PROCEEDINGS. Cross-matter bridging is suppressed unless an exact explicit reference or a user decision authorises it, and here it is a privacy rule at least as much as an accuracy one."
+    ]
+  },
+  "proposed_context_terms": [
+    "notice of electronic filing",
+    "filing confirmation",
+    "submission receipt",
+    "envelope number",
+    "filed stamp",
+    "conformed copy",
+    "received by the registry",
+    "entered on the docket",
+    "docket entry",
+    "docket text",
+    "case history",
+    "register of actions",
+    "proof of service",
+    "certificate of service",
+    "affidavit of service",
+    "method of service",
+    "personal service",
+    "substituted service",
+    "service by mail",
+    "service address",
+    "served upon",
+    "date and time of service",
+    "process server",
+    "return of service",
+    "return receipt",
+    "proof of delivery",
+    "tracking number",
+    "filing fee",
+    "fee waiver",
+    "rejected filing",
+    "deficiency notice",
+    "resubmit",
+    "lodgement",
+    "transmittal",
+    "acknowledgement of receipt",
+    "service list",
+    "counsel of record"
+  ],
+  "work_types": [
+    "notice of electronic filing or submission confirmation",
+    "clerk-stamped or conformed filed copy",
+    "filing rejection, deficiency or return notice",
+    "proof, certificate or affidavit of service",
+    "carrier, tracked-mail or courier proof of delivery used as service evidence",
+    "docket, register or case-history extract",
+    "filing fee receipt or fee-waiver record",
+    "lodgement, transmittal or bundle index with registry acknowledgement",
+    "service list and contact-for-service record",
+    "hand-delivery, counter-lodgement or personal-service log"
+  ],
+  "grouping_reasons": [
+    "ONE FILING EVENT, and it is this row's characteristic group and unlike anything else in the schema: the as-submitted document, the submission confirmation, the returned stamped or conformed copy, the proof of service and the fee receipt, joined by ONE exact submission or entry identifier. The members are content-incoherent and purpose-coherent, which is 00's own licence - \"The documents are content-incoherent but purpose-coherent.\" - and the group copies no case, party, date or status fact onto any member.",
+    "ONE DOCUMENT ACROSS ITS LODGEMENT LINEAGE - draft, as-filed, stamped, served - which is the universal version_family fact supported by hashes or explicit revision markers. The stamped copy and the draft are frequently near-identical bytes, so this is where duplicate_family and version_family have to be told apart rather than collapsed.",
+    "ONE SERVICE EXERCISE over many recipients: one served document, many proofs, one service list. Joined by the served-document reference, never by the recipients' names.",
+    "THE DOCKET EXTRACT AS AN INDEX of a matter's filing events. It may be shown alongside the group it indexes, but a docket row is not membership evidence: the extract lists documents the holder may not hold, and holds no document itself.",
+    "A FILING RECORD JOINING THE MATTER GROUP the schema's own anchor defines, through an exact matter or proceeding reference. \"A file may validly belong to more than one accepted group\" - the filing event group and the matter group are both valid and neither erases the other.",
+    "NO GROUP AT ALL is a common and valid outcome here. A single certificate of service naming three third-party addresses is still protected material even with nothing around it.",
+    "NOT grouping reasons: a shared caption; a shared court or registry; a shared filing date; a shared filer account; one download session; and \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - `law_practice` declares no field rows under PR-6, so no dimension may branch, and the schema co-activates `legal`, one of 00's safety domains, whose protection runs before any placement. THE RECOMMENDATION HELD AS PROSE, AND IT DIFFERS FROM THE SCHEMA'S DEFAULT IN THREE ARGUED WAYS. The default recommendation is: the client only where the corpus spans more than one AND the user has explicitly approved it, then the matter, then the DOCUMENT FUNCTION, then the period last. (1) THE FUNCTION LEVEL DOES NOT BRANCH HERE, and this is the substantive difference. Every member of this situation has the same function - it is a receipt - so a function level would be exactly the \"meaningless one-child levels\" 00 warns against. The axis that actually varies inside this situation is the FILING EVENT, and a filing event is not a category of document: it is a pointer at another document. The recommendation is therefore that a filing record is a LEAF BESIDE THE DOCUMENT IT EVIDENCES, not a branch of its own - the stamped copy, the confirmation and the proof of service sit with the pleading or motion they attest, under the matter. A Filings folder collecting every receipt in the corpus is the anti-pattern this row exists to name, because it separates each receipt from the only thing that makes it intelligible, on 00's own argument that a work type is \"meaningful only after the course is known\". (2) THE CLIENT LEVEL IS MORE STRONGLY INELIGIBLE HERE THAN IN THE DEFAULT, not equally. The schema's rule is that a named third party may never be a folder level; in this situation the natural label IS a third party - a caption is X v Y, and a service list is a column of other people's home addresses. A branch named from a filing record's most salient token publishes an adverse party's name and sometimes their address into the filesystem, against \"The default posture must therefore be local-first and data-minimizing.\" (3) NOT TIME-FIRST, and the reason is specific to this row rather than inherited, because these are the most event-like artefacts in the schema and time-first is therefore the most tempting error available. A single filing event carries FIVE different moments - the submission moment, the registry's accepted or entered moment, the stamp's moment, the service moment, and the filesystem's - which routinely fall on different days and occasionally in different timezones. Branching on any one of them scatters one event across calendar folders and silently asserts that the chosen moment is the operative one, which is a legal conclusion this product must never reach. 00 states the general rule for document domains: project, function, or subject usually comes before time. Whatever lands remains a recommendation - \"the user can reverse, remove, add, or flatten dimensions\".",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "ocr",
+      "image",
+      "spreadsheet",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".eml",
+      ".msg",
+      ".html",
+      ".htm",
+      ".txt",
+      ".csv",
+      ".xlsx",
+      ".png",
+      ".jpg",
+      ".tif",
+      ".zip",
+      ".xml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Notice of Electronic Filing - Motion to Compel - 41127-0006.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is an automated court filing system address; subject carries a proceeding identifier and a document title",
+        "body slots: case identifier, DOCUMENT NUMBER assigned by the receiver, a filed-on moment carried to the minute with a timezone, and the filer account",
+        "a recipient block partitioned into parties notified electronically and parties who must be served by other means",
+        "a document link and a per-page control-number note; no client slot and no practitioner-and-client role pair anywhere in the message"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none, and this row proposes none",
+        "that the schema's DEFAULT TEMPLATE could have found this file. IT COULD NOT, AND THAT IS WHY THIS ROW EXISTS: the default requires an artefact whose own labelled slots separate a practitioner role from a client role, and this notice has no client role in it at all. Its authority is a third party to both",
+        "that the holder filed the document - every counsel of record receives a byte-similar notice",
+        "that the filing was timely, effective, complete or accepted beyond the literal words in the slots",
+        "that the document link may be followed automatically",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Complaint - Hartley v Nash - CONFORMED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a rectangular band applied ON TOP of the original page layout in the top-right of page one, clipping the underlying line, carrying a received word, a date and a time, and a clerk identity",
+        "a control number stamped at identical coordinates on every page",
+        "beneath the overlay, an ordinary pleading: tribunal caption, numbered allegations, prayer for relief, counsel block",
+        "a near-identical file in the same directory without the overlay"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns the file outright. THIS IS THE IN-SCHEMA SEAM AND THE ROW CONCEDES THE LARGER HALF: the pleading body is `law_practice.pleadings`' on the pleading's own evidence, and the caption is `legal`'s safety signal, which runs first. THIS ROW OWNS THE OVERLAY ONLY - the stamp zone is what makes the file a filing record rather than a draft",
+        "that the unstamped neighbour is a duplicate to be collapsed; version_family and duplicate_family diverge here and near-identical bytes are exactly why",
+        "that a `-CONFORMED` filename suffix supplied any of this - the overlay did, and a suffix on the draft would have been a lie",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Affidavit of Service - Nash and third parties.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a description-of-document-served slot naming the summons and complaint",
+        "a table of recipients, each with a name, a residential SERVICE ADDRESS, a method (personal, substituted, left with) and a date and time",
+        "two recipients described as an occupant and a co-resident, neither a party",
+        "a server's signature, licence number and jurat"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that service was valid, effective, timely, sufficient or properly effected. The product records the observation and decides no legal status whatsoever",
+        "that any address, name or relationship in the table becomes a stored fact, prompt content, a search facet or a folder level. THIS IS THE ROW'S SHARPEST PRIVACY CASE AND IT IS NOT THE SCHEMA'S GENERIC ONE: the schema protects a client; this file exposes people who are not the client, not the adverse party, and not parties at all - an occupant who answered a door",
+        "that the file is low-risk because each row is short - a MULTI-SUBJECT ADDRESS LIST IS BULK-SENSITIVE AS A WHOLE",
+        "permission to send the file, a sample or a summary to a cloud model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Docket - 2-26-cv-00418 - retrieved 2026-08-20.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a caption block followed by a repeating dated ROW structure: entry number, date filed, filing party, entry text",
+        "some entry texts reference documents and attachments the holder does not appear to hold",
+        "a retrieved-on line naming the retrieving account and a billing-page footer",
+        "restricted or sealed markers on two entries"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the docket's entries create membership for files the holder holds. The extract is an INDEX of events; a row is not an anchor, and \"It should not form a supported group when there is no valid anchor\"",
+        "that a docket is low-sensitivity because it is a public record - PUBLIC AVAILABILITY IS STRUCK, and the retrieving account, the retrieval moment and the surrounding matter are not public",
+        "a date fact from digits inside the case identifier",
+        "that a restricted or sealed marker may be interpreted, resolved or acted on",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Filing rejected - deficiency - envelope 4471902.eml",
+      "source_type": "email",
+      "observations": [
+        "same automated generator, same case identifier and submission-moment slots as an acceptance notice",
+        "a labelled REASON FOR REJECTION slot and a resubmission instruction",
+        "no document number was assigned",
+        "a later message in the same thread carries an acceptance for a resubmitted envelope"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a document was filed. THIS IS THE INVERSE FIXTURE: the artefact has every signal this row accepts and its meaning is the negation of them, which is why acceptance can never be inferred from the presence of a filing-notice structure",
+        "that the deficiency was cured, that the resubmission relates back, or that any deadline was met or missed",
+        "that the two messages are one document's versions - they are two submissions",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Filing fee receipt - envelope 4471902.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an amount, a payment method, a card last-four and a payment confirmation number",
+        "an issuer block naming a filing-service provider and a paid-by account",
+        "the same envelope identifier and case identifier as the submission confirmation",
+        "no caption, no party names beyond the paying firm"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row displaces finance. THE ISSUER-AND-AMOUNT STRUCTURE IS FINANCE'S OWN DISCRIMINATING EVIDENCE and `finance.receipts-expenses` holds it on that evidence; this row's claim rests ONLY on the envelope-and-case binding, and where that binding is absent the row has no claim at all",
+        "a disbursement, billing, tax_year or fiscal_period fact - none of those keys exists on this schema",
+        "that the payment proves the filing was accepted - the rejection fixture above was paid for",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Return receipt - certified mail - Nash.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed or scanned carrier card: a tracking identifier, a handwritten recipient signature, a printed name and a delivery date box",
+        "a preprinted article-addressed-to block naming a recipient and address",
+        "OCR recovers the tracking identifier but not the signature",
+        "a matching proof of service in the same directory names the same tracking identifier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from the card alone. A TRACKING NUMBER, A SIGNATURE IMAGE AND A DELIVERY DATE ARE A SHIPPING RECORD; the binding to a served document came from the neighbouring proof of service, not from the card",
+        "that the signature identifies the addressee, or that delivery constitutes service",
+        "an identity or handwriting fact from the signature image",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-08-14 at 16.03.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: display-resolution dimensions and a screen-capture naming pattern",
+        "OCR recovers a browser-rendered submission confirmation panel with an envelope number and a submitted-on moment",
+        "a browser chrome strip and a partially visible second tab",
+        "no case identifier is legible in the captured region"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a proceeding, a matter or a filing event from an envelope number alone - the identifier supplies linkage only after a labelled role is established elsewhere",
+        "that missing EXIF proved screen origin; the positive dimensions-and-pattern evidence did",
+        "that OCR text may be treated as a labelled slot merely because it was laid out like one",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Order - Hartley v Nash - entered 2026-08-19.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "arrived as an attachment to a notice of electronic filing and carries an entry number and an entered-on stamp",
+        "a tribunal caption, a court seal, numbered OPERATIVE PARAGRAPHS and a judicial signature block",
+        "no service list, no recipient partition, no filer account",
+        "the file is stamped in the same registry band style as the conformed complaint"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row. THIS IS THE COLLISION FIXTURE. Every signal this row accepts is present - an authority-asserted moment, an entry number, a registry stamp band, arrival by filing notice - and the file is NOT a filing record. THE DISCRIMINATOR IS WHAT THE DOCUMENT IS ABOUT: this row's artefacts record a TRANSMISSION (what moved, when, to whom, by what method); this document records a DECISION, and its operative paragraphs and judicial signature have no counterpart in any receipt. `law_practice.orders-and-judgments` owns it; the covering notice remains this row's",
+        "that a stamp band settles ownership - the band is a layer, and the body underneath decides",
+        "that any order, finding or remedy is current, complied with, appealed or correct",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Summons and proof of service - my apartment - 2026-07-02.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a certificate of service naming the HOLDER personally at the holder's own residential address as the served party",
+        "a caption, a case identifier and a server's signature",
+        "no filer account belonging to the holder, no matter reference allocated by any firm the holder works at, no time record and no work product anywhere nearby",
+        "the file sits beside a lease and a personal bank statement"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this schema at all. THIS IS THE UNDER-FIRING COLLISION FIXTURE: the transmission structure is complete and correct, and the holder is the RECIPIENT of service in their own life. `legal.personal-legal-matters` owns it, and `legal` protects it first. The discriminating evidence is whose name is in the served slot and the total absence of practitioner-side apparatus",
+        "that a proof of service is practitioner-side evidence - it is issued by a server for whoever instructed one, and the card cannot say who",
+        "a folder path, and specifically nothing recording the existence or subject of the holder's own proceeding"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scan_2026-08-14_1603.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a dated band across the top of page one reading RECEIVED with a date and a time",
+        "the band is a mailroom date stamp photographed with the page; the issuer text names the holder's own firm",
+        "the underlying document is an unsigned draft agreement with bracketed placeholders",
+        "a scanner producer string in the metadata and a second dated header line written by the scanning device"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a filing record. THE SECOND COLLISION FIXTURE AND THE CHEAPEST MISTAKE IN THIS ROW: a RECEIVED word plus a dated overlay is present, and the issuer inside the band is the HOLDER'S OWN FIRM, not a receiving authority. An internal mailroom stamp, a scanner header and a fax banner all produce this shape",
+        "that the underlying document is `legal`'s - the bracketed placeholders and empty execution blocks are the schema's precedent-bank inverse signal",
+        "a date fact from either dated line without deciding which device wrote it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Envelope 4471902 - submitted set.zip",
+      "source_type": "archive",
+      "observations": [
+        "the manifest is readable without unpacking and shows one envelope identifier repeated across member paths",
+        "members: a transmittal or index, three submitted documents, and one acknowledgement PDF",
+        "member names encode a case identifier and a document ordering",
+        "uncompressed size and file count are available from the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any fact on a member from the manifest. Directory and member names are observations; the packet is not unpacked to improve classification",
+        "that the submitted set was accepted - the acknowledgement's own slots decide, and the rejection fixture shows they may say otherwise",
+        "that the envelope identifier is a matter reference",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.pleadings",
+      "signal": "SAME FIXTURE BOTH SIDES: one PDF - `Complaint - Hartley v Nash - CONFORMED.pdf` - that is a registry stamp band applied ON TOP of an ordinary statement of case. Two layers, one file, and each row claims a different layer. THIS ROW CLAIMS ONLY THE OVERLAY: a band in a different rendering layer clipping or rotated against the underlying text, carrying a received/filed/entered word, a moment, a registry or clerk identity, and a control number stamped at identical coordinates on EVERY page - because that overlay is a transmission asserted by a receiver. THE NEIGHBOUR CLAIMS THE BODY UNDERNEATH: tribunal caption, bound party pair, numbered allegations, prayer for relief, counsel signature block. When the two conflict THE BODY WINS and this row concedes the file, because the stamp is the weaker claim - strike the band and a pleading is still standing; strike the pleading and the band evidences nothing. The control is the near-identical unstamped neighbour file in the same directory: same pleading, zero claim from this row. (The neighbour is a REFUSED row, so in practice the body routes on to `legal` on the caption; this row's half of the seam is unchanged either way.)"
+    },
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: `Order - Hartley v Nash - entered 2026-08-19.pdf`, which arrived as an attachment to a notice of electronic filing and carries an entry number plus an entered-on registry stamp in the same band style as this row's conformed copy. EVERY deterministic signal this row accepts is present on it and the file is still NOT this row's. THE DISCRIMINATOR IS WHAT THE BODY IS ABOUT: this row's artefacts record a TRANSMISSION - what moved, when, to whom, by what method - and therefore always carry a destination set, either an accepting registry named as receiver or an enumerated recipient-and-method list; the neighbour's artefacts record a DECISION - numbered OPERATIVE PARAGRAPHS and a judicial signature block, which have no counterpart in any receipt, and no recipient partition anywhere. Split the packet: the covering notice of electronic filing stays this row's, the attached order is the neighbour's, and the shared entry number is linkage that decides neither side."
+    },
+    {
+      "domain": "law_practice.deadlines-diary",
+      "signal": "SAME FIXTURE BOTH SIDES: one dated-row table pulled for a matter - `Docket - 2-26-cv-00418 - retrieved 2026-08-20.pdf` at one end, a case-management key-dates export at the other. Both rows would claim a table whose cells are dates against a proceeding, and a shared date column discriminates nothing. THE DISCRIMINATOR IS WHAT ONE ROW OF THE TABLE IS. Here a row is ONE FILING EVENT THAT HAS ALREADY OCCURRED - entry number, date filed, filing party, entry text - many rows over ONE proceeding, closed by a retrieved-on line naming the pulling account. On the neighbour's side a row is ONE MATTER - one row per matter across MANY matters, with a forward key-date column (limitation, service, listing, completion) and an owning-practitioner column. Event-rows-in-one-matter versus matter-rows-across-a-portfolio; the entry number and the retrieval account exist only on this side, the portfolio shape only on the other. (The neighbour is a REFUSED row whose coverage sits on the `law_practice` schema default, so the operative effect of this edge is that a portfolio diary must never be absorbed into a filing-event group.)"
+    },
+    {
+      "domain": "law_practice.matter-correspondence",
+      "signal": "SAME FIXTURE BOTH SIDES: one .eml in a matter folder that carries a served document - an opposing-counsel email enclosing a pleading, with a certificate of service attached beneath it. Both rows would claim the message. THE DISCRIMINATOR IS WHO ASSERTS THE MOMENT AND THE DESTINATION. This row needs both legs asserted by an issuer who is NEITHER the holder NOR the holder's client - a court electronic-filing system, a registry, a clerk, a process server, a carrier - which is exactly why a machine-generated notice of electronic filing with no client slot at all is this row's and a lawyer-to-lawyer covering letter never is. The neighbour's item is a message AUTHORED by a practitioner or a client to a human correspondent, whose evidence is the exchange itself. Where one file is both, the third-party-asserted receipt layer is this row's and the covering prose is the neighbour's; the shared case reference is linkage, not evidence for either. (The neighbour is a REFUSED row; the seam is stated so the correspondence half is not swept into a filing group by proximity.)"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Summons and proof of service - my apartment - 2026-07-02.pdf` - a complete and correct transmission structure (description of the document served, recipient, service address, method, date and time, server's signature and licence number) in which the person in the SERVED slot is the HOLDER, at the holder's own residential address, with the file sitting beside a lease and a personal bank statement. Both of this row's legs fire and the file is still not this row's. THE DISCRIMINATOR IS WHOSE NAME OCCUPIES THE SERVED SLOT, together with the presence or total absence of practitioner-side apparatus: this row is the receipt layer of a matter run FOR SOMEONE ELSE, so it needs a filer account, an allocated matter or engagement reference, or the surrounding two-role apparatus somewhere in the same evidence; the neighbour holds the holder's own proceeding on holder-role evidence and, being a `legal` safety row, protects it before any placement. A proof of service is issued by a server for whoever instructed one and the card itself cannot say which side that was - so with no practitioner-side apparatus present the holder-role reading wins and this row takes nothing, not even the group."
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "SAME FIXTURE BOTH SIDES: `Filing fee receipt - envelope 4471902.pdf` - one document carrying an amount, a payment method, a card last-four, a payment confirmation number and an issuer block naming a filing-service provider, AND the same envelope and case identifiers as the submission confirmation lying beside it. THE ISSUER-PLUS-TRANSACTION-IDENTIFIER-PLUS-TOTAL STRUCTURE IS THE NEIGHBOUR'S OWN ANCHOR and it holds the receipt on that evidence. This row's entire claim rests on ONE extra thing - the PROCEEDING BINDING, a case or envelope identifier sitting inside the SAME labelled slot set as the amount and the submission moment - and where that binding is absent the row concedes the file outright and has no claim at all. Reciprocally: a filing-system acknowledgement carrying no amount and no labelled total is not the neighbour's however transactional its shape. The binding is frequently present only as an unlabelled reference line, which is what makes this a real contest rather than a clean split."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH RATHER THAN CONTESTED: the conformed filed copy and the notice of electronic filing each carry a tribunal caption with a matter-identifier slot, which is `legal`'s own deterministic proceeding signal, while the stamp overlay and the recipient-and-method partition on the same file are this row's. `legal` is one of 00's safety domains and its protection runs BEFORE any placement decision this row could make, so the correct behaviour is co-activation: `legal` protects the file, this row supplies the transmission reading that decides grouping. Neither row copies the other's facts, and the caption alone activates neither this row nor any group."
+    },
+    {
+      "domain": "law_practice.discovery",
+      "signal": "SAME FIXTURE BOTH SIDES, HELD BY BOTH: a production transmittal - a cover letter or volume index for a produced set, accompanied by a certificate of service and a carrier delivery confirmation naming that volume. The neighbour holds the PRODUCED-CORPUS APPARATUS on its own evidence (the contiguous control-number range, the load file's header row and document-break flag, the review-coding log, the withholding schedule); this row holds the TRANSMISSION LAYER wrapped around it (the moment and destination set asserted by a server or carrier, the proof of service, the acknowledgement of receipt). One packet, two legitimate readings, and the shared control number or volume label is linkage only. Where a document carries a production control number but no third-party-asserted moment and no destination set, this row has no claim."
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Review Later",
+    "Receipts and Confirmations"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Stricter than the schema's already-strict default for one reason the schema itself does not carry: a proof of service is a structured list of NAMED THIRD PARTIES AND THEIR PHYSICAL ADDRESSES, and several of those people - an occupant, a co-resident, a person who accepted substituted service - have no relationship with the holder or the holder's client at all. The schema protects a client who never chose this filesystem; this row additionally protects people who never chose the client. Two further reasons: a notice of electronic filing frequently names a SEALED or RESTRICTED document that the holder may not circulate, so the notice can be more disclosive than the file it points at; and the artefacts here are the corpus's strongest invitation to the struck inference that public availability makes a local copy safe - a docket is public, and the retrieving account, the retrieval moment, the local annotations and the surrounding matter are not. Only `potentially_sensitive` is recorded; P7 owns handling classes, and no privilege, sealing, protective-order or disclosure conclusion is ever drawn.",
+  "open_question": "Two, stated rather than smoothed. (1) FOLD-BACK: the schema's own work_types enum already contains a court-filing-record value, so R1c may reasonably judge this row to be a value rather than a node. This row's answer is that its activation structure - an authority-asserted moment plus a destination set, with NO practitioner-and-client role pair - is a structure the schema's default template cannot recognise at all, and that folding the row back would leave a lone notice of electronic filing falling to Receipts and Confirmations beside a boarding pass. If R1c rejects that argument, the correct disposition is a refusal here and an explicit residual re-route, not a narrower filename filter. (2) SPLIT: filing evidence and service evidence are two different transmissions - one to a registry, one to people - and only the second carries third-party addresses. They are kept in one row because they arrive as one packet and share one identifier, but if a later pass finds that the address-bearing half needs a stricter posture than the registry half, the split is along that seam and nowhere else."
+}

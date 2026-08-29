@@ -1,0 +1,406 @@
+{
+  "id": "business_operations.market-research",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Market, competitive and pricing analysis",
+  "one_line": "The organizational situation of investigating a MARKET - its size, its segments, its competitors and what it will pay - in order to make a commercial decision. The organizing anchor is the QUESTION being answered for a decision, not a body of knowledge: the work has a commissioner, a deadline and a recommendation, and it stops when the decision is made. That is what separates it from research proper, which is anchored on a project and a publication, and from user research, which is anchored on evidence gathered from named participants. Absorbs the legacy rows ops.market-competitive-research (ROW) and ops.pricing (FOLD) - pricing work is built on the same competitor and willingness-to-pay analysis and is filed with it. Placeholder row (J-IND/J-DEPTH): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a competitive-comparison structure: a matrix whose rows or columns name SEVERAL named companies or products and whose other axis names capabilities, prices or positioning attributes. Several named competitors on one axis is the single most distinctive shape in this row. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a market-sizing structure: a stacked derivation from a population or spend figure down to an addressable and obtainable number, with an assumptions column and a source column per line.",
+      "a pricing-analysis structure pairing price points or tiers with volumes, margins or elasticity assumptions, usually with a scenario comparison across columns.",
+      "an analyst-report layout: a title page naming a research house and a publication date, a methodology note, and figure captions numbered across the document.",
+      "a survey-instrument or panel-results structure reporting aggregate percentages by segment with a stated sample description, rather than individual responses.",
+      "a decision-facing deck structure: a situation section, an options section and a recommendation slide, with the competitive or sizing material as evidence rather than as the point.",
+      "a scraped or exported price file: a machine-generated filename with a date token and a header row naming competitor, product, price and captured-at."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "the central judgement of this row: whether the work exists to answer a commercial question (this row), to produce knowledge for a project and a publication (research), or to understand named users of a product (business_operations.user-research). The same competitor table appears in all three. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating the organisation's OWN analysis from a purchased or downloaded analyst report, a competitor's own marketing material saved for reference, and a press article - all of which sit in the same folder and none of which is the organisation's work.",
+      "separating market pricing analysis from an internal cost model, a budget, or a quotation to a customer, which share the price-and-volume spreadsheet shape exactly.",
+      "an unheaded spreadsheet of numbers with company names in the first column and no title.",
+      "a purpose-coherent research pack whose members are individually unremarkable - a deck, two spreadsheets, four saved PDFs and a screenshot set. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a competitor's or a company's name alone. This is the tempting false file for this row: a saved competitor brochure, a supplier's price list and a news article all carry company names and none of them is analysis. Read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a price, a percentage or a currency token alone.",
+      "the words market, research, analysis, competitive or pricing in a filename alone - research names an entirely different schema, and pricing names a quotation as readily as an analysis.",
+      "a chart or a graph alone - every reporting document in the corpus contains one.",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a bare 4-digit number read as a market year, a sample size or a price.",
+      "membership in a download session that dropped a pile of analyst PDFs at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "market size",
+    "addressable market",
+    "segment",
+    "competitive landscape",
+    "competitor",
+    "benchmarking",
+    "positioning",
+    "share of market",
+    "willingness to pay",
+    "price elasticity",
+    "price point",
+    "tiering",
+    "margin",
+    "scenario",
+    "assumptions",
+    "methodology",
+    "sample",
+    "analyst report",
+    "recommendation",
+    "opportunity"
+  ],
+  "work_types": [
+    "market sizing model",
+    "competitive landscape or benchmarking matrix",
+    "competitor profile or teardown",
+    "pricing analysis or price model",
+    "purchased or downloaded analyst report",
+    "survey or panel results summary",
+    "captured price or listing export",
+    "findings deck or recommendation paper",
+    "source material and saved references",
+    "assumptions and methodology note"
+  ],
+  "grouping_reasons": [
+    "one research question or study: the model, the sources, the competitor profiles and the findings deck, held together by purpose rather than by content. “The documents are content-incoherent but purpose-coherent.”",
+    "one model across its versions and scenarios - the same workbook re-saved as v2, v3 and final is a version family, not several studies.",
+    "one competitor tracked across time, which is a real reason to group and the one most likely to tempt a competitor fact onto an unrelated file that merely mentions the company. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single downloaded analyst PDF with no study around it is reading material."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation, then the STUDY or question the work was commissioned to answer, then the document function - model, sources, findings - with the market or competitor as a facet inside the study rather than as a level above it. A competitor-first tree is the tempting alternative and it is the wrong one: it scatters a single study across every company it mentions and turns a shared source into a filing decision. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a pricing scenario is meaningless without the question it was built to answer. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - though this is a row where a user who tracks one market continuously may reasonably prefer a periodic order, and that is a user edit, not a catalogue default. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "code_structured"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".docx",
+      ".png",
+      ".eml",
+      ".zip",
+      ".ipynb"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Competitive landscape Q1 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers name eight companies",
+        "rows name capabilities, price points and target segments",
+        "a sources column with URLs and capture dates",
+        "a second tab of raw captured prices"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "a ranking or a competitive judgement of the product's own from the cells",
+        "a company relationship - a named competitor is not a customer, a supplier or an employer",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "TAM model v3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a stacked derivation from a population figure to an obtainable figure",
+        "an assumptions column and a source column per line",
+        "three scenario tabs named low, base and high",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a market size as a fact of the product's own - every number in the file is somebody's assumption",
+        "that v3 is a different document from v2 - it is one version family",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Gartner MQ 2026 - collaboration.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a title page naming a research house and a publication date",
+        "a methodology note and numbered figures",
+        "a licence or single-user notice in the footer",
+        "no organisation-specific content at all"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a purchased report is the organisation's own analysis - it is source material, and with no study around it, it is reading material",
+        "a licensing entitlement fact from a footer notice",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Pricing scenarios - board version.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slides comparing three price tiers against volume and margin",
+        "a recommendation slide",
+        "speaker notes naming an internal decision meeting",
+        "a confidential marking in the master"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row, business_operations.strategy-plan and business_operations.board-governance owns it - a pricing recommendation prepared for a board carries all three anchors, and P10 chooses from an accepted group later",
+        "a pricing decision as a fact of the product's own",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Interview notes - P07.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a participant code rather than a name",
+        "verbatim quotes about how a product is used",
+        "a consent reference and a session date",
+        "a researcher's observations in the margin"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: evidence gathered from a named or coded individual under consent is business_operations.user-research, not market analysis - this is the collision fixture",
+        "that a participant code makes the file de-identified",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "competitor_prices_20260304.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "machine-generated filename carrying a date token",
+        "header row names competitor, product, price, captured at, source url",
+        "several thousand rows",
+        "no commentary"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a price fact as a conclusion of the product's own - a captured price is a raw observation with a capture time",
+        "activation from a date-stamped export filename alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 11.22.14.png",
+      "source_type": "image",
+      "observations": [
+        "a capture of a competitor's pricing page",
+        "no EXIF camera metadata",
+        "a browser chrome strip at the top",
+        "sits beside the captured price export"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a study fact from the neighbouring export - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that missing EXIF proves the image is a screenshot - it is browser chrome and the OCR text that support that, not the absence of metadata",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Industry outlook - saved article.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a print-to-PDF of a trade publication article",
+        "a byline and a publication date",
+        "market commentary and two charts",
+        "no organisation-specific framing"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that saved reading is analysis - with no study around it this is reading material, and the second collision fixture for the row",
+        "an author fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "market_analysis.ipynb",
+      "source_type": "code_structured",
+      "observations": [
+        "notebook cells loading a price export and producing charts",
+        "markdown cells stating a commercial question",
+        "output cells with rendered figures",
+        "sits in a repository beside other notebooks"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and code.notebooks-experiments owns it - a notebook that answers a commercial question carries both anchors, and P10 chooses from an accepted group later",
+        "any business_operations fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.user-research",
+      "signal": "Both gather evidence to inform a commercial decision and both produce decks of findings. The discriminating evidence: aggregate market structure, competitor sets and price points support this row; sessions with individual participants, consent records, transcripts, recordings and participant codes support user research - and that difference is a privacy difference, not only a filing one. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research",
+      "signal": "The word research names both, and an academic market study and a commercial one can share methods, sources and charts. The discriminating evidence: a project, stage, lab or venue anchor and an intent to publish supports the research schema; a commissioner, a deadline and a recommendation for a business decision supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.strategy-plan",
+      "signal": "Market analysis is the evidence base of a strategy paper, and the two are often the same deck at different stages. The discriminating evidence: a stated horizon, objectives, and an organisation-wide commitment supports the strategy row; the investigation itself, with methodology, sources and a market as its subject, supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "Positioning and pricing work is produced by market analysis and consumed by launch planning, and a single deck routinely spans both. The discriminating evidence: a launch date, readiness checks, enablement material and channel plans support go-to-market; the analysis behind the positioning supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.budget-forecast",
+      "signal": "A market model and a revenue forecast are both scenario spreadsheets with assumptions columns, and one feeds the other. The discriminating evidence: an internal unit, a period, a plan-versus-actual comparison and a variance commentary supports the budget row; an external market with competitors and segments supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.partnerships-bd",
+      "signal": "Competitor and market profiles are built to support a pitch, and a target-account profile looks like a competitor profile. The discriminating evidence: a named counterparty being pursued, a proposal, and a pipeline position supports the business development row; analysis of a market with no counterparty being approached supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.content-marketing",
+      "signal": "Marketing teams publish market analyses as content, and the published version is indistinguishable in content from the internal one. The discriminating evidence: an editorial calendar, a channel, a designed layout and an external audience supports the creative row; an internal decision audience supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "A purchased analyst report and a saved trade article are third-party publications with no project identifier on them, which is exactly the situation research.reading-library was written to carry - and they arrive in this row's folder as source material. The discriminating evidence: an accepted study group around the file, whose model, sources and findings deck the report was pulled to support, keeps it here as source material; a third-party publication structure with no such group around it is reading material and both rows agree it routes to the Reading Inbox residual rather than being claimed. Reciprocally, this row must not claim a report merely because the report names a market. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The correct and very common home for purchased analyst reports, saved articles and competitor material with no study around them - the material this row must not mistake for its own analysis. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone model, matrix or findings document with no accepted study group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for an unheaded spreadsheet of company names and numbers whose purpose is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for captures of competitor pages and pricing screens with no accepted study association. “Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "The home for saved competitor visuals, product references and clipped market material kept for later retrieval rather than for one study. “Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a rights-protected analyst PDF or an encrypted data delivery. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Most of this material is about organisations rather than people, which makes it the lightest row in this family - but two parts of it are not. Pricing scenarios and margin models are the organisation's own commercially confidential position, and purchased analyst reports are licensed material whose redistribution is restricted by the licence in their own footers; neither should reach an external connector by default. 00's operative limits apply to whatever P7 classifies as protected: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”, and the enforcement point is 00's: “Privacy policy must be enforced before content reaches any model or external connector.”. The row takes the cautious value because the pricing half arrives in the same folder as the harmless half. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether pricing work should be its own row rather than a FOLD into market research. The roster folded ops.pricing here on the ground that pricing is built on the same competitor and willingness-to-pay analysis, which is true of pricing STRATEGY - but the pricing pile a real organisation keeps also includes rate cards, quotation templates, discount approval records and customer-specific price lists, which are operational artifacts with no analysis in them and which arguably belong with go-to-market or contract administration. This row deliberately does not claim those; if a user's pricing folder turns out to be mostly rate cards, the fold was wrong and a separate row is the honest fix. It is Joseph's call."
+}

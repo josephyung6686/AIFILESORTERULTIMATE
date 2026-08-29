@@ -1,0 +1,440 @@
+{
+  "id": "retail_hospitality.stocktake",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Inventory and stock takes (the count against the book)",
+  "one_line": "The situation in which a trading operation STOPS TRADING A POPULATION AND COUNTS IT, and then reconciles the counted reality against what the system believed it held. Its anchor is a COUNT EVENT - a dated, bounded, repeatable act of enumeration over a defined population at a defined location - and its output is never one document but a PAIR AT MINIMUM: the sheet on which the count was made and the variance record the count produced, with a wastage or shrinkage log running continuously between counts and reconciling into the next one. It is not the schema's stock work_type wearing a node's name: it differs from the family default in the level that organises it (the count event, not the trading occasion), in what it must gather to be readable at all (the instrument and its result, which no other sibling requires as a pair), and in its privacy rule, which inverts the family's - a stocktake corpus carries almost no guest data and instead carries unit cost, margin and stock valuation alongside the NAMED STAFF who counted, authorised and were short. A PLACEHOLDER TEMPLATE researched to J-DEPTH: it declares NO field rows (the schema declares none under PR-6 as D1 narrowed it) and therefore recommends NO serialised dimension order, holding its differing default as prose.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on everything below: each entry is a DETECTION signal and never an extraction licence. The schema declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised, kept local where this row's sensitivity says so, and offered honestly for a user decision.",
+      "THE PAIRED-COLUMN SIGNAL, and the only one strong enough to fire alone. A tabular record carrying, per row, an item identity AND TWO QUANTITIES FOR THE SAME ITEM AT THE SAME MOMENT - one labelled with a counting word (counted, physical, actual, on hand, tally) and one labelled with a believing word (system, book, expected, theoretical, SOH per system) - plus a third column that is their difference. It is the ARITHMETIC RELATIONSHIP BETWEEN THREE COLUMNS that fires, not any word in the filename. “Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.”",
+      "THE COUNT-EVENT HEADER. A count date (or a period-end date, or a week/period token used as a count cycle label) bound in the same header block to a COUNT LOCATION THAT IS SMALLER THAN A SITE - cellar, bar, kitchen, dry store, stockroom, back bar, zone, department, section - and often to a count type token (full, period-end, year-end, cycle, spot, rolling, perpetual). The sub-site location is this row's most distinctive header, because no other sibling in this family needs to name a room.",
+      "THE INSTRUMENT SHAPE. A pre-printed enumeration sheet: item identity and pack/unit size in fixed columns, an EMPTY quantity column ruled for handwriting, a counter and a checker initial slot, and a page-of-pages footer. This fires as a member of the count even when it carries no numbers at all, because the blank sheet is the instrument of an event that also produced a result - and it is the reason this row's evidence is a pair rather than a document.",
+      "THE LOSS-REASON ENUMERATION. A continuous dated log whose distinguishing column is a CLOSED REASON VOCABULARY FOR STOCK LEAVING WITHOUT A SALE - spoilage, out of date, breakage, wastage, spillage, staff meal, comp, damaged, theft, shrink, ullage - with a quantity and usually a cost value per row. This vocabulary appears nowhere in the business_operations family and is the surest single discriminator against any asset or equipment register.",
+      "THE VALUATION CLOSE. Extended value columns - unit cost, extended cost, retail price, at-cost total, at-retail total, closing stock value - computed over a counted quantity, with a document-level total. Value computed over a COUNT is this row's; value computed over a MOVEMENT is not. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "THE ADJUSTMENT AUTHORISATION. A write-off, write-on or adjustment record naming a line list, a reason, a value and a NAMED APPROVER in a labelled role slot (stock controller, duty manager, general manager). This is the artefact that turns a variance into an accounting fact, and it is the one that carries this row's staff-facing sensitivity."
+    ],
+    "needs_llm": [
+      "Deciding whether a two-quantity table is COUNTED-versus-BELIEVED or ORDERED-versus-RECEIVED. Both are quantity variances over item rows and both are common in this family. The discriminator is scope and counterparty, and it is readable but not regular: a receipt variance is bounded by ONE consignment from ONE named supplier against ONE order reference; a count variance is bounded by a POPULATION at a LOCATION on a DATE and names no counterparty at all. A model reading the header block decides this; a filename cannot.",
+      "Deciding whether a book-only export (item, description, on-hand quantity, cost, price, no count column) is the RECORDED BELIEF half of a count - and therefore this row's - or simply a product and price file, which is `retail_hospitality.product-catalogue`'s. The evidence that promotes it is an as-at timestamp matching a count date and the presence of a count sheet or variance record for the same population; absent that, it is not promoted.",
+      "Reading a photograph or scan of a completed handwritten count sheet. OCR over tally marks, crossings-out and handwritten quantities is unreliable per cell, but the RULED-COLUMN LAYOUT plus an initial slot plus a dated header is legible as structure even where the numbers are not, and structure is what activates.",
+      "Reading an archive manifest to decide whether a zip is one count's pack (sheets per zone, variance report, valuation, signed approval) or an unrelated stock-word bundle - without unpacking it. “Compressed archives should yield their manifests without extraction, while disk images, executables, databases, encrypted containers, damaged files, and unknown binary formats should default to safe metadata-only indexing unless a dedicated extractor has been explicitly approved.”",
+      "Deciding whether a variance record's named individuals are ordinary process signatures or a loss allegation against a named member of staff. The words rarely differ; the surrounding structure does, and this decision drives the residual routing rather than any fact."
+    ],
+    "never_alone": [
+      "THE WORD `STOCK`, `INVENTORY`, `COUNT`, `SOH` OR `STOCKTAKE`, standing alone anywhere - filename, sheet tab, heading or folder name. This is this row's constitutional never-alone and it is the direct answer to the charge that the row is a document-type label: `Stocktake.xlsx` with no paired columns, no count location and no count date is not evidence of a count, and the same five words appear across `logistics.warehouse-ops`, `manufacturing.spare-parts`, `clinical_practice.pharmacy-operations` and any household spreadsheet listing what is in a freezer.",
+      "A PRODUCT-AND-QUANTITY TABLE, standing alone. One item column and one number column is the single most common table in commercial life. It is an order, a picking list, a menu, a price list, a delivery note, a parts list or a shopping list before it is a count. What fires here is the SECOND quantity and the difference between them.",
+      "A DATE, however period-end-shaped. `2026-03-31.xlsx` is a fiscal date shared with every accounts, payroll, budget and reporting artefact in the corpus. The schema already made this the family's least discriminating token and a count date is not an exception to it.",
+      "A COST OR VALUE COLUMN, standing alone. Money in cells is finance, business_operations, construction_property or manufacturing before it is this row. Valuation only fires here when it is computed OVER A COUNTED QUANTITY.",
+      "A COUNTER'S OR APPROVER'S NAME. A person's name in an initial or signature slot is never-alone as evidence and must never become a folder level - it would publish an allegation-adjacent branch naming a member of staff, and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.”",
+      "A BIN, RACK OR AISLE LOCATION CODE, standing alone. A location column looks like this row's count-location header and is not: `logistics.warehouse-ops` stated the reciprocal from its side, and a location code without a paired count-versus-book quantity is custody geography, not enumeration.",
+      "A PHOTOGRAPH OF A STOREROOM OR A FULL SHELF. A picture of stock is `photos` evidence until a ruled sheet, a header block or a variance table claims it; quantity is not visible in an image and must not be inferred from one."
+    ]
+  },
+  "work_types": [
+    "count instruction or count plan - the pre-count notice: population in scope, cut-off time, freeze rules, team allocation",
+    "count sheet - the ruled instrument, blank or completed, per count location, per page",
+    "recount or challenge sheet - a second enumeration of lines whose first variance exceeded what the operator would accept",
+    "variance report - counted against book, by line and usually by value, with the loss lines ranked",
+    "wastage, spoilage, breakage or shrinkage log - continuous between counts, reconciling into the next one",
+    "stock valuation - the closing figure at cost and at retail, produced by the count",
+    "adjustment, write-off or write-on authorisation - the named approval that lets the variance change the book",
+    "count reconciliation note - the prose explanation of what the variance was found to be"
+  ],
+  "grouping_reasons": [
+    "ONE COUNT EVENT, and this is the row's defining group: every count sheet from every count location, the recount sheets, the variance report, the valuation and the adjustment approval for ONE population at ONE site on ONE count date. The members are structurally different documents - a blank ruled form, a photograph of a clipboard, a spreadsheet, a signed PDF, an email - and are purpose-coherent rather than content-coherent. This is the group that makes the row a template rather than a work_type value: a stock work_type would file the sheet and the variance report as two unrelated documents of two different types.",
+    "ONE CONTINUOUS LOSS LOG ACROSS COUNTS. A wastage or breakage log spans the interval BETWEEN two count events and belongs to both of them; it is grouped by location and reason vocabulary, not by a single count date, and the correct outcome is often that it sits beside the counts rather than inside one.",
+    "ONE COUNT CYCLE OVER TIME - the successive period-end counts of the same population - joined because they are comparable, and this is the only sense in which this row's material is time-ordered. It is a comparison series, not a calendar, and it must not be allowed to promote time above the count location.",
+    "One repeatedly re-exported inventory dump, joined by the universal duplicate_family and version_family facts rather than by any trading fact. `stock_export_20260331.csv` and `stock_export_20260331 (1).csv` are one file twice, not two counts.",
+    "No group at all is a valid and common outcome. A lone count sheet with no result beside it, or a lone valuation with no count beside it, has not demonstrated a count event and should fall through rather than be given an invented one."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, exactly as the schema anchor is: PR-6 leaves this family with no field rows and a dimension may branch only on a field the schema declares, so the recommendation is held as prose. THIS IS WHERE THIS ROW DIFFERS FROM THE FAMILY DEFAULT, and the difference is one level deep and real. The family default is TRADING UNIT (conditional) then TRADING OCCASION then OPERATIONAL RECORD FUNCTION. This row's recommendation is TRADING UNIT (conditional, on the same terms) then COUNT EVENT then COUNT LOCATION then FUNCTION - and the inserted COUNT LOCATION level is the whole difference. It is inserted because in no other situation in this family is the occasion SUBDIVIDED BY ROOM: a trading session belongs to a till, a booking to a date, a licence to a premises, but a count is executed as several simultaneous enumerations of disjoint populations - cellar, bar, kitchen, dry store - each with its own sheets, its own counter and its own variance, and flattening them puts four unrelated ruled sheets in one undifferentiated pile at exactly the moment the user is trying to find which room was short. The level is CONDITIONAL for the same reason the site level is: a single-room operator counting one stockroom would gain a one-child branch naming their own back room, and “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” NOT TIME-FIRST, and this row is the family's hardest test of that rule, because a count is named by its date and a valuation date is a fiscal date that finance, budget and payroll material also carries - which is precisely why the date must identify the event and not root the tree: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A count-cycle comparison series is a content period, not a capture date, and the capture exception is reserved for media. TWO LEVELS ARE FORBIDDEN OUTRIGHT HERE, and both are tempting in this row specifically: PRODUCT or SKU, which would produce a branch per line item over a population of thousands, and the COUNTER'S OR APPROVER'S NAME, which would publish a staff-facing loss branch into the directory tree. Any order recommended remains editable - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".xls",
+      ".pdf",
+      ".docx",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Stocktake 2026-03-31 - period end - all locations.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet tabs named Cellar, Bar, Kitchen, Dry Store, Summary",
+        "each tab carries columns Item, Pack, Counted, System, Variance Qty, Unit Cost, Variance Value",
+        "header block states a count date and a count type token 'period end'",
+        "Summary tab totals a closing stock value at cost and at retail"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any domain fact - this schema declares no field rows, so the paired columns activate recognition and license no extraction",
+        "that the variance value is a loss, a theft, or an accounting entry"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Count sheet - Cellar - 31.03.26 - page 1 of 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "ruled table: Item, Pack Size, and an EMPTY quantity column",
+        "footer slots labelled Counted by and Checked by, both blank",
+        "page-of-pages footer; header names one count location and one date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a sheet with no numbers on it is not evidence - the instrument is a member of the count event even when unused",
+        "a counter identity from the blank slot"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4821.jpg",
+      "source_type": "image",
+      "observations": [
+        "photograph of a clipboard holding a completed ruled sheet, taken indoors",
+        "OCR recovers a dated header, a location word, ruled columns and handwritten quantities; several cells are illegible",
+        "capture metadata present and consistent with a phone camera"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "any quantity read from an illegible handwritten cell",
+        "that the photograph is a screenshot, or that its capture time is the count date"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Wastage log - Kitchen - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per dated incident: Date, Item, Qty, Reason, Cost",
+        "Reason column drawn from a closed vocabulary - spoilage, out of date, breakage, staff meal, comp",
+        "no system or expected quantity column anywhere in the sheet"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the absence of a paired count column disqualifies it - the loss-reason vocabulary is an independent deterministic signal for this row",
+        "that any reason value is an admission or an allegation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Variance report 2026-03-31 - Cellar - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "lines ranked by variance value, with a shrinkage percentage stated at document level",
+        "signature block with two named individuals in labelled role slots",
+        "narrative section headed 'Explanation of variances'"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a named signatory is responsible for a loss",
+        "a handling class - sensitivity here is only potentially_sensitive and P7 owns policy"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Stock write-off approval - March period end.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipient are internal role addresses; subject carries an exact count-date reference",
+        "body states a write-off value and an approval in the first person",
+        "attachment named as a line list"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the approval is valid, effective, or an accounting entry",
+        "that the attachment's contents may be assumed from its filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "stock_export_20260331.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns SKU, Description, On Hand, Avg Cost, Retail",
+        "an 'as at' timestamp in a header row",
+        "NO counted column and NO variance column anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a book-only export is a count - it is the RECORDED BELIEF half and joins this row only when a count sheet or variance record exists for the same population and date",
+        "a price or catalogue purpose"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Stocktake pack 2026-03-31.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists four ruled sheets named by location, one variance report, one valuation workbook and one signed approval",
+        "manifest read without extraction",
+        "no member is opened to improve classification"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "the contents of any member from its manifest name alone",
+        "that the pack may be unpacked to raise confidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Stock valuation 2026-03-31.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "item rows with a bin-shaped location column, counted quantity, unit cost and extended value",
+        "a document-level closing stock value",
+        "no movement, from-location, put-away, pick or task reference anywhere in the workbook"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a bin-shaped location column makes this a warehouse record - `logistics.warehouse-ops` carries this file as its negative fixture and hands it here; the unit-cost and extended-value columns and the ownership premise decide it",
+        "an accounting entry or a closing figure for the accounts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Cycle count variance 2026-W16 - Zone C.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "counted against expected quantity per bin, with a variance quantity",
+        "bin location, handling-unit and task reference columns present",
+        "valuation, unit-cost and retail-price columns deliberately absent"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "THIS IS THE COLLISION FIXTURE and it is NOT this row's - `logistics.warehouse-ops` authored it with the valuation columns absent on purpose, and a counted-versus-expected pair inside a custody log is not a stocktake",
+        "that the shared count vocabulary makes the two rows one"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Delivery note 2026-03-28 - Brakes - 2 lines short.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "item rows with Qty Ordered, Qty Delivered and a handwritten shortage annotation",
+        "a named supplier and an exact purchase-order reference in the header",
+        "a driver signature and a delivery date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a quantity variance makes this a count - it is scoped to ONE consignment from ONE named counterparty against ONE order reference, which is `retail_hospitality.supplier-order`'s anchor",
+        "a stock level for any item"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Asset register - IT equipment 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per unique serialised asset with an asset tag, serial number, purchase date, warranty end and assigned holder",
+        "no counted-versus-book pair and no loss-reason vocabulary",
+        "quantities are all one"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an itemised quantity register is a stocktake - `business_operations.it-asset-inventory` owns unique serialised lifecycle assets and this row owns fungible, perishable, recounted populations",
+        "a stock value"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Controlled drugs register - CD cabinet - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a running balance carried forward line by line rather than a periodic recount",
+        "a witness signature slot on every entry, plus batch and expiry columns",
+        "a schedule reference in the header"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a dispensary count belongs here - `clinical_practice.pharmacy-operations` stated the seam from its side and the signed running balance, witness slot and batch-and-expiry columns decide for it",
+        "any medicine, patient or supply fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-03-31 at 22.14.03.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in dimensions and metadata",
+        "OCR recovers an EPOS stock-on-hand list with a single quantity column",
+        "no second quantity, no count location header, no variance"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a count event from a single-quantity on-screen list",
+        "that missing EXIF would have proved screen origin - only positive evidence does"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Stocktake archive 2019-2024 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted container; manifest unreadable",
+        "filename carries the row's constitutional never-alone word and a year range",
+        "no structure of any kind is observable"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a count event, a count location, a period or a sensitivity result from a filename",
+        "that the container should be opened to classify it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "SAME FIXTURE BOTH SIDES: `Stock valuation 2026-03-31.xlsx` - this row owns it because value is computed OVER A COUNTED QUANTITY under an ownership premise (a business counts what it OWNS in order to value it), the neighbour owns `Cycle count variance 2026-W16 - Zone C.xlsx` because its counted-versus-expected pair sits inside a custody chain of bin, put-away, pick, task and handling unit over goods that are frequently somebody else's, discriminated by the presence or deliberate absence of unit-cost and extended-value columns. The neighbour stated this seam from its side first and carries the valuation file as its negative fixture; the reciprocal this row adds is that a bin-shaped location column does NOT make a period-end valuation a warehouse record.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.supplier-order",
+      "signal": "SAME FIXTURE BOTH SIDES: `Delivery note 2026-03-28 - Brakes - 2 lines short.pdf` - that row owns it because a short delivery is a quantity variance SCOPED TO ONE CONSIGNMENT FROM ONE NAMED COUNTERPARTY AGAINST ONE ORDER REFERENCE, this row owns `Stocktake 2026-03-31 - period end - all locations.xlsx` because its variance is scoped to a POPULATION AT A LOCATION ON A DATE and names no counterparty at all, discriminated by whether an order reference and a supplier identity are present in the header block. This is the sharpest same-family collision the row has, because both artefacts are literally counted-against-expected tables and the count vocabulary is identical on both sides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "SAME FIXTURE BOTH SIDES: `Asset register - IT equipment 2026.xlsx` - that row owns it because every line is a UNIQUE SERIALISED ASSET with lifecycle dates, a tag and a holder and a quantity of one, this row owns `Stocktake 2026-03-31 - period end - all locations.xlsx` because its lines are FUNGIBLE, PERISHABLE AND RECOUNTED with a count-versus-book pair, discriminated by the loss-reason vocabulary (spoilage, breakage, wastage, ullage) which appears in this row and nowhere in the business_operations family. The schema anchor stated this seam from above; this row confirms it from below with a named fixture on each side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.pharmacy-operations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Controlled drugs register - CD cabinet - March 2026.pdf` - that row owns it because a signed running balance, a witness slot, batch-and-expiry columns and a schedule reference make it an accountability record, this row owns `Stocktake 2026-03-31 - period end - all locations.xlsx` because a plain counted-versus-book variance with no accountability signature is a trading count, discriminated by the witness-and-running-balance structure. The neighbour authored this seam first and this row adopts its wording deliberately; a dispensary that files both is the normal case, not an error.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `Stock valuation 2026-03-31.xlsx` - this row owns the WORKING that produced the closing figure (counted quantities, unit costs, per-location subtotals, the count event that generated them), the neighbour owns the same number once it is a POSTED CLOSING STOCK FIGURE in a trial balance, journal or year-end pack, discriminated by whether the artefact still shows the count that produced it or only the resulting balance. This is the one collision where the family's own material becomes accounting evidence, and neither row should erase the other's reading.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.product-catalogue",
+      "signal": "SAME FIXTURE BOTH SIDES: `stock_export_20260331.csv` - that row owns it when it is read as a range and price file (SKU, description, cost, retail, no as-at count context), this row owns it when it is the RECORDED BELIEF half of a count, discriminated by an as-at timestamp matching a count date PLUS a count sheet or variance record for the same population. On its own bytes the file favours the catalogue row; promotion here requires a sibling artefact and is never inferred from the filename.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.spare-parts",
+      "signal": "SAME FIXTURE BOTH SIDES: a per-item count sheet with quantities and a location - this row owns it when the population is GOODS HELD FOR SALE OR SERVICE TO THE PUBLIC and its losses are spoilage, breakage and shrink, the neighbour owns it when the population EXISTS TO SERVE EQUIPMENT and its demand documents point inward at an asset identifier, a work order or a failure code, discriminated by whether the consuming document names a sale or a machine. Where it names neither, neither row fires and Independent Records holds it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.menu-recipe-costing",
+      "signal": "SAME FIXTURE BOTH SIDES: an ingredient table carrying unit costs - that row owns it when the cost is built UP INTO A DISH to reach a gross-profit percentage on a selling price, this row owns `Wastage log - Kitchen - March 2026.xlsx` because its costs are attached to QUANTITIES THAT LEFT WITHOUT A SALE, discriminated by whether the document terminates in a dish yield and selling price or in a period loss total. Both are kitchen files carrying ingredient costs and the vocabulary overlaps almost completely.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The default home for a durable standalone count artefact with no count event assembled around it - a lone valuation, a lone variance report, a lone wastage log. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” This row activates on an EVENT and its PAIR; a single orphan sheet has not demonstrated one.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for the row's genuinely undecidable middle: a blank count sheet, a book-only export with an as-at timestamp and nothing beside it, an archive whose manifest is suggestive but not conclusive. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.” Routing these here rather than activating is what stops the row inventing a count event to save a file.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when count material is in substance a record about a NAMED MEMBER OF STAFF - a signed variance report ranking losses under a counter's name, a write-off approval, a shrinkage investigation note. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The home for the transactional single document that arrives with count material and is not part of a count - the delivery note, the isolated invoice. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The home for the password-protected stocktake archive and any unreadable inventory-system binary, without manufacturing a count from a filename. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The home for a positively evidenced screen capture of a stock-on-hand screen where OCR does not establish a count event. A single-quantity on-screen list is the recorded belief with no counting beside it.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THIS IS THE ROW'S THIRD DIFFERENCE FROM THE SCHEMA DEFAULT, AND IT IS AN INVERSION RATHER THAN A NARROWING. The family's stated posture exists because its everyday, highest-volume output is personal data about members of the public - reservation exports, dietary and allergen notes, identity documents taken at check-in. A stocktake corpus contains essentially NONE of that: no guest is named in a count, and the family's guest-protection rule, while it still applies, protects nothing here. What this row carries instead is two different things the rest of the family does not. First, COMMERCIAL CONFIDENTIALITY OF A KIND THE FAMILY OTHERWISE MEETS ONLY IN COSTING: unit cost, margin, supplier cost prices and a closing stock valuation that feeds the accounts are, together, a readable statement of the operator's buying terms and financial position. Second, and more sharply, STAFF-FACING ALLEGATION-ADJACENT DATA: a variance is a statement that something is missing, and it is recorded next to the name of whoever counted, whoever checked, whoever authorised the write-off and whichever department was short. A shrinkage report is one inferential step from an accusation against an identifiable employee, and unlike the family's guest data it concerns people who are in a continuing relationship with the holder. The operative consequences: counter, checker and approver names must never become a folder level or a group anchor; variance, shrinkage and write-off documents should be recognised from the minimum necessary excerpt locally rather than sent whole to a model; and where a variance record reads as an investigation of a named individual the correct outcome is Protected Records, not a tidier place in the count. Sensitivity in this phase is only none or potentially_sensitive and no handling class is assigned here - P7 owns that vocabulary.",
+  "open_question": "NJ-RH-STOCK-1 (the row's sharpest): the COUNT LOCATION level is this row's entire dimensional difference from the family default, and it is also the level most likely to be a one-child branch. Alternative A: recommend it conditionally, exactly as the schema makes the site level conditional, firing only where a corpus shows two or more disjoint count locations under one count event. Alternative B: drop it and let the count event hold every sheet flat, accepting that a four-room count files four different rooms' ruled sheets in one pile. This row proposes A; R1c must decide, and if B is chosen this row's dimensional leg fails and the row rests on the pair-grouping and privacy legs alone. NJ-RH-STOCK-2: the wastage log spans the interval BETWEEN two counts and therefore belongs to neither exclusively. Alternative A: it sits beside the counts as a continuous series at the count-location level. Alternative B: it is attached to the count it reconciles into. The design docs settle neither and the choice changes P9 group membership. NJ-RH-STOCK-3: reciprocity with `retail_hospitality.supplier-order` on the short delivery. Both rows read a counted-against-expected table; this row proposes that an order reference plus a named counterparty decides for that row absolutely, but that row has not landed and must say the same thing. NJ-RH-STOCK-4: this row's intent for schema-level coactivation cannot be recorded here, because also_holds_with is schema-to-schema only under CONNECTION section 5 and this row is a template. The intent, for R1c to place on the retail_hospitality schema if it agrees: a closing stock valuation is legitimately BOTH a trading record and finance evidence, and neither reading should erase the other. NJ-RH-STOCK-5: if D1 or PR-6 is ever lifted, this row would want the schema's already-proposed `site` plus a count-event anchor concept and a count-location concept; it mints neither and proposes no field key, because the schema owns the fields and currently declares none."
+}

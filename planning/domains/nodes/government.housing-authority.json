@@ -1,0 +1,508 @@
+{
+  "id": "government.housing-authority",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Public and social housing administration",
+  "one_line": "J-DEPTH placeholder template on the fieldless `government` schema. The social landlord's own side of putting households into homes and keeping them there: a housing register and an allocations scheme, lettings and offers, social tenancies and their sign-up packs, rent accounts and arrears, responsive repairs and stock condition, estate and antisocial-behaviour management, and the statutory housing duties (homelessness decisions, right to buy, succession, mutual exchange, decant). It is not activated by the word housing, a council or housing-association name, a residential address, a rent figure, or a tenancy agreement. Its distinct default against the government schema is threefold: its evidence is account-shaped and stock-shaped rather than proceeding-shaped, its organizing anchor is a dwelling that outlives every case inside it rather than a bounded proceeding, and its natural anchor doubles as a household identifier, which the schema default does not anticipate. It declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on an already-plausible `government` schema, not licences to write housing facts. The schema declares no field rows. Every accepted signal must evidence the LANDLORD-OR-ALLOCATOR side of the relationship, not merely a residential address, a rent figure, or a public body's name.",
+      "a rent account statement or arrears ledger keyed to a tenancy reference, carrying an opening balance, periodic debit rows at a set charge, credit rows including a housing-benefit or direct-payment schedule, and a running balance carried forward — the account structure, not the rent number, is the signal",
+      "an allocations or housing-register record with labelled applicant, household-composition, current-tenure, and priority slots plus a band, points, or priority award with reasons and an effective date, issued by the body that operates the register",
+      "a choice-based-lettings or shortlisting record listing an advert or property reference against multiple applicant references with bands and effective dates — a bid list is only ever held by the allocator, never by an applicant, who sees one row",
+      "a repairs order or works record carrying a job or order reference, a schedule-of-rates or repair-category code, a priority class with a target response, an appointment or operative visit, and a completion or recall entry against a dwelling in a managed stock",
+      "a void and re-let record listing units with void start, works, re-let target, and key or sign-up dates — a schedule across many dwellings is landlord-side custody by construction",
+      "a stock-level compliance register: many dwellings against next-due dates for gas, electrical, fire, asbestos, water, or lift servicing, held by the body responsible for the whole stock; a single certificate for one address is excluded",
+      "a statutory housing-duty decision with an application reference, labelled eligibility, priority, intentionality, or connection sections, a decision, reasons, and a review-right paragraph, signed by the deciding office — homelessness, succession, assignment, mutual exchange, right to buy, or right to acquire",
+      "a tenancy sign-up or agreement pack whose tenancy type is a social tenancy under a named allocations or lettings scheme, whose charge is set against a rent standard or formula rather than a market figure, and which is accompanied by an offer, an acceptance, and a sign-up checklist held by the granting landlord",
+      "an estate-management or antisocial-behaviour case record with a case reference, dated incident entries naming complainant and alleged-perpetrator roles, an action plan, and a housing-officer block",
+      "a housing-management system export or archive manifest whose paths repeatedly encode dwellings, tenancies, rent accounts, repairs, or allocations for one stock, with custodian metadata identifying the housing office; manifests are inspected without unpacking",
+      "a housing-office email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment, and reference slots tie it to an already evidenced tenancy, repair, allocation, duty decision, or estate workflow; an official domain alone never fires"
+    ],
+    "needs_llm": [
+      "deciding the HOLDER ROLE when identical bytes may sit with the landlord, the tenant, an applicant, an advocate, a repairs contractor, a managing agent, a leaseholder, or a regulator; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a SOCIAL landlord's tenancy file from a private landlord's or agent's file when the agreement furniture is nearly identical and the tenancy-type and rent-setting language is the only discriminator",
+      "deciding whether a public body's housing material is landlord-side operation or authority-side administration of a housing programme, a committee cycle, a planning case, or a grant — the same department can hold all of them",
+      "recognizing an unlabeled officer narrative — a tenancy audit note, a decant options note, a vulnerability or adaptation note, a succession enquiry, an estate walkabout write-up — whose function exists only in prose",
+      "distinguishing a household's hardship record held for a HOUSING duty from the same household's record held for a social-care, benefits, or safeguarding function by another office",
+      "deciding whether a repairs or compliance document is the landlord's stock record or the attending trade's own job file when both name the same dwelling and the same defect",
+      "reading a mixed sign-up or re-let packet in which agreement, offer, inventory, compliance certificate, benefit form, and identity copies travel together and each member retains its own schema evidence",
+      "abstaining whenever no landlord-side or allocator-side role can be cited; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "the word Housing, Homes, Estates, Lettings, Tenancies, or Neighbourhood, and a council, borough, county, housing-association, or registered-provider name; the body may be landlord, allocator, regulator, funder, planning authority, employer, or merely the letterhead on a tenant's own copy",
+      "a residential address, a postcode, a flat or unit number, or a block name; the same address appears on a survey, a deed, a delivery note, a repair invoice, a utility bill, a delivery label, an insurance schedule, and the occupier's own post",
+      "a tenancy agreement alone; a private assured shorthold agreement has the same clause furniture. The discriminating co-evidence is a social tenancy type under a named lettings scheme and a rent set by a standard or formula, against a deposit-protection certificate and prescribed information on the private side",
+      "a rent, service-charge, or arrears figure alone, and a recurring monthly or weekly credit of plausible size; a recurring sum is equally a salary, a standing order, a subscription, or a loan repayment",
+      "a single compliance certificate for one dwelling — a gas safety record, an electrical condition report, an EPC, a fire-door check. The would-be owner row `construction_property.compliance-certificate` refused on exactly this ground; a stock-wide due-date REGISTER is landlord-side, one certificate is not",
+      "a housing-benefit award, council-tax bill, rent statement, repair confirmation, tenancy handbook, or homelessness decision held by its RECIPIENT; an authority-issued document in a person's own files is that person's record",
+      "a household name, a tenant name, an applicant name, or a case-officer name; a named person is never-alone evidence and must never become the organizing dimension",
+      "a blank tenancy template, a published allocations policy, a tenant handbook, a how-to-rent guide, or a regulator's consumer standard downloaded for reading; nothing is filled in, so no relationship is evidenced",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Housing, Tenancies, Estates, Repairs, Properties, or a folder named for one address",
+      "a shared download session or browser batch; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is a housing-portal screenshot; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "housing-register application, verification, assessment, banding or priority award, and review",
+    "allocations scheme operation, choice-based-lettings advert, bid list, shortlist, offer, refusal, and reasonable-preference record",
+    "void inspection, void works, re-let schedule, and sign-up pack",
+    "social tenancy grant, introductory or starter tenancy review, tenancy audit, succession, assignment, and mutual exchange",
+    "rent account, charge variation, arrears case, payment arrangement, direct-payment or benefit schedule, notice seeking possession, and possession-case papers",
+    "responsive repair order, recall, planned or major-works programme record, adaptation and occupational-therapy referral, and decant record",
+    "stock condition survey, component and asset register, and stock-wide compliance register for gas, electrical, fire, asbestos, water, or lifts",
+    "estate inspection, caretaking and grounds record, communal-area log, and neighbourhood plan",
+    "antisocial-behaviour case, complaint, tenancy-breach warning, and injunction or possession referral",
+    "homelessness application, duty decision, temporary-accommodation placement, and out-of-area notification",
+    "right to buy or right to acquire application, discount computation, and completion record",
+    "tenant participation, consultation, satisfaction survey, and complaints or ombudsman case on the landlord side",
+    "regulatory return, stock-and-rent data submission, and self-assessment against a housing standard"
+  ],
+  "grouping_reasons": [
+    "one DWELLING in a managed stock, linking successive tenancies, void and re-let cycles, repairs, compliance events, and works programmes by an exact property reference; the dwelling is the durable anchor and outlives every case inside it",
+    "one TENANCY, linking offer, sign-up pack, agreement, rent account, arrears case, notices, and termination by an exact tenancy reference; a member joins without acquiring a tenancy, arrears, or household fact",
+    "one HOUSEHOLD APPLICATION lifecycle — register application, verification, banding, bids, offers, refusals, and the resulting let — linked by an exact application reference and processed only inside a protected local group",
+    "one STATUTORY DUTY case — homelessness, succession, right to buy, mutual exchange — linked by its own case reference, kept separate from the tenancy group because the duty decision may concern a household with no tenancy at all",
+    "one REPAIR or WORKS instruction, linking order, appointment, operative record, photographs, invoice, and recall by an exact job reference; the contractor's own invoice retains its independent evidence",
+    "one estate or block operational cycle — inspections, communal repairs, caretaking, consultation — without copying a block fact onto a dwelling-level member",
+    "one housing-system export or archive manifest, kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "no group is a valid outcome for a standalone notice, handbook, certificate, or confirmation; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the `government` schema fieldless and a template cannot branch on undeclared fields. The recommendation therefore stays prose, and it is deliberately NOT the schema default's. The government default recommends an authority-side function or a bounded proceeding first, because its worlds are proceeding-shaped and a proceeding ends. This world is not: a dwelling persists across tenancies, and a tenancy persists across dozens of repairs, arrears episodes, and inspections. The honest order here is dwelling anchor, then tenancy or duty-case anchor, then function — with the explicit constraint, absent from the default, that the dwelling anchor is a household identifier in a small stock and must therefore be displayed as a redacted or aliased label rather than a street address. Named people must not become a dimension at any level. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders” — a rent account and a repairs history are exactly the material a year-first tree would shred. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "contacts",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Housing Register HR-2026-04417 - assessment and banding decision.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled applicant, household composition, current tenure, and medical or welfare priority slots",
+        "band award with reasons, effective date, and bedroom-need determination",
+        "allocations-officer block and a review-right paragraph naming the scheme"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any government field, because the schema declares none",
+        "that the applicant is eligible, in priority need, or entitled to a home",
+        "household composition, medical condition, or immigration status as stored facts",
+        "a folder path, or an applicant-named branch"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Rent Account Statement - Tenancy T-88214 - 2026-Q2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tenancy reference repeated in header and every page footer",
+        "opening balance, weekly charge debits, benefit and direct-payment credits, running balance carried forward",
+        "landlord office block and a payment-methods panel"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the closing balance is a fact the catalogue may store",
+        "that the tenant is in arrears, in breach, or at risk of possession",
+        "benefit entitlement, or that a credit proves a benefit award",
+        "that a recurring credit of similar size elsewhere in the corpus is rent"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Repairs Order 2026-118322 - emergency - no heating - 12 Elm Court Flat 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "order reference, schedule-of-rates code, priority class with a target response window",
+        "appointment slot, operative name, access notes, and a completion or recall entry",
+        "raised-by field naming a housing office rather than a private instructing client"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the repair was completed, timely, or compliant with any standard",
+        "occupancy, vulnerability, or access arrangements as stored facts",
+        "that the attending contractor's own invoice belongs to this row"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Void and Re-let Schedule - Block C - 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per dwelling with unit reference, void start, works package, re-let target, and sign-up date",
+        "outgoing-tenant and incoming-applicant reference columns",
+        "a rent-loss column summed per block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any dwelling is currently empty or occupied",
+        "applicant identity as a folder level",
+        "that the schedule licenses copying a block fact onto a single dwelling's file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Choice Based Lettings - Advert 4471 - bid list and shortlist.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one advert or property reference against many applicant references",
+        "band, effective date, bedroom need, and shortlist position columns",
+        "an offer or bypass reason column with coded values"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that shortlist position determines an outcome",
+        "any applicant's circumstances from a band code",
+        "that the same advert reference appearing in a public listing proves landlord-side custody"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Homelessness HL-2026-0912 - duty decision letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "application reference, labelled eligibility, priority, intentionality, and local-connection sections",
+        "decision, reasons, and a statutory review-right paragraph",
+        "deciding-office signature block; temporary-accommodation placement referenced in an annex"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a duty is owed, discharged, refused, or current",
+        "homelessness, fleeing violence, health, or immigration circumstances as stored facts",
+        "that this case belongs to the tenancy group for any dwelling"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice Seeking Possession - Tenancy T-88214 - served 2026-07-03.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tenancy reference, ground or clause citation, arrears figure at service, and a date after which proceedings may begin",
+        "service record with method and server name",
+        "landlord office block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the notice is valid, in force, expired, or acted upon",
+        "that possession will follow, or that any legal effect exists",
+        "an arrears fact copied onto other members of the tenancy group"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Right to Buy - RTB application and discount computation - 14 Maple Rise.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "applicant and tenancy references, qualifying-period table, valuation figure, discount computation, and offer terms",
+        "landlord-side response section with an authorized officer block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "eligibility, entitlement, valuation correctness, or completion",
+        "property ownership",
+        "that a valuation figure makes this a survey or a finance record"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Stock Condition Survey 2026 - component ages and replacement profile.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per dwelling with component type, install year, condition grade, and replacement year",
+        "rolled-up investment-need columns by block and by component",
+        "surveying contractor named in a cover sheet, commissioning landlord named as client"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any dwelling is substandard, unsafe, or non-compliant",
+        "a market value or a valuation opinion",
+        "that a per-dwelling row licenses a per-dwelling condition fact"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Gas Safety Compliance Register - Estate 07 - August 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per dwelling with last-certificate date, next-due date, access-attempt count, and escalation status",
+        "totals and overdue counts per block",
+        "held by the body responsible for the whole stock"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any dwelling is compliant or in breach",
+        "that a SINGLE certificate for one address activates this row",
+        "occupancy or refusal-of-access as a household fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "ASB Case ASB-2026-233 - incident log and action plan.docx",
+      "source_type": "text_document",
+      "observations": [
+        "case reference, dated incident entries naming complainant and alleged-perpetrator roles",
+        "action plan, warning letters, and multi-agency referral notes",
+        "housing-officer block and a review date"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any allegation is established, or that a tenancy breach occurred",
+        "third-party complainant or alleged-perpetrator identity as any kind of fact or label",
+        "that this case may be semantically joined to another household's case"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Tenancy sign-up pack - 22 Beech Walk - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "tenancy type stated as a social tenancy granted under a named allocations or lettings scheme",
+        "charge set against a rent standard or formula, with a service-charge breakdown; no deposit and no deposit-protection certificate",
+        "sign-up checklist, offer letter, and key-receipt page bound into one pack held by the granting landlord"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the tenancy is current, valid, or lawfully granted",
+        "tenant identity or household composition as facts",
+        "that the same pack in the TENANT's own files belongs to this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Decant options - 12 Elm Court Flat 4 - urgent.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a named housing office account, recipients include a repairs contractor and a temporary-accommodation team",
+        "subject and body carry an exact property and tenancy reference",
+        "attachment is a decant options note listing alternative units"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a decant was agreed, offered, or occurred",
+        "household vulnerability from the word urgent",
+        "that an official sender domain alone activates this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate inspection - Block C walkabout.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is a neighbourhood housing officer, attendees include caretaking and a tenant representative",
+        "location and description carry an exact block reference already evidenced elsewhere",
+        "recurrence pattern matching a published inspection cycle"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the inspection took place or found anything",
+        "attendee identity as a fact or a dimension",
+        "that a calendar entry alone activates this row without the separately evidenced block"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Housing management system export - tenancies repairs and rent accounts.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists coherent families: dwellings, tenancies, rent transactions, repair orders, allocations",
+        "paths repeatedly encode one stock and one system, with custodian metadata naming the housing office",
+        "some members are encrypted or in a proprietary format"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any member's content without inspection, and no unpacking merely to strengthen recognition",
+        "that the export's access boundaries are known",
+        "a stock-wide fact applied to any single member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - housing portal rent balance.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in the capture metadata and filename pattern",
+        "OCR reveals a portal chrome, a tenancy reference, and a balance line",
+        "no landlord office block anywhere in the frame"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a portal view proves landlord-side custody rather than a tenant's own view",
+        "a balance fact from OCR",
+        "screenshot status from missing EXIF"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "My council tenancy agreement and rent statement.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE. Identical agreement and statement furniture to the landlord-side pack",
+        "addressed to the corpus holder as tenant; filed among the holder's own personal documents",
+        "no allocations scheme operation, no other tenancy, no stock, no officer-side workflow anywhere in the corpus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row activates; the holder is the RECIPIENT, not the landlord",
+        "any government fact from an authority-issued document held by its subject"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Housing Committee - Agenda Pack - 18 August 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE against this row's OWN schema default — it is a fixture on `government.json` itself",
+        "authority committee name, meeting date, numbered agenda, indexed reports, attendance and apologies",
+        "one appendix contains named residents and addresses, which is what makes it tempting"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the word Housing in a committee name activates this row",
+        "that a resident appendix converts a governance cycle into a tenancy record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.tenancy-management",
+      "signal": "RECIPROCAL. That row already edges here and names the boundary as authority framing versus a landlord's own tenancy file; this side names it more sharply, on the same bytes. The competing fixture is `Tenancy sign-up pack - 22 Beech Walk - signed.pdf`, which both rows would claim. Discriminating evidence for this row: a social tenancy type granted under a named allocations or lettings scheme, a charge set against a rent standard or formula, an offer produced by a register or bid process, and a stock around it. Discriminating evidence for the private row: an assured shorthold agreement, a deposit-protection certificate with prescribed information, a market rent, and letting particulars. The second competing fixture is a compliance certificate: a stock-wide due-date REGISTER is this row, a single certificate inside one landlord's tenancy file is theirs — and a single certificate with nothing else is neither, which is why `construction_property.compliance-certificate` refused. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.municipal-administration",
+      "signal": "The competing fixture is `Housing Committee - Agenda Pack - 18 August 2026.pdf`, which is a file example on the `government` schema anchor itself and is authored here as a rejected fixture. Discriminating evidence for municipal administration: an agenda, numbered papers, attendance and apologies, a minute or resolution — a governance CYCLE whose subject happens to be housing. Discriminating evidence for this row: operational landlord structures — a rent account, an allocations band, a repair order, a void schedule — in which housing is the WORK rather than the agenda item. A committee paper that merely reports arrears performance stays with the governance cycle. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.social-services-casework",
+      "signal": "The competing fixture is a household hardship file: `Homelessness HL-2026-0912 - duty decision letter.pdf` and its annexes name the same household, the same vulnerabilities, and often the same multi-agency meetings as a social-care record. Discriminating evidence for this row: the duty, decision, and remedy are HOUSING — accommodation, eligibility, priority need, allocation, tenancy. Discriminating evidence for social-services casework: care, protection, or support duties owed to a person, with assessment and plan structures that survive regardless of where the person lives. Where a safeguarding referral sits inside a housing case, it is a member that keeps its own evidence, not a conversion. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.block-management",
+      "signal": "The competing fixture is a communal-works consultation for a block containing both council tenants and leaseholders who bought under right to buy: one notice, two custodies. Discriminating evidence for this row: tenants, rent accounts, and the landlord's own stock obligations. Discriminating evidence for block management: leaseholders, an apportionment schedule, a communal budget, and a building's own service-charge cycle. This is the single most common mixed-tenure trap in a social landlord's corpus and neither row should absorb the other. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.governance",
+      "signal": "Many social landlords are charitable registered providers rather than public bodies, so the same board pack, regulatory self-assessment, and annual report exist in both worlds. The competing fixture is a board or committee pack containing a housing-performance report. Discriminating evidence for this row: operational landlord records — allocations, tenancies, rent, repairs — regardless of the provider's legal form. Discriminating evidence for nonprofit governance: the association running ITSELF — trustees, members, constitution, charitable objects, board cycle. See the open question: whether a charitable provider satisfies the `government` schema's public-body precondition at all is unresolved and is not decided here. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a named-household record — a register application, a duty decision, a rent account, an arrears or possession notice, an ASB case, a decant note, a tenant's own tenancy copy — has no safe accepted group; this is the principal fallback for this row and the default when custody is ambiguous",
+      "design_cite": "Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone housing document has durable value but no landlord-side workflow — a single compliance certificate, an EPC, a rent-increase notice, a tenancy handbook receipt, a key-collection confirmation",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document is plainly housing-operational but the custody side cannot be settled — a repair order with no raising office, a condition survey with no client block, an estate calendar entry with no evidenced block",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published allocations policy, tenant handbook, regulator's consumer standard, sector report, or housing-statistics release is held for reading rather than as landlord-side work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a housing-management export, database backup, or damaged archive cannot yield evidence beyond metadata; the manifest is read, the archive is not unpacked",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a housing portal, map, or case system does not establish landlord-side custody through OCR",
+      "design_cite": "Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Every core evidence class in this row is a record of a named household's housing circumstances: register applications carrying medical and welfare priority, homelessness duty decisions, arrears and possession, antisocial-behaviour allegations naming third parties, adaptation and vulnerability notes, decant and temporary-accommodation placements. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” The row adds one rule the schema default does not carry: its natural organizing anchor is a DWELLING, and in a managed stock a dwelling address identifies a household as precisely as a name does, so an address must not be surfaced as a display label even when it is used internally as a grouping key. Cross-household semantic joining is suppressed outright — addresses, blocks, estates, contractors, officers, and complaint subjects recur across unrelated households, and a similarity join here would disclose one tenant's affairs inside another's group. Published policies and handbooks are low-risk bytes, but their presence cannot lower the posture of a mixed housing packet.",
+  "open_question": "NEEDS-JOSEPH (NJ-HA-1): a large share of social housing is held by charitable registered providers and housing associations, which are not public bodies, yet the `government` schema's activation precondition is an evidenced authority-side role. Three alternatives, none chosen here: (a) restrict this row to local-authority housing services and route registered-provider material to `nonprofit.governance` plus `construction_property.tenancy-management`, which splits one identical filing world across three rows; (b) treat the SOCIAL LANDLORD FUNCTION — an allocations scheme, a rent standard, a statutory duty — as itself satisfying the government precondition regardless of the provider's legal form, which is this row's working assumption and stretches the schema; (c) accept user confirmation of provider status for hybrid bodies. NJ-HA-2: if PR-6 is lifted, decide centrally whether a dwelling anchor may be destination-eligible at all given that it identifies a household, or whether all housing grouping must use a local-only alias with a redacted display label."
+}

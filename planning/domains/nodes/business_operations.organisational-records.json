@@ -1,0 +1,251 @@
+{
+  "id": "business_operations.organisational-records",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Organisational records (branch root) - REFUSED",
+  "one_line": "REFUSED. The roster hint describes material that carries an organisation name and a document type but no more specific operational sub-domain - which is not an organizational situation but the ABSENCE of one. That is the definition of a residual home, and 00 already names the residual homes. The row's real content is preserved two ways: the business_operations schema's own default template covers anything that legitimately activates the schema without a sibling situation firing, and Independent Records is the broad destination when nothing reliable lands. Absorbs the legacy row ops.business-records, which is retired here rather than rebuilt. Gist-level placeholder (J-IND): it writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails the node test on all three legs, and duplicates a residual. (1) DETECTION SIGNALS: the row has none of its own. Its only candidate signal is an organisation name plus a document-type word, and an organisation name is constitutionally never-alone - read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”, whose reasoning is about role ambiguity and applies identically to any employer, supplier, client or registry. A row whose entire support is never-alone evidence can never clear activation (CONNECTION.md section 4 step 2), so it would be a row that never fires. (2) DIMENSIONS: identical to the schema's default - and empty in any case, because business_operations declares no fields. (3) PRIVACY RULES: identical to the schema's. CONNECTION.md section 2 states the test directly: a template row exists only when its detection signals, recommended dimensions, or privacy rules differ from its schema's default template, and ALIGNMENT adds that a template repeating its schema's fields and dimension order is not a node but the schema's default template. Separately, the row is a residual wearing a domain's clothes: 00 describes residual templates as safe, intentionally broad destinations for files that have no reliable deeper association, and _CONTRACT rule 6 with CONNECTION.md section 2 keep residuals out of this namespace entirely - they are P10 and P11's nine names, not roster entries. Building it would also reintroduce the failure ALIGNMENT names outright, an empty industry label whose only content is a name and a one-liner, and CONNECTION.md section 9's failure mode 6, a residual duplicating a template without a fallthrough. (4) THE TWO-ROLE ESCAPE ROUTE, CLOSED - recorded here so this row cannot be resurrected from the JSON alone. clinical_practice.patient-chart defeated the same never-alone charge by showing that a row supported by a relation between two labelled roles is not a row supported by never-alone tokens, and a resurrector will read that across to an issuer slot and a recipient slot on organisational paper. Four independent answers, any one sufficient. (a) The relation must be the row's definition, not a property some of its files happen to have: patient-chart's holder/subject relation is co-extensive with its row, whereas this row is defined by subtraction - carries an organisation and a document type but no more specific operational sub-domain - and a negative definition cannot own a positive structure, because naming a structure its files exhibit names something specific about them, which by this row's own definition belongs to whichever sibling owns that specificity. (b) A document-type word is not a role but a value in a role's place; the test is not name two tokens, it is name two labelled parties whose relation the artefact records. (c) The pincer: if the two roles are present the pair is already a named sibling's whole node and this row firing would be theft; if they are absent, leg 1 strikes the file at activation step 2. There is no third branch, so membership is empty either way and the escape route is a stronger refusal than the original argument, not a rescue. (d) patient-chart never rested on the two roles alone - its leg 1 is longitudinal accumulation about a single named subject, disjoint from the schema's batched signal; this row's only accumulation axis is the organisation name that has already been struck, which is one collector, and a pile of assorted work documents from one employer is a folder, not a group with a reason. The closure in one operation is the deletion test: delete every entity name and every document-type word, and the proposed relation is a relation between two struck tokens, which is itself struck. If you are reading this because you want to rebuild the row using the patient-chart argument: name the two labelled parties and the structure that records their relation; if you can, you have found a sibling's row or a new narrow row and should build that instead; if you cannot, you have found this refusal again. Keeping the id as a row to preserve coverage would be the 574's mistake: inventing a node to save an id.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None. This is the finding, not an omission: after subtracting every sibling situation, no structural signal remains that is true of this row and false of the schema itself. Everything below is stated so a later reader can check the refusal rather than take it on trust."
+    ],
+    "needs_llm": [
+      "Nothing is routed here. A file that is organisationally shaped but matches no sibling situation is exactly 00's ambiguous case, and it goes to the ordinary bounded model step against the SCHEMA, then to a residual home if nothing lands: “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "an organisation's name alone - the whole of this row's candidate evidence, and the reason it cannot exist. Read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "an organisation name paired with a document-type word, offered as a two-role relation - the escape route clinical_practice.patient-chart opens by holding that a row supported by a relation between two labelled roles is not a row supported by never-alone tokens. It does not reopen this row. A document-type word is not a labelled party: it names no entity and resolves nothing about the first entity's role, so \"Acme Ltd\" + \"report\" leaves Acme exactly as ambiguous as \"Acme Ltd\" alone. What is offered as a two-role structure is a one-role structure with a field value standing where the second role should be. And where two labelled organisational roles genuinely ARE present, the pincer closes from the other side: the pair is already the whole node of a named sibling - buyer/supplier is business_operations.procurement-sourcing, principal/counterparty is legal for the instrument and business_operations.contract-administration for the register, provider/customer is business_operations.customer-account-management, two organisations negotiating a joint arrangement is business_operations.partnerships-bd, regulator/regulated is business_operations.corporate-regulatory-filings, employer/employee is hr, main contractor/subcontractor is construction_property.subcontract, landlord/tenant is construction_property.tenancy-management - so this row firing would be theft; and where they are absent the file is back to one entity name plus a document-type word and is struck here. There is no third branch: membership is empty either way, which makes the escape route a stronger refusal than the original argument rather than a rescue. The deletion test states the same closure in one operation: delete every entity name and every document-type word and the proposed relation is a relation between two struck tokens, which is itself struck - a relation is not a third thing that survives the deletion of both its arguments.",
+      "a document-type word alone - report, record, letter, form, register. These are values of a document-function field, not situations.",
+      "a business-shaped letterhead, logo or footer alone.",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "membership in a download session that dropped a folder of work files at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "None authored. Grouping is P9's and works from the file neighborhood; nothing about a refused branch-root row changes what P9 may join. A pile of assorted work documents from one employer is a folder, not a group with a reason."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty because the row is refused, and empty in any case by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15). The absence of a distinguishing dimension order is itself part of the refusal: a branch root that recommends what its schema already recommends is the schema's default template under a second name."
+  },
+  "file_kinds": {
+    "source_types": [],
+    "extensions": [],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Acme Ltd - company profile.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an organisation name in the title and on a letterhead",
+        "prose describing what the company does",
+        "no dates, no references, no counterparty",
+        "no structure beyond headings"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row - it is refused; an organisation name plus a document-type word is never-alone evidence",
+        "any business_operations fact - the schema declares no field rows",
+        "an employer or client relationship from a letterhead",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Certificate of incorporation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a registry issuing body, a company number and a date of incorporation",
+        "an official seal or crest",
+        "a labelled registry reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this needs a branch-root row: a registry-issued instrument with an authority and a reference is business_operations.corporate-regulatory-filings, and it shows the branch root absorbing files that already have a home",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Org chart 2026.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "boxes naming people and reporting lines",
+        "a company name in the title",
+        "headcount numbers per function"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row - hr.org-design-headcount owns it, and it is a second example of a file the branch root would have swallowed",
+        "that a chart of named people is impersonal because it is a diagram",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Company letterhead template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an empty document carrying only a logo, an address block and a footer",
+        "no body content at all",
+        "styles defined for headings"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a situation of any kind: a blank template is a brand asset, and creative.brand-identity is the nearer home",
+        "an organisation fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Misc work stuff.zip",
+      "source_type": "archive",
+      "observations": [
+        "an archive manifest listing an invoice, a policy PDF, two spreadsheets and a personal photograph",
+        "mixed member types",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - the members are extracted as their own files, and each finds its own situation or its own residual",
+        "that a mixed work archive is what a branch-root row is FOR: an archive of unrelated files is the residual case by definition",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Scan_20260218.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a scanner-generated filename carrying only a date token",
+        "OCR yields a short business letter with a signature block",
+        "an organisation name appears twice",
+        "no reference number and no subject line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: this is the file the branch root was invented for, and it is precisely the file 00 sends to a residual home instead",
+        "an organisation fact from two mentions of a name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Employee handbook v4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a contents page of numbered policies",
+        "an effective date and a version",
+        "an acknowledgement page at the end"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row - business_operations.policy-handbook owns it; a third example of a file that already has a situation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Business card scan.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a card carrying a person, a role, an organisation and contact details",
+        "EXIF carries a capture timestamp",
+        "OCR yields the contact fields"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a situation from an organisation name on a card - 00 treats contact data as privacy-side rather than as a source of folder proposals",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home this refused row was really describing. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.” That sentence is the branch root's whole job description, already written, already owned by P10 and P11.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a work-shaped document whose situation is only partly resolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home when an unattached organisational document turns out to carry named individuals' personal or employment material. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an unreadable or password-protected work archive. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded even though the row is refused, because the refusal must not weaken protection for the files the row would have caught. Unattached organisational documents routinely carry named individuals and employment material, and 00 names that corpus - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. Those limits attach to the file through P7 and the schema, not through this row, which is exactly why refusing the row costs nothing in protection. This entry assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether the branch root was intended as something narrower that this refusal has thrown away with it - specifically, a home for the corporate identity documents of an entity a person owns or administers, which is a real and coherent pile (incorporation certificate, share register, constitution, registered-office notices) and currently splits across business_operations.corporate-regulatory-filings, business_operations.board-governance and finance.cap-table-equity. If that is what was meant, the honest fix is a NEW narrow row named for that situation, not the reinstatement of a branch root; this row does not create one, because minting a replacement id is outside what a single node agent may do."
+}

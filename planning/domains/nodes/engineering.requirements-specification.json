@@ -1,0 +1,296 @@
+{
+  "id": "engineering.requirements-specification",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Requirements and engineering specifications (REFUSED - this is the engineering schema's own default template)",
+  "one_line": "REFUSED. A requirements specification is the engineering schema's paradigm artifact, not a situation on it: the schema row's second deterministic signal is a requirements structure with requirement identifiers, allocation, rationale, verification method and verification status, and the schema row's first file example is SYS-REQ-042_Braking-System-Requirements_RevB.docx. This row's detection signals are that signal, its recommended dimensions are project - design_item - lifecycle_stage - engineering_artifact_type level for level, and its sensitivity is the schema's own potentially_sensitive with the schema's own reason. Nothing is left over except two values of the proposed engineering_artifact_type enum (requirement, requirements traceability matrix) and the document-type word specification.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three legs of CONNECTION.md section 2's template test, which says a template row exists only if its detection signals, recommended dimensions, or privacy rules differ from its schema's default template. (1) DETECTION SIGNALS: not merely similar to the default's, but the same text. The engineering schema row's deterministic list contains, verbatim, 'a requirements structure whose rows carry stable requirement identifiers and whose columns or linked records name allocation, rationale, verification method and verification status for an identified system or item'. That is the whole of what this row could recognise, and it is already written on the schema. The schema row also carries SYS-REQ-042_Braking-System-Requirements_RevB.docx as the FIRST of its twelve default fixtures; the precedent set by the refused engineering.automotive-program applies directly - a template whose core fixture is the schema default's own fixture is the schema's default template. (2) DIMENSIONS: the default order is project - design_item - lifecycle_stage - engineering_artifact_type, and every candidate departure fails on evidence rather than taste. Dropping design_item (the engineering.material-specification inversion, which survived because a material specification is invoked by many design items and outlives all of them) does not transfer: a requirements specification is allocated TO the item it defines and its identity is that item's identity at system level, so there is no reusable instrument to hoist. A requirements document with no identified item does not activate the engineering schema at all - the schema's own signal requires 'for an identified system or item' - so a row scoped to that subset would be a row defined by the ABSENCE of the default's second level, which the node test forbids. Dropping lifecycle_stage (the engineering.change-order departure) inverts: a requirements document is the artifact that carries draft / reviewed / baselined-at-review / released most explicitly, so that level is more load-bearing here than in the default, not less. A requirement-level axis (system / subsystem / component) is the allocation relation, which the schema's own signal already names as a column inside the artifact - it is a trace graph, not a folder dimension. (3) PRIVACY: identical, not merely comparable. The schema is potentially_sensitive because engineering packages carry proprietary design definition, supplier data, safety analyses and export-controlled or critical-technology information; a requirements specification is the centre of that reasoning, not an exception to it. No differing rule exists to justify a row. Independently: work types are values, and 'stakeholder or system requirement' and 'requirements traceability matrix' are already two entries in the schema row's work_types list, while 'requirement' is the example value on its proposed engineering_artifact_type enum. Minting a node for a dropdown option is the 574's recorded failure. The residue after subtracting the schema default and the sibling rows is the document-type word 'specification', which is never-alone evidence.",
+  "node_test": {
+    "leg_detection_signals": "SAME. Quoted above: the schema row's deterministic signal 2 is this row's entire signal, word for word, and the schema row's first file example is a requirements specification.",
+    "leg_recommended_dimensions": "SAME. project - design_item - lifecycle_stage - engineering_artifact_type, level for level. The three departures a sibling used to survive (material-specification's document-first inversion, change-order's lifecycle drop, stage-gate-review's lifecycle emphasis) each fail here for a stated evidential reason.",
+    "leg_privacy_rules": "SAME. potentially_sensitive, for the schema's own stated reason. This row would restate it.",
+    "verdict": "Zero legs differ. Refuse."
+  },
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [
+      "whether a numbered-clause document states what a system must do and how conformance will be shown for an identified design item - in which case the engineering schema's own default template activates and no template row is needed",
+      "whether the same document is a product decision record with user stories and acceptance criteria (business_operations.product-requirements) or a controlled technical definition with verification methods and standards references (the engineering default)",
+      "whether the specified object is a system's behaviour (engineering default) or a substance, bought component or process operation (engineering.material-specification), when both use shall clauses and a verification-method column",
+      "whether a requirement-identifier table is the definition itself or the evidence that the definition was met (engineering.verification-validation), when the same matrix carries both a requirement column and a result column"
+    ],
+    "never_alone": [
+      "the word requirement, requirements, specification, spec, shall, SRS, PRD or SoW alone; every one of them appears in product management, procurement, recruitment, immigration checklists and package manifests before it appears in engineering",
+      "a filename containing 'requirements' alone - requirements.txt is a Python dependency manifest and activates code, not engineering; the word is the single worst lexical trap on this material",
+      "a numbered-clause structure alone; contracts, policies, standards, building regulations and academic rubrics are all numbered clause documents",
+      "a verification-method column alone; it discriminates an engineering specification from a PRD but it is also present on inspection plans, audit checklists and certification schedules",
+      "an issuing organisation - a customer, an OEM, a standards body, a prime contractor - alone; this is 00's university-name defect in engineering clothing, and it is the reason a customer technical specification is not a different node from an internal one",
+      "a revision or issue token alone; the schema row already states that revision control is shared with code, policies, contracts, construction drawings and research manuscripts",
+      "a document-type word in a title block alone; a document-type word is the thing this refusal is about"
+    ],
+    "recognition_note": "These arrays are written to document why nothing here is a node, not to activate one. `deterministic` is deliberately empty: every deterministic signal this row could claim is already on the engineering schema row, and duplicating it here would create two detectors for one structure. The `needs_llm` entries are routing questions between the schema default and existing sibling rows; the `never_alone` entries are the traps a reader of this id must not fall into."
+  },
+  "work_types": [],
+  "work_types_note": "Empty by argument, not by omission. The candidate values - stakeholder or system requirement, requirements traceability matrix, interface requirement, verification plan - are already entries in the engineering schema row's own work_types list. Restating them here would be the clearest possible demonstration that this id is a value, not a node.",
+  "grouping_reasons": [],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused. The recommended order for this material is the engineering schema's researched default, project - design_item - lifecycle_stage - engineering_artifact_type with revision_or_baseline held as searchable metadata, unchanged and level for level. Under PR-6 that order is itself conditional on R1c adjudicating the schema's proposed keys, so there is nothing here to serialize even if the row had survived.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "code_structured",
+      "archive",
+      "ocr"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".xlsx",
+      ".reqif",
+      ".md",
+      ".txt",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "SYS-REQ-042_Braking-System-Requirements_RevB.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered shall-statements each carrying a stable requirement identifier",
+        "columns naming allocation, rationale, verification method and verification status",
+        "a title block naming the braking system and revision B",
+        "this is the engineering schema row's own first file example, cited here unchanged"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: this is the engineering schema's default template firing on its own paradigm fixture, and a template that fires only where its schema already fires is the schema's default template",
+        "that engineering declares any domain fact here - PR-6 leaves the schema fieldless, so only universals are legal today",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "requirements.txt",
+      "source_type": "code_structured",
+      "observations": [
+        "the filename contains the word requirements",
+        "line-per-entry package names with version pins",
+        "no shall-statement, no requirement identifier namespace, no verification method, no identified design item",
+        "sits at a repository root beside a manifest"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "any engineering fact whatsoever - this is the collision fixture, and the word in the filename is the entire resemblance",
+        "that a version pin is a revision or baseline of a design item"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Requirements specification - Rev C.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered shall-statements with requirement identifiers",
+        "a verification method column per requirement",
+        "a revision block naming an engineering approver",
+        "references to standards by number"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of business_operations.product-requirements - that row names these same bytes as its second collision fixture and cedes them",
+        "activation of this row - the bytes go to the engineering schema's default template, which is the same destination that row intended when it wrote this id"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RTM_Braking-System_RevB.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per requirement identifier",
+        "columns for allocated item, verification method, verification status and evidence reference",
+        "evidence references point at test report filenames that are not in this workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a traceability matrix is a distinct organizational situation - it is the value 'requirements traceability matrix' in the engineering schema row's own work_types list",
+        "that the evidence-reference column makes this a verification record; engineering.verification-validation owns the report the column points at, not the pointer"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Product Specification.docx",
+      "source_type": "text_document",
+      "observations": [
+        "functional and performance sections written as shall-statements with a verification-method column",
+        "finish and material clauses that invoke MS-4120 by reference rather than restating its limits",
+        "one document issue covering both halves"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the MS-4120 invocation relocates the document to engineering.material-specification - that row states, from its own side, that invocation is a link and not a relocation",
+        "that the functional half needs a row of its own; it is the engineering schema default's ground"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CTS_Brake-Pedal-Assembly_OEM-XJ_Rev4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered requirement clauses with acceptance criteria and verification methods",
+        "issued by a vehicle manufacturer to a supplier and titled a customer technical specification",
+        "names the brake pedal assembly and revision 4"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that a customer-issued specification is a different situation from an internally issued one - the difference is an issuing organisation, which is never-alone evidence",
+        "that this row is needed to hold it; the refused engineering.automotive-program ceded these exact bytes to this id, and this refusal passes them to the engineering schema default, which detects them on its own signal"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Stakeholder-Needs_Workshop-Notes_2026-03-11.docx",
+      "source_type": "text_document",
+      "observations": [
+        "prose statements of what users and operators want, some numbered",
+        "no identified design item anywhere in the document - the programme has not decomposed yet",
+        "no verification method, no revision block, no approver"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a requirements row could be built on this subset - a row whose scope is 'requirements documents with no design item' is a row defined by the absence of the default's second dimension, which the node test forbids",
+        "an identified system or item, which the engineering schema's own signal requires before it fires at all"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Job Requirements - Senior Mechanical Engineer.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the words requirements and engineer in one filename",
+        "numbered essential and desirable criteria",
+        "an employing organisation's letterhead"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any engineering fact - the second lexical trap, and the reason 'requirement' plus 'engineer' can never be a signal pair",
+        "an organisation as an activating fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.product-requirements",
+      "signal": "Fixture bytes Requirements specification - Rev C.pdf. Direction one: product-requirements owns a document whose evidence is user stories, acceptance criteria, success metrics, an out-of-scope or non-goals section and a stakeholder audience; that row already names this id and states the discriminator as the verification-method column plus standards references. Direction two: this id would have taken exactly those bytes on exactly that discriminator - and since this row is refused, the discriminator still holds but resolves to the engineering SCHEMA's default template. The boundary survives the refusal unchanged; only the destination name changes. Recommendation to R1c, not an edit: repoint that row's collision at `engineering` if this id is dropped rather than retained as a browse label.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.material-specification",
+      "signal": "Fixture bytes Product Specification.docx. Direction one: material-specification owns a document whose specified object is a substance, a bought component or a process operation, held as an instrument with its own identifier and issue and invoked by many design items; that row already names this id and states the discriminator as the specified object. Direction two: this id would have claimed the same document's functional and performance sections. Both sides agree the invocation of MS-4120 is a link and not a relocation. The asymmetry is the whole refusal: material-specification survives because its anchor is the document rather than a design item, and requirements have no such inversion available.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "Fixture bytes RTM_Braking-System_RevB.xlsx. Direction one: verification-validation owns the record that a requirement was met - a procedure, a configuration under test, a result and a pass/fail disposition. Direction two: this id would have claimed the matrix that lists the same requirement identifiers with a method and a status column. The discriminator is which artifact carries the measured outcome: the matrix carries a pointer, the report carries the evidence. Both are values of the schema's proposed engineering_artifact_type; only one of them has an argued situation of its own.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.standards-library",
+      "signal": "Fixture bytes an ISO 26262 part held as a received PDF. Direction one: standards-library owns a document issued by a standards body or regulator and held as received reference, on issuer role. Direction two: this id would have claimed it because it is a numbered-clause shall document with verification provisions - which is what a standard is. The discriminator is issuer role, identical to the one material-specification and standards-library already use between themselves; the fact that the same discriminator resolves this id away twice is evidence that this id is a document-type word rather than a situation.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "Fixture bytes requirements.txt. Direction one: code owns a repository's dependency manifest, on repository structure. Direction two: this id would have taken it on the filename alone, which is the purest form of the failure 00 warns about when it forbids inferring meaning from a name. Named as a collision rather than as a rejected neighbour precisely because it is the fixture most likely to be mis-routed by any future revival of this id.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract - _CONTRACT.md restricts also_holds_with to schema rows, and this is a template row. It would also be empty on the merits: a requirements specification is one controlled technical document, not a file that legally carries two schemas at once.",
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone specification, datasheet or numbered-clause PDF with durable meaning but no reliably evidenced design item and no accepted project belongs here rather than activating from the word 'specification' in its title. This is the same route the engineering schema row already declares, and this refusal does not change it.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Use when a numbered-clause document is plainly technical but whether it defines a product, manages a project, recruits a person, lists dependencies or records a stakeholder conversation cannot be established from its own evidence - Stakeholder-Needs_Workshop-Notes and requirements.txt are the two fixtures that land here for opposite reasons.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty. The split this material genuinely wants is the ISSUING party against the RESPONDING party on a customer technical specification - both present in labelled slots on the same cover page. There is no canonical key for either role, minting one to serve a refused row would be indefensible, and 00 forbids authorship or creator identity as a destination in any case.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Same value and same reason as the engineering schema row: requirements specifications carry proprietary performance definition, safety and hazard allocations, supplier-confidential interfaces and, in defence and aerospace, export-controlled content. The sameness is load-bearing for the refusal - leg three of the node test asks whether privacy rules DIFFER from the schema default, and here they do not differ at all. No handling class is assigned; that is P7's.",
+  "open_question": "NEEDS-JOSEPH NJ-REQ-1: does the refused id survive as a browse-only label under engineering, or is it dropped from the roster? Two landed rows (business_operations.product-requirements, engineering.material-specification) and one refused row (engineering.automotive-program) name this id in their own collision text; if it is dropped, three neighbour files carry a dangling target and should be repointed at `engineering`. NJ-REQ-2: engineering.verification-validation is a sibling row whose survival this memo did not test. If it turns out to be the schema default too, the schema row's 'how conformance will be shown' half has no template owner either, and R1c should decide whether the engineering schema needs any template rows for its paradigm artifacts or only for its inversions (material-specification, change-order, standards-library). NJ-REQ-3: if R1c later widens the engineering schema so that requirements-shaped material genuinely files differently - for example if a released-baseline template makes revision_or_baseline destination-eligible - this refusal should be re-examined, because that would be a real leg-two difference rather than the absence-based one rejected here."
+}

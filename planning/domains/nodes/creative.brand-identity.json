@@ -1,0 +1,91 @@
+{
+  "id": "creative.brand-identity",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Brand identity system governance",
+  "one_line": "A governed identity system whose rules, controlled marks and assets, approvals, versions, and permitted-use guidance coordinate many outputs; a logo, style value, or single client project without that system remains ordinary creative work or client engagement.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "A standards or identity manual with coordinated sections for marks, clear space, incorrect use, colour specifications, typography, imagery or voice, and an applicability statement; the cross-asset rule system is the signal, not the word brand.",
+      "A controlled asset register or library that maps multiple approved logo/lockup files, colour or type resources, usage status, version identifiers, and distribution or owner information to one identity system.",
+      "An approval or governance record that names the identity system, approving authority, exact revision or asset set, effective or superseded state, and permitted use; an approval token without the governed object is insufficient.",
+      "A purpose-coherent identity packet containing a standards manual, source master marks, approved exports, asset register, and change or approval record with recurring system identifiers.",
+      "A brand-portal or design-system export whose readable manifest includes identity rules, component or asset references, version metadata, and usage restrictions across more than one output family."
+    ],
+    "needs_llm": [
+      "deciding whether a document is an operative identity standard for the holder's organisation, a client-facing proposal, a public reference guide, or a one-off campaign brief; the model must cite the role and governance language or return unknown",
+      "deciding whether approval applies to the identity system or merely to one campaign asset; the exact object, revision, approver role, and effective or superseded language must be identified",
+      "deciding whether a supplied logo pack is controlled organisational identity material or a downloaded reference/template library when provenance and permitted-use language are absent",
+      "deciding whether a heterogeneous archive is one identity-system packet when member filenames differ but the manifest and repeated system identifier establish shared governance",
+      "separating a client engagement's identity deliverables from the durable identity system itself when the same manual is attached to a statement of work"
+    ],
+    "never_alone": [
+      "the words brand, branding, identity, guidelines, style guide, logo, mark, colours, palette, typography, tone, approved, final, master, or v3 alone",
+      "one logo, wordmark, icon, colour swatch, font file, SVG, AI, PSD, Figma export, or image of a logo alone",
+      "a company, client, product, campaign, agency, studio, or person name alone; names can be depicted subjects, counterparties, issuers, or cited examples",
+      "a visual similarity, shared filename stem, parent folder called Brand or Guidelines, or a download session",
+      "a signed statement of work, invoice, brief, or delivery manifest alone; those may establish client engagement, finance, contract, or handoff functions without a governed identity system",
+      "FINAL, APPROVED, LOCKED, effective date, version number, or file extension alone; version_family is universal evidence and approval requires the governed object and role-bearing record",
+      "a public brand-guidelines PDF or a blank template with rules but no evidence that it governs the holder's own system"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "identity standards manual",
+    "logo and mark master set",
+    "approved asset library or register",
+    "brand design system export",
+    "identity governance decision",
+    "approval or supersession record",
+    "permitted-use or application guidance",
+    "identity-system handoff packet"
+  ],
+  "grouping_reasons": [
+    "one identity system across its standards, source marks, approved variants, asset register, and governance history",
+    "one controlled revision family when a new manual supersedes an earlier manual and the exact rule or asset changes are traceable",
+    "one approved-use packet when rules, assets, and permission guidance are distributed together to named teams or vendors",
+    "no identity group for an isolated logo, campaign artwork, client brief, public reference guide, or downloaded template without system governance evidence"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: creative declares no fields. If the schema later adopts project, stage, artifact_type, or client proposals, those remain the shared creative dimensions; identity-system governance is a situation distinguished by its coordinated rule/asset/approval structure, not by a new field or by logo as a folder level. Not time-first: effective dates and version_family describe change history, while the system identity and artifact function make the group intelligible.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "design_creative", "archive", "email", "image", "ocr", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".pptx", ".xlsx", ".csv", ".ai", ".svg", ".psd", ".fig", ".sketch", ".zip", ".eml", ".png", ".jpg"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {"filename": "Northwind Identity Standards v4.2.pdf", "source_type": "text_document", "observations": ["sections specify logo construction, clear space, incorrect use, colour values, typography, imagery and digital/print applicability", "revision table names an owner, approver and superseded v4.1"], "facts_legal": [], "must_not_conclude": ["a folder path", "that every neighbouring Northwind file is governed by this system", "that a cited asset is present locally"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "Northwind Approved Marks Register.xlsx", "source_type": "spreadsheet", "observations": ["rows map lockups and colour variants to asset filenames, status, approved use and owner", "header names system revision and distribution date"], "facts_legal": [], "must_not_conclude": ["that status cells prove legal trademark ownership", "a client or project fact", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Northwind_logo_master_v7.ai", "source_type": "design_creative", "observations": ["multiple named lockup artboards and linked colour resources", "same asset identifier appears in the standards manual and register", "filename contains v7"], "facts_legal": [], "must_not_conclude": ["approval from v7 alone", "that this is an identity system without the linked governance records", "a client or stage fact", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Identity Governance Decision - 2026-04-18.eml", "source_type": "email", "observations": ["named brand steward approves v4.2 and retires v4.1", "message identifies affected marks and distribution audience"], "facts_legal": [], "must_not_conclude": ["legal trademark registration", "approval of unrelated campaign artwork", "a date-derived folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "Northwind Brand Portal Export.zip", "source_type": "archive", "observations": ["manifest contains standards PDF, source marks, web/print exports, font references, usage notes and a revision manifest", "repeated system identifier occurs across members"], "facts_legal": [], "must_not_conclude": ["member facts from archive paths alone", "that every member is readable or approved", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Northwind Rebrand Creative Brief.docx", "source_type": "text_document", "observations": ["labelled client, objective, audience, deliverables and deadline sections", "requests an identity manual and logo concepts but contains no operative standards or asset register"], "facts_legal": [], "must_not_conclude": ["that a governed identity system already exists", "approval of the requested identity", "a folder path"], "also_schema": "creative.client-engagement", "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Brand Guidelines - Acme.pdf", "source_type": "text_document", "observations": ["public-looking manual contains logo, colour and type rules", "no holder, owner, approval, distribution or system provenance is established"], "facts_legal": [], "must_not_conclude": ["that this governs the user's own organisation", "a client or project fact", "a folder path"], "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Reading Inbox"},
+    {"filename": "logo_final_v3_FINAL.ai", "source_type": "design_creative", "observations": ["single vector mark with version-shaped filename", "no rule manual, register, approval record or permitted-use metadata accompanies it"], "facts_legal": [], "must_not_conclude": ["identity-system activation", "approval or finality from filename", "that the depicted mark identifies the file owner's organisation", "a folder path"], "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "One-Off Images"},
+    {"filename": "Northwind Brand System Approval Screenshot.png", "source_type": "image", "observations": ["screen chrome and OCR show a portal approval of a named standards revision", "no underlying manual is present in the local corpus"], "facts_legal": [], "must_not_conclude": ["that screenshot OCR proves the complete rules or assets", "that missing EXIF proves screen origin", "a folder path"], "also_schema": "photos", "group_without_copying_facts": true, "falls_through_if_inactive": "Temporary Screenshots"}
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A readable identity manual or governance decision with no accepted system group remains a durable standalone record."},
+    {"residual_template": "Review Later", "why": "An incomplete, unsigned, ambiguous, or detached asset/register packet needs review before system facts are accepted."},
+    {"residual_template": "Reading Inbox", "why": "A public or downloaded brand guide without holder-specific governance evidence is reference reading."},
+    {"residual_template": "One-Off Images", "why": "An isolated logo raster or flat export without identity-system evidence is a one-off image, not a system."},
+    {"residual_template": "Temporary Screenshots", "why": "A portal or chat screenshot is residual screenshot material unless its own evidence supports a governed packet."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased identity standards, internal approval decisions, distribution controls, vendor-use restrictions, and proprietary source marks may expose business strategy or licensed assets. The rule follows the governed packet, not the word brand or the file extension.",
+  "open_question": "NJ-BRAND-1: Should a future creative schema expose a compact identity-system field set (for example system/project, artifact type, stage, and governing owner), or should governance remain a template-level structural signal with only universal version and sensitivity facts? Option A enables identity-specific destination proposals; Option B preserves the current empty schema and keeps identity as a governed situation. NJ-BRAND-2: When an identity manual is commissioned for a client, should one file co-activate creative.client-engagement and this template on disjoint role/governance evidence, or should client engagement remain the sole activation and identity be a group subtype?"
+}

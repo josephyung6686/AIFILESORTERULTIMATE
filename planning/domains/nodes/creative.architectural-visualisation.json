@@ -1,0 +1,124 @@
+{
+  "id": "creative.architectural-visualisation",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Architectural visualisation and drawings",
+  "one_line": "A commissioned or self-directed architectural visualisation record that joins a named building or scheme to scene/model sources, rendered views or competition boards, review and approval evidence, and any stated display or use conditions; construction issue sets and isolated property images remain elsewhere.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a labelled architectural visualisation brief or commission naming a building or scheme, viewpoint or scene requirements, audience or use, requested render/board outputs, and a maker or approver role",
+      "a source-to-output packet in which a readable 3D scene/model or parametric source, linked materials/assets, camera/view definitions, render outputs and a manifest share an explicit scheme identifier",
+      "a review packet that identifies exact rendered views or board revisions, records comments or requested changes, and is followed by a revised render set or an approval naming the same views",
+      "an approval or use-rights record that names the exact render/board set, project or scheme, approver or commissioning party, and permitted display, publication, marketing, competition or planning use",
+      "a competition or planning presentation packet whose boards, stills or animations are joined to the underlying scene/model and a named submission or approval record; the presentation envelope itself may belong to a neighbouring domain"
+    ],
+    "needs_llm": [
+      "deciding whether the building or scheme named in a brief is the subject of the visualisation, the client, the site owner, a depicted precedent, or merely a reference",
+      "deciding whether a .skp, .blend, .3dm, .max, .rvt or IFC-like file is a visualisation scene, a construction/BIM authoring model, a survey/model import, or a code/engineering artifact; extension alone is insufficient",
+      "matching a model, texture pack, camera file and rendered stills when filenames differ but scene metadata, view labels, asset links and manifest references establish one source-to-output chain",
+      "separating a client approval of photorealistic views from approval of drawings, planning submission, construction issue, lease material, or a marketing listing",
+      "deciding whether a render is an authored project output, a downloaded reference, a portfolio case study, a photograph of a built site, or an image supplied by another party",
+      "deciding whether an approval or licence covers all views, only named images, a competition entry, a marketing campaign, or a time/territory-limited use"
+    ],
+    "never_alone": [
+      "a .skp, .blend, .3dm, .max, .rvt, .dwg, .fbx, .obj, .ifc, .png, .jpg, .tif or .mp4 extension; file format routes extraction and does not establish architectural visualisation",
+      "the words render, rendering, visualisation, visualization, CGI, architecture, building, house, scheme, flythrough, exterior, interior, final or approved in a filename",
+      "a building, architect, developer, client, studio, site or project name without labelled role-bearing text and a source-to-output or approval relationship",
+      "a single photorealistic image, screenshot, panorama or animation without authored source, brief, review, submission, or use-rights evidence",
+      "a title block, drawing number, revision table, issue status or transmittal; those are stronger evidence for construction_property.drawings-revisions than for this row",
+      "a version token, FINAL suffix, render timestamp, folder called Renders or a bounded export/download session",
+      "visual similarity, shared textures, a matching address, EXIF absence, or a public architecture image; each may describe reference or neighbouring material",
+      "an architect's author metadata, company PDF metadata, email domain, or a named planning authority without a role-bearing record",
+      "a generic review email, client comment, contract, invoice, planning application or marketing pack without exact view/model references"
+    ]
+  },
+  "proposed_context_terms": [
+    "architectural visualisation",
+    "architectural visualization",
+    "CGI",
+    "render",
+    "rendered view",
+    "scene",
+    "camera view",
+    "model",
+    "materials",
+    "lighting",
+    "massing",
+    "flythrough",
+    "competition board",
+    "planning presentation",
+    "marketing views",
+    "client approval",
+    "permitted use"
+  ],
+  "work_types": [
+    "visualisation brief",
+    "scene or model source",
+    "material and lighting library",
+    "camera or view definition",
+    "draft render",
+    "rendered still set",
+    "animation or flythrough",
+    "competition board",
+    "planning presentation image",
+    "client review markup",
+    "approved visualisation set",
+    "display or publication use schedule"
+  ],
+  "grouping_reasons": [
+    "one building or scheme across brief, scene/model sources, linked assets, views, renders, boards and approval records",
+    "one view family when camera/view identifiers, source references and successive render outputs are explicit",
+    "one commission from requested visual purpose through review, approval and permitted-use record",
+    "one competition or planning image packet only when its visual assets can be joined to the underlying source and submission context",
+    "no group for an isolated render, downloaded reference, portfolio case study, construction issue set, survey capture, or property listing image"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: the creative schema declares no field rows. The distinctive architecture-specific chain is a grouping and activation signal, not a permission to mint scheme, building, view, client or stage fields. If the creative proposals are later adopted, project should precede stage and artifact_type; view/camera, software, model format and use purpose remain values or retrieval metadata unless the schema is deliberately changed. Not time-first: request, model, render, review, approval and publication have different clocks.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "presentation", "email", "calendar", "design_creative", "image", "ocr", "audio_video", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".docx", ".xlsx", ".pptx", ".eml", ".msg", ".ics", ".skp", ".blend", ".3dm", ".max", ".rvt", ".dwg", ".fbx", ".obj", ".ifc", ".png", ".jpg", ".tif", ".mp4", ".mov", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {"filename": "Harbour House Visualisation Brief - issued.pdf", "source_type": "text_document", "observations": ["labelled client, prepared-by, scheme and site sections", "lists exterior/interior views, audience, deadline, required output sizes and approver", "references a scene/model package and two review rounds"], "facts_legal": [], "must_not_conclude": ["a folder path", "that every requested view exists", "planning or construction approval", "ownership or permitted use from the brief alone"], "also_schema": null, "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "Harbour_House_scene_v06.skp", "source_type": "design_creative", "observations": ["scene contains named building geometry, materials, cameras and linked vegetation assets", "scene metadata and README identify the same scheme reference as the brief", "filename carries a version token"], "facts_legal": [], "must_not_conclude": ["that v06 was approved", "that the model is a construction issue or as-built record", "that linked assets are licensed", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Harbour House exterior views R2.zip", "source_type": "archive", "observations": ["manifest lists four rendered stills, camera labels, colour profiles and source scene reference", "README distinguishes draft and client-preview outputs", "archive contains no acceptance record"], "facts_legal": [], "must_not_conclude": ["approval or delivery from R2 or packaging", "member facts from archive paths alone", "construction issue status", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "RE Harbour House views round 2.eml", "source_type": "email", "observations": ["sender and recipient roles cross client and visualisation studio", "body names views E-03 and I-02 and requests façade and planting changes", "quoted attachment names match two preview renders"], "facts_legal": [], "must_not_conclude": ["that requested changes were implemented", "that sender is the client from domain alone", "approval or permitted publication", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"},
+    {"filename": "Harbour House CGI approval - signed.pdf", "source_type": "text_document", "observations": ["approval block names exact R3 view identifiers and approver role", "states approval for a property website and sales brochure", "excludes construction documents and third-party stock assets"], "facts_legal": [], "must_not_conclude": ["copyright transfer", "approval of unnamed views", "planning or building consent", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"},
+    {"filename": "Harbour House marketing-use schedule.xlsx", "source_type": "spreadsheet", "observations": ["rows map render IDs to website, brochure and competition uses", "columns state territory, publication window, attribution and supplied stock/people assets", "header references the approved R3 package"], "facts_legal": [], "must_not_conclude": ["that listed use is legally granted without the governing instrument", "that all neighbouring images are covered", "a client or project fact copied to each image", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Protected Records"},
+    {"filename": "Harbour House competition boards.pdf", "source_type": "presentation", "observations": ["boards combine site diagrams, plans and rendered views", "cover names a competition and submission deadline", "source scene and render manifest are referenced but not embedded"], "facts_legal": [], "must_not_conclude": ["that the PDF itself is a construction drawing set", "that the competition entry was submitted or won", "that referenced source files exist locally", "a folder path"], "also_schema": "career", "group_without_copying_facts": true, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "A-201 Harbour House Ground Floor Plan Rev C.pdf", "source_type": "text_document", "observations": ["title block has drawing number, revision, issue status and transmittal reference", "sheet is a controlled plan intended for construction coordination", "no render brief, camera/view or visual-use record"], "facts_legal": ["file_type", "creation_date", "version_family", "sensitivity_status"], "must_not_conclude": ["architectural-visualisation activation", "that a rendered view is approved", "a creative project fact", "a folder path"], "also_schema": "construction_property", "group_without_copying_facts": false, "falls_through_if_inactive": "Independent Records"},
+    {"filename": "Harbour House sunset render.jpg", "source_type": "image", "observations": ["single photorealistic exterior image has no camera/source metadata", "image may be a supplied marketing asset or downloaded reference", "no local brief, scene, review or approval joins it"], "facts_legal": ["file_type", "creation_date", "media_type", "sensitivity_status"], "must_not_conclude": ["that the corpus owner authored it", "a building or scheme fact", "approval or permitted use", "a folder path"], "also_schema": "photos", "group_without_copying_facts": false, "falls_through_if_inactive": "One-Off Images"},
+    {"filename": "Harbour House walkthrough.mp4", "source_type": "audio_video", "observations": ["short flythrough shows the same camera sequence referenced by the scene README", "render metadata names the scheme and output revision", "no receiver or approval record is embedded"], "facts_legal": [], "must_not_conclude": ["that publication is permitted", "that every frame is approved", "construction status from depicted geometry", "a folder path"], "also_schema": null, "group_without_copying_facts": true, "falls_through_if_inactive": "Review Later"}
+  ],
+  "collides_with": [
+    {"domain": "construction_property.drawings-revisions", "signal": "Both may contain architectural PDFs, models and scheme names. A controlled title block, drawing-number register, issue status and transmittal identify a construction drawing set; this row requires the visualisation brief/source-to-render chain and view/use approval."},
+    {"domain": "creative.client-engagement", "signal": "A commissioned render packet may be part of a broader client engagement. Client briefs, general feedback, scope, fees and ordinary delivery remain client-engagement; this row activates only when the architectural scene/model-to-render chain is independently evidenced."},
+    {"domain": "creative.revision-round", "signal": "Both contain marked-up PDFs, R2/R3 tokens and changed outputs. Generic review vocabulary is universal; this row requires the architecture-specific source/view/render object and does not turn a revision round into a domain."},
+    {"domain": "career", "signal": "A competition board or portfolio case study may depict the same renders. Career owns the capability presentation or submission record when sources and project workflow are absent; authored scene, renders and approval/use records remain creative when their making purpose is evidenced."},
+    {"domain": "photos", "signal": "A flat render and a photograph can depict the same building. Camera capture metadata, event chronology and photographic provenance support photos; scene/model lineage and render approval support this row."}
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Independent Records", "why": "A durable brief, board, model or approval record without a recoverable architectural visualisation chain remains a standalone record."},
+    {"residual_template": "Review Later", "why": "Ambiguous model/render packets, unjoined revisions and unlabeled approvals require review rather than inference from architecture vocabulary."},
+    {"residual_template": "One-Off Images", "why": "An isolated render or screenshot without authored-source or project evidence is an image, not an activated visualisation situation."},
+    {"residual_template": "Reading Inbox", "why": "Downloaded architectural references, precedent images and public render collections are consumed reference material."},
+    {"residual_template": "Protected Records", "why": "A signed use schedule, approval, release or rights instrument standing alone remains protected evidence without copying creative facts into it."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Unreleased design intent, private client/site information, competition embargoes, security-sensitive views, source models, licensed textures or people/property imagery, approval contacts and use restrictions may be sensitive. The rule follows the evidenced packet and does not make every architectural image sensitive by extension or subject.",
+  "open_question": "NJ-ARCHVIZ-1: Should a future creative schema expose a compact project/stage/artifact_type set that can hold scheme and view values, or should architectural visualisation remain a fieldless structural template? Recommended: preserve the fieldless placeholder until the schema decision is made. NJ-ARCHVIZ-2: When a visualisation is embedded in a planning or marketing submission, should the submission envelope and the source/render packet always co-hold, or should each remain separately activated by its own purpose evidence?"
+}

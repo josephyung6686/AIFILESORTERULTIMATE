@@ -407,6 +407,16 @@ Appropriate language support, including CJK where required
 A practical rendering resolution such as 200 DPI
 ```
 
+**Languages — ratified 2026-08-20: English, CJK (Chinese, Japanese, Korean), and Western European
+(French, German, Spanish, Italian, Portuguese).** This settles *"where required"* for this corpus.
+
+It is a **configuration value, not a P5 constant.** P5's `config` stays a required keyword with no
+default and `extractors` holds no language tag anywhere — the no-invention guard that asserts this
+must keep passing. The list above is the ratified default a deployment supplies, and it lands in
+`extraction_runs.config` where §2.7 requires it, so it is fingerprinted and replayable per run: two
+runs at different language sets are correctly distinguishable rather than silently merged by §3.4's
+cache key.
+
 **Limits (§2.7, §8.6):** page cap, total run-time limit, progress state, partial-read state. Long
 scanned books otherwise create unexpectedly expensive workloads (§2.7). A capped run keeps the text
 it recognized and is marked capped — it is never presented as complete.
@@ -609,6 +619,14 @@ one P5 output conditional on such a policy: the speech-to-text transcript. The t
 and therefore shared; the authorization that produced it is plan-versioned. Whether a transcript
 survives revocation of the policy that authorized it is Open question #6.
 
+**Speech-to-text is OUT OF SCOPE for v1 — ratified 2026-08-20.** Audio and video stop at container
+metadata: duration, container and codec metadata, creation time, embedded tags, and subtitles or
+captions already present in the file. No transcript is produced, so v1 needs no speech model, no
+consent flow for one, and no answer to whether a transcript survives revocation. §2.9 makes
+transcription conditional precisely so it can be deferred this way. P5's `transcription_authorized`
+predicate stays in the contract with no default and refuses any transcript that arrives without it —
+so turning this on later is a policy decision plus a reader, and changes no record shape.
+
 ---
 
 ## Open questions
@@ -637,8 +655,10 @@ and P5's perceptual hashes. *Non-macOS OCR* — settled by **S1**: there is none
 2. **Routing precedence for formats §2.9 lists twice.** CSV appears under both Spreadsheets and Code/
    structured data; PDF appears under both Text documents and Presentations ("PDF slide decks"). The
    design specifies different field lists for each and no tiebreak.
-3. ~~**What are the analysis tiers?**~~ **Settled — I4.** `filesystem | native | ocr | llm`. See
-   Cache key above and [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
+3. ~~**What are the analysis tiers?**~~ **Settled — I4, ratified 2026-08-19.**
+   `filesystem | native | ocr | llm`, closed. P5 owns the vocabulary and writes the first three;
+   P8 is the only writer of `llm`. See Cache key above and
+   [`../../10-i4-learning-ops.md`](../../10-i4-learning-ops.md).
 4. **Library and engine choices for every format.** The design names Apple Vision for macOS OCR
    (§2.7) — the one engine it names, and the whole of v1's OCR scope under S1 — and names no library
    for PDF, DOCX, HEIC, archives, spreadsheets, presentations, email, calendar, contacts, audio/video,
@@ -646,7 +666,15 @@ and P5's perceptual hashes. *Non-macOS OCR* — settled by **S1**: there is none
 5. **Do spreadsheets and presentations ship at launch or ship as `unsupported`?** §2.4 explicitly
    permits either; §2.9 specifies full field lists for both. Which is a release-scope decision the
    design leaves open.
-6. **Does reclassifying a file as private delete P5's stored observations or only gate them?** §8.4
+6. ~~**Does reclassifying a file as private delete P5's stored observations or only gate them?**~~
+   **Settled — ratified 2026-08-20: GATE by default, with an explicit user-initiated delete.**
+   Marking a file private hides its observations and `text_units` behind P7's handling class; the rows
+   are retained so §8.2's *"a user inspecting a placement must still be able to reach the origin of the
+   conclusion"* still holds. §8.4's *review and delete local derived data* is then a separate, explicit
+   user action — never an automatic consequence of reclassification. **P5 publishes no deletion**; the
+   gate is P7's and the delete surface is P13's, so both parts inherit this as a requirement rather
+   than a choice. Transcription is out of scope for v1 (see the §8.8 boundary above), so the
+   revocation half of this question does not arise in v1. The original wording follows. §8.4
    says the user should be able to review and delete local derived data; §8.7 lists marking a file
    private as a correction. The same question now applies to the `text_units` a run produced, which
    are the bulk of the derived text (G1), and to a speech-to-text transcript after the authorizing
@@ -657,3 +685,25 @@ and P5's perceptual hashes. *Non-macOS OCR* — settled by **S1**: there is none
 8. **May a nested archive's manifest be read one level down, in memory?** §2.5 lists nested archives
    among those marked unreadable or partially inspected, but reading an inner manifest without
    unpacking is not the same act as extraction, and the design does not distinguish them.
+
+---
+
+## Ratified decisions — 2026-08-20 (second session)
+
+Joseph's answers to this plan's NEEDS JOSEPH list. Each is binding.
+
+| ID | Decision | Consequence |
+|---|---|---|
+| **B1** | **Apple Vision only; macOS-only for v1.** | What §2.7 actually names. `ocr_engine` stays an injected callable and `extractors` spells no provider, so adding a cross-platform engine later costs one reader and zero record changes. |
+| **B2** | **200 DPI** rendering resolution. | §2.7's own example, adopted as the starting value and treated as a raisable ceiling. It interacts directly with the OCR page cap. |
+| **B3** | The **four §8.6 ceilings stay unset** until a real OCR engine is wired, then chosen empirically against the real corpus. | `ocr.max_pages_per_file`, `ocr.max_time_per_file`, `ocr.max_time_per_scan`, `image.max_analysis_ops_per_scan`. P1 publishes the keys and holds no defaults. These are the only P5 numbers that change user-visible behaviour; guessing them now is the invented value this plan spent twenty tasks avoiding. |
+| **B5** | **OCR confidence is weighed by P6** in §3.7's scoring — explicitly **not** a usability threshold. | A threshold here would be a second no-usable-facts rule, and OQ1 already owns that question. P5 stores the engine's value and acts on it nowhere. |
+| **B6 (OQ5)** | **Spreadsheets and presentations ship at launch.** Every file type is extracted, and extracted correctly for its own type — **except audio and video**, which stop at container metadata for v1. | Readers required at launch: `openpyxl`, `python-pptx` (plus `xlrd`/`odfpy` for the older and ODF variants). This supersedes the plan's earlier "ship `unsupported` for v1" position; `unsupported` now means a format genuinely has no extractor, not one deferred by choice. |
+| **B7 (OQ1)** | **Confirmed: P5 wires the switch and never invents the threshold.** | A PDF is in one of three states. **Usable text layer** → extract, do not OCR. **No text layer** → OCR immediately; this works today. **Broken text layer** (garbled encoding, `cid:12` junk) → targeted OCR **only** after P6 answers `no_usable_facts(file_id, content_hash)`. P5 may not decide the third case by "the text looks weird" — §2.2 forbids a language-quality heuristic because it punishes maths and multilingual files. The threshold behind the verdict is **P6's, as configuration, never a constant inside P5**; `no_usable_facts` stays an injected callback with no default. **Do not bake `if facts < 3: ocr` into P5.** Consequence to state plainly: broken-layer OCR does not run on a real corpus until P6 exists and the threshold is written. |
+| **B9** | **Author all five deferred catalogues now** (plus archive markers and citation patterns). | Written to `planning/deferred-catalogues/` as injected data — never module-level constants inside `extractors/`. Task 20's no-invention guard must keep passing. |
+| **C4** | **A ninth `completeness` value: `dataless`.** | The gate still raises and writes nothing — a gate that also wrote would be doing two jobs. The run row naming the refusal is written by whoever **catches** `DatalessRefused` (the router), which is the concrete follow-up. |
+
+**Carried from P4's ratifications:** the **content hash owns the observation**, so P5 re-extracts per
+content version and never per path; one reliability vocabulary with extractors stamping only
+`direct` | `possible`; and the context budget read from P1's `evidence.context_window` must land in
+`extraction_runs.config` so it is fingerprinted.

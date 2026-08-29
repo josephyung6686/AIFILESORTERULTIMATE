@@ -255,6 +255,12 @@ review_action
   session_id           the sitting this action belongs to — groups progress,
                        consent, and stale banners; not an §8.5 stage
                        ([`../../11-ops-runtime.md`](../../11-ops-runtime.md))
+  **Protected containers** (P3 SPEC, ratified 2026-08-20) are presented as their own
+                       inspectable list, labelled `untouched_protected`, and carry **no action at
+                       all** — applications and system items are never read or moved, so offering
+                       the user a choice would imply one exists. The list answers "why was nothing
+                       proposed for this?" instead of leaving silence.
+
   action               accept | accept_bulk | change_destination
                        | return_to_accepted_group | create_custom_folder
                        | mark_private | defer | leave_untouched | reject

@@ -1,0 +1,164 @@
+{
+  "id": "construction_property.service-charge",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Service charges and leaseholder accounts",
+  "one_line": "Refused specialization for building budgets, demands, apportionments, reconciliations and leaseholder accounts: the cycle is already part of the construction_property default, while the remaining distinctions are property, tenant and billing-stage values.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "Fails all three template-node legs. Detection fails because the deepened construction_property default already names an apportionment structure and service-charge budget, demand and reconciliation work types; invoice/account, property, unit, landlord and tenant observations add only role values and billing-stage work_type values. Dimensions fail because this field-less schema requires the same empty dimension_order as its default; building, service-charge period and unit are undeclared. Privacy fails to differ because the default already protects tenant, address, payment and dispute material. The gist verdict is reversed: the files remain covered by the schema default, independently active neighbours, groups and residuals.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "None unique: a building budget plus unit apportionment, demands and reconciliation is deterministic evidence for the construction_property default, which already owns that structure.",
+      "No invoice or account routes here merely because its subject is a building or its counterparty is a leaseholder; those are role values, not a second template."
+    ],
+    "needs_llm": [
+      "Nothing routes to this refused node. Review may choose the construction_property default, Finance, tenancy management, facilities/workplace, or a residual. “A model that cannot cite sufficient evidence must return unknown.”",
+      "A model may propose group membership but may not copy a property, unit, tenant, period, amount or payment-status fact onto sparse members."
+    ],
+    "never_alone": [
+      "service charge, demand, account, invoice, budget, reconciliation, reserve fund or apportionment alone; these are document-function or work_type values",
+      "a property address, block, unit number, landlord, managing agent or tenant name alone",
+      "an amount, percentage share, due date, accounting period or arrears balance alone",
+      "a source_type or extension alone; “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a portal folder or download session alone; “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "The graph may assemble estimate, demands, apportionment, actual-cost account and balancing statement around one building and period under the construction_property default; that does not activate this row.",
+    "A tenancy group may contain a lease, rent ledger, service-charge demand and correspondence while every member retains only its own facts.",
+    "An isolated demand remains transactional; nearby files do not copy property, tenant, period or payment facts onto it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty because the row is refused and construction_property declares no destination fields. Building, service-charge period and unit are undeclared; billing stage is only work_type. The schema default already holds property/site -> instruction -> document function in prose, with a period where the situation cycles.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": ["text_document", "spreadsheet", "email", "ocr", "image", "archive", "opaque_binary"],
+    "extensions": [".pdf", ".xlsx", ".csv", ".docx", ".eml", ".jpg", ".zip"],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Service charge budget 2026-27 - Halstead Court.pdf",
+      "source_type": "text_document",
+      "observations": ["estimated cost headings", "reserve-fund line", "percentage share by unit", "managing-agent letterhead"],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family"],
+      "must_not_conclude": ["activation of this refused row", "a calendar year from the period", "an undeclared property or unit fact", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Demand - Flat 12 - half year to September.pdf",
+      "source_type": "text_document",
+      "observations": ["unit reference", "amount and due date", "advance period", "rights text"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["activation of this refused row", "that the demand was paid", "a tenant fact from the addressee", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Certified accounts - year to 31 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": ["actual expenditure", "estimate comparison", "balancing figure", "accountant certificate"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["activation of this refused row", "that certification validates every charge", "a tax year from a reporting period", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Arrears schedule - March.xlsx",
+      "source_type": "spreadsheet",
+      "observations": ["one row per unit", "resident names", "aged balances", "recovery notes"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["activation of this refused row", "that every balance is owed", "permission to expose resident names", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice of intention - roof replacement.pdf",
+      "source_type": "text_document",
+      "observations": ["proposed works", "invitation to comment", "response date", "landlord and premises roles"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that work occurred", "that an invoice was approved", "activation of this refused row", "a folder path"],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Facilities recharge invoice - West Tower - Q2.pdf",
+      "source_type": "text_document",
+      "observations": ["invoice identifier", "occupied premises", "shared-services lines", "amount due"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["that an occupier is a leaseholder", "that shared services imply this row", "a tax year", "a folder path"],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Rent and charges statement - 18 River Court.eml",
+      "source_type": "email",
+      "observations": ["sender and recipient", "tenancy reference", "rent and charge lines", "running balance"],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": ["one template per charge line", "payment from a balance", "activation of this refused row", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "service-charge-pack.zip",
+      "source_type": "archive",
+      "observations": ["manifest lists budgets, demands, accounts and correspondence", "mixed members", "no top-level statement", "some encrypted members"],
+      "facts_legal": ["file_type", "creation_date"],
+      "must_not_conclude": ["member facts on the archive", "one period for every member", "activation from its name", "a folder path"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Ground rent demand - Flat 12.pdf",
+      "source_type": "ocr",
+      "observations": ["landlord and unit labels", "amount and due date", "ground-rent wording", "scanner metadata"],
+      "facts_legal": ["file_type", "creation_date", "language"],
+      "must_not_conclude": ["service charge from any property demand", "activation of this refused row", "payment status", "a folder path"],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "IMG_4412.jpg",
+      "source_type": "image",
+      "observations": ["phone photograph of a demand", "partial OCR amount and address", "cropped recipient", "capture metadata"],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": ["service-charge purpose from partial OCR", "a tenant or unit fact", "activation from neighbours", "a folder path"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {"residual_template": "Receipts and Confirmations", "why": "Standalone demands, invoices and confirmations fit 00's residual for “isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”", "provenance": "design"},
+    {"residual_template": "Independent Records", "why": "Durable budgets, accounts and notices may remain standalone records without a duplicate template.", "provenance": "inference"},
+    {"residual_template": "Protected Records", "why": "Named arrears and dispute material may need a protected isolated home; protection is not dependent on this refused node.", "provenance": "inference"},
+    {"residual_template": "Review Later", "why": "Role-ambiguous statements may be partly understood without a safe final situation.", "provenance": "inference"},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable management packs remain represented without invented member facts.", "provenance": "inference"}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Demands and arrears schedules expose names, home addresses, unit identifiers, account references, balances and disputes. Refusal does not weaken P7 or independently active safety-schema protection and assigns no handling class.",
+  "open_question": "NEEDS-JOSEPH: should shared property/asset and operational accounting-period keys be added for grouping across construction_property, tenancy, facilities and Finance? This would not rescue this row: billing stage remains work_type and the enriched default still owns the cycle."
+}

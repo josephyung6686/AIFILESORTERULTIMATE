@@ -1,0 +1,552 @@
+{
+  "id": "resource_operations.mining-operations",
+  "kind": "template",
+  "schema_id": "resource_operations",
+  "parent_id": null,
+  "name": "Mining and quarrying operations",
+  "one_line": "Operator-side records of extracting or quarrying material from an authorised site: mine plans and permits, pit or bench production, grade and survey control, weighbridge and haulage reconciliation, environmental returns, and progressive restoration. The anchor is a labelled relation among an operating site, an operator-held authority, an extraction asset or working area, measured material output, and an operational or reporting period; a geology paper, civil works drawing, cargo ledger, or regulator case does not activate from mining vocabulary alone. Placeholder template (J-IND, full J-DEPTH): resource_operations keeps fields empty pending R1c.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "site",
+      "type": "string",
+      "example": "North Quarry",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema already proposes `site` for the operating place a record is about. Mining supplies the concrete mine, quarry, pit, lease area and processing-site cases; Photos `location` remains where an image was captured, and construction_property `property` is a project or property role. R1c should adjudicate one shared operating-site key rather than `site_or_mine`.",
+      "destination_eligible": true,
+      "destination_eligible_why": "A site is the intelligible first dimension in a multi-site operator corpus. Exact coordinates, landowner address and sensitive resource location remain content evidence and may require flattening.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled Mine, Quarry, Pit, Lease Area, Permit Area or Site slot joined to extraction structure can be direct evidence. A place name, map label, address or filename remains possible because it may describe a regulator, contractor, delivery point or cited location.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "operating_authority",
+      "type": "string",
+      "example": "Mines Act Permit M-2048 / Quarry Permission QP-73",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The resource_operations schema's `operating_authority` covers the operator-held permit, licence, lease, tenement, concession, quota or connection agreement. Mining demonstrates the mine permit, planning permission and reclamation conditions case; government may hold the issuer-side review or enforcement case, which is a different role. Do not revive the legacy `permit_reference` spelling.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Useful only where one site has several permissions or tenements and the user accepts the disclosure risk. It is optional under site and should flatten when a permit identifier exposes a concession without retrieval benefit.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a labelled permit, licence, lease, tenement, planning permission or notice identifier joined to holder/operator, authorised area, activity and conditions. Identifier patterns and authority gazetteers belong to R2/R4; this row supplies no regex.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "Pit 3 / Bench 12 / Crusher CR-2",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The schema's `asset` names an enduring controlled operating unit. Mining shows that a pit, bench, extraction face, shaft, crusher, conveyor, stockpile or weighbridge can be the unit threaded through production and inspection; a mining-specific `pit_id` would be a private synonym. `location` and `camera_information` are different capture roles.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Useful beneath site when several pits, faces, benches or fixed plant units coexist. It should remain optional for site-wide returns and not force one child for every map feature.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation needs an asset or working-area identifier in a labelled Pit, Bench, Face, Shaft, Plant, Crusher, Conveyor, Stockpile or Weighbridge role, preferably corroborated by an asset register or production/survey record. A serial-like token alone is never enough.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "output_stream",
+      "type": "string",
+      "example": "saleable aggregate / run-of-mine copper ore / overburden",
+      "why_no_existing_key": "SECONDING, NOT MINTING. `output_stream` is already proposed by resource_operations because extracted ore, aggregate, overburden, waste rock and recovered concentrate are output roles rather than necessarily manufactured products. Reusing manufacturing's proposed `product` would erase the source-to-output distinction. Grade, tonnage and unit are measurements, not new fields.",
+      "destination_eligible": true,
+      "destination_eligible_why": "A conditional level is useful where one site produces materially different streams, but many mines should keep streams as search evidence beneath the site/asset history. Quantities, grades, units and sale destinations never become folder values.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct evidence requires a labelled Product Stream, Mineral, Ore, Aggregate, Concentrate, Waste or Material role in a production/reconciliation record. A mineral name in a paper, invoice, cargo record or market report remains possible only.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "reporting_period",
+      "type": "string",
+      "example": "June 2026 / 2025-26 extraction year",
+      "why_no_existing_key": "SECONDING, NOT MINTING. The schema's `reporting_period` means the period the operation or measured return is about. A production month, extraction year, survey campaign or rehabilitation reporting year is not filesystem `creation_date`, Finance `tax_year`, Academic `term` or Photos `capture_year`.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Optional below site/asset or output stream; never time-first, because calendar-first filing scatters a quarry's continuing operational and restoration history.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a date or interval in a labelled Reporting Period, Production Month, Extraction Year, Survey Date or Return Year slot with mining-operation context. Filename years and filesystem timestamps remain possible.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "monthly production return / grade-control reconciliation / reclamation report",
+      "why_no_existing_key": "SECONDING, NOT MINTING. Reuse the resource_operations proposal of canonical `record_type` for document function. Mining demonstrates permit, production, haulage, grade, survey, blast, environmental and reclamation functions; it does not license `record_class` or `mining_record_type`.",
+      "destination_eligible": true,
+      "destination_eligible_why": "A useful leaf below the operating subject and period when the corpus has repeated work functions. A word such as report or plan without its labelled structure is not a record type fact.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "A labelled form title plus matching table or submission structure may establish document function. Extension, filename, isolated title words or a permit number cannot.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a mine or quarry plan/return structure joining a labelled operator-held permit or permission, authorised site, extraction method or area, operating holder, production limits and restoration conditions",
+      "a production return or mine-to-mill reconciliation joining site or permit, pit/bench/face or plant, reporting period, material/output roles, stock or movement quantities, units and submission status",
+      "a weighbridge or haulage register joining a labelled load or ticket, extraction source, vehicle or carrier, destination, material, date/time and reconciled tonnage; a single weight is insufficient",
+      "a grade-control or assay reconciliation joining sample or blast block, bench/face, material or ore classification, assay/grade result, sampling or survey date, model-versus-actual comparison and production disposition",
+      "a survey or as-built mine record joining a labelled pit, bench, excavation or stockpile to measured surfaces, volumes, coordinates, survey date and approved mine plan or production context",
+      "a blast or extraction-shift report joining a labelled shot, face or bench to actual activity date, blast/extraction status, material moved, exclusion or safety check and post-activity survey; planned design alone is excluded",
+      "an operator environmental or water-monitoring return tied to a permit condition and mine site, with sampling point, parameter, method, result, unit, reporting period, limit/exceedance and corrective or submission status",
+      "a progressive rehabilitation, restoration, closure or aftercare record joining disturbed area or phase, authorised boundary, soil/overburden handling, treatment performed, monitoring result and closeout obligation",
+      "a mine asset or infrastructure register joining stable pit, shaft, crusher, conveyor, stockpile or weighbridge identifiers to one site, status, capacity or inspection history",
+      "an archive manifest exposing one mine/permit/site reference and several production, survey, grade, haulage, environmental and reclamation members; inspect the manifest without unpacking members to disk"
+    ],
+    "needs_llm": [
+      "whether an unlabeled table of tonnes, grades and destinations is an operator production reconciliation, a logistics movement ledger, a finance valuation, a public statistics table or a manufacturing batch record",
+      "whether a permit or mine plan is the operator's active authority, a government issuer-side case, a planning application, a consultant's reference copy or a proposed project with no actual operation",
+      "whether a map, surface model or cross-section is an as-built operational survey, a controlled engineering design, a geological exploration interpretation or a construction site survey",
+      "whether a grade or assay workbook records operational ore control and reconciliation, a research assay, a laboratory certificate, a reserve estimate or a trading specification",
+      "whether an environmental report is operator compliance evidence, regulator surveillance, a consultant study, or a general publication",
+      "whether a restoration plan describes an authorised extraction site's progressive obligations or a construction/landfill after-use proposal with no mining operation",
+      "an OCR-poor photographed weigh ticket, blast sheet, field notebook or scanned permit whose role relationships survive visually but headings do not",
+      "a sparse email, calendar notice or field image that may join an accepted mine group but cannot establish site, authority, asset, output or period facts from its own content"
+    ],
+    "never_alone": [
+      "the words mining, quarry, pit, mine, ore, aggregate, extraction, haulage, blasting, grade, tonnage, restoration, reclamation, permit or production alone",
+      "a permit, licence, lease, tenement, planning reference, claim number or reclamation bond identifier alone; government, construction_property and business_operations can hold the same words",
+      "a mine, quarry, pit, field, bench, site, operator, mineral-rights holder or authority name alone; the named entity's role is unresolved",
+      "a mineral, commodity, crop-like material, grade, assay, volume, mass or unit alone; it may be an input, cargo, invoice line, market topic, research result or cited example",
+      "a pit number, bench code, sample ID, vehicle registration, permit number, coordinate or asset tag outside a labelled operational role and supporting structure",
+      "a map, contour, cross-section, surface model, survey date, blast diagram, title block or revision marker alone",
+      "the words plan, report, return, survey, grade, closure, restoration, haulage or production in a filename or heading alone",
+      "a source_type or extension alone, including PDF, XLSX, CSV, DXF, DWG, SHP, GeoTIFF, image, email, calendar, archive or opaque binary",
+      "a parent folder called Mines, Quarry, Production, Operations, Environment, Survey, Permits or Restoration alone",
+      "membership in a portal export, project folder, email thread, scanning batch or download session alone; 00 states: \"A session should never be treated as proof of topic\"",
+      "missing EXIF, dense OCR, scanner metadata or a phone filename as proof that an image is a mine field record rather than an ordinary photograph"
+    ]
+  },
+  "proposed_context_terms": [
+    "mine plan of operations",
+    "notice of work",
+    "quarry permission",
+    "mineral planning permission",
+    "permitted reserve",
+    "open pit",
+    "underground workings",
+    "extraction face",
+    "bench",
+    "overburden",
+    "run of mine",
+    "mine-to-mill",
+    "production return",
+    "weighbridge",
+    "haulage ticket",
+    "grade control",
+    "assay reconciliation",
+    "blast log",
+    "survey pickup",
+    "stockpile survey",
+    "tailings",
+    "waste rock",
+    "permit condition",
+    "discharge monitoring",
+    "exceedance",
+    "progressive rehabilitation",
+    "restoration and aftercare",
+    "closure plan",
+    "reclamation security",
+    "annual reclamation report"
+  ],
+  "work_types": [
+    "mine plan, quarry permission, notice of work or operating authority",
+    "site, pit, bench, shaft, plant, stockpile or weighbridge register",
+    "daily, monthly or annual extraction and production return",
+    "mine-to-mill, stockpile, loss, recovery or royalty reconciliation",
+    "weighbridge, haulage, dispatch or material movement record",
+    "grade-control, sampling, assay or ore reconciliation record",
+    "blast, shift, extraction or post-activity survey record",
+    "topographic, volume, as-built or stockpile survey",
+    "water, discharge, dust, noise, biodiversity or environmental compliance return",
+    "progressive rehabilitation, restoration, aftercare or closure record",
+    "inspection, integrity, maintenance or calibration record tied to operating plant",
+    "archive submission containing authority, production, survey and reclamation members"
+  ],
+  "grouping_reasons": [
+    "one authorised mine or quarry site across permit, working-area, production, survey, environmental and restoration records",
+    "one pit, bench, extraction face, shaft, plant unit, stockpile or weighbridge across activity, output, inspection and maintenance records",
+    "one reporting period's extraction-to-dispatch chain across production, grade control, stock movement, haulage and saleable output",
+    "one environmental or restoration condition across monitoring plan, sample result, exceedance, notification, treatment and closeout evidence",
+    "one permit amendment or progressive reclamation phase across plan, approved conditions, as-built survey, work record and aftercare return",
+    "a sparse image, email or calendar item may join an accepted site/asset group without receiving site, authority, asset or output facts; grouping does not copy labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by the placeholder contract: resource_operations declares no legal field rows, so this template cannot serialize destination dimensions. Subject to R1c, mining is site/permit-led but usually recommends site → asset or working area → output stream → reporting period → record type, with operating_authority optional when several permissions coexist. This differs from the schema's broad site → operating_authority → output_stream → reporting_period → record_type proposal because pit/bench/shaft/plant history is the intelligible subject for production, survey and restoration records, while authority is a conditional branch and output streams are often search evidence. It is not time-first: 00 says, \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The user may reverse, remove, add or flatten dimensions after facts are validated.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".xml",
+      ".json",
+      ".geojson",
+      ".shp",
+      ".dwg",
+      ".dxf",
+      ".tif",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".las"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "North-Quarry_Mine-Plan-and-Restoration-Conditions.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "operator, authorised site boundary, mineral permission, extraction method and permitted working area are labelled",
+        "staged extraction, overburden handling, production limit and restoration/aftercare conditions are described",
+        "authority decision and conditions are present but no actual extraction record is attached"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that extraction commenced or the operator still holds the authority from this file alone",
+        "government issuer-side ownership from letterhead alone",
+        "resource_operations fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "North-Quarry_Pit-3_Monthly-Production-Return_2026-06.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header labels mine permission, site, pit, reporting month and operator",
+        "rows distinguish run-of-mine feed, waste/overburden, saleable aggregate, stock opening/closing and units",
+        "declaration and submission status are labelled"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that every quantity is output or physically accurate",
+        "reporting_period from the filename alone",
+        "a finance statement or logistics consignment from quantities alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Pit-3_Weighbridge-and-Haulage-Reconciliation_2026-06.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns join ticket, pit/face, vehicle or carrier, material, destination, date/time and gross/net weight",
+        "duplicate-ticket, stockpile and dispatch-reconciliation statuses are present",
+        "the sheet records movement from an extraction source rather than a generic warehouse receipt"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a destination is the operating site",
+        "that a weight alone proves extraction or sale",
+        "logistics ownership without the source-to-extraction relation",
+        "a folder path"
+      ],
+      "also_schema": "logistics.warehouse-ops",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Pit-3_Bench-12_Grade-Control-Reconciliation_2026-06.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sample/block and bench identifiers are labelled",
+        "assay results, ore/waste classification, model-versus-actual grade and production disposition are joined",
+        "the workbook contains operational reconciliation rather than a general geology paper"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "a mineral resource or reserve fact from an assay value alone",
+        "that laboratory certification proves operator ownership",
+        "an output stream from a cited commodity name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North-Quarry_Pit-3_As-Built-Survey_2026-06.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "controlled drawing contains survey date, coordinate system, pit/bench surfaces and stockpile volumes",
+        "title block references the approved mine plan and an as-built survey status",
+        "the same controlled drawing could be retained by engineering as a technical drawing package"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "current extraction activity from a drawing alone",
+        "a construction property from the site name alone",
+        "that a revision is a later physical state",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North-Quarry_Blast-Log_Shot-12_2026-06-18.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "shot and bench/face identifiers, actual blast date, charge/holes, exclusion checks and post-blast status are labelled",
+        "material moved and a survey attachment are referenced",
+        "planned blast design is distinguishable from an actual post-activity log"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a plan-only blast schedule records an event",
+        "a safety or compliance conclusion from a signed form alone",
+        "an exact asset or site from a shot number alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "M-2048_Quarterly-Discharge-and-Dust-Monitoring_Return_Q2-2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "operator, mine permit, monitoring points and reporting quarter are labelled",
+        "parameter, method, result, unit, limit/exceedance and corrective-action columns are distinct",
+        "a submission sheet exists without regulator assessment or enforcement findings"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "government custody from a permit number or copied form",
+        "that an exceedance occurred beyond the reported result",
+        "generic environmental publication ownership",
+        "a folder path"
+      ],
+      "also_schema": "government.environmental-regulation",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North-Quarry_Annual-Reclamation-Report_2025.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "mine site and permit are labelled with annual mining and reclamation activity",
+        "disturbed, restored and revegetated areas, waste/overburden, monitoring results and liability estimate are tabulated",
+        "maps and photos document the operator's report but do not prove every claimed condition"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a regulator accepted the report without receipt or assessment evidence",
+        "a final closure state from an annual progress report",
+        "site or permit facts copied onto embedded maps/photos",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "North-Quarry_Permit-and-Production-Submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest names the permit, monthly production return, weighbridge reconciliation, survey drawing, monitoring return and reclamation report",
+        "one site and permission reference repeat across members while dates and functions differ",
+        "members are inspected through the manifest without being unpacked to disk"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "one record type, period or reliability state for all members",
+        "facts copied from one member onto another",
+        "that opaque CAD/GIS members were interpreted",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "RE Pit-3 June production return.eml",
+      "source_type": "email",
+      "observations": [
+        "sender and recipients are labelled operator, surveyor and haulage contractor roles",
+        "body discusses a June return and attachments named production and weighbridge files",
+        "the message does not itself establish reported quantities or permit status"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "sensitivity_status"],
+      "must_not_conclude": [
+        "attachment facts copied onto the email",
+        "site or asset from the subject line alone",
+        "that a submitted return was accepted or accurate",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_9311_Quarry-Face.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF and capture time are present",
+        "image shows a rock face and excavator but no readable permit, pit or site identifier",
+        "image can join an accepted quarry group without independently establishing operational facts"
+      ],
+      "facts_legal": ["file_type", "creation_date", "capture_year", "camera_information", "media_type", "sensitivity_status"],
+      "must_not_conclude": [
+        "mining activation from industrial appearance",
+        "site or asset from neighboring files",
+        "that camera location equals the permitted site",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Geological-Resource-Estimate_North-District_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "document contains geological interpretation, resource classification, assay discussion and maps",
+        "a quarry name and mineral terms appear, but no operator production, permit condition or actual extraction record is present",
+        "the file reads as an exploration or technical study"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "mining operations from mineral vocabulary or a named district",
+        "a permitted site from a geological map",
+        "production or output facts from a resource estimate",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "North-Quarry_Road-and-Drainage_Construction-Drawing_RevC.dwg",
+      "source_type": "design_creative",
+      "observations": [
+        "drawing shows a haul road, drainage and earthworks around a quarry address",
+        "professional title block and revision-controlled design structure are present",
+        "no production, extraction return, operator authority or measured mine output is included"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "mining operations from quarry vocabulary and location",
+        "that road construction is extraction activity",
+        "an operating authority from a title block",
+        "a folder path"
+      ],
+      "also_schema": "engineering",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "North-Quarry_Progressive-Rehabilitation-Closure-Plan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "plan joins mine phases and disturbed areas to soil/overburden handling, landform, aftercare and closure obligations",
+        "approved permit conditions and proposed future works are cited",
+        "the document is an operator-side closure programme, but a generic landfill or construction after-use plan can have similar wording"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that planned restoration was completed",
+        "government acceptance from a copied condition",
+        "a mine operation where no extraction or permit context survives",
+        "a folder path"
+      ],
+      "also_schema": "construction_property",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "resource_operations.oil-gas-operations",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Mine-Plan-and-Restoration-Conditions.pdf` is the shared permit-and-conditions shape. THIS ROW claims it only when the authorised activity, pit/bench or quarry output and extraction/restoration relation are mining evidence; oil-gas claims its counterpart only when the same bytes describe a lease/field, well/facility and actual well lifecycle. Conversely, this row must not claim a well/field packet because a permit word or production table is present, and oil-gas must not claim quarry extraction because the file has industrial authority language. The material/asset grammar, not the authority word, resolves the mutex.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Pit-3_As-Built-Survey_2026-06.dwg` carries a controlled drawing frame, revision and measured surfaces. THIS ROW claims the bytes when the drawing is explicitly tied to an operating pit/bench, production survey or mine-plan as-built state; engineering claims the same bytes when they are a controlled technical definition or design package independent of actual extraction. Conversely, this row must not turn every DWG, title block or quarry road drawing into operations, and engineering must not erase the operational survey relation when actual mine-state evidence is present.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-survey",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Pit-3_As-Built-Survey_2026-06.dwg` is also a plausible site-survey file. THIS ROW claims it when surfaces, volumes or coordinates measure an authorised extraction face, bench, stockpile or mine plan; construction_property claims it when the survey serves a construction commission, property/site investigation or civil works at the address. Conversely, a quarry address and contours alone do not activate mining, and an extraction permit, production tie or pit-state relation must not be recast as a building-site survey.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.permit-licensing",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Mine-Plan-and-Restoration-Conditions.pdf` contains an authority decision, licence/permission reference and conditions. THIS ROW claims it as the operator's working authority only when the file is linked to holder-side extraction, production or restoration records; government claims the same bytes when the authority's issuer-side application, assessment, decision or enforcement case is the subject. Conversely, a regulator letterhead does not make an operator return government-owned, and an operator permit copy does not establish actual extraction without operational evidence.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "SAME FIXTURE BYTES: `M-2048_Quarterly-Discharge-and-Dust-Monitoring_Return_Q2-2026.xlsx` has the same permit, sampling, limit, result and submission columns. THIS ROW claims it as operator-side mine compliance evidence tied to extraction, pit/site and permit conditions; government claims the same bytes when receipt, assessment, inspection, enforcement or regulatory surveillance is the subject. Conversely, operator submission structure does not make a regulator copy the operational owner, and a government assessment does not become an operator production record merely because mine data is attached.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.compliance-audit",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Annual-Reclamation-Report_2025.pdf` is a compliance-shaped report with controls, monitoring results and obligations. THIS ROW claims it when the report is the operator's mining/reclamation activity record for a named site and permit; business_operations claims the same bytes when an internal or external audit tests a management system, controls, evidence sufficiency or corrective actions across a business. Conversely, mine-site production/restoration content is not an audit merely because it demonstrates compliance, and audit ownership must not be inferred from a quarry name or report heading.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Pit-3_Monthly-Production-Return_2026-06.xlsx` can be wrapped in a corporate submission packet. THIS ROW claims the operator's source-to-output, pit and production-period record; business_operations claims the same bytes when the filing wrapper, sign-off, statutory submission and company reporting obligations are the subject. Conversely, a return can activate both perspectives only through independently evidenced roles, while a corporate filing cannot donate operator site, asset or output facts to an unlabelled attachment.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.warehouse-ops",
+      "signal": "SAME FIXTURE BYTES: `Pit-3_Weighbridge-and-Haulage-Reconciliation_2026-06.csv` has load, vehicle, destination, weight and reconciliation columns. THIS ROW claims the extraction-source, pit/face and mine production relation; logistics claims the same bytes when custody, receipt, storage, dispatch or warehouse movement is the organizing subject. Conversely, a destination and truck number do not make mine production logistics, and a weighbridge ledger must not lose its extraction relation simply because it records a movement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.renewable-generation",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Pit-3_Monthly-Production-Return_2026-06.xlsx` is a source-to-measured-output return. THIS ROW claims the bytes when rows join a permitted mine/quarry, pit or bench and extracted material; renewable-generation claims its counterpart when the same structure joins a generation asset, dispatch/export stream and energy interval. Conversely, a generic production word or quantity cannot choose the branch; mine asset/material roles must not be mistaken for a generator/export role, and generation must not claim quarry evidence from output columns alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "resource_operations.farm-records",
+      "signal": "SAME FIXTURE BYTES: `North-Quarry_Progressive-Rehabilitation-Closure-Plan.pdf` shares land, soil, after-use and annual-work language with an agricultural restoration record. THIS ROW claims the bytes when the land is an authorised extraction site and the plan tracks disturbed mine phases, overburden and closure; farm-records claims its counterpart when the holding, field/parcel, crop season and agricultural operations are the subject. Conversely, soil and land-use words alone do not activate mining, and a farm plan must not be recast as quarry closure because restoration appears.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone permit, signed blast form, restoration notice or unconnected operational PDF can have a durable purpose without enough evidence for an accepted mine/site group; the broad independent-record home preserves it without inventing site or extraction facts.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "Unlabelled quantity sheets, ambiguous surveys, weak OCR, unsupported CAD/GIS members and mixed operator/regulator copies need review when the extraction relation cannot be resolved safely.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Mining records can expose exact extraction locations, reserves, production and grade performance, infrastructure layouts, environmental exceedances, restoration liabilities and operational vulnerabilities. Some regulator reports are public, but publication status is not a safe default for an operator packet. The catalogue assigns only potentially_sensitive; P7 owns handling and model-access policy, and coordinates, quantities, permit identifiers and personal contacts remain content evidence rather than destination dimensions.",
+  "open_question": "NJ-MINING-1: Should a mining template remain distinct from resource_operations' broad asset/output default when R1c adjudicates the proposed shared keys, or should the well/bench/plant-led branch be a reusable option on the parent template? The evidence supports both readings. NJ-MINING-2: Should `operating_authority` be allowed as a visible branch for mine permits and reclamation bonds, given that concession and critical-infrastructure identifiers may be sensitive? NJ-MINING-3: When a permit, production return and regulator receipt share the same bytes, should R1c require a template-level collision edge to corporate filings/environmental regulation while allowing independently active schemas where the operator and issuer roles are both evidenced? NJ-MINING-4: Which jurisdiction-specific permit, mine-plan, material and authority catalogues will R2/R4 inject; this row deliberately does not invent identifiers, thresholds, grade rules or gazetteers. NJ-MINING-5: Does the product want a dedicated policy for opaque CAD/GIS and assay formats, or should they remain indexed-but-unreadable and fall through until an approved extractor exists?"
+}

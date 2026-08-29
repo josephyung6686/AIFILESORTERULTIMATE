@@ -1,0 +1,211 @@
+{
+  "id": "creative.stock-asset-library",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Stock and reusable asset library",
+  "one_line": "A governed inventory of bought, downloaded, commissioned, or self-made components retained for repeated use across otherwise unrelated creative projects. It is evidenced by catalogue or manifest structure, provenance and purchase records, licence pairing, stable identifiers, and reuse in more than one project—not merely by a folder of images, an asset extension, tags, or the absence of a current project.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every item below is a detection signal only. The creative schema declares no fields, so activation writes no creative fact and licenses no destination dimension.",
+      "a reusable-asset package whose manifest or catalogue indexes components by stable local identifier and records source or vendor information, with previews beside opaque or editable masters",
+      "a purchased download whose archive manifest, order confirmation, and licence text identify the same asset pack or vendor product; the agreement among independent records is the signal, not any filename alone",
+      "one master component referenced by linked-asset names from working files belonging to otherwise unrelated projects, demonstrating repeated reuse without copying project facts onto the component",
+      "a library application database or export manifest that records assets, previews, tags, collections, source locations, or missing-link state while the binary assets remain separate",
+      "a self-made component pack with a manifest, specimen or contact sheet, and multiple component masters prepared for later selection rather than for delivery as one named work"
+    ],
+    "needs_llm": [
+      "distinguishing a deliberate reusable library from a download-session pile when both contain fonts, textures, mockups and licence PDFs",
+      "deciding whether descriptive keywords are collection metadata or merely words in filenames; tags are not licensed creative facts in this placeholder",
+      "separating a reusable template from the project created from it when both retain the vendor preview and similar names",
+      "deciding whether an asset embedded in one project remains independently governed or is merely a project dependency",
+      "reconciling a licence that covers a bundle with member files whose names do not carry the product identifier"
+    ],
+    "never_alone": [
+      "an extension or SOURCE_TYPE alone, including .jpg, .png, .svg, .psd, .abr, .cube, .mogrt, .wav, .zip or design_creative",
+      "a folder named Assets, Stock, Resources, Library, Downloads, Fonts, Textures or Templates",
+      "a bounded download session; a session is a clue and never proof of topic or durable reuse",
+      "keywords, tags, colour labels, ratings or asset-type words without a catalogue, manifest, provenance record or reuse relation",
+      "the absence of a project name; absence does not prove reusable intent",
+      "a vendor or creator name without a purchase, licence, manifest or source-role context",
+      "an archive filename without inspecting its manifest, or a manifest member extension treated as meaning",
+      "a licence filename alone; the document may govern a typeface, commissioned work, software dependency, or one delivered project"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "stock photograph or illustration",
+    "texture, material or environment map",
+    "mockup or scene template",
+    "icon, symbol or vector pack",
+    "brush, pattern, action or preset",
+    "LUT or colour preset",
+    "motion template or transition",
+    "sound effect, loop or sample pack",
+    "3D model or rig",
+    "font or type family package",
+    "library catalogue, manifest or contact sheet",
+    "purchase, provenance or licence record"
+  ],
+  "grouping_reasons": [
+    "one acquired pack across its archive, extracted members, preview, receipt and governing licence",
+    "one reusable component across its editable master, flattened previews and export variants",
+    "one catalogue and the assets it indexes by stable identifier or referenced path",
+    "one licence grant and every asset member demonstrably covered by its product or bundle identifier",
+    "one component reused by several unrelated projects, joined through linked-asset references without inheriting those projects' facts",
+    "one duplicate family across vendor download, extracted copy and application-managed import"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: the creative placeholder schema declares no fields, so this template cannot branch on asset type, tags, vendor, licence, collection or project. The useful organization here is therefore a governed graph rather than a folder prescription: acquisition evidence establishes provenance; a catalogue or manifest establishes identity and membership; a licence record governs permitted reuse; linked-asset references record reuse across projects. Asset type and licence class are values or generic metadata candidates, not grounds for private fields. If creative fields are later licensed, this row still should not default to project-first because the defining asset belongs to no one project; R1c must decide whether any existing field can express a stable library collection without minting a synonym.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".json", ".csv", ".pdf", ".txt", ".eml", ".zip", ".7z", ".jpg", ".png", ".tif", ".svg", ".psd", ".ai", ".abr", ".pat", ".cube", ".mogrt", ".wav", ".aif", ".blend", ".fbx", ".otf", ".ttf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PaperGrain_24K_v2.zip",
+      "source_type": "archive",
+      "observations": ["archive manifest lists texture masters, JPEG previews, README and LICENSE files under one product stem", "outer filename names a version but no project"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "asset type, vendor, licence scope or permitted use as creative facts", "that every member is safe to reuse merely because LICENSE.txt is present", "archive contents beyond manifest metadata"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PaperGrain_24K_license.pdf",
+      "source_type": "text_document",
+      "observations": ["title names the same product identifier as the archive", "labelled clauses describe permitted media, restrictions and attribution"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that the grant applies to similarly named assets outside the identified bundle", "licence terms as a newly invented field", "legal advice about compliance"],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Order_88431_PaperGrain.eml",
+      "source_type": "email",
+      "observations": ["transactional message names product and order identifiers", "sender domain and attachment name agree with the licence and archive"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "ownership or perpetual usage rights from payment alone", "that all files downloaded in the same session belong to this purchase"],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "asset-library-export.json",
+      "source_type": "code_structured",
+      "observations": ["structured records carry stable asset identifiers, relative source paths, preview paths and collection membership", "some records are marked missing while their metadata remains"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "tags or collection names as creative facts", "that referenced paths are stable file identity", "that missing assets may be moved or deleted"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Concrete_017_4K.tif",
+      "source_type": "image",
+      "observations": ["image dimensions and colour profile are extractable", "same basename appears in a library manifest and as a linked asset in two unrelated creative project files"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that TIFF or high resolution proves stock material", "a project fact copied from either linking project", "licence coverage from visual similarity"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "NeonTitles.mogrt",
+      "source_type": "design_creative",
+      "observations": ["proprietary motion-template container exposes filename and basic metadata", "a same-stem preview and vendor manifest sit beside it"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "that the proprietary extension proves reusable intent", "template parameters or permitted use when the format is indexed but unreadable"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "CityAmbience_TransitLoop_03.wav",
+      "source_type": "audio_video",
+      "observations": ["duration, codec and embedded tags are available", "sample-pack manifest identifies the same basename", "two unrelated sessions reference the file without embedding it"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "location from the title", "that a loop or WAV extension proves library membership", "project facts from either referencing session"],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "BrandLaunch_Moodboard_Approved.pdf",
+      "source_type": "text_document",
+      "observations": ["pages arrange reference images under a named project heading", "approval token and project name appear in the filename", "no catalogue, product, licence or cross-project reuse evidence is present"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "stock-library activation from the presence of reference images", "that embedded images are independently licensed", "reusable intent"],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "DSC_0342.NEF",
+      "source_type": "image",
+      "observations": ["camera RAW metadata includes capture time and camera identity", "same-stem XMP sidecar and catalogue database are present", "no evidence shows reuse outside the managed photo archive"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "stock status from RAW format", "that a catalogue record means the image is licensed for third-party reuse", "reusable intent from absence of a named project"],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "icons-source.svg",
+      "source_type": "design_creative",
+      "observations": ["SVG contains many named symbol elements", "the file resides in a software repository and is imported by application code", "no independent catalogue, licence pair or cross-project reuse evidence is present"],
+      "facts_legal": [],
+      "must_not_conclude": ["a folder path", "stock-library activation from many icons in one file", "that repository dependency status implies a reusable personal library", "a licence from an SPDX-like comment without repository context"],
+      "also_schema": "code",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {"domain": "creative.raw-photo-catalogue", "signal": "Both may contain catalogues, previews, sidecars and image masters. A managed capture archive is organized around originals and non-destructive edits; this row requires acquisition/provenance or demonstrated cross-project reuse of components. Fixture: DSC_0342.NEF plus XMP and a catalogue database."},
+    {"domain": "creative.licensing-rights", "signal": "Both hold licence PDFs and product identifiers. That sibling owns the grant, clearance and obligation as the organizing situation; this row owns the reusable inventory only when the agreement is paired to governed asset members. Fixture: PaperGrain_24K_license.pdf."},
+    {"domain": "creative.client-engagement", "signal": "Both may contain purchased templates, references and a licence inside a project folder. A named brief and delivery progression makes the project situation primary; an asset with independent identity and reuse across unrelated projects supports this row. Fixture: BrandLaunch_Moodboard_Approved.pdf."},
+    {"domain": "code.software-project", "signal": "Both may contain icons, fonts, media and licence files. Repository imports and package structure make them project dependencies; an independently catalogued component reused beyond that repository supports this row. Fixture: icons-source.svg."}
+  ],
+  "also_holds_with": [
+    {"domain": "legal", "signal": "A licence agreement remains a legal record while serving as provenance and governance evidence for an asset library."},
+    {"domain": "finance", "signal": "A purchase receipt remains a financial record while linking acquisition evidence to a reusable asset pack."}
+  ],
+  "falls_through_to": [
+    {"residual_template": "Reference Clips", "why": "Saved inspiration or reusable-looking media with retrieval value but no governed library structure belongs here."},
+    {"residual_template": "Independent Records", "why": "A standalone licence, catalogue export or durable notice with no supported asset group remains an independent record."},
+    {"residual_template": "Review Later", "why": "An archive or mixed download whose purpose and rights pairing remain uncertain needs review rather than invented library membership."},
+    {"residual_template": "Unsupported or Encrypted", "why": "Unreadable proprietary library databases and protected asset archives remain represented without forced inspection."}
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Licence agreements, receipts and catalogue exports can expose purchaser identity, order identifiers, source paths, client names, proprietary vendors, usage restrictions and unreleased project references. The row assigns no handling class; privacy policy applies before model or connector access.",
+  "open_question": "NEEDS-JOSEPH: decide whether rights scope merits a future canonical field on the creative schema or remains generic searchable metadata governed by creative.licensing-rights. No field is proposed here. Also decide whether a stable collection or library identifier is needed; current canonical fields cannot express it, and minting one solely to create a folder level would repeat the private-schema failure. Until then, dimension_order must remain empty and catalogue membership stays a group relation rather than a fact copied to assets."
+}

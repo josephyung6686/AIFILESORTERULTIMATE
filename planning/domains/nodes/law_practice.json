@@ -1,0 +1,741 @@
+{
+  "id": "law_practice",
+  "kind": "schema",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Law practice (practitioner side)",
+  "one_line": "J-DEPTH placeholder schema for the APPARATUS by which a legal practitioner or firm runs a matter FOR someone else - the intake and conflicts screen, the matter-opening record, the engagement terms, the time and disbursement record, the limitation and hearing diary, the disclosure review and production log, the privilege log, the unexecuted precedent bank, the internal opinion and work product, and the closure, retention and transfer record. It is NOT activated by a lawyer, a law-firm name, a practising certificate, a legal-services industry label, a court caption, or legal vocabulary; a role name cannot carry a schema. Its distinct default is a MATTER-ANCHORED TWO-ROLE structure - an exact matter or file reference repeated across artefacts, together with at least one artefact whose own labelled slots separate a practitioner or firm role from a client role - and its characteristic files are precisely the ones on which the `legal` schema's instrument-and-proceeding signals DO NOT FIRE, because they have no bound party pair, no execution block and no tribunal caption. It deliberately does NOT hold the executed instruments and proceeding records inside a matter file (those stay `legal`'s on `legal`'s own evidence, and `legal` is a safety domain whose protection runs first), the holder's own legal position (`legal.personal-legal-matters`), or the firm running itself as a business (`business_operations`, `hr`, `finance`). Its privacy default is stricter than `legal`'s in one specific way: `legal` protects the holder's own record, this schema protects a THIRD PARTY's - a client, an adverse party, a witness, a deponent, an accused, a child - who never chose this filesystem and cannot consent. Declares no field rows and no folder dimensions under PR-6, so activation unlocks recognition, safety posture, universal facts, and child-template consideration only.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "client",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "NOT A MINT AND NOT EVEN A PROPOSAL IN THE USUAL SENSE - `client` is ALREADY a canonical key with type string and destination_eligible true, and `creative` also asks for it to be declared on a schema. What this row asks is that it be DECLARED on law_practice if PR-6 ever lifts, and that its canonical destination eligibility be CONDITIONED here rather than inherited. The concept needs no new name: the practitioner-and-client pair is the exact shape 00 already describes, \"A consulting document may mention the author’s firm and the client organization\", and `client` is the counterparty half of the canonical `client`/`our_firm` split. Minting `matter_client`, `instructing_party` or `lay_client` would be the synonym mint the brief forbids.",
+      "preferred_resolution": "R1c adjudicates the canonical key once. This row asks for ONE change from the canonical default and states it as a condition, not a fork: `destination_eligible` must be FALSE for this family unless the user has explicitly approved the branch, because the landed neighbour already recorded the reason in its own words - \"A visible client or matter label can itself disclose the existence and subject of a representation.\" A client-named folder in a practitioner's corpus publishes that a named person or company is in a legal matter, which is a disclosure the file's own contents were protected to prevent. If the canonical-fields shape cannot express a per-schema eligibility difference, the ban must live in the template contract instead (see open_question, and nonprofit's NJ-NP-5, which is the identical problem raised from a different family).",
+      "why": "The client half of the family's defining role pair, and the one field most likely to be turned into a folder level by a template author who has not read the neighbour."
+    },
+    {
+      "key": "our_firm",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING CANONICAL KEY, already destination-ineligible in canonical_fields. It is the practitioner half of the pair, and it is needed for a reason that is not about filing at all: without it the schema cannot express the SIDE, and the side is the whole question in this family. A firm name appears on a file as the holder's firm, as opposing counsel, as a cited firm, as a document-assembly template producer, and as the firm the holder is a CLIENT of; 00's own ambiguity reasoning covers this exactly - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" The key exists so the role can be resolved, never so it can become a level; and it must never become one anyway, because 00 says \"It should avoid using authorship or creator identity as a destination dimension\".",
+      "preferred_resolution": "Declare the existing canonical key on this schema if PR-6 lifts; change nothing about it. No adjudication is required beyond the declaration.",
+      "why": "The practitioner half of the pair, and the only field that can carry the side. It is requested in order to be read, not in order to be written into a path."
+    },
+    {
+      "key": "project",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "THIS ROW DECLINES TO MINT `matter`, AND THE DECLINE IS THE ARGUMENT. A matter is a bounded professional engagement with an opening, a reference repeated across content-incoherent artefacts, and a closure - which is structurally what canonical `project` already is, and `creative` and `construction_property.development-appraisal` both propose it for the same bounded-work role. 00's own licence for such a group is the purpose sentence, \"The documents are content-incoherent but purpose-coherent.\" Minting `matter` would put a second name on one concept and would encode a profession in a key, which is the charge this schema had to answer. It is recorded here so that all 36 template authors reuse rather than mint: `matter`, `case_ref`, `file_number`, `engagement_id` and `docket` are ALL variants of this one key and none of them may be minted. What R1c must weigh against reuse, stated honestly rather than smoothed: a matter reference is DISCLOSIVE in a way a project name is not - `41127-0006 Hartley v Nash` names a dispute and two parties - so if `project` is adopted here it cannot inherit `project`'s canonical destination eligibility.",
+      "preferred_resolution": "Preference order: (a) adopt canonical `project` on this schema with destination eligibility conditioned on explicit user approval; (b) if R1c judges a matter and a project to be genuinely different concepts, adjudicate ONE key for both this family and any other that raises it, and record why; (c) do not permit a per-template mint - that is the outcome this proposal exists to prevent.",
+      "why": "The family's single grouping anchor. Every one of the 36 templates joins its files by it, so if it is not adjudicated once it will be minted 36 times."
+    },
+    {
+      "key": "work_type",
+      "type": "enum",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING CANONICAL KEY, and it is proposed here for a structural reason rather than a filing one: it is the field that makes the family's 36 templates ARGUABLE. Pleading, motion, order, affidavit, exhibit, opinion, undertaking, completion statement - these are VALUES of `work_type`, not nodes, and the enum is where they belong. 00 states where values come from and that fields are not invented alongside them. Declaring `work_type` here lets the schema say the thing it most needs to say to its own siblings: a template row justified only by holding a different legal document kind is the schema's default template with a narrower filename filter. The canonical destination eligibility is left ALONE - document function is the one dimension in this family that discloses nothing about a person.",
+      "preferred_resolution": "Declare the existing canonical key on this schema if PR-6 lifts. Its enum values are `work_types` on this row and on its templates, and R1c should refuse any request for a `document_kind`, `pleading_type`, `filing_type` or `instrument_type` key as a respelling of it.",
+      "why": "The family-wide principle in field form: document kind is a value. It is the cheapest way to stop 36 rows becoming 150."
+    },
+    {
+      "key": "subject_of_record",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING PROPOSAL. `clinical_practice` proposes `subject_of_record` for the person a record is ABOUT as distinct from the person who holds it, and `nonprofit` has already adopted that proposal rather than minting `beneficiary`. This family needs it for a reason neither of those two faces, and the reason is worth recording for the adjudication: HERE THE SUBJECT IS ROUTINELY NOT THE CLIENT. A witness statement is about a witness, a deposition about a deponent, a privilege log about the authors and recipients of thousands of other people's emails, a family-law file about a child, a criminal-defence file about an accused and a complainant. `client` cannot hold that person - they are on the other side of the relation, or no side of it at all - and a person who is neither the holder, nor the holder's counterparty, nor a party to anything has no canonical key. Minting `party`, `adverse_party`, `deponent` or `witness` would be four mints for one unheld concept.",
+      "preferred_resolution": "Adjudicate with `clinical_practice` and `nonprofit` as ONE key. If adopted, this row joins nonprofit's request that `destination_eligible` be FALSE and that the reason live on the key rather than on each template; and it adds the observation that this family needs the key most for a person who never had any relationship with the holder at all.",
+      "why": "The field-shaped hole under this family's privacy claim, and the reason the claim is stronger than `legal`'s: `legal` protects the holder's record, this protects someone else's."
+    },
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "destination_eligible_if_adopted": true,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE. Ten rows already propose `fiscal_period`; this is an eleventh use case, not an eleventh key. The billing month of a time export, the period of a disbursement ledger, the retention year on a closure record are content periods, not capture dates, so `capture_year` is wrong by role and `tax_year` is finance's statutory year on the holder's own return. Raised only so that the time-and-billing template author reuses it rather than minting `billing_period`.",
+      "preferred_resolution": "R1c adjudicates once for the roster. This row asks for nothing the other ten do not.",
+      "why": "The one period concept in the family, named so it is not minted again under a professional label."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, AND IT IS THE WHOLE SCHEMA. These are schema-activation signals, not licences to write law_practice facts - the schema has no field rows. Every accepted signal must be a STRUCTURE plus a LABELLED SLOT, and the family's default requires BOTH legs: (i) an exact matter, file or engagement reference repeated across two or more artefacts, and (ii) at least one artefact whose own labelled slots separate a PRACTITIONER OR FIRM role from a CLIENT role. A law-firm name, a practising-certificate reference, a legal-services label, a court caption, a legal-vocabulary word, or a document-type word beside any of them is NEVER sufficient, alone or in combination with another struck token. The deletion test business_operations.organisational-records states applies here unchanged: delete every entity name and every document-type word, and if nothing structural survives, nothing fires.",
+      "AN INTAKE-AND-CONFLICTS structure, and it is the family's cleanest signal because `legal`'s signals do not fire on it at all: a form whose own labelled slots pair a PROSPECTIVE CLIENT slot with a MATTER DESCRIPTION slot, a RESPONSIBLE PRACTITIONER slot, a CONFLICT SEARCH or CLEARANCE result, and a REVIEW ACTION with a reviewer and a date. There is no bound party pair, no execution block and no tribunal caption anywhere on it - which is exactly why it is this schema's and not `legal`'s. Read through 00's direct-fact path, \"a labeled form field\", and its table path, \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their\". Any compliance-risk wording on the form stays a raw observation and never becomes this product's sensitivity classification.",
+      "A MATTER-OPENING or FILE-OPENING record: a form or system printout allocating a matter reference and pairing it with a client identifier, a responsible fee-earner or supervising practitioner, a funding or fee basis, a scope line, and an identity-verification or source-of-funds section. The allocated reference is what every later artefact in the family carries; the record that ALLOCATES it is the anchor 00's grouping rules need, since \"It should not form a supported group when there is no valid anchor\".",
+      "A TIME-AND-DISBURSEMENT structure: a workbook or export whose COLUMN SET pairs one exact matter reference with timekeeper or fee-earner, activity or task narrative, duration or units, rate, and disbursement or expense rows. Read through 00's spreadsheet path - \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". The MATTER-REFERENCE column is the discriminating evidence and the only one: an issuer-and-billed-to invoice structure without it is finance's on finance's own evidence, and a timesheet with a project column is business_operations'.",
+      "A LIMITATION-AND-DIARY structure: a table over MANY matters carrying one row per matter with a key-date column - limitation, service, response, listing, hearing, completion, filing - and an owning practitioner column. The portfolio shape is the signal, not the dates. This is deliberately stated so it can be told from business_operations.contract-administration's register, which is the same portfolio-table-with-a-date-column shape over CONTRACTS rather than matters; that landed row's own anchor is a live obligation and its notice calendar, and the two must be separated by what the rows are ABOUT, never by which profession keeps the table.",
+      "A DISCLOSURE-REVIEW structure: a review or coding log with one row per document carrying a document or control identifier, a reviewer, a coding decision (responsive, not responsive, further review), and an issue or category tag; or a PRIVILEGE LOG with one row per withheld document carrying author, recipient, date, description and a stated basis for withholding. The privilege log is the family's most structurally distinctive artefact and simultaneously its most dangerous: it is a table of thousands of OTHER people's correspondence metadata. It is detected in order to be protected, never in order to be moved, and the stated basis is preserved as a literal observation - the product decides no legal status. A production or load-file manifest with a bounded identifier range belongs to the same structure.",
+      "A PRECEDENT-BANK or KNOW-HOW structure, and it is the family's INVERSE-RECOGNITION signal, the mirror of clinical_practice.protocol-guideline: an instrument-shaped document whose PARTY AND EXECUTION SLOTS ARE DELIBERATELY EMPTY - bracketed placeholders where names belong, blank signature lines, drafting notes, optional-clause alternatives, a firm template version marker. It looks exactly like `legal`'s material and is its photographic negative: `legal` fires on a bound party pair plus execution, and this file has neither BY DESIGN. It has no client, no matter and no third party in it at all, which is also why it is the one part of this family that is not protected material and falls through to Reading Inbox rather than Protected Records.",
+      "AN INTERNAL WORK-PRODUCT structure: a memorandum or note whose own header labels a matter reference and whose sections separate instructions or facts supplied, issues, research and authorities, analysis, options, risk and next steps, together with a producer marker for the practitioner side. The section GRAMMAR is the evidence; the words advice, privileged, strategy and confidential are not, and the structure establishes no privilege, work-product protection, correctness or legal effect.",
+      "A COUNSEL-INSTRUCTION or OPINION structure: a brief or instructions document pairing an INSTRUCTING slot with an INSTRUCTED or COUNSEL slot and enclosing a numbered bundle index, or an opinion whose own header names the party advised and whose body separates questions asked from conclusions. Two separately labelled professional roles plus a named advisee is a three-slot structure no neighbour has.",
+      "A FILE-CLOSURE, RETENTION or TRANSFER structure: a closure checklist pairing a matter reference with an outcome line, an undertakings-discharged line, a papers-returned or file-delivery record, and a RETENTION OR DESTRUCTION DATE. The retention date is the distinguishing slot - it is a rule applied to a whole matter file, and no neighbour in the roster produces it.",
+      "AN ARCHIVE or DOCUMENT-MANAGEMENT EXPORT whose manifest, read WITHOUT unpacking, shows member paths repeatedly encoding one matter reference across several coherent professional families - opening, correspondence, filings, disclosure, evidence, research, billing, closure - because \"the normal scan should never extract archive contents to the filesystem\", using what 00 says an archive yields: \"The engine should read and store the archive type, contained paths, filenames, folder names, extensions, file count, uncompressed size where available, and recognizable markers such as source-code manifests or document names\". Directory names are observations and become facts on no member.",
+      "AN EMAIL or CALENDAR record whose structured slots tie it to an ALREADY EVIDENCED matter: labelled sender and recipient roles crossing the practitioner-client or counsel boundary, a subject carrying the exact matter reference, an organizer and attendee set separating practitioner, client, counsel and tribunal. Position is weighted for the reason 00 gives - \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\". A firm email domain, a source type, or a legal-sounding subject alone never fires."
+    ],
+    "needs_llm": [
+      "DECIDING THE SIDE, which in this family is the whole question and is frequently unrecoverable from the bytes. Practitioner or client; our side or the other side; counsel or opposing counsel; the firm the holder works at or the firm the holder retained. The same client-care letter, the same engagement terms and the same bundle exist on both sides and differ only in which signature block is the holder's. Interpretation may use a bounded local dossier only and must abstain when the side is unresolved: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "Separating a practitioner-side matter file from the holder's OWN legal matter. This is the schema's sharpest under-firing risk and it is `legal.personal-legal-matters`' whole node from the other direction. A firm name, a caption, a matter reference and the word client are on both; the practitioner-side ANCHOR - an intake screen, an allocated matter reference belonging to the holder's own firm, a time record, work product produced by the holder - is what separates them, and a folder name never does.",
+      "Separating a legal representation from a consulting engagement. The landed neighbour already states this seam and the model must not contradict it: scope, fees, confidentiality, deliverables and two-organisation signature blocks occur on both, and only explicit counsel, representation, legal-services, tribunal or legal-work-product structure carries the legal side.",
+      "Separating the FIRM RUNNING ITSELF from the firm running a matter. A law firm's partnership accounts, its own office lease, its recruitment, its marketing, its IT asset register and its professional-indemnity renewal are business_operations, hr and finance material that happens to be produced by lawyers. The model may route here only if it can name a matter and a client; a firm name on the letterhead is the never-alone token, not the answer.",
+      "Recognising unlabelled practitioner prose - an attendance note, a file note of a telephone call, a strategy email in running text, a handwritten-then-scanned advice note. 00 names exactly this class among the reasons rules are insufficient, since real collections contain unlabelled forms and unusual professional artifacts.",
+      "Distinguishing an operative matter document from a downloaded exemplar or a study copy: a published opinion, a model form, a practice-note precedent, a law-school problem question, a bar-course sample bundle. Topic will not separate them - \"purpose answers what the file was for\" is the only test that works - and this family's exemplars are unusually convincing because the profession publishes its own templates.",
+      "Deciding whether a heterogeneous bundle is ONE matter or several, when the same parties recur across a dispute, an appeal, an enforcement and a related transaction. Cross-matter bridging by party name or subject similarity is forbidden regardless of what the model concludes.",
+      "Interpreting jurisdiction-specific or multilingual professional artefacts whose labelled roles no approved pattern covers. The route is local interpretation or abstention; this row defines no jurisdiction catalogue, no court list and no legal rule, and jurisdiction is never a field or a dimension.",
+      "Abstaining whenever the matter-and-role pair cannot be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "A LAW-FIRM, CHAMBERS, PRACTITIONER, COURT, TRIBUNAL, REGULATOR, EXPERT, CLIENT or ADVERSE-PARTY NAME ALONE. This is the schema's existential risk and it is struck first, read across by inference from \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" - the reasoning there is about ROLE AMBIGUITY and applies identically here, and more strongly, because one firm name appears as the holder's firm, as opposing counsel, as the firm the holder is a client of, as a cited firm, as a template producer, and as an employer, sometimes within one folder.",
+      "A PRACTISING CERTIFICATE, BAR NUMBER, ROLL NUMBER, SRA or STATE-BAR REFERENCE, or a REGULATED-PROFESSION FOOTER ALONE. This is the charge this schema was written to answer and the answer is conceded in full: a practising certificate says what a PERSON is; it says nothing about what an artefact records, which side holds it, or whether there is a matter at all. A role name cannot carry a schema, let alone 36 templates.",
+      "LEGAL VOCABULARY ALONE - lawyer, attorney, solicitor, counsel, matter, case, client, privileged, confidential, work product, advice, claim, dispute, pleading, discovery, disclosure, undertaking, without prejudice. Public material, personal records, consulting work, insurance policies, software licences, HR policies and training decks all use it.",
+      "A COURT CAPTION, FILED STAMP, LEGAL CITATION, PLEADING TITLE or PUBLISHED OPINION ALONE. A caption is `legal`'s signal, not this schema's, and it is satisfied identically by a public filing anyone downloaded. It is never evidence that the holder acted for anybody.",
+      "A CASE NUMBER, DOCKET NUMBER, MATTER NUMBER, CLIENT NUMBER, EXHIBIT LABEL, DOCUMENT-CONTROL NUMBER or BATES-SHAPED TOKEN ALONE. An identifier supplies LINKAGE only after its own labelled role is established, and its digits are never a date: 00's narrow-date rule covers numbers that look like years but are other values.",
+      "A DOCUMENT-TYPE WORD, AND A DOCUMENT-TYPE WORD BESIDE A FIRM OR CLIENT NAME. This is the two-role escape route business_operations.organisational-records closed and it is closed here in the same words: a document-type word is not a labelled party - it names no entity and resolves nothing about the first entity's role. The relation this schema rests on is between two LABELLED PARTIES, per clinical_practice.patient-chart, not between two tokens.",
+      "A CONFIDENTIAL, PRIVILEGED, ATTORNEY-CLIENT, LEGALLY-PRIVILEGED, WORK-PRODUCT, SEALED, WITHOUT-PREJUDICE or SUBJECT-TO-PROTECTIVE-ORDER LABEL. The product preserves the literal observation and decides nothing about legal status, scope, waiver, access or disclosure rights - and specifically, such a label is not evidence that this schema applies, since it appears on commercial, HR and insurance documents constantly.",
+      "A PRACTICE-AREA WORD ALONE - family, criminal, immigration, conveyancing, probate, employment, intellectual property, corporate. A practice area is a VALUE, not a structure, exactly as clinical_practice ruled a specialty to be, and a practice-area word beside a firm name is two struck tokens.",
+      "A SOURCE TYPE or EXTENSION ALONE, including text_document, email, archive, spreadsheet, calendar, image, ocr, audio_video and every extension this row lists. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME or FOLDER containing client, matter, case, legal, litigation, closing, privileged, filed or final. Paths stay local, an existing folder supports review only, and 00's rule that a folder name is an unlabelled position governs.",
+      "AUTHOR, CREATOR, PRODUCER or LAST-SAVED-BY METADATA naming a practitioner, a firm or a document-assembly tool. 00: \"It should avoid using authorship or creator identity as a destination dimension\", and document templates, scanners, court systems and outside counsel all write those slots.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE or CURRENT-DIRECTORY MEMBERSHIP. 00: \"A session should never be treated as proof of topic\". A bundle of official-looking PDFs that arrived together is a session, not a matter.",
+      "MATCHING PARTY NAMES, SUBJECT MATTER, CITATIONS or SEMANTIC SIMILARITY ACROSS TWO MATTERS. Cross-matter bridging is suppressed unless an exact explicit reference or a user decision authorises it, and this is a privacy rule as much as an accuracy one.",
+      "PUBLIC AVAILABILITY of a filing, docket or opinion as proof that the local copy or its surrounding matter context is low-sensitivity or eligible for a cloud prompt.",
+      "A PERSON'S NAME ALONE, in any of this family's roles. The strictest instance of the general rule: the whole privacy claim of the schema is that named third parties appear here, so a bare name is simultaneously the least discriminating evidence and the most dangerous."
+    ]
+  },
+  "proposed_context_terms": [
+    "matter reference",
+    "file reference",
+    "matter opening",
+    "client care letter",
+    "engagement terms",
+    "retainer",
+    "scope of instructions",
+    "conflict check",
+    "conflict search",
+    "conflict clearance",
+    "client identification",
+    "source of funds",
+    "responsible fee-earner",
+    "supervising partner",
+    "fee earner",
+    "timekeeper",
+    "time recorded",
+    "units",
+    "chargeable",
+    "disbursement",
+    "narrative",
+    "limitation date",
+    "key dates",
+    "diary date",
+    "listing",
+    "attendance note",
+    "file note",
+    "instructions to counsel",
+    "counsel's opinion",
+    "advice on merits",
+    "letter before action",
+    "disclosure list",
+    "document review",
+    "coding decision",
+    "responsive",
+    "privilege log",
+    "withheld",
+    "basis for withholding",
+    "production set",
+    "load file",
+    "control number",
+    "exhibit bundle",
+    "hearing bundle",
+    "index to bundle",
+    "witness statement",
+    "statement of truth",
+    "proof of evidence",
+    "expert instruction",
+    "precedent",
+    "know-how",
+    "drafting note",
+    "template version",
+    "completion checklist",
+    "closing agenda",
+    "undertaking",
+    "due diligence report",
+    "data room index",
+    "file closure",
+    "papers returned",
+    "retention date",
+    "file destruction date",
+    "client account",
+    "office account",
+    "client money"
+  ],
+  "work_types": [
+    "client intake, identification and conflicts screen",
+    "matter opening and reference allocation record",
+    "engagement terms, retainer, scope and funding-basis record",
+    "client instructions, attendance note and matter correspondence",
+    "counsel and third-party professional correspondence",
+    "time record, disbursement record, matter budget and bill narrative",
+    "limitation, listing and key-date diary",
+    "pleading, application, submission and written case",
+    "court or tribunal filing record and electronic-filing notice",
+    "order, judgment, award and appeal record",
+    "disclosure or discovery request, response, review log and production set",
+    "privilege log and withheld-document schedule",
+    "evidence, exhibit and bundle index",
+    "witness statement, proof of evidence and deposition or hearing transcript",
+    "expert instruction, expert report and expert correspondence",
+    "legal research note, authorities list and opinion or advice record",
+    "internal analysis, strategy, risk and task note",
+    "precedent, standard form and drafting-note bank",
+    "transaction document set, due-diligence report, data-room index and completion or closing record",
+    "regulatory or registry submission made on a client's behalf",
+    "investigation and interview record conducted for a client",
+    "settlement, mediation and negotiated-outcome record",
+    "file closure, undertakings discharge, papers-returned, retention and transfer record",
+    "matter-system or document-management export"
+  ],
+  "grouping_reasons": [
+    "ONE MATTER from opening to closure, joined by an exact repeated matter reference: the intake screen, the opening record, the engagement terms, the correspondence, the work product, the filings, the disclosure, the billing and the closure record. Content-incoherent and purpose-coherent, which is 00's own licence for the group - \"The documents are content-incoherent but purpose-coherent.\" The anchor supports candidate membership; it copies no client, party, subject or document fact onto any member.",
+    "ONE DISCLOSURE EXERCISE within a matter: the request, the review log, the privilege log, the production index and its load file, joined by one explicit production identifier and a bounded control-number range. The archive stays intact and the manifest is inspected without unpacking.",
+    "ONE HEARING OR EVENT PACKAGE: the bundle index, the skeleton or written case, the authorities, the witness materials and the transcript, joined by an exact proceeding or bundle reference. A shared person name and a shared date never establish it.",
+    "ONE TRANSACTION to completion: the term sheet, the diligence report, the drafts and redlines, the completion agenda, the executed set and the closing record, joined by an exact deal or matter reference.",
+    "ONE DOCUMENT across draft, redline, executed, filed and stamped versions - the universal version_family fact, supported by hashes or explicit revision markers, never by a `-final` suffix.",
+    "ONE PRECEDENT LINEAGE in the know-how bank: a firm standard form across its versions, which is a group with NO client, NO matter and NO third party in it, and is therefore the one grouping in this family that is not protected material.",
+    "A SHARED INSTRUMENT OR ADVICE serving more than one matter - one framework agreement, one opinion relied on twice. 00: \"A file may validly belong to more than one accepted group\". Multi-membership, never a copied fact.",
+    "NO GROUP AT ALL is a valid and common outcome, and `legal`'s licence covers it from the neighbouring side: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" A single opinion with no matter around it is still protected material.",
+    "NOT grouping reasons, stated so 36 template authors do not reach for them: shared party names across two matters; shared practice area; shared court; a common firm name; a download session; and \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY THREE TIMES OVER, and the three reasons are independent. (1) BY CONTRACT: a dimension may only branch on a field the same schema declares and this placeholder declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). (2) BY THE SAFETY NEIGHBOUR: the material this schema recognises co-activates `legal`, one of 00's four safety domains - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" - and CONNECTION activation step 5 states the consequence, that no deep template unlocks from safety activation. (3) BY DISCLOSURE, and this reason survives even if D1 lifts, which is why it is the one every sibling must answer: the natural dimensions of this world are a CLIENT and a MATTER, and the landed neighbour already recorded what they cost - \"A visible client or matter label can itself disclose the existence and subject of a representation.\" 00 makes the same point for the neighbouring domain: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" THE RECOMMENDATION HELD AS PROSE - and this is the paragraph every one of the 36 templates must differ from: the CLIENT only where the corpus genuinely spans more than one AND the user has explicitly approved a client-named branch, then the MATTER, then the DOCUMENT FUNCTION, then the period last. Three rules bind the siblings. First, the client level is seeded ineligible: in a single-client corpus it is \"use an author or organization merely as a collector\" and would \"create meaningless one-child levels\", and in any corpus it is a disclosure. Second, a NAMED THIRD PARTY - an adverse party, a witness, a deponent, an accused, a complainant, a child - may NEVER be a folder level, however strong the grouping axis, because a path writes their identity into the filesystem where every later process reads it, against \"The default posture must therefore be local-first and data-minimizing.\" Third, function must follow the matter because a child is unintelligible without its parent: 00's own argument is \"A work type such as Homework 3 is meaningful only after the course is known\", and an amendment, a schedule or a supplemental list is meaningless without the matter it belongs to. NOT TIME-FIRST, and no sibling may claim otherwise: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Filing time, hearing time, document date and filesystem time mean different things here, and nothing in this world is capture-based, so `time_first: true` in this family would be claiming the photos exception without the photos evidence. And whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "email",
+      "spreadsheet",
+      "archive",
+      "calendar",
+      "ocr",
+      "image",
+      "audio_video",
+      "presentation",
+      "contacts",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".mbox",
+      ".ics",
+      ".zip",
+      ".7z",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Conflict search - Hartley acquisition - CLEARED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots pair a prospective-client name with a matter description and a responsible fee-earner",
+        "a table of searched names with a hit or no-hit column and a related-matter column",
+        "a clearance decision slot with a reviewer name and a date",
+        "the firm's template footer and a document-assembly producer in the metadata",
+        "no party recital, no execution block, no tribunal caption anywhere on the page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares none; and no client, our_firm, project or subject_of_record value, all of which are proposals awaiting R1c",
+        "that this is `legal` material. IT IS NOT, AND THAT IS THE POINT OF THE FIXTURE: `legal`'s deterministic signals are an executed-instrument party pair, a notarial block or a tribunal caption, and this document has none of the three. It is the clearest case in the family of a file the neighbour cannot see",
+        "that a compliance-risk or clearance word on the form is this product's sensitivity classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Matter opening form - 41127-0006.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an allocated matter reference in a labelled slot, repeated in the footer",
+        "labelled client, responsible practitioner, supervising partner and fee-basis slots",
+        "an identity-verification section listing documents seen, and a source-of-funds note",
+        "a scope line describing the work to be done"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any law_practice fact - none is declared",
+        "an identity fact from the verification section; `identity` is also a fieldless safety placeholder and the listed documents remain protected evidence rather than a source of values",
+        "that the allocated reference may be copied onto neighbouring files - the anchor supports membership and copies nothing: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "a folder path, and specifically not a branch named for the reference, which names the client and the work in one token"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Time recording export - August 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers: matter reference, date, fee-earner, activity code, narrative, units, rate, value",
+        "many distinct matter references across thousands of rows",
+        "a second file in the same export carries disbursement rows with supplier names",
+        "no issuer block, no billed-to block, no invoice number and no institution or account header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a spreadsheet of money is finance. The DISCRIMINATING EVIDENCE IS THE MATTER-REFERENCE COLUMN plus the absence of an institution-and-account header, exactly as business_operations and nonprofit state the same test from their sides. An issued bill with an issuer and a billed-to block IS finance's, on its own evidence, and this row does not claim it",
+        "that it is a business_operations timesheet - a project column would make it one; a matter column does not",
+        "a tax_year or fiscal_period fact - neither key exists on this schema",
+        "that the narrative column is safe to summarise; a task narrative describes a client's affairs in prose, and the file is bulk-sensitive as a whole"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Key dates - limitation and listing diary.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per matter reference with columns for client, key-date type, date, owning fee-earner and status",
+        "date types include limitation, service, response, listing and completion",
+        "a conditional-format column flagging proximity",
+        "the workbook spans many unrelated matters"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the product calculates, validates, interprets or acts on any legal deadline, or treats a date as operative, satisfied, missed or jurisdictionally valid",
+        "that this is business_operations.contract-administration's contract register. Both are a portfolio table over many items with a date column and an internal owner; that landed row's anchor is a LIVE OBLIGATION under an executed contract and its notice calendar, and this table's rows are MATTERS. The shape decides nothing; what the rows are about decides everything",
+        "a date fact from digits inside a matter reference",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Privilege log - Tranche 3.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per withheld document carrying control number, date, author, recipients, copyees, description and stated basis",
+        "several thousand rows naming hundreds of individuals who are not parties",
+        "a sheet reconciling the log to a production range",
+        "the workbook is unencrypted and sits beside a load file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege, confidentiality, waiver, sealing, admissibility or any disclosure right, from the stated basis or from anything else. The product preserves the literal observation and decides no legal status",
+        "that the file is low-risk because each row is short: A MULTI-SUBJECT LOG IS BULK-SENSITIVE AS A WHOLE, read across from clinical_practice's list rule, and here the named people are third parties to a third party - correspondents of the holder's client, with no relationship to the holder at all",
+        "the named people as stored facts, as prompt content, or as folder levels",
+        "permission to send the sheet, a sample of it, or a summary of it to a cloud model: \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\""
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "PRECEDENT - Share purchase agreement (firm standard) v7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an instrument-shaped document titled as a share purchase agreement with full clause numbering",
+        "the parties recital contains bracketed placeholders instead of names, and the signature page has blank, unnamed execution blocks",
+        "footnoted drafting notes and optional-clause alternatives run through the body",
+        "a firm template reference and a version marker in the footer",
+        "no matter reference and no client anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "`legal` activation. This is the family's INVERSE-RECOGNITION fixture and the mirror of clinical_practice.protocol-guideline: `legal` fires on a bound party pair plus an execution block, and this document HAS NEITHER BY DESIGN. Instrument vocabulary with no bound parties activates nothing on that side",
+        "a party fact from a bracketed placeholder, or a client fact from the firm template reference",
+        "sensitivity_status as protected material - uniquely in this family there is no client, no matter and no third party in the file, which is why its residual is Reading Inbox and not Protected Records",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Instructions to Counsel and Opinion - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a front sheet pairing an INSTRUCTING SOLICITOR block with an INSTRUCTED COUNSEL block, two separately labelled professional roles",
+        "a numbered index of enclosures and a statement of the questions on which advice is sought",
+        "a second document in the same PDF separates questions from conclusions and names the party advised",
+        "the matter reference repeats in the header of both parts"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "privilege or work-product status because the document is internal, is called an opinion, or carries a privileged label",
+        "that any conclusion, merit assessment, prospect or recommendation is correct, current, followed or advice to the holder",
+        "an authored_by fact turned into a dimension - 00: \"It should avoid using authorship or creator identity as a destination dimension\"",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "File closure checklist and retention - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a checklist pairing the matter reference with an outcome line and an undertakings-discharged line",
+        "a papers-returned or file-delivery record with a date and a recipient",
+        "a labelled RETENTION UNTIL slot and a destruction-review date",
+        "a supervising-partner sign-off"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a retention or destruction date licenses the product to delete, archive, move or expire anything. It is a raw observation about the holder's professional obligation and creates no product behaviour whatsoever - this is stated explicitly because it is the single most dangerous slot in the family",
+        "that the matter is closed, that undertakings were in fact discharged, or that papers were in fact returned",
+        "any law_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Order - Hartley v Nash - sealed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption naming two parties and a case identifier in the heading zone",
+        "numbered operative paragraphs and a court seal image",
+        "a counsel block naming the holder's firm as representative",
+        "the file sits inside a folder whose name carries the matter reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this schema displaces `legal`. THIS IS THE OVER-FIRING COLLISION FIXTURE AND THE ROW CONCEDES IT: the caption plus the operative paragraphs are `legal`'s own deterministic signal, `legal` is a safety domain, and its protection runs first. This schema co-activates through the counsel block and the matter reference, and takes nothing away",
+        "that the folder name supplies the matter, the client or the representation - a folder is an unlabelled position",
+        "that any order, finding or remedy is current, complied with, appealed, or true",
+        "a year fact from the digits in the case identifier",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ellis and Co - Client Care Letter - my divorce.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a law-firm letterhead, a matter reference allocated by that firm, and a responsible-solicitor block",
+        "labelled sections on scope, hourly rates, complaints procedure and the right to cancel",
+        "the addressee block names the HOLDER personally, and the holder's own signature appears on the client copy",
+        "no time record, no work product, no intake screen produced by the holder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this schema. THIS IS THE UNDER-FIRING COLLISION FIXTURE AND IT IS THE FAMILY'S MOST IMPORTANT ONE: every token that looks like practitioner-side evidence is present - a firm name, an allocated matter reference, engagement structure, professional vocabulary - and the holder is the CLIENT. The discriminating evidence is which signature block is the holder's, and where the practitioner-side apparatus is: `legal.personal-legal-matters` owns this file",
+        "that a matter reference is practitioner-side evidence. It is allocated by SOME firm; whose is a separate question the reference cannot answer",
+        "any law_practice fact, and no client or our_firm value - the roles here are reversed",
+        "a folder path, and specifically nothing that would record the existence or subject of the holder's own proceeding"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client account reconciliation - July 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a bank institution name and an account number in a labelled header",
+        "a reconciliation of a bank balance to a ledger total",
+        "a listing of individual matter ledger balances with client references",
+        "a separate sheet for the office account with the firm's own running costs"
+      ],
+      "facts_legal": [
+        "file_type",
+        "institution",
+        "account_type",
+        "record_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is law_practice material. IT IS FINANCE'S, and the row concedes it: the institution-and-account header is finance's own discriminating structure, and a client-account-versus-office-account partition is an accounting partition on a real account, not a matter apparatus. The parallel is nonprofit's restricted-fund concession - a partition does not claim the account",
+        "that the per-matter ledger listing promotes the workbook into this schema; it is the same never-alone problem as a client name in a cell",
+        "a law_practice fact - none is declared",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "DMS export - 41127 - part 3 of 9.7z",
+      "source_type": "archive",
+      "observations": [
+        "the archive header is readable and identifies a split, password-protected volume",
+        "the member manifest is unavailable to the approved scanner",
+        "the filename carries a client-number-shaped token and an export word",
+        "basic filesystem metadata and a content hash remain available locally"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "this schema, a client, a matter or a member family from the filename - 00: \"Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group, but the system should not infer a purpose from their filename alone\"",
+        "permission to force it open, request credentials, reassemble the split volumes or unpack them - 00: \"Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open\"",
+        "that split-part numbering, size or a familiar export layout proves the bundle is one matter",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "LPC Skills - sample client attendance note (marked).docx",
+      "source_type": "text_document",
+      "observations": [
+        "an attendance-note structure with date, attendees, advice given and next steps",
+        "the client and matter are named as a fictional problem-question scenario",
+        "tutor comments and a mark appear in tracked changes",
+        "a training-provider header and a module code"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "this schema from a perfectly formed practitioner structure. The profession teaches by producing exact replicas of its own artefacts, so structure alone cannot separate them and \"purpose answers what the file was for\" is the only test that works",
+        "that a fictional client name is a client, or that a module code is a matter reference",
+        "an academic fact from the training header without academic's own evidence; both readings are candidates and neither is copied onto the other",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal",
+      "signal": "THE EXISTENTIAL COLLISION, AND THIS ROW CONCEDES THE LARGER HALF OF IT. `legal` is a safety schema that activates on an EXECUTED-INSTRUMENT structure (a bound party pair plus an execution or notarial block) or a PROCEEDING structure (a tribunal caption with a matter-identifier slot). Every file inside a practitioner's matter that has one of those shapes - the pleading, the order, the judgment, the settlement deed, the executed transaction set, the closing instruments, the sworn statement - is `legal`'s ON `legal`'S OWN EVIDENCE, and this schema does not displace it: `legal` is one of 00's four safety domains and its protection runs first. What is left, and what this schema is FOR, is the class of artefacts on which `legal`'s signals DO NOT FIRE AT ALL: an intake and conflicts screen, a matter-opening record, a time-and-disbursement export, a limitation diary, a review or privilege log, a precedent bank whose party and execution slots are BLANK BY DESIGN, an internal opinion, a closure and retention record. None of them has a bound party pair; none has a caption; several are the structural negation of `legal`'s signal. THE COUNTERFACTUAL, stated plainly: if the discriminator were only that a lawyer produced the bytes, this schema would be refused, because a practising certificate is a role name and a role name is never-alone. It survives because the artefacts above are a distinct STRUCTURE that the neighbour's recognition cannot see, and because the neighbour's own template says so - `legal.practice-matter-file` records that \"J-IND authorizes gist-level professional recognition now and defers full industry depth, so this row does not recreate practice areas, litigation phases, transaction types, or the dozens of sibling schemas from the overnight catalogue.\" Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "The sibling marker, and the seam that has to be drawn most carefully because the roster keeps BOTH rows. That landed template is a TEMPLATE ON THE `legal` SCHEMA and therefore inherits `legal`'s safety default; it says what it recommends in its own words - \"The present recommendation is therefore one shallow, redacted, user-approved matter packet or representation without automatic internal depth.\" It is the marker for this world: one shallow protected packet, no depth. `law_practice` is a SCHEMA whose default is the matter-anchored two-role apparatus above, and it is what the 36 detail rows hang from. Practical consequence for R1c: on any file the landed row recognises, BOTH may activate and neither writes a fact, so the co-activation costs nothing; the rows differ in what they license downstream - the marker licenses a shallow protected packet, this schema licenses child-template consideration. This row did not touch the landed marker and recommends no change to it. If R1c decides one row must go, the honest recommendation is to keep the SCHEMA and fold the marker, not the reverse, because a marker cannot host 36 templates whose node tests must be measured against a default. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "The ROLE FORK, and this family's most consequential collision because it is an UNDER-firing risk rather than an over-firing one, and getting it wrong exposes the holder's own affairs. That landed row is the holder as a PARTY to their own dispute or proceeding. This schema is the holder acting FOR someone else. The bytes are frequently identical: a client care letter, an engagement terms document, a bundle, a hearing notice, a settlement. The discriminating evidence is WHICH SIGNATURE BLOCK IS THE HOLDER'S and whether the practitioner-side apparatus exists in the corpus at all - an intake screen, a matter reference allocated by the holder's own firm, a time record, work product the holder produced. A firm name, a matter reference, a caption, professional vocabulary and a folder name decide NOTHING, and the collision fixture is named on both sides. Where the side is unresolved the correct outcome is abstention into Protected Records, never a guess. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "THE FIRM-AS-A-BUSINESS CONCESSION, given away in full and stated so no template author reclaims it. A law firm runs itself with exactly the same artefacts as any other firm: partnership or practice accounts, budgets, its own office lease, marketing and business development, IT asset registers, procurement, professional-indemnity renewal, risk registers, policies, meeting records and regulatory returns about ITSELF. Every one of those is business_operations, hr or finance, and this schema holds NONE of them. The discriminating evidence in one sentence: a file belongs here only if it evidences a MATTER conducted FOR A CLIENT; a file about the firm evidences an organisation, and an organisation name is constitutionally never-alone in that family and in this one. In the reverse direction: an in-house legal team inside a non-law company DOES produce this schema's apparatus - a matter list, an outside-counsel instruction, a privilege log - and the absence of a law firm is irrelevant; what matters is whether the work is done FOR a client, which for an in-house team is the employer, and that is a genuine boundary question recorded as NEEDS-JOSEPH rather than decided here. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "Stated separately because the two most similar STRUCTURES in the whole roster meet here: that landed row's contract register is a portfolio table over many agreements with a notice-date column and an internal contract owner, and this schema's limitation-and-listing diary is a portfolio table over many matters with a key-date column and an owning fee-earner. The shape is the same and therefore discriminates nothing. The discriminating evidence is what the ROWS ARE ABOUT: a live obligation under an executed contract, versus an open matter conducted for a client. The landed row already settled its own charge against `legal` by holding that it is not distinguished by who holds the paper, and this row stays consistent with that: neither row may claim the other's table because a lawyer or a contracts manager keeps it. A law firm's register of ITS OWN supplier contracts is that landed row's, not this one's. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "Both worlds are one piece of paid work done FOR another organisation, and 00 uses the consulting case to state the role split itself - \"A consulting document may mention the author’s firm and the client organization\" - so the canonical `client`/`our_firm` pair serves both and cannot separate them. The landed neighbour `legal.practice-matter-file` already drew this seam and this row does not contradict it: scope, fees, confidentiality, deliverables and two-organisation signature blocks occur on both sides; explicit counsel or representation roles, a legal-services scope, tribunal or filing structure, an intake-and-conflicts screen, a matter-reference-keyed time record, or legal work product carry the legal side. Where only the engagement paper exists and nothing else, the honest outcome is Review Later. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "Two forks, both conceded. (1) THE BILL. An issued bill or fee note with an issuer block, a billed-to block, an invoice number and payment terms is finance's on finance's own structure; the matter-reference-keyed TIME AND DISBURSEMENT record behind it is this schema's, on the matter column. An exact matter reference may support packet membership and converts nothing. (2) THE CLIENT ACCOUNT. A practice's client-account and office-account ledgers and their reconciliations are custodial money records with an institution-and-account header, and they are finance's - the client/office partition is an accounting partition on a real account, exactly as nonprofit conceded that a restricted-fund partition does not claim the account. This is worth stating because client money is the most regulated thing a practice touches, and it is still not this schema's. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "The SIDE line, read from that landed row's own split: it holds records kept on the PUBLIC AUTHORITY's own side of exercising a public function. A court's, tribunal's, prosecutor's or regulator's own case administration, listing, decision-making and registry records are government's; the practitioner's copy of the same proceeding - the filings it made, the notices it received, the diary it keeps, the work product it produced - is this schema's, on the matter-and-role structure. Public money, a public register or an authority-issued document does not make a record governmental, and receipt of an authority-issued document does not activate government at all, which that row says itself. In the other direction: a government lawyer conducting a matter for the authority as client produces this schema's apparatus, and both may activate on disjoint evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.malpractice-incident",
+      "signal": "That landed row already argued its own seam with `legal` and this row does not contradict it. Its centre is the practitioner-side record of an adverse clinical event and the complaint about it - the incident form, the near-miss escalation, the duty-of-candour letter, the clinician statement - held by the CLINICIAN. Where the same dispute is conducted by a lawyer FOR that clinician or against them, the lawyer's apparatus - the matter opening, the instructions to counsel, the disclosure review, the expert instruction - is this schema's, and the clinical record inside it remains clinical_practice's and `medical`'s on its own evidence and at its own protection. The two rows co-activate on one file set and neither takes the other's material; a clinician's own incident form does not become law_practice material because a solicitor was later instructed. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "An employee-relations case, a grievance, a disciplinary investigation and a settlement negotiation exist in both worlds with the same artefacts: an investigation report, interview notes, a chronology, a without-prejudice letter. The discriminating evidence is whose process it is - an internal personnel process run by the employer over its own workforce is hr's, and hr's employee-identifying protection governs; the same dispute run as an instructed matter for a client, keyed to a matter reference and carrying practitioner apparatus, is this schema's. A law firm's own HR file about its own trainee is hr's, twice over. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "Recorded because the roster carries a `law_practice.admission-cle` row and this row believes it is WEAK. A practising certificate, an admission record, a CPD or CLE log and a professional-indemnity certificate are the HOLDER'S OWN professional standing - no client, no matter, no third party - which is that landed row's whole node, and clinical_practice already flagged its own `licensure-credentialing` sibling as the weakest of its ten for the identical reason. The recommendation to R1c, not an edit: `law_practice.admission-cle` should be refused and folded to `career.credentials-licenses`, unless its author can name a structure that row does not already hold. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "The commonest co-activation in the family and the reason this schema can be narrow without losing coverage. One matter folder holds an intake screen, a time export and a review log (this schema, on the matter-and-role apparatus) beside a pleading, an order and an executed settlement (`legal`, on the caption and execution structure) - disjoint evidence, one corpus, and both schemas fieldless so the join carries protection and co-activation on both sides rather than fields. `legal` is a safety domain, so where they co-activate the protective ordering runs first (CONNECTION section 4 step 5). One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "A matter budget reconciled against a bill and a disbursement ledger in one workbook is both, on disjoint evidence - the issuer-and-billed-to or institution-and-account structure for finance, the matter-reference column for this schema. finance is a safety schema and its protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "signal": "Client identity verification is a mandatory part of matter opening in most jurisdictions, so a practitioner's corpus contains other people's passports and proofs of address as a matter of routine. The identity documents are `identity`'s and remain protected on its evidence; the verification record that lists them is this schema's. 00's own packet reasoning licenses the join, and `legal.practice-matter-file` already carries the passport fixture from the neighbouring side. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "Personal-injury, clinical-negligence, employment and family matters routinely contain another person's medical records inside a practitioner's disclosure set. The records are `medical`'s and clinical_practice's on their own evidence and at their own protection; the review log and the bundle index around them are this schema's. Two safety-adjacent readings on one packet means protection applied twice and no fields written anywhere. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "A practitioner's matter file carries the tribunal's or regulator's own notices, listings and decisions inside it. The authority-side structures activate government; the practitioner-side apparatus activates this schema. Disjoint evidence in one folder. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations",
+      "signal": "An in-house legal function's corpus holds a matter list and an outside-counsel instruction beside the contract register, the policy set and the board papers of the same company. Disjoint evidence, one corpus, and neither promotes the other: a legal-department folder does not move a policy here, and a matter reference does not move a board paper there. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice",
+      "signal": "A clinical-negligence or capacity matter is genuinely both worlds on one file set, and co-activation is the safe outcome rather than a failure to discriminate. The stricter side governs the members that identify a patient. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named FIRST and it is where most of this family lands when the schema does not confidently activate, because the characteristic isolated file here is a document about a named third party. A stray attendance note, an opinion, a witness statement, a client identity copy, a page of a privilege log: the protective home is the correct one and the cautious error is the cheap one. 00 names the residual and this material in the same sentence - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" - and licenses surfacing without a group: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The right home for the family's defining failure, which is frequent here: a real-looking professional document whose SIDE is unresolved - practitioner or client, our side or the other side. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected and split document-management exports, proprietary practice-system databases and encrypted production volumes are ordinary in this world and are exactly the files that must not be forced open. \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "This family's tempting false files are overwhelmingly reading material - published opinions, statutes, practice notes, textbooks, seminar papers, model forms - and, uniquely, so is one class of its GENUINE material: the precedent bank, which contains no client and no third party at all. \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone professional document with no accepted group and no third party exposed - a certificate of registration, a firm's own standard terms, a blank form. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members of this world: a court fee receipt, a filing confirmation, a search fee, a courier confirmation. \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The inactive fallback for a positively evidenced screen capture of a filing portal, a case-management screen or a court list whose OCR does not establish a matter. Account names, identifiers and links stay redacted. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "our_firm",
+      "other_field": "client",
+      "other_domain": "career.consulting-client-engagement",
+      "why": "The family's defining role pair, and it is BORROWED RATHER THAN MINTED: both keys are already canonical and that landed row already uses the pair for the same structural reason, which 00 states in the consulting case - \"A consulting document may mention the author’s firm and the client organization\" - under the general rule \"The system must separate roles that happen to contain the same entity type\". What this family adds for R1c is that the split is harder here than in consulting, for two reasons. First, a law firm appears in a practitioner's corpus as the holder's firm, as opposing counsel, and as a firm the holder is a CLIENT of, so the same organisation string occupies both sides of the split within one corpus. Second, the split is not merely a filing convenience here: it is what decides whether the file is this schema's or `legal.personal-legal-matters`', which is the difference between someone else's confidential affairs and the holder's own. Provenance: inference; the underlying role-separation rule is design.",
+      "provenance": "inference"
+    },
+    {
+      "field": "client",
+      "other_field": "subject_of_record",
+      "other_domain": "clinical_practice",
+      "why": "The pair this family needs that neither `legal` nor consulting has, and the reason `subject_of_record` is worth adjudicating beyond clinical_practice and nonprofit. In this world THE SUBJECT OF A RECORD IS ROUTINELY NOT THE CLIENT: a witness statement is about a witness, a privilege log about the correspondents of thousands of unrelated people, a family matter about a child, a criminal matter about a complainant. Those people are not the holder, not the holder's counterparty, and not a party to anything the holder is doing - they are third parties to a third party, which is a weaker consent position than clinical_practice's patient, who at least chose their clinician. Both fields are requested destination-INELIGIBLE for this family. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available at this row, argued on four grounds, and it is the leg of the node test this family passes most clearly. FIRST, 00's own corpus sentence names this material directly - a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and a single matter file routinely contains a client's identity documents (verification), account statements (disclosure), medical information (personal injury), legal records, and private correspondence, all at once, about someone who is not the user. SECOND, AND THIS IS WHAT DISTINGUISHES THE POSTURE FROM `legal`'S: `legal` protects the holder's own record, and the holder can consent to what happens to it. Here the exposed party is a THIRD PARTY - a client, an adverse party, a witness, a deponent, an accused, a complainant, a child - who never chose this filesystem and cannot consent, and in the adverse-party and witness cases has no relationship with the holder at all. THIRD, BULK. A disclosure production, a review log and a privilege log are not one file's worth of exposure; they are N people's, and their sensitivity scales with row count - clinical_practice's multi-subject list rule read across, and it bites harder here because the rows are other people's correspondence metadata rather than one clinic's patients. FOURTH, EXISTENCE IS DISCLOSIVE. The mere fact that a named person appears in this corpus can imply that they are being prosecuted, divorced, investigated, deported or sued, before any content is read - which is why the family's hardest rule is a naming rule rather than a content rule: NO CLIENT, MATTER, PARTY, WITNESS, DEPONENT OR ACCUSED NAME MAY BECOME A FOLDER LEVEL WITHOUT EXPLICIT USER APPROVAL, since \"A visible client or matter label can itself disclose the existence and subject of a representation.\" and 00 makes the same point for the neighbouring domain: \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" Three consequences the 36 templates all inherit: (a) privilege, confidentiality, sealing, waiver and disclosure rights are NEVER inferred - the product preserves the literal label as an observation and decides no legal status; (b) cross-matter bridging by party name, subject or semantic similarity is suppressed, which is a privacy barrier and not only an accuracy rule; (c) detection of a privilege log, a disclosure set or a family or criminal matter exists in order to PROTECT, never in order to move, and \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" This row does NOT carry `is_safety_domain` and should not - 00's four are named and closed - but the gap is smaller here than for clinical_practice or nonprofit, because `legal` IS one of the four and co-activates on much of this material, which means the protective ordering usually runs anyway. USUALLY IS NOT ALWAYS, and the exceptions are precisely this schema's own characteristic files: an intake screen, a review log, a time export and a privilege log do not fire `legal` at all. That residue is recorded as an open question. The handling class is P7's and is not set here.",
+  "open_question": "Six. (1) NJ-LP-1, THE EXISTENCE QUESTION, answered here as a narrow YES and recorded so it can be reversed: this schema stands ONLY on the matter-anchored two-role apparatus - the artefacts on which `legal`'s instrument-and-proceeding signals do not fire - and it cedes the executed instruments and proceeding records to `legal`, the holder's own position to `legal.personal-legal-matters`, the firm-as-a-business to business_operations, hr and finance, the bill and the client account to finance, and the authority's side to government. If R1c judges that the practitioner role is a field value rather than a structure, the correct outcome is REFUSAL and the coverage routes to those neighbours plus Protected Records - and this row would rather be refused than kept to save 36 ids. (2) NJ-LP-2, THE TWO-ROW QUESTION: the roster keeps both `legal.practice-matter-file` (a template on the safety schema `legal`, whose recommendation is one shallow redacted packet with no automatic depth) and this schema (which must host 36 templates). They overlap on recognition and differ on what they license downstream. Alternatives: (a) keep both as the roster intends, with this row's collides_with entry as the seam; (b) fold the marker into this schema, which is this row's honest preference if one must go, because a template cannot host a default template that 36 node tests are measured against; (c) fold this schema and refuse the 36, which is (1). This row did not touch the landed marker. (3) NJ-LP-3, THE DOCUMENT-KIND FOLD, and it is the highest-leverage item for R1c: the roster's `pleadings`, `motions-and-briefs`, `orders-and-judgments` and `court-filing-record` differ from one another ONLY by legal document kind, which this schema rules is a `work_type` VALUE and not a node. On this row's default template they are one row - a court-record situation - with four enum values, unless their authors can name a difference in detection structure, grouping anchor or privacy rule. The same charge is owed against `discovery` versus `evidence-exhibits`, and against `settlement` versus `orders-and-judgments`. This row raises it as a recommendation and edits nothing. (4) NJ-LP-4, THE PRACTICE-AREA ROWS: `family-law`, `criminal-defence`, `immigration-casework`, `ip-prosecution`, `conveyancing` and `estates-administration` are practice AREAS, which are values exactly as clinical_practice ruled specialties to be. This row's ruling for their authors: a practice-area row survives ONLY if it changes the PRIVACY RULE, never because it changes the topic. Three plausibly do - family, criminal and immigration, where the existence of the file is disclosive about a child, an accused or an immigration status and the never-inferrable requirement bites hardest - and they must argue leg 3 explicitly rather than listing their document types. `ip-prosecution` and `conveyancing` look like registry-submission and transaction situations under different names and should expect to be folded. `admission-cle` should be refused to `career.credentials-licenses` (see collides_with). (5) NJ-LP-5, THE IN-HOUSE BOUNDARY: an in-house legal team produces this schema's apparatus - a matter list, outside-counsel instructions, a privilege log - but its client is its own employer, so the two-role structure is present in form and thin in substance. Alternatives: (a) admit it, on the ground that the apparatus is the schema and the identity of the client is a value; (b) exclude it to business_operations, on the ground that a company advising itself is one organisation and an organisation is never-alone; (c) admit only where an external counterparty or a proceeding is evidenced. This row prefers (a) and cannot settle it. (6) NJ-LP-6, THE SAFETY-ORDERING RESIDUE: `legal` carries `is_safety_domain` and co-activates on much of this family, so protective ordering usually runs - but not on this schema's own characteristic files, which are exactly the ones `legal` cannot see (intake screens, review logs, time exports, privilege logs). Those need the protect-before-model ordering and have no flag to trigger it. This is clinical_practice's NJ-CP-SAFETY and nonprofit's NJ-NP-3 restated at a sharper point: the substitute mechanism must be named somewhere, and the files it must cover are named here."
+}

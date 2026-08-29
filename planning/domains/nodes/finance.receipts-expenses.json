@@ -1,0 +1,473 @@
+{
+  "id": "finance.receipts-expenses",
+  "kind": "template",
+  "schema_id": "finance",
+  "parent_id": null,
+  "name": "Receipts and personal expenses",
+  "one_line": "The transaction-shaped face of the Finance schema: what one purchase produced - an order confirmation, a paid invoice, a payment receipt, a delivery notice, a refund - rather than what one account reports. Its anchor is a transaction structure (a seller, an order or transaction identifier, item rows, a labelled total), never an account structure, so account_type cannot fire and the recommendation stays shallow; the isolated majority never earns a branch at all and is offered the Receipts and Confirmations residual instead of a folder.",
+  "launch": "safety",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a labelled transaction structure on one document: a seller or merchant name at word boundary in a positionally weighted zone (letterhead, document title, page-one heading, or an email's labelled sender slot) together with an order-or-transaction identifier slot, one or more item rows, and a labelled total. All three parts are required together - this is 00's pattern-plus-context SHAPE, which 00 states for course codes ('a course-code pattern together with academic context') and not for receipts, so the finance context terms are PROPOSED (see proposed_context_terms) and R6 owns the patterns. 00 supplies the reason the structure lives where it does: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.'",
+      "an e-receipt or order email: the labelled sender slot resolving to a seller organization at word boundary, a receipt/order/payment term in the labelled subject slot, a labelled total or item block in the body, and receipt-shaped attachment names in the labelled attachment slot. 00's email extractor yields exactly these slots - 'sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive'. This template is the roster's owner of the email source type; the source type still never fires alone (see never_alone).",
+      "OCR recovering a transaction structure from a capture of a slip or a checkout screen: a merchant line, dated item rows, and a labelled total. The structure is the evidence, never the amount of text - 00 forbids the density reading in a sentence that names this material first: 'OCR text density is also not a reliable screenshot detector because receipts, document scans, whiteboards, and photographs of pages can all contain dense text.'",
+      "a document-kind term in a title or page-one heading (receipt, order confirmation, delivery notice, refund confirmation) together with the labelled total and transaction date that term implies. The term alone is a filename-grade clue; the term plus its implied structure is what a rule may confirm, matching 00's direct-fact source: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.'",
+      "an archive whose manifest lists receipt-shaped or order-shaped member names, read without unpacking - 00: 'Archives should be inspected without being unpacked to disk.' The manifest evidences a candidate packet for review; the outer archive name evidences nothing.",
+      "an explicit labelled tax-year slot on a receipt that carries one - a charitable-donation acknowledgement is the common case. Narrow by 00's own rule: 'Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching.' A purchase date is not a tax year."
+    ],
+    "needs_llm": [
+      "deciding what an OCR'd capture actually shows. 00 writes this template's ambiguity as its own example: a PNG 'may be a screenshot of a receipt, application portal, conversation, code error, or research figure' - and a purchase receipt, an order-status page, a price comparison and a conversation about a purchase all carry a merchant name and a figure.",
+      "an unlabelled prose confirmation from a seller - a thank-you note, a backorder apology, a shipping-delay message - with no identifier, no item rows and no total: whether it is a purchase record at all. 00 lists 'unlabeled forms' and 'indirect language' among the reasons rules alone are insufficient.",
+      "whether several documents are one transaction family - an order confirmation, its payment receipt, its shipping notice and its return label - answered from a bounded dossier with citations, never as a filing decision. 00's group-coherence task, applied to a transaction rather than a course.",
+      "whether a set of receipts is purpose-coherent as one reimbursement or expense claim. 00's shape for this is the application packet: 'The documents are content-incoherent but purpose-coherent.' Note PR-1: purpose is a College-applications field, so a reimbursement packet is a P9 group and a review label here, never a purpose fact written by this template.",
+      "distinguishing a purchase record from shopping research. 00 puts 'a saved product image' among residual material and names 'product references' inside Reference Clips; a saved listing carries a seller and a price and is not a transaction.",
+      "a multilingual or non-domestic receipt whose document-kind term has no gazetteer entry and whose totals are unlabelled - 00 names 'multilingual documents' among the cases fixed patterns cannot capture."
+    ],
+    "never_alone": [
+      "a source_type of email alone. This is the tempting false file for this node specifically, because the roster gives this template the email source type: an inbox export is not a pile of receipts, and file_kind_plausible is constitutionally never-alone. What fires is the labelled sender plus the labelled subject term plus a total - never the format.",
+      "the word 'confirmation' alone. An appointment confirmation, an RSVP, a subscription-cancellation confirmation, a password-reset confirmation and a delivery confirmation are the same token on five different records, and only one of them is a purchase. The fixture is Appointment Confirmation - Dr Reyes.eml, which carries an organization, a date and the term, and must produce no finance fact.",
+      "a currency symbol or a money-shaped total alone. An offer letter states compensation, a proposal quotes a fee, a product listing quotes a price, a menu prints prices - the figure discriminates nothing.",
+      "a merchant or organization name alone. 00's ambiguity sentence applies with a seller added to the readings - 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' - and the same ambiguity that forbids a name as group proof forbids it as sole activation proof.",
+      "a digit string that looks like an order or tracking number. It is equally an invoice id, a case number, a policy number, a ticket number or a device serial without a labelled slot or an order-term context.",
+      "dense document-shaped OCR alone, read as a receipt. 00 names receipts first in the sentence that kills this reading: 'receipts, document scans, whiteboards, and photographs of pages can all contain dense text'.",
+      "the absence of EXIF on an image of a slip, read as proof it is a screen capture. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "a 4-digit token in a filename or a purchase date, read as tax_year. 00: documents carry 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values'.",
+      "membership in the download session a checkout produced. 00: 'A session should never be treated as proof of topic' - it is a purpose clue and a review aid.",
+      "a merchant name appearing in a transaction row of a statement. A payee inside an account record is the statement's content, not this template's issuer; taking it is how a card statement gets filed as a receipt."
+    ]
+  },
+  "proposed_context_terms": [
+    "receipt",
+    "order number",
+    "order confirmation",
+    "subtotal",
+    "total",
+    "amount paid",
+    "payment method",
+    "shipped",
+    "tracking number",
+    "refund",
+    "return",
+    "purchase"
+  ],
+  "work_types": [
+    "purchase receipt",
+    "itemized receipt",
+    "order confirmation",
+    "paid invoice",
+    "payment confirmation",
+    "shipping or delivery notice",
+    "return or refund confirmation",
+    "gift receipt",
+    "warranty registration",
+    "subscription renewal receipt",
+    "event ticket",
+    "booking confirmation",
+    "boarding pass",
+    "donation acknowledgement",
+    "expense claim or reimbursement submission",
+    "transaction export"
+  ],
+  "grouping_reasons": [
+    "one transaction across the documents it produced - order confirmation, payment receipt, shipping notice, return record - anchored by a shared order-or-transaction identifier, not by the merchant name they all happen to carry",
+    "one reimbursement or expense claim: receipts submitted together for one claim, content-incoherent and purpose-coherent in 00's sense, surfaced as a reviewable group and never as a purpose fact on a member (PR-1)",
+    "a repeating seller relationship across periods - a subscription's renewal receipts - where the anchor is the repeating record shape plus a shared account or subscription identifier; the seller name alone merges unrelated one-off purchases",
+    "the same receipt saved twice, from the email and from the seller's site: the universal duplicate_family and version_family facts, never a finance fact",
+    "a receipt that supports more than one accepted group - a hardware receipt inside a warranty record and inside a business expense claim. 00: 'A file may validly belong to more than one accepted group'; multi-membership, never a copied fact"
+  ],
+  "template": {
+    "dimension_order": [
+      "institution",
+      "record_type"
+    ],
+    "why": "Two levels, and the differences from the Finance schema's default order (institution, account_type, record_type) are what make this a node rather than a restatement of it. account_type is dropped, not reordered: a one-off retail purchase belongs to no account, so the level would open a tree slot no fact can fill - and 00's canvas is required to warn 'when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders', which is exactly what a per-account split of receipts produces. institution leads for 00's parent-dimension reason - 'A work type such as Homework 3 is meaningful only after the course is known' - because a record_type value such as a delivery notice is unintelligible until the seller is known. record_type is the leaf. tax_year is destination-eligible on the schema and is deliberately absent here: a purchase date is not a tax year, and the year-first situation is finance.tax-filings, a different template on the same schema - 00's rule for this side is 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' The honest default is shallower still: most receipts are the isolated material 00 sends to a residual rather than a branch, and 00's own instruction for an isolated file is that it 'should normally remain high in the tree because there is no evidence that it deserves a deep project-specific path' - so a corpus whose receipts do not cluster per seller should flatten this to institution alone, or to no branch at all, and 00 requires the interface to 'recommend flattening when a dimension does not materially improve retrieval'. This is a recommendation the user may reverse, remove, add to, or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "email",
+      "text_document",
+      "image",
+      "ocr",
+      "spreadsheet",
+      "archive"
+    ],
+    "extensions": [
+      ".eml",
+      ".msg",
+      ".pdf",
+      ".html",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".csv",
+      ".xlsx",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Your order confirmation - Uniqlo.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a retailer's domain, matched at word boundary",
+        "labelled subject slot carries an order term and an order-shaped identifier",
+        "body carries three item rows, a labelled Subtotal and a labelled Order Total",
+        "labelled attachment slot names Invoice.pdf",
+        "labelled sent-date slot"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = email; the labelled sender, the subject term and the total are what fire",
+        "an account_type - a one-off retail purchase belongs to no account, which is why this template drops that dimension",
+        "tax_year from the sent date",
+        "a contact fact used as a folder proposal; 00 keeps address-book data privacy-protected rather than a proposal basis",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "receipt_2026-03-02.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: Make, Model, DateTimeOriginal",
+        "paper geometry in frame: page edges, a tall narrow aspect, perspective distortion",
+        "OCR region returns a merchant line, dated item rows, a labelled Subtotal and Total, and a masked card tail"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "capture_year",
+        "camera_information",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "that the camera EXIF settles the domain - it settles that this is a capture, which is the photos reading on its own evidence; both fact sets stand",
+        "media_type from the presence or absence of EXIF alone; the positive signals on each side are what support it, and conflicting signals abstain",
+        "tax_year from the capture date or from the filename's date token",
+        "a card-number fact from the masked tail - an amount and a card tail are content, not schema fields",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Screenshot 2026-06-11 at 09.02.44.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact known display resolution; no camera Make or Model slot",
+        "a software-metadata slot names a screen-capture tool",
+        "OCR region reads a seller name, an order identifier, an item row and a labelled Total",
+        "no document structure of its own - no title, no headings, no labelled form fields"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "an account_type or a tax_year strong enough to file the capture as an account record on the strength of pixels",
+        "media_type = screenshot from the missing camera slots alone; the resolution, the PNG format and the software slot together are the support",
+        "that the capture IS the record - it is a capture OF one, which is the whole discriminator against photos.screenshot-captures",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Invoice - Bright Plumbing - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries a service provider's name at word boundary",
+        "labelled slots: Invoice Number, Invoice Date, Due Date, Bill To",
+        "a line-item table with quantities, rates and a labelled Total",
+        "a PAID stamp and a remittance block"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "an account_type from the Bill To block - a name is not an account descriptor",
+        "tax_year from the invoice date; an explicit labelled tax-year slot is required",
+        "a legal obligation reading from the remittance terms - numbered clauses, parties and an execution block are what make a document legal material, and none is present",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Your package has been delivered.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a carrier's domain",
+        "labelled subject slot carries a delivery term",
+        "body carries a tracking-shaped identifier and a delivery timestamp",
+        "no item rows, no total, no order identifier"
+      ],
+      "facts_legal": [
+        "record_type"
+      ],
+      "must_not_conclude": [
+        "institution = the seller; the labelled sender is the carrier, and the seller is nowhere in a labelled slot on this file",
+        "a purchase amount - none appears anywhere",
+        "that the tracking identifier is an account number",
+        "membership in the order's transaction group as a FACT; the shared identifier makes it a reviewable P9 membership and copies nothing onto this file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Appointment Confirmation - Dr Reyes.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled sender slot resolves to a clinic's domain",
+        "labelled subject slot carries the term Confirmation",
+        "body carries a date, a time and an address",
+        "no order identifier, no item rows, no total, no payment term"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "ANY finance fact. This is the collision fixture for this node: an organization plus the word 'confirmation' plus a date is exactly the evidence that tempts this template, and none of the transaction structure is present",
+        "record_type = order confirmation because the subject says Confirmation",
+        "that arriving as email contributes activation; the source type is never alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Visa Statement May 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one letterhead carries an issuing bank's name at word boundary",
+        "labelled slots: Statement Period, Account Number (masked), Previous Balance, New Balance, Minimum Payment Due",
+        "a table of dated transaction rows naming dozens of merchants with amounts"
+      ],
+      "facts_legal": [
+        "institution",
+        "account_type",
+        "record_type",
+        "account_holder"
+      ],
+      "must_not_conclude": [
+        "that THIS template is the right situation. The collision fixture in the other direction: the merchant names and totals in the rows are the same evidence a receipt carries, and the labelled statement-period and balance structure is what puts the file on finance.personal-records instead",
+        "institution = the most frequent merchant in the table; a payee inside an account record is content, and ranking one because it recurs is the polished-but-false move 00 warns about",
+        "tax_year from the statement period",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "product-page-mattress.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact known display resolution; no camera slots",
+        "OCR region reads a seller name, a product title, a price and the phrases Add to cart and In stock",
+        "no order identifier, no total paid, no transaction timestamp"
+      ],
+      "facts_legal": [
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "record_type = receipt because a seller and a price appear together; a listing is an offer, not a transaction",
+        "institution as a record issuer - nothing was issued",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "Boarding Pass - NRT-SFO.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "carrier name and logo in the page-one heading",
+        "labelled slots: Passenger, Booking Reference, Flight, Seat, Gate, Boarding Time",
+        "a barcode block; no item rows and no total"
+      ],
+      "facts_legal": [
+        "record_type",
+        "institution"
+      ],
+      "must_not_conclude": [
+        "an event or trip fact from the route or the gate. 00 states the rule on its own boarding-gate example: the system 'must not invent a folder called Travel/Flight Gate B12 or assume that a gate number identifies a particular trip'",
+        "that this template owns it rather than travel.bookings-confirmations; 00 lists boarding passes inside the Receipts and Confirmations residual, which is the fallback both situations share, not a claim of ownership",
+        "an account_type from the frequent-flyer number unless a labelled account slot supports it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "order-history-2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled column headers: Order Date, Order ID, Seller, Item, Item Total, Payment Method",
+        "hundreds of dated rows spanning many distinct sellers",
+        "no single issuer anywhere in a labelled position"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "institution from the Seller column's many values - an export REFERENCES many sellers and is issued by the platform, and ranking one because it appears most often repeats the ledger trap",
+        "tax_year from the filename's 4-digit token",
+        "facts about the ROWS written onto the file, or the file's facts written onto any receipt it lists",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "expenses-q1-receipts.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a dozen receipt-shaped and invoice-shaped member names plus one spreadsheet",
+        "manifest read without extraction to disk",
+        "uncompressed size and member count recorded"
+      ],
+      "facts_legal": [
+        "record_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "facts about the MEMBERS written onto the outer archive, or the archive's facts written onto members; the manifest evidences a candidate packet for review",
+        "institution from the archive name or from the most common member stem",
+        "that the packet is a reimbursement claim without an explicit claim document; that is the needs_llm group-coherence question, answered with citations",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_0455.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF present: Make, Model, DateTimeOriginal",
+        "paper geometry in frame; thermal-slip proportions",
+        "OCR returns fragments only: a partial figure, two illegible rows, no merchant line and no labelled total",
+        "arrived in the same capture session as three legible receipt photographs"
+      ],
+      "facts_legal": [
+        "capture_year",
+        "camera_information",
+        "media_type",
+        "file_type"
+      ],
+      "must_not_conclude": [
+        "record_type or institution from the fragments; this is the sparse case, and the neighbouring legible receipts supply context without supplying facts - 00: 'The graph does not automatically copy those missing facts onto sparse files'",
+        "membership as a fact because the capture session bundled it; a session is a possible-grade clue only",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "Reciprocates the edge already authored there. One OCR item - a merchant name, an order identifier and a total - supports both readings, and the discriminating evidence is whether the file IS the record or a capture OF one: an emailed or downloaded receipt carries its own document structure, labelled sender and labelled fields, while a grab carries screen-origin metadata (an exact known display resolution, PNG format, a screen-capture software slot) and no document structure at all. The capture keeps media_type either way; what it must not acquire is an institution or record_type strong enough to file it as a financial record on the strength of pixels. Fixture: Screenshot 2026-06-11 at 09.02.44.png.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.scanned-documents",
+      "signal": "Reciprocates the edge already authored there. The confusable evidence item is a photographed paper slip: camera EXIF plus paper geometry plus dense OCR, which is that template's signature and also exactly what a receipt capture looks like. 00 forbids the shared item from settling it - 'receipts, document scans, whiteboards, and photographs of pages can all contain dense text'. The discriminating evidence is transaction structure inside the OCR - a merchant line, item rows, a labelled total, a transaction timestamp - which sends the item here, where record_type and institution can hold it; the capture side keeps only that the file is a capture of a document. Fixture: receipt_2026-03-02.jpg.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "The sharpest collision on this schema, because both sides are the same field vocabulary. The confusable evidence item is a merchant name beside a money figure: a card statement's transaction rows are full of them, and a receipt is one of them. The discriminating evidence is which structure the document itself has - a labelled statement or billing period together with a labelled balance or amount-due slot is an account record and belongs there; a seller in a positionally weighted zone together with an order-or-transaction identifier, item rows and a labelled total is a transaction record and belongs here. One item counts for one side only: a merchant name inside a statement row is that statement's content and must never become this template's institution. Fixture: Visa Statement May 2026.pdf against Invoice - Bright Plumbing - March 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "travel.bookings-confirmations",
+      "signal": "00 lists both situations' leftovers in one residual sentence - 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents' - which is precisely why the two templates confuse. The confusable evidence item is a purchase confirmation issued by a travel seller: it carries an order identifier, a total and a merchant exactly like any other e-receipt. The discriminating evidence is travel-record structure - labelled passenger, itinerary segment, booking reference, travel dates, seat or room slots - which puts the file on the travel side; a payment total with no journey slots stays here. Neither side may read a route, a gate or a date range as a trip: 00's own boarding-gate example forbids assuming 'that a gate number identifies a particular trip'. Fixture: Boarding Pass - NRT-SFO.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.subscriptions-utilities",
+      "signal": "The confusable evidence item is a recurring charge notice from a named seller with a total. The discriminating evidence is whether the record reports on a standing account: a labelled service-period, account or subscription identifier and a next-billing date make it recurring-account material, where account_type is a live dimension; a single order-or-transaction identifier with item rows and no service period makes it a one-off purchase, where account_type cannot fire at all. The renewal receipt is the genuine boundary case and abstention is the correct outcome when both readings are supported.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "The confusable evidence item is a business expense receipt, which is byte-for-byte the same shape as a personal one. The discriminating evidence is not on the receipt: it is an accepted claim, ledger or client-engagement association around it, or an explicit business-entity name in the Bill To slot. Neither side may infer the other from a merchant category, and a bounded checkout or download session never settles it - 'A session should never be treated as proof of topic'. Where nothing external decides, the file stays here and the bookkeeping reading remains a reviewable membership. Fixture: expenses-q1-receipts.zip.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The primary and expected outcome, and the residual 00 defines in this situation's own words: it holds 'isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents'. 00 names the negative-feedback case for it by name: 'If the user rejects Receipts and Confirmations for a set of PDFs because they are actually school forms, the system records those negative examples'. Most of this template's material lands here rather than in a branch. Fixtures: Your order confirmation - Uniqlo.eml, receipt_2026-03-02.jpg, Invoice - Bright Plumbing - March 2026.pdf, Your package has been delivered.eml, Boarding Pass - NRT-SFO.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: 'Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.' The split against Receipts and Confirmations is durable purpose: a warranty registration, a donation acknowledgement kept for a filing, or a confirmation that turns out not to be a purchase at all belongs to the durable side. Fixture: Appointment Confirmation - Dr Reyes.eml.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "00: 'Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.' A grabbed order screen or a captured pickup code is exactly that, and 00's own transactional screenshot example - a boarding-gate capture that 'may be classified as a travel-related temporary confirmation' - reaches a broad home without inventing an association. 00 attaches the review lifecycle to this material too: it lets a user 'surface travel confirmations after their date has passed'. Fixture: Screenshot 2026-06-11 at 09.02.44.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "00 names this material inside the residual: 'Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project', and lists 'a saved product image' among residual material generally. Shopping research is this template's commonest false positive, and this is where it belongs once the model has established it is a listing rather than a transaction. Fixture: product-page-mattress.png.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: 'Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.' The shape here is a bulk object whose members have not been read as members - a platform order-history export, or an archive of a quarter's receipts - where the outer file is understood and its contents are not. 00 names 'a spreadsheet with unclear purpose' among the residual sets for the same reason. Fixtures: order-history-2026.csv, expenses-q1-receipts.zip.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The exception that keeps this template inside its safety domain. A receipt that carries an unmasked payment instrument, a national identification number, or clinical detail is the material 00 sends here - 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' - which 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. The routing decision is P7's and P11's; this edge only records that the home exists for the subset. Fixture: Visa Statement May 2026.pdf when it is mistakenly surfaced through this template's review set.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "career.consulting-client-engagement",
+      "our_field": "institution",
+      "their_field": "client",
+      "why": "A reimbursable expense receipt names two organizations in two roles on one file: the vendor that issued the record and took the money, and the client the cost will be billed to. 00 requires the separation - 'The system must separate roles that happen to contain the same entity type' - and gives the engagement pair by name: 'A consulting document may mention the author’s firm and the client organization.' institution holds the issuing vendor here; client holds the engagement counterparty there. Folding them would file a taxi receipt under the client's name and turn a vendor into a collector. Recorded as inference: 00 names the mechanism and the firm/client pair, not the vendor/client pair, and the canonical role_split edge lives in canonical_fields.json and is R1a/R1c's to author.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This template sits inside a safety domain, so the schema's posture holds: 00 names 'account statements' in the corpus that requires protection and requires that 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.' A receipt carries a masked or unmasked payment tail, a delivery address, and an itemized record of what a person bought, which is why the flag stays set. The template's own privacy rule is nonetheless narrower than the schema default's, and that difference is part of what makes it a node: 00 routes the isolated majority of this material to Receipts and Confirmations, an ordinary residual whose members are explicitly eligible for the residual review dossier, rather than to Protected Records, whose members 'must not cause filenames or content to be exposed in model prompts'. Where a dossier is built, 00's minimization rule governs - 'the engine should send only a compact dossier relevant to the current question' - and amounts, card tails and addresses are content that a merchant-and-record-type question does not need. Handling classes are P7's and are not assigned here.",
+  "open_question": "A card-paid receipt carries two organizations in two roles and this schema has one key for them: the merchant that issued the record, and the payment institution named by the card tail or the processor block. On a statement the bank is institution and the merchant is content; on a receipt the merchant is institution and the bank is content - the same key inverts between two templates on the same schema, which is exactly the situation 00's role-separation paragraph exists for ('A finance document may mention an account holder and an issuing bank'). Whether that warrants a canonical counterpart key, or stays a per-template reading of institution with the processor left unextracted, is a decision about the product's shared vocabulary and is not this node's to make. No field is proposed here; the tension is recorded so it is visible rather than silently resolved."
+}

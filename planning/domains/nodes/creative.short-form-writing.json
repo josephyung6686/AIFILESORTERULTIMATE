@@ -1,0 +1,471 @@
+{
+  "id": "creative.short-form-writing",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Authored short-form corpus (many small works, one byline, tracked by submission)",
+  "one_line": "The making record of a writer's OWN body of small complete works - essays, stories, poems, columns, criticism, reviews - where the corpus is many unrelated stems by one author rather than one work in many parts, and where each piece carries its own trail of addressees: a cover letter to an editor, a ledger row, a rejection, a proof, a contributor copy, a rights note. Its distinguishing objects are a SUBMISSIONS LEDGER whose rows are OTHER files in the corpus crossed with markets and a response vocabulary, a cover letter carrying a salutation to an editorial addressee and a third-person bio, a typeset galley whose page numbering starts mid-sequence because the holder is one contributor among several, and a version family whose branches are DESTINATIONS rather than production stages. The row is NOT a length: neither it nor creative.book-manuscript may use word count, page count or file size as evidence in either direction. It is not the packet assembled for one market (creative.submission-query), not the whole issue that contains it (creative.periodical-issue), not brand-owned publishing (creative.content-marketing), not the finished piece shown as a work sample (career.portfolio-work-samples), and not a note in a personal vault (code.pkm-vault). Placeholder row: fields [] and dimension_order [] by contract; the recommendation is held as prose in template.why.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, inherited from the creative anchor and repeated because it is load-bearing here: every entry below is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. Detection exists so a writer's corpus is recognised as a making record rather than scattered by format, and so the privacy posture attaches before any excerpt travels. 00: \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "SUBMISSIONS-LEDGER structure: a labelled table whose rows are TITLES crossed with MARKETS, carrying a small repeating response vocabulary (sent, received, rejected, accepted, withdrawn, hold) and at least one date column, where several title cells resolve to filename stems of siblings. This is the single most distinctive object in this row's world, and it is distinctive by SHAPE, not by vocabulary: it is a one-to-many index in which one file names many OTHER files that are unrelated to each other. Nothing else in the creative family owns an artifact of that shape - a shot list names parts of one production, an editorial calendar names pieces of one programme, an agency-tracking list names many markets for ONE work. 00 licenses reading it without interpretation: \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells.\"",
+      "COVER-LETTER-TO-EDITOR structure: a short document combining a salutation addressed to an editorial role rather than a person, a declared length or genre line, a third-person biographical paragraph about the holder, and a simultaneous-or-previously-published disclosure sentence. This is 00's purpose-coherence shape applied to prose - the analogue of the heading it names for applications, \"Please tell us what you are interested in studying at college and why\" - and it is what makes a folder of one .docx, one .txt bio and one .pdf into a submission rather than three loose files. The four slots together are the signal; a salutation alone is a letter.",
+      "CONTRIBUTOR-IN-A-TYPESET-ISSUE structure: a PDF whose page-one zone carries an outlet name and an issue designation, whose page numbers begin part-way through a sequence, and whose contributor note names the holder as one of several names. The zone matters and 00 says why: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen.\" Mid-sequence pagination is the half that discriminates a proof of the holder's own piece from a saved article by someone else, which has the identical masthead and belongs to a reading residual.",
+      "MANY-UNRELATED-STEMS structure: a directory of short same-format text files whose stems share no chapter token, no ordered numeric run and no common prefix, standing beside a ledger, a letter or a bio file that names several of them. The multiplicity IS the signal and its absence is decisive: one .docx of prose is nothing at all in this row. This is the structural discriminator against creative.book-manuscript, and it is structural precisely so that neither row has to reach for length.",
+      "SAME-STEM-ACROSS-ADDRESSEES structure: one stem recurring with different outlet tokens and, often, different years - `Glass Houses - Ploughshares sub`, `Glass Houses - AGNI proof`, `Glass Houses (collected)`. 00 already collects the structural half universally as \"duplicate and version-family signals\"; what this row adds is that the family's branches are DESTINATIONS, not production stages, so the family is wide and non-monotonic rather than linear. That difference is the reason this row drops `stage` from its recommended levels.",
+      "RIGHTS-AND-FEE SATELLITE structure: a short agreement or acceptance note whose subject is ONE named piece rather than a body of work, carrying a serial-rights or one-time-rights clause and a fee line. It is a satellite of a piece, not an instrument in its own right; the instrument reading belongs to creative.licensing-rights and this row claims the file only when the named piece is already present in the corpus."
+    ],
+    "needs_llm": [
+      "Deciding whether a file of continuous prose is a COMPLETE work or a section of a longer one, when there is no compile container, no ordered run and no full-manuscript sibling. This is the shared frontier with creative.book-manuscript and the correct outcome is frequently that neither fires. 00: \"Correct abstention is a successful outcome because the product's goal is reliable organization, not maximum file movement.\"",
+      "Distinguishing a personal essay from an admissions personal statement when both are untitled first-person prose in the same folder. The discriminator is an ADDRESSEE and it usually exists only inside the text, which is exactly the case 00 hands to the model: it \"may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain\" and \"must return unknown where support is insufficient.\"",
+      "Judging authorship DIRECTION on a folder of typeset PDFs - the holder's own published pieces versus a collection of other people's writing kept for reading. Surface features are identical; the evidence is a bio note, a recurring byline, or a ledger row, and where none exists the material is reading material.",
+      "Reading editorial correspondence for its outcome - a form rejection, a personal rejection, a revise-and-resubmit and an acceptance are the same length and the same sender, and the difference is idiomatic language rather than a labelled slot."
+    ],
+    "never_alone": [
+      "A GENRE OR FORM WORD alone - essay, poem, story, column, review, piece, draft - in a filename or a heading. `Essay 2.docx` is equally an academic assignment, an admissions supplement and a published column, and this row's own tempting false positives (`Personal Statement - Iowa MFA.docx`, a literature seminar paper) trip on exactly this token.",
+      "AN OUTLET OR MAGAZINE NAME alone. An organisation name is never-alone evidence anywhere in this project, and here it is worse than usual: a masthead on page one is equally strong evidence that the holder SAVED someone else's article, which routes to Reading Inbox and not to this row.",
+      "A BYLINE NAME alone. A person's name in a document is never-alone evidence, and a byline is doubly ambiguous because a corpus of other people's work carries bylines too.",
+      "WORD COUNT, PAGE COUNT OR FILE SIZE, in either direction. Reciprocates creative.book-manuscript's own clause verbatim in sense: that row must not claim a piece because it is long, and this row must not claim a piece because it is short. Length is a value; a row that fired on it would be a length dressed as a situation.",
+      "A VERSION TOKEN alone - `_v3`, `_rev`, `_final`, `_FINAL2`. 00 collects duplicate and version-family signals universally for every file in the corpus; a version family is a universal fact and never a domain claim.",
+      "PROSE IN A TEXT FORMAT alone - `.docx`, `.md`, `.rtf`, `.pages`, a PDF with a clean text layer. An extension is a routing signal, not a meaning, and the collision fixture on this node is a markdown file that is prose and is not this row's evidence.",
+      "THE ABSENCE OF A BRIEF, A CLIENT OR A COMMISSION. This row would be defined by a negative if it accepted that, and a row defined by an absence can never activate. Self-initiated authorship must be shown by a positive object - a ledger, a letter, a bio, a contributor note - never inferred from a folder that merely lacks commissioning paperwork.",
+      "A TITLE CELL IN THE LEDGER, as evidence about the file whose stem it matches. Activation is not grouping: the row named in a spreadsheet may join the piece's neighbourhood without any fact crossing onto it. 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+      "A DOWNLOAD SESSION OR A CONTAINING FOLDER NAME alone, where the folder is a generic one such as Writing or Docs. 00 permits a bounded session as a weak purpose clue only: \"A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.\""
+    ]
+  },
+  "proposed_context_terms": [
+    "PROPOSED for R6, not design. 00 states the pattern-plus-context SHAPE for course codes only and lists none of these.",
+    "simultaneous submission",
+    "previously unpublished",
+    "first serial rights",
+    "one-time rights",
+    "contributor copy",
+    "kill fee",
+    "masthead",
+    "submissions log",
+    "query the editor",
+    "on spec"
+  ],
+  "work_types": [
+    "draft",
+    "revision",
+    "final text",
+    "cover letter to an editor",
+    "pitch or query for a short piece",
+    "submissions ledger",
+    "editorial correspondence",
+    "copyedit queries or style sheet",
+    "proof or galley",
+    "tearsheet or contributor copy",
+    "published version",
+    "contributor agreement or rights note",
+    "bio and headshot boilerplate",
+    "reprint or anthology appearance"
+  ],
+  "grouping_reasons": [
+    "One stem recurring across outlet tokens and years - a version family whose branches are destinations rather than stages.",
+    "A ledger row set naming several sibling stems, which builds a neighbourhood without licensing a single fact on any member.",
+    "A packet sharing one addressee and one date: the piece, the cover letter, the bio file, sometimes a headshot.",
+    "A user-created folder already named for the corpus or for one piece, which 00 treats as the user's own vocabulary and stronger than any inference this row could make.",
+    "A run of same-format short files whose only shared property is authorship - the case where grouping is correct and activation may still fail on every individual member."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT - a dimension may only branch on a field the same entry's schema declares, and the creative placeholder declares none. Held as prose, and stated as a DIFFERENCE from the creative default template, which is: client only where the corpus genuinely serves more than one client, then project, then stage, then artifact_type. THIS ROW DIFFERS IN THREE PLACES. (1) NO CLIENT LEVEL, ever, and not merely 'usually absent'. An outlet is not a commissioner: the relationship runs the other way, the piece is offered and may be refused, and the SAME piece has many outlets sequentially. A client level here would either be empty or would duplicate one work across several folders - the failure 00 warns about when it says a parent dimension must \"provide the context required to understand the child\", because a destination that rejected the piece explains nothing about it. (2) NO STAGE LEVEL. The default's stage is monotonic - a work passes through concept, draft, review, final, delivered once. The state that actually matters here repeats per destination, so a stage level would collapse one piece's AGNI rejection and its Ploughshares acceptance into a single folder named 'submitted'. The recommendation is therefore the piece, then artifact_type: draft / submission / published / rights. (3) A FLATTENING RULE THE DEFAULT DOES NOT HAVE. Where the corpus is many one-file pieces - forty poems, a year of columns - the per-piece level produces forty folders holding one file each, which is not organisation. In that shape the recommendation flattens to artifact_type alone, with the pieces sitting together beneath it. NOT TIME-FIRST, and the temptation is real because columns and submissions are dated: 00 grants the exception to \"Photos and capture-based media\" and this material is not capture-based, so a date-first order here would be claiming the photos exception without the photos evidence. 00's standing rule applies instead: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" - and scattering is exactly what a year-first order would do to a piece that took three years and four markets to place. Whatever lands is a recommendation only: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "image",
+      "ocr",
+      "filesystem"
+    ],
+    "extensions": [
+      ".docx",
+      ".doc",
+      ".rtf",
+      ".odt",
+      ".pages",
+      ".md",
+      ".txt",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".zip",
+      ".jpg",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Glass Houses - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "continuous prose under one title heading; no chapter number, no scene heading, no character cue",
+        "same-stem run v1, v2, v3 in the same directory",
+        "sibling files in the directory share no stem with it and no stem with each other",
+        "DOCX core properties name the holder as author"
+      ],
+      "facts_legal": [
+        "the universals only: file type, creation date, language, duplicate family, version family, sensitivity status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the piece is a book chapter because it runs long, or a short work because it runs short",
+        "that the version token licenses any domain claim - version family is a universal fact",
+        "that DOCX author metadata identifies the author, since it may name a prior editor, a template or a script"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Submissions.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet named 2026; header cells Title, Market, Date Sent, Status, Response, Notes",
+        "Status values repeat from a small set: sent, rejected, accepted, withdrawn",
+        "several Title cells match filename stems of unrelated siblings in adjacent folders",
+        "one title appears on four rows against four different markets across two years"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a Market cell is a client, an employer or a commissioner",
+        "that a Title cell writes any fact onto the file whose stem it matches",
+        "that a Status value is a stage fact on any file other than this one"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "cover letter - Ploughshares - Glass Houses.docx",
+      "source_type": "text_document",
+      "observations": [
+        "salutation addressed to an editorial role rather than a named person",
+        "a declared-length-and-genre line near the top",
+        "a third-person biographical paragraph naming the holder",
+        "a sentence disclosing simultaneous submission"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the addressed organisation is an employer or an academic institution",
+        "that the bio paragraph's list of prior publications creates facts about files not present"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "AGNI 103 - proof - Glass Houses.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one zone carries an outlet name and an issue designation",
+        "two-column typeset body; page numbers begin at 87 and run to 94",
+        "a contributor note at the back names the holder among several names",
+        "PDF producer string is a typesetting tool, not a word processor"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the outlet name alone establishes this row rather than a saved reading item",
+        "that PDF metadata is truth - producer and creator fields may be stale, generic or tool-generated",
+        "that the holder published the issue; the contributor note says the opposite"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Untitled.md",
+      "source_type": "text_document",
+      "observations": [
+        "prose in markdown with YAML frontmatter carrying tags including 'essay' and 'draft'",
+        "body contains double-bracketed wikilinks to sibling notes",
+        "the containing directory holds a .obsidian/ configuration folder and hundreds of other .md files",
+        "no title heading, no addressee, no ledger and no bio anywhere in the tree"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a frontmatter tag reading 'essay' is a work-type fact for this row",
+        "that prose in a text format is evidence of authorship for publication",
+        "that the absence of a client or brief supports this row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Personal Statement - Iowa MFA.docx",
+      "source_type": "text_document",
+      "observations": [
+        "untitled first-person prose about the holder's reading and writing life",
+        "a heading naming a programme and an application cycle",
+        "sits in the same directory as three short stories by the same author",
+        "a sibling file is a curriculum vitae"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that first-person prose beside a corpus of stories belongs to that corpus",
+        "that the writing samples it references are claimed by the application packet"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Column - Sept 14 - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "short prose with a standing column title above a dated subtitle",
+        "one of fifty same-stem-prefix files whose only variable is a date",
+        "no masthead, no page numbering, no other contributor's name",
+        "an adjacent folder holds a flat plan listing other contributors' pieces for the same dates"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a date in the stem makes this material time-primary",
+        "that the adjacent issue plan's other rows belong to this holder"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "submission_packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Glass Houses.docx, cover letter.docx, bio-50w.txt and headshot.jpg",
+        "members are content-incoherent and purpose-coherent",
+        "manifest read without extraction",
+        "the archive's stem matches a Market and Date Sent pair in the ledger"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a member's facts are the archive's facts, or the reverse",
+        "that the headshot is a photo-domain subject requiring capture facts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Re - Your submission to Ploughshares.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is an editorial address; subject carries the piece title",
+        "body is a short form message declining the piece and inviting future work",
+        "sent date falls between a ledger Date Sent and a ledger Response",
+        "no attachment"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the sending organisation is an employer or a recruiting counterparty",
+        "that the outcome word in the body is a stage fact on the draft file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "aubade with power lines.docx",
+      "source_type": "text_document",
+      "observations": [
+        "one page of lineated text, no title heading, no metadata beyond timestamps",
+        "one of forty files in a directory sharing no stem with one another",
+        "the filename is the only human-readable evidence in or on the file",
+        "the directory's other member is a ledger naming eleven titles, this one among them"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the ledger's row licenses any fact on this file",
+        "that lineation is proof of a work type",
+        "that the neighbourhood's activation extends to this member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Scan 2026-03-02.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "photograph of a printed page; OCR yields an outlet masthead and the opening lines of a piece already present in the corpus as a .docx",
+        "no EXIF DateTimeOriginal, no camera make or model",
+        "OCR text is partially garbled in the two-column gutter"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that missing EXIF proves this is a screenshot",
+        "that OCR of a masthead establishes the outlet as a fact about the .docx it resembles"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Contributor Agreement - AGNI - Glass Houses.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "grants first North American serial rights for one named piece",
+        "a fee line and a payment-on-publication clause",
+        "a signature block with the holder's name and a date",
+        "the named piece exists in the corpus as a .docx and a proof"
+      ],
+      "facts_legal": [
+        "the universals only"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row claims rights instruments generally - it claims this file only because the named piece is present",
+        "that the fee line is financial-record evidence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.book-manuscript",
+      "signal": "RECIPROCATES THE EDGE THAT ROW AUTHORED, on the fixture it named. SAME FIXTURE: `Nightwork_ch03_draft.docx`, one file of continuous prose under a single heading, byte-shaped exactly like a standalone essay. THAT ROW claims it when a compile container, a full-manuscript sibling of the same stem, or a resolved ordered run makes it a section of one continuous reading sequence. THIS ROW claims it when it is complete in itself, has its own addressee or outlet, or belongs to a run of unrelated stems. Adopted unchanged, including the prohibition both ways: neither side may use word count, page count or file size as evidence. Where neither resolves, both abstain. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.submission-query",
+      "signal": "The nearest neighbour and the one most likely to swallow this row. SAME FIXTURE: `submission_packet.zip` and its members. THAT ROW claims a purpose-coherent packet assembled FOR ONE MARKET - a query or cover letter, the text offered, the bio, the tracking of that offer. THIS ROW claims the CORPUS the packet was drawn from, whose unit is the piece and whose ledger crosses many pieces against many markets. The discriminating shape is cardinality: one work to many markets is the packet row's tracking list; many unrelated works to many markets is this row's ledger. RECIPROCAL: this row must not absorb the cover letter's packet reading when the letter and its enclosures share one addressee and one date, and the packet row must not absorb the ledger, which indexes works no single packet contains. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.content-marketing",
+      "signal": "RECIPROCATES THE EDGE THAT ROW AUTHORED, on its own fixture. SAME FIXTURE: `Byline - essay on remote work - final.docx`. THAT ROW claims it on brand ownership of the destination - a slug on property the holder controls, a calendar row, a voice or style guide, a search brief, an approval trail addressed at publication. THIS ROW claims it on a personal byline, a submission or pitch to an outlet the holder does not own, an external editor's marks, a fee or rights note. Adopted unchanged. The addition this side owes: a holder who runs a content programme AND writes under their own byline will hold both, and a shared employer token is not a discriminator in either direction. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.periodical-issue",
+      "signal": "SAME FIXTURE: `AGNI 103 - proof - Glass Houses.pdf`. THIS ROW claims it as the contributor's copy of one piece - evidenced by mid-sequence pagination, a contributor note naming the holder among several, and the piece existing separately in the corpus as a draft. THE ISSUE ROW claims the assembled whole - a flat plan, other contributors' files, a masthead the holder maintains, an issue-level schedule. RECIPROCAL: this row must never claim the other contributors' pieces in the same issue, and the issue row must not absorb a contributor's own draft trail merely because its published form appears in an issue it holds. The same outlet name sits on both sides and discriminates neither. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.journalism-reporting",
+      "signal": "SAME FIXTURE: a filed 1,200-word piece with an outlet addressee. THIS ROW claims it when the file's satellites are a letter, a ledger row, a proof and a rights note. THE REPORTING ROW claims it when the satellites are SOURCE MATERIAL - interview recordings, transcripts, notes naming people who are not the holder, document requests. RECIPROCAL: this row must not claim a reported piece and thereby inherit source material it has no posture for, and the reporting row must not claim an unreported essay or review because it was filed to a news outlet. The discriminator is what the piece is made OF, not where it was sent. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.pkm-vault",
+      "signal": "THE COLLISION FIXTURE ON THIS NODE. SAME FIXTURE: `Untitled.md` - prose with frontmatter tags including 'essay' and 'draft'. It is this row's material by content and is NOT this row's evidence. THE VAULT ROW claims it on local structural evidence: a `.obsidian/` marker at the tree root, a wikilink graph, and hundreds of same-format members. 00 licenses exactly that test - \"Code-related files should rely heavily on local structural evidence, including repository roots and package files, rather than forcing semantic analysis to infer a project from arbitrary code text.\" THIS ROW claims a note out of a vault only when a positive object of its own is present - a ledger row, an editorial addressee, a proof. RECIPROCAL: this row must not harvest a vault by genre tags, and the vault row must not swallow a corpus that happens to be written in markdown when the ledger and letters are sitting beside it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "SAME FIXTURE: a tearsheet PDF of a published piece. THIS ROW claims it as an artifact of making - one state of a version family whose other members are the draft, the proof and the rights note. THE PORTFOLIO ROW claims it as a finished piece SHOWN TO SOMEONE - evidenced by a clips list, a curated selection folder, an application or pitch context, a CV alongside. RECIPROCAL: this row must not claim a curated clips folder, which is a showing and not a making; the portfolio row must not claim the draft trail behind a sample. Same bytes, opposite direction of travel. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.self-initiated-work",
+      "signal": "THE DUPLICATION CHARGE, stated as an edge because it is the likeliest reason this row should not exist. Both rows describe work with no commissioner. THAT ROW is defined by the ABSENCE of a client on any creative material - a self-funded photo series, a personal typeface, a spec campaign - and its unit is one project. THIS ROW is defined by POSITIVE objects that only a submitted written corpus has: a ledger crossing many titles against many markets, a cover letter with a bio and a simultaneous-submission line, mid-sequence pagination. SAME FIXTURE: a folder of personal work with no brief in it. That folder belongs to the self-initiated row by default and reaches this row only when one of the positive objects is present. RECIPROCAL: this row must never fire on the absence of a brief, and the self-initiated row must not absorb a submitted corpus whose ledger and letters are present. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "signal": "SAME FIXTURE: `Contributor Agreement - AGNI - Glass Houses.pdf`. THE RIGHTS ROW claims it as an operative instrument - a rights grant with a term, a territory and a signature, filed as a rights record whatever else exists. THIS ROW claims it only as a satellite of one named piece that is already present in the corpus. RECIPROCAL: this row must not accumulate a rights library, and the rights row must not detach an acceptance note from the piece's version family. Where both fire this is a two-group case for R1c, not a silent win. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.graduate-professional",
+      "signal": "SAME FIXTURE: `Personal Statement - Iowa MFA.docx`, sitting in a directory with three short stories. THAT ROW claims it on packet evidence - a programme name, an application cycle, a CV, a transcript, a portal record. THIS ROW claims prose in that directory only on its own objects, and specifically must not claim the statement because the writing samples it references are this row's material. RECIPROCAL: the application packet must not absorb the stories themselves - they exist independently, with their own submission trails, and predate the application. 00's own warning applies to the reverse case too: a purpose-coherent packet may legitimately hold content-incoherent documents. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "SAME FIXTURE: `Essay 2.docx` - untitled prose in a folder of prose. THAT ROW claims it on academic context around it: a course-code-shaped token with syllabus, lecture, credits, instructor or semester nearby, a rubric, a submission portal record. THIS ROW claims it on a ledger row, an editorial addressee or a contributor note. RECIPROCAL: this row must not claim a seminar paper because it reads like criticism, and the coursework row must not claim a published review because the holder is a student. Neither may fire on the genre word alone. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "creative.translation-project",
+      "signal": "A translated short story genuinely carries both readings on disjoint evidence: a source text in another language with a bilingual glossary and a translator's rights note on one side; a ledger row, a cover letter and a proof under the translator's byline on the other. Neither reading may drop the other's material, and no fact crosses in either direction. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.revision-round",
+      "signal": "An editor's marked-up return of an accepted piece is both a state of this corpus and a genuine revision round - a returned artifact with marks by someone other than the maker. This row owns the piece's identity and its destination trail; the revision row owns the round's own structure. Listed as a co-activation rather than a collision because the two readings do not compete for the same conclusion. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The default outcome for this row's commonest real file: a page of prose whose addressee never resolves. 00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" That describes `aubade with power lines.docx` exactly - the meaning is legible, the destination is not, and the honest result is a deferral rather than a guess.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the durable satellites that survive without a corpus around them - a lone contributor agreement, a single acceptance letter, an orphan ledger. 00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" The clause \"no broader group\" is the exact test: these files matter permanently and organise nothing.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The fallthrough that catches this row's most dangerous false positive - a folder of typeset PDFs with mastheads that turn out to be other people's writing. 00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" Every surface feature of a contributor copy is present; the byline and the pagination are not.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "For the photographed or scanned page with nothing around it. 00: \"One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.\" Routed here rather than to Temporary Screenshots deliberately, because absence of EXIF is not proof of a screenshot.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "creative.periodical-issue",
+      "why": "The same organisation - a magazine - appears in two incompatible roles on evidence this row and that row both read. Here it is a DESTINATION the holder offers work to and that may refuse it; there it is the PUBLISHER the holder assembles an issue for. The split is not a field-key split, because the creative placeholder declares no fields; it is recorded so that when option (b) of the anchor's open question is taken, the outlet is never resolved into `client` on this side. A destination that rejected a piece is not that piece's client.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two reasons, and the first is a different SHAPE of sensitivity from the creative anchor's, not a weaker degree of it. (1) THE SENSITIVE OBJECT IS THE WORK ITSELF, NOT A SATELLITE. Everywhere else in this family the protected material is separable - a model release, a call sheet, a client brief, a source recording - so a dossier can describe the work while withholding the paperwork. Short-form nonfiction inverts that: a personal essay names living third parties, an illness, a divorce, an employer, and those names are in the primary artifact's body text. The operative rule is 00's excerpt limit applied to the piece rather than to its attachments - \"It should not send full documents where a short heading or OCR excerpt is enough to resolve the question\" - and the boundary that must hold behind it: \"Paths, complete extracted text, OCR output, file hashes, image EXIF, GPS, user edits, group memberships, and raw sensitive values should remain local.\" (2) UNPUBLISHED WORK AND A LEDGER OF REFUSALS. A piece before acceptance is confidential by default, and the ledger is a record of the holder's own rejections crossed with named organisations - a document whose disclosure harm is reputational rather than financial and which has no reason ever to leave the machine. Editorial correspondence compounds it: 00 requires mail extraction to treat \"addresses and message content as potentially sensitive.\" No handling class is assigned here; that is P7's.",
+  "open_question": "Three, none of them smoothed. (1) NJ-SFW-1 - THE NAME IS A LENGTH AND THE NODE IS NOT. This row landed as 'Short-form writing' and its own charge is that a length is a value. The evidence defended a different node - a many-works-one-byline corpus tracked by submission - and the researched name says so. RECOMMENDATION TO R1c: either adopt the researched name, or keep the roster label and record in both this row and creative.book-manuscript that the label is browse-only vocabulary and that length is inadmissible evidence on either side. Doing neither leaves a live invitation for a future pass to file by word count. (2) NJ-SFW-2 - THE OUTLET HAS NO HOME IN THE VOCABULARY. This row's most-used real axis is the market a piece was sent to, and it deliberately proposed no key for it. Alternatives: (a) leave it a value inside filenames and content, which is what this row recommends and which costs the corpus its most natural search axis; (b) resolve it into the anchor's proposed `client`, which is wrong in kind, because a destination that refused the work is not a commissioner and the role_split entry above exists to prevent exactly that; (c) mint an outlet or destination key, which is a decision about the shared field table that one template must not make, and which immediately raises whether it may be a folder level - this row's answer is no, because one piece has many outlets in sequence and a level would duplicate the work. Recorded, not resolved; proposed_fields is empty. (3) NJ-SFW-3 - WHICH ROW OWNS A PIECE THAT IS BOTH REPORTED AND ESSAYISTIC. The collision with creative.journalism-reporting is argued on what the piece is made of, but a reported personal essay has interview notes AND a bio-and-cover-letter trail. This row's preference is that the presence of source material naming third parties routes the whole neighbourhood to the reporting row, because that row's privacy posture is the stricter one and the safer error is to over-protect. Confirm, or invert."
+}

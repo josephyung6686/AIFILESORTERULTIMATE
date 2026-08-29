@@ -1,0 +1,590 @@
+{
+  "id": "government.diplomatic-consular",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Diplomatic and consular post records",
+  "one_line": "J-DEPTH placeholder template for the working file of a diplomatic mission or consular post: an authority of a sending state operating on the territory of a host state, reporting back to its own capital, transacting with the host government, and providing protection and documentary services to its nationals abroad. It is not activated by an embassy name, a coat of arms, diplomatic vocabulary, a handling caption, a country pair, or by holding a visa, passport, or legalisation the post issued. Its distinct default is the post/sending-state/host-state role triangle, a purpose-coherent but content-incoherent post drawer, and an extraterritorial privacy posture in which named nationals sit inside a foreign jurisdiction. It declares no fields and no dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below is template-activation evidence on the fieldless `government` schema, never a licence to write a post, mission, country, national, case, or classification fact. The holder or producer must be evidenced on the post's own side of the mission, not as an applicant to it, a visitor of it, a citizen of it, or a reader of what it published.",
+      "a reporting despatch or telegram-shaped report carrying an explicit origin-post block and an addressed capital or desk (a from-post / to-ministry pair), plus a subject line, numbered or captioned paragraphs, a distribution or copy list, and a post reference number",
+      "a note verbale or third-person diplomatic note: mission letterhead, an outgoing note number, an addressee that is a host-state foreign ministry or protocol department, third-person 'presents its compliments' construction, a seal rather than a personal signature, and often a reciprocal incoming note number quoted",
+      "a demarche or instruction-and-delivery pair: an instruction addressed from capital to post naming talking points or a text to be delivered, matched to a delivery or readout record naming the host-state interlocutor and the date of delivery",
+      "a protocol or accreditation register produced by or for the post: staff names with diplomatic ranks, accreditation and agrément dates, identity-card or accreditation numbers, dependants, and privileges or immunities status",
+      "a consular protection or assistance case file held by the post: an internal case reference, a named national, a host-state authority (police, prison, hospital, morgue, court), a notification or consular-access date, a visit or welfare log, and next-of-kin or emergency-contact slots",
+      "a post-side documentary-services record: passport or emergency-travel-document issuance registers, notarial and legalisation act books, apostille registers, or consular reports of birth, marriage, or death abroad, each showing the issuing-side slots (act number, officer, fee taken) rather than only the holder's copy",
+      "a post-side visa or entry-permission adjudication record: an application or case number tied to interview notes, eligibility findings, refusal reasons under a named provision, and an adjudicating-officer marker",
+      "a crisis, evacuation, or travel-advice operations record scoped to a named host state or region: warden or contact networks, assembly points, evacuation phases, incident logs, or advice-change records held by the post rather than read by a traveller",
+      "a treaty or instrument action held on the negotiating or depositary side: exchange-of-letters pairs, signature or ratification instruments, depositary notifications, full-powers documents, or an internal negotiating record naming both delegations",
+      "post administration bound to the mission itself: post estate and residence records, locally engaged staff terms, mission security and guard arrangements, consular fee reconciliation, or diplomatic bag and courier records",
+      "an authority export, registry transfer, or archive manifest whose members are coherently post-produced across several of the families above and that names a post as the producing unit"
+    ],
+    "needs_llm": [
+      "deciding whether a report is post-produced field reporting addressed upward to a capital, or a capital-produced policy or country paper that merely cites a post; the discriminator is an origin-post block plus an addressed desk, not the presence of country analysis",
+      "deciding whether a named-person case is consular protection abroad or domestic constituent or social-services casework; the discriminator is a host-state authority and an extraterritorial national, not the fact that a public office holds a person's case",
+      "deciding whether a passport, visa, legalisation, apostille, or civil-registration document sits on the issuing side or the holder side; the discriminator is an issuing register, act book, officer marker, or adjudication reasoning versus a single finished document bearing the holder's own name",
+      "deciding whether a bilateral cooperation or aid record is mission representation work or programme administration of a development portfolio",
+      "deciding whether procurement, payroll, estate, or security records belong to the post as an authority unit or to an ordinary organisation with an international office",
+      "reading a handling caption, distribution marking, or release instruction as a literal source observation rather than as a sensitivity taxonomy the product may adopt",
+      "deciding whether an archive or registry export is a post transfer to a records authority or an already-accessioned archival holding"
+    ],
+    "never_alone": [
+      "an embassy, consulate, high commission, permanent mission, foreign ministry, ambassador, consul, attache, or chancery name alone; the post may be issuer, host, employer, counterparty, venue, or the subject of a news article",
+      "a coat of arms, national flag pair, mission letterhead, seal, wax stamp, or an official-looking bilingual header alone",
+      "diplomatic and international vocabulary alone: demarche, note verbale, aide-memoire, bilateral, multilateral, protocol, accreditation, credentials, treaty, ratification, consular. Advocacy organisations, international-relations research, model-UN material, journalism, and law teaching use the identical register",
+      "a handling or distribution caption such as Confidential, Restricted, For Official Use Only, or a named distribution list, alone; the caption is a literal observation, it does not prove authority-side custody, and it must never be promoted into a handling class",
+      "a country name, a country pair, or a two-letter country code alone; travel, trade, research, immigration, and photo material all carry them",
+      "a visa, residence permit, entry stamp, passport, emergency travel document, apostille, legalisation sticker, or consular certificate held by the person named on it; the recipient's copy of a document a post issued is the recipient's identity or immigration record",
+      "a scheduled appointment, fee receipt, or portal confirmation from an embassy or consulate held by an applicant; that is a service transaction, not the post's case",
+      "an international organisation, mission, or ministry name on a person's resume, contract, payslip, or calendar; diplomatic service as an employer or as an industry is not this template",
+      "a published country report, human-rights report, travel advice page, treaty text, or press release downloaded for reference; publication by a foreign ministry is not post-side custody",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Embassy, Consulate, Foreign Affairs, Diplomatic, Visa, or a country name alone",
+      "a shared download session or browser batch of consular-portal pages; “A session should never be treated as proof of topic”",
+      "dense OCR text or absent metadata as proof that an image is a consular-system screenshot; the design says the system “must not mistake the absence of EXIF for proof that an image is a screenshot”",
+      "a contact export naming diplomats, host officials, or wardens; contacts “should normally be privacy-protected rather than used to create folder proposals”"
+    ]
+  },
+  "proposed_context_terms": [
+    "note verbale",
+    "demarche",
+    "aide-memoire",
+    "agrement",
+    "accreditation",
+    "consular access",
+    "consular notification",
+    "emergency travel document",
+    "legalisation",
+    "apostille",
+    "warden",
+    "exchange of letters",
+    "full powers",
+    "depositary",
+    "locally engaged staff"
+  ],
+  "work_types": [
+    "reporting despatch, political or economic report, spot report, scene-setter, or annual post review",
+    "note verbale, third-person note, demarche instruction, delivery report, aide-memoire, or readout",
+    "credentials, agrement, accreditation, privileges and immunities, or protocol register entry",
+    "treaty action, memorandum of understanding, exchange of letters, full powers, ratification instrument, or depositary notification",
+    "consular protection case, detention or arrest notification, welfare visit, hospitalisation, death abroad, or repatriation record",
+    "passport, citizenship, or emergency-travel-document service on the issuing side",
+    "visa or entry-permission application, interview record, adjudication, refusal reasons, or review",
+    "notarial act, legalisation, apostille, or consular report of birth, marriage, or death abroad",
+    "crisis and evacuation planning, warden network, travel-advice change, or incident log",
+    "public diplomacy, cultural or scholarship programme, press engagement, or national-day event record",
+    "commercial diplomacy, trade mission, market-access representation, or investment enquiry handling",
+    "post administration: estate, locally engaged staff, mission security, diplomatic bag, or consular fee accounting",
+    "registry transfer, retirement, or archive manifest produced by the post"
+  ],
+  "grouping_reasons": [
+    "one evidenced post drawer whose members are content-incoherent but purpose-coherent: reporting, protocol notes, consular acts, services registers, and post administration cohere because they were produced by one mission, not because they share a subject. The design makes this shape first class: “The documents are content-incoherent but purpose-coherent.”",
+    "one reporting thread linked by an exact despatch, telegram, or post reference number across a draft, a cleared version, an addressed copy, and a capital acknowledgement",
+    "one note-verbale exchange linked by the outgoing note number and the incoming note number it quotes, including any enclosure named in the note",
+    "one consular protection case linked by an exact case reference, kept inside a protected, locally processed group; a national's name, nationality, host state, or detaining authority is never sufficient to join two cases",
+    "one instrument or negotiation linked by an exact instrument title plus session, round, or signature-ceremony reference, keeping delegation papers separate from the signed text",
+    "one crisis or incident bounded by an exact incident or activation reference; a shared host state or region is not a grouping anchor",
+    "one post export, registry transfer, or archive manifest kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "duplicate and version families remain universal relationships; repeated drafts of a note, report, advice page, or instrument do not acquire post, case, or classification facts from their neighbourhood",
+    "no group is a valid outcome for a standalone civic or official document; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract. PR-6 leaves the `government` schema fieldless, and a template may not branch on fields its schema has not declared. The world does have a recommendable shape, and it is recorded here as prose rather than serialized: the organizing dimension is the post itself (a sending-state authority at a named host-state location), then the post function or bounded thread (reporting thread, note exchange, protection case, services register, instrument, crisis activation), then work type. A named national, a named host official, or a named diplomat must never become an organizing dimension, because a visible branch label would disclose that a person is the subject of a consular protection case. Time is not first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Any later order stays the user's: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "contacts",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".vcf",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Post Reporting 214 - Host Coalition Talks and Budget Vote.docx",
+      "source_type": "text_document",
+      "observations": [
+        "header block pairs an origin post with an addressed capital desk and a post reference number",
+        "subject line plus numbered paragraphs ending in a captioned Comment paragraph",
+        "distribution or copy list naming other posts and internal desks",
+        "a handling caption appears above the subject line as literal text"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "a classification, handling class, or release decision derived from the caption text",
+        "that the reported political assessment is true, current, or endorsed",
+        "that every post named on the distribution list holds this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Note Verbale No. 214-2026 - Accreditation of Third Secretary.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "mission letterhead with an outgoing note number and a date",
+        "addressee is a host-state foreign ministry protocol department",
+        "third-person 'presents its compliments' opening and closing courtesy formula",
+        "mission seal in place of a personal signature; an incoming note number is quoted in the body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that accreditation was granted, refused, or is currently in force",
+        "that the named officer holds diplomatic status",
+        "that a reciprocal note exists locally merely because one is quoted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Demarche instruction - delivery report.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a capital desk account, recipient is a post account, with a reply from post reporting delivery",
+        "body names an interlocutor by post and ministry, a delivery date, and a talking-points attachment",
+        "attachment name matches a separately held talking-points document"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the host state agreed, refused, or responded",
+        "that the interlocutor's contact details may be turned into a folder level",
+        "that the attachment's contents may be inferred from its filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Diplomatic List - Mission Staff and Accreditation Status.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled columns for name, rank, arrival date, accreditation date, accreditation card number, dependants",
+        "a sheet per category of staff including locally engaged staff",
+        "a status column with values such as pending, notified, withdrawn"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any listed person currently enjoys privileges or immunities",
+        "that card numbers or dependant names may appear in a display label",
+        "that a name column licenses a person-named dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consular Protection Case CP-2026-0417 - detention notification and visit log.docx",
+      "source_type": "text_document",
+      "observations": [
+        "internal case reference in the filename and repeated in a header block",
+        "labelled slots for national's name, host-state detaining authority, notification date, and consular access dates",
+        "a dated visit log with welfare observations and a next-of-kin contact block",
+        "references to a local lawyers list handed to the detained person"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "guilt, innocence, legal status, immigration status, or the validity of the detention",
+        "that the national's name or the detaining authority may become a branch label",
+        "that another case joins this one because it shares a host state or an authority"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consular Report of Birth Abroad - act 2026-0912 - post file copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "act number, issuing post, consular officer name, and fee-taken slot",
+        "labelled child, parent, and place-of-birth fields plus a supporting-evidence checklist",
+        "annotation that the certificate original was released to the applicant"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that nationality, parentage, or civil status is established",
+        "that this is the family's own copy of the certificate",
+        "that the applicant's other identity documents inherit a post fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Visa refusal - decision and reasons - case NIV-88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "post-side case number, adjudicating-officer marker, and interview date",
+        "eligibility findings written against named statutory provisions",
+        "a reasons section and a review or reapplication instruction"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the applicant is inadmissible, or that the reasoning is correct",
+        "that this is the applicant's own refusal letter",
+        "an immigration status fact about any person"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Emergency Travel Document Issuance Register - 2026-Q3.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns for document serial, issue date, issuing officer, validity, and fee",
+        "a reason-for-issue column with values such as lost, stolen, expired",
+        "a police-report-reference column populated for a subset of rows"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any listed document is valid, used, or surrendered",
+        "that a serial number is a person identifier",
+        "that this register may be summarised in a general group summary"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Crisis Warden Network - Host Region North.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "vCard entries with names, addresses, phone numbers, and an organisation field naming the post",
+        "notes fields naming assembly points and warden zones"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a warden is a mission employee or holds any status",
+        "any folder proposal derived from contact data; the design says contact formats “should normally be privacy-protected rather than used to create folder proposals”",
+        "that residential addresses may appear in a display label"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Bilateral MOU on Education Cooperation - signed text and exchange of letters.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "two ministries named as participants with parallel signature blocks and dual-language columns",
+        "an exchange-of-letters annex with reciprocal reference numbers",
+        "entry-into-force and duration articles"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the instrument is in force, binding, ratified, or currently observed",
+        "that the holder is a party, negotiator, or depositary",
+        "that a dual-language layout proves a treaty rather than a translated commercial agreement"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Head of Mission - host ministry calls and National Day.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is a post account; attendees include host-ministry addresses",
+        "event titles carry exact note or reporting reference numbers for two entries",
+        "a recurring internal post management meeting"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a meeting occurred, or what was said in it",
+        "that an attendee list establishes a relationship or a case",
+        "that events without an exact reference join a reporting thread"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Post estate and locally engaged staff - Q2 2026 payroll and lease schedule.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheets for residence and chancery leases, guard-force contract, and locally engaged staff pay bands",
+        "columns for host-state tax and social-security withholding",
+        "a mission cost-centre code repeated in headers"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "an employment, tax, or immigration status conclusion for any staff member",
+        "that a payroll sheet is evidence of diplomatic status",
+        "that the cost-centre code identifies a person"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consular fees reconciliation - August 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "act-type column keyed to the notarial and legalisation act book",
+        "counts, tariff, and banked-amount columns with a variance row",
+        "a receipt-range column"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the reconciliation is correct or that a variance is an irregularity",
+        "that fee rows identify the applicants who paid them"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - consular case queue.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: window chrome, cursor, and a display-resolution frame",
+        "OCR text shows a case-queue table with case references and status values"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the capture belongs to a post because the OCR text resembles a case system",
+        "that absent EXIF proves screen origin; the design says the system “must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any case fact read out of low-confidence OCR"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Post registry transfer 2026 - retired consular files.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists members across several post families with retention codes and a transferring-post identifier",
+        "a covering transfer schedule addressed to a national archives body",
+        "no member is extracted; the manifest alone is read"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the transfer was accepted, or that the receiving body now holds custody",
+        "member-level facts inferred from member filenames",
+        "that retention codes may be turned into handling classes"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "My Schengen visa - approved 2026.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photographed visa sticker bearing the holder's own name, a consulate name, and a machine-readable zone",
+        "no issuing register, act number, officer marker, or adjudication reasoning anywhere in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a consulate name activates this template",
+        "an immigration or travel-eligibility status fact",
+        "that the image joins any post-side visa case"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Country Human Rights Report 2026 - published.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "foreign-ministry publication branding, a public release date, an ISBN or publication number",
+        "country chapters written for an external audience with no addressee and no post reference",
+        "no distribution list and no origin-post block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that publication by a foreign ministry is authority-side custody",
+        "that the reader is a post, a desk, or a diplomat",
+        "that its country chapters join any reporting thread"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "UN side event - NGO delegation briefing and lobbying plan.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "multilateral session and agenda-item references, delegation lists, and demarche-shaped talking points",
+        "producer block names a civil-society organisation with charity registration details",
+        "an asks-and-targets table naming state delegations to be lobbied"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that diplomatic vocabulary or a session reference evidences a public authority",
+        "that lobbying targets are correspondents of the holder",
+        "any advocacy outcome"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Trade mission to host market - participant pack and matchmaking schedule.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a mission-supported programme with an embassy commercial-section contact block",
+        "participant company profiles, matchmaking meeting grid, and a delegate fee schedule",
+        "no post reference number and no post-side approval or reporting slot"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that an embassy contact block puts the file on the post's side",
+        "that a participating company's copy is a mission record",
+        "commercial outcomes or market-entry conclusions"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "consular_case_system_export.dat",
+      "source_type": "opaque_binary",
+      "observations": [
+        "unrecognized container; no readable manifest, header, or text",
+        "filename is the only suggestive evidence"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the file contains consular cases because its name says so",
+        "a sensitivity result derived from the filename",
+        "that it should be opened by a general-purpose extractor to improve recognition"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.public-authority-record",
+      "signal": "The generic authority-side row and this one compete over exactly the same bytes for post administration, correspondence registers, meeting records, procurement, budget, and registry transfers. `Post registry transfer 2026 - retired consular files.zip` is the shared fixture. This template requires the post/sending-state/host-state triangle in the evidence: an origin post operating outside its own state, addressing a capital or a host-state ministry. Absent that triangle, an authority record with only a body name and internal governance shape stays with the generic authority record. Reciprocally, the generic row must not claim a note verbale, a consular protection case, or an issuance register merely because a public body produced it.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.constituent-casework",
+      "signal": "Both hold named-person case files opened by a public office, with case references, contact blocks, chase correspondence, and a protected posture. `Consular Protection Case CP-2026-0417 - detention notification and visit log.docx` is the shared fixture: strip the host-state detaining authority and it reads as ordinary casework. This template requires the national to be outside the sending state's territory with a host-state authority as counterparty and a post as case owner. Reciprocally, constituent casework keeps every case where the office and the person are inside the same jurisdiction, including immigration or passport enquiries handled by a domestic representative on a constituent's behalf.",
+      "design_cite": null
+    },
+    {
+      "domain": "identity.immigration-visa",
+      "signal": "Visas, residence permits, entry stamps, emergency travel documents, and consular civil-registration certificates exist on both sides of the same counter. The shared fixture is the visa: `Visa refusal - decision and reasons - case NIV-88213.pdf` on the post side against `My Schengen visa - approved 2026.jpg` on the holder side. This template requires issuing-side structure: a case or act number, an adjudicating or issuing officer, reasons, a register row, or a fee-taken slot. Reciprocally, immigration and visa records keep every finished document, appointment confirmation, application copy, and status letter held by the person named on it, and the presence of a consulate name never moves it here.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.international-development",
+      "signal": "A mission frequently administers a bilateral cooperation or aid portfolio, so programme design, monitoring, evaluation, and partner-government correspondence appear on both sides. `Bilateral MOU on Education Cooperation - signed text and exchange of letters.pdf` is the shared fixture. This template keeps the representation and instrument side: the negotiating record, the exchange of letters, the note verbale conveying it, the reporting on it. Reciprocally, international development keeps the programme lifecycle once an evidenced portfolio, grant, or implementing-partner structure exists, even where the post is the administering unit.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.archives-recordkeeping",
+      "signal": "Registry transfers, retention schedules, and manifests sit on both sides of the accession line. `Post registry transfer 2026 - retired consular files.zip` is the shared fixture. This template holds the transferring post's own schedule and covering correspondence up to the point of transfer. Reciprocally, archives and recordkeeping holds the record once accession, arrangement, description, catalogue identifiers, or access-review structure is evidenced on the receiving side.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.advocacy-campaign",
+      "signal": "International advocacy reproduces the diplomatic register exactly: session references, delegation lists, demarche-shaped asks, briefing packs, and multilateral agenda items. `UN side event - NGO delegation briefing and lobbying plan.pdf` is the shared fixture. This template requires an evidenced public authority producing or receiving the paper on a post's side. Reciprocally, advocacy campaign keeps the record whenever the producer block, registration details, or funding structure evidences a civil-society organisation, however governmental the vocabulary looks.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "Trade-mission packs, market-entry briefings, and matchmaking schedules are produced by posts and by the companies that join them. `Trade mission to host market - participant pack and matchmaking schedule.pdf` is the shared fixture. This template requires post-side production: a post reference, an approval or reporting slot, or a commercial-section case. Reciprocally, go-to-market keeps a company's own copy of a trade-mission pack, and an embassy contact block on it changes nothing.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "a consular protection case, issuance register, adjudication file, protocol register, warden list, post payroll, or mixed post packet is recognized as sensitive but has no safe accepted group; also the destination for the holder's own visa, passport, or consular certificate when no other domain group is active",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone readable official document — a single note verbale, a signed instrument, a fee reconciliation, a legalisation certificate, a public notice — has durable value but no post-side workflow and no accepted neighbouring group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published country report, travel-advice page, treaty text, foreign-policy paper, or press release is held for reading rather than as post-side work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document is plainly official or international in register but the holder role is unresolved — post, ministry desk, advocacy organisation, participating company, researcher, or applicant cannot be separated from the evidence available locally",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a case-system export, encrypted registry container, damaged transfer, or unknown binary cannot be read, and its filename must not manufacture a post, case, or sensitivity result",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "when": "an isolated consular appointment confirmation, fee receipt, or courier booking held by an applicant or by the post has no accepted case or administrative group",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The post drawer routinely contains named nationals in adverse circumstances abroad — detention, hospitalisation, death, destitution, evacuation — together with next-of-kin contacts, identity and travel-document serials, visa adjudication reasoning, warden home addresses, locally engaged staff pay and host-state tax data, protocol registers naming diplomats and dependants, and pre-decisional reporting. The extraterritorial setting sharpens this: the persons named are inside a jurisdiction that is not the sending state's, so exposure can have consequences the product cannot foresee or measure. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” Handling captions and distribution markings found in these files are literal source observations only; this phase records `potentially_sensitive` and nothing else, and P7 owns handling classes. Published ministry reports and signed public instruments can be low-risk bytes on their own, but their presence inside a post packet cannot lower the packet's posture.",
+  "open_question": "NEEDS-JOSEPH: three unsettled items. (1) Whether the sending-state / host-state / post triangle is representable at all once PR-6 is revisited, or whether every post concept stays prose; if representable, whether a post identifier could ever be destination-eligible given that a country-named branch can itself disclose a person's location or case. (2) Whether the post-side issuance and adjudication records (visa, passport, emergency travel document, civil registration abroad) belong to this template or reciprocally to `government.permit-licensing` as the general decision-making row; this row currently claims them on the extraterritorial-post argument and the alternative is a clean function-first split that would leave this row holding only reporting, protocol, and protection. (3) Whether handling captions and distribution markings may ever be retained as literal observations for local review, or must be dropped at extraction so they can never be mistaken for a sensitivity vocabulary."
+}

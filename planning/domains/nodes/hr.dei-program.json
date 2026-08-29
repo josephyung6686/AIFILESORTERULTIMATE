@@ -1,0 +1,436 @@
+{
+  "id": "hr.dei-program",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Workforce diversity, equity and inclusion programmes",
+  "one_line": "The employer-side record of measuring and acting on the composition and inclusiveness of its OWN workforce: protected-characteristic self-declaration instruments, monitoring exports, statutory equality returns and pay-gap disclosures, equality/affirmative-action plans, pay-equity and adverse-impact analyses, employee network and sponsorship programmes, and progress reporting against stated objectives. It is not established by the words diversity, equity or inclusion, by a DEI-titled training certificate, or by an external sustainability report; activation requires a workforce population or a self-declaration instrument joined to a monitoring, reporting or programme structure. PLACEHOLDER row on the fieldless hr schema (PR-6): fields stay empty and every characteristic value is treated as protected before any cloud step.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a workforce data export whose header row JOINTLY names an organisational population (business unit, site, grade, job group, level) and at least one protected-characteristic column (ethnicity, race, gender identity, disability status, veteran status, religion, sexual orientation) together with a monitoring measure (headcount, share, representation, promotion rate, attrition). The joint header structure is the signal; a characteristic column alone is a survey or census artefact, and a population column alone is ordinary workforce analytics",
+      "a statutory equality return whose page-one or sheet labels match a named reporting instrument's fixed structure: job-category rows crossed by race/ethnicity and sex counts beside an establishment or employer identifier and a filing period; or mean and median hourly pay gap and bonus gap figures beside a pay-quartile distribution and a signed accuracy statement",
+      "a self-declaration instrument carrying a protected-characteristic question set beside an explicit non-response option (prefer not to say, I do not wish to answer, decline to state) and a voluntariness or lawful-basis paragraph. The non-response option is the discriminating slot: it distinguishes an employer monitoring instrument from a demographic field on an ordinary personnel form",
+      "an equality or affirmative-action plan whose labelled sections combine job groups, an availability analysis, an incumbency-versus-availability comparison, and placement or representation goals with a plan period",
+      "a pay or selection analysis whose columns pair a remuneration figure or a stage-by-stage outcome count with a group flag and a computed per-group ratio, gap or regression residual, plus a model or methodology tab",
+      "a workforce network or cohort programme record whose labelled slots combine a named employee network or targeted cohort, an executive sponsor, eligibility criteria, objectives, and a budget or activity plan explicitly scoped to the organisation's own employees",
+      "a governance progress report whose tables restate the organisation's own representation against previously stated objectives with named baselines, reporting periods, and an owner per objective"
+    ],
+    "needs_llm": [
+      "whether a demographic cut describes the organisation's OWN workforce or is a benchmark, market-research or peer dataset about other employers. Identical column shapes occur in both; only the population statement, employee identifiers or an internal system header settle it",
+      "whether a document is the governing equality or equal-opportunities policy, which is a business_operations record, or programme delivery and monitoring carried out under it, which is this row",
+      "whether protected-characteristic data describes employees or job APPLICANTS. Applicant-stage monitoring is a recruiting corpus; this row holds it only when the artefact is the employer's aggregate monitoring or statutory reporting instrument",
+      "whether a low-count cell is a deliberate suppression artefact or an unsuppressed re-identifying figure. Aggregation is not proof of safety here; the safe response is to protect, keep the judgement local, and abstain rather than summarise the cells",
+      "whether an inclusion or belonging measure is a demographic cut of one engagement wave, whose instrument and response file belong to the engagement-survey sibling, or a standalone monitoring instrument fielded for this programme",
+      "whether a heterogeneous packet is purpose-coherent as one reporting obligation when its members include a data extract, an analysis workbook, legal advice, a narrative draft, and a signed return"
+    ],
+    "never_alone": [
+      "the words diversity, equity, inclusion, DEI, EDI, belonging, equality, representation, or bias alone. They appear in recruitment marketing, ESG and sustainability reports, vendor pitch decks, job adverts, university syllabi, and academic articles",
+      "protected-characteristic vocabulary alone: ethnicity, race, gender, disability, veteran, religion and sexual orientation appear in census extracts, clinical letters, immigration forms, customer market research, and survey instruments that are not about a workforce",
+      "a completion certificate, roster row, or calendar invite for a DEI-titled training course. The topic of a course is a value of a work type, not a filing world; a training completion record is a learning record whatever its subject",
+      "one individual's own self-declaration or adjustment record held in a personal corpus. That is the individual's identity, health or employment record; the employer-side monitoring reading requires a workforce population or an employer instrument",
+      "an external sustainability, ESG, annual-report or careers-site section about people, however many representation figures it prints. Its audience is external and it carries no workforce rows",
+      "the employer's own name, letterhead, email domain, or a parent directory named DEI, EDI, People, Inclusion, or Confidential",
+      "a percentage, gap figure, ratio, index score, base size, bare year, or acronym such as EEO, AAP, GPG, ERG, MBE",
+      "a supplier, contractor or vendor certification of diverse ownership. That describes a supply base, not a workforce, and belongs with sourcing evidence",
+      "source type or extension alone, including spreadsheet, email, calendar, PDF, image, OCR, archive, or contacts",
+      "absence of EXIF as proof that an image of a diversity dashboard, self-ID portal, or monitoring return is a screenshot",
+      "membership in a download session, mailbox folder, or shared-drive folder"
+    ]
+  },
+  "proposed_context_terms": [
+    "protected characteristic",
+    "prefer not to say",
+    "decline to state",
+    "voluntary self-identification",
+    "monitoring data",
+    "representation",
+    "availability analysis",
+    "utilisation analysis",
+    "placement goal",
+    "job group",
+    "pay gap",
+    "median hourly",
+    "pay quartile",
+    "bonus gap",
+    "snapshot date",
+    "pay equity",
+    "adverse impact",
+    "selection rate",
+    "impact ratio",
+    "employee resource group",
+    "affinity network",
+    "executive sponsor",
+    "sponsorship cohort",
+    "reasonable adjustment",
+    "accessibility standard",
+    "small cell suppression",
+    "base size"
+  ],
+  "work_types": [
+    "workforce diversity monitoring export or representation report",
+    "statutory equality return or published pay-gap disclosure",
+    "voluntary self-identification instrument, declaration record, or declaration-rate report",
+    "equality or affirmative-action plan with availability, utilisation and goal analysis",
+    "pay equity audit or remuneration-gap analysis and its methodology",
+    "adverse-impact or selection-rate monitoring analysis",
+    "inclusion, belonging or fairness measure derived from an employee listening instrument",
+    "employee resource group charter, membership record, budget request, or activity plan",
+    "mentoring, sponsorship, or targeted development cohort record",
+    "accessibility and workplace-adjustment programme standard or monitoring record",
+    "DEI strategy, objective set, or board and executive progress report"
+  ],
+  "grouping_reasons": [
+    "one reporting obligation instance: a snapshot or reference date with its data extract, analysis workbook, narrative draft, review advice, sign-off and filed or published return",
+    "one monitoring wave: an instrument, its response or declaration file, the declaration-rate report, and the resulting representation analysis",
+    "one named programme: a network or cohort across charter, eligibility, budget, calendar, membership record and activity report",
+    "one plan period: an equality or affirmative-action plan with its job-group analyses, goals, and progress updates",
+    "sparse members such as a one-page approval, a suppression note, or a chart image may join an accepted group by membership without copying a population, characteristic, period or gap figure onto them",
+    "one duplicate or version family through universal duplicate_family and version_family facts, not through a DEI-only field",
+    "no group is valid when a lone DEI-worded file lacks a workforce population, a self-declaration instrument, or a reporting structure. Protected residual placement is safer than inventing an employer monitoring corpus"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6: the hr schema declares no canonical field rows, so no proposed key may become a folder dimension here. The recommendation is held as prose for R1c and differs deliberately from the hr default. The hr default leads with work type or a named people programme, then workforce unit or cohort, then people cycle. This row inverts and truncates that: lead with the reporting or programme instance (the obligation or the named network), then work type, and treat workforce unit as NOT visible by default, because a folder tree branching on business unit or site publishes the composition of small populations at exactly the granularity that re-identifies individuals. An employee name level is forbidden outright, since the branch label would itself disclose a declared characteristic. It is not time-first: a snapshot date qualifies a reporting obligation and is not the world's organising fact; two files bearing the same year may belong to unrelated obligations.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "code_structured",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".eml",
+      ".ics",
+      ".png",
+      ".zip",
+      ".json"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "EEO-1 Component 1 - 2026 - submitted certification.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "fixed job-category rows (executive and senior officials, professionals, technicians, craft workers, laborers) crossed by race and ethnicity columns and by sex",
+        "establishment identifier, employer identification block, and a reporting-period label",
+        "a certification page with a signatory and submission timestamp"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any hr fact as canonical, because this placeholder schema declares no fields",
+        "that a submitted return proves the underlying counts are correct, complete, or currently accurate",
+        "that a filed return is low sensitivity because filing is compulsory",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Gender pay gap report 2026 - snapshot 2026-04-05 - published.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "mean and median hourly pay gap figures, bonus gap figures, and the proportion of each group receiving a bonus",
+        "a four-quartile pay distribution table",
+        "a signed statement of accuracy by a named director, and a narrative section on planned actions"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a gap figure means discrimination, unequal pay for equal work, or non-compliance",
+        "which jurisdiction's reporting duty applies, or whether it was met on time",
+        "that the published copy and the internal calculation workbook carry identical figures"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Voluntary self-identification - completed - 004218.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an employee identifier slot beside question sets for race and ethnicity, gender identity, veteran status, and disability status",
+        "each question set carries an explicit non-response option worded I do not wish to answer",
+        "a paragraph stating that completion is voluntary and that responses are held separately from the personnel file"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "the declared characteristic itself as a stored fact, a search facet, or any part of a folder label",
+        "that a non-response means a characteristic is absent or unknown-but-inferable",
+        "that a separately held declaration may be joined to the payroll or personnel corpus to enrich it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Diversity monitoring export - representation by level and site.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row pairs business unit, site and grade with headcount, share of women, share by ethnicity grouping, and twelve-month promotion and leaver rates",
+        "several cells contain a suppression marker rather than a number, and a footnote names a minimum base size",
+        "an export header naming the source HRIS report and the extract date"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a suppressed cell may be reconstructed from row and column totals for display or summarisation",
+        "that an aggregate is safe to place into a remote prompt because no name appears",
+        "that this is a benchmark dataset about other employers"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Pay equity analysis - 2026 review - model and residuals.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns pair employee identifier, job group, tenure, performance rating and base pay with a predicted-pay column and a residual",
+        "a separate tab documents the regression specification, the excluded records, and the group flags used",
+        "a summary tab reports adjusted and unadjusted gaps by group with base sizes"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a residual identifies an underpaid or overpaid individual, or supports a pay decision",
+        "that the remuneration columns become a finance record merely by being present",
+        "that model outputs are findings rather than one analyst's specification"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Affirmative action plan - Site 04 - availability and goals.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled sections for job-group structure, availability analysis, incumbency compared to availability, and placement goals",
+        "a plan-period header and a designated responsible official",
+        "narrative sections on outreach and record-keeping obligations"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a placement goal is a quota, a commitment, or a legal obligation",
+        "that a stated obligation in the narrative binds the user or determines retention",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Adverse impact analysis - graduate scheme 2026 - selection rates.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "applicant counts by stage (applied, screened, assessed, offered) crossed by group, with a selection rate and an impact ratio per group",
+        "a note that stage data was drawn from the applicant tracking system export",
+        "no employee identifiers and no organisational unit column"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that applicants are workforce members, or that the file describes the employer's composition",
+        "that an impact ratio establishes discrimination or a defect in the selection process",
+        "that recruiting-stage data may be joined to the workforce monitoring corpus"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employee network charter - Women in Engineering - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for network purpose, eligibility, executive sponsor, committee roles, annual objectives, and an indicative budget",
+        "an approval block naming a people function reviewer and a version marker",
+        "membership is described as open to employees of the organisation"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that named committee members have declared any characteristic",
+        "that this is the governing corporate policy rather than a programme instrument under it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Inclusion index 2026 - engagement survey cut by demographic.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "item-level scores for statements such as I can be myself at work, with an index score computed per item block",
+        "columns cut the index by ethnicity grouping, disability status and grade, each with a base size",
+        "a header naming the 2026 engagement wave, its fielding window, and the response rate"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the survey wave itself, its instrument, or its raw response file belongs to this row",
+        "that a small base size may be reported without suppression because the source was anonymous",
+        "that a low index score identifies a team, manager, or individual"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Unconscious bias training - completion roster - Q2 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are employee identifier, employee name, course title, assignment date, completion date and status",
+        "the course title contains a DEI-shaped phrase; no characteristic column is present",
+        "an export header naming the learning management system"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a DEI-titled course topic makes this a diversity monitoring record",
+        "that non-completion is a performance, conduct, or attitude fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "2026 Sustainability Report - Our People section.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "narrative prose and photography addressed to investors and customers, with pull-quote representation percentages",
+        "a reporting-framework index and an assurance statement covering the report as a whole",
+        "no workforce rows, no organisational unit table, and no declaration instrument"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that printed representation figures constitute a monitoring export",
+        "that an external publication activates an employer-side workforce corpus",
+        "that the figures reconcile to any internal extract"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Supplier diversity spend - FY26 tier 1 and tier 2.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are supplier legal name, certification type, certifying body, certificate expiry, category and annual spend",
+        "tier-two rows attribute subcontracted spend through a prime supplier",
+        "totals reconcile to a procurement category report, not to a headcount"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a diverse-ownership certification is a workforce characteristic",
+        "that supply-base composition is workforce composition",
+        "that a certificate expiry establishes current certification status"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-06-11 at 09.14.22 - HRIS diversity dashboard.png",
+      "source_type": "image",
+      "observations": [
+        "screen-origin evidence: display-shaped dimensions, an operating-system capture filename pattern, and visible browser chrome",
+        "OCR may recover representation tiles, a unit filter, and small unsuppressed counts",
+        "no export header and no underlying rows"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "absence of EXIF as proof of screen origin; positive screen evidence is required",
+        "that OCR-recovered counts are an authoritative monitoring extract",
+        "that a visible unit filter names the population the dashboard actually covered"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "DEI programme archive 2019-2024 - password protected.zip",
+      "source_type": "archive",
+      "observations": [
+        "the archive is encrypted; only member names and sizes are visible, and several suggest monitoring and case material",
+        "the filename carries a programme-shaped phrase and a year range",
+        "no manifest is readable"
+      ],
+      "facts_legal": ["file_type", "creation_date", "sensitivity_status"],
+      "must_not_conclude": [
+        "any programme, population, period or characteristic fact from member names",
+        "that the archive should be cracked, unpacked, or uploaded to improve classification",
+        "a sensitivity result derived from the word DEI in the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "SAME FIXTURE BOTH SIDES: Diversity monitoring export - representation by level and site.xlsx, one export whose header row pairs business unit, site and grade with headcount, share and rate columns. One column class discriminates: with NO protected-characteristic dimension in the header the item counts toward the neighbour's population measurement, even when a DEI function commissioned it; the moment a characteristic column (ethnicity, race, gender identity, disability, veteran status) sits in that same header, it counts toward this row and carries this row's suppression and local-only posture. The requesting team, the word diversity in the filename, the workforce-spreadsheet shape and the presence of an organisational unit column discriminate nothing - the discipline follows the column, not the requester.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.engagement-survey",
+      "signal": "SAME FIXTURE BOTH SIDES: Inclusion index 2026 - engagement survey cut by demographic.xlsx, an index built from listening items and then cut by ethnicity grouping, disability status and grade. The wave apparatus decides which side the item counts toward: a numbered first-person item bank on one repeated ordinal scale, a fielding window, a participation record or the raw response export makes it the neighbour's one bounded listening wave; a characteristic cut carried as a standing monitoring measure reported against previously stated objectives makes it this row's. Neither row may claim both halves - this row takes the cut by membership without copying the wave's facts (group_without_copying_facts: true). The word inclusion, a suppression note and a base-size column appear on both sides and settle nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.training-development",
+      "signal": "SAME FIXTURE BOTH SIDES: Unconscious bias training - completion roster - Q2 2026.csv, columns employee identifier, employee name, course title, assignment date, completion date, status. A course identifier joined to a per-learner completion state is a learning record whatever the course subject, so the roster counts toward the neighbour; a DEI-shaped course title is the topic of a work type, not a filing world. The item counts toward this row only when the same underlying bytes have been recut into a completion or participation rate broken out by protected characteristic - and then the derived analysis, not the roster, is the member. The DEI phrase in the title and the employer's own LMS export header sit on both sides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "SAME FIXTURE BOTH SIDES: Adverse impact analysis - graduate scheme 2026 - selection rates.xlsx, protected-characteristic data attached to one selection process. Whether the rows are PEOPLE or STAGES decides it: named applicants, an applicant-tracking export, scorecards, or a requisition-shaped identifier in a labelled slot make the item the neighbour's custody corpus of other people's personal data; aggregate applied/screened/assessed/offered counts crossed by group with a per-group selection rate and impact ratio, carrying no candidate identity, no contact channel and no requisition slot, make it this row's monitoring instrument. Applicants are never workforce members, so an item counted toward this row must not be joined back to the workforce monitoring corpus at individual level. The stage vocabulary and the group flag appear on both sides.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "SAME FIXTURE BOTH SIDES: Equal Opportunities Policy v6 - approved.pdf, and equally Employee network charter - Women in Engineering - v3.docx - both are approved, versioned, owner-bearing documents about equality. A FILLED document-control block (owner or approver, version, effective or issue date, next-review date) over numbered normative clauses using must, shall or is required to makes the item the neighbour's governing controlled document; delivery apparatus authored UNDER that policy - a plan period with job groups, an availability analysis and placement goals, or a named network with eligibility, an executive sponsor, objectives and a budget - makes it this row's programme instrument. Equality vocabulary, an approval block, a named reviewer and a version marker sit on both sides and discriminate nothing. The signed acknowledgement of the policy is a third thing and is neither row's by this seam.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.corporate-regulatory-filings",
+      "signal": "SAME FIXTURE BOTH SIDES: EEO-1 Component 1 - 2026 - submitted certification.pdf, one compelled return that is at once a submission to an authority and a workforce composition table. The neighbour's claim rests on the compelled-obligation apparatus - issuing authority, entity identifier, filing reference, a machine-issued receipt with a received timestamp, a statutory deadline or penalty notice; this row's rests on the return being the terminal member of one monitoring obligation, grouped with the same snapshot's data extract, analysis workbook and sign-off, and built out of protected-characteristic counts. The certification page, the signatory, the establishment identifier and the reporting period sit on both sides. Genuinely unsettled: NJ-DEI-1 asks R1c to decide, and warns that counting it toward the neighbour must not let a compulsory filing inherit a lower-sensitivity posture than the characteristic data it was built from.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "finance",
+      "signal": "SAME FIXTURE, HELD BY BOTH: Pay equity analysis - 2026 review - model and residuals.xlsx. One workbook carries base pay, predicted pay and residual columns per employee - which is finance's safety reading, detected and protected before any cloud step - and group flags with adjusted and unadjusted gaps by group, which is this row's fairness diagnostic. This is a co-hold, not a mutex: neither reading cancels the other, and the item counts for both. The remuneration columns do not make the workbook a finance record of the individual, and the group flags do not exempt it from finance's local-only protection; the fixture is marked also_schema: finance for exactly this reason.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    "Protected Records",
+    "Independent Records",
+    "Review Later",
+    "Reading Inbox",
+    "Unsupported or Encrypted",
+    "Temporary Screenshots"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The evidence set is built out of protected or special-category characteristics declared by identifiable individuals, and the aggregate artefacts do not neutralise that. A representation table cut by unit, grade and characteristic re-identifies people whenever a cell is small, and suppressed cells are frequently reconstructable from margins, so aggregation must not be read as anonymisation. Declaration instruments additionally carry a voluntariness and separate-holding expectation that joining them to the payroll or personnel corpus would defeat. The row therefore defaults to local-only handling and abstention rather than remote summarisation. This is the only sensitivity value available in this phase; P7 owns handling classes and no class is asserted here.",
+  "open_question": "Whether the statutory-return leg (EEO-1, pay-gap disclosure, affirmative-action plan) belongs to this row or to business_operations.corporate-regulatory-filings, and whether this row survives R1c as distinct from hr.workforce-analytics once the demographic-cut fixture is adjudicated. See NJ-DEI-1 through NJ-DEI-5 in the research memo."
+}

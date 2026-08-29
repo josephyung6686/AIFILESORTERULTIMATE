@@ -1,0 +1,696 @@
+{
+  "id": "government.parks-public-lands",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Parks, public lands and heritage site management",
+  "one_line": "The estate-side record of land or a fixed heritage site held for public benefit, kept by the body that holds or manages it: the designation or vesting instrument that binds the parcel, the multi-year management plan written against that parcel, the boundary and compartment geometry, the access permissions and byelaw notices attached to it, the conservation and monitoring record of its features, and the visitor operation run on it. It is distinguished from the government default not by subject matter but by its organizing anchor and its privacy rule: the durable unit of custody is a designated place rather than a proceeding, a meeting cycle, or a named person, and the material that must be protected is precise feature and incident location rather than personal casework. It declares no field rows under PR-6, so activation unlocks recognition, safety posture, universal facts and grouping only.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every signal below inherits the government schema's role precondition. None of them licenses a government fact, because the schema declares no field rows. A signal fires only when the holder is evidenced as the body that holds, manages, or is statutorily responsible for the land or site, not as its visitor, neighbour, contractor, tenant, regulator's correspondent, or a reader of its publications.",
+      "a designation, vesting, dedication, or notification instrument that binds a parcel rather than a person: an issuing-authority block plus a durable site or designation reference plus a boundary schedule, legal land description, or register or inventory entry number, and no applicant slot",
+      "a multi-year management, conservation, or masterplan document whose front matter names the managing body and one estate or site reference, and whose body carries condition objectives, compartment or zone sections, a prescription or works programme, and a stated plan period and review date",
+      "geospatial boundary or compartment evidence held alongside a designation or estate reference: a vector layer, gazetteer of compartment identifiers, or coordinate-bearing survey table whose feature attributes repeat the same site reference that appears in the plan or notice",
+      "a feature-condition or species and habitat monitoring series recorded against fixed estate units — repeated unit or compartment identifiers, a condition or assessment category, an assessor or surveyor slot, and a survey date — where the recorder is the managing body",
+      "an access, permission, or byelaw record attached to the parcel rather than to an applicant's own project: a trail or area closure notice, permissive path or right-of-way record, filming, event, grazing, or concession permission naming a compartment, and an issuing land-manager office block",
+      "an estate operations record whose rows are the site's own fixed assets and duties: infrastructure and asset registers, tree or structure safety inspection rounds, visitor counter series by gate or entrance, and warden or ranger patrol rosters keyed to the same compartments",
+      "a heritage-site conservation record where the site is immovable and in the holder's care: a consent or works record for a scheduled monument, listed structure, or historic landscape, with a site inventory reference, condition survey, and specification of conservation works",
+      "an estate archive or export manifest whose paths repeatedly encode one site, reserve, park, forest, or property rather than one case, meeting, or programme; manifests are inspected without unpacking",
+      "an email or calendar record whose structured sender, organizer, attendee, subject, attachment, or location slots tie it to an already evidenced estate workflow by an exact site, compartment, plan, or permission reference; a land-agency email domain alone never fires"
+    ],
+    "needs_llm": [
+      "deciding the ESTATE-CUSTODY ROLE when identical bytes may sit with the managing public body, a conservation charity or trust, a private estate owner, a contractor, a concessionaire, a tenant farmer, a campaigner, a researcher, or a visitor; interpretation may use only a bounded local dossier and must abstain when custody is unresolved",
+      "separating a public land-managing body from a conservation charity, national trust, community land trust, commercial forestry or leisure operator, or a parks-branded contractor when the branding, plan structure, and statutory vocabulary are nearly identical",
+      "deciding whether a plan-shaped document is an operative management plan for a held parcel or a consultation draft, a research thesis about the site, an advocacy report, or a reading copy of another body's plan",
+      "recognizing an unlabeled compartment prescription, warden narrative, condition-assessment rationale, or works specification whose function is expressed only in prose",
+      "deciding whether a permit, consent, or licence file is estate-side (the land manager granting use of its own parcel) or regulator-side (a licensing authority deciding a third party's application), when both carry an authority block, a case reference, and reasons",
+      "judging whether a coordinate-bearing table or geospatial layer discloses a protected feature location, and abstaining from any remote processing when it might",
+      "abstaining whenever the evidence cannot cite estate-side custody of a specific place; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a park, forest, reserve, trail, heritage site, national park authority, land agency, or ranger service name alone; the entity may be the owner, a visitor destination, a research site, an employer, a photographic subject, a client, or a campaign target",
+      "a place name, park name, mountain, lake, trail, or estate name in a filename or folder; a place is a subject, and the government schema already refuses an organisation name as sole proof",
+      "conservation, biodiversity, habitat, heritage, landscape, access, recreation, ranger, warden, trail, or countryside vocabulary alone",
+      "the presence of GPS coordinates, a geospatial file format, a map image, or a coordinate column alone; the same geometry appears in a hiker's track log, a survey firm's deliverable, a developer's site plan, and a journalist's map",
+      "a management plan, boundary map, condition survey, byelaw, or trail notice downloaded from a public authority's website for reading; publication about a park is not custody of it",
+      "an authority-issued park pass, entry ticket, campsite confirmation, parking permit, fishing or hunting licence, or volunteer welcome pack held by the recipient",
+      "a conservation charity's, community group's, or friends-of-the-park association's identical estate plan, volunteer rota, or visitor figures; owner role decides, not document shape",
+      "a contractor's or consultant's copy of the same drawings, specification, ecological survey, or site diary for works on the parcel",
+      "a nature, landscape, or wildlife photograph, even with EXIF GPS inside a park boundary; “the system must not mistake the absence of EXIF for proof that an image is a screenshot” and, symmetrically, presence of a location is not proof of estate custody",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named Parks, Estate, Reserve, Countryside, Heritage, Land, or Outdoors alone",
+      "a shared download session or browser batch of park material; “A session should never be treated as proof of topic”"
+    ]
+  },
+  "proposed_context_terms": [
+    "management plan",
+    "compartment",
+    "designation",
+    "boundary schedule",
+    "condition assessment",
+    "byelaw",
+    "warden",
+    "ranger",
+    "estate"
+  ],
+  "work_types": [
+    "designation, vesting, dedication, notification, or de-designation instrument binding a parcel",
+    "management plan, masterplan, conservation plan, or plan review and adoption record",
+    "boundary, compartment, and zoning geometry with its gazetteer of unit identifiers",
+    "feature condition assessment, habitat or species monitoring series, and survey report",
+    "conservation, restoration, or habitat works specification, programme, and completion record",
+    "access record: right of way, permissive path, closure or diversion notice, byelaw, and access exemption",
+    "permission on the parcel: filming, event, research, grazing, sporting, concession, or apiary permission and its conditions",
+    "infrastructure and asset register, tree or structure safety inspection round, and remedial works list",
+    "visitor operations: counter and footfall series, reservation and pitch occupancy report, interpretation and signage record",
+    "ranger or warden patrol roster, incident and wildlife-crime log, and visitor safety record",
+    "volunteer task programme and site-based work party record held by the managing body",
+    "heritage site care: inventory entry, scheduled monument or listed structure consent, condition survey, and conservation works record",
+    "estate income and land-agreement administration: tenancy, licence, concession, and grant-in-aid record on the land-manager side"
+  ],
+  "grouping_reasons": [
+    "one designated site or estate, linked by an exact site, designation, register, inventory, or compartment reference that persists across many unrelated proceedings and outlives every one of them",
+    "one management-plan cycle, linking the adopted plan, its evidence base, compartment prescriptions, annual work programmes, monitoring returns, and the review record without copying a site or plan fact onto sparse members",
+    "one conservation or capital works package on the parcel, linked by an exact works, consent, or contract reference, while the contractor's own copies remain the contractor's record",
+    "one monitoring series on fixed units, where repeated unit identifiers and survey rounds form a version-and-round family rather than a topical similarity cluster",
+    "one visitor season or operating period on one site, where counter series, reservation reports, incident logs, and closure notices share the site reference; personal reservation and incident rows stay inside a protected, locally processed group",
+    "one estate export or archive manifest, kept shallow until access boundaries are known and never unpacked merely to strengthen recognition",
+    "duplicate and version families remain universal relationships; repeated plan, map, byelaw, notice, or specification versions acquire no estate facts from neighbourhood context",
+    "no group is a valid outcome for a standalone public notice, plan copy, permit, or park confirmation; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the government schema with no fields, and a template cannot branch on undeclared fields. The recommendation stays prose. If a vocabulary is later adjudicated centrally, the ordering that fits this world is site or estate first, then estate function, then the plan cycle or works reference, then work type; the site must precede everything because a compartment prescription, a condition score, or a closure notice is unintelligible without the parcel it binds, exactly as “A work type such as Homework 3 is meaningful only after the course is known”. Time is not first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders,” and a management plan cycle deliberately spans years. Named people, permission applicants, visitors and incident subjects must never become an organizing dimension. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "code_structured",
+      "audio_video",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".ics",
+      ".jpg",
+      ".png",
+      ".tif",
+      ".kml",
+      ".geojson",
+      ".xml",
+      ".gpkg",
+      ".zip",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Peak Ridge Estate - Management Plan 2026-2036 - adopted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "front matter names a managing land authority and one estate reference repeated in running headers",
+        "labelled sections give plan period, review date, compartment prescriptions, and condition objectives",
+        "an adoption or approval block names an authorized office rather than an applicant"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any government field because the schema declares none",
+        "that the plan is current, adopted, in force, or being complied with",
+        "that a park name in the title proves custody",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Notification of designation - Hollow Marsh - boundary schedule and map.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing-authority block, a register or designation reference, and an effective date",
+        "a legal land description and a boundary schedule keyed to a map plate",
+        "no applicant slot; the instrument names a parcel, not a person"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the designation is current, lawful, or unchallenged",
+        "estate custody if the addressee block shows a private landowner recipient",
+        "a jurisdiction fact or a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Reserve boundary and compartments - 2026 revision.kml",
+      "source_type": "code_structured",
+      "observations": [
+        "XML placemark and polygon structure with named compartment features",
+        "feature attributes repeat the same site reference used in the management plan",
+        "document-level metadata names a land-management office and a revision date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "estate custody from geometry alone; a track log, a developer site plan, and a survey deliverable have the same shape",
+        "that coordinates may be sent to a remote model",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Feature condition assessment - Units 4-11 - summer 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "repeated unit and compartment identifiers as row keys",
+        "condition category, assessor initials, survey date, and coordinate columns",
+        "sheet names match compartment groups in the boundary layer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a condition category is a compliance or enforcement finding",
+        "a species, habitat, or ecological conclusion",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Schedule 1 nest site monitoring - RESTRICTED - 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "coordinate pair columns at high precision with a protected-feature label column",
+        "observer and visit-date columns and a restriction marker in the header row",
+        "site reference matches the estate's compartment gazetteer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a restriction marker is a handling class; P7 owns handling",
+        "that publication of the site's plan makes these coordinates public",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Trail closure notice - Ridge Path - storm damage.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "land-manager office block, closure start and review dates, and an affected-route description",
+        "a compartment or path reference matching the estate gazetteer",
+        "public-facing wording addressed to visitors"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the closure is in force now",
+        "estate custody if the copy is a visitor's saved download",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Grazing licence - Compartment 4 - Hillside Farms - executed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "grantor block names the land-managing authority and the grantee names a farm business",
+        "the demised area is a compartment reference, not a postal address",
+        "stocking, season, and conservation conditions cross-refer to plan prescriptions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the licence is valid, current, or enforceable",
+        "a tenancy or leasehold conclusion; the same bytes are a lease record on the grantee's side",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Filming permission - Estate ref PR-2026-233 - conditions and decision.docx",
+      "source_type": "text_document",
+      "observations": [
+        "applicant block, permission reference, conditions, fee, and an authorized land-manager signature",
+        "the permission is granted over the body's own compartments and cross-refers to plan prescriptions",
+        "no regulatory statutory-test section and no appeal-rights section"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "regulator-side licensing custody; the absence of a statutory test and appeal rights is what separates estate permission from a licensing case",
+        "that permission was granted, refused, or is still live",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Tree safety inspection round - zones A-D - 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are fixed estate assets with tag identifiers, zone, inspector, inspection date, and defect class",
+        "a remedial works column references a works programme reference",
+        "zone labels match the estate compartment gazetteer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a safety, liability, or compliance conclusion",
+        "estate custody where the zones are a private employer's grounds",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Warden patrol and incident log - August 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "patrol rows with date, route, warden initials, and free-text narrative",
+        "incident rows contain named visitors, vehicle details, and precise locations",
+        "a wildlife-crime column with location references"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any conclusion about an offence, a person, or an outcome",
+        "that incident narratives or locations may enter a remote prompt",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Campsite pitch occupancy and reservations - July 2026.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "pitch identifiers, arrival and departure dates, party size, booking reference, and lead-name columns",
+        "pitch identifiers key into the estate's site gazetteer",
+        "an operator column names the managing body's own booking office"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "commercial hospitality operations custody where no estate reference or public-benefit holding is evidenced",
+        "any fact about a named guest",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Scheduled monument consent - Barn Ruin - conservation works specification.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a heritage inventory or list-entry reference for an immovable site in the holder's care",
+        "condition survey extract, method statement, and specification of consolidation works",
+        "consent conditions and a monitoring requirement referencing the same site entry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "movable-collection custody; a list entry for a fixed site is not an accession record",
+        "that consent is extant or the works were carried out",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Footbridge replacement - works package and drawings.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists drawings, specification, method statements, ecology mitigation note, and a site diary folder",
+        "member paths repeat one works reference and one compartment reference",
+        "a manifest entry names a contractor and a separate one names the land-managing client"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "contractor-side project custody from the presence of drawings and a site diary",
+        "facts read from members that were not inspected; the manifest is read without unpacking",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_20260812_0913 - footpath erosion - compartment 7.jpg",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF with make, model, capture time, and GPS inside the estate boundary",
+        "filename carries a compartment token matching the gazetteer",
+        "OCR of an in-frame survey board yields a monitoring round reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "estate custody from GPS inside a park boundary alone; a visitor's photograph carries identical evidence",
+        "any government fact; the photo schema owns capture facts",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Compartment 12 coppicing - task day.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is a land-management office account and location names a compartment",
+        "description references the works programme and plan prescription",
+        "attendee list contains volunteer personal addresses"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "estate custody from an organizer domain alone",
+        "any fact about a named attendee",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hollow Marsh Conservation Trust - Estate Management Plan 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "plan period, compartment prescriptions, condition objectives, and boundary map plates identical in shape to an authority plan",
+        "front matter carries a charity registration number and a trustee board block",
+        "no designation instrument, vesting record, or statutory-body identifier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "government activation; a charity holding land for public benefit is a private association unless public-body status is independently evidenced",
+        "that plan structure proves owner role",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Notification of designation - your land at Hill Farm.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "same issuing authority, register reference, boundary schedule, and effective date as the estate-side instrument",
+        "an addressee block naming a private landowner and second-person wording",
+        "an objection or representation-rights section addressed to the recipient"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "authority-side or estate-side custody; the addressee block is the discriminator against the identical estate-held instrument",
+        "any property, tenure, or legal-effect fact",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Yosemite trip - park pass and campground confirmation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "park-service branding, an entry pass with a validity window, and a campground reservation reference",
+        "a named holder, a vehicle plate, and a payment total",
+        "no compartment, plan, designation, or estate reference"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "estate custody from a park authority's branding on a recipient's document",
+        "that a reservation reference makes this the operator's occupancy record",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Corporate campus grounds - tree and playground inspection register 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "asset tag, zone, inspector, inspection date, and defect class columns identical to the estate inspection round",
+        "the owner block is a private employer's facilities team and zones are building-relative",
+        "no designation, public-access, or public-benefit holding evidence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "estate activation from inspection-round structure; grounds maintenance of private premises is a workplace facilities record",
+        "a safety or liability conclusion",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Park estate records backup - password protected.7z",
+      "source_type": "opaque_binary",
+      "observations": [
+        "archive header is readable but member listing is unavailable",
+        "filename tokens suggest an estate records system",
+        "filesystem timestamps and size only"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a site, estate, designation, or custody fact manufactured from the filename",
+        "a sensitivity result from the word protected",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.permit-licensing",
+      "signal": "Fixture: “Filming permission - Estate ref PR-2026-233 - conditions and decision.docx”. Both sides show an applicant block, a reference, conditions, and an authorized signature. This row requires the granting body to be granting use of land it holds, with the permitted area expressed as its own compartment and prescriptions cross-referenced to a management plan. Permit-licensing requires a statutory test, a regulatory case file, and appeal or review rights over a third party's own activity or premises. Where a park authority is also the licensing authority, the same bytes may be a licensing case; the estate reading needs the parcel to be the body's own.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.environmental-regulation",
+      "signal": "Fixture: “Feature condition assessment - Units 4-11 - summer 2026.xlsx” and “Schedule 1 nest site monitoring - RESTRICTED - 2026.csv”. Both worlds hold species, habitat, and condition data with coordinates. This row's evidence is monitoring of the holder's own estate units, keyed to a compartment gazetteer and feeding a management plan cycle. Environmental-regulation's evidence is a regulatory monitoring, permitting, or enforcement case against a regulated party, keyed to a case or consent reference and carrying a compliance determination. The presence of a condition category is not a compliance finding, and a compliance finding is not an estate condition score.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.member-association",
+      "signal": "Fixture: “Hollow Marsh Conservation Trust - Estate Management Plan 2026.pdf” against “Peak Ridge Estate - Management Plan 2026-2036 - adopted.pdf”. The plan structure, compartment prescriptions, boundary plates, volunteer rotas, and visitor figures are indistinguishable. This row requires a designation, vesting, or statutory-body identifier for the holder; the association row takes the same bytes when the front matter carries charity registration, trustee governance, or membership structure and no public-body status is independently evidenced. Neither side may infer owner role from the word conservation.",
+      "design_cite": null
+    },
+    {
+      "domain": "construction_property.construction-project",
+      "signal": "Fixture: “Footbridge replacement - works package and drawings.zip”. Drawings, specifications, method statements, and site diaries are the same bytes on both sides. This row takes the client-side package where the employer block is the land-managing body and member paths repeat an estate compartment and works reference tied to a plan prescription. The construction row takes the contractor-side or delivery-side package where the same manifest sits with the builder, keyed to a contract, programme, and valuation cycle. A shared site name is not the discriminator; the employer block and the compartment reference are.",
+      "design_cite": null
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "Fixture: “Grazing licence - Compartment 4 - Hillside Farms - executed.pdf”. The executed instrument is one document with two custodians. This row takes the grantor-side copy where the demised area is a compartment in the body's own estate and the conditions cross-refer to conservation prescriptions. The leases row takes the grantee-side copy, or any copy held by a party managing its own tenure, where the anchor is the agreement and the premises rather than an estate compartment. Neither side may conclude validity, currency, or enforceability.",
+      "design_cite": null
+    },
+    {
+      "domain": "retail_hospitality.bookings-reservations",
+      "signal": "Fixture: “Campsite pitch occupancy and reservations - July 2026.csv”. Pitch identifiers, arrival and departure dates, party size, and lead names are identical columns. This row takes the file when the operator is the land-managing body's own booking office and pitch identifiers key into the estate gazetteer alongside closure notices and counter series for the same season. The hospitality row takes it when the operator is a commercial site with no public-benefit holding and no estate reference. Both sides treat guest rows as personal data regardless of which fires.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.facilities-workplace",
+      "signal": "Fixture: “Corporate campus grounds - tree and playground inspection register 2026.xlsx” against “Tree safety inspection round - zones A-D - 2026.xlsx”. Asset tag, zone, inspector, date, and defect columns are the same. This row requires the zones to be compartments of land held for public benefit under an evidenced designation or vesting; the facilities row takes grounds and premises maintenance of an organisation's own workplace, where zones are building-relative and the owner block is a facilities team. A public body's own office grounds fall to facilities, not to this row.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone plan copy, designation notice, byelaw, trail notice, consent, or heritage entry has durable value but no evidenced estate custody and no accepted group",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Protected Records",
+      "when": "protected-feature coordinates, patrol and incident narratives, reservation rows with guest identities, volunteer attendee lists, or a landowner's own designation notice lack a safe accepted group",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published management plan, state-of-the-park report, conservation guidance, ecological paper, or landscape strategy is held for reading rather than as estate work",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "the document is estate-shaped but the custody role, public-body status, or which side of a permission or works boundary it sits on cannot be settled safely",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an encrypted estate archive, a geospatial database, a damaged export, or an unknown binary yields nothing beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "when": "a visitor-side park pass, entry ticket, campsite confirmation, parking permit, or membership renewal is held by its recipient",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "when": "a landscape, wildlife, or site photograph carries no accepted monitoring round, works package, or estate association",
+      "design_cite": "One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row inherits the government schema's protected posture but for a different reason, and that difference is one leg of its node test. Much of an estate record is genuinely publishable — boundary maps, adopted plans, byelaws, trail notices. What must be protected here is chiefly locational and operational: precise coordinates of protected species, nest and roost sites, archaeological features and unexcavated remains; warden patrol routes, incident and wildlife-crime narratives; reservation rows and volunteer attendee lists carrying named individuals; and permission applicants' details. Publication of the plan cannot lower the posture of the coordinate table filed beside it, and EXIF GPS in monitoring photographs can disclose a protected feature as effectively as the restricted spreadsheet can. The design requires: “Privacy policy must be enforced before content reaches any model or external connector.” Handling classes are P7's; nothing here assigns one.",
+  "open_question": "NEEDS-JOSEPH: this row's strongest structural claim — that its organizing anchor is a designated place rather than a proceeding, a meeting cycle, or a person — cannot be expressed while PR-6 leaves the government schema fieldless, so the recommendation stays prose and dimension_order stays empty. If PR-6 is lifted, adjudicate centrally, not in this child, whether a site or estate anchor and a designation or inventory reference may exist, whether either is destination-eligible, and whether a site name may appear in a visible branch label given that a branch named for a protected site is itself locational disclosure."
+}

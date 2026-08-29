@@ -1,0 +1,432 @@
+{
+  "id": "law_practice.hearing-transcripts",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Hearing transcripts and the record of proceedings",
+  "one_line": "The verbatim record of what was SAID in front of a court or tribunal, and the indexes that address it. This row is not the document-type word 'transcript' and not the work_type value the schema lists; it is the one artefact class in the family whose evidence is a CITATION-ADDRESS GRID (page-and-line coordinates imposed across the whole document, which other documents cite INTO) produced and attested by a CERTIFYING THIRD PARTY who is neither the practitioner nor the client. That is precisely why the law_practice default cannot reach it: the default needs a matter reference repeated across artefacts plus one artefact separating a practitioner role from a client role, and a transcript carries a COURT case identifier rather than a firm matter reference and an APPEARANCES block that lists every side's counsel on equal footing rather than a two-role separation. It owns every verbatim record in the corpus at any tier, including an appellate oral argument and a first-instance day reproduced inside a record on appeal; it does not own the instruction to compile one, the bundle it is filed in, or the settled judgment that a spoken ruling later becomes. Its privacy rule differs from its schema's in one specific, inverting way: this is the family's only artefact whose default openness may be PUBLIC and whose exceptions are TOTAL, and the face of the document does not say which.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "transcript_status",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "THE TEMPTING EXISTING KEY IS `version_family`, AND IT IS ACTIVELY WRONG HERE - that is the whole argument, and it is a request for a constraint before it is a request for a name. A rough transcript, an uncertified transcript, a certified transcript and a corrected transcript OF THE SAME SITTING DAY are four files with near-identical text, near-identical filenames and ascending dates. Every generic version heuristic in the product will read them as one version family and prefer the newest. They are not a version family: the rough copy is what counsel worked from overnight and what a contemporaneous note cites into, and the certified copy is what may be cited to the tribunal. Both remain authoritative FOR DIFFERENT PURPOSES, and collapsing them silently destroys the earlier one's citability. No other canonical key expresses a coexisting-authoritative set: `version_family` asserts supersession, `record_type` is finance-scoped, `stage` is research-scoped and asserts progression, and `file_type` is a format. Minting `transcript_version`, `certification_state` or `record_status` would be the synonym mint the brief forbids; the concept genuinely has no canonical home.",
+      "preferred_resolution": "R1c adjudicates ONE question and the field name is secondary to it: may a row declare that `version_family` MUST NOT be formed over a named evidence class? If canonical-fields can express that suppression directly, this proposed key can be withdrawn and only the suppression kept. If it cannot, `transcript_status` should be declared on `law_practice` if PR-6 lifts, with `destination_eligible` FALSE - status is an ordering property inside a document function, and a status level would produce the one-child folders 00 warns against.",
+      "why": "The one fact about a hearing record that a generic default will get wrong rather than merely fail to learn."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED AND THEN REPLACED, AND THE REPLACEMENT IS THE ROW. These are schema-activation signals, not licences to write facts - `law_practice` declares no field rows. The schema's default demands (i) an exact matter, file or engagement reference repeated across two or more artefacts and (ii) at least one artefact whose labelled slots separate a PRACTITIONER OR FIRM role from a CLIENT role. A hearing transcript satisfies NEITHER leg and this is the reason the row exists rather than a reason to refuse it: its heading carries a COURT case identifier, not the firm's matter reference, and its APPEARANCES block lists counsel for every side on equal footing, which is the opposite of a two-role practitioner-client separation. This row therefore substitutes its own two-leg test, and both legs must be present: (i) a CITATION-ADDRESS GRID - a coordinate imposed across the whole body, conventionally page-and-line, by which any passage is externally addressable - AND (ii) at least one of a CERTIFYING-PRODUCER block or a SITTING COVER. The deletion test the family inherits applies unchanged: delete every entity name and every document-type word, and if nothing structural survives, nothing fires. Here the grid, the certificate's labelled attestation slots and the cover's BEFORE line all survive that deletion, which is what makes them signals rather than vocabulary.",
+      "A CERTIFYING-PRODUCER block, and it is the family's only THREE-ROLE artefact. A transcriber's, reporter's or transcription-provider's certificate whose own labelled slots pair a producer identity with an attestation that the record is a true and complete record of what was said, a sitting date or date range, and a signature or seal line. The producer is neither the practitioner nor the client nor the tribunal - a third role that AUTHENTICATES rather than participates. No other row in this family has one, and its presence is what separates a record from a note about a hearing. The attestation is preserved as a literal observation: the product decides no question of accuracy, admissibility or authenticity from it.",
+      "A SITTING COVER: a first page whose labelled slots pair a tribunal or court identifier with a case identifier, a sitting date, and - decisively - a BEFORE or CORAM slot naming a judicial officer by judicial title. The BEFORE slot is the leg that separates this row from `law_practice.depositions-testimony`, whose cover instead carries a PLACE OF EXAMINATION slot naming an address. Both survive the deletion test as labelled slots even with the names removed; the court's NAME does not, and is struck below.",
+      "A SPEAKER-TURN GRAMMAR: line-initial, colon-terminated speaker labels running down the left margin, typically alternating Q. and A. pairs under an examining-counsel label and punctuated by a court-officer label carrying rulings and interventions. The alternation plus the line-initial position is the machine-visible evidence; the words spoken are not. A court-officer speaker label co-occurring with the grid is strong corroboration of the sitting cover and weak on its own, because meeting and interview exports share the label shape.",
+      "A DAY-OR-SESSION MARKER within a series: a cover or running header declaring which sitting day this is, or a morning/afternoon session break, in a series that is open-ended rather than closed. This is a cardinality signal, not a date signal. It exists so that day 2 and day 12 of one hearing are ordered members of one record and never sorted as versions of one document, and it is separately load-bearing because multi-day sittings are the normal case here and the single-file case is the exception.",
+      "A STATUS MARKER on the cover or inside the certificate - rough, realtime, uncertified, certified, corrected, or an equivalent the corpus supplies - which is recorded because it must SUPPRESS a default, not because it classifies. Successive statuses of one sitting day are a coexisting-authoritative set, not a version family; see `proposed_fields.transcript_status`.",
+      "A TRANSCRIPT-INDEX structure: a table whose left column is a page-and-line COORDINATE or coordinate range and whose rows point INTO a record - a key-passages note, a witness-by-witness reference sheet, a running index of rulings. It carries a case identifier and it addresses a namespace this row owns. It is the one member of this row that contains no testimony, and it is deliberately stated so it can be told from `law_practice.trial-preparation`'s bundle index, which maps whole member DOCUMENTS to tab or bundle page numbers in a set compiled BEFORE the sitting, and from `law_practice.appeals`' record index, which maps members to page ranges in an appellate record's own continuous pagination."
+    ],
+    "needs_llm": [
+      "A rough or realtime transcript delivered as a bare text dump with no cover page and no certificate - the grid may be partial or absent, and only the turn grammar and the content survive. This is the row's most frequent real file and its weakest evidence; it should join a candidate group with a sitting whose cover IS evidenced rather than activating on its own.",
+      "Distinguishing a hearing record from an out-of-court examination record when the cover is missing, which is the case the catalogue itself calls formally near-identical. The residual discriminators are internal and unreliable: interventions attributed to a court officer, argument addressed to the tribunal, or the absence of the deponent-signed correction mechanism.",
+      "An ex tempore ruling delivered orally and captured INSIDE a day's transcript. The passage is a judgment in content and a transcript in form; deciding whether a separately supplied file is the transcribed ruling or the later settled judgment is a judgement about apparatus, not vocabulary.",
+      "Matching an audio or video file to the sitting it records when only the filename connects them - and the temptation to resolve it by transcribing is exactly what 00 gates: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present, and—only under an explicit privacy and compute policy—speech-to-text transcripts.\"",
+      "Whether an in camera, closed-session, protected-witness or sealed marker covers the whole document or one portion of it. The product must not resolve this by inference in either direction; an unresolved marker is a reason to protect the whole file and surface it, never a reason to conclude the remainder is open.",
+      "Whether the holder is the practitioner side or a party in person, which the face of a transcript never states - a transcript is produced for whoever ordered it and reads identically for all of them."
+    ],
+    "never_alone": [
+      "PAGE-AND-LINE NUMBERING ALONE, and this is the row's hardest strike because it is also half of the row's own first leg. Screenplays, legislative records, published historical transcripts, printed interview collections and many out-of-court examination records all carry it. The grid is necessary and never sufficient: it must be joined by a certifying-producer block or a sitting cover.",
+      "THE WORD 'TRANSCRIPT', which is a document-type word and a homonym across four unrelated worlds at once - an academic transcript of grades, a podcast or interview transcript, a meeting or call transcript, and this. A file literally named `Transcript.pdf` is the tempting false file this strike exists for, and none of the four can be told apart by the word.",
+      "SPEAKER LABELS ALONE. A screenplay, an interview export, an automated meeting-notes export and a chat log all place colon-terminated speaker labels at line starts. Timecoded speaker labels are positive evidence of the WRONG row - see the `business_operations.meeting-record` collision.",
+      "A COURT OR TRIBUNAL NAME, in the caption or in body text. Judgments, articles, textbooks, practice notes and news reports name courts constantly, and the schema already strikes a court caption for the whole family.",
+      "A CASE IDENTIFIER ALONE, a SITTING DATE ALONE, a JUDICIAL OFFICER'S NAME ALONE, or a DEPONENT'S OR WITNESS'S NAME ALONE. A person's name is never-alone evidence by the schema's own deletion test, and the witness name is the specific one this row must strike hardest because it is simultaneously the corpus's most natural grouping axis.",
+      "A REPORTER, TRANSCRIPTION-AGENCY or COURT-REPORTING-FIRM NAME. An organisation name is never-alone evidence; the agency's letterhead appears equally on its invoice, its quotation, its order form and its marketing.",
+      "THE WORDS 'CERTIFIED', 'VERBATIM', 'OFFICIAL' or 'APPROVED'. These are claims printed on a page, not structure, and the certificate is evidence only through its labelled attestation slots.",
+      "AN AUDIO OR VIDEO FILE WITH NO ACCOMPANYING RECORD. A media file whose filename names a court, a date or a case is not evidence of a sitting, and transcribing it to find out is the operation 00 gates behind an explicit privacy and compute policy. Absence of metadata proves nothing either way.",
+      "A FILE PATH, A FOLDER NAME, OR CO-LOCATION IN A DOWNLOAD SESSION. A transcript sitting beside a matter's files is not thereby that matter's transcript."
+    ]
+  },
+  "proposed_context_terms": [
+    "transcript of proceedings",
+    "official transcript",
+    "daily copy",
+    "expedited transcript",
+    "rough transcript",
+    "realtime",
+    "uncertified",
+    "certified transcript",
+    "transcriber's certificate",
+    "reporter's certificate",
+    "true and complete record",
+    "before",
+    "coram",
+    "sitting",
+    "in open court",
+    "in camera",
+    "closed session",
+    "reporting restriction",
+    "day 1",
+    "morning session",
+    "afternoon session",
+    "appearances",
+    "examination-in-chief",
+    "cross-examination",
+    "re-examination",
+    "the court",
+    "the witness",
+    "sworn",
+    "page and line",
+    "line reference",
+    "transcript index",
+    "key passages",
+    "ruling delivered ex tempore"
+  ],
+  "work_types": [
+    "daily transcript of a sitting",
+    "rough or realtime transcript",
+    "certified transcript",
+    "corrected transcript",
+    "transcriber's or reporter's certificate",
+    "transcript index or key-passages note",
+    "transcribed ex tempore ruling",
+    "in-camera or sealed-portion transcript",
+    "hearing audio or video recording",
+    "sitting-day log or transcript-status tracker"
+  ],
+  "grouping_reasons": [
+    "All sitting days of one hearing, held together by the case identifier plus the day markers, and ordered by day rather than by file date. This is the row's primary anchor and it is the one case where the day markers themselves supply the ordering, so no anchor fact needs copying onto a member.",
+    "A record with the index that addresses it and the notes that cite into it - the coordinate range is the join, and it is exact rather than semantic.",
+    "Successive statuses of ONE sitting day, held as a coexisting-authoritative set and explicitly NOT as a version family.",
+    "A recording with the record made from it, only where an exact sitting identifier appears in both. Filename proximity is not the anchor: \"It should not form a supported group when there is no valid anchor\"."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - `law_practice` declares no field rows under PR-6 and a dimension may only branch on a field the same schema declares - and empty a second time because this material co-activates `legal`, a safety domain, from which no deep template unlocks. THE RECOMMENDATION HELD AS PROSE, AND IT DIFFERS FROM THE SCHEMA'S DEFAULT BY EXACTLY ONE LEVEL, ARGUED: the schema recommends client (only where genuinely multi-client and explicitly approved) then MATTER then DOCUMENT FUNCTION then period. Under that order every day of a long hearing, every status of every day, the index and the recording all land in one flat function folder, and the only thing distinguishing them is a filename. This row therefore inserts the SITTING between matter and function - the proceeding and its hearing, named by the proceeding's own identifier and never by a party - and then orders WITHIN the function by sitting day, which is ordering and not a level. The argument is 00's own intelligibility principle rather than convenience: \"A work type such as Homework 3 is meaningful only after the course is known\", and a page-and-line index, an errata-free correction, a key-passages note and a day-3 rough copy are all meaningless without the sitting they address. THREE BANS BIND THIS ROW SPECIFICALLY. First, the DEPONENT OR WITNESS may never be a folder level, however strong the grouping axis - a path writes a named third party's compelled testimony into the filesystem where every later process reads it, against \"The default posture must therefore be local-first and data-minimizing.\" This ban is stated here because the neighbouring catalogue entry for out-of-court examinations proposes a deponent level, and that proposal must not be read across (see NJ-HT-2). Second, STATUS may never be a level: rough, uncertified and certified of one day would produce the one-child folders 00 warns against. Third, DAY may never be a level, for the same reason and more sharply - a twelve-day hearing would produce twelve folders of one file each. NOT TIME-FIRST, and the reason is specific to this row rather than inherited: a hearing record is the family's most time-shaped artefact, its identity IS a sitting date, and that is exactly the trap. A date-first tree interleaves the sitting days of unrelated matters into shared month folders, breaking the one grouping this row is confident about while exposing, in a single glance at a directory listing, that a named corpus had hearings on particular days.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "audio_video",
+      "archive",
+      "spreadsheet",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".txt",
+      ".rtf",
+      ".xlsx",
+      ".csv",
+      ".zip",
+      ".jpg",
+      ".png",
+      ".m4a",
+      ".mp3",
+      ".mp4",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Transcript - R v Okonkwo - Day 3 - 14 March 2026 - CERTIFIED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page with labelled slots pairing a tribunal identifier, a case identifier, a sitting date and a BEFORE slot naming a judicial officer by judicial title",
+        "day marker on the cover and in the running header, in an open-ended series",
+        "body lines addressed by a page-and-line coordinate imposed across the whole document",
+        "line-initial colon-terminated speaker labels alternating Q. and A. under an examining-counsel label, punctuated by a court-officer label",
+        "closing transcriber's certificate with an attestation slot, a date range and a signature line",
+        "the word CERTIFIED on the cover"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "any law_practice fact - the schema declares no field rows under PR-6",
+        "that the hearing was open to the public, or that a public hearing lowers this file's sensitivity",
+        "that the testimony recorded is true, admissible or complete",
+        "that a certified copy supersedes the rough copy of the same day",
+        "which side of the proceeding the holder is on - the face of a transcript never says",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "rough day 2 unedited.txt",
+      "source_type": "text_document",
+      "observations": [
+        "no cover page, no certificate, no case identifier anywhere in the file",
+        "line-initial colon-terminated speaker labels with Q./A. alternation",
+        "partial or absent page-and-line grid; realtime feed artefacts and uncorrected stenographic strings",
+        "the token 'day 2' in the filename"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is a hearing record rather than an examination, an interview or a meeting - the turn grammar alone does not decide it",
+        "a case identifier or a sitting date carried over from a neighbouring file",
+        "that the newest file in the folder supersedes it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Key passages index - Hartley v Nash - cross-examination.docx",
+      "source_type": "text_document",
+      "observations": [
+        "table whose left column is a page-and-line coordinate range",
+        "rows pair a coordinate range with a short topic label and a witness label",
+        "case identifier in the document header",
+        "contains no testimony of its own"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the passages indexed are the important ones, or that the characterisation in the topic column is accurate",
+        "that this is a bundle index - it addresses coordinates inside a record, not documents inside a compilation",
+        "a witness folder level from the witness column"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Transcript - IN CAMERA session - 15 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "sitting cover and certifying-producer block present, as in the certified fixture",
+        "a closed-session marker on the cover whose scope is not stated",
+        "page-and-line grid continues from the preceding day"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the marker covers only part of the file, or that the unmarked portion is open",
+        "that a closed session implies any handling class - P7 owns handling",
+        "that the marker may be surfaced in a folder label or a filename shown on a shared screen"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Errata sheet - examination of Jordan Lee - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "table whose rows pair a page and line reference with a change and a stated reason",
+        "a signature line for the person examined",
+        "no BEFORE slot, no judicial title anywhere"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a page-and-line coordinate makes this a hearing record - the deponent-signed correction mechanism is the neighbour's structure and this file is wholly the neighbour's",
+        "that the record it corrects is inaccurate"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Hearing Bundle Index - Hartley v Nash - Volume 2 of 4.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "table mapping whole member documents to tab numbers and bundle page numbers",
+        "volume marker within a declared total",
+        "case identifier in the header",
+        "compiled before the sitting"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a table carrying page numbers and a case identifier is a transcript index - the namespace is bundle tabs over documents, not coordinates inside a record",
+        "that the bundle and the transcript of the same hearing are one document set"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Board strategy call - Zoom - transcript.txt",
+      "source_type": "text_document",
+      "observations": [
+        "line-initial colon-terminated speaker labels",
+        "each turn prefixed by a timecode of the form 00:14:32",
+        "a participant list at the head of the file with no party affiliations",
+        "the word 'transcript' in the filename",
+        "no case identifier, no certifying-producer block, no page-and-line grid"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that speaker labels plus the word transcript reach this row - timecode addressing is positive evidence of the meeting-record neighbour",
+        "that an automated transcription tool is a certifying producer"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Transcript.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is exactly the document-type word and nothing else",
+        "body is a term-by-term table of subjects, credits and grades with a cumulative total",
+        "an institutional seal and a registrar signature block",
+        "no speaker labels, no page-and-line grid, no case identifier"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "anything at all from the filename - this is the file the 'transcript' strike exists for",
+        "that a seal and a signature block constitute a certifying-producer attestation of a verbatim record"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Court 4 recording 2026-03-14.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "container and codec metadata, a duration, a creation time",
+        "no embedded tags, no captions, no accompanying record in the same location",
+        "a date and a room token in the filename"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this records a sitting - a filename naming a court, a room or a date is never-alone evidence",
+        "that a transcript may be generated to find out: \"Audio and video files should yield duration, container and codec metadata, creation time, embedded tags, subtitles or captions where present, and—only under an explicit privacy and compute policy—speech-to-text transcripts.\"",
+        "a speaker list, a witness identity or a sitting date from the audio"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "scan transcript p214.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "photograph of one printed page; OCR recovers a line-numbered margin and colon-terminated speaker labels",
+        "a running header fragment carrying a partial case identifier",
+        "no cover, no certificate - the page is an interior page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an interior page alone reaches this row's second leg - the grid is present and the certifying block and the cover are both absent",
+        "that OCR-recovered speech may be quoted or excerpted into a remote prompt",
+        "a screen origin, or its absence, from missing capture metadata"
+      ],
+      "also_schema": "photos.screenshot-captures only where positive screen-origin evidence is present; a photograph of paper is not a screenshot",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Transcripts R v Okonkwo Days 1-8.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive manifest listing eight day-marked members plus one index and one certificate",
+        "member names repeat one case identifier and ascend by day",
+        "manifest readable without unpacking"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the archive should be unpacked solely to improve classification",
+        "that every member is a certified copy because one certificate is present",
+        "that the day count in the filename is the number of sitting days"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Transcript order - expedited daily copy.eml",
+      "source_type": "email",
+      "observations": [
+        "message to a transcription provider requesting daily copy for named sitting dates",
+        "a quoted fee line and a delivery undertaking",
+        "no page-and-line grid, no certificate, no testimony"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an instruction to produce a record is a record - a transcript order names sitting dates and contains nothing that was said",
+        "a finance fact from the fee line: there is no issuer-and-billed-to block and no invoice number",
+        "that the transcript ordered exists, or was delivered in the form ordered"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.depositions-testimony",
+      "signal": "SAME FIXTURE BOTH SIDES: one page-and-line numbered, speaker-labelled, certificate-bearing transcript of a witness answering questions under oath. The catalogue calls the pair formally near-identical and offers 'the court name and the judge' as the discriminator; that is REJECTED here, because a court name is struck never-alone on both rows and a person's name is never-alone by the schema's own deletion test. THE DISCRIMINATOR IS TWO LABELLED SLOTS AND ONE MECHANISM, all of which survive deleting every name. THIS ROW: a BEFORE or CORAM slot on the cover naming a judicial office by TITLE, plus a court-officer speaker label carrying rulings and interventions inside the turn grammar. THE NEIGHBOUR: a PLACE OF EXAMINATION slot naming an address rather than a tribunal, plus the deponent-signed ERRATA mechanism - a change sheet whose rows pair a page-and-line reference with a correction and a stated reason, signed by the person examined. A hearing record is corrected by its producer or the tribunal and never by a witness signing a reasons column. Item-by-item firewall: the errata sheet and the place-of-examination cover count WHOLLY for the neighbour, even when the examination they belong to was later read into open court; a day of proceedings before a judicial officer counts WHOLLY for this row, even when the entire day consisted of an examination transcript being read into evidence. Neither row may use the other's slot as its own second leg.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.trial-preparation",
+      "signal": "SAME FIXTURE BOTH SIDES: one table carrying page numbers and a case identifier, sitting beside the hearing it belongs to. The rows have the same two-leg shape - a case-identified artefact plus an enumerating table - so a bare edge decides nothing. DISCRIMINATOR: WHICH NAMESPACE THE TABLE ADDRESSES AND WHETHER IT LOOKS FORWARD OR BACK. The neighbour's bundle index maps whole member DOCUMENTS to tab numbers and compilation page numbers in a set assembled BEFORE the sitting, and carries a volume marker within a declared total - it is prospective and its rows are about what will be put before the tribunal. THIS ROW's index maps PASSAGES to page-and-line COORDINATES inside a record that already exists - it is retrospective and its rows are about what was said. The same asymmetry runs through the notes: a cross-examination plan that CITES transcript coordinates counts wholly for the neighbour, and the record page it cites into counts wholly for this row. Firewall: a coordinate appearing in a preparation document is a reference, never a second leg for this row; a tab number appearing on a transcript exhibit is a reference, never a second leg for the neighbour.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.appeals",
+      "signal": "SAME FIXTURE BOTH SIDES, and this entry MIRRORS the one that row already landed, in its own terms. The shared items are (a) the oral-argument transcript of an appellate hearing and (b) a first-instance day's transcript reproduced and re-paginated inside a record on appeal. DISCRIMINATOR, conceded in both directions: this row owns EVERY verbatim record in the corpus at EITHER tier on the transcript's own evidence - cover, certifying-producer block, page-and-line grid - and the appellate row never owns a transcript, not even its own hearing's. Conversely this row never owns the COMPILATION APPARATUS around one: the transcript order and record-designation form (a two-column designated / counter-designated table pairing the proceeding below with hearing dates or portions, a reporter slot and a payment or certification line) and the record index entry mapping a transcript extract to a page range in the record's own continuous pagination are WHOLLY the appellate row's, because a designation names hearing dates and contains no testimony. Firewall: if the item is what was said, this row takes it whole; if it is the instruction to compile one or an index in the record's pagination, the neighbour takes it whole.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.orders-and-judgments",
+      "signal": "SAME FIXTURE BOTH SIDES: a judicial decision that was DELIVERED ORALLY and therefore exists twice - once as spoken words inside a sitting record, once as a settled text. This is the sharpest pair in the family because the two artefacts have the same author and the same words. DISCRIMINATOR: APPARATUS, not content, and the rule is that content never decides. THIS ROW takes the artefact carrying transcript geometry - sitting cover, certifying-producer attestation, page-and-line grid, speaker labels - even when everything inside it is a ruling, because what it records is what was said. THE NEIGHBOUR takes the artefact carrying decision geometry - a formal citation or neutral reference, court-authored numbered paragraphs, a disposition or order block, an approval or hand-down marker - even when every word in it was originally spoken from the bench. Firewall: a transcribed ex tempore ruling supplied as a certified transcript counts wholly for this row; an approved judgment issued from the same words counts wholly for the neighbour; and neither may be treated as a version of the other, because they are not a version family and the transcript remains citable after the judgment is approved.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: one certified transcript of a hearing, ordered by and held by the person whose hearing it was. This is the pair where THIS ROW'S HEADLINE SIGNALS DO NOT DISCRIMINATE AT ALL, and saying so is the point - a transcript is produced for whoever orders it and its cover, certificate, grid and turn grammar are byte-identical in a litigant-in-person's folder and in a firm's. The discriminator is the SIDE, and it is supplied by the schema's precondition rather than by anything on the transcript's face: the practitioner-side reading requires a separately evidenced practitioner-and-client role separation elsewhere in the corpus, and the neighbour's mirror selector is direct holder-role evidence in the same file or its companions (the holder named as a party, served, or addressed as the litigant). The error is asymmetric and the asymmetry is the routing rule: this row over-firing writes practitioner apparatus and a client role onto a person's own compelled testimony about their own life, so wherever the side cannot be cited the neighbour's safety-only protection runs first and this row abstains.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "SAME FIXTURE BOTH SIDES: one file named as a transcript, containing line-initial colon-terminated speaker labels alternating between named participants. This is the structural collision - the two rows share the turn grammar exactly, and an automated transcription export makes the resemblance closer every year. DISCRIMINATOR: THE ADDRESSING SCHEME AND THE PRODUCER ROLE. The neighbour's transcript addresses its content by TIMECODE (00:14:32), lists PARTICIPANTS without party affiliation, and is produced by a tool or a secretary who is a participant in the same organisation. THIS ROW addresses by PAGE AND LINE - an address that survives printing and is designed to be cited by other documents - lists APPEARANCES by party with counsel roles, and is produced by a certifying third party who attests to a verbatim record and is in neither organisation. Firewall: a timecode counts wholly for the neighbour and can never be read as this row's grid; a certifying-producer attestation counts wholly for this row and an automated transcription disclaimer is not one. Where a corporate meeting is transcribed by a court reporter for a proceeding, the certificate decides it for this row and the corporate subject matter does not move it back.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "SAME FIXTURE BOTH SIDES: a file literally named `Transcript.pdf`, and this edge is carried deliberately even though the collision is PURELY LEXICAL, so that the row's 'the word transcript' strike has a named target rather than a rhetorical one. DISCRIMINATOR: neither row's structural leg appears on the other side at all. The neighbour's transcript is a term-by-term table of subjects, credits and grades with a cumulative total, an institutional seal and a registrar block - zero speaker turns, zero page-and-line grid, no case identifier. This row's is a speaker-turn body under a page-and-line grid with a certifying-producer attestation - no term column, no grade column, no institution. Firewall: the filename counts for NEITHER row and is discarded before either evaluates; whichever structure is present takes the file whole. The value of the edge is that it forces the discard rather than letting a filename-first shortcut resolve it, and the failure it prevents is severe in one direction - routing a student's academic record into a legal-practice corpus attaches a proceeding to a person who has none.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The principal home, and it is the correct one for the row's characteristic isolated file: a page, a day, an interior scan or a recording of a named person's compelled speech, with no accepted group. 00 names the residual and licenses surfacing it without a group: \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\" The residual's own local-only constraint matters more here than anywhere else in the family, because a page-and-line coordinate makes an excerpt a precise, citable quotation of what a named individual said under compulsion rather than a snippet: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's two commonest unresolved states, both of which are readable and neither of which can be decided from the file: a coverless rough transcript whose forum is unknown (hearing, examination, interview or meeting), and any transcript whose SIDE is unresolved. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Proprietary reporting and realtime-feed formats, password-protected daily-copy deliveries and encrypted recording volumes are ordinary in this world, and they are exactly the files that must not be forced open to find out whose testimony is inside. The filename cannot manufacture a sitting, a case or a witness.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for the lexical-collision fixture and its relatives once this row has correctly declined them - a standalone record-shaped document with no proceeding, no certifying producer and no third party in compelled speech.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and it differs from the schema's default in one INVERTING way plus two intensifying ones. THE INVERSION, which is the row's third node-test leg: every other member of this family is confidential by construction - an attendance note, a privilege log, an intake form have no public reading. A hearing record is the family's ONLY artefact whose default may be PUBLIC, because proceedings are commonly open; and its exceptions are TOTAL, because in-camera, closed, youth, family, protected-witness and sealed-portion sittings exist and produce documents that look exactly the same. The schema's default never has to reason about openness; this row's rule is therefore a rule the default cannot state: OPENNESS IS NEVER INFERRED IN EITHER DIRECTION. An observation that a hearing was public never downgrades protection, an unresolved closed-session marker protects the whole file, and no sealing, reporting-restriction, anonymity or publication status is ever concluded - the literal marker is preserved as an observation and the product decides nothing. FIRST INTENSIFIER, THE NATURE OF THE CONTENT: this is compelled and involuntary speech. Everywhere else in the corpus a third party appears in a document someone composed about them; here they appear in their own words, given under oath, frequently about matters they did not choose to discuss, and the exposed people include witnesses, complainants, children and bystanders who are not the client and have no relationship with the holder at all. SECOND INTENSIFIER, ADDRESSABILITY: the page-and-line grid is the row's defining structure and it is also its defining hazard, because it makes any fragment a precise citable quotation rather than an excerpt. That is why the Protected Records local-only rule binds harder here than for a static document, and why excerpting for recognition should read cover and certificate structure rather than body text wherever the structure suffices. TWO NAMING RULES FOLLOW, both stated because the corpus's natural axes are exactly the forbidden ones: no case, party, sitting or COURT label may become a folder level without explicit user approval, since the mere existence of a hearing record naming a person implies they were prosecuted, sued, investigated or examined before a word is read; and the DEPONENT OR WITNESS - the single strongest grouping axis this row has - may NEVER become a level at all, because a path writes a named individual's compelled testimony into the filesystem, against \"The default posture must therefore be local-first and data-minimizing.\" No handling class is assigned: P7 owns handling, and openness here varies by jurisdiction, by proceeding and sometimes by paragraph.",
+  "open_question": "NJ-HT-1 is the row's live conflict: the catalogue's neighbouring entry for out-of-court examinations proposes `client → matter → proceeding → deponent → document type` as its template, putting a named witness in a path, while this row's sensitivity rule and the schema's third-party naming rule forbid exactly that. One of the two must yield and neither row may decide it unilaterally. NJ-HT-2: whether `transcript_status` is adopted as a key or replaced by a declarable suppression of `version_family` over a named evidence class - see proposed_fields. NJ-HT-3: whether a sitting-day ORDINAL is expressible at all with no fields declared, given that day ordering is the one piece of structure this row is confident about and the one a filename sort gets wrong."
+}

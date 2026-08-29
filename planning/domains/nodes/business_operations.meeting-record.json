@@ -1,0 +1,462 @@
+{
+  "id": "business_operations.meeting-record",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Working meeting records - agendas, notes, minutes and actions",
+  "one_line": "The organizational situation of a WORKING meeting that no other situation already owns: a recurring team meeting, a one-to-one, a standup, a client or supplier call, an internal decision meeting. The organizing anchor is the MEETING SERIES or the counterparty, and the file's purpose is to carry a decision and an action forward, not to record a subject. Deliberately narrowed: agendas and minutes produced INSIDE a governance cycle, a project, a sourcing event, a retrospective or a clinical case conference belong to those rows, where they are values of work type. Absorbs the legacy row ops.meeting-record. A PLACEHOLDER TEMPLATE ROW written to J-DEPTH: it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "organization",
+      "type": "string",
+      "example": "the entity whose meeting series this is - the user's employer, or the user's own limited company, whose weekly notes sit in the same folder",
+      "why_no_existing_key": "SECONDING, NOT MINTING. This row proposes no key of its own; it seconds the `organization` key already proposed by the landed business_operations schema row (and independently by construction_property), and it must be adjudicated once, there, for all three. The argument from THIS row: a meeting series is identified by its name plus its custody, and the name alone is worthless - `Weekly sync` names hundreds of unrelated series across two employers and a side company, and the notes files are near-identical in shape. Without a custody fact, the row's own grouping reason (one recurring series across dates) can join two different organisations' series that happen to share a heading skeleton, which is precisely the collector failure inverted. This row does NOT propose `fiscal_period` - a meeting occurrence is a calendar date, not a management period, and claiming the key here would misuse it. Nor does it propose a meeting-series key: see the row's open_question and the memo's NJ-BO-MR-1, where the series-identity hole is raised for R1c rather than minted by the row that most wants it.",
+      "destination_eligible": false,
+      "destination_eligible_why": "Proposed FALSE, following the schema row without re-arguing it: “A folder should not become a collection point for everything produced by the same person or organization.” In a single-employer corpus an organisation level over the meeting notes is a meaningless one-child level. Seeding it false does not deny the user the level - “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+      "reliability_ceiling": "possible",
+      "reliability_why": "An entity name in a meeting note is the multi-role token in its least reliable setting: it appears as the host, as a counterparty being discussed, as a supplier named in one agenda item, and on the letterhead of an attached pre-read. Read across from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” - inference. A higher ceiling would need the gazetteer-plus-context rule family R4 owns; this row writes no regex and no term list.",
+      "adjudicate": "R1c, as one decision with the business_operations schema row and construction_property. If that decision refuses the key, this row keeps its situation but loses its safest grouping discriminator, and the memo says so."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "a meeting-note structure carrying, together, a meeting name or counterparty, a date, an attendee or participant list, and a decisions-or-actions section. All four together is the shape; any one of them alone is not.",
+      "an actions or decisions table whose header row names an action, an owner and a due or review date, appended to prose notes. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a series structure: several documents whose titles differ only by a date token and which share an identical internal heading skeleton - the signature of a recurring meeting rather than a one-off document.",
+      "a labelled calendar event whose SUMMARY names a recurring working meeting and whose body carries an agenda list, with attendee slots resolving to colleague or counterparty addresses. The CONTENT fires; source_type = calendar contributes only as a file-kind signal (CONNECTION-EXAMPLES fixture 5).",
+      "a conferencing-tool export: a machine-generated filename pairing a meeting title with a timestamp, plus a transcript or chat-log structure with speaker turns.",
+      "a one-to-one note structure naming exactly two participants, one of whom recurs across the whole series, with a rolling carried-forward list."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "the central judgement of this row: whether the meeting is unowned working business (this row) or whether it belongs to a governance cycle, a project, a sourcing event, a retrospective, a matter or a case conference, which own their own meeting artifacts. Purpose decides, not shape. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "unheaded free-prose notes typed during a call, with no attendee list and no action section - the commonest real file in this row and the hardest.",
+      "separating a working meeting note from a personal journal entry, a to-do list, or a reading note that happens to carry a date and bullets.",
+      "recognising that a note is an HR or disciplinary meeting record, which changes the privacy posture before anything else happens to it.",
+      "a purpose-coherent meeting pack whose members are individually unremarkable - an agenda, two attachments, a blank actions form and a recording. “The documents are content-incoherent but purpose-coherent.”"
+    ],
+    "never_alone": [
+      "a date-and-bullets structure alone. This is the tempting false file for this row: journals, to-do lists, reading notes, standup scratchpads and shopping lists all have it.",
+      "the words agenda, minutes, notes, sync, standup, catch-up or 1:1 in a filename alone. They name the FORMAT of the file, and a format is not a situation.",
+      "an attendee or participant list alone - it appears on invitations, distribution lists and contact exports.",
+      "source_type = calendar or email alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "an organisation's or a person's name alone, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a bare 4-digit number read as a meeting year, a room number or a series number.",
+      "membership in a download session that dropped a meeting pack's attachments at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”"
+    ]
+  },
+  "proposed_context_terms": [
+    "agenda",
+    "apologies",
+    "attendees",
+    "present",
+    "minutes",
+    "action items",
+    "owner",
+    "carried forward",
+    "decisions",
+    "AOB",
+    "next steps",
+    "follow-up",
+    "one-to-one",
+    "standup",
+    "catch-up",
+    "call notes",
+    "circulated",
+    "chaired by",
+    "transcript"
+  ],
+  "work_types": [
+    "meeting agenda",
+    "meeting notes or minutes",
+    "action or decision log",
+    "meeting invitation or calendar entry",
+    "meeting recording",
+    "meeting transcript or chat log",
+    "pre-read or supporting attachment",
+    "one-to-one running note",
+    "call or visit report"
+  ],
+  "grouping_reasons": [
+    "one meeting occurrence: the agenda, the pre-reads, the notes, the recording and the actions for one date, held together by purpose rather than by content. “The documents are content-incoherent but purpose-coherent.”",
+    "one recurring meeting series across dates, joined by an exact series identifier, a recurrence rule, or an identical heading skeleton - not by similar filenames alone.",
+    "one running one-to-one with one named person across a long period, which is a real reason to group and the one most likely to tempt that person's name onto a stray unrelated file. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "no group at all is a valid outcome: a single set of notes from a one-off call is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation, then the meeting SERIES, then the occurrence date, then the document function; the series must precede the date because “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” and a bare date tells a reader nothing about which meeting it was. This is the one row in this family where a date level is genuinely load-bearing rather than scattering, because the occurrence IS the unit - but it sits UNDER the series, so the row is still not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A person's name must never become a level: 00 requires that the system avoid using authorship or creator identity as a destination dimension, and a one-to-one series named for the other participant is exactly where that rule gets broken. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "calendar",
+      "email",
+      "spreadsheet",
+      "audio_video",
+      "presentation",
+      "ocr",
+      "image",
+      "archive"
+    ],
+    "extensions": [
+      ".docx",
+      ".md",
+      ".txt",
+      ".pdf",
+      ".ics",
+      ".eml",
+      ".xlsx",
+      ".m4a",
+      ".mp4",
+      ".vtt",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Ops weekly 2026-03-12.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading names a recurring meeting and a date",
+        "an attendees line and an apologies line",
+        "numbered discussion items about rotas, suppliers and an outage",
+        "a closing table with action, owner and due date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "a project fact because one agenda item names a project; the meeting is not owned by it",
+        "an owner's name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "1-1 notes - running.md",
+      "source_type": "text_document",
+      "observations": [
+        "a single file with dated sections appended over months",
+        "exactly two participants named, one recurring",
+        "a carried-forward list at the top of each section",
+        "occasional lines about pay, workload and a grievance"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a running note is low-risk because it is short: it accumulates one named person's performance, pay and complaints in one file",
+        "which of this row and hr.employee-relations owns it once a grievance appears - both anchors are genuinely present, and P10 chooses from an accepted group later",
+        "the participant's name as a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Board pack - March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a cover notice of meeting with a quorum statement",
+        "numbered papers with paper references",
+        "draft resolutions and a register of interests",
+        "prior minutes attached for approval"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the agenda-and-minutes shape is present, but a notice, a quorum and resolutions make this a governance cycle - this is the collision fixture, and business_operations.board-governance owns it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Weekly ops sync.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY names the same series as the notes files",
+        "a recurrence rule and a conferencing link in LOCATION",
+        "attendee slots resolve to colleague addresses",
+        "the body carries a short standing agenda"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone: the SUMMARY and the agenda body are what fire",
+        "any business_operations fact - none is declared",
+        "a contact fact used as a folder proposal",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Call notes - Meridian 4 Feb.txt",
+      "source_type": "text_document",
+      "observations": [
+        "free prose with no headings",
+        "an external company name in the first line",
+        "pricing indications and a promised follow-up",
+        "no attendee list and no action table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "which of this row, business_operations.partnerships-bd and business_operations.customer-account-management owns it - a call note's owner depends on whether the counterparty is a prospect, a partner or a customer, which the note does not say",
+        "a company fact from a company name alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "GMT20260312-140155_Recording.m4a",
+      "source_type": "audio_video",
+      "observations": [
+        "machine-generated filename carrying a conferencing prefix and a timestamp",
+        "container metadata names a conferencing application",
+        "no transcript exists at scan time",
+        "sits beside the notes file for the same date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a meeting or participant fact from the neighbouring notes - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "that the file is harmless because it is unreadable at scan time: a recording carries every participant's voice and whatever was said",
+        "that transcription may proceed without the protected path; any transcription is a model path P7 gates first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Actions tracker.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns read action, raised at, owner, due, status",
+        "the raised-at column names several different meetings",
+        "a filter view per owner",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a single meeting for the whole workbook - it spans several series",
+        "a status or a slippage judgement of the product's own from a status cell",
+        "an owner name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Retro - sprint 41.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a facilitation structure of went-well, went-badly and try-next columns",
+        "a participants line",
+        "an actions list with owners",
+        "a sprint identifier"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the meeting shape is present but the purpose is a structured look back, which business_operations.retrospective-postmortem owns - the second collision fixture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "MDT outcomes 2026-05-14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a header row reading case, decision, responsible, action by",
+        "an attendance list of clinicians above the table",
+        "a weekly recurring series name in the sheet tab",
+        "the case column carries identifiers rather than attendee names"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the four-part meeting structure and the actions table are both present, but the rows of the table are people who are NOT in the room, and clinical_practice.case-conference owns it as protected material - this is the third collision fixture, and it is the one where a wrong answer costs protection rather than tidiness",
+        "that an outcomes table shaped like an actions table is evidence of a working meeting - the column header is identical on both sides",
+        "any business_operations fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Team meeting minutes 2026-05-14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an attendance list of clinicians in a hospital department",
+        "agenda items about rotas, an equipment order and study leave",
+        "an actions table with owners and due dates",
+        "no patient, case or identifier anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that a clinical setting owns the file: the subjects are the attendees' own departmental business, so clinical_practice.case-conference must not take it - that row names this same file from its side for the same reason",
+        "activation of this row in preference to clinical_practice.practice-administration where the corpus is a clinical practice's own - a department's rota-and-budget meeting is that row's, and this row holds the company equivalent",
+        "a clinical fact from the attendees' job titles",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_5522.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a whiteboard covered in handwriting and boxes",
+        "EXIF carries a capture timestamp and no GPS",
+        "OCR yields fragmentary tokens and arrows",
+        "sits in the same folder as the day's meeting notes"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a meeting fact from the neighbouring notes file",
+        "that fragmentary OCR of a whiteboard supports any conclusion at all",
+        "that the absence of GPS metadata proves anything about what the image is",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "A board or committee produces agendas, minutes and actions in exactly this shape, and the same file may be called minutes by both. The discriminating evidence: a notice of meeting, a quorum statement, numbered papers, register of interests, or formal resolutions supports governance; an unowned working meeting with no constitutional apparatus supports this row. Stated reciprocally with that row, which names this one as “The load-bearing collision for this row, and the one both siblings must state.” and draws the same line - a constituted body with terms of reference on its side, “a team, project or stand-up record with owners and next steps and no constitution” on this one. Neither side may use meeting vocabulary as a discriminator. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "A project status meeting is a meeting AND a project artifact, and its notes carry both anchors. The discriminating evidence: a project or programme identifier, a schedule reference, or a RAID item supports project delivery; a standing team or counterparty series with no project anchor supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.retrospective-postmortem",
+      "signal": "A retrospective is a meeting, and its record has attendees, discussion and actions. The discriminating evidence: a structured look-back format - went well, contributory factors, lessons, timeline of an incident - supports the retrospective row; ordinary forward-looking business supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "A quarterly business review and a customer call note are meetings with a customer. The discriminating evidence: an account identifier, adoption or usage reporting, a renewal date, or a success plan supports account management; a call note with no account apparatus supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.employee-relations",
+      "signal": "A disciplinary, grievance or capability meeting note has an attendee list, a discussion record and agreed actions, and a running one-to-one can turn into one mid-file. The discriminating evidence: a formal invitation with a right to be accompanied, an allegation, a warning, or an appeal reference supports hr; ordinary work discussion supports this row. This pair matters for privacy, not only for filing. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "clinical_practice.case-conference",
+      "signal": "A clinical multidisciplinary meeting produces an agenda, an attendance list and an outcomes table indistinguishable in structure from a working meeting record, and often the same recurring calendar series. The discriminating evidence is whether NAMED CASES - third parties who are not attendees - are discussed: if they are, the clinical row owns it and the file is protected material; ordinary work discussion among the attendees themselves supports this row. Stated to match that row's own wording, which names this row back. This direction matters more than the other: a wrong answer here LOSES protection, not just tidiness, because this row's residual posture is not protective. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.matter-correspondence",
+      "signal": "An attendance note of a client or counsel meeting is a meeting record inside a legal matter, and privilege may attach to it. The discriminating evidence: a matter or file reference, a client identifier, or a privilege marking supports the law-practice row; an internal business meeting supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Supplier clarification meetings and bid evaluation panels produce minutes that must sit in the sourcing file for audit reasons. The discriminating evidence: a solicitation reference, a scoring sheet or an evaluation panel record supports sourcing; a routine supplier catch-up supports this row. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone set of notes, an agenda or an actions list with no accepted meeting series or project group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for unheaded prose notes or a bare invitation whose meeting meaning is only partly resolved - the commonest outcome in this row. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an untranscribed recording or a password-protected meeting pack. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for a meeting note that turns out to record a disciplinary, grievance, health or otherwise sensitive discussion about a named person, when no accepted group exists. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a whiteboard or flipchart photograph with no accepted meeting association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Working meeting notes are the least ceremonial documents an organisation produces and, for that reason, the least guarded: a running one-to-one accumulates one named person's pay, performance, health and complaints; a call note carries a counterparty's commercial position; a recording carries every participant's voice. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and employment material is squarely in it. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Whether this row should exist at all, or whether MEETING is a work type value on every other situation plus a residual home for the leftovers. The argument for refusing it: agenda, minutes and actions are a FORMAT, every sibling already lists meeting artifacts among its own work types, and what remains after subtracting them is close to the definition of no reliable deeper association. The argument for keeping it, which this row takes: the leftover pile is large, real and coherent - standing team meetings, one-to-ones, call notes - its anchor is a meeting SERIES that belongs to nothing else, and refusing the row would leave that pile with no recognizer and therefore no protection for the one-to-one notes inside it. The row is written narrowed rather than broad so the decision stays reversible either way, and it is Joseph's."
+}

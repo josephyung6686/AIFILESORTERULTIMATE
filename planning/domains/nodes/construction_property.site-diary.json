@@ -1,0 +1,575 @@
+{
+  "id": "construction_property.site-diary",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Site diaries and daily reports",
+  "one_line": "The serial, day-by-day record of a site kept while the work happens: who was on site and for how long, what plant stood idle, what the weather did, what was instructed verbally, what was delivered and what went wrong. Its recognisable structure is a fixed slot set for conditions EXOGENOUS to the work — weather, labour present by trade, plant on site, visitors, deliveries — filled on a schedule rather than in response to an event, which is why a diary page for a day on which nothing happened is still a complete and meaningful document. That NIL-RETURN property is the row's fingerprint and the thing no other row on this schema produces: every sibling's document exists because something occurred (an instruction was issued, a valuation fell due, a defect was found, a meeting was convened). Its purpose is to be READ LATER BY SOMEONE ELSE — the diary is the evidence base a delay claim, a variation, an accident investigation or an adjudication is built from — but purpose is not activation evidence, and the row is recognised by the slot set, not by the claim it may one day serve. The anchor is ONE SITE ON ONE DAY. Absorbs the legacy row cons.site-diary. Node test: stands on leg 1 (detection signals) alone; legs 2 and 3 are recorded in the memo as FAILING as distinguishing legs, reversing the gist pass's verdict. Placeholder row (J-IND): it recognises the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal and never an extraction licence. The construction_property schema declares no field rows (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), so nothing here writes a domain fact; detection exists so the material is recognised, kept where this row’s sensitivity says, and offered honestly. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "THE ROW'S FINGERPRINT — a fixed slot set for conditions exogenous to the work, on a one-day page: labelled slots for date, weather (often a morning and an afternoon reading, or a temperature and a rainfall note), a labour return counted by TRADE rather than by person-and-rate, a plant-on-site list, visitors, deliveries received, instructions given, and a delays or events narrative box. The discriminating property is not that these slots exist but that the page is complete when they are empty: no other document on this schema is meaningful as a record of a day on which nothing happened. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "the NIL RETURN, which is the sharpest single-file form of the signal above and is worth detecting in its own right: a dated page whose labour count is zero or 'nil', whose plant list reads 'none on site' or repeats yesterday's standing entries, and whose events box says 'no works — site closed', 'rained off' or is struck through. An event-triggered document cannot take this shape at all, because there was no event to trigger it. Provenance: inference — 00 does not discuss nil returns; the structure is named from the real document family.",
+      "a labour allocation return: a table of operative names or trades against hours, repeated per day, with a total column — the diary's numeric half, frequently a separate sheet in the same workbook.",
+      "serial dating, held deliberately as SUPPORTING evidence and not as the row's case: a run of files or of worksheet tabs named for consecutive dates or week numbers. This pass demotes it. Cross-file recurrence is business_operations.meeting-record's load-bearing signal and it carries that row's open question NJ-BO-MR-1 (whether a regularity read across several files is an activation signal at all); this row does not need it, because the slot set above is readable in one page, and it must not inherit an unsettled dependency it can do without. A run of five consecutive day-sheets does strengthen the reading; a run of five dated files with no slot set does not begin it.",
+      "a daily or weekly progress report addressed outward — to the client, the contract administrator or the employer's agent — carrying a period covered, a percentage or milestone progress statement, and a look-ahead section.",
+      "a confirmation-of-verbal-instruction note: a short dated memo recording something said on site, naming who said it, and stating that it is confirmed in writing because it was not issued formally.",
+      "an app export: a PDF or CSV generated by a site-diary or site-management application, recognisable by a machine-consistent layout repeated identically across every day, an auto-inserted weather line pulled from a forecast service, and photo thumbnails embedded in the day's page.",
+      "a delay or disruption record: a dated narrative of a stoppage naming a cause, a start and end time, the trades affected and the resources standing idle.",
+      "parent-folder context naming a site, a job number or a month, treated as a clue once one of the structures above is present. Folder context never fires alone."
+    ],
+    "needs_llm": [
+      "PRECONDITION: a diary names individual workers, records their attendance and sometimes their conduct, and may narrate an injury, so any model step runs after P7 and under the user's policy. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "the central determination for this row: separating a DIARY from a MEETING RECORD. Both are dated narratives of what was said and agreed on a site. The honest discriminant is the trigger — a diary is written because the day happened, a site-meeting minute is written because a meeting was convened, and it carries an attendee list, numbered action items and a next-meeting date.",
+      "an unlabelled day-sheet: a scanned handwritten A5 page with a date, some trade names and a weather word, and no form furniture at all. This is the commonest real diary and the hardest file in the row.",
+      "separating a diary entry that is merely a record from one written as CLAIM MATERIAL — the same page, in the same book, with the same handwriting, becomes the exhibit in a delay claim. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "a purpose-coherent claim bundle whose members are individually unremarkable — a run of diary pages, a weather report, a programme extract and two photographs, assembled for one argument. “The documents are content-incoherent but purpose-coherent.”",
+      "in every case above, abstention is the required outcome where the evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "a date alone, or a run of dates alone. Serial dating is this row's strongest structural signal and its most dangerous one: expense logs, mileage sheets, medication charts, food diaries, delivery schedules and shift rotas all have exactly this shape.",
+      "a weather line alone. Weather appears in sailing logs, agricultural records, insurance claims and travel journals, and app-generated weather lines are auto-inserted rather than observed.",
+      "a UK-style postcode or a street address alone. An address is the single most tempting token in this whole family and it appears in every role at once — the site, the client’s home, the contractor’s registered office, the architect’s letterhead, a supplier’s depot, and a comparable property cited in a report. 00 states the same ambiguity for a university name: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” — the address case is worse, and this is recorded as inference because 00 writes that sentence about a university, not an address.",
+      "a personal name alone, and this row is dense in them. An operative list is a list of people, and 00's corpus sentence names the category the moment it is: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”.",
+      "the word 'diary', 'daybook', “log” or “journal” in a filename. A personal journal and a site diary are the same three words and radically different privacy postures, and getting this backwards is the worst outcome available in this row.",
+      "the presence of an embedded photograph. A diary page with a photo is not thereby a progress-photography record; the photo is the diary's attachment.",
+      "source_type or extension alone. “treat the file extension as a routing signal rather than an assumption about meaning”, and file_kind_plausible is constitutionally never-alone (CONNECTION section 5, invariant 2).",
+      "membership in a download session — a whole project folder or a document-portal export pulled down at once. “A session should never be treated as proof of topic”",
+      "a bare 4-digit number read as a year. It is at least as often a drawing number, a job number, a plot number, a house number, a cost code, or a British Standard reference.",
+      "a PDF author, producer, or company metadata string alone. “PDF metadata should be treated as supporting evidence, not as truth” — one contractor’s template stamps the same firm on every blank form it ever generated.",
+      "a run of dated files alone, restated as its own entry because this pass demotes serial dating: recurrence is a real strengthener and never an opener. A pad of BLANK daily-log forms saved one per day is a false series with a perfect skeleton and no content — the direct analogue of business_operations.meeting-record's NJ-BO-MR-3 — and it must not fire this row. Provenance: inference, and stated as a debt to that row's reasoning rather than a discovery here.",
+      "an auto-inserted weather line from a site-diary application. It is fetched from a forecast service for the site's postcode whether or not anyone attended, so it is evidence about the software and not about the day. Where every page in a run carries a byte-identical weather sentence structure, the weather slot has stopped discriminating.",
+      "citation in a claim bundle index, or membership of a folder named for a claim. Stated to match construction_property.variation-claim's own never_alone verbatim in effect — “Purpose may be read from that folder; ownership may not” — and it cuts both ways: that row must not take a diary page because it is cited, and this row must not take a notice because it sits beside diary pages in the same appendix.",
+      "a countersignature by the other side. A signature from the client's agent on a sheet of hours converts it into construction_property.variation-claim's dayworks evidence; it is the one mark that moves a labour-shaped table OUT of this row.",
+      "the word 'progress' with a period header. A weekly progress report is a shape business_operations.project-delivery holds generically, and the report is the diary's outward-facing cousin, not its proof."
+    ]
+  },
+  "proposed_context_terms": [
+    "site diary",
+    "daily report",
+    "daily record",
+    "day sheet",
+    "daywork",
+    "labour return",
+    "labour allocation",
+    "plant on site",
+    "standing time",
+    "weather record",
+    "rainfall",
+    "visitors to site",
+    "deliveries received",
+    "verbal instruction",
+    "confirmation of verbal instruction",
+    "site agent",
+    "foreman",
+    "gang",
+    "operatives on site",
+    "progress report",
+    "look-ahead",
+    "delay",
+    "disruption",
+    "stoppage",
+    "non-productive time",
+    "toolbox talk held",
+    "permit issued",
+    "week commencing",
+    "site reference",
+    "job number"
+  ],
+  "work_types": [
+    "daily site diary page or day sheet",
+    "weekly site diary compilation",
+    "labour allocation sheet or labour return",
+    "plant and equipment on-site return",
+    "weather record or weather report extract",
+    "visitor and delivery log",
+    "daily or weekly progress report to the client",
+    "confirmation of verbal instruction",
+    "delay, disruption or stoppage record",
+    "daily photograph log or diary photo appendix",
+    "site-diary application export (PDF or CSV)",
+    "handwritten site notebook scan"
+  ],
+  "grouping_reasons": [
+    "one site across one period — the clearest group in this row, and the one users most expect: the run, not the page, is the artefact.",
+    "one month or one week of diary pages joined by nothing but consecutive dates, which is a real reason to group and the reason a date must never become an activation proof on its own.",
+    "one delay event: the diary pages that cover it, the weather report, the programme extract and the correspondence — purpose-coherent even where the members share no content. “The documents are content-incoherent but purpose-coherent.”",
+    "one diary re-exported over time from an app, joined by the universal duplicate_family and version_family facts rather than by any construction fact.",
+    "no group at all is a valid outcome: a single scanned day-sheet with no site named is an ordinary standalone record.",
+    "and the stop rules apply as written — “when members carry irreconcilable course, institution, project, term, or purpose facts” — two sites' diaries in one folder do not merge."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by binding contract: a dimension may only branch on a field the same entry’s schema declares, and construction_property declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6). That is a contract fact, not a claim that this situation has no shape — it plainly does, and it is recorded here as PROSE for whoever answers the schema row’s open_question. The recommendation, held as prose: the site or project first, then the period (year then month, or week-commencing) as the second level, and the diary function last where a folder mixes diaries with progress reports and delay records. The site must come above the date because a bare date is meaningless across a contractor's whole corpus and actively harmful — every site has a 14 March — which is 00's own reason for putting a course above a homework number, and “a parent dimension should provide the context required to understand the child”. REVERSAL, THIS PASS: the gist row claimed this ordering as a DISTINGUISHING difference — 'the only construction row whose second level is genuinely a period'. That claim is withdrawn. The deepened schema anchor states the family default as site or property, then instruction, then document function, “with a period level only where the situation genuinely cycles”, and a diary cycles more plainly than a service-charge year does. The period level is therefore LICENSED BY the default template, not a departure from it, and the anchor is explicit that “Reversing is not a difference that earns a node”. Leg 2 of this row's node test accordingly FAILS as a distinguishing leg; the row stands on leg 1. Not time-first — “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” — and the anchor is explicit that in this family no sibling may claim the time-first exception, including the photographic one. And whatever eventually lands stays a recommendation: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Site Diary - Oakfield Rd - 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a one-page form with labelled slots for date, weather AM/PM, labour by trade, plant on site, visitors and deliveries",
+        "a free-text 'events and delays' box with two handwritten lines",
+        "a signature block naming a site agent",
+        "an identical sibling file for 2026-03-13 in the same folder"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact — the schema declares no field rows",
+        "a site fact copied onto any other file that mentions the same road name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_2291.jpg",
+      "source_type": "image",
+      "observations": [
+        "a photograph of a handwritten A5 daybook page",
+        "legible date and trade names under OCR",
+        "no EXIF GPS",
+        "taken indoors under artificial light"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that a photograph of a diary is progress photography — the subject is a document, not the works",
+        "a diary reading before OCR text exists; OCR re-runs activation under a new cache key",
+        "that missing EXIF GPS says anything: “the system must not mistake the absence of EXIF for proof that an image is a screenshot”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Labour allocation w-c 09-03-26.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "operative names down the rows, five dated columns across",
+        "hours in the cells and a total column",
+        "a second tab listing plant with standing-time hours",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that this is a payroll timesheet — the same table serves both, and this row's reading is the site record while the pay reading is hr.payroll-benefits-administration's",
+        "any construction_property fact — the schema declares no field rows",
+        "an employment fact about a named operative",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Weekly progress report No 12 - Oakfield.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a period-covered header and a numbered report sequence",
+        "milestone progress against a programme",
+        "a two-week look-ahead section",
+        "addressed to a named employer's agent"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "that the addressee is the holder — a report is written by one side and held by both",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "CVI 044 - additional excavation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a short dated memo headed 'confirmation of verbal instruction'",
+        "names the person who gave the instruction and the time",
+        "a numbered sequence in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that this row owns it outright — a confirmation of verbal instruction is diary material AND the opening move of a variation, which is the load-bearing collision on this row",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Site meeting 08 - minutes.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an attendee list with initials",
+        "numbered action items with owners and dates",
+        "a next-meeting date",
+        "a numbered meeting sequence"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the collision fixture. A dated narrative of a site is not a diary when it was triggered by a convened meeting, and this belongs to business_operations.meeting-record",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "diary 2026.docx",
+      "source_type": "text_document",
+      "observations": [
+        "dated entries in first person",
+        "references to family, health and travel",
+        "no trade names, no weather slots, no form furniture"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row, on any evidence. This is a personal journal and the filename is identical to the row's own vocabulary; treating it as a site diary would file private material under a work tree",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Accident book entry - 2026-03-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a labelled incident form naming an injured person",
+        "a description of an injury and treatment given",
+        "a same-day diary page cross-referenced by date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row owns it: an injury record is health information about a named individual, so the medical safety schema's protective ordering runs first and construction_property.site-health-safety is the nearer situation",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "diary-export-oakfield-2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing one PDF per day plus a photos directory",
+        "several hundred members",
+        "no password"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "anything about the members; “the normal scan should never extract archive contents to the filesystem”",
+        "a site fact from the manifest path alone",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ Standing time Tuesday.eml",
+      "source_type": "email",
+      "observations": [
+        "a thread about plant standing idle on a named day",
+        "a forwarded photograph of a flooded excavation",
+        "no site named in the subject line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a site fact from a thread that never names one",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Site diary 2026-03-12.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a one-day page with the full slot set — weather, labour by trade, plant, visitors, events",
+        "NO job reference, no site address, no client name anywhere on the page",
+        "sits in a folder named for a job number",
+        "one of several dozen siblings with the same filename pattern"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a site or job fact read from the parent folder name — construction_property.construction-project names these same bytes and calls them “the `HW 3` case in construction clothing, and neither row may invent one”",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Day sheet 2026-02-03 - rained off.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "the same form as every other day in the run",
+        "labour return reads 0 across every trade; plant list reads 'standing'",
+        "events box: 'no works — site closed, persistent rain from 06:30'",
+        "signed by the site agent anyway"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "that an empty page is a weak or discardable one — this is the row's strongest single-file fixture, because no event-triggered document in this family can exist at all on a day when nothing happened",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Daywork sheet 018 - signed by CA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "operatives and hours in a table, exactly the labour-allocation shape this row claims",
+        "a countersignature block completed by the contract administrator",
+        "a reference to a described extra above the table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row. These are the refused construction_property.timesheet row's own bytes and construction_property.variation-claim has landed them: the countersignature plus a described extra makes the sheet evidence tendered to someone who must pay, not a record of a day. Taking it here would contradict a landed refusal",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Induction register - March 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names, dates and signatures for a month of arrivals on one site",
+        "a serial dated structure with a site header",
+        "columns for a card number and an expiry"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row: the statutory attendance and induction roll is construction_property.site-health-safety's, conceded to it by the timesheet refusal and under a stricter privacy posture than this schema's default. A diary that merely mentions an induction stays here; the register does not",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Daily log template - BLANK.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the complete slot set — weather, labour, plant, visitors, events",
+        "every slot empty; no date filled",
+        "saved once per day for a fortnight by an autosave rule, producing a perfect dated series"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row on the series, on the skeleton, or on both. This is the false-series fixture: it has the form furniture AND the recurrence and it records nothing. It is the reason the nil-return signal is written as a FILLED page reading zero, not as an EMPTY page",
+        "any construction_property fact — the schema declares no field rows",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "The load-bearing collision on this row. Both are dated narratives of what happened on a site and who said what. The discriminating evidence: an attendee list, numbered action items with owners, and a next-meeting date support the meeting row; a weather slot, a labour return, a plant list and one page per calendar day support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.variation-claim",
+      "signal": "A diary page written up as claim material and a confirmation of verbal instruction are simultaneously this row's serial record and that row's opening evidence. The discriminating evidence: a numbered variation or claim reference, a quantified time or money consequence, and an addressed notice support the claim row; an unaddressed daily entry in an unbroken run supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "signal": "App-generated diaries embed photographs and photo packs carry dates, so the two rows meet on the same day's evidence. The discriminating evidence: camera EXIF with capture time on standalone image files supports the photography row — “Camera EXIF, GPS, and capture time can support deterministic photo-event proposals.” — while a document page with an embedded thumbnail supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.site-health-safety",
+      "signal": "Site attendance, induction records, permits issued and incident narratives are recorded in the diary and also kept as safety documents in their own right. The discriminating evidence: a hazard-and-control structure, a permit form, or an injury record supports the safety row; a general day narrative that merely mentions them supports this row. Where an injury is named, the safety row and its protective ordering win. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.payroll-benefits-administration",
+      "signal": "The same labour table read for pay rather than for the site, and the row that receives the coverage refused from construction_property.timesheet (see that row's refuse_reason). The discriminating evidence: pay rates, deductions, a tax reference or a payroll-period header support the hr row; a site or cost-code column, plant standing time and a weather line support this row. The hr reading is the more sensitive of the two and where both fire the stricter posture wins. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics.route-dispatch",
+      "signal": "A daily-serial operational log with vehicles, hours and delays is the same shape in a haulage business. The discriminating evidence: a vehicle registration, a route or drop sequence and a driver's-hours reference support the logistics row; a fixed site, a trade-by-trade labour return and a weather slot support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "A daily production log and a site diary are both serial dated operational records with shift, headcount and downtime columns. The discriminating evidence: a batch, line, or work-order reference supports the manufacturing row; a site address, weather and trades support this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "The diary's deliveries-received log and the delivery note itself. That row landed its own deepened reciprocal while this pass was being written and it is adopted here unchanged rather than contradicted: it must not take “a dated narrative of a day”, this row must not take “a per-consignment document with quantities and a receipt signature”, and the bytes both sides name are “a diary line reading \"4 loads blockwork\"”. The discriminating evidence restated from this side: supplier document furniture — a delivery-note number, a letterhead, an order reference, an itemised quantity against a product code — supports that row; the same delivery recorded as one line inside a day page supports this row. A delivery note arriving alone, with no day page around it, is Receipts and Confirmations rather than either row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "The weekly or daily progress report addressed outward to the client. That row holds “recurring status reports” generically and draws its construction boundary at construction_property.construction-project, not here, so this edge is authored ONE-WAY and is owed a reciprocal (NJ-CP-DIARY-4). The discriminating evidence: a RAG status, a workstream or deliverable breakdown, a sponsor and a stage gate support that row; a site address, a labour return by trade, a weather line and a look-ahead expressed as trades and plant support this row. Where a construction progress report carries a RAG table and no site conditions at all, that row is nearer. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The right home for a single day-sheet, a progress report or a confirmation of verbal instruction that arrives with no run of siblings around it — a durable record with no group. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The honest outcome for the labour allocation sheet whose site and purpose are unresolved, and for a diary export whose members have not been read. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Diaries name individual workers and occasionally narrate an injury, and the personal-journal false positive lands here rather than in a work tree. This is also the home for any diary page carrying health information. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The home for a photograph of a diary page with no OCR text and no run around it. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected diary exports and proprietary site-app bundles are ordinary here. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Delivery notes signed into the diary's delivery log, arriving alone, are transactional documents rather than diary pages. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A diary is a daily attendance record of named individuals — who was present, for how long, who was late, who was sent home — and it periodically narrates an injury or a disciplinary event. 00's corpus sentence names both categories the moment it does: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records”. Beyond that, and as inference rather than a design claim, a diary is written to be evidence, so it is disproportionately likely to be read later by an adversary; that is a further reason for the cautious setting. REVERSAL, THIS PASS: the gist row did not claim leg 3 explicitly, but for the avoidance of doubt it is recorded as FAILING as a distinguishing leg. potentially_sensitive is the construction_property default, and the row that runs genuinely stricter is construction_property.site-health-safety, which is why the accident-book entry is deferred there rather than kept. Being AT the family posture is not a difference under CONNECTION.md §2. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "Four, and the first two are the gist row's, preserved. (1) Whether a personal journal and a site diary can be separated reliably enough at detection time to be safe. Their filenames are identical, their structure (dated entries) is identical, and only content settles it — which means the safe default for an unread file named like a diary is the protective home, not the construction row. (2) Where the labour allocation sheet lands now that construction_property.timesheet is refused. This row claims the site reading and routes the pay reading to hr.payroll-benefits-administration; R1c should confirm that split rather than inherit it. (3) NEW: this row now stands on leg 1 alone, having withdrawn the gist pass's leg-2 claim. It therefore shares construction_property.snagging-defects' exposure (its NJ-CP-SNAG-4): if R1c rules that one passing leg is insufficient on a field-less schema, this row falls with construction-project, snagging-defects and most of the family, and it should fall WITH them rather than be argued out separately. (4) NEW: the edge to business_operations.project-delivery is authored one-way — that row has no edge here — and so is the edge to business_operations.meeting-record. Both reciprocals are owed; recommended to R1c rather than written into a neighbour."
+}

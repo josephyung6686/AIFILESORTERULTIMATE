@@ -1,0 +1,552 @@
+{
+  "id": "engineering.pcb-layout",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "PCB layout and released fabrication packages",
+  "one_line": "The situation is a board release: a layout database and the multi-file, machine-generated fabrication and assembly data set generated from it, filed as ONE deliverable at one fabrication revision. The row is not the artifact-type value `PCB layout` and not a file format. It exists because its evidence is a layer-role vocabulary distributed across a sibling set plus plain-text coordinate/aperture/tool headers - a structure family none of the engineering schema's ten default signals can see - and because its recommended order drops the schema's terminal `engineering_artifact_type` level, which would shatter one indivisible deliverable into a folder per copper layer. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps `fields` empty and forces `dimension_order` empty; the researched order is stated in `template.why` rather than silently encoded before its keys are legal.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "signals_differ": true,
+    "dimensions_differ": true,
+    "privacy_differs": false,
+    "why": "CONNECTION's node test needs one of three legs; this row passes two and honestly fails the third. LEG 1 (signals): every deterministic signal on the engineering schema row keys on a HUMAN-AUTHORED control structure - title block, requirement rows with verification-method columns, TDP manifest, change disposition, BOM parent/child, analysis inputs/results, verification matrix, prototype record. Not one fires on a copper-layer Gerber, which has no title block, no approver, no requirement identifier and no revision slot; it is a format-specification directive, a unit directive, aperture definitions and coordinate blocks. The discriminating relation this row owns - a layer-role vocabulary (copper by stack position, solder mask, legend, paste, outline, drill) distributed across several files sharing one stem, joined to at least one plain-text coordinate-format or tool-definition header - exists nowhere else in the engineering schema and the schema's signals cannot detect it. LEG 2 (dimensions): the schema default ends `... -> lifecycle_stage -> engineering_artifact_type`. Applying that terminal level here fragments one indivisible release, because a single copper layer cannot be fabricated and carries no meaning apart from its siblings. This row drops `engineering_artifact_type` and promotes `revision_or_baseline`, which the schema declares destination_eligible FALSE - an inversion the schema's own text licenses as an exception for exactly this case, saying a specific released-baseline template may later justify a different order while the schema default does not. LEG 3 (privacy): FAILS. Both sides are `potentially_sensitive` and the two-value vocabulary cannot express that a complete package is a reproduction recipe rather than a description. The row does not lean on leg 3 and says so. THE CHARGE, answered: `PCB layout` is verbatim an entry in the engineering schema's own `work_types[]` array, beside `electrical schematic` and `bill of materials`, both of which also have roster rows - so the prima facie case is that this tree was sliced by artifact-type value, which is the 574's recorded failure. It is defeated only by the roster hint's second clause, `and the manufacturing package produced from it`: the node's object is a SET RELATION over a released deliverable, not a value of a type field. The value stays a value. Under the narrow reading - a `.kicad_pcb` is simply a CAD model of a different flavour - this row must be refused, and that reading is surfaced as NJ-PCB-4 rather than smoothed away."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract, twice over. PR-6 leaves the engineering schema with no declared fields, and a template may not copy its schema's list in any case. The legal set on a file this row recognizes is the universals (file type, creation date, language, duplicate family, version family, sensitivity status) plus whatever R1c licenses from the schema row's four proposals.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. The three strings this material is saturated with are evidence or values, never keys. (1) A LAYER ROLE (top copper, inner 2, solder mask, paste, legend, outline, drill) is a candidate VALUE of `engineering_artifact_type` and is already carried in `work_types` below; minting a key for it would turn the row back into the artifact-type slice it just defeated. (2) A REFERENCE DESIGNATOR (R12, C7, U3, J1) is the single worst never_alone on this node - the same short shape is a room number, a citation label, a seat, a grid cell and a spreadsheet cell reference - so it is evidence and at most a value inside content. (3) A FABRICATION REVISION is exactly the engineering schema row's existing `revision_or_baseline` proposal; the brief requires reusing an existing proposal rather than minting a variant, so this row references it and argues its destination-eligibility exception in `template.why` instead of proposing a synonym.",
+  "recognition": {
+    "deterministic": [
+      "a sibling set sharing one filename stem whose members carry a layer-role vocabulary - copper by stack position, solder mask, silkscreen or legend, solder paste, board outline or profile, drill - together with at least one plain-text coordinate-format declaration in a member; the relation ACROSS the set is the signal, never one suffix on one file",
+      "a Gerber-family header relation inside a plain-text file: a format-specification directive declaring coordinate integer and decimal digits, a unit directive, then aperture definitions followed by coordinate blocks, with no prose, headings, title block or approval slot anywhere in the file",
+      "an extended-Gerber file-function attribute carried in a structured comment line that names the file's own layer role and, for copper, its position in the stack - the rare case where one member is self-declaring without its siblings",
+      "an Excellon-family header block that opens with a units and zero-suppression directive and a tool-definition list of diameters, followed by coordinate blocks grouped under tool selections; a drill program is recognizable by this structure regardless of whether the file is named .drl or .txt",
+      "an ODB++ archive manifest exposing a step-and-layer directory grammar together with a matrix file that enumerates layer names and their types, read from the manifest without extraction",
+      "an IPC-2581 document root element in a single XML file binding named layers to functions alongside a parts or BOM section for the same board",
+      "a layout-database structure that enumerates a board stackup - an explicit layer table with copper, mask, paste and legend roles - alongside footprint records and net records in the same file",
+      "a placement or centroid table whose columns are a reference-designator, a board-side value, an X/Y pair stated in the board coordinate system and a rotation, where the same designators recur in a sibling parts table",
+      "a fabrication drawing whose title block sits beside a drill table (symbol, finished size, plated or non-plated, quantity) and a stackup table naming dielectric layers and copper weights; the drill and stackup tables are the discriminators, not the title block, which the drawing-package sibling also has",
+      "a design-rule or electrical-rule check report listing violations by rule name and board coordinate against a named layout; the object measured is the design database, not a produced unit",
+      "parent-folder or archive context naming a board and a fabrication revision may raise plausibility only after one of the structures above is present; it never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a layer-named file set is a board fabrication release or a plotting, printing or garment-cutting export from a different tool family that also speaks in layers and coordinates",
+      "whether a parts table beside a placement table is the layout's own release BOM, an assembly house's procurement list, or a costing sheet",
+      "whether a .brd, .pcb or .net file is a board layout, an older or unrelated CAD/plotting format reusing the same suffix, or a text file that merely shares the extension",
+      "whether a board release belongs to a product design item, or to a one-off test coupon or evaluation board whose object is knowledge rather than a product",
+      "whether an assembled-board photograph documents a prototype build, an inspection finding, or nothing filable at all",
+      "whether a stackup and impedance document is this board's design definition or a fabricator's capability datasheet held as reference material",
+      "whether a firmware image sitting in the same release folder is a repository artifact, a controlled component of the board's released configuration, or both"
+    ],
+    "never_alone": [
+      "the words PCB, board, layout, copper, layer, gerber, drill, stackup, netlist, footprint or designator alone; every one of them appears in neighboring domains and in unrelated trades",
+      "a .gbr, .gtl, .gbl, .gts, .gko, .drl, .brd, .net, .pcb or .txt extension alone. 00 requires treating `the file extension as a routing signal rather than an assumption about meaning`, and this row is the sharpest case for it: .brd and .net are reused by unrelated formats, and real drill programs are routinely delivered as plain .txt",
+      "a reference-designator-shaped token such as R12, C7, U3 or J1 alone; the same short shape is a room number, a citation label, a seat, a grid cell and a spreadsheet cell reference",
+      "a board number, order number or other short alphanumeric identifier alone; it can be a stock code, an invoice line, an asset tag or an arbitrary number",
+      "a fabricator's or assembly house's name alone. A fab house appears as a VENDOR on a purchase record far more often than as the recipient of a release, which is the same role ambiguity 00 identifies for a university name",
+      "a revision token, a _final or _v7 suffix or a change-log heading alone; the engineering schema already records that revision control is shared with code, policies, contracts, construction drawings and research manuscripts",
+      "a rendered or photographed board image alone, and the absence of EXIF is not proof of a screenshot",
+      "a bounded download session alone. 00: `A session should never be treated as proof of topic`",
+      "a repository root, git markers or a package manifest alone; a layout kept under version control is still not a code project",
+      "a layer word inside a single mechanical drawing file alone; draughting layers such as dimensions, cut and engrave are not a copper stackup",
+      "a pass/fail or zero-violations summary alone; manufacturing inspection, software tests and certification all contain one"
+    ]
+  },
+  "proposed_context_terms": [
+    "layer stackup",
+    "copper weight",
+    "solder mask",
+    "solder paste stencil",
+    "silkscreen",
+    "board outline",
+    "plated through hole",
+    "annular ring",
+    "aperture",
+    "coordinate format",
+    "tool diameter",
+    "drill program",
+    "reference designator",
+    "centroid",
+    "pick and place",
+    "netlist",
+    "impedance control",
+    "surface finish",
+    "panelisation",
+    "design rule check",
+    "fabrication notes",
+    "assembly drawing",
+    "released for fabrication"
+  ],
+  "proposed_context_terms_note": "PROPOSED candidates for R6, not design. 00 states the pattern-plus-context SHAPE for course codes only and does not list these. They exist because this row's identifiers - designators and board numbers - are the weakest tokens on the node and must never fire without a structural term beside them.",
+  "work_types": [
+    "board layout database",
+    "copper layer artwork",
+    "solder mask artwork",
+    "silkscreen or legend artwork",
+    "solder paste stencil artwork",
+    "board outline or profile",
+    "drill program",
+    "drill and fabrication drawing",
+    "layer stackup and impedance definition",
+    "fabrication notes",
+    "assembly drawing",
+    "placement or centroid table",
+    "assembly bill of materials",
+    "netlist export",
+    "design-rule or electrical-rule check report",
+    "panel or array specification",
+    "released fabrication data package"
+  ],
+  "work_types_note": "Candidate VALUES of the engineering schema's proposed `engineering_artifact_type` (or a widened canonical `artifact_type`), never child nodes. This list is also the row's own guard rail: if the row were nothing but the value `PCB layout`, every entry here would be a sibling row and the node would have to be refused.",
+  "grouping_reasons": [
+    "one board at one fabrication revision: every member of its release set held as ONE deliverable rather than scattered by member type, because a single copper layer cannot be fabricated alone",
+    "one board across its spins: successive fabrication revisions of the same design item, preserved as a version family rather than as unrelated releases",
+    "the layout database and the outputs generated from it, linked by shared board identity and matching layer roles",
+    "a board's release beside the schematic it realises and the firmware built for it - an evidence neighbourhood, not a merger of rows",
+    "a sparse render or bench photograph may join a board's neighbourhood without receiving the board's identity. 00: `The graph does not automatically copy those missing facts onto sparse files.`"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty in the machine-readable field because PR-6 leaves the engineering schema with no declared destination-eligible fields, and a dimension order may only name fields the same entry's schema declares. Subject to R1c, the researched order is project -> design_item -> revision_or_baseline, and the two differences from the schema default are the whole reason this row exists. FIRST: `engineering_artifact_type` is DROPPED as the terminal level. On the schema default a six-layer board's release opens roughly thirty artifact-type leaves, one per layer and program, each holding a file that is meaningless without its siblings - the exact opposite of 00's rule that `a parent dimension should provide the context required to understand the child`. SECOND: `revision_or_baseline` is PROMOTED to a level despite the schema proposing it destination_eligible FALSE. The schema's own justification licenses this exception, allowing that a specific released-baseline template may later justify a different order; a board release is that case, because the fabrication revision IS the deliverable's identity - it is what a fabricator is quoted against and what a spin supersedes. Design item still precedes it, because a revision letter is unintelligible without the board. Project or subject precedes time: 00 says that `For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.` Two optional branches: (a) a manufacturing-intent leaf under the revision, separating fabrication data from assembly data where a corpus carries both at volume; (b) `engineering_artifact_type` restored as a leaf - returning to the schema default - only where a corpus holds loose outputs that never arrived as release sets. Recommended, not frozen: 00 says `the user can reverse, remove, add, or flatten dimensions`.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "design_creative",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".gbr",
+      ".gtl",
+      ".gbl",
+      ".gts",
+      ".gko",
+      ".drl",
+      ".txt",
+      ".kicad_pcb",
+      ".brd",
+      ".PcbDoc",
+      ".tgz",
+      ".zip",
+      ".xml",
+      ".csv",
+      ".xlsx",
+      ".pdf",
+      ".rpt",
+      ".net",
+      ".png",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "A2409-CTRL_RevD.GTL",
+      "source_type": "code_structured",
+      "observations": [
+        "opening lines are a coordinate-format directive declaring integer and decimal digits and a unit directive, not prose",
+        "a structured comment carries a file-function attribute naming the layer role as copper at the top stack position",
+        "body is aperture definitions followed by coordinate blocks; there is no title block, approver, requirement identifier or revision slot anywhere in the file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from the .GTL suffix alone",
+        "that the file is an image because a viewer renders it as one",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "A2409-CTRL_RevD.TXT",
+      "source_type": "code_structured",
+      "observations": [
+        "header block opens with a units and zero-suppression directive followed by a tool-definition list of diameters",
+        "body is coordinate blocks grouped under tool selections",
+        "the extension says text; the interior structure is a drill program"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that .TXT means notes or prose",
+        "manufacturing execution from the word drill",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "A2409-CTRL_RevD_Fab.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists members sharing one stem whose suffixes span copper by stack position, solder mask, legend, paste, outline and drill",
+        "manifest also names a fabrication-notes PDF and a stackup PDF",
+        "members have not been extracted to the filesystem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts read from uninspected member contents",
+        "that the archive name RevD alone proves a controlled revision",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "A2409-CTRL.kicad_pcb",
+      "source_type": "design_creative",
+      "observations": [
+        "file head is a nested s-expression declaring the format and version",
+        "an explicit layer table enumerates copper layers by stack position plus mask, paste and legend roles",
+        "footprint records and net records follow in the same file"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "code activation from the file sitting inside a repository",
+        "that a native layout file is the released package",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A2409-CTRL.PcbDoc",
+      "source_type": "opaque_binary",
+      "observations": [
+        "proprietary binary container; no readable layer table, netlist or text without a dedicated extractor",
+        "filename stem matches the release set beside it",
+        "file signature identifies a compound binary document, not a text stream"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "an empty extraction result",
+        "activation from the stem matching a neighbouring release",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "A2409-CTRL_odb.tgz",
+      "source_type": "archive",
+      "observations": [
+        "manifest exposes a step-and-layer directory grammar with per-layer subdirectories",
+        "a matrix file enumerates layer names against layer types",
+        "no single member is self-describing; the directory grammar is the identity"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a .tgz is a source-code archive because it is a tarball",
+        "facts from members that were not inspected",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "PickAndPlace_A2409-CTRL_RevD_top.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers are a reference-designator, a value or comment, a board-side, an X/Y pair and a rotation",
+        "side values are top and bottom; coordinates are stated in millimetres in the board coordinate system",
+        "designators recur in a sibling parts table with the same stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "manufacturing execution from the words pick and place",
+        "that this is a machine program or a feeder setup",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "A2409-CTRL_RevD_BOM.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "designator column values match the designators in the sibling placement table",
+        "columns carry manufacturer part numbers, quantities and footprint names",
+        "no parent-assembly identifier, no quantity-per-parent tree, no batch or purchase-order structure"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that any table headed BOM is a design-authoritative product structure",
+        "procurement or costing facts from the presence of part numbers",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "A2409-CTRL_RevD_Fab-Drawing.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "border title block labels board, drawing number, revision and approver",
+        "a drill table lists symbol, finished size, plated or non-plated and quantity",
+        "a stackup table names dielectric layers and copper weights, and notes state surface finish and impedance control"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from the title block alone, which the drawing-package sibling also has",
+        "a produced unit's measurements from the drill table's stated sizes",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "DRC_Report_A2409-CTRL.rpt",
+      "source_type": "text_document",
+      "observations": [
+        "violations are listed by rule name - clearance, annular ring, legend over pad - each with a board coordinate",
+        "a summary line states the violation count against a named layout and rule set",
+        "no serial number, lot, panel or measured dimension appears anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "manufacturing inspection from a pass or zero-violations summary",
+        "that a checked design is a released design",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "board_render.png",
+      "source_type": "image",
+      "observations": [
+        "a rendered board image with no EXIF and no embedded text",
+        "sits in the same directory as a release set whose stem it does not share",
+        "OCR yields only a handful of legend characters"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a board identity copied from the neighbouring release",
+        "that the absence of EXIF proves a screenshot",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Your PCB order A2409-1183 has shipped.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is a board fabricator; body states order number, layer count, thickness, surface finish, quantity, unit price and ship date",
+        "attachment name is an invoice PDF",
+        "the board's own stem appears nowhere; there is no coordinate, aperture, tool or layer-artwork data"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from a fabricator's name plus board vocabulary",
+        "a design item from an order number",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Front-Panel_A2409_Rev2.dxf",
+      "source_type": "design_creative",
+      "observations": [
+        "2D geometry with named layers - dimensions, cut, engrave - and cutouts positioned to match the board's connectors",
+        "shares the board's project token in the filename",
+        "no copper, mask or paste layer roles; no drill tool table; no aperture definitions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "this row from the presence of named layers and coordinates",
+        "a board fabrication revision from the shared project token",
+        "domain fields before R1c",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.electrical-schematic",
+      "signal": "The sharpest collision on the node: same circuit, same design item, same tool, often the same project directory, adjacent releases. Shared fixture: a KiCad project holding both A2409-CTRL.kicad_sch and A2409-CTRL.kicad_pcb. Discriminator in BOTH directions - the schematic's structure is connectivity ONLY (symbols, pins, nets, sheet hierarchy, no physical geometry); this row's structure is layer roles, coordinates, apertures and tool diameters. A netlist export is the seam and belongs to whichever side the file was generated from, which is stated in its own header, not guessed from the shared stem.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.cad-model",
+      "signal": "A .kicad_pcb and a .PcbDoc are native geometry files, which is precisely that sibling's definition. Shared fixture: A2409-CTRL.kicad_pcb; second shared fixture: Front-Panel_A2409_Rev2.dxf, which THIS row disclaims. Discriminator both ways - a board layout's geometry is organised as an electrical layer stackup with net and footprint records; a mechanical model's geometry is solids, sketches or draughting layers with no copper, mask or paste roles. Mutex: a file is one or the other, never both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "Shared fixture: A2409-CTRL_RevD_Fab-Drawing.pdf, which has a title block, a drawing number and a revision - that sibling's whole definition. Discriminator both ways: this row claims it only because of the drill table and stackup table, which make it a member of a board release rather than a standalone controlled drawing with its own version history. If a corpus holds the drawing WITHOUT its artwork siblings, the drawing-package row is correct and this row must not fire.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.bill-of-materials",
+      "signal": "Shared fixture: A2409-CTRL_RevD_BOM.xlsx. Discriminator both ways - the BOM sibling's evidence is a parent-child product structure with a parent assembly identifier and quantity-per-parent; an assembly BOM in a board release has a flat designator column tied to a placement table and no parent tree. The designator-to-placement join is what makes it this row's; a parent/child tree makes it the sibling's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.prototype-build",
+      "signal": "A board spin IS a prototype build, and a first-article board arrives with both a release set and a build record. Shared fixture: a directory holding A2409-CTRL_RevD_Fab.zip beside a build log naming five assembled units and their deviations. Discriminator both ways: this row's evidence describes what is to be made and carries no unit identity; the prototype-build row's evidence names actual articles, serials and observed deviations from the definition.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.embedded-firmware",
+      "signal": "Firmware images routinely ship in the same release directory as a board's fabrication data. Shared fixture: firmware.hex sitting beside A2409-CTRL_RevD_Fab.zip. Discriminator both ways: a firmware image's evidence is a build target, a load address or a toolchain record; this row's evidence is layer and coordinate structure. Neither is inferred from directory adjacency; 00 already forbids a bounded session from proving a shared topic.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "A modern layout lives in a git repository with a README and library tables, which is exactly the repository-rooted structure the code row recognizes. Shared fixture: a repository root containing A2409-CTRL.kicad_pcb, fp-lib-table, .gitignore and README.md. Discriminator both ways: repository markers and package manifests belong to code; the layer table, footprints and nets inside the .kicad_pcb belong here. Revision control is shared and activates neither row alone - the engineering schema already records this.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "Shared fixture: a fabricator's job traveller naming order A2409-1183, a panel and a run quantity, filed beside the release it was built from. Discriminator both ways - the presence of a BUILD-INSTANCE identity (work order, lot, panel, serial run, date built) makes it the production record; a DESIGN-REVISION identity with no build instance makes it this row's. A release set exists before any unit is made.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.inspection-record",
+      "signal": "Shared fixture: an automated-optical-inspection report that cites the same reference designators as this row's placement table. Discriminator both ways: the AOI report measures produced units against the release and carries panel or serial identity; the DRC report in this row measures the DESIGN DATABASE against rules and carries board coordinates only. A pass/fail summary alone discriminates neither.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "Shared fixture: an evaluation or test-coupon board laid out purely to characterise a component for a paper, whose release set is structurally identical to a product board's. Discriminator both ways: the object. If the artefact exists to produce generalizable knowledge and its outputs are figures and datasets, it is research; if it exists as the definition of a product to be made, it is this row. The release files themselves cannot settle it - this is a needs_llm case on both sides.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract: `also_holds_with` is a schema-row relation, and this is a template. The engineering schema row already carries the co-activations that matter to this material - manufacturing, code, research, business_operations and construction_property. Every multi-membership this row encountered was either same-schema (a fab drawing that is also drawing-package evidence) and therefore a collision plus a grouping question, or already covered by the schema's edges.",
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The default for a machine-format member or archive whose siblings are absent - a lone .GTL, a lone drill program, a BOM with no placement table. The structure is real but the set relation that identifies the deliverable is missing, so the honest outcome is a held decision rather than a guessed board."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the readable, self-contained documents in this world that are complete records on their own - a fabrication drawing, a stackup document, a placement table - when no board release fires around them."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For proprietary binary layout containers and ODB++ tarballs a dedicated extractor cannot yet read. 00 requires that `unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty`."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "For the fabricator's and assembler's order confirmations, invoices and shipping notices, which use dense board vocabulary but are purchase records. This is the row's named collision fixture and its correct destination."
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "For board renders and bench photographs that carry no board identity of their own. They may sit in a board's neighbourhood without receiving its facts."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is the board as a DESIGNED ITEM (this row) against the board as a PRODUCED ASSET (manufacturing.asset-register and manufacturing.production-record). A role_split requires the two sides to hold different field keys, and under PR-6 neither side declares any field at all, so writing one would name a distinction the vocabulary cannot yet express. The distinction is carried in the manufacturing collisions instead, keyed on build-instance identity, and re-tested after R1c.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A complete fabrication package is not a description of a product but a reproduction recipe: copper artwork, drill program, stackup and parts list together are sufficient for a third party to have the board built and populated. Packages also expose unreleased product identity, supplier part numbers and, for some boards, export-controlled or safety-relevant design content. This is not a new handling class - P7 owns those - and it does not make this a safety row; it is the reason a board release should not be surfaced or shared as casually as a drawing of the same board.",
+  "open_question": "NJ-PCB-1: which extractor family owns plain-text CAM formats (Gerber, Excellon, IPC-D-356)? This row lists them as code_structured because 00's structured-text path is what actually reads their header directives, but they are CAD outputs by meaning and 00 names CAD files under design and creative formats, whose extractor is described as yielding dimensions, canvas properties, layers and artboards - none of which a Gerber has until it is rendered. A third answer, metadata-only indexing, would discard the header evidence this row's strongest signal depends on. NJ-PCB-2: are this row and engineering.electrical-schematic one row or two? They share design item, tool, project file and release moment. Two here, because the discriminating evidence genuinely differs and a merged row's signals would be the union, which is how a row stops discriminating. Alternatives: keep two; merge into one circuit-design row with schematic-versus-layout as an artifact-type value; or keep two with a declared shared grouping reason. NJ-PCB-3: this row's dimension argument rests entirely on promoting the schema's proposed revision_or_baseline to a folder level under the exception the schema itself allows. If R1c rejects revision_or_baseline outright under NJ-ENG-2, leg 2 of this row's node test collapses and the row must be re-tested rather than quietly kept. NJ-PCB-4: the absorbed legacy row soft.hardware-design-file names a FILE, not a release. Read narrowly - a .brd is a hardware design file - this row is a file-format row and must be refused. It survives only on the roster hint's second clause, `and the manufacturing package produced from it`. Confirm the wide reading, or refuse the row."
+}

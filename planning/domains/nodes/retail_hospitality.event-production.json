@@ -1,0 +1,604 @@
+{
+  "id": "retail_hospitality.event-production",
+  "kind": "template",
+  "schema_id": "retail_hospitality",
+  "parent_id": null,
+  "name": "Event production and delivery",
+  "one_line": "Putting on ONE EVENT on ONE FIXED DATE that cannot move: the brief and the plan, the many different trades called to one site on one morning, the minute-keyed running order that governs the day itself, the timestamped log kept while it happens, and the reconciliation of what was budgeted against what was spent and what was expected against who actually came. The anchor is an OCCASION WITH A CLOCK. What separates it from every sibling on this schema is that its artefacts are keyed to TIMES OF DAY inside one date and to RESPONSIBLE PARTIES rather than to a capacity, a count, a till or a premises: the row's four structures are a clock-against-responsibility running order bracketed by load-in and strike, a MANY-SUPPLIERS-ONE-DATE call schedule (the inversion of the schema's one-supplier-many-dates order cycle), a public-safety operating plan keyed to a temporary occupation of a place, and a two-sided post-event reconciliation pairing budget against actual AND expected against attended. It is the HOST OR VENUE'S side of delivery. An agency PRODUCING an event for a paying client is an instructed commission and is not this row (NJ-RH-2, answered here). PLACEHOLDER ROW (J-IND, written to J-DEPTH): it writes NO field rows, because the retail_hospitality schema declares none (D1 as narrowed, _CONTRACT rules 10 and 15, CONNECTION PR-6), and therefore recommends NO folder dimensions.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION on every entry: each is a DETECTION signal and never an extraction licence. This schema declares no field rows, so nothing here writes a domain fact. “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "A CLOCK-AGAINST-RESPONSIBILITY RUNNING ORDER, and this is the row's first and strongest signal. A tabular or list record whose leading column is a TIME OF DAY (not a date), whose rows advance monotonically through a single named date, each carrying an action and a RESPONSIBLE PARTY OR DEPARTMENT slot, and which is BRACKETED - one or more rows before the first guest-facing time describing set-up, build, load-in, bump-in or get-in, and one or more rows after the last describing strike, clear-down, get-out or load-out. The bracket is what fires. A schedule of times with no responsible-party column and no bracket is an agenda or a programme, not this. Neither the schema's capacity-against-dated-demand structure nor any of its other nine has a time-of-day axis at all.",
+      "A MANY-SUPPLIERS-ONE-DATE CALL SCHEDULE. A record listing SEVERAL DIFFERENT TRADES - audio-visual, staging, marquee, generator, florist, security or stewarding, entertainment, furniture hire, catering - against ONE date, each row carrying an arrival or access window, a mobile contact, and frequently a parking, loading-bay or access-code note. This is the exact INVERSION of the schema's order-cycle structure, which is ONE supplier's reference recurring across a purchase order, a confirmation, a goods-received note and a credit note over time. One supplier across many dates is `retail_hospitality.supplier-order`; many suppliers across one date is this row, and the inversion is the discriminator in both directions.",
+      "A TEMPORARY-OCCUPATION SAFETY PLAN. A document keyed to an occasion and a place rather than to a permanent premises, carrying an expected or maximum attendance figure, a stewarding or marshalling provision, a first-aid or medical provision, an emergency egress or evacuation section, a wet-weather or contingency section, and often a traffic or parking management annex, produced FOR an occasion and expiring with it. The discriminator against `retail_hospitality.premises-licensing` is duration and subject: a premises licence is granted to a PLACE and persists across years and operators; this is written for ONE dated occupation and is dead the morning after. A Temporary Event Notice sits on the seam and is named in the boundary below.",
+      "A TWO-SIDED POST-EVENT RECONCILIATION. A record pairing, for one occasion, a BUDGETED figure against an ACTUAL figure per supplier or cost line, AND an EXPECTED headcount against an ATTENDED, scanned, arrived or served headcount, usually with a no-show or drop-off line. The two-sidedness is the signal. The discriminator against `retail_hospitality.pos-reporting` is exact: that row's variance is CASH DECLARED against CASH THE SYSTEM BELIEVED, keyed to a till and a session; this variance is MONEY PLANNED against MONEY SPENT and PEOPLE PROMISED against PEOPLE PRESENT, keyed to an occasion. The discriminator against `business_operations.budget-forecast` is that a forecast is a recurring line-item exercise over fiscal periods with no headcount axis at all.",
+      "A TIMESTAMPED SINGLE-DATE OPERATIONS LOG. Free-text entries prefixed by clock times that all fall inside one date and one bracket - a delay, a supplier that did not arrive, a weather decision, an ejection, an injury, a licensing or noise intervention. Structurally distinct from the schema's daily-signed-check diary, which repeats the SAME check rows across MANY dates with initials and tolerances; this is many DIFFERENT entries inside ONE date.",
+      "A SCALED LAYOUT OF A TEMPORARY ARRANGEMENT: a plan or drawing of a room, field or floor showing stage or top-table position, bar and catering positions, seating or table numbering, cable runs, power drops and exit routes, produced for one occasion. Frequently a photograph or export rather than a source drawing. It only fires alongside one of the four structures above; a floor plan alone is `construction_property` or `creative.interior-design` evidence.",
+      "A SEATING OR TABLE ALLOCATION keyed to an occasion - table numbers against named parties, or a delegate-to-table map. This is a STRONG signal for the row and simultaneously the row's highest-sensitivity artefact; it must never become a folder level, because it is a list of members of the public.",
+      "Parent-folder context naming an occasion and a date together - a function name plus a date, a festival name plus a year, `06.06.26 - Ashcroft` - treated as a clue that raises plausibility once one of the four structures above is already present. Folder context never fires alone, and an event name plus a year is precisely the token most likely to be mistaken for a calendar.",
+      "An email whose labelled subject slot names an occasion AND an access, arrival, call, load-in, changeover or strike concept, and whose attachment-name slot names a run sheet, running order, run of show, call sheet, site plan, supplier schedule or event plan. The occasion-plus-clock pairing is what fires; an event-sounding subject alone does not.",
+      "An archive whose manifest names an event pack, a production folder or a show file for one named occasion - read from the manifest alone, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”"
+    ],
+    "needs_llm": [
+      "PRECONDITION: this row's ordinary output includes named guests, delegates, crew mobile numbers and, in the on-the-day log, injuries to members of the public. A model step runs under the user's policy and after P7. “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”",
+      "SEPARATING THE HOST FROM THE PRODUCER, which is this row's central determination and the answer this pass owes to NJ-RH-2. A venue delivering a function on its own premises, a shop running a launch night, a festival's own organising body and a company running its own conference are HOSTS and are this row. An agency, a production company or a freelance planner engaged BY a client to deliver that same event is an instructed commission whose anchor is the engagement, not the occasion, and whose paperwork carries a client-facing apparatus - a signed proposal naming a counterparty, a fee schedule, change orders, approval rounds, an invoice against milestones. Identical run sheets exist on both sides. Where the evidence does not settle which side the holder is on, this row must not activate.",
+      "Separating a REAL delivery record from a TEMPLATE, a venue's specimen pack sent to a prospective client, a supplier's sample running order, or a downloaded event-management-plan pro forma. A blank run sheet and a completed one are the same grid with the actions removed. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "The purpose-coherent event packet whose members are individually unremarkable and share no content at all - a brief, a floor plan image, a supplier call sheet, a run sheet, a photographed whiteboard, an invoice and a debrief note. “The documents are content-incoherent but purpose-coherent.” This is the row's normal grouping case and no content-similarity method will find it.",
+      "Unlabelled operational prose: a debrief note, a complaint about the band, a chaser to a supplier who did not arrive, a handover paragraph between two duty managers. No header block, no grid, no reference.",
+      "Reading a PHOTOGRAPHED or SCANNED sheet, which this row produces heavily - a whiteboard of call times, an annotated run sheet marked up during the day, a printed floor plan with pen changes. The pen annotation is frequently the only thing that makes the file the operating record rather than the plan.",
+      "A document in a language whose event, production, licensing and hospitality vocabulary the deterministic structure catalogue does not cover.",
+      "In every case, abstention is required when evidence does not settle it. “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "THE WORD `EVENT`, and every synonym of it, standing alone - event, function, party, launch, gala, festival, conference, wedding, show. This is the row's defining never-alone and the direct answer to the charge that this row is a work_type wearing a name. An occasion word names a FUNCTION VALUE unless a clock, a supplier call or a reconciliation is present with it. `Event.docx` is as likely to be a marketing plan, a diary note, a venue's sales brochure, a charity's fundraising page copy, or a software feature named Event.",
+      "A DATE, standing alone, however occasion-shaped. Every artefact in this row is dated, which makes a date the row's LEAST discriminating token. `06.06.26.xlsx` is not a run sheet. This matters more here than anywhere else on the schema because the row's whole shape invites a year-first tree, which the design forbids for record domains.",
+      "A TIME-OF-DAY COLUMN, standing alone. An agenda, a timetable, a class schedule, a broadcast log, a train departure board and a printed order of service all have times down the left. What fires is the time column PLUS a responsible-party slot PLUS the load-in/strike bracket.",
+      "A DOCUMENT-TYPE WORD, standing alone - plan, brief, schedule, log, sheet, order. These are values of a function dimension, and a row resting on one is the schema's default template wearing a name.",
+      "A VENUE OR TRADE NAME, standing alone. Constitutionally never-alone for the reason the design gives about a university: “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.” A venue name appears as the holder's own premises, a hired venue, a competitor, a supplier, a place someone attended, and a cited example.",
+      "A GUEST, DELEGATE, CLIENT OR CREW MEMBER'S NAME. This must never anchor a group and must never become a folder level, both because “The engine validates that the proposed template does not repeat a parent dimension, create meaningless one-child levels, exceed practical depth limits, use an author or organization merely as a collector, expose protected information, or produce empty branches when tested against the accepted group.” and because a seating plan or delegate list published into a directory tree exposes members of the public.",
+      "A PHOTOGRAPH TAKEN AT AN EVENT. Four hundred JPEGs from a wedding are `photos` or `creative.shoot-day-media`, whose capture-time-first exception this row does not share; a picture of a marquee is not a production record.",
+      "A CALENDAR ENTRY for the occasion. “Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.” An ICS with attendees is a diary, not a delivery record; the bracket and the responsible-party slot are what distinguish them."
+    ]
+  },
+  "proposed_context_terms": [
+    "run sheet",
+    "running order",
+    "run of show",
+    "call sheet",
+    "crew call",
+    "call time",
+    "on site",
+    "load in",
+    "bump in",
+    "get in",
+    "build",
+    "set up",
+    "dress",
+    "sound check",
+    "doors",
+    "changeover",
+    "turnaround",
+    "carriages",
+    "strike",
+    "clear down",
+    "get out",
+    "bump out",
+    "load out",
+    "de-rig",
+    "production schedule",
+    "supplier schedule",
+    "site plan",
+    "floor plan",
+    "table plan",
+    "seating plan",
+    "top table",
+    "stage plan",
+    "power distribution",
+    "generator",
+    "marquee",
+    "staging",
+    "rigging",
+    "AV spec",
+    "dressing room",
+    "green room",
+    "dry hire",
+    "event management plan",
+    "event risk assessment",
+    "stewarding",
+    "crowd capacity",
+    "medical provision",
+    "first aid provision",
+    "traffic management plan",
+    "wet weather plan",
+    "contingency plan",
+    "temporary event notice",
+    "safety advisory group",
+    "noise management",
+    "guest list",
+    "delegate list",
+    "comps",
+    "on the day",
+    "incident log",
+    "duty manager log",
+    "post event",
+    "debrief",
+    "event reconciliation",
+    "final account",
+    "budget versus actual",
+    "tickets sold",
+    "scanned",
+    "attended",
+    "no show rate",
+    "spend per head"
+  ],
+  "work_types": [
+    "event brief - the occasion, the date, the expected numbers, the budget envelope, the intended shape of the day",
+    "event plan and site plan - the layout, the staging and bar positions, the seating or table allocation, the egress",
+    "supplier call schedule - the trades booked to the occasion with arrival windows, contacts and access notes",
+    "run sheet, running order or run of show - the minute-keyed timeline of the day with responsible parties, bracketed by load-in and strike",
+    "crew call and staffing allocation for the occasion",
+    "event management plan and event risk assessment, including any temporary-occupation safety annexes",
+    "on-the-day log - timestamped entries kept while the occasion runs, including incidents",
+    "post-event reconciliation and debrief - budget against actual, expected against attended, and what to change next time"
+  ],
+  "grouping_reasons": [
+    "ONE OCCASION ACROSS ITS WHOLE BRACKET, and this is the row's primary and defining group: the brief, the site plan image, the supplier call sheet, the run sheet, the photographed whiteboard, the on-the-day log and the reconciliation for one event on one date. The members share no content whatever - a drawing, a grid, a photograph and a prose note - and are joined only by the occasion. “The documents are content-incoherent but purpose-coherent.”",
+    "THE VERSION LADDER OF ONE RUN SHEET, which in this row is unusually long and unusually meaningful. A run sheet is revised repeatedly in the final days and then ANNOTATED IN PEN on the day; the annotated scan is not a duplicate of the final version, it is the operating record. Joined by the universal version_family fact, never by a trading fact.",
+    "THE SEASON OF NEAR-IDENTICAL OCCASIONS, stated here as a WARNING as much as a reason. A wedding venue produces forty run sheets a season that differ only in names, times and covers, and a duplicate or version-family detector will be tempted to collapse them. They are forty DIFFERENT occasions and must stay forty groups. This is the same filing hazard `creative.theatre-production` recorded for the run of one show, arrived at from the opposite direction: there, many dated forms of ONE production; here, one form across MANY productions.",
+    "THE EDITION SERIES of a recurring event - Harbour Food Festival 2025 and 2026. Each edition is its own occasion and its own group; the SERIES is a browse relationship, not a group, and treating it as one is how this row becomes a calendar.",
+    "No group at all is a valid and common outcome. A single supplier invoice, a single ticket, a single confirmation from a hired venue is a residual's business: “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT: PR-6 leaves the retail_hospitality schema with no field rows, and a dimension may only branch on a field the same schema declares. THE DEVIATION FROM THE SCHEMA'S DEFAULT IS THEREFORE HELD AS PROSE, AND IT IS REAL. The schema's default paragraph is: the TRADING UNIT - site, venue or channel - ONLY where the corpus genuinely spans more than one, then the TRADING OCCASION, then the OPERATIONAL RECORD FUNCTION. This row differs in two ways and both are argued. FIRST, IT INVERTS THE TOP: the OCCASION comes first and the SITE is DEMOTED OR SUPPRESSED, because an event's place is frequently not the operator's trading unit at all - it is a hired venue, a client's premises, a field, a marquee, a street. Rooting an event pack at a site level therefore produces either a one-child branch naming the operator's own venue above everything, or a branch per hired venue that splits one occasion's paperwork for no retrieval gain; both are the failure the design names when the validator rejects a template that would “create meaningless one-child levels” or “use an author or organization merely as a collector.” The schema's default makes site conditional; this row makes it presumptively OFF. SECOND, THE LEVEL BELOW THE OCCASION IS A PHASE, NOT A FUNCTION LIST: the natural second level here is BEFORE / ON THE DAY / AFTER - plan, delivery, reconciliation - because the row's entire shape is a bracket around one date, and a flat function list scatters the three run-sheet revisions, the annotated scan and the debrief across unrelated siblings. NOT TIME-FIRST, and this row is the schema's most tempted to break that rule, because almost every artefact it holds is identified by an event date and because the row's second level is literally about time-within-a-day. The answer is the design's own: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The clock IDENTIFIES positions inside the occasion; it does not ROOT the tree. The time-first exception belongs to capture-based media alone - “Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.” - and the four hundred wedding photographs that live beside this row's run sheet are exactly the material that exception is for, which is the clearest possible demonstration that the run sheet is not. A GUEST, DELEGATE, CLIENT OR CREW NAME MUST NEVER BECOME A DIMENSION, for the reason the validator sentence gives and because a seating plan turned into folders publishes members of the public into the directory tree. Any later order remains editable: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "presentation",
+      "archive",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".pdf",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".pptx",
+      ".zip",
+      ".mp4"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Run sheet - Ashcroft wedding 06.06.26 v4.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "leading column of clock times advancing monotonically through one named date",
+        "a WHO column naming departments and individuals - duty manager, kitchen, bar, AV, band",
+        "rows before the first guest time reading set-up, chair delivery, florist access, sound check",
+        "rows after the last guest time reading carriages, bar close, clear down, marquee de-rig Sunday am",
+        "a covers figure in the header and a table-plan reference, but no capacity column in the grid itself",
+        "no dependency links, no percentage complete, no RAG column, no cue numbers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a site, trading occasion or record period as a stored fact; all three are proposed keys awaiting R1c",
+        "that this is business_operations.project-delivery; the absent dependency, RAG and acceptance apparatus is the discriminator in both directions",
+        "the lead client's name as a group anchor or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Supplier call sheet - Harbour Food Festival 06.06.26.docx",
+      "source_type": "text_document",
+      "observations": [
+        "eleven rows, each a DIFFERENT trade - staging, PA, generator, marquee, fencing, stewards, first aid, waste, ice, florist, entertainment",
+        "an arrival window and a mobile number per row",
+        "an access, gate and parking note per row",
+        "one date across the whole sheet",
+        "no purchase-order reference and no quantity-ordered-against-received columns anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is retail_hospitality.supplier-order; that row is ONE supplier's reference recurring over time, this is MANY suppliers on one date, and the inversion is the discriminator in both directions",
+        "that the mobile numbers are ordinary business contact data - they identify named individuals and raise the privacy posture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Event Management Plan - Harbour Food Festival 2026 (for SAG).pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an expected and maximum attendance figure for one dated occupation of one open site",
+        "a stewarding provision section and a first-aid provision section",
+        "an emergency egress plan with a map and an evacuation trigger paragraph",
+        "a wet-weather and cancellation contingency section",
+        "a traffic and parking management annex",
+        "a distribution line naming a licensing authority and a safety advisory group",
+        "no permitted-hours schedule and no licensable-activities table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is retail_hospitality.premises-licensing; a premises licence is granted to a PLACE and persists, this expires with the occasion, and the absent licensable-activities table is the discriminator",
+        "that the named authority makes this a government record - custody decides, and this is the operator's own submission",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "On the day log - Harbour 6 Jun.docx",
+      "source_type": "text_document",
+      "observations": [
+        "free-text entries each prefixed by a clock time, all inside one date",
+        "entries naming a late supplier, a power trip on the east bar, a weather decision to drop the outdoor set",
+        "one entry recording a named attendee who fell and was seen by the first-aid team",
+        "one entry recording an ejection and the steward who handled it",
+        "no repeating check rows, no tolerances, no initials column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that this is the schema's daily-signed-check diary or retail_hospitality.food-safety; that structure repeats the SAME checks across MANY dates, this is many DIFFERENT entries inside ONE date",
+        "that the injury entry is a medical record; it is an operational note naming a member of the public and it raises the privacy posture without creating a medical claim",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Post event reconciliation - Harbour Food Festival 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per cost line with a BUDGET column and an ACTUAL column and a variance",
+        "a second block pairing tickets issued, tickets scanned and comps redeemed, with a no-show line",
+        "a derived spend-per-head figure",
+        "a single occasion named in the header with its date",
+        "no bank or merchant account identity, no nominal codes, no fiscal period, no till or tender split"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that money in cells makes this finance; the absent account identity and posting structure is the discriminator",
+        "that this is retail_hospitality.pos-reporting; that variance is cash declared against cash the system believed, keyed to a till and a session",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_4471.jpg (whiteboard - Saturday call times)",
+      "source_type": "image",
+      "observations": [
+        "a photographed whiteboard with handwritten times down the left and departments across",
+        "arrows and crossings-out where times moved",
+        "OCR confidence low across the handwriting",
+        "EXIF capture timestamp on the morning of the occasion",
+        "sitting in a folder beside a run sheet and a floor plan"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "a capture date as an occasion date - the photograph's date is when the board was photographed",
+        "that photos owns it because it is a JPEG with EXIF; the universal capture facts are photos' business, the content is this row's evidence",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Access and parking - AV crew Saturday 6th.eml",
+      "source_type": "email",
+      "observations": [
+        "a subject naming the occasion date and an access concept",
+        "a body agreeing a 07:00 gate opening and a loading-bay window",
+        "a crew lead's mobile number in the signature",
+        "an attached one-page site plan",
+        "no order reference, no quantities, no price"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "that a supplier's domain in the sender slot activates retail_hospitality.supplier-order",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Harbour Food Festival 2026 - event pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing a brief, a site plan, a supplier call sheet, three run sheet revisions, a scanned annotated run sheet, a stewarding schedule and a debrief",
+        "one occasion name and one year across every member",
+        "members of five different source types",
+        "no per-member content read"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any retail_hospitality fact - the schema declares none",
+        "any fact read from a member, because “However, the normal scan should never extract archive contents to the filesystem, because doing so creates security, storage, and side-effect risks.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Order of service - Ashcroft wedding.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "times down the left and items across, over a single date - visually almost identical to a run sheet",
+        "typeset in a display face with a decorative border and a monogram",
+        "NO responsible-party column",
+        "NO set-up, load-in, strike or clear-down rows - it begins at the first guest moment and ends at the last",
+        "print bleed marks and a printer's job number in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a timed single-date list is a run sheet - THIS IS THE ROW'S COLLISION FIXTURE and the answer is no; the missing responsible-party column and the missing load-in/strike bracket are the discriminators",
+        "any retail_hospitality fact - the schema declares none",
+        "a folder path"
+      ],
+      "also_schema": "creative",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Running order - Spring Gala 2026 (client approval v4).docx",
+      "source_type": "text_document",
+      "observations": [
+        "a genuine clock-and-responsible-party running order with a load-in and a strike bracket",
+        "BUT a cover sheet naming a client organisation and an agency, with a fee summary and a change-order reference",
+        "a tracked approval block with a client-side signature line and a revision-request column",
+        "an appendix listing deliverables against milestones",
+        "the holder appears in the AGENCY block, not as the venue or the host"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates - THIS IS THE ROW'S SECOND COLLISION FIXTURE and the answer this pass gives to NJ-RH-2 is that an agency producing an event for a paying client is an instructed commission, not a trading occasion of the holder's own",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": "creative",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Annual Conference 2026 - workstream plan v6.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a Gantt over eight months with predecessor links and percentage complete",
+        "a workstream column with named owners and a RAG status column",
+        "an in-scope and out-of-scope pair on the first tab",
+        "a stage-gate row with approval dates",
+        "no time-of-day axis anywhere, no supplier arrival windows, no strike"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that an occasion name in the title activates this row - it is business_operations.project-delivery, whose four structures are all present here and all absent from a run sheet",
+        "any retail_hospitality fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Delegate list - Harbour Summit.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "names, job titles, organisations, email addresses and dietary requirements",
+        "a table-number column",
+        "one occasion named in the filename only",
+        "no times, no suppliers, no budget, no bracket - no delivery apparatus of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row activates on a named list alone - a list of members of the public with no delivery structure around it is protected material, not an operating record",
+        "any retail_hospitality fact",
+        "a delegate name as a group anchor or a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "retail_hospitality.catering-contract",
+      "signal": "SAME FIXTURE BOTH SIDES: `Function sheet - Ashcroft wedding 06.06.26.docx` (the schema anchor's own fixture, and the Banqueting Event Order in trade language) — this row owns the sheet's DELIVERY APPARATUS, meaning the minute timeline, the supplier arrival windows, the crew allocation and the set-up-to-strike bracket, while catering-contract owns the sheet's COMMERCIAL INSTRUMENT, meaning the priced menu, the per-head charge, the deposit and payment schedule, the client signature block and the final account, discriminated by whether the reader is being told WHAT WAS AGREED WITH THE CLIENT (catering-contract) or WHO DOES WHAT AND WHEN ON THE DAY (this row). The BEO is genuinely one document carrying both, which is why the boundary is stated on the section rather than the file, and why NJ-EP-1 asks R1c to rule. Reciprocal in the hard direction: THIS ROW MUST NOT TAKE a catering proposal, a function contract, an allergen sheet or a final invoice, and CATERING-CONTRACT MUST NOT TAKE a run sheet, a supplier call sheet or a post-event reconciliation. The duplicate charge is defeated in one line: strip the food and the paying client away and catering-contract has nothing left, while this row still holds a free community festival, a ticketed gig and an internal conference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.bookings-reservations",
+      "signal": "SAME FIXTURE BOTH SIDES: `Ashcroft 06.06.26 - confirmation and deposit.pdf` — this row owns the PRODUCTION of the day and bookings-reservations owns the RESERVATION of the date, discriminated by whether the record consumes capacity against a dated demand (a party size, a room-night, a seat, with a status slot of confirmed/provisional/cancelled/no-show) or schedules work against a clock (a responsible party, an arrival window, a bracket). Reciprocal: THIS ROW MUST NOT TAKE a diary of reservations, a no-show report or a deposit record, and BOOKINGS-RESERVATIONS MUST NOT TAKE the run sheet that a confirmed booking later generates. The boundary matters because the two are SEQUENTIAL on the same occasion — the booking creates the date, the production fills it — and a naive grouper will merge them; they may legitimately co-occur in one user folder without either taking the other's members.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.project-delivery",
+      "signal": "SAME FIXTURE BOTH SIDES: `Annual Conference 2026 - master plan.xlsx`, a workbook whose first tab is a dependency-linked Gantt with RAG status and whose last tab is a minute-keyed run sheet for the day itself — this row owns the run-sheet tab and project-delivery owns the Gantt tab, discriminated by the four structures each side names as its own: project-delivery activates on a scope-and-out-of-scope pair, a dependency-bearing schedule, a stage-gate-and-RAG reporting cadence and an acceptance-paired-with-handover closure, none of which appears in an event pack, while this row activates on a clock-and-responsible-party bracket, a many-suppliers-one-date call schedule, a temporary-occupation safety plan and a two-sided budget-and-attendance reconciliation, none of which appears in a project pack. The deepest discriminator is that AN EVENT CANNOT SLIP: its date is fixed and the work compresses against it, which is why its artefact is a clock and not a network, and why its closure is a RECONCILIATION rather than an ACCEPTANCE — nobody signs an event off. Reciprocal: THIS ROW MUST NOT TAKE a programme plan, a RAID log, a status report series or a handover certificate merely because the deliverable is an occasion; PROJECT-DELIVERY MUST NOT TAKE a run sheet, a supplier call sheet or an on-the-day log merely because an event was planned. This is the pass's answer to NJ-RH-2 and it is authored one-way; R1c owes the reciprocal on the landed project-delivery row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.theatre-production",
+      "signal": "SAME FIXTURE BOTH SIDES: `Running order - 6 Jun.pdf` — this row owns it when the rows carry supplier arrivals, doors, speeches, service and carriages against a responsible-party column, and theatre-production owns it when the rows carry CUE NUMBERS keyed to LX, sound, fly and wardrobe departments against script pages, discriminated by the cue-number-to-script-page join that theatre-production names as the thing no other creative row has. The two rows also invert each other on the filing hazard they record: theatre-production's is ONE production generating forty near-identical dated show reports; this row's is FORTY DIFFERENT occasions generating one near-identical form. Reciprocal: THIS ROW MUST NOT TAKE a prompt copy, a cue sheet, a show report or a rehearsal schedule; THEATRE-PRODUCTION MUST NOT TAKE a supplier call schedule, an event management plan or a post-event budget-and-attendance reconciliation. A gig at a pub sits exactly on this seam and is decided by which apparatus is present, not by whether there is a stage.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.exhibition",
+      "signal": "SAME FIXTURE BOTH SIDES: `Install schedule - Ashcroft Gallery, private view 6 Jun.xlsx` — this row owns the PRIVATE VIEW as an occasion (bar, catering, stewarding, guest list, doors, carriages, reconciliation) and exhibition owns the SHOW as a register of other people's objects (the checklist with artists, media, dimensions, editions and lenders, the loan agreements, the paired condition reports, the hang plan), discriminated by whether the record enumerates OBJECTS THE HOLDER DOES NOT OWN or schedules a DATED OCCASION WITH ATTENDEES. Reciprocal: THIS ROW MUST NOT TAKE a checklist, a loan agreement, a condition report or a wall text; EXHIBITION MUST NOT TAKE the drinks order, the guest list or the door count for its own opening night. Both rows have an install-and-deinstall bracket, which is precisely why the discriminator has to be the object register and not the bracket.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.premises-licensing",
+      "signal": "SAME FIXTURE BOTH SIDES: `Temporary Event Notice - 06.06.26.pdf` — premises-licensing owns it as a PERMISSION instrument (a reference, an issuing authority, permitted activities and hours, conditions, an objection and counter-notice route) and this row owns only the operational plan the notice sits beside, discriminated by whether the document GRANTS something or PLANS something. A TEN is the sharpest case on this schema because it is permission-shaped and occasion-scoped at once; this pass rules it to premises-licensing on the grant test and records NJ-EP-2 rather than splitting it. Reciprocal: THIS ROW MUST NOT TAKE a notice, a licence, a variation or a hygiene inspection outcome; PREMISES-LICENSING MUST NOT TAKE an event management plan, a stewarding schedule or a traffic management annex, none of which grants anything.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality.pos-reporting",
+      "signal": "SAME FIXTURE BOTH SIDES: `6 Jun - festival bar takings.xlsx` — pos-reporting owns it when the structure is TENDER SPLIT BY TILL AND SESSION with a declared-cash-against-expected over/short line, and this row owns it when the structure is BUDGETED AGAINST ACTUAL and EXPECTED AGAINST ATTENDED for one occasion, discriminated by whether the variance compares MONEY COUNTED TO MONEY BELIEVED (pos-reporting) or MONEY PLANNED TO MONEY SPENT and PEOPLE PROMISED TO PEOPLE PRESENT (this row). Reciprocal: THIS ROW MUST NOT TAKE a Z-read, an X-read or a banking record because the trading day happened to be an event day; POS-REPORTING MUST NOT TAKE an event's cost reconciliation because it contains bar revenue. A festival bar produces both on the same night and both are correct on their own bytes.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "logistics",
+      "signal": "SAME FIXTURE BOTH SIDES: `POD - 20 trestle tables, 6 Jun, Harbour site gate 2.pdf` — logistics owns it as a MOVEMENT record (consignment or manifest identity, carrier, route, proof that a carriage obligation was discharged) and this row owns it as an ACCESS-AND-CALL record (which trade, which gate, which window, against the day's schedule), discriminated by whether the record is keyed to a CONSIGNMENT or to a POSITION IN A RUNNING ORDER. Reciprocal: THIS ROW MUST NOT TAKE a carrier's manifest, a freight rate card or a route plan; LOGISTICS MUST NOT TAKE a supplier call sheet keyed to arrival windows on one site on one morning. Note the three-way with `retail_hospitality.supplier-order`, which owns the same delivery when it is keyed to the operator's own purchase order and its shortage columns. AUTHORED ONE-WAY HERE; R1c owes the reciprocal on the logistics side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr",
+      "signal": "SAME FIXTURE BOTH SIDES: `6 Jun - crew call.xlsx`, names down the side and call times across — this row owns it as a POSITION-IN-THE-DAY allocation (roles against moments in the running order, with a strike call at the end) and hr owns it as an EMPLOYMENT record (contracted hours, absence codes, pay rates, a named individual's file), discriminated by whether the sheet is keyed to the OCCASION'S CLOCK or to the EMPLOYEE'S TERMS. Reciprocal: THIS ROW MUST NOT TAKE a timesheet submitted for payment, a casual worker's contract or an accident report opened as an employee matter; HR MUST NOT TAKE the crew call, the stewarding schedule or the on-the-day log merely because staff are named in them. This is the event-shaped instance of the schema's own NJ-RH-1 and it must be answered the same way that is.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "SAME FIXTURE BOTH SIDES: `Q3 all-hands - agenda and timings.docx` — meeting-record owns it as a CONVENING record (an agenda, attendees, minutes, actions with owners) and this row owns an occasion only when the delivery apparatus is present, discriminated by three absences that are decisive together: a meeting agenda has no supplier arrivals, no load-in/strike bracket, and no attendance-against-expected reconciliation. Reciprocal: THIS ROW MUST NOT TAKE an agenda, a minute or an action list; MEETING-RECORD MUST NOT TAKE the run sheet, the AV call or the room-set schedule for a large offsite that is genuinely being produced. The seam is real because a big internal offsite is both, and the honest outcome there is co-occurrence on disjoint members rather than one row taking the folder.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "SAME FIXTURE BOTH SIDES: `IMG_4471.jpg`, the photographed call-times whiteboard — photos owns the universal capture facts (capture date, device, the fact that this is a camera event) and this row owns the CONTENT as delivery evidence, discriminated by whether the claim being made is about the ACT OF CAPTURE or about what the sheet says. Reciprocal and strict: THIS ROW MUST NOT CLAIM a capture date as an occasion date, and PHOTOS MUST NOT treat a photographed operating sheet as a photo event to be filed by capture time. The wider case is the four hundred JPEGs shot at the same wedding: those are photos' or `creative.shoot-day-media`'s outright, and this row must not annex them because it holds the run sheet for the same day. This row does not share the capture-time-first exception.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The row's PRIMARY residual, and the honest destination for its hardest case. An event-shaped file whose SIDE is unresolved — a run sheet where the evidence does not settle whether the holder is the host or the engaged producer — must land here rather than activate, and so must a photographed sheet whose handwriting OCR could not read. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The named home for the isolated transactional member this row constantly sheds: a single AV hire invoice, a single venue confirmation, an event ticket, a supplier deposit receipt with no occasion pack around it. The design lists this material by name — “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.” — and event tickets appear in that sentence explicitly. This row activates on the BRACKET around an occasion; one transaction is a residual's business.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a durable standalone event document with no bracket around it — a one-off event insurance certificate, a printed order of service kept as a memento, a single safety-advisory acknowledgement. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The required home when the material turns out to be a register of people rather than an operating record — a delegate or guest list with contact and dietary columns, a seating plan, an on-the-day log whose substance is an injury to a named attendee. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected ticketing export or an event-software file in a proprietary format. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "host",
+      "other_field": "producer",
+      "other_domain": "creative.client-engagement",
+      "why": "THE ROW'S DECISIVE ROLE SPLIT and the answer this pass gives to NJ-RH-2. The identical run sheet exists on two sides of a counter: the HOST or VENUE delivering an occasion of its own, and the AGENCY OR PRODUCER engaged by a client to deliver that same occasion. The pattern is the design's own — “A consulting document may mention the author’s firm and the client organization.” and “The agent should model these as distinct facets, such as authored_by and target_school, or our_firm and client.” The producer's paperwork carries an apparatus the host's never has: a counterparty named as client, a fee schedule, change orders, tracked approval rounds, deliverables against milestones. The host's carries an apparatus the producer's never has: the operator's own premises permission, its own bar takings, its own staff. NEITHER ROLE GETS A KEY HERE. `guest` is deliberately not proposed and must never be, for the reason the schema anchor gives; `host` in a single-business corpus is the holder's own trade name and therefore a one-child collector. The split is recorded so that no downstream template smuggles either side in as a dimension. Provenance: design for the pattern; inference for this reading.",
+      "provenance": "inference"
+    },
+    {
+      "field": "site",
+      "other_field": "venue_hired",
+      "other_domain": null,
+      "why": "A STRAIN RECORDED, NOT A MINT. The schema proposes `site` for the operator's own trading unit. An event's place is frequently a venue the operator HIRES and does not operate — a hall, a field, a marquee, a client's office — and calling that a `site` would blur a unit the holder runs with a unit the holder rents for one day. This row does NOT mint `venue`, because that is exactly the synonym family the canonical list exists to prevent, and because `construction_property`'s `property` already occupies the interest-in-land concept. Instead it asks R1c to rule whether `site` stretches to a hired venue (NJ-EP-3), and in the meantime treats the hired venue as evidence, never as a level. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row inherits the schema family's posture and does not claim a stricter value, because the dispatch allows only `none` or `potentially_sensitive` here and P7 owns the handling classes. What it adds is a difference in KIND, stated honestly as the weakest of its three node-test legs. The schema's default sensitivity argument is about guest contact data, stay and purchase histories, dietary requirements and card tokens arriving in bulk exports. This row's exposure is narrower but sharper in two places. FIRST, THE ON-THE-DAY LOG IS AN INCIDENT RECORD: its most consequential entries describe injuries to named members of the public, ejections naming both an attendee and the steward who handled them, and safety decisions made under pressure — material closer to an accident book than to a booking sheet, and material that may later be evidence. SECOND, THE SEATING PLAN AND THE DELEGATE LIST ARE STRUCTURED REGISTERS OF PEOPLE joined to a place and a moment: a delegate list with organisations and dietary columns is a professional-affiliation dataset, and a seating plan additionally records who was placed next to whom. Crew and supplier call sheets carry personal mobile numbers for named individuals, which are not ordinary corporate contact details. The binding consequences are the design's: “Privacy policy must be enforced before content reaches any model or external connector.” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” The honesty note that matters: much of this row is NOT sensitive — a site plan, a supplier call schedule stripped of numbers, a budget reconciliation and a wet-weather plan carry no person — and the posture exists because the sensitive members arrive inside the same occasion pack as the safe ones and cannot be separated at recognition time. This row does not carry `is_safety_domain` and does not ask for it.",
+  "open_question": "Four, recorded rather than smoothed. NJ-EP-1 (the sharpest): the FUNCTION SHEET / BANQUETING EVENT ORDER is genuinely one document carrying a commercial instrument and a delivery timeline in adjacent sections, and `retail_hospitality.catering-contract` and this row both need it. Alternatives: (a) catering-contract owns the file and this row reads its timeline as a member of the occasion group without claiming the file — this pass's preference; (b) this row owns it whenever the timeline section exists, which would hollow out catering-contract and give weight to the schema's own NJ-RH-3 doubt about whether catering-contract survives at all; (c) both activate on disjoint sections, which the current model may not support at sub-file granularity. R1c must pick one and both rows must say the same thing. NJ-EP-2: the TEMPORARY EVENT NOTICE. It is permission-shaped (a notice, an authority, permitted activities) and occasion-scoped (one date, dead the morning after), and it is the one artefact where `retail_hospitality.premises-licensing`'s persistence test and this row's occasion test give opposite answers. This pass rules it to premises-licensing on the grant test; the alternative is that occasion-scoped permissions come here and only persistent premises permissions stay there. NJ-EP-3: whether the schema's proposed `site` stretches to a venue the operator HIRES for one day and does not operate. If it does not, this row has no key for an event's place and must treat the venue as evidence only; if it does, `site` and `construction_property`'s `property` must be adjudicated as a triple rather than a pair. NJ-EP-4: RECURRING-EDITION SERIES. Harbour Food Festival 2025 and 2026 are two occasions with one identity, and every artefact is titled with a year. This row insists each edition is its own group and the series is a browse relationship, but that is the exact shape most likely to be re-proposed as a year-first tree by a user or by a later dimension engine, and the design's rule against year-first is stated for record domains generally rather than for this case specifically. R1c should decide whether a series identity is representable at all without minting a key this pass declined to mint."
+}

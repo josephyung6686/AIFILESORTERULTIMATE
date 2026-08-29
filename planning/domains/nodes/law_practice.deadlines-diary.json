@@ -1,0 +1,302 @@
+{
+  "id": "law_practice.deadlines-diary",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Deadlines, limitation dates and court diary",
+  "one_line": "REFUSED. There is no deadlines world to file. A limitation date, a service date, a listing date and a completion date are DATE-TYPE VALUES carried in a column of a register whose rows are matters; the register itself is already `law_practice`'s own fifth deterministic signal and its own fourth file fixture, filed under the schema's own default template with the same empty dimension order and the same protected posture. What is left over once the value and the already-held artefact are removed is the word `deadline`, which names a temporal attribute of an obligation rather than a body of files - and which `00` never uses, in any form, anywhere. The coverage is not lost: it stays on the `law_practice` schema exactly where it already is, and unmatched diary artefacts route to Protected Records, with Review Later for an unresolved dates table and Reading Inbox for a published limitation-periods reference.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": true,
+  "refuse_reason": "FAILS ALL THREE LEGS OF CONNECTION.md §2's template test, and fails them against its own schema anchor rather than against a distant neighbour. (1) DETECTION SIGNALS DO NOT DIFFER - they are the same text. `law_practice`'s deterministic list already contains, as its fifth entry, 'A LIMITATION-AND-DIARY structure: a table over MANY matters carrying one row per matter with a key-date column - limitation, service, response, listing, hearing, completion, filing - and an owning practitioner column. The portfolio shape is the signal, not the dates.' That anchor also already carries the fixture `Key dates - limitation and listing diary.xlsx` and already argues, on that fixture, the single boundary this row would exist to argue - against `business_operations.contract-administration`'s register. A row cannot differ in detection signals from a default that has already written its detection signal down. (2) RECOMMENDED DIMENSIONS DO NOT DIFFER - both are empty, and necessarily so. Under PR-6 the schema declares no field rows, `_CONTRACT` permits a dimension only on a field the same schema declares, and the anchor's `template.why` already argues the emptiness three independent ways. This row can propose no order that the default has not already refused to propose. The one order it might be tempted to claim, `time_first: true`, is the order `00` forbids for exactly this material: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' A row whose only candidate distinction is a time-primary tree, in a family where time-primacy is prohibited, has no distinction. (3) PRIVACY RULES DO NOT DIFFER - a multi-matter key-date register is bulk-sensitive because it names many clients and many proceedings in one workbook, which is word for word the posture the anchor already fixed for the privilege log, and the anchor already prohibits the only deadline-specific behaviour a reader would expect ('that the product calculates, validates, interprets or acts on any legal deadline, or treats a date as operative, satisfied, missed or jurisdictionally valid'). Same `potentially_sensitive`, same no-client-branch, same abstention. AND THE ROW IS A VALUE TWICE OVER. `law_practice.work_types` already enumerates 'limitation, listing and key-date diary' as one of its twenty-four values, and the anchor's own `work_type` proposal states the governing principle against this row before it was written: 'a template row justified only by holding a different legal document kind is the schema's default template with a narrower filename filter.' Below the artefact, `limitation`, `service`, `response`, `listing`, `hearing`, `completion` and `filing` are themselves a value enum inside one column - a value set inside a value. FINALLY, THE EVIDENCE THAT SETTLES IT: `00` contains no occurrence of `deadline` or `due date`, in any casing, anywhere in the document. The product has no temporal-obligation concept to hang a node on. `deadline` here is doing the work `-final` does in a filename: it labels a state of an obligation, not a kind of file. Refusing costs nothing, because unlike a refusal that orphans coverage, every artefact this row would have held is already held - by the anchor's signal, by the anchor's fixture, and by the schema's own default template.",
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [],
+    "needs_llm": [],
+    "never_alone": [
+      "STATED FOR A REFUSED ROW BECAUSE THE ROW'S EXISTENCE WAS ITSELF THE NEVER-ALONE ERROR. A DATE, A DATE COLUMN, A DATE-TYPE WORD, or a table OF dates. This is the token that would have carried the node and it cannot carry anything: `limitation`, `due`, `deadline`, `key date`, `diary date`, `listing`, `service by`, `respond by` and `expires` are attribute words that appear on tax notices, visa pages, insurance renewals, warranty cards, subscription invoices, licence renewals, project plans and milk cartons. A date says WHEN, never WHOSE or WHAT-KIND-OF-RECORD, and this family's whole question is whose.",
+      "A PORTFOLIO TABLE WITH A DATE COLUMN AND AN OWNER COLUMN. The shape is generic and the anchor already said so on the same fixture - `business_operations.contract-administration`'s renewal-and-notice register, an HR probation-review tracker, a `finance.small-business-bookkeeping` receivables ageing sheet and a compliance-filing calendar are all this shape. What the rows are ABOUT decides; the shape decides nothing, so a shape can never be a node.",
+      "A CALENDAR SOURCE TYPE or an `.ics` EXTENSION. A court diary arriving as calendar data was the strongest surface argument for a separate row and it is struck under the schema's own rule that a source type is constitutionally never-alone; `calendar` is already in `law_practice`'s `file_kinds` and already covered by its eleventh deterministic signal. A file format is not a filing world.",
+      "THE WORD `deadline` BESIDE A FIRM NAME, A MATTER REFERENCE, OR A COURT NAME. Two struck tokens do not make a signal, per the two-role escape route `business_operations.organisational-records` closed. Delete every date, every date-type word and every entity name from the candidate artefact and what survives is a matter register - which is the schema's, not this row's.",
+      "A DEADLINE THAT IS NOT A MATTER DEADLINE AT ALL. The practitioner's own CLE compliance date, practising-certificate renewal, insurance renewal and tax filing date are all `deadline`-shaped and none of them involves a client, a matter or a third party. This is the clearest proof that `deadline` is a word rather than a world: it spans four unrelated roster families without changing its own vocabulary."
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [],
+  "grouping_reasons": [
+    "NO GROUPING REASON IS AUTHORED HERE, and the reason is the refusal itself. The one grouping observation that looked like it might rescue the row is that a key-date register spans MANY matters and therefore has no single matter anchor, which appears to break `law_practice`'s matter-anchored default. It does not rescue it for two reasons. First, CONNECTION separates activation from grouping, and the node test's three legs are detection, dimensions and privacy - a grouping consequence is not one of them. Second, the anchor already recorded both the observation and its consequence in the same words ('the workbook spans many unrelated matters'), so even the grouping behaviour is not this row's to contribute.",
+    "The correct handling of a multi-matter register under `00`'s stop rules stays where the anchor put it: 'It should not form a supported group when there is no valid anchor'. A register is evidence ABOUT many matters and joins none of them; it does not copy a matter, client or date fact onto any file, and a row inside it is not an anchor for the file it names."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BECAUSE THE ROW IS REFUSED, AND EMPTY AGAIN FOR THE THREE REASONS THE SCHEMA ALREADY GAVE - which is precisely the finding. Under PR-6 `law_practice` declares no field rows, so no dimension is available; the material co-activates the `legal` safety domain, so no deep template unlocks; and the natural dimensions of this world are a client and a matter, both of which are disclosive. The row could contribute nothing to any of the three. The specific order this row would have been most tempted to claim is time-first - a diary is a calendar and a calendar is time - and that is the claim `00` refuses for record domains, reserving time-primacy for capture-based media: 'Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.' A limitation date is not a capture date. It is a date the file TALKS ABOUT, not a date the file WAS, and filing by an obligation's due date would scatter one matter's opening, correspondence, filings and closure across as many year folders as it has dates.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "calendar",
+      "text_document",
+      "email",
+      "image",
+      "ocr"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".csv",
+      ".ics",
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".png"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Key dates - limitation and listing diary.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per matter reference with columns for client, key-date type, date, owning fee-earner and status",
+        "date types across the column include limitation, service, response, listing and completion",
+        "a conditional-format column flagging proximity to the nearest date",
+        "the workbook spans many unrelated matters and names many unrelated clients"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. THIS IS THE PROOF FIXTURE AND IT IS ALREADY THE SCHEMA'S: the identical filename, the identical observation list and the identical boundary argument are file_example four on `law_practice.json`. A template whose central fixture is verbatim its schema's fixture is the schema's default template with a narrower filename filter, which is the anchor's own stated test",
+        "that the product calculates, validates, interprets or acts on any legal deadline, or treats a date as operative, satisfied, missed or jurisdictionally valid - the anchor's prohibition, restated here because it removes the only capability a deadlines node would have been built to deliver",
+        "that the register is low-risk because each row is short. A MULTI-MATTER REGISTER IS BULK-SENSITIVE AS A WHOLE - it discloses in one sheet that a list of named clients are each in a named proceeding with a date approaching, which is a stronger disclosure than any single member file makes",
+        "a date fact from digits inside a matter reference, and a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Contract renewal and notice dates register.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per agreement with columns for counterparty, notice period, renewal date, expiry date and internal owner",
+        "a conditional-format column flagging dates inside the notice window",
+        "an owner column naming internal staff rather than fee-earners",
+        "no matter reference column, no client-and-practitioner role pair anywhere in the workbook"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "THIS ROW - AND THIS IS THE COLLISION FIXTURE. Byte for byte in shape it is the diary: a portfolio table over many items, one date column of obligation dates, one internal-owner column, one proximity flag. It belongs to `business_operations.contract-administration`, whose anchor is a live obligation under an executed contract and its notice calendar. THE DISCRIMINATOR IS WHAT THE ROWS ARE ABOUT - agreements versus matters - AND NOTHING ELSE; not the date column, not the flag, not the owner, not the profession that keeps it. That the discriminator is never the date is the whole demonstration that dates cannot found a node",
+        "that a lawyer maintaining this register makes it legal-practice material; the never-alone strike on a practitioner role name governs",
+        "a renewal, expiry or notice obligation as operative, missed or enforceable"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Limitation periods by cause of action - practice note.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a published practice-note masthead with a firm or publisher imprint and a currency date",
+        "a table of causes of action against periods expressed in years and months",
+        "footnoted statutory references and jurisdiction headers",
+        "no matter reference, no client name and no individual dated obligation anywhere in the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "THIS ROW, and the failure mode here is the one a `deadlines` label invites most: a document entirely ABOUT limitation dates, using every context term this row would have proposed, containing not one obligation belonging to anyone. It is reference reading. The discriminator is that a diary carries DATES; this carries PERIODS - a rule, not an instance",
+        "a jurisdiction fact or a jurisdiction dimension; the anchor states jurisdiction is never a field and never a dimension in this family",
+        "that any stated period is current, correct, applicable or a basis for product behaviour",
+        "sensitivity_status as protected material - there is no client, no matter and no third party in the file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Notice of Hearing - 41127-0006.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a tribunal caption naming two parties and a case identifier in the heading zone",
+        "a labelled hearing date, time, venue and time-estimate block",
+        "a court-office issuing stamp and a distribution list",
+        "the matter reference repeats in the practitioner's own header stamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW. The single most diary-shaped artefact in the family - its entire content is one future date a step must be taken by - and it is a COURT-ISSUED FILING RECORD, which is `law_practice.court-filing-record`'s on that row's own evidence, co-activating `legal` on the caption. That the family's most date-defined document belongs to a function row rather than a date row is the argument in one fixture",
+        "that a hearing date may be diarised, watched, reminded on, or turned into product behaviour",
+        "that the caption or the case identifier establishes which side the holder is on",
+        "a year fact from the digits in the case identifier, and a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Court diary - Michaelmas listings.ics",
+      "source_type": "calendar",
+      "observations": [
+        "recurring and single events carrying hearing titles, venues, start and end times",
+        "an organizer slot naming a listing office and an attendee set mixing practitioners and counsel",
+        "several event descriptions carry an exact matter reference; several carry only a party surname",
+        "recurrence metadata on standing case-management slots"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW FROM THE SOURCE TYPE. A diary that is literally a calendar file was the strongest surface case for a separate node and it collapses on the schema's own rule that a source type is never-alone. `00` names what a calendar yields - 'Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata' - and every one of those is an observation; none is a domain",
+        "a matter fact for the events carrying only a surname. A person's name alone is the strictest never-alone strike in this family; those events join no matter and remain sparse members",
+        "that the recurrence metadata is a legal schedule, or that a listed event is confirmed, effective or still listed",
+        "a folder path, and specifically no branch named for a party"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Matter management dashboard export - 2026-08.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per open matter with columns for matter reference, client, responsible fee-earner, WIP value, unbilled disbursements, next key date and key-date type",
+        "a second sheet carries time entries with narrative, units and rate",
+        "no institution-and-account header and no invoice number anywhere in the workbook",
+        "a system export banner naming the practice-management product and the export timestamp"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the next-key-date column carves a deadlines row out of this file. IT CANNOT BE CARVED: the same rows carry money and dates in one grain, and any split would tear one exported table in half. `law_practice.time-and-billing` reads the WIP and time columns on its matter-reference-plus-timekeeper structure; the date column is one more column on the same row, not a second document",
+        "that a spreadsheet of money is finance - the discriminating evidence is the matter-reference column plus the absence of an institution-and-account header, as the anchor states from its side",
+        "that the narrative column is safe to summarise; it describes clients' affairs in prose",
+        "a fiscal_period or tax_year fact - neither key is declared on this schema"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "CLE compliance deadlines - reporting period 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a regulator or bar-association masthead addressed to a named individual practitioner",
+        "a credit-hours table with earned, required and outstanding columns",
+        "a labelled compliance deadline and a late-fee schedule",
+        "a practitioner roll or bar number in the addressee block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW, THE SCHEMA, OR ANY MATTER. It is the holder's own professional-obligation record - `law_practice.admission-cle`'s, co-activating `career.credentials-licenses` on the credential structure - and there is no client, no matter and no third party in it. It is included because it proves the charge from the other direction: the word `deadline` is here, in a labelled slot, on a legal-profession document, and it activates nothing this row could hold. A word that spans four unrelated roster families without changing is an attribute, not a domain",
+        "the schema itself, from the bar number - a practising-certificate reference is a struck never-alone token",
+        "that a compliance state is satisfied, outstanding or enforceable"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 09.14.22 - diary reminder.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in the image dimensions and the capture-tool filename pattern",
+        "OCR recovers a reminder banner with a party surname, a date and the word LIMITATION",
+        "no matter reference, no role labels and no surrounding structure are recoverable",
+        "the image sits in a downloads directory with unrelated files"
+      ],
+      "facts_legal": [
+        "file_type",
+        "capture_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "THIS ROW FROM THE WORD `LIMITATION` IN OCR TEXT. This is the fixture the refused row would have mis-fired on hardest, because a date-type word plus a date plus a surname is the entire evidence a deadlines node would have been built to accept - and it is three struck never-alone tokens in a row: a date-type word, a bare date, and a person's name alone",
+        "a matter, a client or a proceeding; the screenshot has no labelled role and no structure",
+        "the schema itself. Correct abstention is the outcome: 'A model that cannot cite sufficient evidence must return unknown.'",
+        "a folder path, and specifically no branch named for the surname"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "AUTHORED ON A REFUSED ROW BECAUSE THE COLLISION SURVIVES THE REFUSAL and must be recorded for whoever holds the register. Same fixture on both sides: `Contract renewal and notice dates register.xlsx` versus `Key dates - limitation and listing diary.xlsx`. Both are a portfolio table over many items with an obligation-date column, a proximity flag and an internal-owner column. THIS DIRECTION: a register whose rows are MATTERS, with a matter-reference column and a fee-earner owner, stays on `law_practice`'s own fifth deterministic signal. THAT DIRECTION: a register whose rows are AGREEMENTS, anchored on a live obligation under an executed contract and its notice calendar, is `business_operations.contract-administration`'s regardless of whether a lawyer maintains it. Neither side may claim the other by the date column, which is the shared and therefore useless evidence."
+    },
+    {
+      "domain": "law_practice.court-filing-record",
+      "signal": "Same fixture on both sides: `Notice of Hearing - 41127-0006.pdf`. THIS DIRECTION: this row would have claimed it as the family's purest deadline artefact and must not, because a court-issued notice is a filing record whose date is its content, not its kind. THAT DIRECTION: `law_practice.court-filing-record` holds it on a tribunal caption plus a court-office issuing stamp, and it should note that the presence of a prominent future date is not evidence against its own claim. Recorded so that sibling does not concede an artefact to a row that does not exist."
+    },
+    {
+      "domain": "law_practice.time-and-billing",
+      "signal": "Same fixture on both sides: `Matter management dashboard export - 2026-08.xlsx`. THIS DIRECTION: the next-key-date column on a matter row cannot be split out of a table whose other columns are WIP and unbilled disbursements - a row is one grain and tearing it would produce two half-documents from one export. THAT DIRECTION: `law_practice.time-and-billing` reads the whole export on its matter-reference-plus-timekeeper-plus-units structure and simply carries the date column as one more observation; it needs no boundary against a deadlines row and should not author one."
+    },
+    {
+      "domain": "career.credentials-licenses",
+      "signal": "Same fixture on both sides: `CLE compliance deadlines - reporting period 2026.pdf`. THIS DIRECTION: a practitioner's own regulatory deadline has no client, no matter and no third party, so nothing in this schema can reach it however deadline-shaped it is. THAT DIRECTION: `career.credentials-licenses` holds it on credential structure - an addressee practitioner, a credit-hours table, a roll number - and must not release it merely because a legal regulator issued it. The edge exists to record that `deadline` crossed a family boundary unchanged, which is the evidence that it is a value."
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "Same fixture on both sides: a `Court date - my hearing.ics` calendar entry. THIS DIRECTION: an event naming a hearing, a court and a date is not practitioner-side evidence; the whole family's under-firing risk is that the holder is the party, not the lawyer. THAT DIRECTION: `legal.personal-legal-matters` holds the holder's own listed hearing, and the discriminator is the practitioner-side apparatus around it - an intake screen, an allocated reference belonging to the holder's own firm, a time record - never the event, the venue or the date."
+    },
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Same fixture on both sides: an ageing or due-date schedule. THIS DIRECTION: a receivables ageing sheet with a due-date column and an owner column has the diary's exact shape and none of its substance, and this row would have had no principled way to refuse it, which is itself an argument that the shape cannot found a node. THAT DIRECTION: `finance.small-business-bookkeeping` holds it on its own financial-slot structure; an exact matter reference on a line would support membership in a matter without converting the sheet into practice material."
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual": "Protected Records",
+      "why": "The principal fallback for every artefact this refused row would have held when no accepted matter group is active: the multi-matter key-date register, the court diary, the hearing notice, the dashboard export. `00` licenses it directly - Protected Records 'may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.' A register naming many clients beside many approaching proceeding dates is exactly the material that must not reach a prompt, and it is more disclosive than any one member file."
+    },
+    {
+      "residual": "Review Later",
+      "why": "For readable date-shaped artefacts whose world is genuinely unresolved - the OCR screenshot carrying a date-type word, a surname and nothing structural; an undated dates table with no owner column and no reference column. `00`: Review Later 'may hold files whose meaning is partly understood but whose final location requires a future decision.' Partly understood is precisely right: the date is legible, the obligation it belongs to is not."
+    },
+    {
+      "residual": "Reading Inbox",
+      "why": "For published limitation-periods tables, court-calendar guidance and practice notes about dates - documents entirely about deadlines that contain nobody's deadline. `00`: Reading Inbox 'may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.' They carry no client, no matter and no third party, so Protected Records would be both wrong and over-protective."
+    },
+    {
+      "residual": "Independent Records",
+      "why": "For a standalone notice or confirmation carrying one future date and a durable purpose but no matter and no register around it - `00`: Independent Records 'may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.' Named so the non-legal renewal register and its cousins have a home that does not manufacture a legal context from a date."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Recorded despite the refusal, because the material is real even though the row is not, and a refused row must not leave its coverage looking harmless. A key-date register is the single most disclosive artefact shape in the family per unit of text: one sheet states that a list of NAMED CLIENTS are each in a NAMED PROCEEDING with a date approaching. That is a bulk disclosure about third parties who never chose this filesystem, and it is stronger than the disclosure any individual matter file makes, because the register aggregates. The posture is identical to the one `law_practice` already fixed for its privilege log - the same `potentially_sensitive`, the same prohibition on client or matter folder branches, the same refusal to send the sheet, a sample or a summary to a cloud model without the user seeing the requirement. Nothing here is stricter than the schema's default, and that identity is one of the three legs on which the refusal rests.",
+  "open_question": "NJ-LPDD-1 through NJ-LPDD-4, stated in the memo. The load-bearing one is NJ-LPDD-2: if a future phase ever gives the product a temporal-obligation capability - watching, reminding, or surfacing an approaching date - that capability would need a home, and this refused id is the name it would want. The refusal is correct for a CATALOGUE of files and should be revisited only if that capability is actually commissioned, never to accommodate the possibility of it."
+}

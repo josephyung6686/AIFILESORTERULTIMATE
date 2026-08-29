@@ -1,0 +1,467 @@
+{
+  "id": "construction_property.plant-hire",
+  "kind": "template",
+  "schema_id": "construction_property",
+  "parent_id": null,
+  "name": "Plant and equipment hire — on-hire, off-hire, inspection and damage",
+  "one_line": "The organizational situation of a MACHINE SUPPLIED FOR TEMPORARY USE UNDER A CONTINUING CHARGE: the evidential core is not an excavator, a construction site, an inspection certificate or a delivery ticket, but an on-hire record paired with an operative off-hire instruction against the same asset and contract. That pair starts and stops a time-based liability and binds otherwise heterogeneous agreements, dockets, inspections, breakdowns and damage claims. Absorbs the legacy row cons.plant-hire (ROW). J-DEPTH placeholder: it recognizes the situation and writes NO field rows, because the construction_property schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an on-hire / off-hire pair: a hire confirmation naming a plant item, a rate per day or per week, an on-hire date and a site; and, separately, an off-hire notice quoting the same contract with an off-hire number and a collection date. The OFF-HIRE NOTICE is the discriminating document - a written instruction whose purpose is to stop a charge exists in no other situation in this catalogue.",
+      "an asset identity block: a fleet or plant number, a serial number, a make and model, and often a registration - carried on the agreement, the docket, the inspection record and the damage claim alike, which is what binds the group.",
+      "a hire agreement structure: hire conditions with a damage-waiver option, an insurance requirement, a minimum hire period and an idle-time or standing-charge clause. The waiver-and-insurance pairing is distinctive.",
+      "a periodic hire docket or timesheet: a repeating charge line per day or per week against one asset, with an operator name where the item is hired with a driver.",
+      "an inspection or thorough-examination record: a dated examination of a lifting or access item by a named competent person, with a next-inspection date and a report reference. It is a statutory-shaped record attached to an asset rather than to a site.",
+      "a damage, loss or breakdown record: a photographed defect with a claim reference, a rechargeable-repair quotation, or an off-hire refused note. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a delivery or collection ticket for the machine itself - the same shape as a materials delivery note but naming an asset rather than quantities.",
+      "a hire-period reconciliation: successive dated charge lines for the same asset terminate at an acknowledged off-hire or collection event. A repeating equipment charge without the terminating event is evidence of an open liability, not proof that the equipment remained in use."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "whether a document ended the hire. An email saying 'you can collect the 3-tonne on Friday' may be the operative off-hire, and the formal notice may never exist. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "separating hired plant from owned plant. A firm's own excavator generates inspection records, service sheets and defect photographs that are identical in form and belong to an asset register, not to a hire.",
+      "deciding whether a photograph of a damaged machine is a claim, an inspection, or ordinary progress photography.",
+      "reading an idle-time or standing-charge dispute out of a hire statement, where the charge lines look identical to working ones.",
+      "a hire pack that is purpose-coherent and content-incoherent: an agreement, an inspection certificate, a docket run and a photograph. “The documents are content-incoherent but purpose-coherent.”",
+      "separating a competitively sourced equipment award from the resulting hire lifecycle. A request for quotation, bid comparison and award recommendation belong to business_operations.procurement-sourcing; the awarded agreement begins this row only when it creates an asset-specific, time-charged on-hire/off-hire relationship."
+    ],
+    "never_alone": [
+      "a hire company's name alone - it is on the agreement, the invoice, the statement and the marketing email alike, read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a plant or fleet number alone. It is an asset identifier, and the same number appears on that machine's records at every site it ever visits, across different hirers and different years.",
+      "a machine make or model word alone - excavator, telehandler, tower, genny. These are values of an equipment-type field, not situations.",
+      "a rate or a money total alone.",
+      "a bare 4-digit number: a contract number, a fleet number, a serial fragment and a year are indistinguishable.",
+      "an image of a machine alone: construction sites are full of plant, and every progress photograph contains some - this is the tempting false file for the row.",
+      "membership in a download session that pulled a hire desk's monthly paperwork at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "an extension or a source_type alone - “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "the fact that the destination is a construction site alone. The same temporary-equipment lifecycle exists at events, warehouses and factories; a site is a value selecting the construction/property family, not the structural reason this template stands.",
+      "the words hire, rental, plant or equipment alone. They occur in quotations, marketing sheets, invoices, owned-asset records and subcontract descriptions; the paired start/stop lifecycle and continuing time charge are the discriminator."
+    ]
+  },
+  "proposed_context_terms": [
+    "hire",
+    "on hire",
+    "off hire",
+    "off-hire number",
+    "off-hire request",
+    "collection",
+    "hire agreement",
+    "hire conditions",
+    "rate per week",
+    "minimum hire period",
+    "idle time",
+    "standing charge",
+    "damage waiver",
+    "damage recharge",
+    "loss or damage",
+    "plant number",
+    "fleet number",
+    "serial number",
+    "thorough examination",
+    "LOLER",
+    "statutory inspection",
+    "competent person",
+    "next inspection due",
+    "pre-use check",
+    "operated hire",
+    "self drive",
+    "breakdown",
+    "exchange unit",
+    "re-hire"
+  ],
+  "work_types": [
+    "hire agreement or contract",
+    "on-hire confirmation",
+    "off-hire notice or request",
+    "off-hire acknowledgement",
+    "hire docket or weekly charge sheet",
+    "hire statement or account",
+    "thorough-examination or statutory inspection certificate",
+    "pre-use or weekly plant check sheet",
+    "service or maintenance record",
+    "breakdown report",
+    "damage, loss or recharge claim",
+    "delivery or collection ticket for the asset",
+    "operator competence card record"
+  ],
+  "grouping_reasons": [
+    "one hire: the agreement, the dockets, the inspection certificates and the off-hire, joined by an asset identity and a period. This is the row's defining group and it is the one users actually want, because the question is always 'what did that machine cost us and when did it leave'.",
+    "one asset across several hires and several sites, which is a different and equally valid grouping - and the one that most tempts the product to copy a site fact onto records from another site. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one damage claim: the photographs, the report, the recharge quotation and the correspondence, purpose-coherent and content-incoherent.",
+    "one site's plant across all suppliers, which is how a site manager thinks and how a hire desk does not.",
+    "no group at all is a valid outcome: a single collection ticket is a standalone record."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: construction_property declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the anchor is the SITE or job, then the hire (asset plus period), then the document stage. The asset must sit under the hire and not above it, because a fleet number identifies a machine across years and hirers and says nothing about which engagement a docket belongs to. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a hire docket is unintelligible without the hire it charges against. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” Genuine tension recorded rather than resolved: a plant-owning firm files by ASSET and a site files by JOB, and the same documents serve both readings - which is why the row authors two grouping reasons instead of choosing. Privacy caveat specific to this row: operated hire names individual drivers, inspection records name the competent person who signed them, and damage claims are allegations against named people - none of which should become a destination dimension. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".jpg",
+      ".heic",
+      ".png",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Hire agreement - 3T excavator - H-88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a contract number, a plant description and a fleet number",
+        "a weekly rate and a minimum hire period",
+        "a damage-waiver option marked and an insurance requirement",
+        "an on-hire date and a delivery site address"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "any construction_property fact - the schema declares no field rows",
+        "that the hire ended - an agreement records a start and never an end",
+        "an insurance conclusion from a waiver box",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Off-hire OH-4471.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an off-hire number quoting the hire contract",
+        "a collection date and a site",
+        "a condition note and a signature",
+        "an acknowledgement line"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that charging actually stopped on the stated date - the notice asserts it and the account decides it",
+        "that an unacknowledged off-hire is effective",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Thorough examination - MEWP 22118.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a dated examination of an access platform by a named competent person",
+        "a serial number and a report reference",
+        "a next-examination-due date",
+        "a statement that the item is safe to use"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that the certificate belongs to a site: it belongs to an ASSET and follows the machine to the next hire",
+        "the examiner's name as a destination dimension",
+        "that this row rather than construction_property.compliance-certificate owns it - both legitimately retrieve it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Hire dockets - week 14.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per asset per day with a rate and a status",
+        "idle days flagged in a separate column",
+        "an operator name column on two rows",
+        "a weekly total"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "an operator's working hours as a personnel fact - construction_property.timesheet owns labour records and this sheet is a charge run",
+        "an idle-time dispute as a fact: the flag is an observation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_3390.jpg",
+      "source_type": "image",
+      "observations": [
+        "EXIF names a phone camera, a capture time and a GPS position",
+        "the frame shows a bent excavator quick-hitch in close-up",
+        "no annotation, no reference, no caption",
+        "the same site as a hundred other images that week"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a damage claim: a close-up of a broken part is an observation, and only an accepted group or an attached report makes it evidence of a claim",
+        "that it is progress photography instead - “EXIF is strong photo evidence; capture time, GPS, and sensor-shaped dimensions reinforce it; exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis; conflicting signals should lead to abstention rather than an invented classification.” and the honest answer here is that only context decides",
+        "a location fact as a destination dimension from GPS",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Damage recharge - H-88213.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a claim reference quoting the hire contract",
+        "a repair quotation with parts and labour",
+        "photographs embedded in the document",
+        "a statement that the waiver does not apply"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "fault as a fact - the document is one party's assertion about the other",
+        "a named operator blamed by inference from a docket that shows who had the machine",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Hire statement - account 20114 - March.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an account number and a period",
+        "invoice numbers with amounts and a balance",
+        "contract numbers quoted against lines",
+        "payment instructions"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: a hire account statement is an accounting document even though it quotes contract numbers - the collision fixture, owned by finance.small-business-bookkeeping",
+        "a hire fact copied onto it because it quotes a contract number - “The graph does not automatically copy those missing facts onto sparse files.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Scan_pre-use_checks_tower.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a photographed weekly check sheet with ticks and initials",
+        "a plant number written at the top",
+        "a week ending date",
+        "OCR recovers the plant number and mangles the initials"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "initials expanded into a person",
+        "a safety conclusion from ticks - the product records the sheet, not a judgement about the machine",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "plant_pack_H-88213.zip",
+      "source_type": "archive",
+      "observations": [
+        "a manifest listing an agreement, two certificates, a docket run and eight photographs",
+        "mixed member types",
+        "a contract reference in the archive name",
+        "no readable top-level document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a single domain for the whole archive from its manifest - members are extracted as their own files and the certificates inside belong to an asset, not to this hire",
+        "that a session that downloaded the pack proves its topic - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "RFQ comparison - 3T excavator hire.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "three supplier columns compare weekly rates, transport charges and waiver terms",
+        "a requested start date and estimated duration",
+        "an evaluation note recommends one bidder",
+        "no fleet number, delivered asset, on-hire confirmation or off-hire event"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "activation of this row: this is the outbound collision fixture and belongs to business_operations.procurement-sourcing because competition and selection are the document's purpose",
+        "that an estimated duration is an actual hire period",
+        "that the recommended bidder supplied any machine",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE_ Off hire excavator H-88213.eml",
+      "source_type": "email",
+      "observations": [
+        "the subject quotes a fleet number and hire contract",
+        "the body instructs collection from a named site on Friday",
+        "the supplier replies with an acknowledgement and collection reference",
+        "the thread contains no attached formal off-hire notice"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "that charging stopped merely because collection was requested; the acknowledgement is evidence of receipt, not settlement of the account",
+        "a named sender or recipient as a destination dimension",
+        "a site or asset fact copied onto another sparse file in the thread's neighbourhood",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "Hire invoices and monthly hire statements carry the same suppliers, contract numbers and totals as the hire records. The discriminating evidence: an asset identity with an on-hire and off-hire period, or a statutory inspection, supports this row; an invoice number, tax treatment, payment terms and an account balance supports bookkeeping.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "A machine arrives on a ticket that looks exactly like a materials delivery note. The discriminating evidence: an ASSET with a hire period supports this row; consumed materials with ordered-versus-delivered quantities supports the delivery row. Reciprocal to the edge authored there.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.compliance-certificate",
+      "signal": "Thorough examinations and statutory inspections are compliance records that happen to attach to hired assets. The discriminating evidence: a regime, an inspection regime and a validity period supports the certificate row; the hire engagement the machine is on supports this row. A genuine shared file: both should retrieve it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.progress-photos",
+      "signal": "Every progress photograph of a site contains plant, and a damage close-up looks like ordinary site photography. The discriminating evidence: an image tied by an accepted group to a hire or a claim supports this row; an image recording the state of the works supports the progress row. An image of a machine alone discriminates neither, and is in never_alone for that reason.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.timesheet",
+      "signal": "Operated hire produces dockets with operator names and hours, which look like labour records. The discriminating evidence: a charge per asset per day supports this row; hours worked by people for payroll or allocation supports the timesheet row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.it-asset-inventory",
+      "signal": "An owned-asset register - serial numbers, custody, service history, inspection dates - has the same structure as a plant record and a firm that owns its machines keeps exactly that. The discriminating evidence: a hire contract with a rate and a period supports this row; an owned asset held on a register with no counterparty supports the inventory row. This is the row's cleanest structural collision and the reason 'hire' is load-bearing in the name.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The same equipment requirement produces an RFQ comparison and then an awarded hire agreement. The reciprocal discriminator recommended for R1c is purpose and lifecycle: solicitation, competing offers, evaluation and award support procurement-sourcing; an identified asset under a continuing time charge with paired on-hire and off-hire events supports this row. The shared fixture is `RFQ comparison - 3T excavator hire.xlsx`; plant-hire must reject it unless the awarded lifecycle appears, and procurement-sourcing must not absorb the later dockets, inspections, breakdowns or off-hire instruction merely because they quote the award reference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "construction_property.subcontract",
+      "signal": "Operated hire and labour-and-plant subcontracting shade into each other, and the paperwork differs by one clause. The discriminating evidence: an engagement to carry out works, with insurances and competence evidence, supports the subcontract row; the supply of a machine at a rate supports this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.vehicle-records",
+      "signal": "Road-going plant and site vehicles carry registrations, and a household or firm vehicle file looks similar. The discriminating evidence: a hire engagement on a construction site supports this row; ownership, tax, test and insurance of a vehicle supports the vehicle row.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone hire agreement, off-hire notice or examination certificate with no accepted hire group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for the transactional side this row must not absorb - an isolated hire invoice, statement or collection confirmation. “Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "The correct home for a lone photograph of a machine or a damaged part with no accepted group - an image with no event or project association. “One-Off Images may live under Photos/One-Off Images and hold images with no event, project, reference collection, or photo-family association.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a docket run, a check sheet that OCRs badly, or a damage photograph whose meaning is unresolved. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for an unreadable hire-desk portal export or a damaged plant pack archive. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Most of a plant file is machinery, and machinery is not sensitive. Three parts of it are. Operated hire dockets name individual drivers and the days they worked; statutory examination records name the competent person who signed them and constitute that person's professional judgement; and damage and loss claims are written allegations about identifiable people, sometimes with photographs. Phone photographs of plant carry GPS. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and GPS metadata and employment materials are on that list by name. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class.",
+  "open_question": "Asset-first or site-first. A plant-owning or plant-hiring business files by MACHINE - one folder per fleet number, carrying its inspections and service history across every hire it ever goes on - while a construction site files by JOB and wants every machine that was on this site this month in one place. The same documents serve both readings and the product cannot serve both as a single frozen tree without duplicating files. The row recommends site-then-hire because the schema is written from the construction side, but records that the inspection certificate genuinely belongs to the asset and follows it away, which is the case that breaks the recommendation. Joseph's, and it is the same shape of question as NJ-CP-5's about purchase orders: whose filing habit wins when two real ones conflict."
+}

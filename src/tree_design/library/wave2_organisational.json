@@ -1,0 +1,1537 @@
+{
+  "definitions": [
+    {
+      "template_id": "def.project-delivery-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.project-function-period",
+          "is_default": true,
+          "rationale": "business_operations.project-delivery verbatim: 'this is the row in the family with the least doubt about its natural order - the project first, then the document function, then the reporting period last', because 'a status report for week 14 is meaningless before the project is known, exactly as 00's own Homework 3 is meaningless before the course.' The period is last and never first: 'a period-first tree would scatter one project's charter, plan and closure across three calendar folders.'",
+          "dimensions": [
+            {
+              "role_ref": "project_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The bounded effort is what a delivery, research or sourcing document belongs to; every row using this recipe names it as the level nothing else is intelligible beneath. 00's parent-before-child rule states it: 'a parent dimension should provide the context required to understand the child.'"
+            },
+            {
+              "role_ref": "record_function",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Charter, plan, status report, closure, findings pack: what the document DOES is the leaf a person searches for once the effort that produced it is fixed."
+            },
+            {
+              "role_ref": "reporting_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A reporting or review interval separates one week's status report from the next inside a single effort. It sits last because the effort outlives it, and it goes unbound where the corpus does not report on a cadence."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.project-period-function",
+          "is_default": false,
+          "rationale": "THE FAMILY DEFAULT, and it is attested rather than invented. The business_operations schema anchor states the family's nesting in its own words: 'the organisational unit or entity only where the corpus really spans more than one ..., then the governance body, project, contract, or account that the material belongs to, then the fiscal period, then the document function.' With organization destination-INELIGIBLE (60 section 4) that paragraph reduces to exactly this order. business_operations.project-delivery's own open_question records the divergence and refuses to close it: 'This row recommends project then document function then reporting period; the schema row's default for the family is body-or-project then fiscal period then function. The inversion is argued in the memo and is deliberate, but it is a narrow difference and R1c should confirm it rather than inherit it.' A recipe whose own corpus calls the difference narrow and asks for confirmation has two attested nestings, not one, and sections 5.3 and 5.8 make choosing between them the user's decision. This is the order for a holder who runs several efforts on one reporting cadence and navigates by the round - 'what went out in Q2' - rather than by the effort.",
+          "dimensions": [
+            {
+              "role_ref": "project_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The bounded effort still leads under both orders. Neither the row nor the schema anchor puts anything above it once the entity level is gone, and a period-first tree is refused by both."
+            },
+            {
+              "role_ref": "reporting_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The schema anchor's third level, rising above the document function: a holder reporting on a fixed cadence looks for the round first and the kind of paper second."
+            },
+            {
+              "role_ref": "record_function",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document function becomes the leaf, which is where the family default puts it and where project-delivery's inversion moves it from."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "insert a programme or portfolio level above project_anchor where a corpus genuinely spans several projects under one programme - business_operations.project-delivery: 'A programme or portfolio level above the project is the one defensible extra depth and belongs to the user rather than to the catalogue'",
+        "flatten to project_anchor alone where one effort produced too few documents to earn a function level",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "project_anchor may never bind organization: 60 section 4 seeds organization destination-INELIGIBLE and template-time promotable, and inside a single-entity corpus an organization level is the one-child collector 00:97 rejects - 'use an author or organization merely as a collector'",
+        "no level of this recipe may bind a supplier, bidder or customer name: business_operations.procurement-sourcing rules that 'a supplier-first tree scatters one competition across its bidders and hides the thing being decided', and its unsuccessful bids are 'other organisations' confidential commercial material held in trust'",
+        "a branch label naming a failure, an incident or a live investigation is the user's to approve rather than the catalogue's to propose - business_operations.retrospective-postmortem: 'a branch named after a failure is itself a disclosure'",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its DEFAULT order describes; the second order is a runtime choice, exactly as sections 5.3 and 5.8 require"
+      ],
+      "example_label_chains": [
+        [
+          "Harbour Migration",
+          "Status report",
+          "2026-Q2"
+        ],
+        [
+          "Checkout latency post-mortem",
+          "Actions tracker",
+          "2026-03"
+        ],
+        [
+          "Pricing sensitivity 2026",
+          "Findings deck"
+        ]
+      ],
+      "relative_order": [
+        [
+          "project_anchor",
+          "record_function"
+        ],
+        [
+          "record_function",
+          "reporting_period"
+        ]
+      ],
+      "privacy_floor": "baseline"
+    },
+    {
+      "template_id": "def.customer-account-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.customer-period-function",
+          "is_default": true,
+          "rationale": "business_operations.customer-account-management verbatim: 'the customer organisation, then the engagement period or review cycle, then the document function. The customer level is the one dimension a person in this role actually files by, and it is NOT the vanity collector 00's validator rejects - the collector prohibition is about the holder's own name.'",
+          "dimensions": [
+            {
+              "role_ref": "counterparty_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "An account manager names the customer before anything else; a renewal note or a QBR deck is unintelligible detached from whose account it is. 00 separates this role from the holder's own entity: 'The system must separate roles that happen to contain the same entity type.'"
+            },
+            {
+              "role_ref": "engagement_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "One customer recurs every review cycle, and the cycle is what keeps this year's renewal apart from last year's. It goes unbound where the relationship is not reviewed on a cadence."
+            },
+            {
+              "role_ref": "record_function",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Renewal, review pack, escalation, service report: the kind of document is the leaf once the account and the cycle are fixed."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "omit counterparty_org and keep the branch shallow where the corpus is one customer, which would otherwise open a one-child level",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "counterparty_org names the customer ORGANISATION and never a named contact at it: 00 section 3.8 'should avoid using authorship or creator identity as a destination dimension'",
+        "a customer level is proposed and never applied silently - business_operations.customer-account-management: 'a folder named for a customer publishes the relationship in the filesystem namespace, which is why any such level should be user-approved rather than proposed automatically', which is what C8 already enforces for every recipe",
+        "counterparty_org may never bind supplier: a vendor is the other side of the same shape and 60 B3 keeps the two apart by label rather than by guess",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Northwind Foods",
+          "2026-H1",
+          "Quarterly business review"
+        ],
+        [
+          "Aldgate Health",
+          "Renewal paperwork"
+        ]
+      ],
+      "relative_order": [
+        [
+          "counterparty_org",
+          "engagement_period"
+        ],
+        [
+          "engagement_period",
+          "record_function"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "business_operations.customer-account-management is the only corpus behind this recipe and it records exactly one nesting - customer, then engagement period or review cycle, then document function. It offers no reversal and rules out the only variant it discusses, a per-customer aggregation, on privacy rather than on retrieval grounds. There is nothing here to author a second order FROM, and one written to satisfy a count would be indistinguishable to the user from the order that was argued."
+    },
+    {
+      "template_id": "def.regulator-filing-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.authority-period-function",
+          "is_default": true,
+          "rationale": "business_operations.corporate-regulatory-filings verbatim: 'the entity whose obligation it is ... then the authority or return type, then the period, then the document function (return / receipt / certificate / notice). The period is more load-bearing here than anywhere else in the family, but it still is not first.' The entity level is absent because 60 section 4 seeds organization destination-INELIGIBLE; what remains is the row's own levels two, three and four in the row's own order.",
+          "dimensions": [
+            {
+              "role_ref": "issuing_authority",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The registry, regulator or certifying body is the stable spine: a return, a receipt and a certificate about one obligation all answer to the same authority, and 60 H5 declares issuing_body on business_operations precisely so this level exists."
+            },
+            {
+              "role_ref": "filing_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A statutory return recurs on a fixed cadence and the period is what keeps two years' returns to one authority apart. It goes unbound where the obligation is not periodic - a certification cycle is not annual."
+            },
+            {
+              "role_ref": "record_function",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Return, receipt, certificate, notice, evidence pack: what the document does is the leaf once the authority and the period are known."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.authority-function-period",
+          "is_default": false,
+          "rationale": "business_operations.compliance-audit's argued divergence, verbatim: 'the family default puts fiscal_period third, and here it must drop below the control-or-finding level or fall out entirely. A finding routinely opens in one year and closes in another, and a certification cycle is not annual; filing a finding under the year it was raised separates it from its own closure evidence.' This is a second nesting attested by a second corpus, not an alternative written to satisfy a count.",
+          "dimensions": [
+            {
+              "role_ref": "issuing_authority",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The scheme or regulator the evidence answers to is 'an EXTERNAL referent the entity is measured against, and it outlives every occurrence beneath it - a certification runs initial, surveillance, surveillance, recertification under one standard and one certificate number.'"
+            },
+            {
+              "role_ref": "record_function",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Under this order the kind of evidence rises above the period, because a finding and its closure evidence must stay together even when they fall in different years."
+            },
+            {
+              "role_ref": "filing_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The period drops to the leaf, which is what business_operations.compliance-audit asks for when it says the fiscal period 'must drop below the control-or-finding level or fall out entirely'."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "insert the filing entity above issuing_authority where the holder files for more than one company - business_operations.corporate-regulatory-filings: 'here the entity level is NOT a vanity collector, because a person who files for two companies genuinely needs it as the top separator'. organization is seeded destination-ineligible and template-time promotable (60 section 4), so this is an offered branch and not a catalogue default",
+        "omit filing_period entirely for a certification corpus, which business_operations.compliance-audit permits in so many words - the fiscal period may 'fall out entirely'",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "issuing_authority binds issuing_body and nothing else: 60 H5 fixes its sense as 'the authority that ISSUED the instrument - a regulator, examining board, licensing authority or certifying body. Never the holder (our_firm), never the counterparty (client, supplier), and never the bank on a statement (institution)'",
+        "no level may bind a named auditor, assessor, inspector or officer: 00 section 3.8 'should avoid using authorship or creator identity as a destination dimension'",
+        "no level of this recipe may name a supplier whose evidence pack the holder merely holds - business_operations.compliance-audit's whole reason for wanting this key is 'the only fact separating its own audits from its suppliers' evidence packs' (60 H5)",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its DEFAULT order describes; the second order is a runtime choice, exactly as sections 5.3 and 5.8 require"
+      ],
+      "example_label_chains": [
+        [
+          "Companies House",
+          "FY2026",
+          "Annual return"
+        ],
+        [
+          "ISO 9001",
+          "Surveillance evidence"
+        ],
+        [
+          "HMRC",
+          "2026-Q1",
+          "Filing receipt"
+        ]
+      ],
+      "relative_order": [
+        [
+          "issuing_authority",
+          "filing_period"
+        ],
+        [
+          "filing_period",
+          "record_function"
+        ]
+      ],
+      "privacy_floor": "baseline"
+    },
+    {
+      "template_id": "def.standing-register-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.function-then-review",
+          "is_default": true,
+          "rationale": "business_operations.risk-register verbatim: 'the document function - register, analysis, plan, test - with the review period last, since a test report is unintelligible before the reader knows which continuity plan it exercised. Emphatically not time-first: a register is a LIVING document rather than a dated series, so a period-first tree would fragment one continuously maintained artifact across calendar folders.' The organisational-unit level the row puts first is absent because 60 section 4 seeds organization destination-INELIGIBLE, and in a single-entity corpus it is the one-child collector 00:97 rejects.",
+          "dimensions": [
+            {
+              "role_ref": "record_function",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Register, impact analysis, continuity plan and test report are four standing artifacts that live side by side and are each re-saved rather than reissued; what the document IS is the only stable separator this world has."
+            },
+            {
+              "role_ref": "review_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A review round separates this year's test report from last year's WITHOUT fragmenting the living register above it, which is exactly why the row puts it last rather than first."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "flatten to record_function alone where the register is reviewed continuously rather than in rounds, which is the row's own description of the material",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "no level may name an individual responder, risk owner or emergency contact - business_operations.risk-register: 'a continuity plan is a description of an organisation's weakest points together with the contact details of the people who would respond, so it should not acquire automatic internal depth'",
+        "review_period may never rise above record_function: the row calls that shape 'emphatically not time-first' and says a period-first tree 'would fragment one continuously maintained artifact across calendar folders'",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "Business continuity plan",
+          "2026 review"
+        ],
+        [
+          "Risk register"
+        ]
+      ],
+      "relative_order": [
+        [
+          "record_function",
+          "review_period"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "business_operations.risk-register is the only corpus behind this recipe and it states one nesting and refuses the reversal in the same paragraph: 'Emphatically not time-first: a register is a LIVING document rather than a dated series, so a period-first tree would fragment one continuously maintained artifact across calendar folders.' The only other nesting a two-role recipe can offer is the one the row rules out by name, so authoring it as a candidate would put a refused order in front of the user as if it were a choice."
+    },
+    {
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.people-round-only",
+          "is_default": true,
+          "rationale": "SIX hr rows independently invert their own schema's default to put the named round FIRST, and each says so in its own words. hr.payroll-benefits-administration: 'PEOPLE CYCLE (the pay run or contribution period) leads ... Leading with work type instead scatters one run's closed set across five sibling folders and makes the reconciliation that is the whole point of the run impossible to see.' hr.performance-cycle: 'the named cycle must LEAD, because a self-assessment or a calibration extract is unintelligible without the round it belongs to, in the same way a homework item is unintelligible without its course.' hr.engagement-survey: 'the wave must lead.' hr.onboarding-offboarding: 'the people cycle should LEAD - the intake or the departure event.' hr.workforce-analytics: 'people cycle - the reporting period - FIRST.' hr.compensation-planning: round-bounded instruments 'should put people_cycle FIRST, ahead of work type and unit.' The recipe stops at ONE level because that is where hr's declared, destination-eligible vocabulary stops: workforce_unit and subject_of_record are destination-INELIGIBLE on the key (60 J-5), work_type is not declared on hr at all (60 J-5, section 7), and the schema is a PROTECTION schema whose job 'is to keep a grievance file out of a named folder'.",
+          "dimensions": [
+            {
+              "role_ref": "people_round",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A pay run, a review round, a listening wave, an intake and a reporting round are each a named instance of a recurring process that a whole closed set of documents must reconcile inside. It is the one level in hr that names a PROCESS rather than a person, which is what makes it the only level this schema may safely open."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "an external counterparty level ABOVE the round for the provider-facing and statutory subset of payroll, 'where the scheme, carrier or authority is the stable spine and the period is the leaf' - hr.payroll-benefits-administration records this as NJ-HRPAY-2, 'the level the row cannot currently express'",
+        "a plan year in place of the pay run for the benefits half, 'whose cadence is annual and whose members do not reconcile against a pay period'",
+        "keep the branch shallow and represent in place where the corpus is a single round, which would otherwise open a one-child level naming that round",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.not-holder-personal@1",
+      "validation_constraints": [
+        "NO LEVEL OF THIS RECIPE MAY EVER BIND A PERSON-IDENTIFYING KEY. workforce_member and personnel_case are not minted at all (60 section 4); subject_of_record is destination-INELIGIBLE on the key because 'a folder bearing the subject's name discloses membership of a matter, personnel, grant or clinical file'; and hr.performance-cycle states the consequence directly - 'a folder bearing an employee name beneath a Performance branch discloses membership of a review or improvement process to anyone who can see the tree'",
+        "people_round may never take a VALUE that names an individual. hr.onboarding-offboarding: 'a folder bearing a joiner's or a leaver's name publishes personnel-record membership, and for a single leaver even the cycle level does so' - so a one-child round in a single-leaver corpus is flattened rather than opened",
+        "workforce_unit may never become a level under this recipe even after a template-time promotion elsewhere: hr.dei-program rules that 'a folder tree branching on business unit or site publishes the composition of small populations at exactly the granularity that re-identifies individuals', hr.employee-relations that 'a small department plus a formal-process branch name re-identifies the subject even when no name appears', and hr.workforce-analytics recommends the unit be 'OMITTED rather than demoted'",
+        "this recipe opens exactly one level. hr is a PROTECTION schema under 60 J-5 and J-5a exempts it by name from 00:48's floor of three, so a shallow recipe here is the design working rather than an unfinished one",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself; with a single role there is nothing to order and relative_order is correctly empty"
+      ],
+      "example_label_chains": [
+        [
+          "March 2026 payroll run"
+        ],
+        [
+          "FY2026 annual review"
+        ],
+        [
+          "2026 graduate intake"
+        ]
+      ],
+      "relative_order": [],
+      "privacy_floor": "baseline"
+    },
+    {
+      "template_id": "def.restricted-fund-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.funder-then-period",
+          "is_default": true,
+          "rationale": "The nonprofit schema's own default paragraph, with the two levels that have no destination-eligible key removed and nothing added: 'the ASSOCIATION only where the corpus genuinely spans more than one, then the NON-EXCHANGE COUNTERPARTY OR FUND - the grant, the restricted fund, the appeal, the membership class, the case, the register - then the PERIOD (grant period, appeal, membership year, financial year), then the DOCUMENT FUNCTION.' The association level is dropped because organization is destination-INELIGIBLE and because the schema itself says that in a single-association corpus it is 'use an author or organization merely as a collector' producing 'meaningless one-child levels'. The counterparty level is the FUNDER, which is exactly the role 60 H9 restored: nonprofit's row 'warned that without a funder role its strongest node - restricted money with strings - has no key and a template author will mint one'.",
+          "dimensions": [
+            {
+              "role_ref": "funder_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A charity officer names the funder before anything else: the offer letter, the drawdown claim, the monitoring return and the closure pack all belong to one award from one body, and a period-first tree would separate an award's own claim from its own report."
+            },
+            {
+              "role_ref": "restricted_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The grant or funding period is what keeps two awards from the same funder apart. It is a CONTENT period rather than a capture date, which is why the schema places it beneath the fund and never at the root."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "flatten to restricted_period alone where every award in the corpus comes from one funder, which would otherwise open a one-child level - 00:97 refuses 'an author or organization merely as a collector' and the schema refuses 'meaningless one-child levels'",
+        "insert the association above funder_org ONLY where the corpus genuinely spans more than one association, which the schema permits and otherwise refuses as a one-child collector level",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "NO NAMED THIRD PARTY MAY BECOME A LEVEL. The nonprofit schema: 'a named BENEFICIARY, DONOR, MEMBER or SAFEGUARDED PERSON may NEVER be a folder level, however strong the grouping axis is, because a path writes a vulnerable third party's identity into the filesystem where every later process reads it'. subject_of_record is destination-INELIGIBLE on the key and this recipe binds it nowhere",
+        "funder_org binds institution and names the FUNDING BODY, never the association itself and never a donor: 60 H9 restores institution as the funder role by redirecting nonprofit's own sponsor signal, per 48 section 2",
+        "restricted_period may never rise above funder_org: the schema's periods 'are content periods, never capture dates, so no template here may claim time_first'",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the nesting its candidate order describes"
+      ],
+      "example_label_chains": [
+        [
+          "City Community Foundation",
+          "2025-2028"
+        ],
+        [
+          "National Lottery Community Fund",
+          "Year 2"
+        ]
+      ],
+      "relative_order": [
+        [
+          "funder_org",
+          "restricted_period"
+        ]
+      ],
+      "privacy_floor": "baseline",
+      "sole_order_attestation": "The nonprofit schema states its family's nesting once and every kept child row in the family differs from it by REMOVING or REPLACING a level rather than by reversing it. No row in the corpus proposes period-before-fund; the schema forbids the shape generally - 'this family's periods are content periods, never capture dates, so no template here may claim time_first' - and the one row that promotes a period at all, nonprofit.member-association, does so only because its counterparty level 'CANNOT BE USED AT ALL' and therefore collapses. A second order here would be authored from nothing."
+    },
+    {
+      "template_id": "def.membership-year-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.membership-year-only",
+          "is_default": true,
+          "rationale": "nonprofit.member-association verbatim, and the promotion is FORCED rather than preferred: 'This row CANNOT USE THE COUNTERPARTY LEVEL AT ALL, because its counterparty is a natural person and the schema's own rule forbids a named member as a folder level ... The counterparty level therefore collapses and the recommendation becomes: the ASSOCIATION only where the corpus genuinely spans more than one ...; then the MEMBERSHIP YEAR OR GOVERNANCE CYCLE, promoted into the vacated slot; then the DOCUMENT FUNCTION.' The association level is dropped because organization is destination-INELIGIBLE, and the document-function level is dropped because 60 H9 removes record_type from nonprofit by name. What is left is the row's own promoted level, standing where the row put it. The row pre-empts the obvious objection: 'The promotion is not a preference for time and does not make this row time-first: a membership year is a CONTENT period that defines which roll this is, not a capture date.'",
+          "dimensions": [
+            {
+              "role_ref": "membership_period",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A roll, a subscription run and a general-meeting pack are each ABOUT one membership year; the year is what says which roll this is, and it is the only level this row is permitted to open once the member level is forbidden."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "insert the association above the membership year ONLY where the corpus genuinely spans more than one association; in a single-association corpus it is 'use an author or organization merely as a collector' and would 'create meaningless one-child levels'",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "A NAMED MEMBER MAY NEVER BECOME A LEVEL - the rule that forces this recipe's shape rather than a rule it merely observes: 'a named member as a folder level' is forbidden by the schema, and subject_of_record is destination-INELIGIBLE on the key",
+        "A MEMBER CLASS MAY NEVER BECOME A LEVEL EITHER. nonprofit.member-association adds this beyond its schema: 'however tempting a small branching factor makes it, because a class such as student, retired, clergy, apprentice or overseas discloses a protected characteristic of every person filed beneath it'",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself; with a single role there is nothing to order and relative_order is correctly empty"
+      ],
+      "example_label_chains": [
+        [
+          "2025-26"
+        ],
+        [
+          "2026-27"
+        ]
+      ],
+      "relative_order": [],
+      "privacy_floor": "baseline"
+    },
+    {
+      "template_id": "def.public-programme-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.public-programme-only",
+          "is_default": true,
+          "rationale": "government declares exactly ONE field - project, by the programme fold recorded at 49 section 4.2(h) and ratified at 60 B1 - and this recipe opens exactly that one level, for the three government rows whose own prose puts a PROGRAMME first. government.grant-programme-administration: 'programme and cycle first, then the application or award reference, then work type'. government.international-development: 'the order should be bounded programme or response first, then programme function or lifecycle phase, then work type'. government.statistical-programme: 'The order this world wants is programme or instrument first, then collection round or reference period, then work type ... a statistical programme has no case, its organising anchor is a recurring cycle, and the same instrument recurs across rounds so instrument-before-round is what keeps a round intelligible.' Every level those rows put BENEATH the programme names a fact 60 B1 struck by name - record_type, record_period, property and subject_of_record - so this recipe stops where government's vocabulary stops, which is what the schema's own open_question asked for: stay field-less and adjudicate 'centrally rather than in children'.",
+          "dimensions": [
+            {
+              "role_ref": "programme_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A public programme outlives every round, award and instrument beneath it, and an application reference or a collection round is unintelligible without the programme that issued it - 'a parent dimension should provide the context required to understand the child'. It is also the only anchor in this world that names no citizen, applicant or respondent."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "keep the branch shallow and represent in place where the corpus is one programme, which would otherwise open a one-child level",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "NO LEVEL MAY NAME A PERSON OR AN APPLICANT ORGANISATION. government.grant-programme-administration: 'Applicant and assessor names must never become branch labels - a visible folder named for an organisation discloses that it applied, and for most of the corpus that it failed.' government.statistical-programme: 'A respondent, household, address or business name must never become a dimension at any depth.'",
+        "NO LEVEL MAY NAME A PLACE. government.international-development inverts the obvious intuition and this recipe honours it: 'delivery country, administrative area, site, camp, community, partner-with-beneficiary-exposure and beneficiary identity must never become folder levels, because a visible branch label can locate an assisted population or a local partner'",
+        "programme_anchor binds project and nothing else. 60 B1 struck record_type, record_period, property and subject_of_record from government by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children; giving it four keys it never proposed overrules its own refusal' - and a template may not put back through a role binding what the vocabulary ruling took out",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself; with a single role there is nothing to order and relative_order is correctly empty"
+      ],
+      "example_label_chains": [
+        [
+          "Rural Broadband Fund"
+        ],
+        [
+          "Labour Force Survey"
+        ],
+        [
+          "Sahel Humanitarian Response"
+        ]
+      ],
+      "relative_order": [],
+      "privacy_floor": "baseline"
+    }
+  ],
+  "applicabilities": [
+    {
+      "applicability_id": "ap.business_operations.project-delivery",
+      "applicability_version": 1,
+      "template_id": "def.project-delivery-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "record_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.project-delivery"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "project_anchor",
+          "field_ref": "project",
+          "label": "Delivery project"
+        },
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of project document"
+        },
+        {
+          "role_ref": "reporting_period",
+          "field_ref": "record_period",
+          "label": "Period it reports on"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:business_operations.project-delivery",
+        "memo:planning/domains/nodes/business_operations.project-delivery.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - business_operations declares project, record_type and record_period, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.retrospective-postmortem",
+      "applicability_version": 1,
+      "template_id": "def.project-delivery-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "record_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.retrospective-postmortem"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "project_anchor",
+          "field_ref": "project",
+          "label": "What we reviewed"
+        },
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of write-up"
+        },
+        {
+          "role_ref": "reporting_period",
+          "field_ref": "record_period",
+          "label": "When we reviewed it"
+        }
+      ],
+      "exclusions": [
+        "an incident identifier as a folder level: the row's anchor is 'the effort or the incident being reviewed' and only the effort half has a declared key, so an incident-named branch is left to the user rather than proposed - 'a branch named after a failure is itself a disclosure'"
+      ],
+      "provenance": [
+        "row:business_operations.retrospective-postmortem",
+        "memo:planning/domains/nodes/business_operations.retrospective-postmortem.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - business_operations declares project, record_type and record_period",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.market-research",
+      "applicability_version": 1,
+      "template_id": "def.project-delivery-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.market-research"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "project_anchor",
+          "field_ref": "project",
+          "label": "Study"
+        },
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of research output"
+        }
+      ],
+      "exclusions": [
+        "a competitor or market as a folder level: 'A competitor-first tree is the tempting alternative and it is the wrong one: it scatters a single study across every company it mentions and turns a shared source into a filing decision'",
+        "record_period as a folder level: the row records that a continuous-market user 'may reasonably prefer a periodic order, and that is a user edit, not a catalogue default'"
+      ],
+      "provenance": [
+        "row:business_operations.market-research",
+        "memo:planning/domains/nodes/business_operations.market-research.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - business_operations declares project and record_type",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.procurement-sourcing",
+      "applicability_version": 1,
+      "template_id": "def.project-delivery-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.procurement-sourcing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "project_anchor",
+          "field_ref": "project",
+          "label": "Sourcing event"
+        }
+      ],
+      "exclusions": [
+        "supplier as a folder level: the row permits a supplier level only INSIDE the responses stage, and that stage has no declared key - 'Supplier must sit under stage rather than above it, because a supplier-first tree scatters one competition across its bidders and hides the thing being decided'",
+        "record_type as a folder level: this row's own second and third levels are the stage and the bidder, not a document function, so a function level here would be authored rather than recorded",
+        "this row therefore binds the recipe's FIRST level and stops, which the definition sanctions rather than tolerates - 'flatten to project_anchor alone where one effort produced too few documents to earn a function level'. The stage level the row wants next has no declared key, and 60 H6's undeclared-route clause forbids the substitution a template author would reach for: 'A file whose routed type key is not declared by the active schema returns unknown; it is never re-routed to the nearest declared type key.'"
+      ],
+      "provenance": [
+        "row:business_operations.procurement-sourcing",
+        "memo:planning/domains/nodes/business_operations.procurement-sourcing.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - business_operations declares project; the sourcing event is the row's own named anchor, 'the sourcing EVENT identified by its reference'",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.customer-account-management",
+      "applicability_version": 1,
+      "template_id": "def.customer-account-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "record_period",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.customer-account-management"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "counterparty_org",
+          "field_ref": "client",
+          "label": "Customer"
+        },
+        {
+          "role_ref": "engagement_period",
+          "field_ref": "record_period",
+          "label": "Review period"
+        },
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of account document"
+        }
+      ],
+      "exclusions": [],
+      "provenance": [
+        "row:business_operations.customer-account-management",
+        "memo:planning/domains/nodes/business_operations.customer-account-management.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - business_operations declares client, record_period and record_type",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.corporate-regulatory-filings",
+      "applicability_version": 1,
+      "template_id": "def.regulator-filing-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "issuing_body",
+        "record_period",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.corporate-regulatory-filings"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_authority",
+          "field_ref": "issuing_body",
+          "label": "Registry or regulator"
+        },
+        {
+          "role_ref": "filing_period",
+          "field_ref": "record_period",
+          "label": "Period it answers for"
+        },
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of filing"
+        }
+      ],
+      "exclusions": [
+        "the filing entity as a folder level: the row argues it is genuinely needed by 'a person who files for two companies', but organization is seeded destination-INELIGIBLE and template-time promotable (60 section 4), and a template may not perform that promotion - it is offered as a branch pattern instead"
+      ],
+      "provenance": [
+        "row:business_operations.corporate-regulatory-filings",
+        "memo:planning/domains/nodes/business_operations.corporate-regulatory-filings.research.md",
+        "60-VOCABULARY-RULINGS.md H5 - the reversal that declares issuing_body on business_operations, which is what gives this row its top level",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.compliance-audit",
+      "applicability_version": 1,
+      "template_id": "def.regulator-filing-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "issuing_body",
+        "record_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.compliance-audit"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "issuing_authority",
+          "field_ref": "issuing_body",
+          "label": "Scheme or regulator"
+        },
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of audit evidence"
+        }
+      ],
+      "exclusions": [
+        "record_period as a folder level between the scheme and the evidence: 'the family default puts fiscal_period third, and here it must drop below the control-or-finding level or fall out entirely. A finding routinely opens in one year and closes in another ... filing a finding under the year it was raised separates it from its own closure evidence'",
+        "the audit occurrence and the control-or-finding levels, which the row wants and no declared business_operations key names"
+      ],
+      "provenance": [
+        "row:business_operations.compliance-audit",
+        "memo:planning/domains/nodes/business_operations.compliance-audit.research.md",
+        "60-VOCABULARY-RULINGS.md H5 - 'The hold strands business_operations.compliance-audit (loses the only fact separating its own audits from its suppliers' evidence packs)', which is this row's top level by name",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.business_operations.risk-register",
+      "applicability_version": 1,
+      "template_id": "def.standing-register-record",
+      "template_version": 1,
+      "uses_schema": "business_operations",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:business_operations.risk-register"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "record_function",
+          "field_ref": "record_type",
+          "label": "Kind of register document"
+        },
+        {
+          "role_ref": "review_period",
+          "field_ref": "record_period",
+          "label": "When it was last reviewed"
+        }
+      ],
+      "exclusions": [
+        "the organisational unit as a folder level: organization is destination-INELIGIBLE (60 section 4), and in the single-entity corpus this row describes it is the one-child collector 00:97 rejects"
+      ],
+      "provenance": [
+        "row:business_operations.risk-register",
+        "memo:planning/domains/nodes/business_operations.risk-register.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - business_operations declares record_type and record_period",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.hr.compensation-planning",
+      "applicability_version": 1,
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "uses_schema": "hr",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "people_cycle"
+      ],
+      "detection_signal_refs": [
+        "recognition:hr.compensation-planning"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "people_round",
+          "field_ref": "people_cycle",
+          "label": "Pay review round"
+        }
+      ],
+      "exclusions": [
+        "the standing half of this corpus - grade structures, job evaluations, the survey library - which the row calls 'round-independent' and orders 'work type first, then job grade'; hr declares neither key, so this recipe serves only the round-bounded half the row names",
+        "a job grade as a folder level: 'A grade may be a leaf-side dimension because it names no person, but it must never lead', and hr declares no key for it",
+        "workforce_unit as a folder level: 'Workforce unit may follow the cycle only where several units genuinely submitted; it must not become a one-child collector'"
+      ],
+      "provenance": [
+        "row:hr.compensation-planning",
+        "memo:planning/domains/nodes/hr.compensation-planning.research.md",
+        "60-VOCABULARY-RULINGS.md J-5 - hr ships as a PROTECTION schema whose destination candidates are people_cycle and workforce_unit, and J-5a exempts it from 00:48's floor of three by name",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.hr.engagement-survey",
+      "applicability_version": 1,
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "uses_schema": "hr",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "people_cycle"
+      ],
+      "detection_signal_refs": [
+        "recognition:hr.engagement-survey"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "people_round",
+          "field_ref": "people_cycle",
+          "label": "Listening wave"
+        }
+      ],
+      "exclusions": [
+        "a respondent level, which the row rules out on the ground that there is nothing to name - 'Never a respondent level - there are no respondents to name'",
+        "the employer as a level - 'never the employer as a one-child collector'",
+        "workforce_unit as a folder level: the row admits it only 'where a real multi-unit corpus exists', and small unit cuts joined to free text are how an anonymity undertaking is broken"
+      ],
+      "provenance": [
+        "row:hr.engagement-survey",
+        "memo:planning/domains/nodes/hr.engagement-survey.research.md",
+        "60-VOCABULARY-RULINGS.md J-5 - hr's destination candidate people_cycle, and J-5b's answer that aggregated listening material stays protected by default",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.hr.onboarding-offboarding",
+      "applicability_version": 1,
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "uses_schema": "hr",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "people_cycle"
+      ],
+      "detection_signal_refs": [
+        "recognition:hr.onboarding-offboarding"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "people_round",
+          "field_ref": "people_cycle",
+          "label": "Joiner or leaver round"
+        }
+      ],
+      "exclusions": [
+        "the joiner's or leaver's name at any level - 'a folder bearing a joiner's or a leaver's name publishes personnel-record membership'",
+        "the round itself where the corpus is a single leaver - 'for a single leaver even the cycle level does so', so the branch is flattened rather than opened",
+        "workforce_unit as a folder level: the row inserts it 'only where a corpus genuinely spans several units', and it is destination-INELIGIBLE on the key"
+      ],
+      "provenance": [
+        "row:hr.onboarding-offboarding",
+        "memo:planning/domains/nodes/hr.onboarding-offboarding.research.md",
+        "60-VOCABULARY-RULINGS.md J-5 - hr's destination candidate people_cycle; workforce_member is not minted and subject_of_record is destination-INELIGIBLE on the key",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.hr.payroll-benefits-administration",
+      "applicability_version": 1,
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "uses_schema": "hr",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "people_cycle"
+      ],
+      "detection_signal_refs": [
+        "recognition:hr.payroll-benefits-administration"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "people_round",
+          "field_ref": "people_cycle",
+          "label": "Pay run"
+        }
+      ],
+      "exclusions": [
+        "workforce_unit as a folder level, dropped by the row rather than demoted - 'a run is organisation-wide by construction: a department column exists INSIDE the register and is a cut of it, not a parent of it, and promoting it would open a level most of this material cannot fill'",
+        "an external counterparty level above the run, which the row records as the level it 'cannot currently express' (NJ-HRPAY-2) and which is offered as a branch pattern rather than proposed"
+      ],
+      "provenance": [
+        "row:hr.payroll-benefits-administration",
+        "memo:planning/domains/nodes/hr.payroll-benefits-administration.research.md",
+        "60-VOCABULARY-RULINGS.md J-2 - people_cycle is the hr side of the cycle pair, 'the holder RUNS the cycle', which is exactly what a pay run is",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.hr.performance-cycle",
+      "applicability_version": 1,
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "uses_schema": "hr",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "people_cycle"
+      ],
+      "detection_signal_refs": [
+        "recognition:hr.performance-cycle"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "people_round",
+          "field_ref": "people_cycle",
+          "label": "Review round"
+        }
+      ],
+      "exclusions": [
+        "the assessed person at any level and under any ordering - 'a folder bearing an employee name beneath a Performance branch discloses membership of a review or improvement process to anyone who can see the tree'",
+        "workforce_unit or a manager cohort as a folder level: the row admits it 'only where a real multi-unit corpus exists', and it is destination-INELIGIBLE on the key"
+      ],
+      "provenance": [
+        "row:hr.performance-cycle",
+        "memo:planning/domains/nodes/hr.performance-cycle.research.md",
+        "60-VOCABULARY-RULINGS.md J-5 - hr's destination candidate people_cycle, and the protection posture that keeps the subject out of the path",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.hr.workforce-analytics",
+      "applicability_version": 1,
+      "template_id": "def.people-round-record",
+      "template_version": 1,
+      "uses_schema": "hr",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "people_cycle"
+      ],
+      "detection_signal_refs": [
+        "recognition:hr.workforce-analytics"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "people_round",
+          "field_ref": "people_cycle",
+          "label": "Reporting round"
+        }
+      ],
+      "exclusions": [
+        "workforce_unit as a folder level, which this row asks to be 'OMITTED rather than demoted' - 'a measurement report's purpose is to span units and slice them, so a unit level would force one column value to be copied up as the file's own fact and would scatter a single period's pack across unit folders'"
+      ],
+      "provenance": [
+        "row:hr.workforce-analytics",
+        "memo:planning/domains/nodes/hr.workforce-analytics.research.md",
+        "60-VOCABULARY-RULINGS.md J-5b - aggregated workforce analytics stays protected by default and no de-identification threshold is invented",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.nonprofit.restricted-fund",
+      "applicability_version": 1,
+      "template_id": "def.restricted-fund-record",
+      "template_version": 1,
+      "uses_schema": "nonprofit",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "institution",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:nonprofit"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "funder_org",
+          "field_ref": "institution",
+          "label": "Funder"
+        },
+        {
+          "role_ref": "restricted_period",
+          "field_ref": "record_period",
+          "label": "Grant period"
+        }
+      ],
+      "exclusions": [
+        "a beneficiary, donor, member or safeguarded person at any level - the schema's own rule, and subject_of_record is destination-INELIGIBLE on the key",
+        "the association as a folder level in a single-association corpus, where it is 'use an author or organization merely as a collector' and would 'create meaningless one-child levels'",
+        "a document-function level: 60 H9 drops record_type from nonprofit by name, so the schema's fourth default level has no key"
+      ],
+      "provenance": [
+        "row:nonprofit",
+        "memo:planning/domains/nodes/nonprofit.research.md",
+        "60-VOCABULARY-RULINGS.md H9 - 'nonprofit: restore the funder role', which exists because the row 'warned that without a funder role its strongest node - restricted money with strings - has no key and a template author will mint one'",
+        "row:nonprofit.grant-reporting",
+        "nonprofit.grant-reporting is refuse_node: true because 'the row is the schema's own activation spine, not a variation of it' and 'Coverage routes through the schema, not through a padded row'. That refusal is what directs the restricted-grant recipe here, onto the schema's own compiled recognition row, rather than onto a child that was refused for restating it.",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.nonprofit.member-association",
+      "applicability_version": 1,
+      "template_id": "def.membership-year-record",
+      "template_version": 1,
+      "uses_schema": "nonprofit",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:nonprofit.member-association"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "membership_period",
+          "field_ref": "record_period",
+          "label": "Membership year"
+        }
+      ],
+      "exclusions": [
+        "a named member as a folder level, which is what forces this recipe's shape - 'This row CANNOT USE THE COUNTERPARTY LEVEL AT ALL, because its counterparty is a natural person'",
+        "a member class as a folder level - 'a class such as student, retired, clergy, apprentice or overseas discloses a protected characteristic of every person filed beneath it'",
+        "the association as a folder level in a single-association corpus"
+      ],
+      "provenance": [
+        "row:nonprofit.member-association",
+        "memo:planning/domains/nodes/nonprofit.member-association.research.md",
+        "60-VOCABULARY-RULINGS.md H9 - nonprofit's final set is organization, record_period, subject_of_record and institution, of which only record_period can carry this row",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.government.grant-programme-administration",
+      "applicability_version": 1,
+      "template_id": "def.public-programme-record",
+      "template_version": 1,
+      "uses_schema": "government",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:government.grant-programme-administration"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "programme_anchor",
+          "field_ref": "project",
+          "label": "Grant programme"
+        }
+      ],
+      "exclusions": [
+        "an applicant or assessor name at any level - 'a visible folder named for an organisation discloses that it applied, and for most of the corpus that it failed'",
+        "the award reference and the work-type levels the row also recommends, neither of which government declares a key for"
+      ],
+      "provenance": [
+        "row:government.grant-programme-administration",
+        "memo:planning/domains/nodes/government.grant-programme-administration.research.md",
+        "60-VOCABULARY-RULINGS.md B1 - government declares project ONLY, 'one signature, canonical key, zero mint cost', by the programme fold at 49 section 4.2(h)",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.government.international-development",
+      "applicability_version": 1,
+      "template_id": "def.public-programme-record",
+      "template_version": 1,
+      "uses_schema": "government",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:government.international-development"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "programme_anchor",
+          "field_ref": "project",
+          "label": "Programme or response"
+        }
+      ],
+      "exclusions": [
+        "delivery country, administrative area, site, camp, community, partner and beneficiary identity at any level - 'a visible branch label can locate an assisted population or a local partner. That inverts the intuition that geography is the natural first cut for cross-border work'",
+        "the lifecycle-phase and work-type levels the row also recommends, neither of which government declares a key for"
+      ],
+      "provenance": [
+        "row:government.international-development",
+        "memo:planning/domains/nodes/government.international-development.research.md",
+        "60-VOCABULARY-RULINGS.md B1 - government declares project ONLY",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.government.statistical-programme",
+      "applicability_version": 1,
+      "template_id": "def.public-programme-record",
+      "template_version": 1,
+      "uses_schema": "government",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:government.statistical-programme"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "programme_anchor",
+          "field_ref": "project",
+          "label": "Survey or collection"
+        }
+      ],
+      "exclusions": [
+        "a respondent, household, address or business name 'at any depth'",
+        "the collection round and work-type levels the row also recommends, neither of which government declares a key for; the row's own reason for wanting the instrument above the round is that 'the same instrument recurs across rounds so instrument-before-round is what keeps a round intelligible'"
+      ],
+      "provenance": [
+        "row:government.statistical-programme",
+        "memo:planning/domains/nodes/government.statistical-programme.research.md",
+        "60-VOCABULARY-RULINGS.md B1 - government declares project ONLY",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    }
+  ],
+  "refusals": [
+    {
+      "row_id": "business_operations.board-governance",
+      "uses_schema": "business_operations",
+      "row_sentence": "the constituted BODY first (it is the thing a secretary actually files by, and unlike an entity name it is not the collector level 00's template validator rejects), then the meeting occurrence or cycle, then the document function",
+      "why_no_template": "business_operations declares no key for a constituted body. `organization` is the entity rather than the board and is destination-INELIGIBLE on the key (60 section 4, section 9.1); binding the body to `project` would contradict the row, whose whole discriminator is that a board is a standing cycle and not a bounded effort."
+    },
+    {
+      "row_id": "business_operations.budget-forecast",
+      "uses_schema": "business_operations",
+      "row_sentence": "The period is genuinely wanted here and is the one level a finance user reliably asks for, but it still should not be first.",
+      "why_no_template": "The row's first level is 'the organisational unit or cost centre that owns the plan'. `organization` is destination-INELIGIBLE, so the only remaining order puts the planning round at the root - the one position the row forbids in the sentence quoted. Authoring the reverse would invert the row's stated period-above-function ordering instead. Both available shapes contradict the row, so neither is authored."
+    },
+    {
+      "row_id": "business_operations.contract-administration",
+      "uses_schema": "business_operations",
+      "row_sentence": "the counterparty or the contract itself, then the agreement or contract reference where one counterparty has several, then the document function",
+      "why_no_template": "The counterparty is `client` on the sell side and `supplier` on the buy side, and one contract register holds both roles - the same defect 60 B3 warns about when it records that 'a consignment note routinely names consignor, consignee and carrier in three different roles on one page'. Binding one of the two would file half the corpus under a role it does not have, and business_operations declares no key for the agreement itself."
+    },
+    {
+      "row_id": "business_operations.facilities-workplace",
+      "uses_schema": "business_operations",
+      "row_sentence": "the site or building, then the asset, area, or service it concerns, then the document function",
+      "why_no_template": "`site` is declared at manufacturing and `asset` at manufacturing/engineering (60 section 4); neither is referenced by business_operations, so the row's first two levels have no key. The row's own reason for wanting the site - 'a next-due certificate is unintelligible above its asset' - is exactly what a site-less tree loses."
+    },
+    {
+      "row_id": "business_operations.go-to-market",
+      "uses_schema": "business_operations",
+      "row_sentence": "the offering, then the launch or release, then the function or document type. An enablement deck is unintelligible above its offering",
+      "why_no_template": "`product` is declared at manufacturing and not referenced by business_operations. Binding the launch to `project` without the offering above it puts two products' launches side by side in one undifferentiated level, which is what the quoted sentence rules out."
+    },
+    {
+      "row_id": "business_operations.it-asset-inventory",
+      "uses_schema": "business_operations",
+      "row_sentence": "the natural anchor is the organisation or site whose estate this is, then the asset class (end-user device, server, network, software entitlement), then the document function",
+      "why_no_template": "Neither `site` nor `asset` is referenced by business_operations and `organization` is destination-INELIGIBLE, so nothing the row asks for above the document function can be built. The row also carries an independent caution: 'an asset register is a staff directory joined to a serial-number list, and a network diagram is a map of how to reach the estate, so neither should acquire automatic internal depth.'"
+    },
+    {
+      "row_id": "business_operations.meeting-record",
+      "uses_schema": "business_operations",
+      "row_sentence": "the natural anchor is the organisation, then the meeting SERIES, then the occurrence date, then the document function; the series must precede the date",
+      "why_no_template": "business_operations declares no key for a meeting series, and the row forbids the substitute a template author would reach for: 'A person's name must never become a level ... and a one-to-one series named for the other participant is exactly where that rule gets broken.' A date-led tree is the shape the row's own sentence orders against."
+    },
+    {
+      "row_id": "business_operations.partnerships-bd",
+      "uses_schema": "business_operations",
+      "row_sentence": "This is one of the few rows in the family where a counterparty level genuinely belongs above the work, because the relationship outlasts any single pursuit",
+      "why_no_template": "A prospect, partner or alliance target is not yet a `client` and not a `supplier`; the row's anchor is explicitly 'NOT the counterparty's name and NOT its role, both of which are field-shaped and never-alone'. The row separately declines a period level, so once the counterparty level is unavailable nothing business_operations declares stands above the pursuit."
+    },
+    {
+      "row_id": "business_operations.policy-handbook",
+      "uses_schema": "business_operations",
+      "row_sentence": "the natural anchor is the organisation whose rules these are, then the policy AREA or function, then the governing document itself, with versions handled as a version family rather than as folder levels",
+      "why_no_template": "business_operations declares no key for a policy area, and `organization` is destination-INELIGIBLE. What remains is a version axis the row forbids as a level: 'a version level would scatter one document across its own history'."
+    },
+    {
+      "row_id": "business_operations.product-requirements",
+      "uses_schema": "business_operations",
+      "row_sentence": "the natural anchor is the organisation, then the PRODUCT, then the feature or initiative being specified, then the document function ... a feature name means nothing without the product",
+      "why_no_template": "`product` is declared at manufacturing and not referenced by business_operations. Binding the feature to `project` alone strands it under no product, which the quoted sentence names as the failure."
+    },
+    {
+      "row_id": "business_operations.product-roadmap",
+      "uses_schema": "business_operations",
+      "row_sentence": "a year-first tree would interleave two products' roadmaps in every quarter folder",
+      "why_no_template": "The row's order is organisation, then PRODUCT, then planning horizon, then function. `product` is not referenced by business_operations and `organization` is destination-INELIGIBLE, so what remains is the horizon at the root - the interleaving the quoted sentence rules out by name."
+    },
+    {
+      "row_id": "business_operations.strategy-plan",
+      "uses_schema": "business_operations",
+      "row_sentence": "It still should not be first at the root.",
+      "why_no_template": "The row's first level is 'the unit or entity whose strategy it is'; `organization` is destination-INELIGIBLE, so the planning round would stand at the root. The row anticipates the temptation - it calls itself 'the family's most defensible case for putting a PERIOD high' - and refuses it in the sentence quoted."
+    },
+    {
+      "row_id": "business_operations.support-operations",
+      "uses_schema": "business_operations",
+      "row_sentence": "the natural anchor is the product or service being supported, then the document function ... a per-CUSTOMER level must NOT be recommended",
+      "why_no_template": "`product` is not referenced by business_operations, and the row forbids the only counterparty key that could stand in its place, because a per-customer folder 'would create a folder named after a third party holding everything they ever complained about'. With both refused, the row's anchor cannot be built."
+    },
+    {
+      "row_id": "business_operations.vendor-management",
+      "uses_schema": "business_operations",
+      "row_sentence": "the line is thin enough that the level should be the user's choice rather than the catalogue's default",
+      "why_no_template": "The row's order - supplier, then document function, then review period - is fully buildable: `supplier` is declared and destination-eligible. It is refused on the row's own instruction, quoted above, that the supplier level must not become a catalogue default, because 'a supplier-first tree is precisely an ORGANISATION used as a collector, and 00 rules that out'. No other order is argued anywhere in the row, so authoring one would be inventing the recipe the row declined to give. `supplier` therefore reaches no template in this wave."
+    },
+    {
+      "row_id": "hr.dei-program",
+      "uses_schema": "hr",
+      "row_sentence": "lead with the reporting or programme instance (the obligation or the named network), then work type, and treat workforce unit as NOT visible by default",
+      "why_no_template": "The lead level is an obligation or an employee network, neither of which is a people cycle - 60 J-2 fixes `people_cycle` as the cycle the holder RUNS. `work_type` is not declared on hr (J-5) and `workforce_unit` is destination-INELIGIBLE. Forcing the lead onto `people_cycle` would file a named network under a round it does not have, on the row whose own sensitivity note says 'a representation table cut by unit, grade and characteristic re-identifies people whenever a cell is small'."
+    },
+    {
+      "row_id": "hr.employee-relations",
+      "uses_schema": "hr",
+      "row_sentence": "Absent that policy the recommendation is no visible depth at all: represent in place and let search carry the case.",
+      "why_no_template": "SAFETY REFUSAL. The row's only recommended level is 'a single pseudonymous case anchor and nothing above it', and 60 section 4 folds `personnel_case` into `event` rather than minting it - so building that level means binding `event` to a grievance, capability, disciplinary or ill-health case. J-5 refuses exactly that: 'Even a pseudonymous case reference can disclose that a person has a grievance, capability, disciplinary, health, or injury file.' The row itself says 'The EXISTENCE of the record is the disclosure here'. `event` is destination-eligible on the key and is deliberately bound by no hr row in this wave."
+    },
+    {
+      "row_id": "hr.org-design-headcount",
+      "uses_schema": "hr",
+      "row_sentence": "This row recommends workforce unit FIRST, then the design round (people cycle), then work type",
+      "why_no_template": "`workforce_unit` is destination-INELIGIBLE on the key (60 section 4, seeded false and template-time promotable; a template may not perform that promotion). What remains is the design round at the root, and that is the label the row's own sensitivity argument identifies as the harm: 'premature disclosure of which posts are marked for deletion causes collective, anticipatory harm to everyone who occupies them'. A branch named for a restructure round is that disclosure."
+    },
+    {
+      "row_id": "hr.training-development",
+      "uses_schema": "hr",
+      "row_sentence": "a module guide, an attendance sheet and an evaluation form are meaningless without their course, and a cohort is meaningless without its course, but a course is fully meaningful without either",
+      "why_no_template": "The row's first level is `learning_programme`, which hr does not declare and 60 does not mint. Leading with the cohort instead is precisely what the quoted sentence refuses: cohorts from unrelated courses would be interleaved and one curriculum shattered into copies."
+    },
+    {
+      "row_id": "hr.workplace-health-safety",
+      "uses_schema": "hr",
+      "row_sentence": "This row would instead lead with the PLACE OR ACTIVITY the duty attaches to, because that is the parent dimension that makes the child intelligible",
+      "why_no_template": "hr declares no key for a place or an activity - `site` is declared at manufacturing and not referenced by hr - and the row records the location sense of `workforce_unit` as an open question rather than minting a variant key. The row also refuses visible depth for its most sensitive half outright: 'Occupational-health and health-surveillance material takes no visible dimension at all.'"
+    },
+    {
+      "row_id": "nonprofit.fundraising-donor",
+      "uses_schema": "nonprofit",
+      "row_sentence": "a donor, prospect, pledgor or legator may NEVER be a folder level however strong the longitudinal grouping axis is, because a path writes their identity and their giving into the filesystem",
+      "why_no_template": "The row's first level is 'the APPEAL OR CAMPAIGN - the named fundraising instance', and nonprofit declares no key for it: H9 drops `project` and `record_type` from nonprofit by name. The only declared key left is `record_period`, and unlike nonprofit.member-association this row does not promote it - it keeps the period second and quotes 00's rule against putting year first. Binding `institution` to the donor is refused by the sentence quoted."
+    },
+    {
+      "row_id": "nonprofit.religious-institution",
+      "uses_schema": "nonprofit",
+      "row_sentence": "the period level the schema recommends is deliberately DROPPED",
+      "why_no_template": "The row's order is institution, then REGISTER SERIES, then VOLUME or entry range, then document function. nonprofit declares no key for a register series or a volume; `institution` on nonprofit is H9's FUNDER role, not the keeping institution, and the row admits an institution level only 'where a corpus genuinely spans more than one' - a collector otherwise. With the period deliberately dropped, nothing bindable remains."
+    },
+    {
+      "row_id": "nonprofit.trade-union",
+      "uses_schema": "nonprofit",
+      "row_sentence": "then the BARGAINING UNIT OR CASE-OR-BALLOT REFERENCE (an opaque token, never a person's name); then the PERIOD",
+      "why_no_template": "nonprofit declares no key for a bargaining unit or a case-or-ballot reference, and the row explicitly says the opaque token 'is not a preference for minting a field'. Unlike nonprofit.member-association it does not promote the period into the vacated slot, so `record_period` would stand at a root the row never put it at."
+    },
+    {
+      "row_id": "government.archives-recordkeeping",
+      "uses_schema": "government",
+      "row_sentence": "The custody unit - collection, fonds, or accession - would come first, because a series or item description is unintelligible without it",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.constituent-casework",
+      "uses_schema": "government",
+      "row_sentence": "the only defensible first level here is the CASE as a bounded, opaque reference, then the function of the document within it",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.defence-veterans",
+      "uses_schema": "government",
+      "row_sentence": "the bounded proceeding or casefile (one service history, one claim reference, one board, one programme cycle) would come first",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.diplomatic-consular",
+      "uses_schema": "government",
+      "row_sentence": "the organizing dimension is the post itself (a sending-state authority at a named host-state location)",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.education-accreditation",
+      "uses_schema": "government",
+      "row_sentence": "the organizing anchor is the reviewed institution or programme together with its review cycle",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.education-institution-governance",
+      "uses_schema": "government",
+      "row_sentence": "the administering institution, then the governing function or bounded academic object",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.elections-administration",
+      "uses_schema": "government",
+      "row_sentence": "This world instead anchors on one dated poll event, subdivides by contest and then station or batch, and puts function LAST",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.emergency-management",
+      "uses_schema": "government",
+      "row_sentence": "This row's first level is ... a named ACTIVATION or a standing PLAN or EXERCISE, not a docketed proceeding, because an activation has no docket",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.environmental-regulation",
+      "uses_schema": "government",
+      "row_sentence": "the regulated site or installation would organize first, because a monitoring return, a sample certificate, an inspection note, and an enforcement notice are all unintelligible detached from the site and permit they attest to",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. `site` is declared at manufacturing and government references it nowhere."
+    },
+    {
+      "row_id": "government.housing-authority",
+      "uses_schema": "government",
+      "row_sentence": "The honest order here is dwelling anchor, then tenancy or duty-case anchor, then function",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.legislative-record",
+      "uses_schema": "government",
+      "row_sentence": "the natural first dimension is the proceeding anchor (the bill or inquiry), not time and not document function",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.library-administration",
+      "uses_schema": "government",
+      "row_sentence": "service function or bounded lifecycle first (stock, membership and circulation, programming, performance), then the exact collection, service point, programme, or return cycle",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.museum-collection",
+      "uses_schema": "government",
+      "row_sentence": "this world's natural first level is the object or the bounded event (loan, treatment job, deposit), then the exact reference",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.parks-public-lands",
+      "uses_schema": "government",
+      "row_sentence": "site or estate first ... the site must precede everything because a compartment prescription, a condition score, or a closure notice is unintelligible without the parcel it binds",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.permit-licensing",
+      "uses_schema": "government",
+      "row_sentence": "the organizing level for this row is the PERMISSION, not the applicant and not the calendar",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.planning-application",
+      "uses_schema": "government",
+      "row_sentence": "the SITE first, then the determination proceeding on that site, then the document function",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. The row itself 'concedes that its dimensions do NOT differ from the government default' and passes the node test on detection signals and privacy instead."
+    },
+    {
+      "row_id": "government.policy-development",
+      "uses_schema": "government",
+      "row_sentence": "the policy question or workstream first, then the appraisal or submission family within it, then work type",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. The row itself 'concedes that its dimension recommendation does NOT differ from its schema's default'. A workstream is the closest thing here to a programme, and it is not one: the level the row names is a policy QUESTION, which government never signed and 60 section 7 records government as signing exactly one key across 32 rows."
+    },
+    {
+      "row_id": "government.professional-regulator",
+      "uses_schema": "government",
+      "row_sentence": "the bounded proceeding or register cycle comes first, then function, then work type",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.public-consultation",
+      "uses_schema": "government",
+      "row_sentence": "the first dimension must be the consultation reference and the second the document function",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. A consultation exercise is bounded, but the row names a REFERENCE rather than a programme, and it separately refuses the only other level it discusses: 'Consultation STAGE ... must never become a dimension either.'"
+    },
+    {
+      "row_id": "government.public-health-administration",
+      "uses_schema": "government",
+      "row_sentence": "the bounded workflow (outbreak, notification, programme round, or inspection case) would come first, then the exact reference, then work type",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. The row states its order 'does not differ from the government default and is therefore NOT one of the legs on which this node was accepted'. Its 'programme round' is a round rather than a programme."
+    },
+    {
+      "row_id": "government.public-procurement",
+      "uses_schema": "government",
+      "row_sentence": "the bounded competition first, then the issued-versus-received-versus-decided function, then work type",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.public-records-foi",
+      "uses_schema": "government",
+      "row_sentence": "the bounded request comes first, then the stage of the response cycle, then the individual item",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.regulatory-rulemaking",
+      "uses_schema": "government",
+      "row_sentence": "here the docket reference and the RULE STAGE are separate levels, because one docket spans proposal, comment, response, and instrument families",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.school-district-administration",
+      "uses_schema": "government",
+      "row_sentence": "between the authority-side function and the cycle, this world needs an INSTITUTION dimension",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. `institution` is declared at finance and referenced by research and nonprofit (60 H9); government references it nowhere."
+    },
+    {
+      "row_id": "government.social-services-casework",
+      "uses_schema": "government",
+      "row_sentence": "The order this row would recommend is: service or duty area, then the CASE TOKEN (never the person's name), then review cycle, then work type",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object."
+    },
+    {
+      "row_id": "government.transport-authority",
+      "uses_schema": "government",
+      "row_sentence": "the organizing anchor is the network object or bounded instrument - contract package, order, standing asset, feed release, or measurement round",
+      "why_no_template": "government declares exactly ONE field, `project`, by the `programme` fold recorded at 49 section 4.2(h) and ratified at 60 B1, which struck `record_type`, `record_period`, `property` and `subject_of_record` from this schema by name because 'the schema's own open_question asks to stay field-less and to adjudicate centrally rather than in children'. This row's own first level names something other than a programme, and no other level it recommends has a declared key, so there is nothing here a template may branch on. Its recognition still fires; it has no folder recipe, and that is the honest state rather than a `project` level bound to a docket, a site, a case, a post or an object. The row states this is 'the one node-test leg on which this row does NOT differ from its schema default'."
+    }
+  ]
+}

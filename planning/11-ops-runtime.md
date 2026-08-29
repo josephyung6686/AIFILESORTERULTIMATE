@@ -10,11 +10,13 @@ This document decides **how the specified system sits on a Mac**. It does not ov
 
 v1 is macOS-only (S1). Every rule below is for that scope.
 
+**Ratified 2026-08-19:** the form factor (§1, a native macOS application) and the database location (§2, Application Support). Both were product decisions the design left implied; they are settled and not reopened. Everything else in this document is derived from the design and follows it.
+
 ---
 
 ## 1. Form factor
 
-The product is a **native macOS application** that embeds the Python parts as a local library, not a CLI the user is expected to drive, and not a daemon that runs when the app is closed.
+**Ratified 2026-08-19.** The product is a **native macOS application** that embeds the Python parts as a local library, not a CLI the user is expected to drive, and not a daemon that runs when the app is closed.
 
 - **P13 is the process the user launches.** Canvas, review, consent, progress, eval view, and inspect/reset of learning records render here.
 - **P1–P12 run in-process** (or in a child the app owns). There is no network listener.
@@ -23,7 +25,7 @@ The product is a **native macOS application** that embeds the Python parts as a 
 
 ---
 
-## 2. Database location and rebuild (closes P1 OQ11 as far as runtime)
+## 2. Database location and rebuild (closes P1 OQ11 as far as runtime) — ratified 2026-08-19
 
 The SQLite file lives at:
 
@@ -61,6 +63,20 @@ P3 remains scan-plus-stat-cache. **While a session is open**, P3 also watches th
 - There is **no background daemon** in v1. Closing the app ends the watch.
 - P13 marks review items whose `file_id` (or path) appears in a detection as stale — the same stale surfaces §8.3 already requires before apply.
 - A detection is not a rescan by itself. P3 may re-stat the one path; it does not restart the corpus scan unless the user asks.
+
+---
+
+## 4b. Applications and system items — never read, never moved
+
+**Ratified 2026-08-20.** Full Disk Access grants the *ability* to read protected locations. It is
+not permission to use it. An application bundle, a macOS package, and anything under a system
+location is a **protected container**: P3 does not descend into one and hashes nothing inside it,
+and P12 never moves one. The rule and its label live in
+[`parts/P3-scan-corpus-selection/SPEC.md`](parts/P3-scan-corpus-selection/SPEC.md); this section
+exists so the runtime contract cannot be read as licence to traverse everything TCC will allow.
+
+The distinction that matters at runtime: FDA is about what the OS permits, and this is about what
+the product chooses. Granting FDA widens the first and changes nothing about the second.
 
 ---
 

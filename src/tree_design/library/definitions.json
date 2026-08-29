@@ -1,0 +1,2343 @@
+{
+  "definitions": [
+    {
+      "template_id": "def.subject-work-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "cross-domain",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.holder-affiliation-prefix",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.affiliation-prefix-to-cycle",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.affiliation-period-subject-kind",
+          "is_default": true,
+          "rationale": "00 verbatim: 'An Academic template may define school -> term -> course -> work type'. A course code recurs every term and the term is what keeps two enrolments apart; putting the subject above the school is what 00 names the risk of, 'Option B would merge material across schools when course codes collide'.",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.affiliation-subject-period-kind",
+          "is_default": false,
+          "rationale": "00 §5.5's own Option B path, Academics/BUSIB 4300/Spring 2026/Syllabus, with the school retained rather than dropped. 00's Option B also DROPS the school; a candidate order may not drop a role, so the dropping half is a runtime omitted action and the reordering half is this order.",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.subject-affiliation-period-kind",
+          "is_default": false,
+          "rationale": "academic.continuing-education verbatim: 'one who browses by topic will reverse to subject -> school'.",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "holder_institution",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "insert cycle_period where a provider runs dated cohorts",
+        "flatten to holder_institution > artifact_kind for a professional with few certificates per provider",
+        "a scoped General under the deepest resolved parent rather than a global Unsorted"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "holder_institution may never bind target_university, venue or institution",
+        "instructor, authored_by and programming_language may never become a level",
+        "where subject_anchor resolves to one value the level is flagged by V2 and flattened on the canvas, not removed from the recipe"
+      ],
+      "example_label_chains": [
+        [
+          "Columbia",
+          "2026-Spring",
+          "PHYS1401",
+          "Homework"
+        ],
+        [
+          "Chen Lab",
+          "PVA-RDP",
+          "protocol"
+        ],
+        [
+          "graphify",
+          "notebook"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.subject-work-record.third-party",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "cross-domain",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.holder-affiliation-prefix",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.affiliation-prefix-to-cycle",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.affiliation-period-subject-kind",
+          "is_default": true,
+          "rationale": "academic.teaching: 'Term stays ahead of subject because a teaching load is re-planned each term.'",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.affiliation-subject-period-kind",
+          "is_default": false,
+          "rationale": "academic.teaching verbatim: 'The reverse order (subject before term) is a legitimate user choice.'",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "no level may be a participant, a signature set, or any participant-derived value",
+        "a roster, gradebook or consent-signature leaf is a folder NAME and a folder name is visible where the file's contents are not"
+      ],
+      "example_label_chains": [
+        [
+          "PVA-RDP",
+          "Ethics",
+          "Approval Letter"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.subject-work-record.household",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.holder-affiliation-prefix",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.affiliation-prefix-to-cycle",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.affiliation-period-subject-kind",
+          "is_default": true,
+          "rationale": "academic.homeschool: 'Term leads because a homeschool year is the unit the household plans, logs and reports in.'",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.affiliation-subject-period-kind",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9). No row attests a reversal here; it is def.subject-work-record's second order carried across.",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The provider is what makes a prose course title intelligible and disambiguable, and holder_institution precedes subject_anchor 5/5 with zero reversals in the launch set."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A work type such as Homework 3 is meaningful only after the course is known; a parent dimension should provide the context required to understand the child."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A course code recurs every term and the term is what keeps two enrolments apart."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of work is the leaf a person searches for once the course that produced it is fixed."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "school first for a household enrolled under an umbrella or cover school"
+      ],
+      "sensitivity_policy_ref": "sp.household-member-record@1",
+      "validation_constraints": [
+        "holder_institution is omitted by default: in a household-run situation there is usually no institution to fill it, and a self-named home school on a parent-issued transcript is a label the household invented, which no schools gazetteer will ever confirm"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.reading-shelf",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.project-then-kind",
+          "is_default": true,
+          "rationale": "research.reading-library: 'project leads because it is the only association that makes somebody else's paper filable inside the holder's tree at all.'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The project association is the only thing that makes somebody else's paper filable inside the holder's tree at all."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Papers, Preprints and Book Chapters are the field's own values, so the leaf label passes as long as the role name never reaches the screen."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.kind-then-project",
+          "is_default": false,
+          "rationale": "The row's own optional pattern (b): 'artifact_type-first, for a reader who separates books from papers before anything else.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A reader who separates books from papers before anything else looks for the kind first."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The project narrows a kind-led shelf to the work it supports."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.not-holder-personal@1",
+      "validation_constraints": [
+        "when no project association is evidenced on the file, the branch has no first level and the honest destination is the Reading Inbox residual, not a deeper path invented to fill the shape",
+        "venue is legal here and is never a level: branching on it produces one folder per journal over a long tail of single papers",
+        "lab may never be a level: for a paper by others the affiliation describes its authors, and an author-or-affiliation level is the collector 00 forbids outright"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.institution-issued-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.affiliation-prefix-to-cycle",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.issuer-period-kind",
+          "is_default": true,
+          "rationale": "academic.transcripts-credentials: 'a folder named Transcript means nothing until the institution that issued it is known, while Columbia/Transcript is complete.'",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A folder named Transcript means nothing until the institution that issued it is known, while Columbia/Transcript is complete."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The cycle is what separates two records issued by the same institution."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document kind is the leaf, and it is intelligible only under the issuer that produced it."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.kind-issuer-period",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9) — for a holder who looks for 'my diplomas' before 'my Columbia things'. §4.2 records this as the one place where the authored alternative is clearly right rather than filler.",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Someone assembling a job application says 'my diplomas' first and does not care which school issued which."
+            },
+            {
+              "role_ref": "holder_institution",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A folder named Transcript means nothing until the institution that issued it is known, while Columbia/Transcript is complete."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The cycle is what separates two records issued by the same institution."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "restore cycle_period where a record does cover exactly one term"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.household-school-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.affiliation-prefix-to-cycle",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.school-year-kind",
+          "is_default": true,
+          "rationale": "academic.k12-schooling: 'school stays first because the school is what makes a marking period intelligible.'",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The school is what makes a marking period intelligible."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The school year is the unit a household's records accumulate in."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Report card, permission slip and enrolment form are the leaf a parent reaches for once school and year are fixed."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.year-school-kind",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9) — for a household whose child changed schools inside one school year.",
+          "dimensions": [
+            {
+              "role_ref": "cycle_period",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A household whose child changed schools inside one year navigates by the year first."
+            },
+            {
+              "role_ref": "holder_institution",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The school becomes the second level where it changed mid-year."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document kind stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.household-member-record@1",
+      "validation_constraints": [
+        "the order this situation actually wants is child > school year > work type, and no declared field names the child (Judgment Call 5); no existing key may be repurposed to supply it"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.evaluative-letters",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.cycle-then-kind",
+          "is_default": true,
+          "rationale": "academic.recommendation-letters-written: 'term leads because the writing cycle is the batch a recommender actually re-finds.'",
+          "dimensions": [
+            {
+              "role_ref": "cycle_period",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The writing cycle is the batch a recommender actually re-finds."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document kind is the leaf inside one writing cycle."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.kind-then-cycle",
+          "is_default": false,
+          "rationale": "The row verbatim: 'The reverse order (work_type before term) is a legitimate user choice and is recorded in this node's research notes.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A writer who separates letters from forms before anything else leads with the kind."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The cycle then separates successive batches of one kind."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "no dimension names the person a letter is about, and none may",
+        "holder_institution is dropped: a recommender writes from one employing institution",
+        "subject_anchor is dropped: the course in which the writer taught one applicant is sparse in these files and, where present, yields a folder holding a single letter"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.protected-plan-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.affiliation-prefix-to-cycle",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.school-then-year",
+          "is_default": true,
+          "rationale": "academic.iep-accommodation-plans: 'a plan is issued and administered by one school and a change of school is the real break in this material.'",
+          "dimensions": [
+            {
+              "role_ref": "holder_institution",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A plan is issued and administered by one school and a change of school is the real break in this material."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The plan year separates successive plans from one school."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.year-then-school",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9).",
+          "dimensions": [
+            {
+              "role_ref": "cycle_period",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A household tracking plan years across a school change leads with the year."
+            },
+            {
+              "role_ref": "holder_institution",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The administering school becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.household-member-record@1",
+      "validation_constraints": [
+        "artifact_kind is not a role of this definition and is recorded as an exclusion on the applicability row: its values (iep, 504 plan, eligibility determination, evaluation report) would publish a named child's disability determination as a visible folder label, in a namespace Finder, Spotlight, backup tools and sync clients all read",
+        "the work_type fact still extracts and still drives search; it is simply never a level"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.preserved-root",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.preserved-root",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.project-only",
+          "is_default": true,
+          "rationale": "code.pkm-vault: 'One dimension, deliberately' — 00: 'Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure.'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "One level carrying the name the user already gave the vault is exactly what they would say out loud."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "Second Brain"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.container-artifact",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.container-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.collection-then-kind",
+          "is_default": true,
+          "rationale": "code.dotfiles-environment: 'A branch whose label is the bare value environment file is unreadable on its own; under the collection that holds it, it is a machine's environment.'",
+          "dimensions": [
+            {
+              "role_ref": "repository_instance",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The collection is what makes a bare environment-file label readable at all."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The configuration kind is the leaf inside one collection."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.kind-then-collection",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9).",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A holder who separates shell from editor configuration before anything else leads with the kind."
+            },
+            {
+              "role_ref": "repository_instance",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The collection becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "for the very common case of a handful of loose dotfiles with no collection above them, the honest recommendation is to flatten to nothing and leave them where they are: a dotfile that the machine reads from a fixed location breaks the tool that reads it when moved (Judgment Call 4)"
+      ],
+      "sensitivity_policy_ref": "sp.credential-bearing@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "dotfiles",
+          "Shell Configuration"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.addressee-packet",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.addressee-prefix",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.addressee-cycle-kind",
+          "is_default": true,
+          "rationale": "00 verbatim: 'an Applications template may define target institution -> application cycle -> document type', producing 'Applications/UChicago/2026/Supplemental Essays'. The row that reverses it flags its own reversal rather than asserting it.",
+          "dimensions": [
+            {
+              "role_ref": "addressed_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Everybody says the school first: 'my UChicago application'."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The application cycle separates two attempts at the same institution."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Essays, Forms and Portal Records, and Supporting Materials are the leaf 00 itself names."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.cycle-kind-addressee",
+          "is_default": false,
+          "rationale": "applications.scholarship-fellowship: 'one applicant addresses many sponsors in one season, most of them receiving one essay and one form' — institution-first there gives a shelf of one-file folders.",
+          "dimensions": [
+            {
+              "role_ref": "cycle_period",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The scholarship applicant says 'my 2026 applications': a season, not a sponsor."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "One reusable essay family is what recurs across sponsors in a season."
+            },
+            {
+              "role_ref": "addressed_org",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The sponsor becomes the leaf where each one received a single file."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "school is declared by this schema and may never be a level",
+        "a shared supporting document attached to several packets never inherits an addressee — 00: 'If no shared branch exists, the system should not arbitrarily choose one university. It should abstain or ask the user to choose a primary home.'"
+      ],
+      "example_label_chains": [
+        [
+          "UChicago",
+          "2026",
+          "Supplemental Essays"
+        ],
+        [
+          "2026",
+          "Personal Statement",
+          "Coca-Cola Scholars"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.addressee-packet.household",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.addressee-prefix",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.cycle-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.addressee-cycle-kind",
+          "is_default": true,
+          "rationale": "applications.k12-admission, which omits the cycle by default and says where to reinsert it: 'beneath target_university'.",
+          "dimensions": [
+            {
+              "role_ref": "addressed_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A parent says 'the Dalton application'."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The admission cycle separates two attempts at one school."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document kind is the leaf inside one packet."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.cycle-addressee-kind",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9).",
+          "dimensions": [
+            {
+              "role_ref": "cycle_period",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A household applying to several schools in one season leads with the cycle."
+            },
+            {
+              "role_ref": "addressed_org",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The school becomes the second level."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document kind stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "reinsert cycle_period beneath target_university where a household applies in more than one admission season"
+      ],
+      "sensitivity_policy_ref": "sp.household-member-record@1",
+      "validation_constraints": [],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.purpose-packet",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "purpose-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.purpose-only",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.purpose-only",
+          "is_default": true,
+          "rationale": "00: 'The user may keep it as one flat purpose folder' — 'an ID, transcript, resume, personal statement, award certificate, and portal screenshot may be content-incoherent but purpose-coherent as an application submission.'",
+          "dimensions": [
+            {
+              "role_ref": "purpose_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The packet's purpose is the only association its members share; 00's own instance of this branch is a folder the user made and named themselves."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "target_university may not lead: this packet frequently has no single addressee",
+        "application_document_type may not lead: a folder of loose Certificates is exactly the fragmentation the flat packet exists to prevent",
+        "a carefully curated existing folder is a strong expression of user intent and is adopted rather than rebuilt"
+      ],
+      "example_label_chains": [
+        [
+          "Chinese University Application Materials"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.issuer-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.issuer-then-record",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.issuer-account-kind",
+          "is_default": true,
+          "rationale": "11/11 rows put the issuer above the record kind. finance.personal-records: 'one institution commonly runs several accounts for the same person and a single statements folder would mix a checking account with a credit card.'",
+          "dimensions": [
+            {
+              "role_ref": "issuing_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Bank, then account, then kind — which is how bank websites are laid out and how people talk about them."
+            },
+            {
+              "role_ref": "account_kind",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "One institution commonly runs several accounts for the same person; most households hold one line per carrier, so this level is dropped where it would open a branch with a single child."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Statement, Transaction Export and Notice are the leaf inside one account."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.account-issuer-kind",
+          "is_default": false,
+          "rationale": "finance.investment-brokerage optional pattern (b): 'account_type ABOVE institution where a household holds one continuing retirement account across successive custodians, because a transfer changes the institution value while the account continues'; finance.insurance-personal records the same shape — 'Auto/2026-Carrier/ retrieves better than Carrier/Auto/ for someone who has switched insurers twice'.",
+          "dimensions": [
+            {
+              "role_ref": "account_kind",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The account is the durable thing and the institution is what changed underneath it."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The custodian becomes the second level, so a transfer does not split one continuing account."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The record kind stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "tax_year is destination-eligible and is not a standing level here — most account records carry no labelled tax-year slot — but may be an optional leaf UNDER artifact_kind, never above issuing_org, and never filled from a statement period",
+        "account_holder is not a live field and would never be a level if it became one",
+        "amounts, household-income values and applicant identifiers are search-and-review material only and may never become a folder level"
+      ],
+      "example_label_chains": [
+        [
+          "Chase",
+          "Checking",
+          "Statement"
+        ],
+        [
+          "Chase",
+          "Credit Card",
+          "Statement"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.issuer-period-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.issuer-then-period-then-record",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.issuer-year-kind",
+          "is_default": true,
+          "rationale": "finance.payroll-received: 'institution leads because Pay Statement, Correction or Annual Summary is not intelligible until the paying employer is known, and one person may have several employers in one year.'",
+          "dimensions": [
+            {
+              "role_ref": "issuing_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Pay Statement, Correction or Annual Summary is not intelligible until the paying employer is known."
+            },
+            {
+              "role_ref": "scope_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "One person may have several employers in one year, and tax_year keeps a long employer history navigable."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The payroll record kind is the leaf inside one employer-year."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.year-issuer-kind",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9) — def.period-scoped-filing's shape applied here; the row does say tax_year 'keeps a long employer history navigable'.",
+          "dimensions": [
+            {
+              "role_ref": "scope_period",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Someone doing their taxes wants the year first and does not care who paid."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The employer becomes the second level."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The payroll record kind stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "this is not a depth variant of def.issuer-record: that recipe puts tax_year UNDER the record kind as an optional leaf and this one puts it ABOVE, and a different position is a different recipe"
+      ],
+      "example_label_chains": [
+        [
+          "ADP",
+          "2025",
+          "Pay Statement"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.period-scoped-filing",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.period-then-record",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.year-kind-issuer",
+          "is_default": true,
+          "rationale": "finance.tax-filings, which argues the exception rather than assuming it: 'Year-first scatters related work when the year is incidental to the document; it cannot scatter a filing, because the filing IS the year.' The row marks its own argument inference: 'That reasoning is mine, not 00's.'",
+          "dimensions": [
+            {
+              "role_ref": "scope_period",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The filing IS the year: 'my 2025 taxes' is the most confidently named folder in the launch set."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Return as Filed and Payer Forms are the leaf inside one filing year."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The payer is the deepest level and is opened only where several payers issued forms for one year."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.kind-year-issuer",
+          "is_default": false,
+          "rationale": "Attested OUTSIDE the launch set: artifact_kind > scope_period is 32 rows across 8 domains in the unbound corpus (43 §4.4 A). 00 licenses exactly one exception to subject-before-time by name, and it is capture media, not this; shipping 00's direction as the second order is what keeps the departure honest.",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "00's own direction: subject before time, with the record kind leading."
+            },
+            {
+              "role_ref": "scope_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The filing year becomes the second level."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The payer stays the deepest level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "under a year-first order a supporting document with no year fact of its own has no legal branch — a donation receipt, a childcare invoice — because the graph does not automatically copy missing facts onto sparse files; those members land in a scoped General under the year, or in review (Judgment Call 5(b))"
+      ],
+      "example_label_chains": [
+        [
+          "2025",
+          "Return as Filed"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.loan-kind-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.loan-kind-then-record",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.loan-kind-issuer-record",
+          "is_default": true,
+          "rationale": "finance.loans-mortgage: 'institution is offered as a level BETWEEN account_type and record_type, never above account_type.'",
+          "dimensions": [
+            {
+              "role_ref": "account_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The loan is the thing and the servicer is trivia that changes underneath it."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The institution is offered BETWEEN the loan kind and the record kind, never above the loan kind."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Servicing Statement and Closing Packet are the leaf inside one loan."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.loan-kind-record-issuer",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9).",
+          "dimensions": [
+            {
+              "role_ref": "account_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The loan still leads: no candidate order may put the institution above it."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The record kind becomes the second level."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The originator or servicer is the deepest level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "no candidate order may put issuing_org above account_kind: one loan is commonly originated by one company, sold to a second, and serviced by a third, and institution-first scatters a single loan across sibling folders whose members belong together"
+      ],
+      "example_label_chains": [
+        [
+          "Mortgage",
+          "Servicing Statement"
+        ],
+        [
+          "Mortgage",
+          "Closing Packet"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.function-first-book",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.function-then-container",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.function-then-account",
+          "is_default": true,
+          "rationale": "finance.small-business-bookkeeping: 'a general ledger, invoice register, expense report or receivables report refers to many banks and counterparties, while record_type states the function that makes the material intelligible.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A small-business owner says 'the ledger', 'invoices out', 'receipts in' — function words, never institution names."
+            },
+            {
+              "role_ref": "account_kind",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The account is opened beneath the function only where the books actually separate by one."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.account-then-function",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9).",
+          "dimensions": [
+            {
+              "role_ref": "account_kind",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "An owner whose bookkeeping is really one account leads with it."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The bookkeeping function becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "issuing_org is omitted because using the holder's own operation as the leading institution would turn authorship-side identity into the collector 00 forbids"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.function-then-issuer",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.function-then-issuer",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.function-then-issuer",
+          "is_default": true,
+          "rationale": "travel.bookings-confirmations: 'inside an accepted trip branch, boarding passes, lodging reservations, rail tickets and rental confirmations are intelligible functional children.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "'My boarding passes' and 'hotel bookings' are things people say; inside an accepted trip branch they are intelligible functional children."
+            },
+            {
+              "role_ref": "issuing_org",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The airline or hotel is opened beneath the function only where several issuers served one trip."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.issuer-then-function",
+          "is_default": false,
+          "rationale": "The finance default, attested by 11 sibling rows; the row itself says these 'ordinarily use the Finance schema's issuing institution and record_type'.",
+          "dimensions": [
+            {
+              "role_ref": "issuing_org",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The finance default puts the issuer above the record kind."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The booking kind becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "the parent this recipe actually wants — the trip — cannot be expressed: the Finance schema cannot encode trip then record type, and the trip remains a P9 group or user-created branch and is never smuggled into dimension_order"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.group-scoped-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.record-kind-only",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.kind-only",
+          "is_default": true,
+          "rationale": "finance.household-property and finance.vehicle-records, both deliberately scoped inside an accepted single-asset group: 'institution-first scatters one vehicle across issuers and record_type-first at the corpus root merges several vehicles.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Inside an accepted single-asset group the record kind is the only level the schema can honestly offer."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.safety-domain-protected@1",
+      "validation_constraints": [
+        "the useful order needs a field that does not exist (property, vehicle) and this recipe does not smuggle an unratified field into dimension_order",
+        "no existing key may be repurposed to make the familiar vehicle then record-type tree appear complete"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.capture-time-events",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.capture-time-then-occasion",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.year-then-event",
+          "is_default": true,
+          "rationale": "00 verbatim: 'a Photos template may define year -> event', and its stated reason — 'Photos and capture-based media are the major exception: time often belongs first because capture date is a defining aspect of the material.'",
+          "dimensions": [
+            {
+              "role_ref": "capture_time",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Capture date is a defining aspect of the material; this is the one time-first exception 00 licenses by name."
+            },
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The event is the level a person names inside a year: 'photos from 2026 -> Japan Trip'."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.event-then-year",
+          "is_default": false,
+          "rationale": "00's own menu: 'whether photographs should branch by year, event, location, or remain mostly flat'.",
+          "dimensions": [
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A holder who navigates by occasion leads with the event."
+            },
+            {
+              "role_ref": "capture_time",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The capture year becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "people and camera_information are not destination-eligible and never become levels: the product should avoid using authorship or creator identity as a destination dimension"
+      ],
+      "example_label_chains": [
+        [
+          "2026",
+          "Japan Trip 2025"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.capture-time-events.third-party",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.capture-time-then-occasion",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.year-event-kind",
+          "is_default": true,
+          "rationale": "photos.home-video and photos.social-media-export — the latter earns the third level: 'an account export returns stills, clips, uploaded screenshots and profile images in one bundle, so the leaf is genuinely multi-valued.'",
+          "dimensions": [
+            {
+              "role_ref": "capture_time",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Capture time is the schema's licensed first level."
+            },
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The occasion is the level a person names inside a year; a conversation archive has a span, not an occasion, and omits it."
+            },
+            {
+              "role_ref": "capture_kind",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "An account export returns stills, clips, uploaded screenshots and profile images in one bundle, so the leaf is genuinely multi-valued."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.event-year-kind",
+          "is_default": false,
+          "rationale": "photos.family-archive verbatim: 'a capture_year level at the top would collect prints under the year somebody digitized them.' This is the one photos row that reverses 00's own time-first exception, and it reverses it on evidence: the only machine-readable timestamp belongs to the scanner.",
+          "dimensions": [
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The album or occasion is the only recoverable association when the capture date is not."
+            },
+            {
+              "role_ref": "capture_time",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The decade or year sits beneath the album rather than collecting prints under the year somebody digitized them."
+            },
+            {
+              "role_ref": "capture_kind",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The media kind stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "Grandparents' Albums",
+          "1970s"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.capture-kind-led",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.capture-kind-then-time",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.kind-then-year",
+          "is_default": true,
+          "rationale": "photos.screenshot-captures: 'media_type leads because it is the only fact this material reliably has and the only one that separates it from photos.camera-events under a shared Photos parent'; 00 writes them as separate things — 'Photos supported by image events and screenshot groups'.",
+          "dimensions": [
+            {
+              "role_ref": "capture_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The media type is the only fact this material reliably has and the only one that separates it from camera events under a shared Photos parent."
+            },
+            {
+              "role_ref": "capture_time",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The year is the second level, and the honest reading is that it should default OFF: a person makes one folder called Screenshots and stops."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.year-then-kind",
+          "is_default": false,
+          "rationale": "The row itself: 'Where the user has already made screenshots their own root, the media_type level has one child and should be flattened away, leaving capture_year leading.'",
+          "dimensions": [
+            {
+              "role_ref": "capture_time",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Where screenshots are already the user's own root, the year is what remains to lead."
+            },
+            {
+              "role_ref": "capture_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The media type becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "default the capture_time level OFF: a person makes one folder called Screenshots and stops",
+        "where the user has already made screenshots their own root the capture_kind level has one child and should be flattened away"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "Screenshots",
+          "2026"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.capture-kind-led.document",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.capture-kind-then-time",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.kind-then-year",
+          "is_default": true,
+          "rationale": "Same shape as def.capture-kind-led, split from it because the row's privacy rule is categorically different and 00 names this material first: 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately.'",
+          "dimensions": [
+            {
+              "role_ref": "capture_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The media type is what the capture reliably has when nothing else has claimed the file."
+            },
+            {
+              "role_ref": "capture_time",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Someone digitizing a filing cabinet over several months does want Scans/2026 while the backlog is being worked through."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.year-then-kind",
+          "is_default": false,
+          "rationale": "The reversal def.capture-kind-led records: where scanning is already the user's own root the media_type level has one child and the year leads.",
+          "dimensions": [
+            {
+              "role_ref": "capture_time",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The year leads once scanning is already the user's own root."
+            },
+            {
+              "role_ref": "capture_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The media type becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "when the recovered OCR activates another schema, that schema's template governs the placement and this template contributes media_type as a search fact only, so the scanned tax statement lands in the finance branch and the photographed homework page lands under the course, not under Scans"
+      ],
+      "sensitivity_policy_ref": "sp.document-reproduced-whole@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "Scans",
+          "2026"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.occasion-place",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.occasion-then-place",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.trip-place-year",
+          "is_default": true,
+          "rationale": "travel.trip-photos: 'a place under a trip reads (Kyoto inside a Japan trip) where a trip under a place does not.'",
+          "dimensions": [
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A trip value in this product's own vocabulary carries its own year ('Japan Trip 2025'), and both words are the user's own."
+            },
+            {
+              "role_ref": "place",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A place under a trip reads where a trip under a place does not, and it is offered only where the trip actually visited more than one resolved place."
+            },
+            {
+              "role_ref": "capture_time",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The year is omitted by default because a year level above a trip repeats a concept already expressed in the parent."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.year-trip-place",
+          "is_default": false,
+          "rationale": "The row itself: 'Reinstating capture_year at the top returns this branch to the schema's default order, which is exactly the reversal 00 licenses.'",
+          "dimensions": [
+            {
+              "role_ref": "capture_time",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Reinstating the capture year at the top returns this branch to the photos schema's default order."
+            },
+            {
+              "role_ref": "occasion_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The trip becomes the second level."
+            },
+            {
+              "role_ref": "place",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The place stays the deepest level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "open place only where the trip actually visited more than one resolved place"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "Japan Trip 2025",
+          "Kyoto"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.research-lineage",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.artifact-then-stage",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.project-kind-stage",
+          "is_default": true,
+          "rationale": "Both bound rows, 2/2. research.dataset-analysis: 'Putting stage above artifact_type splits one dataset's raw table from the cleaned table derived from it.' research.thesis-dissertation: 'putting stage on top interleaves a chapter draft with a defense deck under one Revision folder.' 43 §6.2's ruling, adopted: this is a research-local default, not a general finding, and it must not be generalized to creative or engineering in wave 2.",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The project is what makes an artifact type filable at all."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Artifact then stage is how a doctoral student talks about their own work: 'the thesis -> chapter 4 -> drafts'."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Stage beneath the artifact keeps one dataset's raw table with the cleaned table derived from it."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.project-stage-kind",
+          "is_default": false,
+          "rationale": "00 §5.4 verbatim: 'a Research template may define project -> stage -> artifact type', plus 16 unbound rows across creative and engineering (43 §4.4 B). A supervisor tracking several students thinks stage-first — 'who's in revision?'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The project still leads."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A supervisor tracking several students navigates by stage."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The artifact type becomes the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "PVA-RDP",
+          "Dataset",
+          "Raw"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.research-workflow-split",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.subject-then-stage",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.project-then-stage",
+          "is_default": true,
+          "rationale": "research.grants-funding: 'this situation's whole shape is a before-and-after, pre-award drafting versus post-award reporting.'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A PI says 'the NSF proposal' first."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The before-and-after split is the real navigation axis of a funded project."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.stage-then-project",
+          "is_default": false,
+          "rationale": "AUTHORED (§4.9).",
+          "dimensions": [
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "An office tracking a portfolio by award status leads with the stage."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The project becomes the second level."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "artifact_kind is deliberately metadata-only here and is never a level: a submitted proposal is a purpose-coherent packet and branching it by artifact type scatters the narrative, budget, justification, biosketches and letters that were submitted as one thing",
+        "the level this row actually wants first is the sponsor, and no organization key on the research schema carries the funding role; that is a gate, not an ordering question (Judgment Call 5(c))"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.submission-to-venue",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.venue-in-submission-chain",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.project-venue-stage",
+          "is_default": true,
+          "rationale": "research.manuscript-publication: 'a manuscript that goes to one journal, is rejected, and goes to another produces two complete submission families whose stage values repeat, so putting stage above venue interleaves two submissions under one Revision folder.'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The paper is the thing the author names first."
+            },
+            {
+              "role_ref": "addressed_org",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The venue separates two complete submission families whose stage values repeat; it is optional and the row's expected shape omits it until a second venue appears for the same version family (41 §4-C)."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Under Review and Response to Reviewers are the leaf inside one submission."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.venue-project-stage",
+          "is_default": false,
+          "rationale": "The venue-first reading research.conference-presentation argues for the neighbouring situation; 41 O2 records project-first vs venue-first as attested 1-for-1.",
+          "dimensions": [
+            {
+              "role_ref": "addressed_org",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "A holder who works venue by venue leads with the journal."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The paper becomes the second level."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The submission stage stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [
+        "open addressed_org only when a second venue appears for the same version family; the default order names it and the default branch does not open it"
+      ],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [],
+      "example_label_chains": [
+        [
+          "PVA-RDP",
+          "Nature Methods",
+          "Under Review"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.venue-bundle",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.venue-prefix",
+          "fragment_version": 1
+        },
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.venue-project-kind",
+          "is_default": true,
+          "rationale": "research.conference-presentation: 'A branch named Poster is meaningless on its own — a lab may present the same project as a poster at one meeting and a talk at the next.'",
+          "dimensions": [
+            {
+              "role_ref": "addressed_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A presenter says 'ASCB 2026' first; a branch named Poster is meaningless on its own."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The project narrows a meeting bundle where a lab showed more than one."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Poster, Talk and Abstract are the leaf inside one meeting."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.project-venue-kind",
+          "is_default": false,
+          "rationale": "The row's own recorded counter-case: 'For a holder with one project shown at five meetings, project-first keeps the work together and venue-first scatters it.'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "One project shown at five meetings stays together under a project-first order."
+            },
+            {
+              "role_ref": "addressed_org",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The meeting becomes the second level."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The presentation kind stays the leaf."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "lifecycle_stage is not a role: inside an accepted meeting bundle it carries one value for nearly every member",
+        "lab is not a role: a PI-named lab folder is one step from the authorship collector 00 forbids"
+      ],
+      "example_label_chains": []
+    },
+    {
+      "template_id": "def.career-search-and-tenure",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [],
+      "candidate_orders": [
+        {
+          "order_id": "ord.employer-role-cycle-kind",
+          "is_default": true,
+          "rationale": "00 verbatim, first half: 'a Career template may define company -> role or recruiting cycle -> document type'; career.json: 'company first, because a document type such as an offer letter is unintelligible without the employer'. DEFAULT RULED BY 60 §8.3, AND THE REASON IS DEGRADATION, NOT PREFERENCE. The two orders serve the two halves J-3 already split: the search half (work_type — résumés, cover letters, portfolio) is many employers at two or three files each and wants the cycle first; the tenure half (record_type — contracts, payslips, reviews) is few employers at many files each and wants the employer first. Employer-first is the default because it FAILS BETTER, which is the only thing that breaks the tie: employer-first applied to a job-seeker yields many small folders, and 00 already handles that — the canvas warns about 'a large number of tiny folders' and offers flatten. Cycle-first applied to someone with ten years at two employers asserts a recruiting cycle THAT DOES NOT EXIST; there is no warning for that and nothing to flatten, because the level is not wrong, it is empty. A default runs before the product knows who it is talking to, so it must be the one whose failure is legible. THIS DEFAULT IS RECOMMENDATION-PENDING, NOT RATIFIED: the right long-run fix is 59 §4.5 — ask the user who they are before designing the tree, at which point this default is never consulted. Recorded so the tie-break is not mistaken for evidence it does not have.",
+          "dimensions": [
+            {
+              "role_ref": "employer_org",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "A document type such as an offer letter is unintelligible without the employer; someone who has held four jobs over ten years says the company first."
+            },
+            {
+              "role_ref": "role_title",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "00:70 makes the role a folder level in so many words — 'a Career template may define company -> ROLE or recruiting cycle -> document type' — and 00 writes that middle level as a disjunction, so role and cycle are not one field: one company running two processes needs role."
+            },
+            {
+              "role_ref": "cycle_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "One person running a whole search season needs the cycle; under this order it sits beneath the employer and is often unfilled."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "Résumé, offer letter and recruiter thread are the leaf."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.cycle-kind-employer-role",
+          "is_default": false,
+          "rationale": "00 verbatim, second half: 'company -> role or RECRUITING CYCLE -> DOCUMENT TYPE'; J-WIDE-2's 'my 2026 search'. The two are not a big and a small version of each other — they are opposite shapes, deep-and-few against shallow-and-many.",
+          "dimensions": [
+            {
+              "role_ref": "cycle_period",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Someone job-hunting right now says the season first: in one season they applied to many companies and most produced two files."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The document type is what recurs across every application in one season."
+            },
+            {
+              "role_ref": "employer_org",
+              "order_index": 2,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The company becomes a leaf under this order rather than the root."
+            },
+            {
+              "role_ref": "role_title",
+              "order_index": 3,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The role is left unbound for the season-first holder; an unbound optional role simply does not resolve."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "employer_org must never bind a key that means the employer the holder WORKS FOR and the employer the holder APPLIED TO at the same time; 60 J-2 and the mint list keep employer and target_employer apart, and 00 governs: 'The system must separate roles that happen to contain the same entity type.'",
+        "artifact_kind must not become a fourth spelling of a concept the product already names beside work_type, record_type and application_document_type: 'minting a fourth spelling for one concept is the 574's exact fragmentation failure'",
+        "60 J-3 declares career's fields as employer, target_employer, recruiting_cycle, work_type, record_type and job_title, which supersedes 51 §4.8's 'zero fields'; per 60 §8.1 job_title is destination-ELIGIBLE, so role_title binds a real folder level and career sits at six destination candidates, exactly at 00:48's ceiling under J-4",
+        "this definition carries no fragment, so its privacy_floor is stated on the record itself and its relative_order pins the recommended nesting its own candidate orders describe"
+      ],
+      "example_label_chains": [],
+      "relative_order": [
+        [
+          "employer_org",
+          "role_title"
+        ],
+        [
+          "role_title",
+          "cycle_period"
+        ],
+        [
+          "cycle_period",
+          "artifact_kind"
+        ]
+      ],
+      "privacy_floor": "baseline"
+    }
+  ]
+}

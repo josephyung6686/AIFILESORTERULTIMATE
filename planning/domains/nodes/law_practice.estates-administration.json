@@ -1,0 +1,455 @@
+{
+  "id": "law_practice.estates-administration",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Estates administration",
+  "one_line": "The practitioner-side apparatus for winding up the affairs of a person who has DIED - the death-and-authority record, the date-of-death valuation set, the death-tax account, the creditor notice, the estate accounts and the distribution to beneficiaries. Its distinct default is a DECEASED-AND-INSTANT anchor rather than the schema's client-and-matter anchor: the person the file is about is not the client, cannot be, and cannot consent, and every asset in the file is valued at one frozen instant instead of over a period. It is NOT activated by the word estate, by a will, by a death certificate, by a practice-area label, or by a deceased person's ordinary bank statements.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "subject_of_record",
+      "type": "string",
+      "destination_eligible_if_adopted": false,
+      "used_in_dimension_order": false,
+      "provenance": "proposal",
+      "why_no_existing_key_works": "REUSE OF AN EXISTING PROPOSAL, NOT A MINT. `subject_of_record` is already proposed by `clinical_practice` and is already carried in this schema's own anchor role_split; this row asks for nothing new except that the adjudication cover a subject who is DEAD. The canonical `client` key cannot carry it: in this family the client is the personal representative - an executor or administrator, alive, sometimes several, sometimes replaced mid-administration, sometimes a beneficiary and sometimes not - and the person whose affairs the file actually contains is the deceased, who is not a party to the retainer and never was. Minting `deceased`, `estate_of`, `testator` or `decedent` would be exactly the synonym mint the brief forbids, since the concept is the one `subject_of_record` already names. 00's role rule is the general licence: \"The system must separate roles that happen to contain the same entity type\" - and here the same surname routinely occupies the client slot, the subject slot and the beneficiary slot inside one folder.",
+      "preferred_resolution": "R1c adjudicates the key once across clinical_practice, nonprofit and law_practice. This row asks for ONE condition and it is stricter than the schema anchor's: `destination_eligible` must be FALSE, and unlike the anchor's client level it must not become eligible on user approval either, for a reason specific to death. A folder named for a living client discloses that a representation exists; a folder named for a dead person additionally writes a bereavement, and the surviving family who share the machine did not choose that label. If canonical_fields cannot express a per-schema eligibility difference, the ban belongs in the template contract, which is the same shape of problem the anchor raised for `client`.",
+      "why": "The estate anchor. Without it the family has no way to say that the file is ABOUT someone who is not its client, which is the one structural fact that separates this row from every other row on the schema."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION - the schema's own two-leg default still binds and is not weakened here: an exact matter or file reference repeated across artefacts, plus at least one artefact whose labelled slots separate a practitioner or firm role from a client role. Nothing below overrides it. A lay executor's own probate bundle satisfies every signal in this list and is still NOT this row, because there is no practitioner side; it is `legal.personal-legal-matters`. The deletion test the schema inherits applies unchanged: strike every person name, every firm name and every document-type word, and if no structure survives, nothing fires.",
+      "THE DEATH-AND-AUTHORITY PAIR, and it is what makes this row a template rather than a repetition of the schema default. A THREE-role structure where the default requires two: an artefact whose own labelled slots carry (i) a deceased-person slot with a DATE OF DEATH, and (ii) an authority slot naming a personal representative - executor, executrix, administrator, administratrix, personal representative - together with the instrument that appoints them, a will clause or a grant. The default's client-and-practitioner pair is present but is not the anchor; the anchor is the third role, the person the file is about, who is dead. Read through 00's direct path, \"a labeled form field\".",
+      "THE DATE-OF-DEATH VALUATION SLOT - the family's sharpest signal and the one that fires where the schema default cannot. A letter, statement or certificate from a bank, registrar, insurer, valuer or land agent whose own labelled line reads as a value AS AT a single stated date, that date being a death date rather than a statement period end, addressed to a personal representative or to the practitioner acting for one. These artefacts frequently carry NO matter reference and NO role pair, so the schema's two-leg default fails on them outright; they are recognisable only by the valuation-instant slot plus the addressee role. The same slot repeats as a COLUMN HEADER on the schedule that aggregates them.",
+      "AN ASSET-AND-LIABILITY SCHEDULE AT ONE INSTANT: a table with one row per asset carrying a description, a holding institution or location, a holding size, a value at the death date, and a sole-or-joint or beneficial-share column, followed by a liabilities block that characteristically includes funeral account rows. Read through 00's spreadsheet path - \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". The discriminating evidence is the SINGLE-INSTANT column, not the presence of money: a portfolio valuation with a period, a range or a series of dates is finance's on finance's own evidence.",
+      "A DEATH-TAX ACCOUNT STRUCTURE: a labelled form whose own schedules enumerate asset classes at one instant plus lifetime-gift, relief, exemption and domicile schedules keyed to a death date, with a computation that closes to a single liability and a clearance or determination response - IHT400 with IHT403, IHT405, IHT406 and IHT421 in England and Wales, Form 706 with its lettered schedules and Form 5173 clearance in the United States, and their equivalents elsewhere. It has NO tax year and no period, which is the structural break from an ordinary return.",
+      "AN ESTATE ACCOUNT STRUCTURE: a statement whose own section headings separate a CAPITAL account from an INCOME account and from a DISTRIBUTION account, opening from the date-of-death asset total, running administration receipts and payments, and closing to a residue divided in fractions or percentages among named beneficiaries, with an approval or release line for the personal representative. No other artefact on this schema has this three-ledger grammar.",
+      "A CREDITOR-NOTICE AND CLAIMS-PERIOD structure: a statutory advertisement or notice-to-creditors record pairing the deceased's name, last address and date of death with a claim deadline and a place of publication, filed beside the proof of publication. A claims register with one row per claimant, claim amount, admitted-or-rejected decision and payment date belongs to the same structure.",
+      "A DISTRIBUTION-AND-RELEASE structure: one document or one table row per beneficiary carrying an entitlement expressed as a share of residue or a named legacy, interim and final payment lines, and a receipt, release, assent or transfer acknowledgement. The FRACTIONAL-SHARE-OF-A-WHOLE grammar is the signal; a payment run with per-payee amounts and no share denominator is finance's.",
+      "AN INTESTACY-ENTITLEMENT structure: a worked statement deriving who takes and in what share from a family tree and a statutory order, usually beside a family-tree or heirship diagram and sometimes a genealogist's report. It is the no-will mirror of the will-construction note and belongs to the same anchor."
+    ],
+    "needs_llm": [
+      "Deciding whether a stated date on a valuation letter is a DEATH date or a period end. The two are typographically identical and the difference decides the row. The surrounding sentence, the addressee role and the presence of a death certificate or grant reference in the same folder settle it; nothing in the number does.",
+      "Separating a deceased person's ordinary pre-death financial run from the administration set that follows it. The same institution, the same account and the same account holder appear on both sides of the death date; only the addressee role and the valuation-instant framing change.",
+      "Reading a will or codicil for whether the file is a LIFETIME planning artefact or an ADMINISTRATION artefact. The instrument is identical; the discriminator is entirely in what surrounds it.",
+      "Reading an estate-account-shaped document for whether it accounts for a bounded administration or for one year of a continuing trust. The ledger grammar is shared; the period-versus-instant framing and the governing-instrument reference separate them.",
+      "Resolving whether a contentious document - a claim against the estate, a will challenge, a family-provision application - is administration work product or a proceeding. If it carries a tribunal caption or an execution block it is `legal`'s on `legal`'s evidence, and the sibling proceeding rows are the practitioner-side home.",
+      "Deciding whether a chattels photograph was taken as valuation evidence or as an ordinary family photograph of the same object. Only an accompanying valuer's schedule item reference decides it, and where that is absent the file stays photos'."
+    ],
+    "never_alone": [
+      "THE WORD ESTATE. It is the family's cheapest false positive and it is ambiguous three ways in ordinary filenames: an estate agent's particulars, a real-estate transaction, and the annual accounts of a living family settlement all carry it. `Estate agent valuation - 14 Elm Road.pdf` contains the word twice over and has no death in it at all.",
+      "A DEATH CERTIFICATE ALONE. It is `identity`'s artefact on `identity`'s evidence, and a person may keep a parent's death certificate for decades with no administration, no practitioner and no estate file anywhere. It is a co-activation member, never an activator.",
+      "A WILL OR CODICIL ALONE. An executed testamentary instrument is `legal`'s on the bound-party-and-execution structure, and while its testator lives it is `legal.estate-planning`'s. Nothing about the instrument itself says whether the testator has died.",
+      "THE WORD PROBATE, GRANT, EXECUTOR, ADMINISTRATOR, DECEASED, DEC'D, ESTATE OF or LATE in a filename, alone or in combination with any other struck token. These are document-type and role words and the schema's rule that a role name can never carry a template applies to them without exception.",
+      "A DECEASED PERSON'S BANK, BROKERAGE OR PENSION STATEMENT ALONE. It is structurally indistinguishable from any other account holder's statement; death is not visible in it. Finance owns it on its own evidence and finance is a safety domain whose protection runs first.",
+      "A SURNAME SHARED ACROSS FILES. The deceased, the executor and several beneficiaries commonly share one surname, so a family name is the weakest possible bridge here and is exactly the shape 00 rules out for organisations - \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "A PRACTICE-AREA LABEL - a firm's private client, wills and probate, or trusts and estates department name on a letterhead or in a folder path. A department is an organisation name and cannot activate anything.",
+      "A DATE THAT IS MERELY OLD OR MERELY REPEATED. The valuation instant matters because a labelled slot says what it is, not because several documents happen to share a date."
+    ]
+  },
+  "proposed_context_terms": [
+    "date of death",
+    "as at the date of death",
+    "personal representative",
+    "grant of representation",
+    "residue",
+    "estate accounts",
+    "assent"
+  ],
+  "work_types": [
+    "death registration record and initial asset and liability enquiry",
+    "date-of-death valuation request and valuation response",
+    "will, codicil, office copy and will-construction note",
+    "intestacy entitlement and heirship record",
+    "grant application, statement of truth or oath, and lodgement record",
+    "death-tax account, schedules, computation and clearance",
+    "asset collection, encashment, transfer and re-registration record",
+    "creditor notice, claims register and liability settlement record",
+    "estate bank account, cash book and administration receipts and payments",
+    "interim and final estate accounts and residue computation",
+    "beneficiary correspondence, entitlement statement and deed of variation",
+    "assent, transfer, legacy payment and distribution receipt or release",
+    "continuing trust, life interest and minority-interest handover record",
+    "estate income tax and administration-period return record",
+    "claim against the estate and contentious-probate correspondence",
+    "file closure, retention and papers-to-personal-representative record"
+  ],
+  "grouping_reasons": [
+    "The DECEASED-AND-INSTANT pair repeated across artefacts: one deceased-person identity slot together with one date of death. This is the family's anchor and it is stronger than a surname because it is two slots that must agree, and 00 requires an anchor at all - \"It should not form a supported group when there is no valid anchor\".",
+    "The allocated matter or file reference, inherited unchanged from the schema default and still the primary anchor where it is present.",
+    "A grant, probate registry or court file reference repeated on the tax account, the asset schedule and the asset-collection correspondence.",
+    "The designated estate or executors' account number repeated across the cash book, the statements and the distribution schedule.",
+    "An exact schedule item identifier carried from the asset schedule to the valuation letter to the tax schedule to the distribution row. This is the family's most useful fine-grained bridge and the one that must never copy a fact: the item number groups, it does not label.",
+    "MEMBERSHIP NEVER COPIES. Joining an estate group writes no fact onto the member - not the deceased, not the date of death, not a share, not a value, not a legal entitlement, and not a folder path."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT - the schema declares no fields under PR-6, so no dimension may branch on anything, and the co-activated `legal` and `finance` readings are safety domains, so \"Finance, identity, medical, and legal material should be implemented first as safety domains\" and no deep template unlocks from that activation. WHAT THE RECOMMENDATION WOULD BE, AND HOW IT DIFFERS FROM THE SCHEMA'S DEFAULT PARAGRAPH - this is the leg of the node test this row is measured on, and it differs in three ways rather than one. FIRST, THE CLIENT LEVEL IS STRUCK, NOT SEEDED-INELIGIBLE. The schema's default seeds a client level ineligible but allows it on explicit user approval where a corpus genuinely spans several clients. Here it is wrong even when approved, for a reason that is not privacy: the client is the personal representative, and personal representatives are plural, substitutable and sometimes themselves beneficiaries, so a client level would scatter one estate across co-executors and would file a dead person's affairs under a living person who is not their subject. SECOND, THE ANCHOR DIMENSION IS A SUBJECT, NOT A MATTER. The estate - the deceased together with the death date - is what every artefact in the file agrees on, including the many that carry no matter reference at all; the allocated file reference remains the safe DISPLAY label precisely because it does not name anyone. THIRD, THERE IS NO PERIOD LEVEL. The schema's default ends with a period level; an administration is one bounded episode measured from one instant, so a year level would cut it at an arbitrary point and would separate the date-of-death valuation from the distribution it feeds. Function - valuation, tax, collection, creditors, accounts, distribution, closure - then follows the estate, on 00's parent-before-child rule: \"A work type such as Homework 3 is meaningful only after the course is known\", and an assent, a residue computation or a schedule item is meaningless without the estate it belongs to. WHAT IS DELIBERATELY NOT PROPOSED: the administration STAGE - pre-grant, grant, collection, distribution, closure - is a tempting level and is refused, because a stage is a lifecycle value and would move files as the matter progressed, which is the opposite of a durable destination. NOT TIME-FIRST, AND THIS ROW HAS TO SAY SO LOUDLY because it is the one row on the schema a naive detector would try it on: the corpus is saturated with one strongly agreeing date and looks capture-like, but the date is a VALUATION INSTANT, not a capture time, and 00's rule holds - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" And whatever lands stays a recommendation the user may reverse or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "image",
+      "ocr",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".7z"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Schedule of assets and liabilities as at date of death - Ellis dec'd.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers pair a description and holding-institution column with a single 'value at date of death' column and a sole-or-joint column",
+        "a liabilities block below the asset block containing a funeral account row",
+        "a header cell carries an allocated file reference and a stated death date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an estate value, a tax liability or a solvency conclusion",
+        "that a joint asset passes by survivorship or falls into the estate",
+        "a folder path",
+        "any law_practice fact - the schema declares no field rows"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Barclays - date of death balance - E Ellis - 14 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "unlabelled prose letter addressed to the personal representative's solicitors, stating a balance as at a named date described as the date of death",
+        "a partially masked account number and the account holder's name",
+        "NO matter reference and NO practitioner-and-client role pair anywhere on the page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a finance account_type or institution fact for the holder of this filesystem - the account is a dead third party's",
+        "that the balance is the estate's, that it is available, or that it has been collected",
+        "membership of an estate group from the surname alone"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IHT400 and schedules - Ellis dec'd - submitted.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form slots for deceased name, date of death, domicile and personal representative",
+        "lettered or numbered schedules enumerating asset classes, lifetime gifts and reliefs, all keyed to the death date",
+        "a computation closing to a single liability; no tax year and no accounting period anywhere on the form"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a tax_year fact - a death-tax account has no tax year, and inventing one would hand the file to finance.tax-filings",
+        "that a relief or exemption applies, or that the account is correct, accepted or cleared",
+        "domicile as a legal status"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Grant of Probate - Ellis dec'd - sealed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a registry or court seal and a caption naming the estate of a deceased person",
+        "a named executor and a stated gross and net value of the estate",
+        "a registry file number"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the grant is current, unrevoked or sufficient authority for any act",
+        "that this row displaces legal - a sealed instrument with a caption is legal's on legal's own evidence and legal's protection runs first"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Will and codicil - Margaret Ellis - 2019 - office copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a testamentary instrument with an attestation and witness block and a dated codicil",
+        "an office-copy or lodgement stamp",
+        "arrives in a folder that also contains a death certificate and a grant application"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "validity, revocation, construction, or who is entitled under it",
+        "that a will alone activates this row - it does not, and while its testator lives it is legal.estate-planning's"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate accounts - Ellis dec'd - final for approval.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "section headings separating a capital account, an income account and a distribution account",
+        "opens from a date-of-death asset total and closes to a residue divided in fractions among named beneficiaries",
+        "an approval and release signature line for the personal representatives"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the accounts are approved, that the shares are correct, or that any beneficiary has been paid",
+        "a beneficiary name as a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Notice to creditors - Gazette - Ellis dec'd.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statutory advertisement pairing the deceased's name, last address and date of death with a claim deadline and a place of publication",
+        "the practitioner's address as the address for claims",
+        "a proof-of-publication receipt on the following page"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the claims period has expired, that protection has been obtained, or that distribution is safe",
+        "that the deceased's last address is the holder's address"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Distribution schedule and receipts - residuary beneficiaries.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per beneficiary carrying a share expressed as a fraction of residue, interim and final payment columns, and a receipt-date column",
+        "a total row reconciling to the residue figure in the estate accounts",
+        "several rows share the deceased's surname"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a people fact, an entitlement, a family relationship, or a payment having been made",
+        "that the shared surname bridges this file to any other file",
+        "a folder path naming any beneficiary"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "RE Interim distribution - Ellis estate - executors' approval.eml",
+      "source_type": "email",
+      "observations": [
+        "explicit sender and recipient role separation between the practitioner and the named executors",
+        "an exact file reference in the subject line and an attached payment schedule",
+        "body text approving an interim payment"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that authority, consent or instruction was validly given",
+        "that the attachment inherits any fact from the message"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Death certificate - Margaret Ellis.jpg",
+      "source_type": "image",
+      "observations": [
+        "a registrar's certified vital record with labelled slots for name, date and place of death and informant",
+        "photographed rather than scanned; OCR would recover the slots"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this file activates this row - a death certificate alone is identity's and never an activator",
+        "cause of death, or any medical fact"
+      ],
+      "also_schema": "identity.core-documents",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Photo of jewellery for probate valuation - item 14.jpg",
+      "source_type": "image",
+      "observations": [
+        "an ordinary domestic photograph of an object on a plain background",
+        "the filename carries an item number that matches a row in a valuer's chattels schedule in the same folder",
+        "EXIF capture date is after the stated death date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "an event, a location or a people fact from the image",
+        "that a chattels photograph without a matching schedule item is estate evidence - absent the reference it is photos' and falls to One-Off Images"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Estate accounts - Ellis Family Settlement - year ended 5 April 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "COLLISION FIXTURE. Identical three-ledger grammar - capital account, income account, distribution account - with named beneficiaries and fractional shares, and the same family surname",
+        "the heading states an accounting PERIOD, not a death date, and the governing instrument cited is a settlement deed dated in the settlor's lifetime",
+        "a comparative prior-year column, which an administration account can never have"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is an estate administration file - the period, the prior-year comparative and the trust-deed reference discriminate it",
+        "that a will trust arising from an administration is therefore excluded; where the first accounting period runs from a death date the two families genuinely co-exist and the file belongs to both"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Probate application and IHT205 - Mum's estate - my copy.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "SECOND COLLISION FIXTURE. Every one of this row's structural signals is present - deceased slot, death date, asset schedule at one instant, personal representative slot",
+        "the holder is named as the applicant executor; there is no firm letterhead, no file reference, no engagement record and no practitioner role anywhere",
+        "sits beside the holder's own bank statements rather than a matter file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row activates - the schema's practitioner precondition fails, and it fails first",
+        "that the absence of a practitioner makes the file less sensitive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Estate papers - scanned by executor.zip",
+      "source_type": "archive",
+      "observations": [
+        "mixed members - certificate scans, statement PDFs, a spreadsheet and photographs of chattels - with no manifest",
+        "the archive name carries the word estate and nothing else"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a purpose from the archive name",
+        "that members inherit any fact from the container, or that the container inherits any fact from a member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "legal.estate-planning",
+      "signal": "THE SAME BYTES ON BOTH SIDES OF A DEATH, and the cleanest reciprocal in the family. Shared fixture: `Will and codicil - Margaret Ellis - 2019 - office copy.pdf`. THEIRS when the instrument sits in a lifetime planning set - a will beside a power of attorney, a letter of wishes, a trust deed, a nomination form - with no death date anywhere in the neighbourhood, and characteristically held by or for the testator themselves. MINE when the identical instrument arrives inside a practitioner file that also holds a death certificate, a grant application and a date-of-death schedule. THE DISCRIMINATOR IS A DEATH DATE PLUS AN ADMINISTRATION APPARATUS, and it is never the instrument. Reciprocal, stated both ways: estate-planning must not claim a will that arrives with a death certificate and a valuation schedule; this row must not claim a will that arrives alone or with a living testator's planning bundle, however probate-shaped the filename. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "THE LAY-EXECUTOR COLLISION - the threat to this row's existence, and it is resolved by the schema's precondition rather than by anything this template adds. Shared fixture: `Probate application and IHT205 - Mum's estate - my copy.pdf`. THEIRS whenever the holder is administering an estate personally: the death date, the asset schedule, the grant application and the tax account are all present, and none of them is practitioner-side evidence. MINE only where the schema's practitioner-and-client structure independently holds. Reciprocal: personal-legal-matters must not be displaced merely because a document is probate-shaped and structurally rich; this row must not annex a bereaved person's own paperwork on the strength of its structure. Note for R1c: this is the family's largest genuine coverage gap and it is recorded as NJ-EA-1 rather than solved by theft. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "Shared fixtures: `Barclays - date of death balance - E Ellis - 14 March 2026.pdf` and the deceased's run of ordinary monthly statements. THEIRS on the institution-and-account structure, on its own evidence, and finance is a safety domain so its protection runs first - a dead account holder's statements are structurally indistinguishable from a living one's and death is not visible in them. MINE only on the valuation-instant slot addressed to a personal representative, and on the schedule that AGGREGATES across institutions - a document with no single institution or account of its own, which is precisely why finance cannot see it. Reciprocal: finance must not swallow the cross-institution asset schedule; this row must not claim a statement run because the account holder has died. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.tax-filings",
+      "signal": "Shared fixture family: `IHT400 and schedules` beside `Final income tax return to date of death`. THEIRS on a tax_year or accounting-period structure - the deceased's final personal return and the administration-period returns both carry one, and both are genuinely tax-filings' even though they sit in the estate folder. MINE on the death-tax account, which has NO tax year at all: its schedules are keyed to a single death date, which is the structural break. Reciprocal: tax-filings must not claim an IHT or 706 account by the word tax; this row must not claim the final personal return by the words to date of death in its title. This seam matters because inventing a tax_year fact on a death-tax account would hand the whole file to the wrong row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.conveyancing",
+      "signal": "Shared fixture: the deceased's house. THEIRS for the sale file - contract, searches, enquiries, completion statement, transfer to a buyer - which is a conveyancing transaction whoever the seller is. MINE for the date-of-death valuation of the same property, and for the ASSENT transferring it to a beneficiary rather than selling it, which has no buyer, no price and no contract. Reciprocal: conveyancing must not claim the assent or the death valuation; this row must not claim the sale file merely because the seller is a personal representative. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "legal",
+      "signal": "The commonest co-activation here and the reason this row can be narrow. One estate folder holds a sealed grant, an executed will and a deed of variation (`legal`, on the caption and execution structure) beside a valuation set, a tax account, estate accounts and a distribution schedule (this row, on the deceased-and-instant apparatus) - disjoint evidence, one folder, both schemas fieldless. `legal` is a safety domain so the protective ordering runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "A death certificate, a surrendered passport and the personal representative's own identity verification are routine and mandatory members of an estate file. The identity documents are identity's and stay protected on its evidence; the verification record that lists them is this schema's. Membership never converts identity data into an estate fact. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.investment-brokerage",
+      "signal": "A registrar's or broker's date-of-death holding valuation is legitimately both: the holding, the institution and the security are brokerage evidence on brokerage's own structure, and the valuation-instant framing plus the personal-representative addressee is this row's. Two readings on one page, neither erasing the other, and finance's protection runs first. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "Named first and it takes most of this family. The characteristic isolated file here is a document about a DEAD third party and their surviving family - a valuation letter, a death certificate, an entitlement statement, a page of estate accounts. 00 names this residual and this material together: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this family's defining failure, which is a date whose meaning is unresolved - a valuation-shaped letter where nothing says whether the stated date is a death or a period end, and the trust-versus-administration accounts collision. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The honest home for a standalone administration document that exposes no living third party and joins no group - a creditor notice, a proof of publication, a blank statement of truth. \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "Isolated transactional members are ordinary here: a probate registry fee receipt, a Gazette advertisement invoice, a funeral account, a courier confirmation for the will. \"Receipts and Confirmations may hold isolated invoice\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected and split practice-system exports and scanned estate bundles are ordinary and must not be forced open to improve classification. \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "client",
+      "other_field": "subject_of_record",
+      "other_domain": "clinical_practice",
+      "why": "THE FAMILY'S DEFINING SPLIT AND THE ONE THE SCHEMA DEFAULT DOES NOT HAVE. On every other row of this schema the client and the subject of the record are usually the same person; here they are NEVER the same person, by definition, because the subject is dead. The personal representative is the client and is alive; the deceased is the subject and cannot consent, instruct, object or be consulted; a beneficiary is neither, and may be a third party who does not yet know they are in the file. 00's general rule licenses the separation - \"The system must separate roles that happen to contain the same entity type\" - and it bites unusually hard here because all three roles routinely carry the SAME SURNAME inside one folder. `subject_of_record` is pointed at clinical_practice because that is the row adjudicating the key; this row asks only that the adjudication reach a dead subject, and asks that both keys be destination-ineligible for this family. Provenance: inference; the underlying role-separation rule is design.",
+      "provenance": "inference"
+    },
+    {
+      "field": "client",
+      "other_field": "our_firm",
+      "other_domain": "career.consulting-client-engagement",
+      "why": "Inherited unchanged from the schema anchor rather than restated: the practitioner-and-client pair is what decides whether an estate file is this schema's at all or is the holder's own bereavement paperwork. This row adds one wrinkle for R1c - a personal representative is frequently a lay family member with no organisation name attached, so the client half of the pair here is a PERSON rather than a firm, and any resolution rule that expects an organisation string on both sides will fail on the commonest case in this family. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and it is argued on three grounds that are NOT the schema default's. The schema's argument is that the existence of a representation is itself disclosive; here that argument is partly FALSE and something worse replaces it. FIRST, EXISTENCE IS OFTEN PUBLIC AND THE CONTENTS NEVER ARE. A grant of representation is a public register entry in many jurisdictions and a creditor notice is a published advertisement, so the fact that an estate is being administered may be discoverable by anyone - but who was left out of the will, what the residue came to, which beneficiary took what share, and what the deceased owned are not, and they are all inside the same folder. The posture must therefore protect CONTENT even where the schema default would relax on publicity. SECOND, THE SUBJECT CANNOT CONSENT AND WILL NEVER BE ABLE TO. The schema anchor already notes that a third party never chose this filesystem; a dead subject is the limiting case, and the practical consequence is that no future consent can cure an exposure. The people who bear the harm are the survivors, who are named in the distribution schedule and did not choose the machine either. THIRD, ONE FILE IS A COMPLETE FINANCIAL X-RAY OF ONE HOUSEHOLD. 00's corpus sentence describes this file exactly - a collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and an estate file assembles the identity documents, every account statement, the tax position, sometimes the medical records that explain a death, the will, and the private family correspondence about it, all at once, deliberately, in one place, because assembling them is the job. Consequences the row commits to: (a) NO NAME MAY BECOME A FOLDER LEVEL - not the deceased, not the executor, not a beneficiary - and unlike the schema default this does not relax on user approval, because a path naming a dead person writes a bereavement into a filesystem the surviving family share, against \"The default posture must therefore be local-first and data-minimizing.\"; the allocated file reference is the safe display label because it names nobody. (b) NO LEGAL STATUS IS EVER INFERRED - not validity, revocation, entitlement, solvency, tax liability, clearance, survivorship, or whether distribution is safe; the literal label is preserved as an observation. (c) SHARE AND VALUE FIGURES ARE NOT SUMMARISED OUT OF THE FILE - a preview line that reveals a residue figure or a beneficiary's share is the disclosure the file exists to control, which is the same shape as 00's warning that \"A summary such as “11 protected identity records” may be safe to show, while a visible list of passport filenames on a shared screen may not be.\" (d) Where a model is needed on this content, \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" This row does not carry is_safety_domain - 00's four are named and closed - but it co-activates three of them.",
+  "open_question": "NJ-EA-1: the lay executor. A bereaved person administering a parent's estate personally produces every structural signal in this row and none of the practitioner precondition, so the file falls to legal.personal-legal-matters where the estate-specific signals - the valuation instant, the three-ledger accounts, the distribution shares - are invisible. Alternatives for R1c: (a) leave it, and accept that the commonest estate corpus in a consumer product is recognised only generically; (b) let legal.personal-legal-matters adopt this row's deterministic signals by reference, which keeps one row but splits its recognition across two schemas; (c) mint a personal-side sibling under legal, which this row does NOT propose because it would be a second copy of the same evidence. NJ-EA-2: the date of death has no canonical key and this row deliberately does not mint one - creation_date is wrong and tax_year is wrong. It may be that a death date is permanently EVIDENCE rather than a fact, in which case the anchor is `subject_of_record` alone and is weaker than this row assumes; R1c should say which. NJ-EA-3: whether a will trust arising on death is one file family or two - the first accounting period runs from the death date, so the administration and the continuing trust genuinely overlap, and the collision fixture in this row cannot be resolved from the design docs."
+}

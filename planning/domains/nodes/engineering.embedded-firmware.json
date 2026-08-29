@@ -1,0 +1,548 @@
+{
+  "id": "engineering.embedded-firmware",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Embedded firmware releases and hardware targeting",
+  "one_line": "The released side of software that is a component of a physical product: an executable image bound by a labelled compatibility statement to a named hardware target and a controlled software identifier, together with the release manifest, release notes, memory map, partition layout, signature and update package that scope one release. It is NOT the firmware repository, which activates the code schema on repository evidence, and it is not the engineering schema's default document situation: the primary artifact carries no title block, no requirement rows and no drawing structure, so none of the schema's default deterministic signals can fire on it. Placeholder row (J-IND, full J-DEPTH): PR-6 keeps fields empty and keeps the machine-readable dimension_order empty, exactly as the engineering schema row does.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test_note": "SIGNALS — The engineering schema's ten deterministic signals are all labelled document structures on human-readable documents: drawing title blocks, requirement rows with verification-method columns, technical-data-package manifests, engineering-change structures, BOM parent/child tables, analysis input/result packages, verification matrices, prototype-build records, archive manifests exposing those, and parent-folder context. Not one of them can fire on this row's primary artifact, which is an executable image with no document structure at all. The discriminators here are (a) a target-binding triple - a software/firmware identifier, a version string, and a NAMED hardware target such as a board revision, an MCU part number or a compatible-hardware list - co-occurring in labelled slots; (b) memory-map structure, meaning a linker MEMORY block with per-region ORIGIN and LENGTH, a link map reporting section sizes against region limits, or a partition table of address ranges; (c) an image + digest + signature triple scoped to one release; (d) a software part number or software configuration index binding an image checksum to a controlled identifier and a hardware effectivity. These are true of the file list below and of no neighbouring row. DIMENSIONS — The schema's researched conditional default is project then design_item then lifecycle_stage then engineering_artifact_type. This row inverts two of those four. lifecycle_stage is largely inert here: firmware does not traverse concept, preliminary design, detailed design and release once - it re-releases continuously against the same item, and the gate vocabulary the schema validates against does not appear in this corpus. revision_or_baseline, which the schema row proposes as destination_eligible FALSE because revision folders fragment a design item's definition, is precisely the level this material wants, because the release version is the unit that the compatibility statement, the digest, the signature and the notes are all scoped to. The engineering schema row licenses exactly this exception in its own words: `A specific released-baseline template may later justify a different order, but the schema default does not.` The researched conditional order is therefore design_item then revision_or_baseline then engineering_artifact_type, with lifecycle_stage dropped. Under PR-6 it is stated in template.why and NOT encoded in dimension_order. PRIVACY — The schema's sensitivity rationale is proprietary design definition, supplier data and export-controlled technical data. This row's rationale differs in kind rather than degree: a firmware release directory routinely holds LIVE secrets - a code-signing private key, a per-device provisioning table of serials, MAC addresses and device keys, and debug or JTAG unlock tokens - and an .elf or .map exposes a complete symbol table. The defining rule of this row is therefore a refusal: credential-bearing material sitting beside a release is not an engineering artifact to be filed by item and revision. It routes to Protected Records and is claimed by identity.credentials-passwords. All three legs differ from the engineering schema's default template, so the row survives CONNECTION.md's node test; the full argument, including the case for refusing it, is in engineering.embedded-firmware.research.md.",
+  "fields": [],
+  "fields_note": "Empty by contract rule 12 and by PR-6: a template references its schema's fields and never copies them, and the engineering schema row declares none pending R1c. The facts this row would make legal, if R1c promotes the engineering schema's proposals, are design_item, engineering_artifact_type and revision_or_baseline; lifecycle_stage is the one proposal this row does not want as a dimension.",
+  "proposed_fields": [],
+  "proposed_fields_note": "Deliberately empty. The string this material is saturated with and that most tempts a new key is the hardware target - a board revision, an MCU part number, or a compatible-hardware list. No key is proposed for it, for two reasons. First, the engineering schema's `design_item` proposal already names the configuration item whose definition a file controls, and a firmware image's target IS a design item under that definition; minting a second target key would ship two spellings of one role, which is exactly what the engineering schema row asks R1c to avoid for stage and artifact_type. Second, a build identifier, an image digest and a signing-key identifier are evidence, not facts with a destination: a directory named for a digest publishes nothing a person can navigate, and a directory named for a key identifier publishes a credential reference on the filesystem. Recorded in open_question instead of minted.",
+  "recognition": {
+    "deterministic": [
+      "a release manifest or release-note control block whose labelled slots hold, together, a software or firmware identifier, a version string, and a named hardware target (board revision, module part number, MCU part number, or an explicit compatible-hardware list). The co-occurrence is the signal; a version string beside a product name is not",
+      "an image-integrity triple scoped to one release: an executable image member, a digest or checksum slot naming that member, and a detached signature or signed-metadata member in the same manifest or directory",
+      "a linker script whose MEMORY block declares named regions with ORIGIN and LENGTH values, or a link map that reports section sizes against those region limits - a memory-region structure that no other engineering or code sibling produces",
+      "a partition, flash-layout or slot table whose rows are address ranges assigned to named roles such as bootloader, application slot, configuration storage or key storage, for one identified device",
+      "a software part number or software configuration index record that binds an image checksum to a controlled software identifier and states hardware effectivity or applicability; this follows the named document type that DO-178C-governed programmes call a Software Configuration Index without treating the phrase alone as sufficient",
+      "an over-the-air or field-update package manifest that names a from-version and a to-version for one identified device family, with an eligibility or compatibility condition",
+      "a board-support or hardware-abstraction structure that maps named peripherals or pins of a specific silicon part to driver entries, for one board identifier",
+      "a hardware-in-the-loop or on-target verification report whose configuration-under-test block names both an image version and a hardware serial or board revision, linking them to requirement identifiers",
+      "an archive manifest that exposes several of the above under one image version without extracting members to disk",
+      "a repository root, package manifest or build-system file raises plausibility for the CODE schema, never for this row; it may sit beside this row's evidence but may not stand in for it"
+    ],
+    "needs_llm": [
+      "whether a release directory is the holder's own controlled release or a vendor update the holder merely downloaded for a device they own",
+      "whether a .bin, .img or .fw member is an executable image, a filesystem image, a configuration or settings backup exported from a device, or a data blob that merely shares the extension",
+      "whether a version string names the firmware, the hardware revision, the bootloader, the mobile companion app, or the release tooling, when the manifest labels are ambiguous",
+      "whether a test report verifies a firmware requirement on target hardware, validates end-user behaviour, or records a production programming step",
+      "whether a compatibility statement is an authored engineering effectivity or marketing copy on a support page capture",
+      "whether an image is a component of a controlled physical product baseline, a repository build artifact, or legally both - the question the engineering schema row already flags as an LLM case"
+    ],
+    "never_alone": [
+      "the word firmware, embedded, image, build, release, flash, target or bootloader alone. Every one of them appears in code, manufacturing, retail support material and consumer downloads",
+      "a firmware or image extension alone - .hex, .bin, .elf, .dfu, .uf2, .srec, .img, .fw. 00 requires the engine to `treat the file extension as a routing signal rather than an assumption about meaning`, and .bin in particular is the most overloaded extension on a personal disk",
+      "source_type opaque_binary alone, which is a file-kind signal and is constitutionally never sufficient",
+      "a silicon, module, board or vendor name alone - an MCU part name, an SoC family, a devkit name. This is the same defect 00 identifies for a university name: the name states an organisation or a product line, not the holder's relation to the file. The tempting false file it removes is a datasheet PDF downloaded from a silicon vendor, which names the part in its title and controls nothing",
+      "a semantic-version-shaped token alone. Applications, documents, standards, mobile apps and package dependencies all carry one; without a named hardware target it is not this row's evidence",
+      "a repository root, package manifest, build file or source tree alone, even when the sources are unmistakably for a microcontroller. A repository whose target is a microcontroller is still a repository, and its activation is the code schema's",
+      "a checksum, digest or hash string alone. A digest beside a download link is a download integrity aid, not a controlled release record",
+      "an address-shaped hexadecimal token alone. Offsets, colour values, identifiers, memory dumps and error codes share the shape; only an address RANGE assigned to a NAMED region is structure",
+      "a bounded download session alone. 00 states that `A session should never be treated as proof of topic`, which is exactly how a folder of vendor firmware downloads would otherwise become a firmware project",
+      "a part number or serial alone; it can be a stock code, an asset tag, an invoice line, a hardware part or an arbitrary number",
+      "absence of readable text alone. An unreadable file is not thereby an executable image; it is an unreadable file"
+    ]
+  },
+  "proposed_context_terms": [
+    "firmware version",
+    "bootloader",
+    "application slot",
+    "partition table",
+    "flash layout",
+    "memory region",
+    "linker script",
+    "link map",
+    "board revision",
+    "hardware revision",
+    "compatible hardware",
+    "target device",
+    "board support package",
+    "device tree",
+    "image digest",
+    "signed image",
+    "secure boot",
+    "software part number",
+    "software configuration index",
+    "release notes",
+    "over-the-air update",
+    "delta update",
+    "rollback",
+    "hardware in the loop",
+    "on-target test",
+    "effectivity"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context shape for course codes only; it does not list these. Two of them - `secure boot` and `software part number` - are listed partly because their correct outcome can be a refusal or a hand-off rather than an activation.",
+  "work_types": [
+    "released firmware image",
+    "bootloader image",
+    "firmware release manifest",
+    "firmware release notes",
+    "link map or memory usage report",
+    "linker script or memory configuration",
+    "partition or flash layout table",
+    "board support package or hardware abstraction definition",
+    "device tree or hardware description source",
+    "over-the-air or field update package",
+    "image signing or provisioning procedure",
+    "software configuration index or software part number record",
+    "firmware verification report on target hardware",
+    "firmware change record",
+    "production programming or flashing package",
+    "third-party or supplier firmware component"
+  ],
+  "work_types_note": "These are candidate VALUES of the engineering schema's proposed engineering_artifact_type (or of a widened canonical artifact_type), never child nodes and never child schemas. ALIGNMENT is explicit that work types are values.",
+  "grouping_reasons": [
+    "one released firmware version as a single unit: image, manifest, notes, link map, signature and update package, which arrive together and are only meaningful together",
+    "one hardware target's compatibility trail across firmware versions - the answer to `which images may run on Rev C` is a group, not a folder level",
+    "one controlled software identifier's records across releases: configuration index, approval, effectivity statements and change records",
+    "one update campaign: the from-version, the to-version, the delta package and the rollback image",
+    "a sparse image such as blink.bin may join an accepted firmware neighbourhood without acquiring the release's version, target or software-identifier facts; the graph assembles context and does not propagate labels"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty for the same binding reason the engineering schema row leaves its own order empty: PR-6 declares no destination-eligible fields, so no machine-readable order may be encoded before R1c makes the keys legal. Subject to that adjudication the researched order is design_item then revision_or_baseline then engineering_artifact_type. design_item leads under 00's rule that `For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders`, and under its parent-context rule that `a parent dimension should provide the context required to understand the child` - a link map or a release note is unintelligible without the device it belongs to. revision_or_baseline is recommended as the SECOND level here, which is a deliberate departure from the schema's proposed destination_eligible FALSE; the schema row itself licenses the departure with `A specific released-baseline template may later justify a different order, but the schema default does not.` The departure is evidential: the release version is the scope of the compatibility statement, the digest, the signature and the notes, so a release level groups artifacts that are already delivered as a unit rather than fragmenting a definition. lifecycle_stage is dropped, because this corpus supplies no gate evidence to fill it and an unfillable level opens an empty branch. project may be restored as an outer level where a programme genuinely spans several devices. The user may reverse, remove, add or flatten any of this; it is a recommendation, not a filesystem.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "opaque_binary",
+      "text_document",
+      "code_structured",
+      "spreadsheet",
+      "archive",
+      "filesystem",
+      "image",
+      "ocr",
+      "email"
+    ],
+    "extensions": [
+      ".hex",
+      ".bin",
+      ".elf",
+      ".dfu",
+      ".uf2",
+      ".srec",
+      ".img",
+      ".fw",
+      ".map",
+      ".ld",
+      ".dts",
+      ".dtb",
+      ".json",
+      ".yaml",
+      ".csv",
+      ".pdf",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "firmware-release-manifest_SN100_v1.4.2.json",
+      "source_type": "code_structured",
+      "observations": [
+        "labelled members name a software identifier, a version string, an image filename, a sha256 digest of that image and a signature filename",
+        "a compatible_hardware member lists board revisions RevB and RevC and a minimum bootloader version",
+        "a build member carries a build identifier and a toolchain string"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "domain fields before R1c licenses them",
+        "that the toolchain string makes this a code artifact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SN100-APP_v1.4.2_HW-RevC.hex",
+      "source_type": "opaque_binary",
+      "observations": [
+        "ASCII record lines each beginning with a colon, ending with an end-of-file record; no natural-language content",
+        "an extended-linear-address record places the payload at a non-zero flash base",
+        "filename carries a version-shaped token and a hardware-revision-shaped token"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from the .hex extension alone",
+        "the hardware target from the filename token alone, without the manifest's labelled compatibility slot",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "SN100-APP_v1.4.2.map",
+      "source_type": "text_document",
+      "observations": [
+        "memory-configuration section lists named regions with origin and length",
+        "per-section rows report sizes and a total flash and RAM usage against the region limits",
+        "a symbol table lists addresses and object files"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the symbol table's source paths establish a repository the holder possesses",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SN100_FW_Release-Notes_v1.4.2.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "header block labels product, firmware version, release date and approver",
+        "sections list fixed defect identifiers, known issues, and an upgrade path from the 1.3 series",
+        "an applicability table names the hardware revisions this image may be installed on"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a defect identifier is a requirement identifier",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SW-PN-40012-003_Software-Configuration-Index.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "control block labels a controlled software part number, issue, and approval signatures",
+        "a table binds each delivered image filename to its checksum and to the hardware effectivity it is approved for",
+        "the document references the build environment and the archive location of the sources"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the source-archive reference makes the holder a possessor of that repository",
+        "certification approval from the presence of a signature block",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SN100_FW-v1.4.2_OTA-Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest member names a from-version, a to-version and an eligibility condition on hardware revision",
+        "members include a signed full image, a delta patch and a detached signature",
+        "members have not been extracted to the filesystem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "facts from uninspected member contents",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "stm32f411_flash.ld",
+      "source_type": "code_structured",
+      "observations": [
+        "a MEMORY block declares FLASH and RAM regions with origin and length attributes",
+        "SECTIONS entries place vector table, text and data into those regions",
+        "the file sits at the root of a directory that also contains a build manifest and a source tree"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this row rather than the code schema owns the surrounding repository",
+        "a released image version from a linker script",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "SN100_Partition-Table_RevC.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows assign address ranges to named roles: bootloader, application slot A, application slot B, configuration storage, key storage",
+        "a header cell names the board revision the layout applies to",
+        "a column records the maximum image size each slot admits"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the key-storage row makes this file credential-bearing; it names a region, not a key",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "secure_boot_signing_key.pem",
+      "source_type": "text_document",
+      "observations": [
+        "base64 armour between BEGIN and END PRIVATE KEY lines",
+        "sits in the same directory as a release manifest and a signed image",
+        "no version, target or record structure of its own"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that directory neighbourhood makes this a firmware release artifact",
+        "the release's version or hardware target",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "provisioning_keys_batch07.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns hold device serial, MAC address and a per-device secret",
+        "a header cell names the firmware version the batch was provisioned with",
+        "thousands of rows, one per device"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a firmware version in a header makes a device-secret table a release artifact",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "DIR-865L_REVA_FIRMWARE_1.08.B01.bin",
+      "source_type": "opaque_binary",
+      "observations": [
+        "filename carries a product model, a hardware-revision token and a version token - the same triple shape this row's manifest signal looks for",
+        "no manifest, notes, map or signature anywhere near it",
+        "sits in a downloads directory beside a support-page capture and an unrelated installer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation from a filename triple with no labelled release structure",
+        "that the download session establishes a firmware project",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "LOT-24-113_Programming-Log.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns hold unit serial, programming station, timestamp and the firmware version written",
+        "a header names the production lot and the work order",
+        "a pass/fail column records verification of the written image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a release record from a record of what was flashed",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "SN100-PCB_RevC_Gerber-Package.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists copper, solder-mask, silkscreen and drill layers plus a fabrication-notes sheet",
+        "member names repeat the same board identifier and revision this row's images target",
+        "no executable image, digest or compatibility statement anywhere in the manifest"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "firmware activation from a shared board-revision token",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "blink.bin",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a few hundred bytes, no readable strings",
+        "sits beside two other tiny .bin files and a sketch file in a hobby directory",
+        "no manifest, version, digest or target anywhere in the neighbourhood"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a hardware target or a release version from neighbouring files",
+        "that absence of readable text proves an executable image",
+        "domain fields before R1c licenses them",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "code.software-project",
+      "signal": "A repository whose sources build a firmware image carries every marker the code schema activates on, and its build outputs carry every marker this row activates on.",
+      "why": "Source versus release. The repository, its manifests, its source tree and its build configuration are the code schema's; this row does not fire on a repository, and never_alone says so. This row owns the released side: the image, its manifest, its compatibility statement, its map, its signature and its update package - material that frequently does not live in the repository at all, and that is often held for a supplier's firmware whose sources the holder never possessed. Fixture bytes: stm32f411_flash.ld is code's on repository evidence and carries also_schema code here; firmware-release-manifest_SN100_v1.4.2.json is this row's, and code does not fire on it because there is no repository root and no package-ecosystem manifest.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.production-record",
+      "signal": "The same firmware version string and unit identifiers appear in the release record and in the record of what was programmed onto which units.",
+      "why": "Definition versus execution, the seam the engineering schema row already draws against manufacturing. This row owns the released image and the statement of what it may run on; manufacturing owns the record of what was actually written to which serials, in which lot, at which station. Fixture bytes: LOT-24-113_Programming-Log.csv is manufacturing.production-record even though every row cites v1.4.2; SN100_FW_Release-Notes_v1.4.2.pdf is this row even though it will be quoted in the lot record.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.pcb-layout",
+      "signal": "Both sides are scoped by the same board identifier and revision token.",
+      "why": "The board versus the code that runs on it. pcb-layout owns the physical realisation - layer stacks, fabrication and assembly packages, pick-and-place data. This row owns the image bound to that board. Fixture bytes: SN100-PCB_RevC_Gerber-Package.zip is pcb-layout and is named as a collision fixture here; SN100-APP_v1.4.2_HW-RevC.hex is this row, and pcb-layout does not fire on it because there is no layer or fabrication structure.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.change-order",
+      "signal": "A firmware release note and a controlled change record can both name an affected item, a current revision and a replacement revision.",
+      "why": "A release note reports what a build contains; a change order is the controlled instrument that authorises a change to a released definition and carries disposition or approval. Fixture bytes: SN100_FW_Release-Notes_v1.4.2.pdf is this row - its defect list is not a disposition; a change record whose affected-item slot names the software part number and whose approval block records acceptance is engineering.change-order even when its subject is firmware.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.verification-validation",
+      "signal": "A hardware-in-the-loop report names an image version and a board revision, which is this row's target-binding triple, inside a requirement-traced verification structure.",
+      "why": "If the file's organising structure is a requirement-identifier-to-method-to-result matrix, verification-validation owns it and the image version is configuration-under-test metadata. If the organising structure is a release manifest and the test result is one member of it, this row owns it. Fixture bytes: a report titled SN100_HIL-Verification_v1.4.2.pdf whose body is a requirement matrix is verification-validation; the same version cited inside SN100_FW-v1.4.2_OTA-Package.zip's manifest is this row.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.product-certification",
+      "signal": "A radio, EMC or functional-safety certificate names a firmware version as part of the certified configuration.",
+      "why": "The certificate and its application file are product-certification's; the released image the certificate points at is this row's. A firmware version appearing inside a certificate does not make the certificate a firmware artifact, and a certificate reference inside a release note does not make the release note a certification record. Fixture bytes: SW-PN-40012-003_Software-Configuration-Index.pdf is this row even though certification programmes are what produce that document type; the granted certificate that cites it is product-certification.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.credentials-passwords",
+      "signal": "Signing keys, per-device secrets and unlock tokens sit inside firmware release directories, one directory level away from this row's strongest evidence.",
+      "why": "Directory neighbourhood is the entire temptation and it must lose. Credential-bearing material is identity's claim and routes to Protected Records; this row refuses it rather than filing it by item and revision. Fixture bytes: secure_boot_signing_key.pem and provisioning_keys_batch07.csv are named on this side precisely so that this row's answer on them is a refusal, and both carry group_without_copying_facts true so the neighbouring release's version and target are never copied onto them.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "also_holds_with_note": "Empty by contract rule 14: also_holds_with joins schemas only, and this is a template row. The one genuine co-activation this row carries is expressed where the contract permits it - as also_schema code on stm32f411_flash.ld - and it is licensed by the engineering schema row's own also_holds_with entry for code, which states that embedded firmware can be a repository artifact and a controlled component of a physical product baseline at once, on repository evidence plus item and baseline evidence. Neither half is inferred from the other.",
+  "falls_through_to": [
+    {
+      "residual_template": "Review Later",
+      "why": "The default for this row's negative cases: an image, a map or a layout table that is legibly technical but whose relation to a controlled release cannot be established from its own evidence. This covers the vendor download, the sparse hobby image and the orphan map.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For images and packages that cannot be read at all - an unparseable binary, an encrypted OTA payload, a signed container with no readable manifest. Basic metadata is retained without inferring purpose from a filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The mandatory route for the credential-bearing material that sits beside releases: signing keys, per-device provisioning tables, unlock tokens. This is the privacy leg of the node test made operational.",
+      "provenance": "design",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For a standalone release note, configuration index or certificate-adjacent document with durable meaning but no reliably evidenced controlled release around it.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    }
+  ],
+  "role_split": [],
+  "role_split_note": "Empty, and the refusal is deliberate. The split this material most wants is the party that AUTHORED and released an image against the party that merely RECEIVED and installed it - the difference between the holder's own SN100 release and the downloaded DIR-865L update, which is otherwise the sharpest discrimination on the node. There is no canonical field pair to split against, and minting a producer-side key to solve one template's problem is the move that produced thousands of private field names in the overnight pass. It is carried in recognition.needs_llm and in the collision fixture instead.",
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Two distinct reasons, only one of which the engineering schema already covers. The schema's reason applies here: released firmware is proprietary, is frequently export-controlled or safety-relevant, and a link map or unstripped .elf discloses a complete symbol table and memory layout that supports attack. The reason that is this row's own is that a firmware release directory routinely contains live secrets - code-signing private keys, per-device provisioning tables of serials, MAC addresses and device keys, and debug unlock tokens - which this row refuses to file and routes to Protected Records. No handling class is assigned; sensitivity here is only none or potentially_sensitive.",
+  "open_question": "NEEDS-JOSEPH NJ-FW-1: the hardware target has no canonical key and none is proposed here. Options: (a) the target is a design_item value under the engineering schema's proposal, which is what this row recommends and what its dimension order assumes; (b) a separate target or platform key is minted, which immediately ships two spellings of one role and contradicts the engineering schema row's own request that R1c not retain duplicate keys; (c) the target stays evidence only and is never a fact, which makes `which images may run on Rev C` unanswerable except by grouping. NJ-FW-2: this row recommends revision_or_baseline as a destination dimension while the engineering schema row proposes it destination_eligible FALSE. The schema licenses a released-baseline template to differ; R1c must decide whether that licence is per-template or whether the schema-level flag should become conditional. NJ-FW-3: the reciprocal edge target for code is ambiguous, because code.software-project is a REFUSED row and the surviving activation is the code schema's default. Contract rule 14 requires collides_with to join same-kind pairs, so this row names the template id; R1c should decide whether a refused template may carry a reciprocal edge or whether the collision must be re-pointed at the code schema row from the engineering schema row instead. NJ-FW-4: which residual owns a downloaded vendor firmware update. This row routes it to Review Later because whether it is a kept device asset or download detritus cannot be settled from its own evidence; Independent Records is the alternative if a retained update for a device the holder owns counts as durable purpose."
+}

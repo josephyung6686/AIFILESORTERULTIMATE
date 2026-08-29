@@ -1,0 +1,538 @@
+{
+  "id": "engineering.standards-library",
+  "kind": "template",
+  "schema_id": "engineering",
+  "parent_id": null,
+  "name": "Standards and codes reference library",
+  "one_line": "The holder's shelf of normative documents published by somebody else: consensus standards, regulator-issued codes, codes of practice and their amendments, held because many design items must be built to them. Its organizing anchor is the publisher's catalogue identity of the document — an issuing body plus a designation plus an edition — not any designed item, project or lifecycle gate, which is why it can fill none of the engineering schema's default levels. The row is defined by a document architecture that is present on the bytes (a designation co-occurring with a committee foreword, a numbered Scope clause, a normative-references clause and a reproduction licence, with no title block, no approval slot, no affected-item slot and no effectivity list), NOT by the roster hint's 'never authored here', which is an absence and can never activate anything.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "verdict": "survives on all three legs of CONNECTION.md's test, and survives on the positive document architecture rather than on the provenance-of-authorship framing the roster hint offers",
+    "charge_against_the_row": "The strongest case for refusal, stated before the defence: (a) the hint defines the row by an ABSENCE — 'never authored here' — and absence of the holder's authorship is not a property of the bytes, so a row resting on it can never activate; (b) it rests on an ORGANISATION NAME, and ISO / ASME / IEC / SAE appear on invoices, marketing PDFs, drawing notes, certificates and every civil calculation, so the issuer is never-alone evidence; (c) 'a standard' looks like a DOCUMENT-TYPE word, i.e. a value of an artifact-type enum, not a node; (d) engineering.material-specification already claims normative documents with shall clauses, a designation, an issue letter and a referenced-document list and says outright that 'The discriminator is issuer role, not content' — if issuer role is the only difference, this row is a duplicate of that one distinguished by evidence the design forbids as sole proof; (e) research.reading-library and the Reading Inbox residual already hold received PDFs kept for reference with no active project association.",
+    "defence": "Each limb of the charge is answered by a structure that is on the page. (a) The activating evidence is never 'not authored here'; it is a positive constellation — a designation token beside a foreword naming a technical committee or its member bodies, a numbered clause-1 Scope, a normative-references clause listing other designations, a terms-and-definitions clause, and a reproduction/licence notice. The absence set (no title block, no approval/signature slot, no affected-item slot, no effectivity list) is usable only alongside one of those positives, and that is exactly how it is encoded in recognition. (b) Conceded and encoded: the issuing body is never_alone as EVIDENCE while remaining the correct first dimension as a FACT once the architecture has fired — the observation/fact split, not a contradiction. (c) A document-type word in a filename is refused explicitly in never_alone; what makes this a node is not the word 'Standard' but a corpus whose retrieval key is the publisher's catalogue rather than any item. (d) and (e) are answered by the three legs below.",
+    "leg_1_detection_signals_differ": "The engineering schema's default detection is a relation among an identified design item, a lifecycle/design state and controlled technical artifacts — a title block with an item and a revision, requirement rows with verification columns, a change structure naming an affected item and its current/replacement revision. This row's material has none of those relations and cannot acquire them: a published standard names no design item, carries no approval signature by the holder, and has no effectivity list, because it is addressed to every reader rather than to one configuration. Its discriminators are a different structure entirely — committee foreword, clause-1 Scope, normative-references clause, edition/amendment/corrigendum series, reproduction licence. Against engineering.material-specification specifically, the sharper discriminator this row contributes is not the issuer's NAME but the CONSENSUS-PROCESS fingerprint: a foreword naming a technical committee and its national member bodies, and a mandatory normative-references clause, neither of which a producer's product specification or an in-house MS-number specification carries. That is a structural discriminator, so limb (d) of the charge fails.",
+    "leg_2_dimensions_differ": "Maximally. The schema's researched default order is project -> design_item -> lifecycle_stage -> engineering_artifact_type, and this row rejects all four levels, not one. `project` is absent because a standard is invoked by every project and outlives all of them; `design_item` is absent because a standard is what many items are built TO, never what one item IS; `lifecycle_stage` is absent because a standard has an edition, not a design gate — and reading a gate word out of 'Draft International Standard' would import the publisher's balloting stage as if it were the holder's design maturity, which is a fabricated fact. The researched order is issuing_body -> standard_designation with edition carried as metadata. A row that can fill none of its schema's default levels is the opposite of a duplicate of that default.",
+    "leg_3_privacy_differs_in_kind": "This is the only engineering row whose corpus is licensed third-party copyright. Single-seat standards PDFs are routinely watermarked with the licensee's personal name on every page and in the filename, and many ship DRM-encrypted. Two rules follow that no sibling needs: the licensee name is a person's name stamped into the bytes and must never be written as `authored_by` nor surfaced in a filing decision; and the corpus must not be fanned out into per-item folders, because the schema's default order would multiply one licensed copy into N copies of a document the holder is licensed to hold once. That is a difference in kind, not degree.",
+    "why_not_a_role_split_instead": "A role_split against engineering.material-specification was written rather than used to dissolve this row, because a split alone would not have supplied the different dimension order or the licence-privacy rule; those are template properties and the split cannot carry them."
+  },
+  "fields": [],
+  "fields_note": "Empty by contract: a template references its schema's fields and never copies them, and PR-6 leaves the engineering schema with no declared fields. The honest position of this row is stronger than that formality — none of the engineering schema's four proposed keys can be filled by a published standard, which is why two keys are proposed below and why open_question exposes whether this row belongs on the engineering schema at all.",
+  "proposed_fields": [
+    {
+      "key": "issuing_body",
+      "type": "string",
+      "example": "ASME",
+      "why_no_existing_key": "No canonical key names the organization that PUBLISHED a normative document the holder merely holds. `institution` is scoped to the financial or record-issuing institution a record belongs to and carries an account/ownership relation this material has none of. `venue` is research's journal or conference — where the holder's own artifact is published, the opposite direction. `school`, `our_firm`, `client` and `target_university` are all engagement- or holder-side identities. The engineering schema's proposed `design_item` names the designed thing, which a standard is not.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE and proposed FIRST. Every real standards shelf observed in this world is shelved by body — an ISO folder, an ASTM folder, a national-code folder — because the designation format, the licence terms and the amendment cadence are all properties of the body. It is a publisher, not authorship and not a person, so 00's ban on authorship as a destination does not reach it.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct when a labelled cover or foreword slot names the publishing organization or its committee. Otherwise validation requires a body-name or designation-prefix token co-occurring with one normative-document structure (committee foreword, normative-references clause, or numbered Scope clause). R2 owns the pattern; no regex, list or threshold is written here, and the body name alone is explicitly never_alone.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "standard_designation",
+      "type": "string",
+      "example": "Y14.5-2018",
+      "why_no_existing_key": "A standard's catalogue identity is the document's own name and is the string a user searches and browses by. `design_item` is the controlled physical/system item; a standard is not one. `record_type`, `work_type` and `artifact_type` are enums of KINDS, and a designation is an identifier, not a kind. `project` and `subject` name undertakings and study subjects. Deliberately NOT proposed alongside it: an edition or issue key. The canonical `version_family` already denotes membership in a draft/revision family of one logical document, and the 2009 and 2018 editions of one standard are exactly that family; minting an `edition` key would duplicate it.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE as the second and final level. It is proposed as the designation FAMILY, with the edition NOT promoted to a level: a folder per edition scatters one document's series, and the defect this world actually suffers is working to a superseded edition, which is best fixed by keeping the superseded copy beside the current one rather than in a separate branch.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct from a labelled cover or running-header document-number slot. Otherwise a designation-shaped token must be confirmed by a normative-document structure in the same file, because the identical token appears as a one-line citation in drawings, calculations, tenders and certificates that are not the standard. Same rule family as the design's course-code-plus-context shape, applied to a different vocabulary; the term list is R6's and no completeness is claimed here.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "proposed_context_terms": [
+    "normative references",
+    "terms and definitions",
+    "scope",
+    "foreword",
+    "technical committee",
+    "amendment",
+    "corrigendum",
+    "edition",
+    "withdrawn",
+    "superseded",
+    "code of practice",
+    "national annex"
+  ],
+  "proposed_context_terms_note": "PROPOSED for R6, not design. 00 states the pattern-plus-context SHAPE for course codes only and lists none of these. They are candidates for the context half of a designation rule, never a detector.",
+  "recognition": {
+    "deterministic": [
+      "a designation-shaped token co-occurring with a foreword or preface that names a technical committee, working group or the member bodies that balloted the document; the pairing is the signal, never the designation and never the body name alone",
+      "a numbered clause hierarchy opening at a Scope clause and containing a normative-references clause that lists other designations, beside a terms-and-definitions clause; this is the consensus-document architecture that a producer's datasheet and an in-house specification do not have",
+      "a reproduction or licence notice restricting copying, distribution or network posting, appearing on the same page as a designation; on single-seat copies the same notice carries a named licensee in a page footer or watermark",
+      "an amendment or corrigendum structure: a base designation plus an amendment or corrigendum ordinal, whose body is replacement text keyed to the BASE document's clause numbers rather than self-contained sections",
+      "a standards-register table with labelled Designation, Title, Edition or Date and Status columns whose status vocabulary is current / superseded / withdrawn; this activates the row as a catalogue member, and no single designation on such a sheet becomes the sheet's own fact",
+      "the negative constellation used only ALONGSIDE one positive above: normative shall-clauses under a numbered hierarchy with no title block, no approval or signature slot, no affected-item slot and no effectivity list. The absence set is what separates a published standard from an in-house specification or a certification submission; on its own it is not evidence of anything",
+      "an archive manifest exposing several of the above structures under one publisher or one purchase without extracting members to disk",
+      "parent-folder context such as a directory named for a standards body may raise plausibility only after one of the above structures is present; a folder named Standards holds in-house specifications, deviation notes and reseller invoices too, and never fires this row by itself"
+    ],
+    "needs_llm": [
+      "whether a normative document is a published consensus standard (this row), a producer's product or material specification (engineering.material-specification), or the holder's own internal specification, when only a cover page or a scanned first page is legible",
+      "whether a national annex, country deviation sheet or adoption notice is a separate library member with its own designation or a bound appendix of the base standard",
+      "whether the word 'code' denotes a design or building code, a source-code repository, or a body of law",
+      "whether a design manual, handbook or data compilation is a normative document held for compliance or a textbook held for reading (research.reading-library)",
+      "whether a document that quotes clause text at length is the standard itself, a compliance checklist written against it, or a training deck about it",
+      "whether a regulator-issued code is being held as an engineering reference or as a legal instrument in a matter"
+    ],
+    "never_alone": [
+      "a standards body's name alone — ISO, ASME, ASTM, IEC, SAE, EN, BS, DIN, NFPA, IPC. It appears on the reseller's order confirmation, on marketing PDFs, on certificates of conformity, in drawing notes and in every civil-structural calculation. This extends 00's ban on an organization name as sole proof to a publisher; marked inference, not design",
+      "a designation-shaped token alone — EN 1993, IEC 60601, MIL-STD-810, ASME Y14.5. The document that IS the standard has clause architecture; the thousands of documents that CITE it have one line. engineering.civil-structural already carries the mirror rule from its side",
+      "a bare 4-digit number read as an edition year. ISO 2768-1:1989 contains one designation number and one edition year of the same shape. 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "the words Standard, Specification, Code, Norm or Regulation in a filename. Those are document-type words, and a document-type word is a value, never a node and never an activation",
+      "a file extension, including an encrypted or DRM-protected PDF. 00: \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a licence watermark bearing a person's name, read as authorship. The named licensee is a reader, and 00 makes authorship metadata rather than a collector in any case",
+      "absence of the holder's authorship. The roster hint's 'never authored here' is not a property of the bytes, is not observable, and is encoded here as forbidden rather than as a signal — the charge against this row is answered by structure, not by provenance",
+      "a parent folder named Standards, Codes, Refs or Library",
+      "a download session as the meaning of its members: a standards bundle bought in one order arrives as one download, which is a grouping clue and a purchase fact, not proof that any member is a published standard"
+    ]
+  },
+  "work_types": [
+    "published consensus standard",
+    "regulator-issued code or statutory design code",
+    "code of practice or design manual",
+    "handbook or data compilation held as reference",
+    "test-method or measurement standard",
+    "amendment, corrigendum or addendum to a base standard",
+    "national annex, country deviation or adoption notice",
+    "superseded or withdrawn edition retained for legacy work",
+    "standards register, catalogue or subscription index",
+    "standards-body draft circulated for comment"
+  ],
+  "work_types_note": "Values of a kind field, never child nodes and never separate rows. If R1c widens canonical `artifact_type` for engineering rather than accepting the schema's proposed `engineering_artifact_type`, these become members of the widened enum.",
+  "grouping_reasons": [
+    "same issuing body's catalogue, evidenced by a shared foreword committee or designation prefix",
+    "same designation family across editions and amendments, which is canonical `version_family` and not a new key",
+    "same purchase or download of a standards bundle, which is canonical `download_session` and is a purchase clue only",
+    "cited together by one design item's compliance matrix — a grouping relation only; the citing document's project and item facts are never copied onto the standard, which would produce exactly the 00 stop-rule case of members carrying \"irreconcilable course, institution, project, term, or purpose facts\""
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Binding PR-6 leaves the engineering schema with no declared destination-eligible fields, so the machine-readable order stays empty, as on the schema row and on engineering.material-specification. The researched recommendation, conditional on R1c ratifying issuing_body and standard_designation, is issuing_body -> standard_designation, and it deliberately rejects the schema default project -> design_item -> lifecycle_stage -> engineering_artifact_type in ALL FOUR levels rather than reordering it. project is absent because a standard is invoked by every project and outlives them; design_item is absent because a standard is what items are built TO, not what one item IS, and opening that level would fan one licensed copy into every item folder; lifecycle_stage is absent because a standard has an edition, not a design gate, and reading a balloting stage out of a draft marking would import the publisher's process as the holder's design maturity. Edition stays metadata under canonical version_family rather than becoming a third level, because the failure mode of this world is working to a superseded edition and the fix is keeping the superseded copy beside the current one, not in a separate branch. The user may reverse, remove, add or flatten any of it; this is a recommendation, not a filesystem.",
+    "time_first": false,
+    "time_first_why": "A standard's most conspicuous date is an edition, not an occurrence. Time-first would file ASME Y14.5-2018 under 2018 and its 2009 predecessor under 2009, splitting one document's series across the tree — the exact opposite of what a reference shelf is for."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "email",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".docx",
+      ".jpg",
+      ".png",
+      ".zip",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Drawing standards - ASME Y14.5-2018.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "cover page carries a designation-shaped token and a publishing body name",
+        "a foreword names the committee responsible for the document",
+        "clause 1 is a Scope clause and a later clause lists referenced documents by designation",
+        "the pages are dense in dimensioning and tolerancing notation",
+        "no title block, no approval or signature slot, no affected-item slot anywhere in the file"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family",
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "design_item or project — the document names no item and belongs to no undertaking",
+        "engineering.drawing-package membership because the file is dense in title-block notation; this document DEFINES the notation and has no title block of its own",
+        "lifecycle_stage from the edition year"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "ISO 2768-1_1989_General tolerances.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries two 4-digit numbers of identical shape, one a designation number and one an edition year",
+        "foreword names the technical committee and the member bodies that approved the document",
+        "a normative-references clause and a terms-and-definitions clause precede the requirements clauses"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "capture_year or a project year from 2768",
+        "a folder path",
+        "that the part suffix -1 is a revision; it is a part of a multi-part document, and its part 2 is a sibling member, not a version"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "AMS2750G-Pyrometry.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "designation with a trailing revision letter in the filename stem",
+        "shall-clauses under a numbered hierarchy, with instrumentation and calibration requirements",
+        "issued by a standards body's aerospace committee; no holder approval slot and no affected-item slot"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "engineering.material-specification membership; this is the shared fixture and both rows place it HERE, because the issuing organization is a standards body running a consensus process, not a producer describing its own product",
+        "manufacturing.calibration-record membership from the pyrometry and calibration vocabulary; this document states requirements, it records no instrument, no date and no result",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a regulator's code with an amendment ordinal in the filename",
+        "body is replacement and new paragraph text keyed to the base code's paragraph numbering",
+        "no finding column, no effectivity list, no certificate holder slot"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "engineering.aerospace-airworthiness membership; that row holds documents WRITTEN AGAINST this code, and its own edge places this file here in both directions",
+        "an approval or a finding, because none of those slots exist in the file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "EN_1993-1-1_2005_A1_2014_UK-NA.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename chains a base designation, a base edition year, an amendment ordinal, an amendment year and a country token",
+        "content is a short table of nationally determined parameters keyed to the base standard's clause numbers",
+        "a national standards body's cover, with a foreword referring to the base European standard"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "location = United Kingdom from the country token; the token names the jurisdiction whose parameters the annex sets, and it is not where anything was captured or done",
+        "that this is the base standard; it is a separate library member that is unreadable without its base document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IEC_60601-1_Ed3.1_licensed_J-Yung_seat-1.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "every page footer carries a licence notice and a named licensee",
+        "the licensee's personal name is also in the filename stem",
+        "designation, edition ordinal, committee foreword and normative-references clause all present",
+        "the file is DRM-protected and refuses text extraction on some readers"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "authored_by from the licence stamp; the named party is a licensed READER, and 00 keeps authorship as metadata and never a collector in any case",
+        "a folder path",
+        "that the row should fan copies of this file into every item folder that cites the standard; one seat is licensed once",
+        "identity or people facts about the named licensee"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Standards register - live editions.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "labelled columns Designation, Title, Edition, Date, Status, Seats, Where used",
+        "status values are drawn from current / superseded / withdrawn",
+        "hundreds of designations across many publishers; no clause text anywhere in the sheet"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "one issuing_body or one standard_designation for the sheet; it is the catalogue, not a member, and adopting any row's designation as the file's own fact would be the sparse-file error in reverse",
+        "a folder path",
+        "compliance status of any design item from the Where used column"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Scan_20260114_clause-5.jpg",
+      "source_type": "ocr",
+      "observations": [
+        "a phone photograph of two facing pages, taken in a meeting",
+        "OCR yields numbered clause headings and a partial running header reading Y14.5",
+        "no cover, no foreword, no licence notice, no committee name is legible"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "media_type"
+      ],
+      "must_not_conclude": [
+        "standard_designation from a partial running header alone",
+        "issuing_body, which does not appear anywhere in the legible text",
+        "a folder path",
+        "that missing EXIF proves this is a screenshot rather than a photograph"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reference Clips"
+    },
+    {
+      "filename": "standards_pack_2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extracting members to disk",
+        "members include three designation-named PDFs, one in-house deviation note against one of them, and one reseller invoice PDF",
+        "one archive-level purchase reference in the manifest"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "download_session"
+      ],
+      "must_not_conclude": [
+        "one issuing_body or one standard_designation for the archive; its members carry different publishers and different roles",
+        "that the deviation-note member is a published standard because it sits in this packet; it is authored by the holder against a standard and is the material-specification / change side of the boundary",
+        "that the invoice member is a standard; it is finance's, and the purchase reference must not be copied onto the standards members",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Your standards order is complete - 3 documents.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled mail slots: sender is a standards reseller, subject names an order, body carries an order number and a total",
+        "line items each name a designation and an edition",
+        "download links, no attached normative content"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "issuing_body from the reseller, which distributes many publishers' catalogues and authored none of them",
+        "standard_designation as a fact OF this file; the designations here are line items of a transaction",
+        "engineering.standards-library membership at all — this is THE COLLISION FIXTURE: the slot set is order / line item / total / payment, which is transactional architecture, not clause architecture",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "QMS Manual Rev 12 - AS9100D.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a standard's designation is in the filename and in a clause-by-clause cross-reference table",
+        "an approval block naming the holder's quality manager, with a revision number and an effective date",
+        "sections state what THIS organization does, in the first person plural"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "standard_designation as this file's identity; the designation names the standard the manual conforms TO",
+        "engineering.standards-library membership; the approval block and effective date are exactly the slots a published standard never has, and the document is manufacturing.quality-management-system's",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "NFPA-70-2023_National-Electrical-Code.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a consensus standard that is also adopted into law by jurisdictions that reference it",
+        "article and section numbering, a scope article, and a licence notice",
+        "no jurisdiction-specific enacting instrument inside the file"
+      ],
+      "facts_legal": [
+        "issuing_body",
+        "standard_designation",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a jurisdiction fact; D4 keeps jurisdiction a value and never a field name or a dimension, and the adopting jurisdictions are not named in this file",
+        "legal or government membership from adoption; the enacting instrument is a different document",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "engineering.material-specification",
+      "signal": "both sides are normative documents with shall clauses, a designation, an issue letter and a referenced-document list",
+      "why": "That row states the boundary as issuer role and names the shared fixtures; this side accepts the placement and sharpens the discriminator so it does not rest on an organization name, which is never_alone on both rows. The structural discriminator is the consensus-process fingerprint: a foreword naming a technical committee and its balloting member bodies, plus a mandatory normative-references clause. A producer's product specification and an in-house MS-number specification have neither, and an in-house specification additionally carries an approval slot that a published standard never has. Same fixture bytes on both sides: AMS2750G-Pyrometry.pdf is standards-library from both directions; MS-4120 Rev D and the LM317T datasheet are material-specification from both directions. The datasheet is that row's NJ-MS-2 and is reciprocated here as NJ-SL-2.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.drawing-package",
+      "signal": "published dimensioning and tolerancing standards are dense in exactly the notation a controlled sheet uses",
+      "why": "That row owns sheets that APPLY the notation under a controlled identifier; this row owns the published documents that DEFINE it. The discriminator is the title block: a drawing has one with an item, a drawing identifier, a revision zone and an approval slot; a standard has none of those and has a committee foreword instead. Fixture bytes on both sides: Drawing standards - ASME Y14.5-2018.pdf, placed here by both rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.civil-structural",
+      "signal": "a design-code designation is the most conspicuous string in the file",
+      "why": "That row's files CITE codes as the authority for a result about one specific work, and it already lists a bare design-code name on its never_alone for this reason. This row holds the code document itself. Discriminator: a calculation names a member, a load case and a result; the code names none of them. Fixture bytes on both sides: any EN 1993 designation, which appears once as a citation line in a calculation and as the whole architecture of EN_1993-1-1_2005_A1_2014_UK-NA.pdf here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.aerospace-airworthiness",
+      "signal": "a document citing or containing airworthiness code paragraphs",
+      "why": "Reciprocating that row's edge in the wording it chose: it holds documents written against the codes, evidenced by a finding column, an effectivity list or a holder slot, none of which a received code contains. Same fixture bytes: Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf is this row's in both directions, and a copy bound inside a certification submission stays this row's member without inheriting the packet's approval reference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.cad-model",
+      "signal": "a downloaded supplier or catalogue component model with a part-number-shaped stem sitting in a CAD directory",
+      "why": "That row wrote this edge and placed 91251A537.STEP here because the identifier belongs to a vendor catalogue rather than to the design definition. The edge is reciprocated so the two rows are not mutually silent, but this side records a disagreement rather than a silent acceptance: a vendor part model has none of the normative-document architecture this row is defined by — no clause hierarchy, no foreword, no normative references, no licence notice — so accepting it would reopen the row to 'anything received', which is the absence-definition the node test rejected. Raised as NJ-SL-1 for R1c; not resolved unilaterally, and not written into recognition.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.requirements-specification",
+      "signal": "shall statements, a verification-method column and a document issue on both sides",
+      "why": "A requirements specification states what one system must do for one programme; a standard states what any conforming item must do for every reader. Discriminator: allocation and verification columns tied to identified requirement owners, versus a normative-references clause and a committee foreword. Fixture bytes on both sides: a Product Specification.docx whose clauses invoke ISO 2768-1 by reference is requirements-specification, and ISO 2768-1_1989_General tolerances.pdf remains this row's however many specifications cite it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing.quality-management-system",
+      "signal": "a management-system standard's designation printed on both the standard and the manual written against it",
+      "why": "Discriminator is the approval block plus an effective date plus first-person organizational scope, which a published standard cannot have. Fixture bytes on both sides: QMS Manual Rev 12 - AS9100D.docx is that row's from both directions, and the published AS9100D document itself is this row's.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "research.reading-library",
+      "signal": "a received PDF held for reference with no active project association",
+      "why": "The competition is real and this side owns it because that row has not written the boundary: a paper is argued and cited, a standard is normative and clause-numbered. Discriminator is architecture, not provenance — a normative-references clause and numbered shall-clauses versus an abstract, a methods section and a bibliography. A handbook or design manual is the genuine grey zone and is on needs_llm. Fixture bytes on both sides: a downloaded design manual PDF. Recommend to R1c that reading-library reciprocate; recorded as NJ-SL-3.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.receipts-expenses",
+      "signal": "a reseller's order confirmation whose line items are standard designations",
+      "why": "The collision fixture of this node. It carries a publisher name, designations and editions, which is more designation evidence than some genuine members show; it is nonetheless transactional. Discriminator: an order / line-item / total / payment slot set versus a clause / foreword / normative-references architecture. Fixture bytes on both sides: Your standards order is complete - 3 documents.eml, which is finance's from both directions.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "engineering.product-certification",
+      "signal": "a certificate that names the standard it certifies against",
+      "why": "A certificate names a certified product, a holder, a certificate number and a validity period; a standard names none of them. The designation on a certificate is a citation. Fixture bytes on both sides: a Certificate of Conformity PDF citing IEC 60601-1, which is that row's while IEC_60601-1_Ed3.1_licensed_J-Yung_seat-1.pdf stays this row's.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "government",
+      "signal": "A regulator-issued code held on the engineering shelf can simultaneously be a published instrument of a public authority. Both relations are separately evidenced — the clause architecture on one side, the issuing authority's publication apparatus on the other — and neither is inferred from the other. Fixture: NFPA-70-2023_National-Electrical-Code.pdf and Airworthiness-Code_Large-Aeroplanes_Amendment-27.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with_note": "Only schema ids appear here, per the contract's restriction on also_holds_with. `legal` was considered and rejected: a code adopted by reference is not an executed instrument in a matter, and the enacting statutory instrument is a different document that this row never holds. Nothing on the engineering-to-engineering boundaries is an also_holds case; same-schema competition is a collision and a grouping question, never co-activation.",
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The primary route. A standard, code or design manual that is readable and plainly reference material but cannot be attached to any accepted engineering neighbourhood is reading material with no active association, which is this residual's own definition.",
+      "provenance": "design",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Reference Clips",
+      "why": "For the photographed or screenshotted clause page whose designation is only partly legible — useful for later retrieval, attached to no current project.",
+      "provenance": "design",
+      "design_cite": "Reference Clips may live under Personal/Reference Clips and hold saved visual inspiration, product references, quotes, recipes, short article captures, code snippets, or other material that is useful for later retrieval but does not belong to a current project."
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "For the standards register and for a standalone durable reference document with no library neighbourhood — a readable PDF with a durable purpose and no broader group.",
+      "provenance": "design",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the national annex read without its base document and for a mixed standards packet whose members split across rows — meaning partly understood, final location undecided.",
+      "provenance": "design",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "A real and common case here rather than a formality: single-seat standards are routinely distributed DRM-protected and refuse text extraction, so a genuine member of this library can be unreadable in the byte sense while being perfectly identified by its filename.",
+      "provenance": "design",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "For the reseller's order confirmation, the collision fixture, when finance does not fire either.",
+      "provenance": "design",
+      "design_cite": "Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents."
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "engineering.material-specification",
+      "why": "Same entity type — a normative document carrying a designation and an issue — split by which side of the publish/hold relation the document sits on. This row's keys are the proposed issuing_body and standard_designation, the publisher's catalogue identity of a document the holder received. That row's identity is the specified object and the specification's own identifier and issue, produced by the holder's engineering function or by the material's producer. The split is written rather than used to dissolve either row, because it carries neither the different dimension order nor the licence-privacy rule, which are template properties.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Not because standards are secret — most are purchasable — but because the copies a person actually holds are licensed, and single-seat copies carry the licensee's personal name watermarked into every page and often into the filename. That is a person's name in the bytes of an otherwise mundane technical document, and it must not be written as authorship, must not be surfaced by a filing decision, and must not be multiplied across the tree by a per-item folder level. Handling classes are P7's and none is assigned here.",
+  "open_question": "NJ-SL-1: engineering.cad-model places 91251A537.STEP, a vendor-catalogue component model, in this row; this row reciprocates the edge but disputes the placement, because a supplier part model has none of the normative-document architecture the row is defined by and admitting it reopens the 'anything received' definition the node test rejected. Alternatives: (a) vendor reference geometry stays with cad-model as reference-role files, this row's preference; (b) this row widens to 'received reference material', which costs it its detection signals; (c) a distinct reference-component row, which R1a would have to create and which nobody has argued for. NJ-SL-2: reciprocating engineering.material-specification's NJ-MS-2, a producer's component datasheet is placed with that row from both sides here, on the ground that a producer describing its own product runs no consensus process; if R1c reverses it, this row's material-specification collision text changes and no other line moves. NJ-SL-3: research.reading-library has not written a boundary against this row, and the design manual / handbook case genuinely sits between them; recommend R1c ask that row to reciprocate rather than leaving this row to claim the grey zone alone. NJ-SL-4: the deepest one — this row can fill none of the engineering schema's four proposed levels, and both keys it needs are its own proposals. Either R1c ratifies issuing_body and standard_designation, or the honest conclusion is that a reference library is not an engineering-schema situation at all and should be re-parented to a reference-holding schema; the row is written on the first reading and the second is not dismissed."
+}

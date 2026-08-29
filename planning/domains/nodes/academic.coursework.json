@@ -1,0 +1,508 @@
+{
+  "id": "academic.coursework",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Coursework (taking a course)",
+  "one_line": "The organizational situation of being enrolled in one course for one term: the syllabus you were given, the lectures you were shown, the assignments you handed in, and the notes you made — a single holder's own study record, recommended as school then term then subject then work_type.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "00 names this situation among the launch domains — \"academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects\" — and states its dimension recommendation outright: \"An Academic template may define school → term → course → work type\". CONNECTION-EXAMPLES fixtures 1 and 7 encode this row (tpl.academic-coursework, uses_schema academic, taking a course) and are binding on R1, so the node exists.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a course-code-shaped token in a high-weight zone (filename, document title, page-one heading, slide-one title) co-occurring with one of 00's five academic context terms describing the document itself — 00: \"BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as “syllabus,” “lecture,” “credits,” “instructor,” or “semester.”\"",
+      "a dedicated academic-term pattern co-occurring with a course-code-shaped token or a coursework work-type term — 00: \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\" Never generic date parsing, and never a filesystem timestamp",
+      "a syllabus-shaped document: a labelled Instructor slot in a table cell together with a grading-policy or week-by-week schedule table, on a document that also carries a course-code-shaped token. 00's table extraction is what makes the labelled slot readable — \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\"",
+      "a coursework work-type term (syllabus, lecture, problem set, homework, midterm, lab report) in a high-weight zone together with enrolment-side document structure — numbered problems to be worked, a reading and grading schedule addressed to a student, a lecture deck's slide sequence — and no roster, gradebook or registrar structure",
+      "an ICS SUMMARY or DESCRIPTION field carrying a course-code-shaped token plus academic context, where source_type = calendar contributed only as a file-kind signal. 00: \"Calendar formats such as ICS should yield event title, start and end time, location, organizer, attendees, and recurrence metadata.\"",
+      "an EML subject line or body carrying a course-code-shaped token plus a coursework work-type term, where the sender is the course's instructor or a course-management address — mail structure supplies the labelled slots, never the course fact by itself",
+      "a curated existing parent folder whose own name carries a course-code-shaped or term-shaped token, together with at least one member file that independently clears the course-code-plus-context rule; folder context is a clue that needs an in-file anchor, and 00 requires that existing structure be read rather than rewritten — \"The system learns from existing folders but must not silently reorganize them.\""
+    ],
+    "needs_llm": [
+      "an unlabelled prose assignment whose only coursework signal is topic and register — the model must decide whether it reads as a course essay or as an admissions essay, and return unknown when it cannot cite support. 00's own vague-document case is the neighbouring one: \"Wash U.docx may contain an unmistakable university application prompt\"",
+      "OCR of a photographed or screenshotted assignment page where a course-shaped token is present but none of the five context terms surround it",
+      "a course identified in prose by programme or module name rather than by a code-shaped token (an Introduction to Organic Chemistry tutorial sheet, a Michaelmas problem sheet), which the deterministic course-code rule cannot reach",
+      "whether a directory of loose coursework is one course-term or two, when a course code repeats across terms — 00: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\"",
+      "an archive whose members mix coursework and application documents, where the question is whether one shared purpose explains the packet or one course does",
+      "a syllabus or timetable in a language whose term and course-code vocabulary the deterministic pattern catalogue does not cover"
+    ],
+    "never_alone": [
+      "a homework- or assignment-shaped filename alone. HW 3.pdf is the tempting false file: 00 says \"A file named HW 3.pdf may contain only equations and the phrase “Homework 3,” while a related syllabus, lecture deck, problem set, and midterm contain the missing anchors PHYS1401, Columbia, and Spring 2026\" — the neighbourhood holds the anchors, the file does not, and \"The graph does not automatically copy those missing facts onto sparse files.\" Such a name may support work_type and nothing else",
+      "a university or school name alone — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "a bare 4-digit number alone: neither 4300 nor 2026 is a course or a term by itself, because 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"",
+      "a course-code-shaped token with no academic context describing the document — 00's adversarial suite already carries \"course-code patterns that are actually ZIP codes or device models\"",
+      "a course-code-shaped token sitting inside a resume's relevant-coursework enumeration: it is a late, low-weight occurrence in a recruiting artifact, and 00 requires positional weighting because \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\"",
+      "source_type or extension alone: text_document, presentation, spreadsheet, calendar, email and archive membership never make this template's situation plausible without content evidence, because 00 requires the engine to \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a same-session download batch as proof that a set of files is one course — 00: \"A session should never be treated as proof of topic\"",
+      "a filesystem modification timestamp, a due date, or an ICS DTSTART year as a term value",
+      "an instructor or person name alone, including a PDF or DOCX author field, since \"PDF metadata should be treated as supporting evidence, not as truth.\"",
+      "a parent folder named School, Classes or Uni alone, with no member file carrying course-plus-context evidence"
+    ]
+  },
+  "proposed_context_terms": [
+    "problem set",
+    "midterm",
+    "final exam",
+    "office hours",
+    "prerequisite",
+    "grading policy",
+    "course description",
+    "assignment due",
+    "reading list",
+    "tutorial",
+    "seminar",
+    "units",
+    "enrollment"
+  ],
+  "work_types": [
+    "syllabus",
+    "lecture",
+    "homework",
+    "problem set",
+    "exam",
+    "quiz",
+    "lab report",
+    "essay",
+    "notes",
+    "reading",
+    "project",
+    "presentation",
+    "course schedule"
+  ],
+  "work_types_note": "Values of the schema's work_type field, never nodes — 00's Academics tree shows Syllabus, Homework and Lectures as branches under one course, and \"The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.\" This list is deliberately narrower than the Academic schema's: gradebook and class roster are the teaching side (academic.teaching) and transcript and diploma are the official-record side (academic.transcripts-credentials). That narrowing is one of the three things that licenses this row.",
+  "grouping_reasons": [
+    "one course in one term — 00: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\"",
+    "one assignment across its drafts, joined by the universal version_family rather than by any academic fact",
+    "one course-material neighbourhood in which sparse files are context-supported members only — a membership record may exist while the subject fact does not",
+    "one term of enrolment across several courses, when the same registration or timetable evidence covers them"
+  ],
+  "template": {
+    "dimension_order": [
+      "school",
+      "term",
+      "subject",
+      "work_type"
+    ],
+    "why": "00 states the order for this situation outright: \"An Academic template may define school → term → course → work type\" (stored as subject under D6; course is 00's prose). The reason the order runs this way is 00's parent-context rule — \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" instructor is excluded because it is not destination-eligible: \"It should avoid using authorship or creator identity as a destination dimension.\" Time is not first here and 00 says why: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" term nonetheless precedes subject in this situation, which is the one place the recommendation looks time-forward, because a course code recurs every term and the term is what keeps two enrolments apart. Optional branch patterns 00 itself offers on this branch: Option B (subject before term) where the holder studies one course across terms, and Option C (school then subject, flat) — \"Option B would merge material across schools when course codes collide\" and \"Option C is shallower but leaves more files together\". The scoped fallback belongs to this situation too: \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder\". All of it is a recommendation and none of it is a path — \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "archive",
+      "calendar",
+      "email"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".pptx",
+      ".key",
+      ".md",
+      ".txt",
+      ".xlsx",
+      ".csv",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".zip",
+      ".ics",
+      ".eml"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Syllabus BUSIB 4300 Spring 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename contains a course-code-shaped token and the word Syllabus",
+        "PDF title metadata reads BUSIB 4300 Syllabus",
+        "page-one heading reads Spring 2026",
+        "a page-one table row labelled Instructor",
+        "a week-by-week schedule table and a grading-policy section",
+        "PDF producer string names a word processor rather than a person"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "work_type",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the producer or author metadata",
+        "target_university from a university name in the running header",
+        "a second term because a drop deadline in the body names another date"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "HW 3.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename is homework-shaped",
+        "body holds the phrase Homework 3 and equations, nothing else",
+        "no course-code token, no school name, none of the five academic context terms",
+        "mutual semantic retrieval with a syllabus, a lecture deck and a midterm in the same directory"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "subject from the neighbouring syllabus",
+        "term from the neighbourhood",
+        "school from the neighbourhood",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "PHYS1401 Lecture 08 - Rotational Dynamics.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "filename carries a course-code-shaped token and the word Lecture",
+        "slide-one title repeats the course code",
+        "speaker notes name the instructor and a week number",
+        "no term string anywhere in the deck"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "term from the file's modification timestamp",
+        "term from a week number",
+        "school because the deck footer carries a university logo caption",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "problem set 4 - final version (2).docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a work-type term, a draft ordinal and a copy suffix",
+        "body is unlabelled prose and worked answers with no course code and no school name",
+        "an earlier file with the same stem sits in the same directory",
+        "DOCX core properties name a prior editor"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "subject from the directory's other files",
+        "term from the document's creation date",
+        "instructor from the DOCX last-modified-by field",
+        "that the copy suffix makes this a duplicate of the earlier file rather than a version-family member"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-02-11 at 10.14.32.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text reads PHYS 1401 — Homework 3 — Due Feb 18",
+        "OCR text also holds a course-site navigation menu and a submit-button label"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone",
+        "term from the due date",
+        "that a submission occurred",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "IMG_5512.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "no text layer; the frame is a photograph of a handwritten worked problem sheet",
+        "camera-pattern filename",
+        "sits in the same directory as a course's lecture decks"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from the directory it sits in",
+        "subject from a neighbouring syllabus",
+        "term from the capture date",
+        "that no academic fact can ever exist here — OCR re-runs recognition under a new cache key and may then supply work_type"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "invite.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY field reads PHYS1401 Midterm Review",
+        "DTSTART and DTEND fields present",
+        "ORGANIZER is a university mail address"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone",
+        "term from the DTSTART year",
+        "school from the organizer's mail domain alone",
+        "instructor from the organizer address"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Re_ PHYS1401 Problem Set 4 posted.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line carries a course-code-shaped token and a work-type term",
+        "sender is a course-management address; the body names an office-hours time",
+        "attachment name is ps4.pdf",
+        "recipient list holds other students' addresses"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "term from the sent date",
+        "school from the sender's mail domain alone",
+        "people facts about the other recipients as coursework facts",
+        "that the attachment's own facts may be written onto this message, or the reverse"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Personal Statement.docx, Transcript.pdf, Resume.pdf, Certificate.jpg and Form.pdf",
+        "outer archive name is vague",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from any member filename",
+        "that the archive is coursework because a transcript is inside it",
+        "school from the transcript member without inspecting it",
+        "a folder path"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Senior Thesis Draft 3 - BIO 4990.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a course-code-shaped token, a draft ordinal and the word Thesis",
+        "page-one heading names a supervising lab and a project identifier",
+        "body carries a methods section and a reference list",
+        "an earlier draft with the same stem exists in the same directory"
+      ],
+      "facts_legal": [
+        "subject",
+        "work_type",
+        "instructor"
+      ],
+      "must_not_conclude": [
+        "that the research facts replace the academic facts, or the reverse",
+        "venue from a journal named in the reference list",
+        "term from the draft ordinal",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Gradebook BUSIB4300 Spring2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "filename carries a course-code-shaped token and a term-shaped token",
+        "sheet name repeats the course code",
+        "header row names assignments; the first column holds other people's names and scores",
+        "workbook author metadata names a script"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is the holder's own coursework — the roster column is the teaching side's signature and routes this file to academic.teaching",
+        "instructor from the workbook author metadata",
+        "that the named students are facts about this file's holder",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Columbia Essay.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Why Columbia?",
+        "body names the writer's current high school and a graduation term",
+        "no course-code token and none of the five academic context terms",
+        "prose addresses an admissions reader"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "school = Columbia, which here is the addressed institution, not the writer's own school",
+        "subject",
+        "work_type = essay as coursework",
+        "term from the graduation term named in the prose"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Resume_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "education section names a university and an expected graduation term",
+        "a late line reading Relevant coursework: BUSIB 4300, PHYS 1401",
+        "document structure is a one-page resume with employment and skills sections",
+        "no academic context term describes the document itself"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "subject from the relevant-coursework enumeration",
+        "school from the education section as a coursework fact",
+        "term from the expected graduation date",
+        "work_type"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Spring 2026 registration confirmation.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registrar heading names the issuing school",
+        "a term-shaped token in the title zone",
+        "a table listing four course codes with meeting times and credit counts",
+        "a confirmation number in the footer"
+      ],
+      "facts_legal": [
+        "school",
+        "term"
+      ],
+      "must_not_conclude": [
+        "one subject value for the file when the table holds four course rows",
+        "a folder path",
+        "target_university from the issuing school",
+        "that a missing subject makes the file unplaceable — 00 keeps a scoped General under the meaningful parent for exactly this shape"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.teaching",
+      "signal": "same schema, same course code, same term, and often the same document. The discriminating evidence is role, not topic: the teaching side is evidenced by other people's names and scores in a table, a class roster, or authoring evidence for the course materials themselves; the coursework side is evidenced by a received syllabus, the holder's own submissions and notes, and a single-holder record. Neither side may take a bare course code. Fixture: Gradebook BUSIB4300 Spring2026.xlsx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "both carry school, term and course codes. The discriminating evidence: an official record carries registrar language, a seal caption or a verification code in the title zone and a table of many course rows across many terms, so no single subject or term value describes the file; coursework needs one course-term. 00: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\" Fixture: Spring 2026 registration confirmation.pdf sits on this seam.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.standardized-testing",
+      "signal": "a test name can occupy the subject slot and prep material carries problem-set structure. The discriminating evidence: coursework needs enrolment evidence — a course-code-plus-context pair, a labelled Instructor slot, or a term pattern tied to a course — while test material carries a test name, a registration or score-report structure, and no instructor or term-of-enrolment.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.online-course",
+      "signal": "both hold lectures, exercises and completion material. The discriminating evidence: a platform or provider name in place of a school, self-paced structure and typically no term pattern on the online side; a course-code-shaped token plus a term pattern on the coursework side. A provider name alone decides nothing, the same way a university name alone decides nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "both sides can be evidenced by one university name and by essay-shaped prose. The discriminating evidence: the applications side needs a target-institution plus admissions-cycle or portal pair; the coursework side needs a course-code-plus-context pair or a coursework work type. Neither may take a bare university name, and 00 requires the separation to be enforced downstream too — \"an application packet does not silently absorb a document with a conflicting target institution\". Fixture: Columbia Essay.docx.",
+      "provenance": "design"
+    },
+    {
+      "domain": "research.project-workspace",
+      "signal": "a lab report, figure or thesis chapter reads the same from either side. The discriminating evidence: research needs a project identifier, lab or venue; coursework needs a course-code-plus-context pair, a term pattern, or a coursework work type. A course-numbered thesis clears both on disjoint evidence and keeps both fact sets — that co-holding is asserted at the schema level, not here. Fixture: Senior Thesis Draft 3 - BIO 4990.docx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "a resume carries the holder's own school, a graduation term, and often an enumeration of course codes. The discriminating evidence: the coursework side needs its academic context term to describe the document itself in a high-weight zone; a document whose own structure is a resume takes neither subject nor work_type, because 00 requires positional weighting — \"a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference\". Fixture: Resume_2026.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "00's own description fits the coursework leftovers that have a durable purpose and no course: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\". Fixtures: Spring 2026 registration confirmation.pdf, submission.zip, Resume_2026.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00 defines it for material \"that appear to be reading material but have no active research, course, or project association\" — a downloaded chapter or lecture deck whose course never resolves. Fixtures: PHYS1401 Lecture 08 - Rotational Dynamics.pptx when no course group is accepted, Senior Thesis Draft 3 - BIO 4990.docx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"files whose meaning is partly understood but whose final location requires a future decision\" — exactly the sparse-assignment shape, where work_type resolved and subject did not. Fixtures: HW 3.pdf, problem set 4 - final version (2).docx, invite.ics, Columbia Essay.docx.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "a course-site screenshot whose OCR yields no course token has \"no accepted project, trip, application, or event relationship\". Fixture: Screenshot 2026-02-11 at 10.14.32.png when its OCR is unusable.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "a photographed page with camera EXIF and no readable text has \"no event, project, reference collection, or photo-family association\" on the academic side. Fixture: IMG_5512.HEIC before OCR resolves anything.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "school",
+      "other_field": "target_university",
+      "neighbor": "applications.undergraduate-packet",
+      "why": "Same entity type, different role: the institution the holder is enrolled at versus the institution an application is addressed to. 00 requires the split — \"The system must separate roles that happen to contain the same entity type\" — and the canonical field list already records the pair, so this row references it rather than minting it. It is the single reason a near-duplicate of school is legal at all."
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 counts this material in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" Graded returns, score screenshots and course mail carry the holder's own academic record. The privacy rule that differs from academic.teaching is the direction of exposure: this situation holds the holder's own record and should not accumulate other people's — a roster column or a scores table is the teaching side's signature, and a file carrying one is a routing signal away from this template rather than a coursework file with extra columns. Which handling class applies is P7's and is not set here.",
+  "open_question": "The Academic schema row already carries an inline template block with this same dimension_order, so two rows now state one recommendation. Should the schema row's block be read as this template's definition (making the schema row's copy redundant), or does a schema keep its own default template for P10's schema-id resolution path? R1c or Joseph decides which row owns it; this node states the recommendation because CONNECTION-EXAMPLES fixtures 1 and 7 name a coursework template row explicitly and R1 output must stay compatible with them."
+}

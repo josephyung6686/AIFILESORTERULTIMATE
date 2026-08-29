@@ -1,0 +1,36 @@
+{
+ "case_id": "A07",
+ "wording": "stripped EXIF on messaging-app photographs",
+ "attacks": "screenshot detection",
+ "sections": [
+  "\u00a72.6"
+ ],
+ "assert_against": "stage",
+ "dimension": "fact",
+ "subject_ref": "A07::photo::kind",
+ "expected_outcome_kind": "abstained",
+ "expected_value": null,
+ "forbidden_value": {
+  "field": "media_type",
+  "value": "screenshot"
+ },
+ "extraction_runs": [
+  {
+   "run_id": "A07-run",
+   "file_id": "A07-file",
+   "content_hash": "sha256:A07",
+   "extractor_name": "image.native",
+   "extractor_version": "1.0.0",
+   "source_type": "metadata",
+   "config_fingerprint": "sha256:cfg",
+   "completeness": "complete",
+   "coverage": {
+    "units": "files",
+    "processed": 1,
+    "total": 1
+   },
+   "observation_count": 0
+  }
+ ],
+ "resolution_note": "F6, resolved 2026-08-22. There is no `kind` field. P6's field for this is `media_type` (\u00a73.11's Photos sentence: 'capture year, event, location, people, camera information, and media type'), snake_case per D6. The assertion is unchanged in substance: stripped EXIF must never become a screenshot claim."
+}

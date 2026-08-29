@@ -1,0 +1,455 @@
+{
+  "id": "law_practice.time-and-billing",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Matter time, disbursement and bill record",
+  "one_line": "ACCEPTED, on ONE structure and nothing else: a table whose ROW GRAIN IS A UNIT OF CHARGEABLE WORK OR A DISBURSEMENT, carrying an exact matter reference beside a timekeeper or fee-earner, a narrative, a duration or unit count and a rate or amount - together with the bill rendered from it, which is that same structure with an issuer-and-billed-to pair wrapped around it. It is NOT activated by the words bill, invoice, timesheet, fee note or disbursement, by a rate, an amount, a currency symbol or a fee-basis word, by a law-firm letterhead, or by a spreadsheet extension. It is the one artefact in this family on which BOTH legs of the `law_practice` default fail - a time export has no artefact separating a practitioner role from a client role (a timekeeper column is an internal role, not a client-facing pair) and needs no second artefact, because its own column set carries the matter reference - which is why the schema lists the time-and-disbursement structure as a deterministic entry SEPARATE from its own precondition, and why the refused `law_practice.engagement-terms` row names 'a time-and-disbursement column set' among the templates that survive. It differs from the schema default in privacy as well as in signal: its characteristic file is MATTER-PLURAL and its NARRATIVE COLUMN is a per-line prose description of many non-consenting third parties' affairs, sitting in exactly the cells a spreadsheet extractor is otherwise licensed to read. It does NOT hold the executed retainer (`legal`), the matter's key-date portfolio table (`law_practice.deadlines-diary`), the funder-paid scheme claim (`law_practice.pro-bono`), the message that transmits a bill (`law_practice.matter-correspondence`), a bill the HOLDER received as a client (`legal.personal-legal-matters`), or the practice's own books and utilisation reporting (`finance.small-business-bookkeeping`, `business_operations.organisational-records`). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "fiscal_period",
+      "type": "string",
+      "reuse_of": "law_practice schema proposal",
+      "why_no_existing_key_works": "REUSE, NOT A MINT, and this row is the use case the schema's own entry was raised for: its `fiscal_period` proposal says in terms that it is 'Raised only so that the time-and-billing template author reuses it rather than minting `billing_period`.' This row complies exactly. A bill covers a stated period of work, a time export is cut by period, and a disbursement ledger is closed by period; that period is a CONTENT period, so `capture_year` is wrong by role (nothing here is capture-based) and `tax_year` is finance's statutory year on the holder's own return. Nothing is minted here: no `billing_period`, no `bill_number`, no `matter_id`, no `timekeeper`, no `rate`, no `units`, no `disbursement_type`. R1c owns whether the key exists at all; under PR-6 and D1's deferral this row writes no field row for it and no dimension from it."
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "THE ROW-GRAIN TEST, AND IT IS THE WHOLE NODE. What fires is a table whose ROW GRAIN IS ONE UNIT OF CHARGEABLE WORK OR ONE DISBURSEMENT, evidenced by a COLUMN SET that pairs an exact matter, file or engagement reference with a timekeeper or fee-earner, an activity narrative, a duration or unit count, and a rate or amount. Read through 00's spreadsheet path - \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\" - but read it with this row's own restriction below: the COLUMN HEADERS establish the structure and the narrative CELLS are not needed to establish it. The matter-reference column is the discriminating evidence and the only one. Remove it and the same table is a professional-services timesheet belonging to `career.consulting-client-engagement` or to a project-columned business record; the `construction_property.timesheet` row was refused precisely because a project column and an hours column were all it ever had.",
+      "THE RENDERED BILL, which is the same structure wrapped in an issuer-and-billed-to pair: a document whose labelled slots carry an ISSUING practice, a BILLED-TO client, an exact matter reference, a period, a narrative of work done, a profit-costs or fees total, a separately itemised DISBURSEMENT schedule, and a tax line. The disbursement schedule is what distinguishes it from an ordinary commercial invoice - money the practice laid out FOR the client to third parties (court fee, counsel, expert, search, courier) and is now recovering, itemised beside its own fees. Read through 00's direct-fact path, \"a labeled form field\". The issuer-and-billed-to pair is finance's evidence on its own terms and stays finance's; what makes the artefact this row's is the matter reference and the per-matter work narrative it wraps.",
+      "THE DISBURSEMENT LEDGER: a table over one matter whose rows pair a date, a PAYEE, an amount and a category, against one matter reference, with no timekeeper column at all. It is admitted as a separate structure because it is the one member of this row that has no duration and no rate, and because its payee column is a list of third-party professionals - counsel, experts, agents - whose names are frequently also the names of witnesses and deponents in the same matter. The `law_practice.matter-correspondence` row owns the letters exchanged with those people; this row owns only the ledger line.",
+      "THE ROLE-INVERTED FEE NOTE: a third-party professional's own invoice addressed TO the practice and carrying the practice's matter reference - counsel's fee note, an expert's invoice, an agent's account. It is admitted because it is a genuine hard case and the row must state its answer: the issuer-and-billed-to test INVERTS here (the practice is the payer, not the issuer), so the test alone would misroute it, and what carries it is the matter reference plus the fact that the amount is destined for a disbursement line on a bill to the client. Without a matter reference it is an ordinary payable and belongs to `finance.small-business-bookkeeping` on finance's own evidence.",
+      "THE FORWARD-LOOKING TWIN: a costs estimate, matter budget or fee-forecast workbook, structured as the same matter-reference-plus-activity-plus-units-plus-rate column set with projected rather than recorded values. The refused `law_practice.engagement-terms` row routed exactly this artefact here from its own side, on the ground that the workbook 'has no two-role artefact on it at all, so the only structure present is the schema's time-and-disbursement column set'. An estimate is not a quotation, an agreement or a cap, and nothing here decides that it is."
+    ],
+    "needs_llm": [
+      "WHICH SIDE THE MONEY IS FLOWING. A bill issued by the holder's practice to a client, a bill the holder's practice RECEIVED from counsel, and a bill the holder received as a private client of some other firm have the same slots, the same narrative style, the same disbursement schedule and often the same layout vendor. Only the issuer and billed-to roles, read as prose, separate them, and where they cannot be read the answer is Review Later - not a guess in either direction.",
+      "WHETHER A NARRATIVE COLUMN IS A WORK NARRATIVE AT ALL. 'Attendance on client', 'review of records', 'drafting' and 'consideration of papers' are recognisable as chargeable-work prose; free-text columns in a project tracker or a consultant's activity log are not, and the difference is register rather than structure.",
+      "WHETHER A REDUCTION IS AN ASSESSMENT OR A WRITE-OFF. A struck, reduced or nil line may be a practice's own commercial write-down (this row's) or an external assessing body's determination (`law_practice.pro-bono`'s, where a funder set the rate). The line looks identical; the presence of a determining authority that is not a party is the discriminator and it is usually prose.",
+      "WHETHER AN AGGREGATED TABLE IS STILL MATTER-ANCHORED. A workbook may summarise by matter (this row's), or by fee earner, team, period or practice area (an organisational return). The seam is where the ROW STOPS BEING A MATTER, and reading the first column's grain is the only way to find it."
+    ],
+    "never_alone": [
+      "A BILLING DOCUMENT-TYPE WORD - bill, invoice, fee note, statement of account, timesheet, disbursement, WIP, narrative, costs. The schema strikes document-type words generally; here they are struck again because they are the most abundant tokens in this world and the most abundant tokens in three neighbours' worlds. Apply the schema's deletion test to `Bill 3 - June 2026.pdf`: delete the document-type word and the entity name and nothing structural survives.",
+      "A RATE, AN AMOUNT, A CURRENCY SYMBOL, A TAX LINE OR A TOTAL. These are finance's evidence, they appear on every invoice ever issued by anyone, and they are the reason this row cannot be founded on money. Money is what the artefact is ABOUT; the matter reference is what makes it this row's.",
+      "AN HOURS, UNITS OR DURATION COLUMN. Every profession that bills time has one. `construction_property.timesheet` was refused on exactly this token, and its own file example records the shared fixture as being here 'to show how generic the row's only candidate signal was'. Duration plus rate is a billing MEDIUM, not a filing world.",
+      "A FEE-BASIS WORD - hourly, fixed fee, capped, conditional, contingency, success fee, retainer, pro bono. A fee basis is a VALUE in a funding slot, as the refused `law_practice.engagement-terms` row established; 'free' is one value in that same slot and does not reach `law_practice.pro-bono` either.",
+      "A LAW-FIRM NAME, LETTERHEAD, PRACTISING-CERTIFICATE FOOTER OR LEGAL-SERVICES LABEL BESIDE ANY OF THE ABOVE. Two struck tokens are still struck. A firm's letterhead on an invoice proves that a firm issued or received an invoice, which every firm does for stationery, rent and software as well.",
+      "A MATTER-SHAPED REFERENCE TOKEN ON ITS OWN. A hyphenated client-and-file string is shaped identically to a project code, a job number, a purchase-order number, a scheme certificate number and a court case number. The schema strikes a bare identifier; this row needs the reference IN A COLUMN BESIDE THE WORK GRAIN, not the reference as a string.",
+      "A SPREADSHEET EXTENSION, OR THE PRESENCE OF A TABLE. An extension is never sufficient alone, and a table-like region is a source-type observation. The row grain, not the tabularity, is the evidence.",
+      "A ZERO, BLANK OR STRUCK-THROUGH RATE, OR A NIL TOTAL. This row states the same rule `law_practice.pro-bono` states from its side: an absence is not evidence. A fee-free time record is this row's table with an empty cell, and it does not become a funding artefact by being empty.",
+      "A DIRECTORY OR PATH SEGMENT NAMED FOR BILLING, FEES, WIP OR A CLIENT. A path is never a fact, and a client-named path is the disclosure this family's naming rule exists to prevent."
+    ]
+  },
+  "proposed_context_terms": [
+    "fee earner",
+    "timekeeper",
+    "matter reference",
+    "profit costs",
+    "disbursement",
+    "unbilled time",
+    "work in progress",
+    "narrative",
+    "counsel fee note",
+    "costs estimate",
+    "client account",
+    "office account"
+  ],
+  "work_types": [
+    "recorded time entry export (one row per unit of chargeable work)",
+    "unbilled work-in-progress schedule",
+    "disbursement and outlay ledger",
+    "rendered bill or fee invoice with narrative and disbursement schedule",
+    "counsel, expert or agent fee note received against a matter",
+    "costs estimate, matter budget or fee forecast",
+    "credit note, write-off or fee adjustment record",
+    "client-account and office-account ledger extract for one matter",
+    "billing-system or practice-management time export"
+  ],
+  "grouping_reasons": [
+    "ONE BILLING CYCLE ON ONE MATTER: the time export slice, the draft bill, the rendered bill, its disbursement schedule and the fee notes it recovers, joined by one exact matter reference and one stated period. Purpose-coherent and content-incoherent, which is 00's own licence - \"The documents are content-incoherent but purpose-coherent.\" - and the anchor copies no client, matter, party, amount or narrative fact onto any member.",
+    "ONE BILL ACROSS ITS VERSIONS - draft, revised, rendered, credited - supported by the universal version_family fact through explicit revision markers or hashes, never by a `-final` suffix and never by an incrementing number in a filename.",
+    "ONE DISBURSEMENT TO ITS SOURCE DOCUMENT: a ledger line and the fee note, receipt or court-fee confirmation it records, joined by an exact matter reference plus an exact amount-and-date pair. An amount alone never establishes it.",
+    "A MATTER-PLURAL EXPORT IS NOT A GROUP OF MATTERS. This row's characteristic file spans many matters; it is ONE member of each of them at best, and it must not be treated as an anchor that seeds membership for every reference it happens to contain. 00: \"It should not form a supported group when there is no valid anchor\".",
+    "NOT grouping reasons: a shared rate; a shared amount; a shared fee earner across two matters; a shared billing month; a shared payee (counsel appears in many matters); a shared practice area; a download session."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, and this row must say something the schema default does not, or it is not a node. The schema's prose recommendation is client only where explicitly approved, then MATTER, then document FUNCTION, then period last, with three binding rules (client seeded ineligible, named third parties never a level, function follows matter). THIS ROW'S RECOMMENDATION DIFFERS AT THE MATTER LEVEL, WHICH IS THE SCHEMA'S ANCHOR LEVEL. Its characteristic file is MATTER-PLURAL: a firm-wide time or WIP export belongs to no single matter, so the matter dimension is not merely disclosive here, it is INAPPLICABLE to the container - filing it under any one matter would be false, and filing it under all of them would copy a fact onto a file that does not carry it. The consequence is a two-branch recommendation, still prose, still no dimension serialised: for a MATTER-SINGULAR artefact (a bill, a disbursement ledger, a fee note) the schema's own order stands unchanged, matter then function then period; for a MATTER-PLURAL artefact the matter level drops out entirely and what remains is function then PERIOD, with period doing the work the matter cannot. That is the closest anything in this family comes to a period-led level, and it is still NOT `time_first`: 00's rule holds - \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" - the period rises only because the project level is absent, not because this world is capture-based, and the schema's prohibition on siblings claiming time-first is respected in letter and in substance. The client level stays ineligible for the schema's reasons, doubled here: a bill's billed-to block would make an especially tempting collector, and 00 forbids exactly that - \"use an author or organization merely as a collector\" - and warns it would \"create meaningless one-child levels\" in the single-client case. A PAYEE is a named third party and may never be a level, which extends the schema's naming rule to the disbursement ledger's payee column - counsel and experts are also witnesses. Whatever lands stays a recommendation: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "email",
+      "archive",
+      "ocr",
+      "image",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".xlsx",
+      ".xls",
+      ".csv",
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".dat"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "WIP and unbilled time - all matters - July 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads Matter Ref, Client, Fee Earner, Date, Narrative, Units, Rate, Value, Billed",
+        "row grain is one unit of chargeable work, not one matter",
+        "many distinct matter-reference values in the first column",
+        "no signature block, no caption, no two-role party pair anywhere in the workbook"
+      ],
+      "facts_legal": [
+        "no facts - the `law_practice` schema declares no field rows under PR-6, so activation unlocks recognition, safety posture and universal facts only"
+      ],
+      "must_not_conclude": [
+        "a matter, client, fee-earner, rate or amount as a fact of this schema",
+        "that the narrative cells may be excerpted, summarised or sent to a model because 00 licenses reading visible cell values - the COLUMN HEADERS establish this structure and the narrative cells are not needed for it",
+        "that this workbook is an anchor that seeds membership for every matter reference it contains",
+        "that a blank Rate cell makes a row a pro bono artefact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "41127-0006 - Bill 3 - 1 June to 30 June 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing practice block and a billed-to client block",
+        "exact matter reference repeated in the header and the footer",
+        "a period line, a narrative of work done, a profit-costs total",
+        "a separately itemised disbursement schedule listing a court fee, a counsel fee and an expert fee",
+        "a tax line and a total"
+      ],
+      "facts_legal": [
+        "no facts - fieldless schema"
+      ],
+      "must_not_conclude": [
+        "that the issuer-and-billed-to pair alone routes the file here - that pair is finance's evidence and stays finance's; the matter reference plus the per-matter work narrative is what makes it this row's",
+        "that the bill was paid, delivered, agreed, assessed or challenged",
+        "that a disbursement line proves the underlying service happened",
+        "an amount, a tax figure or a fiscal_period as a fact of this schema",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Disbursements ledger - 41127-0006.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are Date, Payee, Description, Amount, Recoverable",
+        "one matter reference in the sheet header, none in the rows",
+        "no timekeeper, no duration, no rate column",
+        "payee values are named individuals and chambers"
+      ],
+      "facts_legal": [
+        "no facts - fieldless schema"
+      ],
+      "must_not_conclude": [
+        "that a payee may become a folder level - a payee here is a named third party and counsel and experts are also witnesses",
+        "that a named payee identifies the matter's subject or the parties",
+        "that the absence of a rate column pushes the file out of this row - the ledger is admitted as its own structure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Counsel fee note - 41127-0006 - advice and conference.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer is a barrister's chambers, billed-to is the instructing practice",
+        "the practice's own matter reference appears in the reference line",
+        "brief-fee and hourly items with a total"
+      ],
+      "facts_legal": [
+        "no facts - fieldless schema"
+      ],
+      "must_not_conclude": [
+        "that the issuer-and-billed-to test routes this to finance - the test INVERTS here (the practice is the payer) and the matter reference is what carries it",
+        "that counsel is a party, a witness or the client",
+        "that the fee was agreed, paid or recovered",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Costs estimate and funding options - 41127-0006.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns pair phase, fee earner grade, estimated hours, rate and estimated value",
+        "one matter reference in the sheet header",
+        "a second sheet lists funding options in prose",
+        "no party blocks, no signature block, no execution block"
+      ],
+      "facts_legal": [
+        "no facts - fieldless schema"
+      ],
+      "must_not_conclude": [
+        "that the funding-options sheet routes the file to `law_practice.pro-bono` - listing options is not a determination, and there is no allocated authority reference and no limitation",
+        "that an estimate is a quotation, an agreement or a cap",
+        "that the refused `law_practice.engagement-terms` row could claim it - that row routed this workbook here in terms, because it carries no two-role artefact at all",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Time entries 2026-07-14.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are Date, Fee Earner, Activity Code, Units",
+        "NO matter reference column anywhere",
+        "activity codes are opaque two-letter tokens"
+      ],
+      "facts_legal": [
+        "no facts, and this row does NOT activate"
+      ],
+      "must_not_conclude": [
+        "a matter, from the fact that a sibling export in the same folder has one - this is 00's `HW 3` case, and membership never copies the anchor's label onto the member",
+        "that a fee-earner name identifies the practice or the matter",
+        "that an activity code is a work type of this schema",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Bill pack 41127-0006 - June 2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a bill PDF, a disbursement schedule, three fee notes and a client-account extract",
+        "member names repeat one exact matter reference",
+        "archive is readable without extraction"
+      ],
+      "facts_legal": [
+        "no facts - fieldless schema"
+      ],
+      "must_not_conclude": [
+        "member facts inferred from the manifest",
+        "that the archive should be unpacked solely to improve classification",
+        "that a member which is itself an executed instrument stops being `legal`'s - `legal` is a safety domain and its protection runs first",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Ellis and Co - invoice for my divorce - March.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuing practice block, billed-to block naming the holder personally",
+        "a matter reference allocated by that practice",
+        "a work narrative and a disbursement schedule - structurally identical to this row's own bill fixture"
+      ],
+      "facts_legal": [
+        "none for this row - it does NOT activate"
+      ],
+      "must_not_conclude": [
+        "this row, on the ground that every structural signal it names is present - THE COLLISION FIXTURE: the discriminator is the BILLED-TO ROLE, and here the holder is the client, so the file is `legal.personal-legal-matters`' and finance's",
+        "that the matter reference makes the holder a practitioner - the reference was allocated by SOME firm and whose it is remains open",
+        "that a divorce, a proceeding or a personal circumstance may be inferred and written anywhere",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Invoice INV-2026-0412 - Meridian Consulting - hours and rate.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "issuer and billed-to blocks, an engagement or project code, hours, a rate, a total",
+        "milestones and a deliverable-acceptance line",
+        "no matter reference, no disbursement schedule, no per-unit work narrative"
+      ],
+      "facts_legal": [
+        "none for this row - it does NOT activate"
+      ],
+      "must_not_conclude": [
+        "this row, from hours plus rate plus a professional issuer - that is the generic billing medium `construction_property.timesheet` was refused for",
+        "that a project or engagement code is a matter reference",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Matter report - all live matters - July 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "row grain is ONE MATTER: Matter Ref, Responsible Fee Earner, Next Key Date, WIP Value, Unbilled Disbursements, Last Bill",
+        "one row per matter, many matters",
+        "money columns and a date column on the same row"
+      ],
+      "facts_legal": [
+        "no facts - fieldless schema"
+      ],
+      "must_not_conclude": [
+        "that this row and `law_practice.deadlines-diary` can carve the file between them - that row already stated it cannot be carved, and the ROW GRAIN decides: one row per matter with a key-date and an owning practitioner is theirs, one row per time entry is this row's",
+        "a key date, a limitation, a WIP value or a next step as a fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Fee earner utilisation and realisation - FY2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "row grain is ONE FEE EARNER PER PERIOD: name, grade, target hours, recorded hours, realisation percentage",
+        "no matter reference column at all",
+        "a department and a practice-area column"
+      ],
+      "facts_legal": [
+        "none for this row - it does NOT activate"
+      ],
+      "must_not_conclude": [
+        "this row, from hours and rates in a legal practice's workbook - when the ROWS STOP BEING MATTERS the artefact is the firm running itself, which is `business_operations`' and `hr`'s",
+        "an individual's performance, and no fee-earner name may become a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-07-31 at 17.04.22.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in dimensions and filename pattern",
+        "OCR shows a time-entry form with a matter field, a narrative box, a units box and a rate",
+        "no second artefact and no confirmed matter reference"
+      ],
+      "facts_legal": [
+        "none unless a matter reference is established from a separately evidenced anchor"
+      ],
+      "must_not_conclude": [
+        "a matter, a client or a narrative fact from OCR of one screen",
+        "that missing EXIF proves screen origin - 00 rules that out and the positive evidence is what carries it here",
+        "that the OCR'd narrative text may be sent to a model - it is a description of a third party's affairs",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Billing export 2026-Q2 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "archive rejects listing without a password",
+        "filename asserts a billing export and a quarter"
+      ],
+      "facts_legal": [
+        "none"
+      ],
+      "must_not_conclude": [
+        "a matter, a period, a fiscal_period, a client count or a sensitivity result from the filename",
+        "that the file should be forced open to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "finance.small-business-bookkeeping",
+      "signal": "SAME FIXTURE BOTH SIDES: `41127-0006 - Bill 3 - 1 June to 30 June 2026.pdf` — this row owns the MATTER-ANCHORED WORK GRAIN (an exact matter reference beside a per-unit narrative, duration, rate and an itemised disbursement schedule), the neighbour owns the ACCOUNTING SLOTS (issuer, billed-to, invoice number, tax line, total, and the practice's own receivable), discriminated by the MATTER-REFERENCE COLUMN: the schema states it in terms, that 'an issuer-and-billed-to invoice structure without it is finance's on finance's own evidence'. Reciprocally, this row never claims a payable, a bank line or a ledger entry that carries no matter reference, and never converts an amount into a fact of this schema. Provenance: inference for the seam; the schema's sentence is the anchor's own.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.deadlines-diary",
+      "signal": "SAME FIXTURE BOTH SIDES: `Matter report - all live matters - July 2026.xlsx` — this row owns the WIP, unbilled-disbursement and time columns wherever the ROW GRAIN IS A UNIT OF WORK, that row owns the portfolio table whose ROW GRAIN IS ONE MATTER carrying a key-date column and an owning practitioner, discriminated by THE FIRST COLUMN'S GRAIN, not by which columns are present. That row already ruled from its side that the file cannot be carved — 'the same rows carry money and dates in one grain, and any split would tear one exported table in half' — and this row accepts that ruling: where the grain is one row per matter the whole file is theirs, money columns included, and this row takes no slice of it. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.pro-bono",
+      "signal": "SAME FIXTURE BOTH SIDES: `Claim for costs - CIV CLAIM1 - assessed with reductions.pdf` — this row owns the bill or claim whose PAYER IS THE CLIENT at rates the practice and client set, that row owns the claim whose payer is a body that is not a party, at scheme-prescribed rates, carrying an assessment outcome the practice did not control, discriminated by the PAYER ROLE AND THE RATE PROVENANCE. Reciprocally and already agreed from that side: a fee-free time record — this row's table with a blank or zero rate cell — stays here, because a blank cell is an absence and neither row accepts absence as evidence. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "SAME FIXTURE BOTH SIDES: `Ellis and Co - invoice for my divorce - March.pdf` — this row owns the bill the holder's practice ISSUED to a client, that row owns the byte-identical bill the holder RECEIVED as a client of some other practice, discriminated by THE BILLED-TO ROLE and nothing else: every structural signal this row names (matter reference, work narrative, disbursement schedule, rate and units) is fully present on the neighbour's copy. Where the roles cannot be read the file goes to Review Later rather than to either side. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.matter-correspondence",
+      "signal": "SAME FIXTURE BOTH SIDES: `RE Bill 3 - 41127-0006 - query on disbursements.eml` with the bill attached — this row owns the ATTACHED ARTEFACT and its column set, that row owns the MESSAGE that transmits and discusses it (sender and recipient roles, the instruction, the attendance note that follows), discriminated by whether the evidence is a work-grain structure or an exchange between named roles. Reciprocally, this row never claims a message body merely because it contains a figure or the word bill, and never treats an email subject line's matter reference as a work grain. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.organisational-records",
+      "signal": "SAME FIXTURE BOTH SIDES: `Fee earner utilisation and realisation - FY2026.xlsx` — this row owns the table whose ROWS ARE MATTERS, that row owns the table whose rows are people, teams, periods, departments or practice areas, discriminated by WHERE THE MATTER REFERENCE STOPS BEING A COLUMN: aggregation past the matter is the practice running itself as a business, not an artefact of any representation. This is the same seam `law_practice.pro-bono` raised as NJ-PB-4 and this row records it identically so R1c can settle both at once. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "SAME FIXTURE BOTH SIDES: `Invoice INV-2026-0412 - Meridian Consulting - hours and rate.pdf` — this row owns the artefact carrying an exact MATTER reference and a recoverable-disbursement schedule, that row owns the professional-services invoice carrying an engagement or project code with deliverables, milestones and an acceptance line, discriminated by MATTER REFERENCE VERSUS PROJECT CODE plus the presence or absence of a disbursement schedule. This is the boundary that answers the strongest case against this row's existence — that billing time is a generic professional medium — and it is the same reason `construction_property.timesheet` was refused. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The primary home, and for this row it is not the schema's generic argument but a bulk one: a single unrouted time or WIP export is a per-line prose description of many non-consenting third parties' affairs. 00 names this residual and licenses surfacing without a group - \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" and \"Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The correct home for this row's isolated transactional members with no matter anchor - a court fee receipt, a filing confirmation, a search fee, a single counsel fee note, a commercial invoice that failed the matter-reference test. 00 names them together: \"Receipts and Confirmations may hold isolated invoices, delivery confirmations, booking records, boarding passes, purchase receipts, event tickets, and similar transactional documents.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "This row's defining failure is a role question, not a content question: issued or received, our practice or another's, matter or project. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected billing exports and proprietary practice-system databases are ordinary here and must not be forced open to improve classification. \"Unsupported or Encrypted may hold\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "The inactive fallback for a positively evidenced capture of a time-entry or billing screen whose OCR establishes no matter. Narrative text and identifiers stay unexposed. \"Temporary Screenshots may live under Photos/Temporary Screenshots and hold screenshots that appear time-sensitive or remind the user of something but have no accepted project, trip, application, or event relationship.\"",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, inherited from the schema's third-party argument and EXTENDED in two ways this row does not share with its default. FIRST, THE NARRATIVE COLUMN. A time entry's narrative is a per-line prose description of what was done for a named client - an attendance before an interview, a review of records, the drafting of a petition - and it is the highest disclosure density per byte anywhere in this family: a firm-wide export discloses the SUBJECT of every live representation at once, including matters the user will never open. It sits in exactly the cells 00's spreadsheet path is otherwise licensed to read (\"visible cell values\"), so this row states a restriction the schema default does not need: COLUMN HEADERS ESTABLISH THIS STRUCTURE AND THE NARRATIVE CELLS ARE NOT NEEDED TO ESTABLISH IT, and they are therefore not excerpted, not summarised and not placed in a prompt for activation purposes. The landed `law_practice.deadlines-diary` row reached the same conclusion from its side, recording that the narrative column is not safe to summarise because 'it describes clients' affairs in prose'. SECOND, MATTER-PLURALITY. The schema's characteristic artefact exposes one matter; this row's exposes N, so its exposure scales with row count in the way the schema reserved for the privilege log, and it does so on a file the practice generates monthly rather than once. THIRD, EXISTENCE IS DISCLOSIVE HERE TOO, and cheaply: a matter-reference column plus a client column is a client list, and a client list of a criminal, family, insolvency or immigration practice discloses each person's situation before any narrative is read. The family's naming rule therefore binds unchanged and gains a payee clause: no client, matter or party name becomes a folder level without explicit user approval, and no PAYEE name becomes one at all, because counsel, experts and agents on a disbursement ledger are frequently the same people who appear as witnesses in the matter. Consistent with 00's model-use rule - \"If a model needs text containing sensitive content, the user should see that requirement and choose whether to allow a local model, a cloud model, a redacted prompt, or no model use.\" Nothing here decides privilege, confidentiality, waiver, recoverability or whether a bill is payable; those stay literal observations. This row does not carry `is_safety_domain` and should not - 00's four are named and closed - and it notes the gap is WIDER here than elsewhere in the family, because a time export has no caption, no bound party pair and no execution block, so `legal`'s protection does not co-activate on it at all. The handling class is P7's and is not set here.",
+  "open_question": "Three, and the first is the row's own existence. (1) NJ-TB-1, THE EXISTENCE QUESTION, answered YES but on a deliberately narrow ground so R1c can reverse it cheaply: this row stands ONLY on the ROW-GRAIN STRUCTURE - a matter reference beside a unit-of-work grain, or the bill rendered from it - and it concedes everything else. It concedes the fee-basis paragraph and the word billing to the `law_practice` schema default; the executed retainer to `legal`; the matter-grain portfolio table to `law_practice.deadlines-diary` whole and uncarved; the funder-paid claim to `law_practice.pro-bono`; the transmitting message to `law_practice.matter-correspondence`; the holder's received bill to `legal.personal-legal-matters`; the practice's own books and utilisation reporting to `finance.small-business-bookkeeping` and `business_operations.organisational-records`. If R1c judges that a matter reference is merely a VALUE in the project slot of a universal billing structure - the judgement that refused `construction_property.timesheet` - the correct outcome is REFUSAL, and the coverage routes to those neighbours plus Protected Records, Receipts and Confirmations and Review Later. This row would rather be refused than kept as a money label. (2) NJ-TB-2, THE COACTIVATION THAT COULD NOT BE WRITTEN: a rendered bill genuinely carries BOTH schemas at once - `law_practice` on its matter-anchored work grain and `finance` on its issuer, billed-to, tax and total slots, as the practice's own receivable and as the client's own payable. CONNECTION section 5 makes `also_holds_with` schema-to-schema only, and this row is a template, so the intent is recorded here instead of edged: R1c should consider `law_practice` <-> `finance` at schema level, with the seam being that neither schema's facts may be copied onto the other's slots. The alternatives are: author it at schema level; leave it to per-fixture `also_schema` as this row has done; or decide that a bill is finance's outright, which this row opposes because it would strip the matter-anchored narrative of the family's naming and prompt restrictions. (3) NJ-TB-3, THE NARRATIVE-CELL RESTRICTION'S SCOPE: this row asserts that a spreadsheet extractor's general licence to read visible cell values is SUSPENDED for one named column, on the ground that the column is not needed for activation. That is a general principle with reach well beyond this family - a diagnosis column, a complainant column, a salary column, a free-text incident column - and it should either be ratified product-wide as a column-level minimisation rule, narrowed to this row as a template-level privacy rule, or rejected in favour of relying on the existing sensitivity posture alone, which would leave narrative text eligible for prompts. It is the same shape as `law_practice.pro-bono`'s NJ-PB-3 (an ATTRIBUTE of a third party being as unsafe as their name) and the two should be decided together."
+}

@@ -1,0 +1,410 @@
+{
+  "id": "academic.recommendation-letters-written",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "Recommendation letters written",
+  "one_line": "The recommender's own side of the letter: letters and evaluation forms the holder wrote about other people, their drafts, the request mail and applicant materials that arrived with them, the tracking sheet, and the portal submission records — a corpus whose facts are about the holder's teaching but whose content is about someone else.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a recommendation-letter term in a high-weight zone (filename, document title, page-one heading or first body line) together with a committee-addressed salutation in the same file and a closing signature block whose named signer resolves to the corpus holder's user-confirmed identity — the signer half is what separates a letter the holder WROTE from one the holder RECEIVED, and 00 licenses the positional half: \"It should use positional weighting because a value in a filename or document title carries more meaning than the same value in a footer or a late body-page reference.\"",
+      "a labelled recommender-side form slot filled in the document itself (Recommender, Evaluator, Reference, Relationship to applicant, How long have you known the applicant, Rank the applicant) — 00 counts a labelled slot as reliable and explicit, listing \"a labeled form field\" among the direct sources",
+      "a course-code-shaped token with academic context in a document that also carries a committee-addressed salutation and one named third-party person: the course anchors the writer's academic role, following 00's context rule for \"a course-code pattern together with academic context\"",
+      "a spreadsheet or delimited-text file whose header row names letter-request tracking columns (applicant, program, institution, deadline, portal, submitted) in a file that also carries a recommendation or reference term — the header shape alone is a contact list",
+      "an archive manifest whose member names repeat a letter-or-reference token across distinct person-name-shaped suffixes, on an archive whose own name carries that same token",
+      "a mail item whose subject line carries a recommendation-request term, whose sender is not the holder and whose recipient is, with attachment names shaped like an applicant CV or transcript — 00 gives the extractor those slots: \"Email formats such as EML, MBOX, MSG, and exported mail archives should yield sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context\"",
+      "OCR of a recommender-view portal in which the interface text names the evaluator's own affordances (submit recommendation, recommender portal, upload your letter, waive/waived) alongside one applicant-name-shaped field"
+    ],
+    "needs_llm": [
+      "an evaluative letter with no salutation and no signature block, where the writer-versus-subject roles have to be read out of prose stance — the model must cite the sentence that carries the stance, and 00 binds it: \"A model that cannot cite sufficient evidence must return unknown.\"",
+      "a flattened scan of a signed letter where the signature is an image and the only names in the text layer are a letterhead and the applicant, so the written-versus-received split is not decidable from a labelled slot",
+      "a letter the applicant drafted for the recommender to sign — the file sits in the recommender's corpus but its authorship is the applicant's, and no deterministic slot records that",
+      "deciding whether an unaddressed reference serves an academic programme or a job when the target organization is unnamed, which decides whether college_applications or career is the second plausible schema",
+      "letters and evaluation forms in a language whose salutation, reference and relationship-to-applicant vocabulary the deterministic pattern catalogue does not cover",
+      "an archive or mail thread of mixed members where the question is whether one applicant explains the packet or one writing cycle does"
+    ],
+    "never_alone": [
+      "a recommendation-or-reference token in a filename alone — this is the tempting false file for this node: a letter the holder RECEIVED, a blank recommender form someone sent them, a recommended-reading list from a syllabus, and a saved product-recommendation screenshot all carry it, and only the signer, the addressee and the named subject separate them",
+      "a stem match on recommend — 00 requires \"It should use word-boundary matching rather than substring matching\", and Recommended Reading is a different word from a letter of recommendation, so a stem-level rule takes a coursework bibliography",
+      "a school or university name alone — 00: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\"",
+      "a document author, creator or producer field alone as proof of who wrote the letter — 00: \"PDF metadata should be treated as supporting evidence, not as truth\"",
+      "an instructor fact alone: instructor is legal on any file of this schema and says who taught a course, not that the file's holder wrote a letter",
+      "a person-name-shaped token in a filename alone — a letter about someone, a photo of someone and a contact export all look like that",
+      "a spreadsheet of many person-name-shaped rows alone: 00 requires such data \"should normally be privacy-protected rather than used to create folder proposals\", and an address-book export has the same shape as a letter-request tracker",
+      "a bare 4-digit number alone — 00 warns of \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\", so letters_2025_2026.zip yields no term",
+      "source_type alone: text_document, spreadsheet, email, archive, image or ocr membership never activates this schema and never distinguishes this template from its neighbours",
+      "a parent folder named Letters, Recs or References alone — folder context is a clue, and 00 treats a curated existing folder as user intent to preserve rather than as a fact to assert"
+    ]
+  },
+  "proposed_context_terms": [
+    "letter of recommendation",
+    "letter of reference",
+    "recommender",
+    "evaluator",
+    "relationship to applicant",
+    "in support of the application",
+    "admissions committee",
+    "selection committee",
+    "hiring committee",
+    "waiver",
+    "confidential",
+    "rank the applicant",
+    "on behalf of"
+  ],
+  "work_types": [
+    "recommendation letter",
+    "reference letter",
+    "recommender form",
+    "evaluation form",
+    "letter template",
+    "letter request",
+    "applicant materials received",
+    "waiver form",
+    "submission confirmation",
+    "letter tracking sheet",
+    "reference list"
+  ],
+  "grouping_reasons": [
+    "one letter across its drafts and its signed output, joined by the universal version family rather than by any academic fact",
+    "one applicant: the letter, the form, the request mail, the CV they sent and the portal confirmation are content-incoherent and purpose-coherent, which is the shape 00 names — \"The documents are content-incoherent but purpose-coherent.\"",
+    "one writing cycle: the batch of letters a recommender produced for one term, kept together only where a dedicated term pattern actually supplies the term — 00: \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\"",
+    "one course neighbourhood in which a letter sits because the writer taught the applicant there, with sparse drafts as context-supported members only — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+  "template": {
+    "dimension_order": [
+      "term",
+      "work_type"
+    ],
+    "why": "A recommendation, not a filesystem — 00: \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.\" It differs from the Academic schema's default (\"An Academic template may define school → term → course → work type\") on both ends, and the differences are the licence for this row. school is dropped: a recommender writes from one employing institution, and 00 asks the canvas to warn when a level \"produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" subject is dropped for the second half of that same warning: the course in which the writer taught one applicant is sparse in these files and, where present, yields a folder holding a single letter. term leads because the writing cycle is the batch a recommender actually re-finds, and 00's counter-rule does not bite here — it warns that \"putting year first scatters related work across calendar folders\", and in this situation the related work (the letter, its request mail, its portal record) shares the cycle rather than crossing it. work_type stays last for 00's own reason that a parent must make the child intelligible: \"A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.\" The termless members of this corpus — the reusable letter template, a multi-cycle tracking sheet — belong in a scoped fallback under the meaningful parent rather than a global catch-all, which 00 provides for: \"the future tree can include Academics/Columbia/2026-Spring/General rather than sending it to a global Unsorted folder.\" The reverse order (work_type before term) is a legitimate user choice and is recorded in this node's research notes. instructor is excluded because it is not destination-eligible, and no dimension names the person a letter is ABOUT: no canonical field carries that role on this schema, and 00 forbids identity collectors as destinations — \"It should avoid using authorship or creator identity as a destination dimension.\"",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "image",
+      "archive"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".md"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Recommendation - J Ruiz - Columbia.docx",
+      "source_type": "text_document",
+      "observations": [
+        "first body line reads Dear Members of the Admissions Committee",
+        "body names one student, the course the writer taught them in, and a term-shaped token",
+        "a closing signature block names the writer with an academic title and department",
+        "the page header carries a school letterhead that is not the institution named in the filename",
+        "filename carries a person-name-shaped token and a university-gazetteer token"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "instructor",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school = Columbia, which here is the institution the letter is addressed TO and not the writer's own — the role split is 00's: \"The system must separate roles that happen to contain the same entity type.\"",
+        "that the named student is a fact about this file's holder",
+        "instructor from the DOCX author field, which may name a template, a prior editor or a script"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "LoR_Chen_Wei_2026_signed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "the PDF has no usable text layer and routes to OCR",
+        "OCR recovers the heading LETTER OF RECOMMENDATION and the line To the Selection Committee",
+        "the signature is an image region; no signer name appears as recognized text",
+        "a letterhead block carries an institution name and a department",
+        "a handwritten date appears above the signature"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the holder is the signer — the writer's name is not in the recognized text, and this file needs the model step or a user confirmation",
+        "term from the handwritten date — 00: \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\"",
+        "school from the letterhead alone",
+        "subject from the programme name in the salutation"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reference Letter Template.docx",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Letter of Recommendation — template",
+        "body carries placeholder tokens in square brackets where a name, a programme and a term would go",
+        "there is no addressed salutation and no signature block",
+        "no person name, no institution name and no course-code-shaped token anywhere in the file"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "subject or term from the placeholder tokens — a placeholder is not a value",
+        "that any person is named by this file",
+        "a school from the document's style template or its author metadata"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Rec letter requests 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row reads Applicant, Programme, Institution, Deadline, Portal, Submitted",
+        "many rows of person-name-shaped values and institution-gazetteer hits",
+        "a sheet tab is named with a dedicated term-pattern shape",
+        "a column of yes/no submission states",
+        "workbook author metadata names a script"
+      ],
+      "facts_legal": [
+        "work_type",
+        "term"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the listed applicants or their target institutions become facts about this file — 00 requires such data \"should normally be privacy-protected rather than used to create folder proposals\"",
+        "school from the Institution column, which holds the applicants' targets and not the holder's own institution",
+        "instructor from the workbook author metadata",
+        "term from the 4-digit token in the filename"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-01-08 at 21.03.11.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution with no camera EXIF",
+        "OCR text reads Recommender Portal and Submit Recommendation",
+        "OCR text names one applicant-name-shaped field and a status reading Submitted",
+        "OCR text carries a waived-right line"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone — 00: \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "that the named applicant is a fact about this file's holder",
+        "school from the portal's institution branding, which is the applicant's target",
+        "term from the filename's date stamp"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Re_ Recommendation letter request.eml",
+      "source_type": "email",
+      "observations": [
+        "subject line carries a recommendation-request term",
+        "the sender address is not the holder's; the holder is the sole recipient",
+        "body names a programme and a submission deadline and thanks the recipient in advance",
+        "attachment names are shaped like a CV and an unofficial transcript",
+        "a reply-chain header links an earlier message"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "subject or term from the attached transcript, whose content this mail item does not carry",
+        "school from the sender's mail domain",
+        "that the sender is a fact about this file — 00 handles mail \"while treating addresses and message content as potentially sensitive\"",
+        "a target institution as a fact of this schema"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "letters_2025_2026.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists members named with a letter token plus distinct person-name-shaped and institution-shaped suffixes",
+        "the outer archive name carries a letter token and two 4-digit tokens",
+        "file count and uncompressed size are available from the manifest",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "the member person-names as facts about this file",
+        "any member's content — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+        "term from the two 4-digit tokens in the archive name",
+        "school from an institution-shaped member suffix"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Recommendation Letter - Prof Alvarez.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "first body line is a committee-addressed salutation",
+        "the body names the corpus holder as the applicant being recommended",
+        "the signature block names a professor who is not the holder",
+        "the letterhead is that professor's institution",
+        "filename carries a recommendation term and a person-name-shaped token"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this template is active — the holder is the SUBJECT of this letter, not its writer, and the signature block is the discriminating evidence",
+        "work_type = recommendation letter on the writing side",
+        "instructor from the signer merely because the signer is a professor",
+        "school from the signer's letterhead"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Reference for Jordan Blake - EY internship.docx",
+      "source_type": "text_document",
+      "observations": [
+        "first body line reads To the Hiring Team",
+        "body names one former student and the course and term in which the writer taught them",
+        "signature block names the holder with an academic title",
+        "the addressed organization is a company-gazetteer hit, not a school",
+        "no rubric, roster, gradebook or assignment structure anywhere in the file"
+      ],
+      "facts_legal": [
+        "subject",
+        "term",
+        "instructor",
+        "work_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "school from the addressed company",
+        "that the company employs the holder",
+        "that the named former student is a fact about this file's holder"
+      ],
+      "also_schema": "career",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "letter final v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a version-shaped token and no other content token",
+        "body is one page of unlabelled evaluative prose with no salutation, no named person and no institution",
+        "two neighbouring files share the same normalized stem and form a version family",
+        "mutual semantic retrieval links it to a signed letter in the same directory"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "work_type from the neighbouring signed letter — 00: \"The graph does not automatically copy those missing facts onto sparse files.\"",
+        "subject or term from the neighbourhood",
+        "the name of the person the letter is about from a sibling file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Recommended Reading - BUSIB 4300 Spring 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries the word Recommended, a course-code-shaped token and a term-shaped token",
+        "page-one heading reads Recommended Reading",
+        "body is a numbered bibliography",
+        "the page header carries the word syllabus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this template is active — Recommended is a different word from a letter of recommendation, and 00 requires \"It should use word-boundary matching rather than substring matching\", so a stem-level rule on recommend takes a coursework bibliography",
+        "work_type = recommendation letter",
+        "that any person is recommended by this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic.teaching",
+      "signal": "both are instructor-authored files about a course the holder taught and both name students, so subject, term and instructor evidence discriminates neither. The discriminating evidence: a recommendation letter is addressed to a third-party reader and is about one named person, carrying a committee salutation, a signature block and an addressed institution; a teaching artifact is addressed to a cohort and is about the course, carrying assignment, grading, roster or scheduling structure. A letter naming a course does not make the letter teaching material, and a rubric naming a student does not make it a letter. Reciprocates the edge academic.teaching already carries.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.undergraduate-packet",
+      "signal": "the same document shape appears on both sides of the transaction — 00 lists \"compatible record types such as a transcript, resume, personal statement, recommendation form, certificate, or ID\" among the packet's own members, so a received letter is a legitimate packet document while a written letter is this template's. The discriminating evidence is the signature block and the named subject relative to the corpus holder's confirmed identity: holder signs it, this template; holder is named as the applicant, the packet. Absent either, neither side may take the item, and 00's packet discipline holds — \"an application packet does not silently absorb a document with a conflicting target institution\".",
+      "provenance": "inference"
+    },
+    {
+      "domain": "applications.graduate-professional",
+      "signal": "identical confusion to the undergraduate packet, one step later in a life: a graduate or professional application is exactly where a written letter is sent and where a received letter is filed. Same discriminating evidence — who the signature block names relative to the holder — and the same refusal when neither is recoverable. The addressed institution is target evidence for the packet side and must never be read as school on this side.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "a reference written for someone else's job search and references the holder collects for their own job search carry the same words and the same company-gazetteer hits. The discriminating evidence: on this side the holder is the signer and one other person is the subject, with an academic role (a course taught, a term, a supervising relationship) supplying the fact set; on the recruiting side the holder is the subject and the file supports the holder's own application. Neither side may take a company name alone.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "a manager's reference letter about a former employee has this template's exact document shape — committee salutation, one named subject, holder's signature — but no academic role evidence at all, so nothing on the Academic schema can be filled from it. The discriminating evidence: this template needs an academic role for the writer (a course-code-shaped token with academic context, a term pattern, or a labelled instructor or evaluator slot in a school context); an employment reference is evidenced from the hiring side by employment language describing the relationship. Where an academic writes for a former student's job, both sides can hold on disjoint evidence, which the EY-internship file example records rather than treating as an outlier.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "a filename token is the whole confusion: Recommended Reading, a recommended-texts appendix and a course bibliography all match a stem-level rule on recommend, and they are coursework. The discriminating evidence: coursework needs a course-code-shaped token with 00's academic context terms on an artifact addressed to a cohort; this template needs a committee-addressed salutation, one named third-party subject and a signer resolving to the holder. Word-boundary matching, not stem matching, is what keeps the two apart.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    "Protected Records",
+    "Independent Records",
+    "Review Later"
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Every substantive file here is about someone who is not the holder, and most are evaluative and often confidential: the letters rank and judge named applicants, the tracking sheet carries their programmes and deadlines, the request mail carries their addresses, and the CVs and transcripts they sent carry their records. 00 counts this material in the corpus it protects — the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" — and its contact rule points the same way, that such data \"should normally be privacy-protected rather than used to create folder proposals\". What protection means operationally is 00's too: \"Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.\" Which handling class applies is P7's and is not set here.",
+  "open_question": "Two forks, both Joseph's. First, the missing dimension: a letters corpus is naturally organized by the person each letter is about, and no canonical field carries that role on the Academic schema — `people` exists but is seeded destination_eligible false, is a Photos field, and its widening is already recorded as Joseph's call, while minting a subject-person key would be the 574's failure repeated for one node. A person-named folder level is also privacy-loaded in exactly the way this situation's sensitivity describes. This node therefore recommends no person dimension and accepts a shallower tree; if Joseph wants one, the honest route is widening an existing canonical field and having the Academic schema row declare it, never a private key here. Second, whether this whole situation should default to a protected branch — local-only, redacted in the canvas, excluded from cloud dossiers — or only its third-party-data-bearing members (tracking sheet, request mail, applicant materials, portal screenshots), which would make protection depend on work_type, a fact that is itself only validated, and would let a letter named simply `letter final v3.docx` slip past it."
+}

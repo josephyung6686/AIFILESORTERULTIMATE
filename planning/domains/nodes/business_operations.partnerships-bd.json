@@ -1,0 +1,526 @@
+{
+  "id": "business_operations.partnerships-bd",
+  "kind": "template",
+  "schema_id": "business_operations",
+  "parent_id": null,
+  "name": "Partnerships, alliances and business development pursuits",
+  "one_line": "The organizational situation of PURSUING a commercial relationship that does not exist yet - a prospect, a partner, an alliance, a reseller, a piece of new work being bid for. The organizing anchor is NOT the counterparty's name and NOT its role, both of which are field-shaped and never-alone; it is three structures that can only exist before a relationship does - a PIPELINE (a register whose rows are opportunities, with stage, expected close date, weighted value and probability), a PRE-CONTRACTUAL INSTRUMENT (NDA, letter of intent, memorandum of understanding, term sheet - dead paper the moment a contract exists), and an OUTBOUND PROPOSAL carrying a VALIDITY PERIOD, which is a confession that nothing is agreed. That is what separates it from customer account management, whose documents MEASURE an existing relationship, from vendor management, whose documents presuppose an engaged supplier, from contract administration, which begins at signature, and from sourcing, which is the same documents seen from the buying side of the table. Absorbs the legacy row ops.partnerships-bd. Placeholder row (J-IND): it recognizes the situation and writes NO field rows, because the business_operations schema declares none.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: every entry below is a DETECTION signal, never an extraction licence - this template's schema declares no field rows (PR-6; D1's deferral stands). “Privacy policy must be enforced before content reaches any model or external connector.”",
+      "an outbound proposal structure: a document addressed TO a named external organisation carrying an understanding-of-your-needs section, a proposed approach, a commercial section and a validity period. Addressed-outward plus a validity period together is the shape.",
+      "the pipeline's discriminating columns specifically: stage, expected close date, weighted value and probability. This is a register of things that DO NOT EXIST YET, and it is the one structure no sibling in this family has - a supplier register and an account book list actual counterparties with actual identifiers. Delete those four columns and the file stops being a pipeline; a supplier register never had them.",
+      "a pipeline structure: a spreadsheet or export whose header row names an opportunity, a counterparty, a stage, a value and an expected close date, with one row per pursuit. “Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.”",
+      "a pre-contractual instrument structure: a non-disclosure agreement, a memorandum of understanding, a letter of intent or a term sheet - documents that exist ONLY in the pursuit stage and disappear once a contract is signed.",
+      "a partner-programme structure: tiering criteria, a partner application form, a referral or margin schedule, and a joint go-to-market annex.",
+      "a pitch-deck structure aimed outward: a problem framing for a named counterparty, credentials and case studies, a proposed commercial model, and a next-steps slide.",
+      "a bid or qualification structure that answers somebody else's numbered questions - a completed pre-qualification questionnaire, a filled-in pricing schedule, a method statement responding to a solicitation reference issued by another organisation.",
+      "a CRM export: a machine-generated filename with a date token, and a header row naming account, contact, stage, owner and last activity.",
+      "a validity, expiry or 'valid until' slot on a commercial document addressed outward. Nothing in the post-sale world has one, and it is the single cheapest positive signal in this row - but it fires only alongside an addressed-to slot, never on the date alone.",
+      "a win/loss or closed-lost review structure: an outcome statement, a competitor named as the winner, and a lessons or win-themes section. This is the row's TERMINAL document, and the fact that this world has a terminal state that is nothing - no successor object anywhere in the corpus - is part of what makes it a world of its own."
+    ],
+    "needs_llm": [
+      "PRECONDITION: any model step runs after P7 and under the user's policy, and must abstain rather than guess: “A model that cannot cite sufficient evidence must return unknown.”",
+      "the direction of the relationship, which is the central judgement of this row: whether a named counterparty is a prospect being pursued, an existing customer being served, a supplier being bought from, or an employer being applied to. A company name and a proposal decide none of it. “Topic answers what a file is about, while purpose answers what the file was for.”",
+      "the side of the table on a bid: the same specification, pricing schedule and clarification log exist in the buyer's sourcing file and in this row, and only purpose distinguishes them.",
+      "separating a pursuit that is still a pursuit from one that has closed - the moment a proposal becomes a signed contract, ownership moves to contract administration or account management, and the file itself often does not change.",
+      "an unheaded deck or one-pager with a counterparty logo and no framing.",
+      "a purpose-coherent pursuit pack whose members are individually unremarkable - an NDA, a deck, a pricing sheet, three case studies and a meeting note. “The documents are content-incoherent but purpose-coherent.”",
+      "whether a proposal to an existing customer is an expansion pursuit or account servicing. It carries this row's validity period AND the account row's account identifier and usage history, and both rows fire honestly. The two are mutex for one OPPORTUNITY, not for one COUNTERPARTY. “A file may validly belong to more than one accepted group”, and P10 chooses from an accepted group."
+    ],
+    "never_alone": [
+      "an external organisation's name alone. This is the tempting false file for this row and the reason it needs care: a folder of company-named PDFs is as likely to be suppliers, customers, employers or news as prospects. Read across by inference from “A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.”",
+      "a counterparty acting as the only thing joining a candidate group. 00 states this as a stop rule for group formation, not merely as a caution: the system should not form a supported group “when one high-frequency entity acts as the only bridge”. A folder of Meridian-named PDFs is exactly that, and “Sparse groups with no anchor should be shown only as tentative discovery candidates, if at all.”",
+      "the word proposal, partnership, pitch or deck in a filename alone - a proposal is also a research grant application and an academic project proposal.",
+      "an NDA alone. Non-disclosure agreements are signed for recruitment, diligence, procurement, disputes and consulting, and the document is near-identical in all of them.",
+      "a contact name or a business card alone - 00 treats contact data as privacy-side rather than as a source of folder proposals.",
+      "an extension or a source_type alone - 00: “The engine should treat the file extension as a routing signal rather than an assumption about meaning, inspect the real MIME type or file signature where possible, and dispatch each file to a type-specific extractor.”",
+      "a bare 4-digit number read as a year, a deal value or an opportunity number.",
+      "membership in a download session that dropped a counterparty's whole document set at once - “A session should never be treated as proof of topic, and it should not carry the same confidence as a hash match or a directly extracted document fact.”",
+      "the counterparty's ROLE - prospect, customer, supplier - even where it is somehow known. 00 answers a role difference with a field, not a branch: “The system must separate roles that happen to contain the same entity type.” This row therefore does not rest on role; it rests on the three structures above. A role read off a file activates nothing here.",
+      "the words term sheet, memorandum of understanding or letter of intent alone. The identical instrument words attach to a fundraising round (finance.cap-table-equity), an institutional research collaboration (academic / research) and a legal negotiation. What is being offered decides: work or a commercial arrangement for a fee here, equity in the holder's own entity there."
+    ]
+  },
+  "proposed_context_terms": [
+    "opportunity",
+    "pipeline",
+    "prospect",
+    "pursuit",
+    "qualification",
+    "pitch",
+    "proposal",
+    "statement of work",
+    "letter of intent",
+    "memorandum of understanding",
+    "term sheet",
+    "non-disclosure agreement",
+    "heads of terms",
+    "partner programme",
+    "referral",
+    "reseller",
+    "alliance",
+    "joint go-to-market",
+    "win themes",
+    "closed won",
+    "closed lost",
+    "next steps"
+  ],
+  "work_types": [
+    "prospect or partner profile and qualification note",
+    "pitch deck or credentials presentation",
+    "proposal or statement of work",
+    "pricing or commercial offer",
+    "non-disclosure agreement",
+    "letter of intent, memorandum of understanding or term sheet",
+    "partner programme application or agreement draft",
+    "bid or pre-qualification response",
+    "pipeline or CRM export",
+    "meeting and call notes from the pursuit",
+    "case study or reference material used in the pitch",
+    "win or loss review",
+    "attendee, delegate or membership list gathered for prospecting"
+  ],
+  "grouping_reasons": [
+    "one pursuit: the NDA, the deck, the proposal, the pricing and the notes for one counterparty and one opportunity, held together by purpose rather than by content. “The documents are content-incoherent but purpose-coherent.”",
+    "one proposal across its drafts and its sent version, which is a version family before it is anything else.",
+    "one counterparty across several pursuits over years, which is a real reason to group and the one most likely to tempt a customer or partner status onto a file that merely names the company. “The graph does not automatically copy those missing facts onto sparse files.”",
+    "one partner programme across its applicants, which is a group of pursuits rather than a single pursuit.",
+    "no group at all is a valid outcome: a single NDA with no pursuit around it is a standalone record.",
+    "no group where the counterparty is the only bridge: a candidate group whose members share nothing but an organisation name must not form, however many members it has. This is the row's most likely wrong group and the family's refused row is the proof of what it would look like."
+  ],
+  "template": {
+    "dimension_order": [],
+    "time_first": false,
+    "why": "Empty by binding contract: business_operations declares no field rows (J-IND / PR-6, D1's deferral as narrowed, _CONTRACT rules 10 and 15), so no dimension can branch - a dimension naming an undeclared field opens a tree level no fact could ever fill. Held as prose for the pass that may license fields: the natural anchor is the organisation, then the COUNTERPARTY, then the pursuit or opportunity, then the document function. This is one of the few rows in the family where a counterparty level genuinely belongs above the work, because the relationship outlasts any single pursuit and because that is how sales and partnership teams actually file - but it also means the tree records who an organisation has been talking to, which is exactly the disclosure the row's sensitivity note is about. “The recommendation should follow the practical rule that a parent dimension should provide the context required to understand the child.” - a pricing sheet is meaningless without knowing which counterparty and which opportunity it was built for. Not time-first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” - a pursuit that runs across a year boundary must not split in two. The user may reverse, remove or flatten any of this later; this is a recommendation, not a frozen filesystem. Stated explicitly for R1c, because it is this row's substantive divergence from the family's default paragraph: that paragraph puts a FISCAL PERIOD level between the project/account level and the document function. This row has NO period level and declines the fiscal_period key. A pursuit does not belong to a fiscal period - it crosses them and ends when it ends - and a period level would split one pursuit that opened in Q2 and closed in Q4 across three folders. In a family the schema anchor describes as made of periods, having no period level is a real difference; it is recorded here rather than claimed as a passed leg, because no sibling may write a dimension at all."
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "presentation",
+      "spreadsheet",
+      "email",
+      "ocr",
+      "calendar",
+      "archive",
+      "image",
+      "contacts"
+    ],
+    "extensions": [
+      ".pdf",
+      ".pptx",
+      ".docx",
+      ".xlsx",
+      ".csv",
+      ".eml",
+      ".ics",
+      ".zip",
+      ".png",
+      ".vcf"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Proposal - Meridian Group - v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a named external organisation",
+        "an understanding-of-requirements section and a proposed approach",
+        "a commercial section with rates and a validity period",
+        "tracked changes from two internal reviewers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "any business_operations fact - the schema declares no field rows",
+        "that the counterparty is a customer - at proposal stage it is a prospect, and the file cannot tell the difference",
+        "a reviewer's name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Pipeline export 2026-03-31.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "machine-generated filename with a date token",
+        "header row names account, opportunity, stage, value, close date, owner",
+        "several hundred rows naming external organisations and internal owners",
+        "a weighted-value formula column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a list of short cells is low-risk: this file names every organisation being pursued, at what price, and how likely each is thought to be",
+        "a relationship fact copied onto any other file naming one of those organisations",
+        "an owner's name as a destination dimension",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "NDA - Meridian - executed.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "a mutual non-disclosure agreement with two named parties",
+        "a term and a governing-law clause",
+        "two signature blocks with dates",
+        "scanned, with no text layer until OCR"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.contract-administration owns it - an executed NDA is both the opening act of a pursuit and a live contractual obligation, and P10 chooses from an accepted group later",
+        "the purpose of the NDA from the document: the identical instrument is signed for recruitment, diligence, procurement and disputes",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "QBR - Northwind - Q1.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a named external organisation and a quarter in the title",
+        "adoption and usage charts against a baseline",
+        "an open-issues slide and a renewal date",
+        "a success-plan slide"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "activation of this row: usage against a baseline and a renewal date mean the deal is already won - this is the collision fixture, and business_operations.customer-account-management owns it",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PQQ response - ITT-2026-014.docx",
+      "source_type": "text_document",
+      "observations": [
+        "another organisation's numbered questions with this organisation's answers",
+        "a solicitation reference issued elsewhere",
+        "attached certificates and insurance evidence",
+        "a submission deadline in the header"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.procurement-sourcing owns it - this is the mirror-image case: the same document is an outbound bid here and an incoming response there, and only the side of the table decides",
+        "that a solicitation reference means the organisation ran the competition",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Partner programme - tiering and margins.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "tiers with qualification criteria",
+        "margin and referral-fee schedules per tier",
+        "a tab listing current and applicant partners",
+        "no title metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a commercial term as a fact of the product's own",
+        "a partner status copied onto files naming an applicant organisation",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Intro call - Meridian.eml",
+      "source_type": "email",
+      "observations": [
+        "labelled subject slot names an introduction and an organisation",
+        "recipients slot resolves to two external and two internal addresses",
+        "a body proposing times and a short agenda",
+        "one attachment named as a credentials deck"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "the attachment's contents from its filename - the attachment is its own file and is extracted as one",
+        "activation from source_type = email alone",
+        "a relationship stage from an introduction",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "contacts_export.vcf",
+      "source_type": "contacts",
+      "observations": [
+        "several hundred contact cards with names, roles, organisations and phone numbers",
+        "no grouping or annotation",
+        "an export timestamp in a comment field"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a pursuit fact from a contact export: 00 treats this material as privacy-side rather than as a source of folder proposals, and a contact list is not a pipeline",
+        "activation from source_type = contacts alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consulting proposal - Meridian.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an individual's own name and credentials rather than an organisation's",
+        "a scope, a day rate and a start date",
+        "a short CV appended",
+        "a personal email address in the footer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "which of this row, career.consulting-client-engagement and career.recruiting owns it - for an individual, pitching for work and applying for work are the same act with different paperwork, and this is the second collision fixture",
+        "an employment relationship from a rate and a start date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Term sheet - Series B.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a term sheet with two named parties and a non-binding legend",
+        "slots for pre-money valuation, liquidation preference, option pool and board composition",
+        "an exclusivity or no-shop period",
+        "a signature block for the holder's own entity as issuer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "activation of this row from the words term sheet: this is the fires-wrongly-on-vocabulary fixture. What is being offered is equity in the holder's OWN entity, not work for a fee, and finance.cap-table-equity owns it alongside its SAFEs and convertibles",
+        "that a non-binding legend means the document is unimportant",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "TechSummit 2026 - attendee list.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "several hundred rows naming individuals, job titles and organisations",
+        "a column for session track and one for badge type",
+        "no stage, no close date, no value and no probability column",
+        "an event name and year in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is a pipeline: it is the closest-looking file in the corpus and it has none of the four columns that make a pipeline one. Rows of organisations are not pursuits",
+        "a pursuit fact copied onto any file naming one of these organisations",
+        "that a list of names is low-risk - it is third parties' contact material",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Expansion proposal - Northwind - additional seats.docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed to a counterparty that already has an account identifier in the header",
+        "a usage summary of the existing deployment",
+        "a commercial section with a validity period",
+        "a reference to the existing agreement by date"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "which of this row and business_operations.customer-account-management owns it - both fire honestly, this row on the validity period and that row on the account identifier and usage history, and the two rows are mutex for one opportunity rather than for one counterparty",
+        "that an existing agreement reference makes this contract administration - nothing here is a live obligation, notice date or register entry",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Win-loss review - ITT-2026-014.docx",
+      "source_type": "text_document",
+      "observations": [
+        "an outcome statement naming the competitor that won",
+        "a price comparison against the submitted bid",
+        "a lessons and win-themes section",
+        "internal attribution of the loss to named reviewers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a closed pursuit stops being this row's - closed lost is this world's terminal state and it has no successor object anywhere in the corpus",
+        "a reviewer's name as a destination dimension",
+        "a competitor fact copied onto other files naming that competitor",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "The same counterparty, the same deck template and often the same folder, separated by whether the relationship EXISTS - which is an existence difference, not a role difference. That row's own anchor is one customer as an ongoing relationship, and its characteristic documents MEASURE one: an adoption record needs usage, a renewal sheet needs a contract end date. This row's can only exist before one: a validity period expires because nothing is agreed. Discriminating evidence: a proposal with a validity period, a pipeline stage, or a pre-contractual instrument supports this row; an account identifier, delivered-service reporting, adoption metrics and a renewal date support account management. Same bytes both rows must name, in both directions: QBR - Northwind - Q1.pptx belongs entirely to that row and is this row's must-not-fire fixture; Expansion proposal - Northwind - additional seats.docx fires both honestly and neither may resolve it structurally - the rows are mutex for one OPPORTUNITY, not for one COUNTERPARTY. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "The mirror-image problem: a bid response, a pricing schedule and a clarification log exist identically on both sides of one competition. The discriminating evidence: possession of the evaluation apparatus - several suppliers' responses, scoring matrices, an award to issue - supports the sourcing row; a single organisation's own outbound response, win themes and internal pricing approval supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "The seam is the signature, and that row states it from its side: its anchor is “The anchor is a LIVE OBLIGATION and its calendar — not the negotiation that produced the instrument and not the instrument itself.” Reciprocally: everything up to and including the moment of signature is this row's; the register entry, the notice date and the obligation tracker the signature creates are that row's. Discriminating evidence: an obligations register, a notice date, a variation numbered against a parent agreement support contract administration; a pipeline stage, a validity period or an unsuperseded pre-contractual instrument support this row. Same bytes both rows must name: NDA - Meridian - executed.pdf, simultaneously the opening act of a pursuit and a live obligation - neither row resolves it from structure and P10 chooses from an accepted group. NOTE for R1c: this edge is currently ONE-SIDED - that row's collides_with does not name this one, and this row will not edit it (NJ-BO-PB-2). Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "For an individual or a very small firm, business development and consulting engagement are one continuous activity with the same documents. The discriminating evidence: a delivered engagement with a scope, deliverables and timesheets supports the career row; an unwon pursuit with a proposal and a validity period supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.recruiting",
+      "signal": "A freelancer's proposal, credentials pack and NDA are nearly indistinguishable from a job application, a portfolio and an employment NDA. The discriminating evidence: an application to a named role, a job reference, or an interview cycle supports the career row; an offer to perform work for a fee supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "Partner enablement and joint go-to-market annexes are produced by both situations and share the same decks. The discriminating evidence: a launch date, positioning and readiness checks supports go-to-market; a named counterparty being pursued supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "nonprofit.fundraising-donor",
+      "signal": "Approaching a funder is business development with different vocabulary: a case for support is a pitch, a grant application is a proposal, and a donor pipeline is a pipeline. The discriminating evidence: a funder, a charitable purpose, a grant reference or a restricted-fund framing supports the nonprofit row; a commercial counterparty and a fee supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.contract-negotiation",
+      "signal": "Term sheets, heads of terms and redlined drafts circulate during a pursuit and inside a legal negotiation file, and are literally the same documents. The discriminating evidence: a matter reference, a client identifier, privilege markings or counsel involvement supports the law-practice row; a commercial pursuit run by the parties themselves supports this row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "A fundraising term sheet is a pre-contractual instrument by shape and uses one of this row's three named instrument words, so it will fire this row on vocabulary alone. That row's work_types already carry SAFEs, convertible notes, stock purchase agreements and 409A valuations, and a term sheet is their precursor. The discriminating evidence is what is being offered: valuation, liquidation preference, option pool and a board seat - equity in the holder's own entity - support the finance row; scope, fee, rates and exclusivity over work support this row. Stated reciprocally: a term sheet whose slots are valuation and preference is the finance row's even though it names a counterparty and a negotiation, and a term sheet whose slots are scope and fee is this row's even though it is called a term sheet. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "Both rows are organised around another organisation, which is the reason they look like one world and the reason neither may rest on that fact. That row's characteristic documents presuppose an ENGAGED supplier - an onboarding form with a remittance block, a diligence questionnaire, a scorecard - and cannot be produced before one exists; this row's cannot be produced after. The contested file is a supplier NDA, which that row folded into its legal edge and this row does not claim where the holder is the buyer, because the pursuit was the supplier's. Which side the holder is on is frequently not in the document; abstain, per the family's side posture, and see that row's NJ-BO-VM-3. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Independent Records",
+      "why": "The home for a standalone NDA, proposal or partner agreement with no accepted pursuit group around it. “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The cautious outcome for a counterparty-named deck or an introduction email whose relationship direction is unresolved - the commonest ambiguity in this row. “Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "The correct home for a pipeline export, a contact export or a commercial offer with no accepted group - files that disclose who an organisation is talking to and on what terms. “Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "The safe outcome for a password-protected pursuit pack or an unreadable counterparty document. “Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "The home for a counterparty's own marketing material and public reports saved during qualification, which are reading material rather than pursuit artifacts. “Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.”",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "A pursuit file discloses two things that are damaging in different directions: what an organisation is willing to charge or concede, and who it is talking to. A pipeline export is the second of those at scale - every prospect, every value, every probability in one file - and a contact export is a list of named individuals at other organisations with their direct numbers. 00 names the corpus this product handles - it “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” - and private correspondence and contact material sit inside it, with 00 treating contact data as privacy-protected rather than as a source of folder proposals. The operative limits are 00's: “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.”. This row assigns only the catalogue value potentially_sensitive; it does not assign, alias, rank, or infer a P7 handling class. The ground that is this row's alone, and is not the account row's or the vendor row's: a pipeline discloses relationships that DO NOT EXIST. Every other file in this family names counterparties the holder actually deals with; a pipeline names organisations the holder wants to deal with, at the price it hopes to charge, with a number saying how likely it privately thinks each is - and most of them have not agreed to anything and none has seen the number. Both parties are exposed in opposite directions: the counterparty because it is being discussed without its knowledge, the holder because the file states what it would concede. Provenance: inference.",
+  "open_question": "Whether an individual's own pursuit of work belongs here or in career. For a company, business development and job-seeking are unmistakably different activities; for a freelancer, a consultant or a sole trader they are one activity with two vocabularies, and the same proposal PDF is a bid on Monday and a job application on Tuesday. Putting a person's freelance pitches under a business-operations branch, or their company's proposals under a career branch, would both be wrong for somebody. The row does not resolve it because the answer depends on whether the user files as an organisation or as a person, which is exactly the kind of default about someone's real life that a catalogue must not pick. A second question, settled in the memo rather than left open and recorded here so the JSON does not understate it: whether this row, customer-account-management and vendor-management are one world under three names with the counterparty's role as the only difference. The memo settles that they are three worlds - on the existence of the relationship, on what each row's register is a register of, and on this world alone having a terminal state that is nothing - and the decisive argument is that the merged row's only common anchor would be an external organisation's name, which is precisely what business_operations.organisational-records was refused for. The merged row would be the refused row. What survives as a genuine open question is the field it displaces onto: the counterparty role still has no canonical key, four rows now want it and all four have declined to mint it."
+}

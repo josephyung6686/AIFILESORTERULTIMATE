@@ -1,0 +1,715 @@
+{
+  "id": "logistics",
+  "kind": "schema",
+  "schema_id": "logistics",
+  "parent_id": null,
+  "name": "Freight, fleet and warehousing",
+  "one_line": "The record of goods in somebody's custody: what quantity of what goods passed from whose control to whose control, at what place, at what time, and who acknowledged it — consignment notes, bills of lading, packing lists and proof of delivery; the customs declaration that lets the goods cross a border; the vehicles and drivers licensed to hold that custody; the day's dispatch plan; and the depot where the goods rest between legs. Its anchor is not a document format and not a purchase: it is a custody handover, or the licence and fitness of the party performing it. Placeholder schema row written to J-DEPTH; it declares no field rows under PR-6, but proposes the small fact set its seven templates would need and states the default template they must differ from.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "consignment",
+      "type": "string",
+      "example": "MAEU5512884",
+      "why_no_existing_key": "No canonical key names the movement itself — one described quantity of goods travelling under one carrier's undertaking from a place of receipt to a place of delivery. `project` is bounded work and would turn every parcel into a project; `record_type` describes the document rather than the thing the document is about; `event` is the Photos capture-occasion key and carries a time-primary reading this family must not inherit. This key holds a labelled consignment, waybill, bill-of-lading, container, booking or tracking reference and never a purchase-order number, an invoice number, a job reference or a bare digit string.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE because the consignment is the stable subject that makes a packing list, a customs declaration, a delivery receipt and an exception photograph intelligible together. It is neither authorship nor a counterparty name, and it is the one key in this family that is safe to fold a folder on: a consignment reference identifies goods, not a person.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Direct only from a labelled Consignment, Waybill, AWB, B/L, Container, Booking or Tracking slot. Free-standing identifier-shaped tokens must be confirmed by a reference-pattern rule co-occurring with a carrier-role or place-of-receipt/place-of-delivery slot; R6 owns that rule family and this row supplies no regex, no threshold and no score. `00` is explicit about the underlying hazard: “file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values.”",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "carrier",
+      "type": "string",
+      "example": "Kuehne + Nagel",
+      "why_no_existing_key": "No canonical key names the party that undertakes to hold and move the goods. This is deliberately the *carrier* role and not a generic counterparty key, because `00` requires exactly this separation: “The system must separate roles that happen to contain the same entity type.” A consignment note routinely names three organizations — consignor, consignee and carrier — in three different roles on one page, and `institution` (a financial issuer), `client`, `our_firm` and the `organization` proposal each collapse at least two of them. Note the asymmetry this row proposes on purpose: only the carrier role is offered as a fact key; consignor and consignee are handled under `people`/privacy, per the family principle below.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE, conditionally and narrowly — only where a corpus genuinely spans several carriers, and only above the consignment level. It is not the counterparty a folder should collect: `00` warns that “A folder should not become a collection point for everything produced by the same person or organization” and a carrier folder is one step from being exactly that. R1c may reasonably seed it ineligible and let a template validator promote it.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct only from a labelled Carrier, Haulier, Forwarder, Shipping Line or Airline slot. A brand name in a letterhead, an email domain or a filename stays possible, because the same brand appears as a supplier on a purchase order, as a payee on an invoice and as a mere mention in correspondence.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "asset",
+      "type": "string",
+      "example": "YK71 ABC",
+      "why_no_existing_key": "REUSE of the `manufacturing` proposal (`manufacturing.json`, `proposed_fields`), not a new spelling. That row proposes `asset` for “the maintained, calibrated or inspected equipment item”, and a fleet vehicle is that thing exactly: an enduring identified machine receiving many work orders, tests, defect reports and certificates over its life. This row deliberately does NOT mint `vehicle`, `registration` or `fleet_number`; a vehicle is a value of `asset`, and minting a domain-shaped synonym for a key another schema already proposed is the 574's mistake in miniature. If R1c splits `asset`, this row wants the split argued once, globally, not twice locally.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE in the fleet branch, where the vehicle is the parent that makes a test certificate, a defect report or a service invoice intelligible — the same reason `manufacturing` proposes it. It must not be forced into consignment-led branches.",
+      "reliability_ceiling": "validated",
+      "reliability_why": "Validation requires a registration-plate, VIN or fleet-number pattern inside a labelled Vehicle, Registration, VRM, Trailer, Unit or Asset slot, ideally cross-checked against a local fleet list. A plate-shaped token in prose or a filename is never sufficient — it collides with model codes and reference numbers. R6 owns the pattern.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "site",
+      "type": "string",
+      "example": "Depot B — Avonmouth",
+      "why_no_existing_key": "REUSE of the `manufacturing` proposal, for the depot, warehouse, terminal or cross-dock. That row's argument transfers without change: `location` is the Photos capture-location role and may differ from the place a record is about — a doorstep photograph is captured at a delivery address and may document goods booked out of a depot fifty miles away. This row adds one warning for R1c: in this family a place value appears in at least four distinct roles on one page (place of receipt, place of delivery, depot of custody, capture location), so `site` must be defined as the *facility holding the goods*, never as any address printed on the document.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Proposed TRUE only for genuinely multi-depot corpora, and only in the warehouse and dispatch branches. A delivery address is NOT this key and is not destination-eligible under any circumstances — see `sensitivity_why`.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Direct only from a labelled Depot, Warehouse, Terminal, Hub or Facility slot. Any other address on the page remains possible, because it is at least as likely to be the consignee's home, the consignor's works or the carrier's registered office.",
+      "adjudicate": "R1c"
+    },
+    {
+      "key": "record_type",
+      "type": "enum",
+      "example": "proof of delivery",
+      "why_no_existing_key": "REUSE of the canonical key, and this row raises no new question about it: `manufacturing`'s NJ-MFG-1 already asks whether the canonical Finance-role key is global enough for operational records, and duplicating that question under a second schema would give R1c two threads on one decision. This row records only that it needs the same answer and will take whichever key R1c settles on, rather than proposing a private synonym.",
+      "destination_eligible": true,
+      "destination_eligible_why": "Inherited from the canonical row if reuse is approved; it is normally the leaf below the consignment, the vehicle, the depot or the working day.",
+      "reliability_ceiling": "possible",
+      "reliability_why": "Supported by an explicit document title or a labelled form header; a filename word such as POD, CMR or manifest is never sufficient, and is listed in `never_alone` for exactly that reason.",
+      "adjudicate": "R1c"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "a consignment structure: two named parties in DIFFERENT roles (consignor/shipper and consignee) plus a carrier undertaking, over one described quantity of goods (packages, weight or volume), with a place of taking over and a place of delivery, and an acknowledgement slot — signature, stamp, seal number or scan event. This co-occurring role-plus-quantity-plus-place-plus-acknowledgement set is the family's fingerprint; the words consignment, waybill or CMR alone are not",
+      "a bill-of-lading structure adding shipper, consignee and notify-party slots, vessel/voyage or flight, container and seal identifiers, and a condition-on-receipt clause; its number of originals and its endorsement slots mark it as an instrument, not merely a record",
+      "a packing-list structure whose rows are packages rather than priced line items: carton or pallet number, marks and numbers, contents description, net and gross weight, dimensions — and, discriminatingly, NO unit price, tax treatment or amount due",
+      "a proof-of-delivery structure pairing one consignment reference with a delivered-at timestamp, a receiving signatory or scan event, and a status or exception code (delivered, refused, damaged, short, carded); a table of many such rows is a carrier export and is this schema's, whoever holds the file",
+      "a customs-declaration structure with a declaration or movement reference, a commodity/tariff classification, a declared country of origin, a customs procedure code, an incoterm, a declared value for duty and a declarant or representative slot; the word customs or export alone never fires",
+      "a driving-hours or tachograph structure: repeated activity intervals (driving, other work, availability, rest) attributed to one named driver and one vehicle across a stated period, with statutory limits or infringement flags",
+      "a driver-entitlement structure pairing a named person with licence categories, expiry dates, a medical-fitness statement or certificate, and periodic-training or qualification-card evidence",
+      "a vehicle-lifecycle structure keyed on one registration or fleet identifier: statutory test or inspection results with defect items and outcomes, a safety-inspection interval, a daily-walkaround defect report with a rectification signoff, or an operator-licence disc; a single garage invoice for the same work does not satisfy this structure",
+      "a dispatch structure: one working day, one vehicle and one driver, with an ordered drop or collection sequence, planned versus actual times, and a debrief of failures — the ordering is the signal, because it is what distinguishes a run from a list of addresses",
+      "a warehouse-movement structure whose rows are custody events on goods held for another party — receipt against an inbound reference, put-away to a bin location, pick, pack, book-out to a consignment — each with a quantity, a location and a timestamp",
+      "an EDI or carrier-integration payload whose labelled segments or fields name shipment, consignment, party-role qualifiers, package counts and status events; a structured export is evidence like any other and is inspected as structure, not as a format",
+      "an email whose labelled subject carries a consignment, container or booking reference AND whose body or attachments carry a role-plus-quantity structure; a bare tracking number in a marketing template does not qualify",
+      "an archive whose manifest links one consignment or container reference across a bill of lading, a packing list, a certificate of origin and a declaration; per `00`, “Archives should be inspected without being unpacked to disk.”"
+    ],
+    "needs_llm": [
+      "a scanned, hand-annotated delivery note where the shortage or damage note is the only thing distinguishing an ordinary receipt from an exception record",
+      "an unlabelled spreadsheet of addresses, times and names that may be a run sheet, a customer list, an event guest list or a sales call plan",
+      "a photograph of a pallet, a seal or a damaged carton with no legible reference in frame and no consignment context in its own evidence",
+      "a delivery note that names a building site and a job reference and also carries a carrier's waybill number — the genuinely shared case named in the collisions below, which should be recorded as both readings rather than resolved",
+      "a multilingual or non-Latin transport document whose slot labels are absent from the deterministic context catalogue, where the role structure survives visually but the labels do not",
+      "a goods-received note at a factory door, which may be a custody receipt against a consignment, a lot-acceptance against incoming quality, or both",
+      "a proof-of-delivery image whose only evidence of arrival is a door number visible in the frame"
+    ],
+    "never_alone": [
+      "the words logistics, shipping, freight, delivery, dispatch, consignment, manifest, POD, waybill, fleet, driver or warehouse alone — each is a document-shape or vocabulary word, and the whole charge against this schema is that its evidence is form-shaped",
+      "a carrier, courier, shipping-line or airline brand name alone; the same brand appears as a supplier on a purchase order, a payee on an invoice and a mention in prose",
+      "an address alone — in this family an address is at least four different roles and is the single most tempting false signal the schema has",
+      "an identifier-shaped token alone: a tracking, container, waybill, order, invoice or plate-shaped string outside a labelled role slot",
+      "a signature, stamp, seal, barcode or scan mark alone; every acknowledged document in every neighbouring schema has one",
+      "a delivered-at timestamp, a weight, a quantity or an incoterm alone",
+      "a source_type or extension alone; PDFs, spreadsheets, images, OCR, email, EDI exports and archives occur in every neighbouring schema",
+      "a download session alone: “A session should never be treated as proof of topic”",
+      "a parent folder called Shipping, Logistics, Transport, Fleet or Warehouse alone",
+      "missing EXIF as proof that a doorstep photograph is a screenshot, or present GPS as proof that a capture location is a delivery address",
+      "a freight invoice, a purchase order or a shipping-confirmation email alone; those prove a commercial transaction and remain `finance`, `business_operations` or a residual until a custody structure independently appears"
+    ]
+  },
+  "proposed_context_terms": [
+    "consignor",
+    "consignee",
+    "notify party",
+    "shipper",
+    "carrier",
+    "haulier",
+    "freight forwarder",
+    "place of taking over",
+    "place of delivery",
+    "goods description",
+    "gross weight",
+    "net weight",
+    "number of packages",
+    "marks and numbers",
+    "seal number",
+    "container number",
+    "vessel",
+    "voyage",
+    "received in apparent good order",
+    "clean on board",
+    "incoterm",
+    "ex works",
+    "delivered duty paid",
+    "commodity code",
+    "tariff heading",
+    "country of origin",
+    "customs procedure code",
+    "declarant",
+    "movement reference",
+    "bonded",
+    "proof of delivery",
+    "delivered at",
+    "carded",
+    "refused",
+    "shortage",
+    "damage in transit",
+    "run sheet",
+    "drop sequence",
+    "walkaround check",
+    "defect report",
+    "operator licence",
+    "driving hours",
+    "tachograph",
+    "daily rest",
+    "periodic training",
+    "goods in",
+    "put-away",
+    "bin location",
+    "pick",
+    "book out",
+    "cross-dock",
+    "bailment"
+  ],
+  "work_types": [
+    "consignment note, waybill, CMR or air waybill",
+    "bill of lading, sea waybill or delivery order",
+    "packing list, cargo manifest or load list",
+    "proof of delivery, delivery receipt or exception/discrepancy report",
+    "damage, loss or claim file against a carrier",
+    "customs import or export declaration and its supporting evidence",
+    "certificate of origin, preference declaration or export licence",
+    "tariff classification or valuation working",
+    "dangerous-goods declaration or transport document",
+    "vehicle registration, operator licence, statutory test and inspection record",
+    "daily walkaround check, defect report and rectification record",
+    "vehicle service, tyre, fuel and telematics record",
+    "driver licence, entitlement and periodic-training evidence",
+    "driver medical fitness and drug/alcohol testing record",
+    "driving-hours, tachograph and infringement record",
+    "route plan, run sheet, load plan and dispatch debrief",
+    "goods-in receipt, put-away, stock-location and cycle-movement record",
+    "pick list, pack note, dispatch note and load manifest",
+    "warehouse exception: damage, quarantine, shortage or hold record",
+    "doorstep proof of delivery: photograph, signature capture and delivery-point note"
+  ],
+  "grouping_reasons": [
+    "one consignment across booking, packing list, transport document, customs declaration, proof of delivery and any claim",
+    "one container or trailer across a load plan, a seal record, a manifest and its arrival exceptions",
+    "one vehicle across acquisition, licensing, statutory tests, walkaround defects, servicing and disposal",
+    "one driver across entitlement, medical fitness, hours records and infringements — grouped as a protected dossier, never as a folder proposal",
+    "one working day across the run sheet, the drops attempted, the doorstep records and the debrief",
+    "one depot across its goods-in, put-away, dispatch and exception records for a period",
+    "a sparse doorstep photograph or scanned receipt may join an accepted consignment group by neighbourhood without this schema activating from the file itself, and no consignment fact is copied onto it",
+    "duplicate and version families remain universal facts and never manufacture a consignment, carrier, asset or site fact by propagation"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by placeholder contract: a dimension may only branch on a field the same schema declares, and this placeholder declares none. The recommendation is held as prose and is deliberately branch-shaped rather than one deep tree — THIS IS THE DEFAULT TEMPLATE THE SEVEN SIBLINGS MUST DIFFER FROM: the carrier or trading counterparty ONLY where the corpus genuinely spans more than one → the custody subject (the consignment or container; or, in the fleet and dispatch branches, the vehicle, the depot or the working day) → the document function → time only as a leaf. Not time-first, despite this being a family of dated events: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” A consignment's booking, declaration, transport document and delivery receipt frequently straddle a month or a year boundary, and a time-first order would scatter exactly the files a claim needs together. The one sibling with a real claim on time-first is `logistics.route-dispatch`, whose subject IS a working day; it must argue that rather than assume it. No level of this default may be built from a consignee name or a delivery address — see `sensitivity_why`.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "code_structured",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      "pdf",
+      "docx",
+      "xlsx",
+      "csv",
+      "jpg",
+      "png",
+      "heic",
+      "eml",
+      "xml",
+      "json",
+      "edi",
+      "zip",
+      "ddd"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "CMR_2026-04-11_DE-HK.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered boxes labelled Sender, Consignee and Carrier hold three different organizations",
+        "goods description with number of packages and gross weight",
+        "place of taking over and place of delivery in separate boxes",
+        "a received-in-apparent-good-order clause with a signature box, and no price anywhere on the page"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "consignment (proposed)",
+        "carrier (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that the consignee organization is the record-owning organization",
+        "an amount owed, from a declared value for carriage",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "BL_MAEU5512884.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "Shipper, Consignee and Notify Party slots",
+        "container and seal numbers, vessel and voyage",
+        "clean-on-board notation and a number-of-originals statement",
+        "endorsement space on the reverse"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed)",
+        "carrier (proposed)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "that possession of the file means possession of title to the goods",
+        "the notify party as the consignee",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Packing list SO-9912.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are cartons, not priced lines: carton number, marks and numbers, contents, net and gross weight, dimensions",
+        "a totals row for packages and weight",
+        "no unit price, tax column or amount due",
+        "a lot column is present on some rows"
+      ],
+      "facts_legal": [
+        "file_type",
+        "consignment (proposed, where a labelled reference appears)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a sales order value from the SO reference",
+        "a batch_lot fact for the shipment as a whole from lots on some rows",
+        "a folder path"
+      ],
+      "also_schema": "manufacturing",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "POD_export_2026-03.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per consignment: waybill reference, depot code, delivered-at timestamp, latitude and longitude, signatory surname, status code",
+        "many rows, one carrier network",
+        "no job, plot, site or works reference in any column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed)",
+        "carrier (proposed)",
+        "site (proposed, from the depot column only)",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a delivery address as `site`",
+        "a signatory surname as a folder dimension",
+        "a construction job from a delivery postcode",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Export declaration MRN 26GB1234567890.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "movement reference number in a labelled slot",
+        "commodity code, country of origin, customs procedure code and incoterm",
+        "declarant and representative slots distinct from exporter",
+        "declared value for duty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed, where the transport reference is labelled)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "the declared value as a paid amount or a tax_year fact",
+        "the declarant as the carrier",
+        "a folder path"
+      ],
+      "also_schema": "government",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Tacho_driver_0429_2026-W16.ddd",
+      "source_type": "opaque_binary",
+      "observations": [
+        "a digital tachograph card download, unreadable as text without a decoder",
+        "filename carries a driver number and an ISO week",
+        "sibling files in the same folder are weekly downloads for several driver numbers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a named driver, a vehicle or an hours infringement from the filename",
+        "that the week token is a tax_year or a version number",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Driver medical certificate - D Okonkwo 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a named individual, a licence category and a fitness-to-drive opinion signed by a clinician",
+        "an expiry date",
+        "no consignment, vehicle or carrier structure of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "the driver's name as a destination dimension",
+        "an employment fact, an employer or a fleet",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Vehicle_MOT_YK71ABC_2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a statutory test certificate keyed on one registration and VIN",
+        "advisory and failure items with an outcome",
+        "an expiry date",
+        "nothing on the page says whether the vehicle is operated commercially"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (reuse of the manufacturing proposal)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a fleet from a single vehicle",
+        "a carrier or an operator from a garage name",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Run sheet Route 12 2026-04-11.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "one date, one vehicle registration and one driver name in labelled slots",
+        "an ORDERED drop sequence with addresses, planned windows and actual times",
+        "a debrief column recording failed attempts and reasons"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "asset (reuse proposed)",
+        "site (proposed, from a labelled departure depot)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a consignment fact for every drop from the sequence alone",
+        "customer addresses as destination dimensions",
+        "the driver's name as a folder level",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Goods in 2026-04 Depot B.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are custody events: inbound reference, received quantity, bin location, timestamp, handler initials",
+        "a put-away column distinct from the receipt column",
+        "an exception column for damage and quarantine",
+        "no unit cost, retail price or stock valuation column anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "site (proposed)",
+        "consignment (proposed, from a labelled inbound reference)",
+        "record_type (reuse proposed)"
+      ],
+      "must_not_conclude": [
+        "a stock valuation or an owned-inventory fact",
+        "that the depot operator owns the goods",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IMG_20260411_1432.jpg",
+      "source_type": "image",
+      "observations": [
+        "a parcel photographed on a doorstep",
+        "EXIF capture time and GPS coordinates",
+        "a house number and a front door are legible in the frame",
+        "no reference, label or barcode readable in the image"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "camera_information where Photos activates",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a consignment, a carrier or a recipient from the image",
+        "the GPS coordinate as `site`",
+        "that missing GPS would prove a screenshot",
+        "a folder path"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Shipping docs pack MAEU5512884.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a bill of lading, a packing list, a certificate of origin and a declaration, all carrying one container reference",
+        "mixed PDF and XLSX members",
+        "the archive itself carries no labelled slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "consignment (proposed, possible from the manifest)"
+      ],
+      "must_not_conclude": [
+        "facts read from members that were not inspected",
+        "that every member concerns the same consignment merely because the archive does",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Freight invoice 88214 - Kuehne.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "consignment references appear as line-item descriptions",
+        "an amount due, a fuel surcharge, a VAT treatment, payment terms and a remit-to block",
+        "an invoice number and a due date",
+        "no acknowledgement of receipt of goods and no consignee role slot"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "logistics activation from consignment references in a line-item description",
+        "a proof of delivery from a billed movement",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "Shipping confirmation - order 10093.eml",
+      "source_type": "email",
+      "observations": [
+        "a retailer's templated mail saying an order has shipped",
+        "a tracking number and a courier brand name",
+        "an order number, an item and a price",
+        "one recipient, one purchase, no role structure and no acknowledgement of arrival"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "logistics activation from a tracking number and a courier brand",
+        "a consignment fact from a tracking-shaped token in a marketing template",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    },
+    {
+      "filename": "DN-448120 - Marsh Lane.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a merchant's delivery note keyed to a job reference and a plot",
+        "a received-by signature from a site manager and a hand-annotated shortage",
+        "no consignment, waybill, depot or leg reference of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "logistics activation from the word delivery or from a received-by signature",
+        "a carrier from the merchant's name",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Receipts and Confirmations"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "Both families hold a signed note saying goods arrived. That row wrote this seam nineteen times in advance, before this schema existed, and its ruling is CONFIRMED here from this side with independent reasoning, not merely accepted. It reserves to this schema “the carrier, route, fleet, depot and waybill — everything before the site gate” and reserves to itself “a job-keyed note signed at a site”; the fixture bytes are the same on both sides — `POD_export_2026-03.csv` here against `DN-448120 - Marsh Lane.pdf` there, and both are carried as file examples on both sides. This row endorses its discriminator (the KEY, not the destination) and states the same test in its own terms: the question is which RETRIEVAL SPINE the document is a row in. A consignment or waybill reference indexes into a carrier's network of movements, and the document's siblings are other consignments; a job or plot reference indexes into one works instruction, and its siblings are the order and the take-off placed for that job. This row also answers that row's open alternative and REJECTS it: custody-of-the-file (“whoever holds the file”) is not readable from the bytes, and worse, it would hand this schema a job-keyed note that this schema has no key to retrieve by. The shared case is left shared rather than resolved: a carrier POD for a merchant delivery to a named site carries both readings, and is recorded under `also_holds_with`.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "The same lot token, quantity and part description appear on a genealogy sheet, a packing list and a goods-received note. That row already stated the seam — transformation and release on its side, custody movement, carrier and receipt on this one — and this row confirms it and sharpens the test: read the QUANTITY COLUMNS. If quantity changes identity (consumed, output, yield, scrap) the record is a transformation and is manufacturing's; if quantity keeps its identity and changes place or holder (shipped, received, short, damaged in transit) it is a movement and is this schema's. Same bytes both sides: `Lot genealogy L240817-03.xlsx` beside `Packing list SO-9912.xlsx` for the same lot. The genuinely hard file is a goods-received note at a factory door, which is a custody receipt against a consignment AND a lot-acceptance against incoming quality; it is in `needs_llm` here and belongs to both.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance",
+      "signal": "An invoice for freight is still an invoice. The freight invoice is the single most tempting false positive this schema has: it names consignments, a carrier and a movement, and it is not this schema's. The discriminator is what the document DOES — money and obligation versus possession and location. A freight invoice carries an amount due, a tax treatment, payment terms and a remit-to block; a consignment note carries a receipt acknowledgement and, characteristically, no price at all. Same bytes both sides: `Freight invoice 88214 - Kuehne.pdf`, carried here as a negative fixture. The second finance edge is the vehicle: `finance.vehicle-records` follows “one owned or operated vehicle” across acquisition, tests, servicing and disposal, which is structurally identical to this schema's fleet branch. `Vehicle_MOT_YK71ABC_2026.pdf` cannot be discriminated from its own bytes; what discriminates is a controlled POPULATION under an operator's duty — an operator licence, a periodic safety-inspection interval, walkaround defect reporting, several vehicles — against one household's own car. Where neither is evidenced, finance's row should keep it.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.procurement-sourcing",
+      "signal": "Buying versus moving. That row explicitly declined an edge here, on the ground that “freight tendering is this row in a sector. A sector is not a node.” and this row AGREES and does not contest it: a freight tender, a carrier rate card and a haulage contract award are procurement's, and this schema does not want them. The reciprocal that row does not state, and which is offered for R1c, is the return direction: procurement must not take the movement's own record. A purchase order is a two-party commercial instrument — buyer, seller, price, authorisation; a consignment note is a three-party physical one — consignor, consignee, carrier, quantity, place, acknowledgement, and no price. Same bytes both sides: a carrier's rate card (theirs) against `CMR_2026-04-11_DE-HK.pdf` (this schema's). `business_operations.vendor-management` holds the standing carrier relationship for the same reason.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "retail_hospitality",
+      "signal": "A warehouse is not a stockroom. `retail_hospitality.stocktake` counts what a retailer OWNS in order to value it; this schema's warehouse branch records custody events on goods that are frequently somebody else's. The discriminator is the columns: a valuation, unit cost or retail price column and an ownership premise mark a stocktake; a bin location, put-away, pick and book-out-to-consignment sequence marks a custody log. `Goods in 2026-04 Depot B.xlsx` is written here with the valuation columns deliberately absent, and a quarterly stock count with a valuation column is conceded to that row rather than claimed. `retail_hospitality.returns-warranty` likewise keeps the customer's return entitlement; this schema keeps only the return leg's movement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "A customs declaration is made TO an authority, and the same page satisfies both readings. The proposed line: `government` owns the citizen-or-business dealing with a public authority as such — authorisations, rulings, registrations, audits and correspondence with the customs administration; this schema owns the declaration as a document travelling with a consignment. `Export declaration MRN 26GB1234567890.pdf` is carried here with `also_schema: government` rather than claimed outright, and a binding tariff ruling with no consignment attached is not this schema's at all.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "A bill of lading is a document of title, and a carrier's terms are a contract. `legal` owns the instrument as an instrument — endorsement, title, an arbitration clause, a cargo claim once it becomes a dispute; this schema owns it as the transport record of one consignment. `BL_MAEU5512884.pdf` carries both. A cargo-loss claim crosses the line at the point it stops being a discrepancy report against a carrier and becomes a pleaded dispute.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "construction_property.materials-delivery",
+      "signal": "A carrier's proof of delivery for a merchant delivery to a named site genuinely carries a consignment key and a job key at once. That row wrote it as “on the gate itself” and said both families should retrieve it; this row agrees and does not attempt a discriminator, because there is no honest one in the bytes. `00`: “One file may hold facts from more than one domain without losing information.”",
+      "provenance": "design"
+    },
+    {
+      "domain": "manufacturing",
+      "signal": "A released-lot packet holds genealogy and custody evidence in the same bytes, and a goods-received note is a consignment receipt and a lot acceptance at once. Each schema activates from its own slots; a lot fact is never copied into a sparse packing list, nor a consignment fact into a genealogy sheet, merely because the files group.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "government",
+      "signal": "A customs declaration is simultaneously a consignment's travelling document and a submission to a public authority, on disjoint evidence — the transport reference on one side, the declarant, procedure code and authority on the other.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "A bill of lading is a transport record and a negotiable instrument in the same bytes; so is a delivery order.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos",
+      "signal": "A doorstep proof-of-delivery image is a capture with EXIF and a business record of an arrival. It is written here as an image whose consignment must come from an accepted group and never from the frame, so the double reading costs nothing.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "A driver medical-fitness certificate is health information about a named person and a statutory entitlement record. It is carried here only so that the privacy posture travels with it; on this schema's side it fires nothing without an entitlement structure.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Receipts and Confirmations",
+      "why": "The single largest fallthrough in this family, and the one that keeps it honest for an ordinary person's corpus: a consumer shipping-confirmation email, a tracking notification, a courier card and a one-off parcel receipt prove a transaction, not a custody chain, and must land here rather than manufacture a freight domain out of somebody's online shopping. `Shipping confirmation - order 10093.eml` and `Freight invoice 88214 - Kuehne.pdf` both route here.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "Driver medical fitness, licence entitlement, tachograph downloads and any export carrying signatory names or delivery coordinates are third-party personal data with a durable retention purpose. `00`: “Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.”",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "A standalone transport document, certificate or test result with a durable purpose but insufficient consignment, vehicle or depot evidence remains an independent record rather than being forced into a chain it cannot evidence.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "One-Off Images",
+      "why": "A doorstep, pallet, seal or damage photograph with no legible reference and no accepted group is an image, and inventing a consignment for it from a folder name would be the exact failure `never_alone` exists to prevent.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Tachograph card downloads, telematics binaries and encrypted or oversized shipping-document archives can be represented without inferring purpose from a filename.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "An OCR-poor scanned note whose role structure survives visually but whose labels do not should abstain rather than guess a consignor/consignee assignment.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "same_entity_type": "organization",
+      "this_domain_field": "carrier (proposed) — the party undertaking custody and movement",
+      "neighbour": "business_operations.vendor-management",
+      "neighbour_field": "the standing supplier relationship with that same organization",
+      "why": "`00`: “The system must separate roles that happen to contain the same entity type.” One consignment note names a consignor, a consignee and a carrier, and the same haulier appears elsewhere as a supplier on a purchase order and a payee on an invoice. Only the carrier role is proposed as a key here; consignor and consignee are deliberately NOT given destination keys, because they are commonly a private person and their home address.",
+      "provenance": "design"
+    },
+    {
+      "same_entity_type": "vehicle",
+      "this_domain_field": "asset (reuse of the manufacturing proposal) — one unit of a controlled fleet under an operator's duty",
+      "neighbour": "finance.vehicle-records",
+      "neighbour_field": "the household's own owned or operated vehicle across its financial and administrative life",
+      "why": "The two rows hold the same document types — registration, test certificate, insurance, servicing, disposal — and cannot be told apart on one file. The operator-duty evidence (operator licence, safety-inspection interval, walkaround defect reporting, a population rather than a unit) is what splits them, and where it is absent the finance row keeps the file.",
+      "provenance": "inference"
+    },
+    {
+      "same_entity_type": "place",
+      "this_domain_field": "site (reuse of the manufacturing proposal) — the facility holding the goods",
+      "neighbour": "photos",
+      "neighbour_field": "location — where an image was captured",
+      "why": "A doorstep photograph's GPS coordinate is a capture location and is never the depot the goods were booked out of. This is the same role split `manufacturing` raised as NJ-MFG-3, and this schema needs the same answer rather than a second question.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This is the family's sharpest constraint and it is stated as a rule the seven templates inherit, not as a caution. A consignment record's ordinary payload is third-party personal data: a consignee's name and HOME ADDRESS, a signatory's surname, a signature image, a delivery-point coordinate, a doorstep photograph of a private dwelling, and a delivery-instruction note that can disclose absence, disability or occupancy. The fleet and driver branches add worse: a tachograph download is a minute-by-minute activity and location history of one named worker, and a driver medical certificate is health information. FAMILY PRINCIPLE, binding on all seven siblings: THE CONSIGNEE IS A PARTY, NEVER A FOLDER. No sibling may propose a destination dimension built from a consignee or consignor name, a delivery address, a driver's or signatory's name, or a coordinate. Those are search-and-privacy facts only. `00` supports this directly for the address-book case — contact formats “should normally be privacy-protected rather than used to create folder proposals” — and for the entity case generally: “A folder should not become a collection point for everything produced by the same person or organization” The consignment reference exists precisely so a folder can be keyed on the goods rather than on the people. This row assigns no handling class; P7 owns those, and privacy policy must run before any model or connector path.",
+  "open_question": "NEEDS-JOSEPH NJ-LOG-1: is the KEY test the right seam with `construction_property.materials-delivery`? That row proposed it and offered CUSTODY as the alternative (NJ-CP-MD-3); this row confirms the key test with independent reasoning and rejects custody, because custody is not readable from the bytes and would hand this schema a job-keyed note it has no key to retrieve. Both sides now agree, which means R1c is ratifying a two-sided position rather than adjudicating a dispute. NJ-LOG-2: does the whole schema survive the FORMAT charge, i.e. is a waybill a domain or a form? The argument made here is that its evidence is a ROLE STRUCTURE (two parties in different roles over one quantity of goods, with a place and an acknowledgement) rather than a container, and that four of seven siblings — fleet, driver, dispatch, warehouse — are not form-shaped at all. The falsifier is stated in the memo: if R1c judges the role structure to be a generic form skeleton, the schema's remaining support is its privacy posture, and the coverage routes as the memo sets out. NJ-LOG-3: which of the seven templates actually survive R1c on a field-less schema? `logistics.last-mile-pod` is the one at real risk — a POD is arguably a `work_type` value on `logistics.shipment`, and what would save it is a PRIVACY-RULE difference (doorstep photographs of dwellings, signature images, delivery coordinates), which is a legitimate node-test leg. `logistics.driver-compliance` has the strongest privacy leg in the family. NJ-LOG-4: is a record-SUBJECT person (a driver's own dossier) ever a destination dimension, as a patient is in `medical`, or does `00`'s prohibition on person-collection folders cover it? This row does not settle it and proposes no person key; alternatives are (a) never, with the driver dossier grouped but never foldered, (b) a protected-area exception mirroring whatever `medical` was granted, (c) a canonical record-subject key adjudicated globally. NJ-LOG-5: `record_type` and `asset`/`site` are REUSED from the canonical row and from `manufacturing`'s proposals rather than re-proposed; if R1c splits any of them, this row wants the split argued once globally, not twice locally. Until R1c answers, this placeholder correctly declares fields: [] and dimension_order: []."
+}

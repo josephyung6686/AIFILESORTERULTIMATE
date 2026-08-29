@@ -1,0 +1,594 @@
+{
+  "id": "research",
+  "kind": "schema",
+  "schema_id": "research",
+  "parent_id": null,
+  "name": "Research",
+  "one_line": "Files produced by doing research: a named project's manuscripts, abstracts, protocols, figures, datasets and lab records, plus the venue and lab context that explains them.",
+  "launch": "full",
+  "provenance": "design",
+  "design_cite": "\"Research files may use project, stage, artifact type, lab, and venue\"; launch scope: \"academic coursework, college applications, research and lab work, career and recruiting, photos and captures, and code projects\"; default order: \"a Research template may define project → stage → artifact type\"",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "node_test": {
+    "distinct_field_set": true,
+    "why": "Three of the five keys (stage, lab, venue) are referenced by no other roster schema, and the two that are shared (project, artifact_type) are shared with code by canonical reference, which is what makes shares_field derived rather than a reason to merge. The set is five, inside 00's \"usually three to six that may help build a future folder proposal\". No child schema is proposed for any artifact type: manuscript, abstract, protocol, figure and dataset are VALUES of artifact_type."
+  },
+  "fields": [
+    {
+      "field": "project",
+      "type": "string",
+      "example": "PVA/RDP",
+      "reliability_ceiling": "validated",
+      "rule_family": "project-identifier token co-occurring with research-artifact context (an abstract heading, a numbered-protocol + materials structure, a figure-caption sequence, or a manuscript title block) in a filename, title, or page-one heading zone",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00: \"Research files may use project, stage, artifact type, lab, and venue\", and the group seed sentence supplies the pattern this rule family confirms: \"For a research group, it might be a manuscript, abstract, or protocol with a known project identifier\". A labelled slot (a spreadsheet cell headed Project, an IRB form's Protocol Title field) reaches direct instead, per 00's direct-fact rule for \"a labeled form field\"; the pattern-plus-context path is what the deterministic signals below actually implement."
+    },
+    {
+      "field": "stage",
+      "type": "string",
+      "example": "under review",
+      "reliability_ceiling": "validated",
+      "rule_family": "submission-lifecycle term pattern (cover letter, response to reviewers, revision, proof, camera-ready) co-occurring with manuscript or venue evidence in the same document or in an archive manifest",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00: \"Research files may use project, stage, artifact type, lab, and venue\". The ceiling is validated only on the lifecycle-term path; ordinary prose stage evidence (a body sentence saying the reviewers' comments have been addressed) is llm_supported, which is why stage sits in needs_llm as well. A version number or a v7 filename suffix is NOT stage evidence: 00's narrow-date rule warns about \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\", and a version family is a universal fact, not a workflow position."
+    },
+    {
+      "field": "artifact_type",
+      "type": "enum",
+      "example": "manuscript",
+      "reliability_ceiling": "validated",
+      "rule_family": "artifact term pattern confirmed by document structure (abstract heading; numbered steps plus a materials list; a figure-caption sequence; a header row over sample-shaped columns; slide titles plus speaker notes)",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00: \"Research files may use project, stage, artifact type, lab, and venue\". Members are values discovered at runtime, never roster nodes. Structure is what confirms the term: 00 requires extractors to preserve the difference between a heading, a table label, a filename and ordinary body text, and presentations to yield \"slide titles, text boxes, speaker notes where available\"."
+    },
+    {
+      "field": "lab",
+      "type": "string",
+      "example": "Chen Lab",
+      "reliability_ceiling": "validated",
+      "rule_family": "organization gazetteer (R4's content) matched at word boundaries with positional weighting, PLUS a research-role context term in the same zone; a bare organization hit is struck by the never-alone rule",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00: \"Research files may use project, stage, artifact type, lab, and venue\". The role requirement is 00's own: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\" — research venue is named in that list, so an institution string carries no role until context supplies one. Word boundaries are required because \"It should use word-boundary matching rather than substring matching\". See open_question: a lab named after its PI is one step from authorship-as-destination."
+    },
+    {
+      "field": "venue",
+      "type": "string",
+      "example": "Nature Methods",
+      "reliability_ceiling": "validated",
+      "rule_family": "venue gazetteer (R4's content) matched at word boundaries in a high-weight zone — filename, title, page-one heading, cover-letter salutation, or an editorial email's subject — and never from a hit whose only occurrence is in the reference_list zone",
+      "destination_eligible": true,
+      "provenance": "design",
+      "why": "00: \"Research files may use project, stage, artifact type, lab, and venue\". The zone restriction is 00's positional-weighting rule stated for exactly this failure: \"A course code or university name found in a filename, title, or page-one heading is more meaningful than the same text appearing once in a reference list on page eighteen\". A journal name in a bibliography describes a cited work, not this artifact."
+    },
+    {
+      "field": "authored_by",
+      "type": "string",
+      "example": "Ravikumar, S.",
+      "reliability_ceiling": "direct",
+      "rule_family": null,
+      "destination_eligible": false,
+      "provenance": "design",
+      "why": "Search, explanation and residual-routing field only, not one of the 3–6 folder-level fields. Research needs it because the discrimination that sends a PDF to Reading Inbox rather than into a project is authorship: whether the paper is the holder's own output or somebody else's reading material. 00 forbids it as a folder level outright — \"It should avoid using authorship or creator identity as a destination dimension\" — and warns that document metadata author fields \"may be stale, generic, or generated by a tool rather than a person\", so a direct read of a DOCX core property is still supporting evidence about the file, never a destination."
+    }
+  ],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "a research-artifact structure (an abstract heading; numbered protocol steps beside a materials list; a manuscript title block over sectioned body text; a figure-caption sequence) co-occurring with a project-identifier token in the filename, title, or page-one heading zone",
+      "a labelled slot in a structured source naming the project, protocol title, PI or department — a spreadsheet cell under a Project header, a DOCX table cell, an IRB form field — which is 00's \"labeled form field\" direct-fact path",
+      "a submission-lifecycle term (cover letter, response to reviewers, revision, proof) co-occurring with manuscript or venue evidence in the same document or in an archive manifest",
+      "an archive manifest whose member names combine a manuscript, figures, supplementary material and a cover letter, read without unpacking — 00: \"the normal scan should never extract archive contents to the filesystem\"",
+      "a venue gazetteer hit at a word boundary in a filename, title, page-one heading, or an editorial email's subject line, where that hit is not confined to the reference_list zone",
+      "a repository-marker check that runs BEFORE research is admitted on a code_structured file, because 00 puts that evidence on the code side: \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\""
+    ],
+    "needs_llm": [
+      "stage read from unlabelled prose — a sentence saying the reviewers' comments have been addressed, or that this is the final version for typesetting — where no lifecycle term pattern fires; 00 names this the LLM's job: \"interpret an unusual research artifact\"",
+      "an OCR'd notebook or whiteboard page whose only structure is handwriting: a lab record, a lecture note, or a personal list",
+      "whether an image is a research figure at all — 00: an opaque image \"may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"",
+      "whether a project or venue token names the holder's own work or one merely cited or attended, which is the role question the gazetteer cannot answer",
+      "whether a heterogeneous archive is a submission packet (one venue, one manuscript) or an unrelated download bundle"
+    ],
+    "never_alone": [
+      "a DOI, a journal name, or a citation string alone — the downloaded paper Ravikumar_2019_NatureMethods.pdf carries all three and is reading material, which is why 00 gives it a residual home: \"papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association\"",
+      "a lab, university or institute name alone — 00: \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\"",
+      "the token 'lab' in a filename alone — Lab 4 writeup.docx is a course lab report and belongs to academic",
+      "a source_type alone: spreadsheet, code_structured, presentation, calendar and opaque_binary all appear in this domain and none of them proves it; the extension is a routing signal",
+      "a bare 4-digit number as a year or a project id — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\"; in this domain it is just as likely a run number, a plate number or an instrument model",
+      "a filename alone on an unreadable instrument file — 00: \"the system should not infer a purpose from their filename alone\""
+    ]
+  },
+  "work_types": [
+    "manuscript",
+    "preprint",
+    "abstract",
+    "poster",
+    "presentation slides",
+    "figure",
+    "dataset",
+    "analysis notebook",
+    "protocol",
+    "lab notebook page",
+    "supplementary material",
+    "cover letter",
+    "referee report",
+    "response to reviewers",
+    "grant proposal",
+    "ethics approval",
+    "literature paper"
+  ],
+  "work_types_note": "These are VALUES of the artifact_type field, discovered at runtime like any value; none of them is a roster node and none licenses a child schema.",
+  "grouping_reasons": [
+    "one named project's artifacts across stages — 00's own seed: \"For a research group, it might be a manuscript, abstract, or protocol with a known project identifier\"",
+    "one manuscript's version family across drafts, the submission packet, the response to reviewers and the proofs",
+    "one submission packet: archive members plus the cover letter and the editorial correspondence that names the same manuscript id",
+    "one lab's shared protocols and instrument records reused across several projects",
+    "a sparse figure or unlabelled results file joins a project neighbourhood as a context-supported member without acquiring a project fact — 00: \"The graph does not automatically copy those missing facts onto sparse files\""
+  ],
+  "template": {
+    "dimension_order": [
+      "project",
+      "stage",
+      "artifact_type"
+    ],
+    "why": "00's own recommendation for this domain: \"a Research template may define project → stage → artifact type\", and the ordering rule that puts project first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders\" A stage such as revision, and an artifact type such as figure, are unintelligible without the project, which is the parent-makes-the-child-intelligible rule. lab and venue are legal facts here and are deliberately NOT dimensions in the default order — they belong to situations (a lab-shared protocol library, a venue-scoped conference bundle) that are separate template rows on this schema. The order is a recommendation the user may reverse, remove, add to, or flatten.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "archive",
+      "code_structured",
+      "calendar",
+      "email",
+      "design_creative",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".docx",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".png",
+      ".tif",
+      ".zip",
+      ".ipynb",
+      ".py",
+      ".ics",
+      ".eml",
+      ".ai",
+      ".svg",
+      ".raw"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "PVA-RDP_manuscript_v7.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename contains a project-shaped token and a version suffix",
+        "title block on page one names the project and a section-structured body follows",
+        "a table cell in the author block names a department and institute",
+        "a journal name appears once in the reference list on a late page",
+        "core properties record an author string"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage",
+        "lab",
+        "authored_by"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "venue from the journal name that occurs only in the reference list",
+        "stage from the v7 suffix — a version suffix is a version_family signal, not a workflow position",
+        "a destination dimension from authored_by"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Abstract_PVA-RDP_UChicago.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an Abstract heading over a single-page structured summary",
+        "the project token appears in the filename and the heading",
+        "a page-one line addresses a named university's programme with submission language"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the research facts are dropped because application facts also fired — 00 keeps both",
+        "lab from the university name in the addressed-to line, which is the target role, not the producing lab"
+      ],
+      "also_schema": "college_applications",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "IRB_Protocol_PVA-RDP_2026_signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form slots: Protocol Title, Principal Investigator, Department, Approval Date",
+        "numbered procedure steps beside a materials and participants section",
+        "a signature block and an approval stamp"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "lab",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "participant identifiers as any field value — they are protected content, not facts",
+        "medical fields, because the medical schema is a field-less safety placeholder that activates for protection only"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "results_batch07.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names batch07, calibration, notes",
+        "a labelled cell reading Project above the project token",
+        "a header row over sample-shaped columns: sample_id, replicate, reading",
+        "a bare four-digit run number repeated in a column"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "tax_year or record_type — spreadsheet is a source_type, not a finance signal",
+        "a term or capture year from the four-digit run number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "submission.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists a manuscript PDF, a cover letter, four figure files, a supplementary table and a response document",
+        "the cover-letter member name contains a venue-shaped token",
+        "no member is extracted to disk"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage",
+        "venue"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact from a member that was not inspected — the manifest is the evidence",
+        "that the outer archive name means anything on its own"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_5512.png",
+      "source_type": "image",
+      "observations": [
+        "no camera EXIF; PNG at an exact display resolution",
+        "OCR region reads a manuscript id, a status line, and a journal masthead",
+        "an OCR region reads a submitting-author name"
+      ],
+      "facts_legal": [
+        "stage",
+        "venue",
+        "project"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "media_type = screenshot from the absence of EXIF alone",
+        "project from the manuscript id unless that id resolves to a project already evidenced elsewhere in this file"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Notebook_2026-03_p14_scan.pdf",
+      "source_type": "ocr",
+      "observations": [
+        "no text layer; OCR of a photographed handwritten page",
+        "a date in the page corner, sample codes, a protocol name, low-confidence regions"
+      ],
+      "facts_legal": [
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project from a sample-code prefix",
+        "lab from the notebook's owner name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Figure_3_final.ai",
+      "source_type": "design_creative",
+      "observations": [
+        "proprietary format; layer or artboard names and preview text may or may not be readable",
+        "filename carries a figure-shaped token and a finality word",
+        "sits beside the manuscript's other figure files"
+      ],
+      "facts_legal": [
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the sibling filenames — that is neighbourhood context, not this file's evidence",
+        "an empty extraction where the format is simply unsupported — 00: \"unsupported proprietary formats should be recorded as indexed-but-unreadable rather than silently treated as empty\""
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "analysis/train_eval.py",
+      "source_type": "code_structured",
+      "observations": [
+        "a package manifest and a repository marker sit at the directory root above it",
+        "module docstring names the project token",
+        "imports a plotting library and writes a figure filename"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "research from the project token alone when the repository markers are the stronger structural evidence",
+        "stage — a code file's lifecycle is not a manuscript's"
+      ],
+      "also_schema": "code",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Ravikumar_2019_NatureMethods.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a DOI on page one, a journal masthead, an author list that does not include the holder",
+        "no project token anywhere in the document",
+        "downloaded in a bounded session with three other papers"
+      ],
+      "facts_legal": [
+        "authored_by"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project or lab from the paper's own affiliations — those describe its authors, not the holder's work",
+        "a topic for the session — 00: \"A session should never be treated as proof of topic\"",
+        "venue as a fact about the holder's research output"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Lab meeting — Chen Lab.ics",
+      "source_type": "calendar",
+      "observations": [
+        "SUMMARY names a lab and a recurring meeting",
+        "organizer and attendee addresses present",
+        "no project token in the event body"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "lab from the organization name alone — the never-alone rule strikes it",
+        "that calendar as a source_type makes any schema plausible by itself"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RE Decision on manuscript PVA-2026-0417.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carries a manuscript id and a decision word",
+        "sender is an editorial office at a venue-shaped domain",
+        "body quotes referee comments; a reply chain is present"
+      ],
+      "facts_legal": [
+        "venue",
+        "stage",
+        "artifact_type"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "project from the manuscript id alone",
+        "authored_by as a destination dimension from the sender"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PVA-RDP_labmeeting_2026-03-11.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "slide titles name the project and a current-status slide",
+        "speaker notes describe the next experiment",
+        "embedded figure images repeat the manuscript's panels"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage",
+        "lab"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "venue — an internal meeting deck has none",
+        "term or subject; this is not coursework"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Run07_platereader.raw",
+      "source_type": "opaque_binary",
+      "observations": [
+        "no dedicated extractor; safe metadata-only indexing",
+        "filename carries a run number and an instrument word",
+        "size and timestamps only"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "project or artifact_type from the filename — 00: \"the system should not infer a purpose from their filename alone\"",
+        "a year from the bare run number"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Lab 4 writeup.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a heading reads Lab 4: Conservation of Momentum",
+        "a course-code-shaped token appears beside the words instructor and semester",
+        "sections read Procedure, Data, Discussion"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "research from the words lab, protocol, procedure or results — the discriminating evidence is the course-code-plus-academic-context pattern, which puts this file on the academic schema",
+        "project from the course code"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "PVA-RDP_budget_FY26_sponsor.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet names personnel, equipment, indirect",
+        "a sponsor organization name in a header cell",
+        "currency columns and a fiscal-year-shaped token",
+        "the project token in the filename"
+      ],
+      "facts_legal": [
+        "project",
+        "artifact_type",
+        "stage"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "account_type or an account-holder reading of the sponsor name — this is a project budget, not a statement",
+        "tax_year from the fiscal-year token without an explicit pattern match"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "academic",
+      "signal": "One evidence item — the vocabulary of lab, protocol, procedure, results, figure, report — supports both. The discriminator is which pattern the item sits beside: a course-code pattern with academic context puts the file on academic (00: a course fact needs \"a course-code pattern together with academic context\"), while a project identifier beside manuscript, abstract or protocol structure puts it here. Fixture: Lab 4 writeup.docx.",
+      "provenance": "design"
+    },
+    {
+      "domain": "code",
+      "signal": "A project identifier in a source file or notebook supports both, because project is one canonical key referenced by both schemas. The discriminator is structural and belongs to code: 00 — \"Code-related files should rely heavily on local structural evidence, including repository roots and package files\". A repository root or package manifest above the file counts for code; a manuscript or protocol neighbourhood counts here. Fixture: analysis/train_eval.py.",
+      "provenance": "design"
+    },
+    {
+      "domain": "finance",
+      "signal": "A sponsor or institution gazetteer hit beside currency columns supports both. The discriminator is scope: an account-holder-scoped record (institution plus account type) is finance; a project-scoped budget or financial report carrying a project identifier and proposal structure is research. Fixture: PVA-RDP_budget_FY26_sponsor.xlsx. Finance is a safety domain, so on a genuine tie its protection path runs regardless of which schema wins the item.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "college_applications",
+      "signal": "00's own two-schema case, on disjoint evidence: \"An academic abstract submitted as part of a university application can retain project = PVA/RDP and document type = abstract while also carrying purpose = university application and target university = UChicago.\" The same file is also 00's dual-group example: \"a PVA/RDP abstract that is both a Research artifact and a supporting document in a UChicago application packet\". Fixture: Abstract_PVA-RDP_UChicago.pdf.",
+      "provenance": "design"
+    },
+    {
+      "domain": "academic",
+      "signal": "A thesis or dissertation chapter carries school and term on degree-programme evidence and project, stage and artifact_type on its own research evidence — two disjoint evidence sets on one file, which is co-activation, not the collision above. The pair therefore carries both edges, and the collision above supplies the discriminating signal that licence requires.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code",
+      "signal": "A computational project's analysis notebook legitimately carries repository and programming_language from repo markers and project, stage and artifact_type from the manuscript neighbourhood it belongs to. The pair also collides on the project token alone, and the collision above carries the discriminating signal. shares_field between these two schemas (project, artifact_type) is derived from the canonical references and is never authored here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical",
+      "signal": "Human-subjects research: a consent form, an IRB protocol naming a clinical procedure, or a participant dataset activates the medical safety placeholder for protection while the research fields stay legal on the file's research evidence. medical writes no field rows today (it is a field-less safety placeholder), so this edge changes what is protected, not what is extracted. Fixture: IRB_Protocol_PVA-RDP_2026_signed.pdf.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00 defines this residual against exactly this domain: papers \"that appear to be reading material but have no active research, course, or project association\". Fixture: Ravikumar_2019_NatureMethods.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group\" — a signed ethics-approval letter or a completed-training certificate with no project association. Fixtures: the approval letter shape, Lab meeting — Chen Lab.ics.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Instrument output with no extractor and password-protected data archives are common here, and 00 requires them to be represented rather than guessed at. Fixture: Run07_platereader.raw.",
+      "provenance": "inference"
+    }
+  ],
+  "role_split": [
+    {
+      "field": "lab",
+      "other_field": "school",
+      "other_domain": "academic",
+      "why": "Same entity type, different role: the organization that PRODUCED the work versus the institution the holder attends. 00 names this ambiguity for the identical string — \"Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization\". Recorded as a finding: the canonical row for lab currently carries an empty role_split_with, and widening the canonical list is R1c's or Joseph's, never this node's.",
+      "provenance": "inference"
+    },
+    {
+      "field": "venue",
+      "other_field": "lab",
+      "other_domain": "research",
+      "why": "Same entity type inside one schema, different role: the organization that PUBLISHED or hosted the artifact versus the one that produced it. A university press, an institute-hosted workshop, or a conference run by a society will hit the same orgs gazetteer for both. This is the intra-schema half of the split above and is why the venue rule family is zone-restricted while the lab rule family is context-restricted.",
+      "provenance": "inference"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "Not because research is inherently private, but because this domain routinely holds human-subjects material — consent forms, participant identifiers inside datasets, IRB records — alongside unpublished manuscripts and editorial correspondence, and 00 requires mail material to be handled \"while treating addresses and message content as potentially sensitive\". The value is 00's phrase and nothing more; a handling class is P7's and none is assigned here.",
+  "open_question": "lab is destination_eligible on the canonical row, but a lab is very often named after its principal investigator, so a lab folder level can quietly become the authorship collector 00 forbids: \"It should avoid using authorship or creator identity as a destination dimension.\" The default template above sidesteps this by not branching on lab, but a lab-shared-protocol template legitimately would. Joseph's call: does a PI-named lab count as an organization (a real dimension) or as creator identity (metadata only, expressed through the template's metadata_only mechanism)? Not resolved here — it decides someone's real folder structure."
+}

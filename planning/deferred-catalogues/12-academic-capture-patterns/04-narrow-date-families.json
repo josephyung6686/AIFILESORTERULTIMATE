@@ -1,0 +1,372 @@
+{
+  "list_id": "narrow_date_families",
+  "title": "12/04 — Narrow date families (what may become a date, and the named things that never may)",
+  "version": "1.0",
+  "authored": "2026-08-22",
+  "owner": "P6 (injected) — Task 12's `DatePatterns` (the non-term half) and Task 8's direct-fact slot list for EXIF/metadata dates",
+  "consumer": "P6 Task 12 (src/facts/dates.py): `date_candidates(observation, *, patterns)` then `parse_exact(raw, *, pattern_id)` for the regex families; P6 Task 8 (src/facts/direct.py) for the metadata-slot families, which are labeled slots and produce `direct` facts without scanning text. Academic terms are catalogue 12/03, not here; a term is a named academic period, not a calendar date.",
+  "match_field": "regex families match raw text of an observation in any text-bearing zone; metadata-slot families match the property name of a `metadata`-zone observation and validate its raw value against the named layout. Every regex family is a candidate producer only: dates recovered from text or filenames are never `direct` (P6 SPEC, production rules) and still pass §3.7's ranked fill with injected score and margin.",
+  "backs_fields": ["capture_date", "creation_date", "tax_year"],
+  "backs_fields_note": "snake_case per D6's ratified spelling rule; `capture date`, `creation date` and `tax year` are the design's prose for the same keys. capture_date's only authored source is the EXIF slot family (00 §3.2); creation_date takes candidates from filesystem timestamps (P3, direct — not this file's job), labeled metadata slots (direct), and text/filename regex families (validated at best); tax_year is Finance's field (00 §3.11) and is listed because the fiscal-year family must land somewhere that is not `term`.",
+  "design_cites": [
+    {
+      "cite": "00 (§3.10)",
+      "quote": "Date extraction should be deliberately narrow."
+    },
+    {
+      "cite": "00 (§3.10)",
+      "quote": "The product must not use fuzzy date parsing because file names and documents frequently contain numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values."
+    },
+    {
+      "cite": "00 (§3.10)",
+      "quote": "Date candidates should be identified with explicit regular expressions and then parsed without fuzzy matching."
+    },
+    {
+      "cite": "00 (§3.2)",
+      "quote": "an EXIF field called DateTimeOriginal is raw metadata; capture date = 2026-07-17 is the file fact derived from it"
+    },
+    {
+      "cite": "00 (§3.13)",
+      "quote": "A direct fact was read from a reliable and explicit source, such as a content hash, EXIF timestamp, document title, or labeled form field."
+    }
+  ],
+  "rules": [
+    "**Named families, never a generic year scanner.** The dispatch's instruction is literal: no `.*20\\d{2}.*`. Every family below has a name, a shape, a target field, and its own false friends. A digit run that no named family claims produces no date candidate — that refusal is the load-bearing half of this file (00 §3.10).",
+    "**Metadata slots are direct; text is not.** The EXIF and labeled-slot families produce `direct` facts because the slot itself is the design's definition of a reliable, explicit source (00 §3.13). Every regex family produces candidates that are `validated` at best: 'Filesystem timestamps are direct; dates recovered from text or filenames are not, and take the §3.10 path' (P6 SPEC, production rules).",
+    "**Letter-adjacency is the version firewall.** Every regex family's lookbehind refuses a word character butted against the digits, so `v2024`, `v20240517`, `build2024`, `PHYS1401` and every version/build/course-shaped string is refused mechanically, before any list is consulted. The refused rows below name the classes so nobody weakens the lookbehinds without seeing what they hold back.",
+    "**Calendar identities are not thresholds.** `calendar_date_valid` (a February 31st fails) and the consecutive-year identity are properties of the calendar, like catalogue 06's checksums — they are validation, not tunable numbers. Everything tunable (score, margin, zone weights) is an injected slot holding null.",
+    "**Claiming order crosses catalogues.** Designator and worded families (this file's fiscal family, 12/03's AY/WS/named-term rows) claim their spans before bare-shape families; 12/03's standalone year ranges run last of all. The combined order is written once in README.md; check.py exercises the FY case.",
+    "**No fuzzy parsing, ever.** `parse_exact` maps named groups of the matched family to a value; an unmatched string has no path to a date. There is no dateutil-style fallback and no LLM 'this looks like a date' route (00 §3.10; the LLM may only propose schema fields with cited evidence, and validation re-checks it)."
+  ],
+  "validation_rules": {
+    "calendar_date_valid": "the month names a real month and the day exists in that month of that year (Feb 29 only in leap years; no Apr 31). A calendar identity, not a tunable number.",
+    "consecutive_year_two_digit_when_range": "as in 12/03: when the optional range tail matched, the tail must name the year after the leading year (two-digit tails modulo one hundred); a rangeless match passes.",
+    "exif_datetime_layout": "EXIF datetimes are colon-separated `YYYY:MM:DD HH:MM:SS`; a slot value not in that layout (or the PDF `D:YYYYMMDD...` layout for the PDF slot) yields no fact and one `unresolved` row with reason `normalization_failed` (P6 SPEC) — never a guessed parse."
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null,
+    "locale_numeric_date_policy": null,
+    "date_label_strings": null,
+    "cjk_date_patterns_slot": null,
+    "note": "§3.7's thresholds plus three data slots this file names and refuses to fill: the locale policy for ambiguous numeric dates (see refused), the label strings that make a text date a labeled form field, and CJK/era date patterns (pairs with 12/03's cjk_term_patterns_slot). Slots are named; values are Joseph's."
+  },
+  "entries": [
+    {
+      "id": "fam-exif-datetimeoriginal",
+      "family_kind": "metadata_slot",
+      "slot_names": ["DateTimeOriginal"],
+      "zone": "metadata",
+      "value_layout": "exif_datetime",
+      "value_pattern": "^(19|20)\\d{2}:(0[1-9]|1[0-2]):(0[1-9]|[12]\\d|3[01])( ([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d)?$",
+      "validation": "calendar_date_valid",
+      "may_fill": ["capture_date"],
+      "never_fill": ["creation_date", "term", "tax_year"],
+      "reliability": "direct",
+      "provenance": "design",
+      "pattern_label": "EXIF DateTimeOriginal → capture date",
+      "rationale": "The design's own worked observation→fact pair: the EXIF field is raw metadata, capture date is the fact derived from it (00 §3.2), and P6 SPEC Done-means 5 asserts exactly this row — a DateTimeOriginal observation produces capture date as a direct fact with the EXIF observation remaining separately readable. capture_year (the §3.11 Photos field) derives from this fact's year component — never from a printed year in text (see ref-bare-year). Sibling EXIF slots (DateTimeDigitized, QuickTime CreateDate, GPSDateStamp) are an uncertain row, not silently absorbed: 00 names only DateTimeOriginal.",
+      "design_cite": "00 §3.2",
+      "false_positive_risk": "low",
+      "examples_true": ["2026:07:17 09:30:00", "2024:05:17 14:03:22"],
+      "examples_false": ["2026-07-17 09:30:00 (ISO layout in the EXIF slot — normalization_failed, not a guessed parse)", "0000:00:00 00:00:00"],
+      "example_fails_validation": ["2024:02:31 10:00:00"],
+      "source": "EXIF 2.32 colon layout is a general-knowledge anchor (RESEARCH.md)"
+    },
+    {
+      "id": "fam-labeled-creation-date",
+      "family_kind": "metadata_slot",
+      "slot_names": ["CreationDate (PDF)", "created (DOCX core properties, dcterms)"],
+      "zone": "metadata",
+      "value_layout": "pdf_d_datetime | iso8601",
+      "value_pattern": "^(D:(19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])|((19|20)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])))",
+      "validation": "calendar_date_valid",
+      "may_fill": ["creation_date"],
+      "never_fill": ["capture_date", "term", "tax_year"],
+      "reliability": "direct",
+      "provenance": "design",
+      "pattern_label": "labeled document-metadata dates → creation date",
+      "rationale": "00 §2.2 requires PDF 'creation and modification dates' preserved, and §3.13 makes a labeled slot a Direct source. Direct describes the slot, not the truth: a stale or tool-written date is still what the slot said, and §3.7's ranking arbitrates against filesystem timestamps (P3's, also direct) for the same field. The §2.2/§2.3 producer/creator discount does not apply here — it is keyed on Producer/Creator/Author property names, not on date slots. Which literal text labels ('Date:', 'Date of issue') promote an in-document date to labeled-form-field status is the `date_label_strings` slot, not authored here.",
+      "design_cite": "00 §2.2",
+      "false_positive_risk": "low",
+      "examples_true": ["D:20260717093000+00'00'", "2026-07-17T09:30:00Z"],
+      "examples_false": ["python-docx (a Producer string is not a date and its own suppression rule fires first)"],
+      "example_fails_validation": ["D:20260231120000"],
+      "source": "PDF D: layout and dcterms/W3CDTF are general-knowledge anchors (RESEARCH.md)"
+    },
+    {
+      "id": "fam-iso-ymd",
+      "family_kind": "regex",
+      "pattern": "(?<![0-9A-Za-z])(19|20)\\d{2}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])(?!\\d)",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "validation": "calendar_date_valid",
+      "may_fill": ["creation_date"],
+      "never_fill": ["capture_date", "term"],
+      "reliability_ceiling": "validated",
+      "provenance": "inference",
+      "pattern_label": "ISO year-month-day in text or filenames (2026-07-17)",
+      "rationale": "The one unambiguous all-numeric layout: four-digit year first, hyphens, real month, real day. The lookbehind refuses letter- and digit-attached runs (`v2024-05-11`, UUID fragments); the lookahead refuses longer digit runs. The month/day classes are why this is not a year scanner: `2024-27-01` and `2024-05` match nothing here. 12/03's standalone-range rows cannot collide: their consecutive-year validation rejects any year-month fragment, and this family's day requirement rejects any range.",
+      "design_cite": "00 §3.10 (explicit regular expressions, parsed without fuzzy matching)",
+      "false_positive_risk": "low",
+      "examples_true": ["2026-07-17", "Scan 2024-05-11.pdf", "2024-05-11T09:30 (the date part of a timestamp)"],
+      "examples_false": ["v2024-05-11", "2024-05", "2024-05-113", "backup2024-05-11 (letter-adjacent)"],
+      "example_fails_validation": ["2024-02-31"],
+      "source": "ISO 8601 layout is a general-knowledge anchor (RESEARCH.md)"
+    },
+    {
+      "id": "fam-compact-ymd",
+      "family_kind": "regex",
+      "pattern": "(?<![0-9A-Za-z])(19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(?![0-9])",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "validation": "calendar_date_valid",
+      "may_fill": ["creation_date"],
+      "never_fill": ["capture_date", "term"],
+      "reliability_ceiling": "validated",
+      "provenance": "inference",
+      "pattern_label": "compact eight-digit year-month-day (20240517, IMG_20240517_123456)",
+      "rationale": "The Android camera and screenshot naming conventions embed exactly this run (`IMG_20240517_123456.jpg`, `Screenshot_20240517-093012.png` — underscore-separated, which the lookbehind deliberately permits while refusing letters and digits). The month/day classes plus calendar validation are what separate it from eight-digit build ids and sequence numbers: `20241387` matches nothing. It is still the riskiest family in the file — a dated build tag (`nightly_20240517`) genuinely matches — which is priced in: the candidate is a date, and §3.7's zone weights and margin decide what it dates.",
+      "design_cite": "00 §3.10 (explicit regular expressions, parsed without fuzzy matching)",
+      "false_positive_risk": "medium",
+      "examples_true": ["IMG_20240517_123456.jpg", "Screenshot_20240517-093012.png", "scan 20260717.pdf"],
+      "examples_false": ["v20240517", "20240517123456 (digit run continues)", "8020240517", "20241387"],
+      "example_fails_validation": ["20240231"],
+      "source": "Android IMG_/Screenshot_ naming reuses catalogue 04's filename findings; layout is a general-knowledge anchor (RESEARCH.md)"
+    },
+    {
+      "id": "fam-written-mdy",
+      "family_kind": "regex",
+      "pattern": "\\b(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(0?[1-9]|[12]\\d|3[01])(st|nd|rd|th)?,?\\s+(19|20)\\d{2}\\b",
+      "match_kind": "regex",
+      "case_sensitive": false,
+      "word_boundary": true,
+      "validation": "calendar_date_valid",
+      "may_fill": ["creation_date"],
+      "never_fill": ["capture_date", "term"],
+      "reliability_ceiling": "validated",
+      "provenance": "inference",
+      "pattern_label": "written month-day-year (July 17, 2026)",
+      "rationale": "Month names make the layout unambiguous, so this family is case-insensitive: the day-plus-year frame is strong enough to survive lowercase `may` and `march`. Full month names only — abbreviated months are an uncertain row because `Jan`, `May` and `Mar.` open name/word/period problems the full names do not have.",
+      "design_cite": "00 §3.10 (explicit regular expressions, parsed without fuzzy matching)",
+      "false_positive_risk": "low",
+      "examples_true": ["July 17, 2026", "March 3 2024", "may 21st, 2025"],
+      "examples_false": ["May 2026 (no day — that is fam-month-year's shape)", "July 40, 2026", "Mayflower 17, 2026"],
+      "example_fails_validation": ["February 31, 2024"],
+      "source": "layout is a general-knowledge anchor (RESEARCH.md)"
+    },
+    {
+      "id": "fam-written-dmy",
+      "family_kind": "regex",
+      "pattern": "\\b(0?[1-9]|[12]\\d|3[01])(st|nd|rd|th)?\\s+(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(19|20)\\d{2}\\b",
+      "match_kind": "regex",
+      "case_sensitive": false,
+      "word_boundary": true,
+      "validation": "calendar_date_valid",
+      "may_fill": ["creation_date"],
+      "never_fill": ["capture_date", "term"],
+      "reliability_ceiling": "validated",
+      "provenance": "inference",
+      "pattern_label": "written day-month-year (17 July 2026)",
+      "rationale": "The UK/EU order of the previous family, same discipline. Both orders are safe because the month is a word; only the all-numeric orders are ambiguous (refused).",
+      "design_cite": "00 §3.10 (explicit regular expressions, parsed without fuzzy matching)",
+      "false_positive_risk": "low",
+      "examples_true": ["17 July 2026", "3rd May 2025", "1 march 2024"],
+      "examples_false": ["17 Julys 2026", "40 July 2026"],
+      "example_fails_validation": ["31 April 2025"],
+      "source": "layout is a general-knowledge anchor (RESEARCH.md)"
+    },
+    {
+      "id": "fam-month-year",
+      "family_kind": "regex",
+      "pattern": "\\b(January|February|March|April|May|June|July|August|September|October|November|December)\\s+(19|20)\\d{2}\\b",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "validation": null,
+      "may_fill": ["creation_date"],
+      "never_fill": ["capture_date", "term"],
+      "reliability_ceiling": "validated",
+      "value_precision": "year-month",
+      "provenance": "proposal",
+      "pattern_label": "capitalized month + year (July 2026 — month precision)",
+      "rationale": "Month-precision dates are real ('Statement period: July 2026') but the frame is weak without a day, so this family is deliberately case-sensitive: capitalized months only, which kills lowercase `may 2024` and `march 2024` outright. The capitalized survivors that are not dates — sentence-initial modal `May 2024 bring you joy`, `March 2024 protests` as an event name — are listed as must-not-conclude: the §3.7 margin and zone weights carry them, which is why this row is `proposal`, for Joseph to keep or drop.",
+      "design_cite": "00 §3.10 (explicit regular expressions, parsed without fuzzy matching)",
+      "false_positive_risk": "medium",
+      "examples_true": ["July 2026", "December 2024"],
+      "examples_false": ["may 2024", "march 2024", "Julyish 2026"],
+      "matches_but_must_not_conclude": [
+        "May 2024 bring you peace (sentence-initial modal verb, capitalized by position)",
+        "March 2024 protests (the month names an event, not the document's date)"
+      ],
+      "source": "authored from the false-friend analysis; no external source needed (RESEARCH.md)"
+    },
+    {
+      "id": "fam-fiscal-year",
+      "family_kind": "regex",
+      "pattern": "\\bFY\\s?(19|20)\\d{2}([-–/](19|20)?\\d{2})?\\b(?![-–/]?\\d)",
+      "match_kind": "regex",
+      "case_sensitive": true,
+      "word_boundary": true,
+      "validation": "consecutive_year_two_digit_when_range",
+      "may_fill": ["tax_year"],
+      "never_fill": ["term", "creation_date", "capture_date"],
+      "reliability_ceiling": "validated",
+      "provenance": "inference",
+      "pattern_label": "fiscal-year designator (FY2025, FY 2024-25)",
+      "rationale": "The dispatch asked where FY lands; the answer is Finance. FY is a fiscal designator — universities use it for budgets, not transcripts — so its candidate targets §3.11 Finance's tax year field and must never fill `term` (12/03's ref-fiscal-year is the same statement from the other side). It runs in the worded band of the claiming order, so `FY 2024-25` is claimed here and never reaches 12/03's standalone range rows. The value is a fiscal-year label whose start month varies by jurisdiction (US federal October, Japan April, UK April); normalization keeps the label and cannot expand it to calendar dates without jurisdiction evidence. Whether a fiscal label may fill `tax_year` without Finance-domain context is the same never-alone discipline as everything else here: it is a candidate, and activation needs its own evidence.",
+      "design_cite": "00 §3.11 (Finance's field list carries tax year)",
+      "false_positive_risk": "low",
+      "examples_true": ["FY2025", "FY 2024-25", "FY 2024/25", "FY2024–25"],
+      "examples_false": ["FY25 (two-digit — uncertain row)", "fy2025", "QUALIFY2025"],
+      "example_fails_validation": ["FY 2024-27"],
+      "matches_but_must_not_conclude": [
+        "a Japanese 年度 string is the same fork in CJK — 12/03's atp-cjk-nendo row carries it and its field routing is NEEDS-JOSEPH"
+      ],
+      "source": "fiscal-designator usage is a general-knowledge anchor; jurisdiction start-months verified for Japan in the 年度 survey (RESEARCH.md)"
+    }
+  ],
+  "refused": [
+    {
+      "id": "ref-version-strings",
+      "refuses": "version tags and version numbers as dates — `v2024`, `v2.0.1`, `2024.1` (calver), `24.04` (Ubuntu-style), `Python 3.12`, `v20240517`",
+      "provenance": "design",
+      "rationale": "The design's own confusable list names version numbers, and P6's Done-means 10 asserts `v2024` produces no date fact. The defense is mechanical, not a list: every regex family's lookbehind refuses a letter butted against the digits (`v2024`, `v20240517`), no family matches dotted numerics (`2024.1`, `24.04`, `3.12` have no family), and a bare `2024` inside `v2024` is already refused by ref-bare-year. Calendar-versioned software (JetBrains `2024.1`, Ubuntu `24.04`) is the sharpest case: those strings genuinely encode dates, and they still must not become date facts — a release name is a fact about software, not about the file's dates.",
+      "design_cite": "00 §3.10",
+      "quote": "course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values",
+      "examples_false": ["v2024", "v2.0.1", "2024.1", "24.04", "Python 3.12", "v20240517"]
+    },
+    {
+      "id": "ref-build-numbers",
+      "refuses": "build numbers, CI run ids, and issue references as dates — `build 4300`, `Build 20471`, `#20240517`",
+      "provenance": "design",
+      "rationale": "Named in the same §3.10 list. `build 4300` and `Build 20471` contain no family shape (four- and five-digit bare runs are refused); `#20240517` is digit-shaped like a compact date but a dated build id is a date candidate only when the compact family's adjacency rules admit it — and then §3.7 decides what it dates, which is the priced-in residual of fam-compact-ymd, not a hole in this refusal.",
+      "design_cite": "00 §3.10",
+      "examples_false": ["build 4300", "Build 20471"]
+    },
+    {
+      "id": "ref-zip-codes",
+      "refuses": "US ZIP and ZIP+4 as dates — `02139`, `90210`, `MA 02139`, `02139-4307`",
+      "provenance": "design",
+      "rationale": "Named in §3.10's list and standing in the adversarial suite (A03's `MA 02139`, forbidden as a course value; Done-means 10 forbids it as a date). Five-digit runs match no family (the compact family needs eight digits, the bare-year refusal covers four), and `02139-4307` fails every range identity.",
+      "design_cite": "00 §3.10",
+      "examples_false": ["02139", "MA 02139", "02139-4307"]
+    },
+    {
+      "id": "ref-bare-year",
+      "refuses": "a bare four-digit year as a date candidate — `2024` alone, `4300`, a file named `2024.pdf`, `© 2024`",
+      "provenance": "design",
+      "rationale": "The heart of §3.10: a year-shaped number alone is routinely a course identifier, version, build, or ZIP fragment, so no family matches one. Three consequences are contract: a file named `2024.pdf` yields no date fact; Photos' capture_year derives only from a capture_date fact's year component (fam-exif-datetimeoriginal), never from a printed year; and a copyright line (`© 2024`) is an uncertain row, not a silent exception.",
+      "design_cite": "00 §3.10",
+      "quote": "numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values",
+      "examples_false": ["2024", "4300", "2024.pdf"]
+    },
+    {
+      "id": "ref-iso-designators",
+      "refuses": "ISO-prefixed numbers as dates — `ISO 9001` (standards designator), `ISO 3200` (camera sensitivity)",
+      "provenance": "inference",
+      "rationale": "The dispatch names 'ISO numbers' among the forbidden. Both readings are covered: a standards designator (`ISO 9001`, `ISO 27001`) is letter-adjacent to nothing date-shaped and matches no family; camera sensitivity arrives as its own labeled EXIF slot (`ISO` / `PhotographicSensitivity`) in the metadata zone and never enters date candidacy — a labeled slot feeds only the field its family names, and no date family names the ISO slot. 12/02 stoplists ISO on the course side for the same string.",
+      "design_cite": "00 §3.10 (deliberately narrow)",
+      "examples_false": ["ISO 9001", "ISO 3200"]
+    },
+    {
+      "id": "ref-course-identifiers",
+      "refuses": "course-code digit blocks as dates — `BUSIB 4300`, `PHYS1401`, `MATH 2026`",
+      "provenance": "design",
+      "rationale": "Course identifiers open §3.10's confusable list. `PHYS1401` is letter-adjacent (lookbehind refuses); the digit blocks of `BUSIB 4300` and even the year-shaped `MATH 2026` are bare four-digit runs (ref-bare-year). The same strings are course-side candidates in 12/02, where context terms gate them — the two catalogues split the string cleanly: 12/02 may make it a subject, nothing may make it a date.",
+      "design_cite": "00 §3.10",
+      "examples_false": ["BUSIB 4300", "PHYS1401", "MATH 2026"]
+    },
+    {
+      "id": "ref-ambiguous-numeric",
+      "refuses": "ambiguous all-numeric orders as dates — `05/11/2024`, `5/11/24`, `11-05-2024`",
+      "provenance": "inference",
+      "rationale": "`05/11/2024` is May 11 in Maryland and November 5 in Manchester; deliberately narrow means no family guesses. Slash and non-ISO hyphen orders are unauthored; the `locale_numeric_date_policy` slot is where a locale-injected family would go if Joseph wants one, and the dotted German order is its own uncertain row. Catalogue 06's check already treats `05/11/2024` as a leak on the identifier side; this file agrees from the date side.",
+      "design_cite": "00 §3.10",
+      "examples_false": ["05/11/2024", "5/11/24", "11-05-2024"]
+    },
+    {
+      "id": "ref-two-digit-years",
+      "refuses": "bare two-digit years — `'25` alone, `24`",
+      "provenance": "inference",
+      "rationale": "Two digits are anything. The apostrophe-year survives only inside a worded frame that 12/03's uncertain apostrophe row would provide (`Spring '25`), never alone.",
+      "design_cite": "00 §3.10 (deliberately narrow)",
+      "examples_false": ["'25", "24"]
+    },
+    {
+      "id": "ref-epoch-timestamps",
+      "refuses": "Unix epoch runs as dates — `1716950000`",
+      "provenance": "inference",
+      "rationale": "Ten-digit runs are epoch-shaped but also phone numbers, account numbers, and object ids; parsing them as times is exactly the fuzzy leap §3.10 forbids. If a specific extractor ever emits an epoch in a labeled slot, that slot joins the metadata-slot families by name — text never does.",
+      "design_cite": "00 §3.10",
+      "examples_false": ["1716950000"]
+    }
+  ],
+  "uncertain": [
+    {
+      "id": "unc-dotted-dmy",
+      "question": "Admit the dotted day.month.year order (`17.05.2026`) behind the locale slot?",
+      "provenance": "proposal",
+      "rationale": "Standard German/CEE order and effectively unambiguous when the middle block is a valid month and the day block exceeds twelve — but `17.05` is also a section number, and a corpus-language signal (the locale_numeric_date_policy slot) should gate it rather than a guess. Unauthored.",
+      "example_true": "17.05.2026",
+      "example_false": "Abschnitt 17.05, Revision 2026"
+    },
+    {
+      "id": "unc-abbreviated-months",
+      "question": "Admit abbreviated month names (`Jan 5, 2026`, `5 Sept 2026`, `Sept. 2026`)?",
+      "provenance": "proposal",
+      "rationale": "Real usage, but `Jan` is a given name, `May`/`Mar` are words, and the trailing period doubles the pattern surface. The full-name families cover the safe core; abbreviations need corpus evidence.",
+      "example_true": "Jan 5, 2026",
+      "example_false": "Jan Novak, 2026 cohort"
+    },
+    {
+      "id": "unc-copyright-year",
+      "question": "Is a copyright line (`© 2024`, `Copyright 2024`) a labeled year family?",
+      "provenance": "proposal",
+      "rationale": "The © frame is a real label and a real false friend: a 2019 report served from a site whose footer says © 2024 would inherit the wrong year. If admitted it would be footer-zone-weighted at best; unauthored pending Joseph.",
+      "example_true": "© 2024 Example Corp",
+      "example_false": "a 2019 PDF whose viewer chrome says © 2024"
+    },
+    {
+      "id": "unc-exif-sibling-slots",
+      "question": "Do DateTimeDigitized, QuickTime CreateDate, and GPSDateStamp candidate capture_date or creation_date?",
+      "provenance": "proposal",
+      "rationale": "00 names only DateTimeOriginal. DateTimeDigitized diverges from it exactly on scans (the digitization of an old photo is not its capture); video CreateDate is capture-shaped for camera video but tool-shaped for exports; GPSDateStamp is UTC and dateless of time zone. Each is a real slot someone must route; none is routed here.",
+      "example_true": "DateTimeDigitized on a phone photo (equals DateTimeOriginal)",
+      "example_false": "DateTimeDigitized on a 1994 print scanned in 2024"
+    },
+    {
+      "id": "unc-ics-email-date-slots",
+      "question": "Where do ICS DTSTART/DTEND and the email Date header land?",
+      "provenance": "proposal",
+      "rationale": "§2.9 requires both extracted ('event title, start and end time'; 'sent date'), but no authored field takes them: creation_date is wrong for an event's start, Photos' `event` is a value-bearing fact about photo clusters, and the per-domain 'additional fields used only for search' are deferred. The slots are real; their target field is a fork for the field-schema side, not for this catalogue.",
+      "example_true": "DTSTART:20260717T090000Z",
+      "example_false": "—"
+    },
+    {
+      "id": "unc-era-years",
+      "question": "Japanese era years (`令和6年`, `令和6年度`) — a family behind cjk_date_patterns_slot?",
+      "provenance": "proposal",
+      "rationale": "Era-year forms need era arithmetic (令和6 = 2024) and native review; the slot is named beside 12/03's cjk_term_patterns_slot and stays empty until both exist.",
+      "example_true": "令和6年度",
+      "example_false": "—"
+    },
+    {
+      "id": "unc-fy-two-digit",
+      "question": "Admit `FY25`?",
+      "provenance": "proposal",
+      "rationale": "Ubiquitous in business documents and unambiguous to a human, but two digits force a century guess the four-digit family never makes. Needs Joseph's call on the normalization rule before it can exist.",
+      "example_true": "FY25",
+      "example_false": "FY25 as a product SKU fragment"
+    }
+  ],
+  "acceptance_fixtures": [
+    "tests/eval/fixtures/adversarial/A03.json — `MA 02139` and `XPS 13` must produce no fact from any family here (no family matches either; ZIP is a named refused class). Note: no A-fixture carries `v2024` — the v2024 assertion lives in P6 SPEC Done-means 10 and in this file's refused list, and RESEARCH.md records the discrepancy against the dispatch's fixture summary.",
+    "P6 SPEC Done-means 10 — `v2024`, a build number, and a ZIP code produce no date fact",
+    "P6 SPEC Done-means 5 — an EXIF DateTimeOriginal observation produces `capture date` as a `direct` fact, and the EXIF observation remains separately readable"
+  ],
+  "sourcing_note": "The layouts here (EXIF colon datetimes, PDF D: strings, ISO 8601, Android IMG_/Screenshot_ naming) are general-knowledge anchors recorded in RESEARCH.md; the Japan fiscal-year start month was verified in the 年度 survey. Nothing else needed external verification: this file's substance is refusals, and every refusal is sourced to 00's own confusable list."
+}

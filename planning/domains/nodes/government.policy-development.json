@@ -1,0 +1,454 @@
+{
+  "id": "government.policy-development",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Policy development",
+  "one_line": "J-DEPTH placeholder template for the pre-decision appraisal corpus an executive or administrative public body builds while deciding what to do — a numbered option set with a do-nothing baseline appraised against shared public criteria, the impact and distributional assessments and analytical models behind it, the submission that carries a recommendation to a decision-maker, the clearance write-round, and the minute that closes the exercise; plus co-operation instruments between public bodies (memoranda of understanding, concordats, joint working arrangements) that are the negotiated output of the same corpus. It is not activated by the word Policy, by a numbered option list, by a public body's name, or by a published Green or White Paper held for reading. It differs from its schema's default in that its anchor is a policy QUESTION rather than an instrument, case, meeting or collection identifier, and in that its default privacy posture is version-state-sensitive deliberative protection rather than named-person protection. It declares no government field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "proposal",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals on a fieldless schema, not licences to write government facts. Every accepted signal must satisfy the `government` schema's authority-side role precondition AND add the appraisal structure below; the appraisal structure alone, held by a company, a charity, a consultancy or a campaign, does not reach this row.",
+      "an OPTION-SET APPRAISAL document: two or more consecutively numbered options of which one is an explicit do-nothing, business-as-usual or baseline option, each option appraised against the SAME named criteria (cost, benefit, deliverability, risk, distributional effect), closing with a designated preferred or recommended option — the do-nothing option scored as an option, not merely mentioned, is the discriminating structure",
+      "a formal impact or regulatory appraisal with its mandated section spine present in order — problem under consideration, rationale for intervention, policy objective, options considered, costs and benefits, preferred option — carrying an appraisal reference and a senior-officer or ministerial sign-off statement, and where present an INDEPENDENT SCRUTINY OPINION page issued by a body other than the author",
+      "an equality, distributional, environmental, child-rights, privacy or rural impact annex that names a statutory duty to consider, lists affected groups against the same option numbers used by a companion appraisal, and is lettered or numbered as an annex to it",
+      "a DECISION-BOX SUBMISSION: a short paper with labelled Issue, Timing, Recommendation and Annexes sections addressed to a named office-holder, terminating in a decision block offering discrete responses (agree / do not agree / discuss), especially when a returned copy carries an initialled or annotated selection",
+      "a CLEARANCE WRITE-ROUND record: a dated circulation of one attached paper to named other departments, agencies or offices with a clearance-by deadline and returned position responses (content, comment, objection) threaded against the same paper title or reference",
+      "an analytical annex whose workbook structure mirrors the option set — an options or scenario sheet keyed to the same option numbers, unit-cost or assumption sheets, sensitivity or scenario tabs, and a quality-assurance or model-log sheet naming a reviewer separate from the modeller",
+      "a policy-question corpus anchor: a stable free-text policy question, programme or workstream label (not a bill, rule, docket, case, procurement, meeting or collection identifier) repeated across a draft options paper, an appraisal, a model, a submission and a decision minute held by the same authority-side producer",
+      "a DECISION MINUTE or record of outcome that states which numbered option was agreed, on whose advice, on what date, with follow-up actions — and which does not itself carry the form of an instrument, a determination on an application, or a minute of a constituted meeting",
+      "a co-operation instrument between two or more PUBLIC bodies — memorandum of understanding, concordat, joint working arrangement, terms of reference for a joint committee — with public-body parties in the signature blocks, recitals of shared function, scope of co-operation, governance and review clauses, and commonly an express statement that the arrangement is not intended to be legally binding",
+      "a draft-state marking that is itself structural: a version token plus a handling or status legend of the not-yet-agreed family (draft, restricted, sensitive, not government policy, pre-decisional) in a header, footer or watermark of a document that also carries option-set or appraisal structure"
+    ],
+    "needs_llm": [
+      "deciding whether an option-set paper is authority-side policy appraisal or a corporate, consultancy, campaigning or academic options paper with the same furniture; the discriminator is the appraisal CRITERIA (public value, statutory objective, distributional effect) plus an authority-side sign-off, not the presence of numbered options",
+      "recognising an UNLABELLED options paper — a prose submission that argues three courses of action and recommends one without ever numbering them, or a briefing whose option structure exists only in its argument",
+      "separating the department's own product from the proceeding it feeds: a government response to a committee report, a response-to-comments in a rulemaking docket, and a consultation response analysis are each produced by this corpus and filed by a sibling once they enter that proceeding; custody and the anchoring identifier decide",
+      "deciding whether a co-operation instrument is an intergovernmental arrangement between administrative bodies (this row), a treaty or state-to-state instrument, an international programme agreement, or an ordinary commercial contract with a public counterparty",
+      "distinguishing a draft that has not been released from a published final when the two differ only by a watermark, a status legend, a redaction, or a version token — and abstaining when release state cannot be evidenced",
+      "judging whether an evidence review or literature synthesis was produced or commissioned for a live policy question, or is reading material collected around a topic; a commissioning statement, a terms-of-reference reference, or an appraisal that cites it are the evidence",
+      "interpreting appraisal and submission structures in languages and administrative traditions whose labelled section vocabulary the deterministic rules do not cover",
+      "abstaining whenever the evidence names a topic but no authority-side producer and no appraisal structure; “A model that cannot cite sufficient evidence must return unknown.”"
+    ],
+    "never_alone": [
+      "the words Policy, Strategy, Options, Options Paper, Impact Assessment, Appraisal, Green Paper, White Paper, Consultation, Review or Framework in a filename, title, heading or parent folder — `Remote Working Policy v3.docx` and `Impact Assessment - CRM Migration.docx` trip every one of them and belong to business_operations.policy-handbook and to ordinary project records",
+      "a numbered option list, an options table, or a preferred-option statement alone; a vendor-selection deck, a consultancy options appraisal and a board paper all carry Option 1 / Option 2 / recommended option, and none of them appraise a do-nothing baseline against public criteria under an authority-side sign-off",
+      "a cost-benefit table, a net-present-value figure, a scenario tab, or a sensitivity analysis alone; those are the furniture of any investment case",
+      "a public body's name, a ministry or agency letterhead, an official seal, a .gov-style domain, a government email address, or a PDF producer string alone — the body may be the author, the addressee, the subject, the funder, the employer, the cited authority or the venue",
+      "a published Green Paper, White Paper, strategy document, guidance note, appraisal manual or impact assessment downloaded for reading; publication by a government is not authority-side custody of its development",
+      "a draft or DRAFT-NOT-FINAL watermark, a version token, or a sensitivity legend alone; drafts and handling legends occur in every domain and a legend is a literal observation, never a sensitivity conclusion or a handling class",
+      "a consultation document or a bundle of consultation responses alone — that corpus is the consultation sibling's; only the authority's own coding frame and analysis, tied to a policy question this corpus already evidences, reaches here",
+      "a memorandum of understanding alone; an MoU between a public body and a supplier, a university, a charity or a foreign private party is not an intergovernmental arrangement, and the parties block decides",
+      "a person's name on an option paper, a submission or a clearance thread; named officials, ministers, analysts and reviewers are never-alone evidence and must never become an organising dimension",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a shared download session or a single browser batch that pulled a Green Paper, an appraisal manual and a consultation together; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is a capture of a draft policy page; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [],
+  "work_types": [
+    "policy options paper or options appraisal",
+    "impact assessment, regulatory appraisal, or cost-benefit appraisal",
+    "equality, distributional, environmental, privacy, or other statutory impact annex",
+    "independent scrutiny or appraisal-quality opinion",
+    "evidence review, literature synthesis, or analytical annex",
+    "cost or scenario model and its quality-assurance log",
+    "ministerial or executive submission with a recommendation and a decision block",
+    "clearance write-round circulation and returned positions",
+    "consultation response analysis and coding frame produced by the authority",
+    "discussion or decision paper published for comment (green paper, white paper, strategy)",
+    "decision minute or record of outcome closing the exercise",
+    "announcement handling pack — lines to take, question-and-answer brief, stakeholder grid",
+    "memorandum of understanding, concordat, or joint working arrangement between public bodies",
+    "joint committee terms of reference, work programme, or review report under such an arrangement",
+    "policy implementation plan, monitoring framework, or post-implementation review"
+  ],
+  "grouping_reasons": [
+    "one evidenced policy question or workstream, linking an options paper, its appraisal and annexes, the model behind it, the submission that carried it and the minute that closed it — the anchor is the question label, and it is never copied onto a sparse member as a fact",
+    "one appraisal family: an impact assessment, its lettered annexes, its scrutiny opinion and its underlying workbook, linked by the shared option numbering and the appraisal reference",
+    "one submission event: the submission, its annexes, the returned annotated copy and the resulting minute, linked by an exact submission reference",
+    "one clearance write-round: the circulated paper, the named recipients' returned positions and the revised paper, linked by an exact paper title or reference and a circulation date",
+    "one co-operation instrument: negotiation drafts, the signed arrangement, its schedules, joint committee terms of reference and review reports, linked by an exact arrangement title and parties",
+    "draft-to-final progression stays on the universal version-family relation; successive option-paper and appraisal drafts do not acquire new government facts from their neighbourhood, and a later version never relabels an earlier one",
+    "no group is a valid outcome: a single downloaded white paper, a lone signed memorandum of understanding, or an orphan appraisal has durable purpose and no corpus; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract, and this row concedes that its dimension recommendation does NOT differ from its schema's default — PR-6 leaves `government` with no field rows, a template cannot branch on undeclared fields, so the default order is [] and so is this one. The node rests on legs one and three of the node test, not this leg. The structure the world would want, recorded as prose for later adjudication: the policy question or workstream first, then the appraisal or submission family within it, then work type; the option number is an ordering inside a family and not a folder level, and named officials, ministers and analysts must never become a dimension. Time is not first because “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” — a single policy question routinely spans several years and putting the year first would separate the options paper from the minute that answered it. Any later order remains the user's: “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "filesystem",
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "ocr",
+      "email",
+      "calendar",
+      "archive",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Impact Assessment - Single-Use Plastics Restriction - IA No 2026-014 - final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "front sheet carries an appraisal reference, a lead department block and a dated ministerial sign-off statement",
+        "section headings appear in the mandated order: problem under consideration, rationale for intervention, policy objective, options considered, costs and benefits, preferred option",
+        "an options table scores Option 0 do nothing alongside Options 1 and 2 against the same criteria",
+        "a final page is an opinion issued by a scrutiny body other than the author, with a rating"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any government field, because the schema declares none",
+        "that the preferred option was adopted, is in force, or was correctly appraised",
+        "that a green or positive scrutiny rating is a sensitivity or handling outcome",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Policy Options Paper - School Transport Funding - v0.7 DRAFT.docx",
+      "source_type": "text_document",
+      "observations": [
+        "header watermark carries a version token and a not-yet-agreed status legend",
+        "four numbered options, the first described as business as usual, each with cost, deliverability, risk and distributional rows against the same criteria",
+        "a closing recommendation section names one option as preferred",
+        "the same free-text workstream label appears in the footer as in a companion model and submission"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the legend or watermark is a sensitivity result or a handling class — it is a literal observation",
+        "that the preferred option is government policy",
+        "the workstream label as a stored fact on any sparse member of the corpus"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Submission SUB-2026-0412 - School Transport Funding - Recommendation.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled Issue, Timing, Recommendation, Background and Annexes sections addressed to a named office-holder",
+        "a submission reference repeated in the header and on each annex",
+        "a decision block offering discrete responses, initialled and dated in a returned copy already in the corpus"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the initialled response is a decision in force",
+        "that the named office-holder is a fact about the file or a folder level",
+        "authority, legality, or effect of anything recommended"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Write-round - clearance by Thursday 5pm - School Transport options.eml",
+      "source_type": "email",
+      "observations": [
+        "structured sender and recipient slots name several other departments and agencies",
+        "body states a clearance deadline and asks for content, comment or objection",
+        "the options paper is attached and named identically to a document already in the corpus",
+        "threaded replies carry returned positions from named offices"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that clearance was given or withheld",
+        "that an official email domain alone evidences authority-side custody",
+        "recipient identities as an organising dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "School transport options - cost model - v12.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "an options sheet keyed to the same option numbers as the companion paper",
+        "unit-cost and assumption sheets, plus low, central and high scenario tabs",
+        "a quality-assurance sheet naming a reviewer distinct from the modeller",
+        "cells contain per-authority pupil counts"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that any modelled figure is a fact about the world or an official statistic",
+        "that a quality-assurance sign-off validates the policy",
+        "per-authority rows as a folder dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Equality and Distributional Impact Assessment - Annex C.docx",
+      "source_type": "text_document",
+      "observations": [
+        "opening paragraph names a statutory duty to have regard to particular effects",
+        "affected groups tabulated against the same numbered options as the parent appraisal",
+        "lettered as an annex to a named appraisal reference"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the duty was discharged or the analysis is adequate",
+        "protected-characteristic categories as facts about the corpus or as folder levels",
+        "legal advice of any kind"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Consultation Response Analysis - coding frame and theme counts.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a coding-frame sheet defining themes and a counts sheet aggregating them",
+        "a respondent sheet holds names, organisations and free-text quotations",
+        "the authority's own analyst and reviewer are named in a control sheet",
+        "the sheet references both a consultation identifier and the corpus workstream label"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that theme counts represent public opinion or a mandate",
+        "respondent identity as a fact or a dimension",
+        "that holding the analysis means holding the consultation corpus"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Policy Decision Minute - Option 2 agreed - 2026-06-14.docx",
+      "source_type": "text_document",
+      "observations": [
+        "states which numbered option was agreed, on what advice and on what date",
+        "an actions table with owners and dates",
+        "carries the submission reference but no instrument number, application reference or meeting agenda"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the decision is in force, lawful, published, or unchanged",
+        "that a minute of a policy decision is a minute of a constituted meeting",
+        "action owners as folder levels"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Memorandum of Understanding - Department and Devolved Administration - data sharing - signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "signature blocks name two public bodies and their office-holders",
+        "recitals of shared statutory function, scope of co-operation, governance, information handling, dispute and review clauses",
+        "an express clause stating the arrangement is not intended to create legally binding obligations",
+        "a schedule lists a joint committee and its meeting cadence"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the arrangement is legally binding, in force, or current",
+        "that it is a treaty or an international agreement",
+        "party names as government facts or as folder levels"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Policy workstream export - school-transport - manifest.zip",
+      "source_type": "archive",
+      "observations": [
+        "a readable manifest lists paths that repeatedly encode one workstream label",
+        "members span option drafts, an appraisal, a model, submissions, a clearance thread and a comms grid",
+        "system metadata identifies a policy team's document store"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "member facts inferred from sibling members inside the archive",
+        "that unpacking is warranted merely to strengthen recognition",
+        "that a folder path inside the manifest is a fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Regulatory Impact Analysis - Proposed Rule RIN 1234-AB56.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "problem statement, alternatives considered including no action, quantified costs and benefits, preferred alternative — the same spine as this row's central fixture",
+        "front matter binds it to a rulemaking identifier and a proposal docket",
+        "it is published as a supporting document to a notice already in the corpus"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that appraisal structure alone places it in policy development",
+        "that the rule is in force or the analysis is sound",
+        "a docket identifier as a folder level"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Options Appraisal - Depot Network Consolidation - Board Paper 12.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "three numbered options plus a do-nothing base case, appraised on payback, net present value and delivery risk",
+        "a recommended option slide and a board approval slide",
+        "the issuer block is a private company; criteria are shareholder return and operating margin"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a do-nothing baseline plus numbered options is sufficient to activate this row",
+        "government activation from appraisal furniture alone",
+        "a public body merely because a public counterparty is named in a slide"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-06-14 at 09.12.31 - draft policy page.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in image metadata and framing",
+        "OCR reveals an option-set heading and an unpublished status label in a content-management interface"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "screen origin from missing EXIF or dense text alone",
+        "that OCR of a draft heading establishes authority-side custody",
+        "publication state of the underlying page"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Remote Working Policy v3.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the word Policy in the filename and a version token",
+        "scope, principles, responsibilities, breach and review sections binding one organisation's own staff",
+        "an approval line naming an internal committee; no options, no baseline, no external audience"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "this row from the word Policy",
+        "government activation even when the employer is a public body — employer role is not authority-side function",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.regulatory-rulemaking",
+      "signal": "Both hold an appraisal with a problem statement, alternatives including no action, a cost-benefit analysis and a preferred alternative. Rulemaking's copy is bound to a proposal or docket identifier and travels as a supporting document to a notice; this row's copy is anchored only to a policy question and routinely exists where no proposal was ever issued. Contested fixture: `Regulatory Impact Analysis - Proposed Rule RIN 1234-AB56.pdf` — the appraisal spine pulls here, the docket identifier and its custody inside the notice bundle pull to rulemaking, and the identifier wins. Reciprocal: an appraisal with no instrument identifier, or one whose only reference is a workstream label, is this row's even when a rule later emerges.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.public-consultation",
+      "signal": "A consultation sits inside policy development but the corpus splits by producer. The consultation row owns the call document and the received responses as a submissions corpus keyed to a consultation identifier; this row owns the authority's own coding frame, response analysis and the revised options that follow. Contested fixture: `Consultation Response Analysis - coding frame and theme counts.xlsx` — the consultation identifier and the respondent sheet pull to consultation, the analyst-side coding frame and the shared workstream label pull here. Reciprocal: a bundle of responses with no authority-side analysis is never this row's, and an options paper revised after a consultation is never the consultation row's.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.legislative-record",
+      "signal": "The two meet on the government's own response to a committee and on drafting instructions. That row states the boundary from its side and this row accepts it reciprocally: policy development owns the options papers, appraisals and ministerial briefings behind a bill and owns a government response as the department's own product; the legislative row owns the same response held inside the proceedings as a reply to numbered recommendations, and owns drafting instructions sitting with the drafting or clerk's office. Contested fixture, named identically on both sides: `Government response to the Committee's Third Report - CP 1194.pdf`.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.policy-handbook",
+      "signal": "That row states the boundary from its side and this row accepts it reciprocally: a public consultation, a legislative or rulemaking anchor, or an external audience supports this row; a document binding one organisation's own people supports the handbook row. Added from this side: the option set with a do-nothing baseline is the positive discriminator, because a handbook has no options and no baseline. Contested fixture, named identically on both sides: `Remote Working Policy v3.docx` held by a government department — the employer relationship makes it a handbook, not authority-side policy work.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "A private options appraisal and a public one share numbered options, a do-nothing base case, a preferred option and an approval line. The discriminating evidence is the appraisal criteria and the approver: shareholder return, payback and board approval support governance; public value, statutory objective, distributional effect and an officer or ministerial sign-off with an independent scrutiny opinion support this row. Contested fixture: `Options Appraisal - Depot Network Consolidation - Board Paper 12.pptx`.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.diplomatic-consular",
+      "signal": "Co-operation instruments overlap. This row holds arrangements between administrative public bodies within one state or between an administration and another administration — memoranda of understanding, concordats, joint working arrangements, commonly with an express non-binding clause. The diplomatic row holds state-to-state instruments, treaty and ratification machinery, and mission-side records. Contested fixture: `Memorandum of Understanding - Department and Devolved Administration - data sharing - signed.pdf` — public-body signature blocks and the non-binding clause keep it here; a signature by a head of state or a treaty-series number moves it.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.international-development",
+      "signal": "A programme memorandum of understanding between a donor authority and a partner government carries the same recitals, governance and review clauses as an intergovernmental arrangement. The discriminator is a funded programme spine — disbursement schedule, logframe or results framework, implementing partner, reporting cycle — which supports the development row; a pure co-operation and information-sharing scope with a joint committee supports this row. Reciprocal: this row does not claim an arrangement merely because both parties are public.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.advocacy-campaign",
+      "signal": "A charity, think tank or campaign produces papers that imitate this row's central fixture — numbered options, a costed baseline, a recommended option, an executive summary addressed to a minister. The discriminator is the authority-side role precondition: an external body advocating a position is a submission INTO government, not the government's own appraisal, however closely it copies the form. Reciprocal: a department's own options paper is never the advocacy row's merely because a campaign is named in it.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.grant-programme-administration",
+      "signal": "Programme design papers sit at the seam. An options appraisal deciding whether to create a funding programme is this row's; the resulting call, received applications, assessments, awards and monitoring reports are the grant row's, and a post-implementation review of an operating programme is the grant row's where it is keyed to that programme's own reference. Reciprocal: a grant scheme's design appraisal is not claimed by the grant row merely because the scheme later existed.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "unreleased deliberative material — option drafts, appraisals before publication, submissions, clearance threads, models, decision minutes — is recognised but no accepted policy-question group is active, or release state cannot be evidenced",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "a published green paper, white paper, strategy, appraisal manual, guidance note or impact assessment is held for reference with no authority-side custody and no accepted policy-question group",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a readable option-set or appraisal artefact is structurally convincing but its producer role is unresolved — a consultancy, corporate, campaign or academic paper that may or may not be authority-side",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a standalone signed co-operation instrument, a lone published appraisal, or an orphan decision minute has durable purpose but no corpus around it",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "a policy-team export, a protected workbook or a password-locked archive cannot be read, and its name must not manufacture a workstream, a decision or a sensitivity outcome",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The default posture differs in KIND from the `government` schema's default, and that difference is one of this row's two surviving node-test legs. The schema protects named-person case material and received submissions; this corpus frequently contains no private individual at all and is still its most disclosure-sensitive holding. Three reasons, all structural. (1) The harm attaches to what was NOT chosen: a rejected option, an unpublished cost estimate, a risk annex or a legal-risk paragraph is damaging precisely because it was discarded, so a member's sensitivity cannot be read from its content the way a case file's can. (2) The harm is version-state-dependent: an unreleased draft and its published final can be the same bytes minus a watermark or a status legend, so the node must never treat resemblance to a government publication as evidence that the local copy is public, and must abstain when release state is unevidenced. (3) The sensitivity decays on announcement, and the catalogue has no concept of time-bound state, so it must not compute expiry and must not downgrade a member because a related document was later published. The node records only `potentially_sensitive` and no handling class; status legends, protective markings and scrutiny ratings are retained as literal observations and are never converted into a sensitivity result. Recognition and grouping run locally from the minimum necessary excerpt or manifest; option text, cost figures, risk annexes, clearance positions and named advice should not be placed into remote prompts by default, and cross-workstream semantic joining is suppressed because policy questions recur across years and administrations.",
+  "open_question": "NEEDS-JOSEPH: (1) The dimension leg is conceded, not argued — this row differs from its schema's default on detection signals and privacy posture but NOT on dimensions, which are empty on both sides under PR-6. Confirm that CONNECTION.md's node test is genuinely disjunctive (signals OR dimensions OR privacy), because if all three legs are required this row must be refused and its coverage redistributed to government.regulatory-rulemaking, government.public-consultation, government.legislative-record and business_operations.policy-handbook. (2) The policy-question anchor is free text, not an identifier — unlike every other government sibling, whose anchors are bill, docket, case, procurement, meeting or collection references. Decide whether P9 may group on a stable free-text workstream label at all, or whether this corpus can only ever be grouped through the identifiers of the proceedings it feeds, which would leave terminated policy work ungroupable. (3) Release state has no representation. Decide whether unreleased / published is a literal observation only (this row's assumption), a universal fact alongside version family, or a P7 concern. (4) The legacy row gov.intergovernmental-agreement is absorbed here on the argument that a memorandum of understanding between public bodies is the negotiated OUTPUT of a policy exercise rather than a document type of its own; if Joseph reads it instead as belonging with diplomatic or international-development machinery, this row should shed it rather than keep a second, weakly related world. (5) If PR-6 is lifted, decide whether a policy question or workstream may exist as a government field and whether it is destination-eligible; this row proposes no field and argues that option number and draft stage are orderings on the universal version-family relation, not new fields."
+}

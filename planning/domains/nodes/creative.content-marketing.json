@@ -1,0 +1,517 @@
+{
+  "id": "creative.content-marketing",
+  "kind": "template",
+  "schema_id": "creative",
+  "parent_id": null,
+  "name": "Content marketing programme",
+  "one_line": "The making record of material a brand publishes on property it owns - articles, guides, newsletters, landing pages, case studies, social sets - where the organising unit is a CONTINUING PROGRAMME with a calendar rather than one finished piece. Its distinguishing objects are a forward-dated editorial calendar whose rows are pieces that do not yet exist, a source file addressed to a permanent public location (frontmatter, slug, canonical URL, CMS export), a search brief that specifies the piece before anyone writes it, a performance export keyed by the published URL after it exists, and a send with a recipient list attached. It also absorbs the legacy row media.social-assets, whose per-platform cutdowns and caption sheets are channel VARIANTS of one stem and not a separate world. It is not paid advertising (creative.ad-campaign), not the writer's own byline (creative.short-form-writing, career.portfolio-work-samples), not the launch decision that commissioned it (business_operations.go-to-market), and not the internal analysis it may quote (business_operations.market-research). Placeholder row: fields [] and dimension_order [] by contract.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "Purpose must be a first-class facet. Topic answers what a file is about, while purpose answers what the file was for.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, inherited verbatim in force from the creative anchor: every entry below is a DETECTION signal and never an extraction licence. This template declares no field rows, so nothing here writes a domain fact. Detection exists so the material is recognised as a publishing programme, kept local where the sensitivity posture says so, and offered honestly rather than scattered by format. \"Privacy policy must be enforced before content reaches any model or external connector.\"",
+      "an EDITORIAL-CALENDAR structure: a tabular file whose rows are individual pieces and whose columns carry a PUBLISH DATE THAT HAS NOT ARRIVED YET, a destination channel, an owner, and a status token drawn from a small repeating set (idea, drafting, in review, scheduled, live). The forward-dated rows are the signal: this is a plan of artefacts that do not yet exist, which no other object in the creative family is. A retrospective log of what was published has the same columns and is the same programme evidence; a project plan with predecessors and percent-complete is not.",
+      "a FRONTMATTER-and-SLUG structure: a plain-text document opening with a delimited key/value block carrying a title, a date, a slug or permalink, tags or categories, a meta description, and sometimes a canonical URL - a source file whose interior names the permanent public address the piece will occupy. This is the single most content-marketing-specific interior structure in the family, and it is the one that most needs its collision fixture (see code.software-project below).",
+      "a CMS-EXPORT structure: one XML or JSON file whose members are posts carrying a publication status, a publish timestamp, an author account, categories, an embedded HTML body, and a separate attachment manifest of uploaded media. 00's archive rule applies to the packaged case - \"Compressed archives should yield their manifests without extraction\" - and the export is read as a manifest of a programme, never unpacked to improve classification.",
+      "a SEARCH-BRIEF structure: a short document specifying a piece BEFORE it exists by a target query, secondary queries, a search-intent note, a target length, competitor URLs to outrank, and required internal links. This document type occurs nowhere else in the creative family: a client creative brief states what the work must achieve for a commissioner, this states what a public index must be made to rank.",
+      "a PUBLISHED-PERFORMANCE structure: a tabular export keyed by page path, post URL, or send identifier, with a bounded date range and audience-response columns (sessions, opens, clicks, subscriptions). Evidence ABOUT a piece after publication is a shape the rest of the creative family does not have, because the rest of the family ends at delivery.",
+      "an EMAIL-SEND structure: an HTML or template file carrying merge tokens in a delimiter syntax, a preheader line, and an unsubscribe footer, sitting beside a send record or a recipient list. The template alone is weak; the template plus the list is the strongest single structure this row holds, and it is also the reason for its privacy posture.",
+      "a CHANNEL-VARIANT structure: one stem exported at several platform aspect ratios and safe-area crops (1x1, 4x5, 9x16, 16x9) alongside a copy sheet giving per-platform text at different lengths. This is the legacy media.social-assets shape. The multiplicity IS the signal, exactly as the anchor's delivery-set rule says; a single .png is nothing.",
+      "an OUTWARD-APPROVAL trail: tracked changes or comments from a reviewer role on a document that ALSO carries a slug, a scheduled date, or a calendar row - review addressed at publication rather than at a commissioner's sign-off. The reviewer role and the publication anchor must co-occur; either alone is ordinary document evidence.",
+      "a GATED-ASSET cluster: a long-form PDF or deck, a landing-page copy document naming a form and its fields, and a short follow-up email sequence, all sharing one stem or one campaign token - a purpose-coherent, format-incoherent group of exactly the kind 00 makes purpose a first-class facet to describe."
+    ],
+    "needs_llm": [
+      "deciding whether a folder of dated drafts, images and a spreadsheet is a continuing programme or a single bounded burst around one launch - the boundary against creative.ad-campaign and business_operations.go-to-market, asked of a group dossier and never of a lone file",
+      "deciding whether a document naming a real customer and quoting a named employee is an approved published case study or an unapproved interview write-up, when the two are byte-similar and only the approval is missing",
+      "deciding whether an article is brand-owned programme material or the writer's own bylined piece, when the same person wrote both and keeps them in the same folder",
+      "deciding whether a frontmatter-carrying .md is a blog post or a documentation page belonging to a software project",
+      "deciding whether an analyst-report-shaped PDF titled as a State-of-the-industry report is this programme's own published gated asset or a competitor's publication that was downloaded to read",
+      "naming the programme in the maker's own vocabulary when the folder is called Content and the files are Draft, Draft2, Draft-final"
+    ],
+    "never_alone": [
+      "a text file carrying a delimited frontmatter block, on its own - the identical structure is a documentation page in a repository, a note in a personal knowledge vault, and a static-site page that is not editorial at all; the slug proves an address, not a publishing programme",
+      "a brand, agency or publication NAME with no role context - the direct read-across of 00's own warning, \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" In this row a brand name appears as the publisher, the client the programme is run for, a customer quoted in a case study, a competitor named in a search brief, and a platform the piece is posted to",
+      "an unsubscribe footer or a merge token read alone as an owned send - a RECEIVED marketing email has both, and a received newsletter is reading material that routes to the Reading Inbox residual, not evidence that the holder publishes anything",
+      "a blog-shaped filename (a hyphenated lowercase question, a year suffix) read alone as a published piece - the same stem shape is produced by a downloaded article, a saved recipe, and a URL-derived download name",
+      "an analytics or metrics CSV alone - a table of dates and counts is equally a product usage export, a finance report, and an advertising delivery report; it becomes this row's evidence only when its key column is a page path, post URL or send identifier that resolves to a piece in the same neighbourhood",
+      "a parent folder named Content, Marketing, Blog or Social read as a fact - it is user vocabulary that legitimately steers retrieval, since \"Existing curated folders and user-entered labels should influence retrieval because they represent the user’s vocabulary\", and it is not itself a programme, a channel or a piece",
+      "the word campaign in a filename read as either this row or the advertising sibling - it is used for a send, a paid flight, a fundraising drive and a political effort, and it discriminates nothing",
+      "the ABSENCE of a media plan or a paid placement spec read as proof that material is editorial rather than advertising - absence selects between siblings only when positive evidence for one of them is already present",
+      "a caption or hashtag sheet alone read as a social asset set - a list of short lines with hashtags is also a personal drafts file and a copied reference; the per-platform variant set is what makes it programme evidence",
+      "an author or account name in document metadata read as anything placement-bearing - 00: \"It should avoid using authorship or creator identity as a destination dimension.\" In a corpus whose owner is the marketer, the author field is the least discriminating signal available"
+    ]
+  },
+  "proposed_context_terms": [
+    "editorial calendar",
+    "content calendar",
+    "pillar",
+    "cluster",
+    "slug",
+    "permalink",
+    "canonical URL",
+    "meta description",
+    "target query",
+    "search intent",
+    "internal links",
+    "CTA",
+    "landing page",
+    "gated",
+    "lead magnet",
+    "nurture sequence",
+    "preheader",
+    "unsubscribe",
+    "send date",
+    "segment",
+    "subscriber",
+    "open rate",
+    "case study",
+    "customer story",
+    "approved for publication",
+    "embargo",
+    "scheduled",
+    "published",
+    "channel",
+    "caption",
+    "cutdown",
+    "safe area"
+  ],
+  "work_types": [
+    "blog post or article",
+    "long-form guide or pillar page",
+    "newsletter issue",
+    "email send or nurture sequence",
+    "landing-page copy",
+    "case study or customer story",
+    "whitepaper, ebook or gated asset",
+    "social post set with per-platform cutdowns",
+    "caption or copy sheet",
+    "video or short-form script",
+    "search brief",
+    "editorial calendar",
+    "editorial style or voice guide",
+    "performance report",
+    "CMS or list export"
+  ],
+  "grouping_reasons": [
+    "one published piece across its brief, drafts, images, approval trail and performance export",
+    "one editorial-calendar period and the pieces its rows name",
+    "one pillar and the cluster of pieces that link to it",
+    "one send: template, subject-line variants, segment note and send record",
+    "one stem and its per-platform channel variants",
+    "one gated asset with its landing-page copy and follow-up sequence",
+    "one continuing programme run for one brand across periods",
+    "an existing curated folder the marketer already made and named"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY JUDGEMENT, on the same ground as the creative anchor: a dimension may only branch on a field the entry's schema declares, and this schema declares none. The recommendation is therefore prose. THIS ROW'S DIMENSIONS DO NOT DIFFER FROM THE ANCHOR'S DEFAULT and the row does not claim they do: if option (b) of NJ-R1a-1 is ever taken the order here is the anchor's own - client only where the corpus genuinely serves more than one brand, then project as the PROGRAMME, then stage, then artifact_type - and the row passes the node test on its detection signals and its privacy rules instead. Two corrections this row does owe its schema. First, channel is NOT a candidate dimension: blog, newsletter, social and landing page are media, and the anchor already rules that the media-form vocabulary is VALUES of artifact_type; a channel level would also be the collector shape 00's validator rejects when it must not \"create meaningless one-child levels\". Second, this row's stage vocabulary is calendar-shaped (drafting, in review, scheduled, live, updated) rather than approval-shaped (concept, round 2, approved, delivered), which is a difference in VALUES and therefore not a new field. NOT time-first: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The forward-dated editorial calendar is the strongest temptation in this family to claim time-first, and it is a trap - the calendar is one artefact that PLANS the pieces, not the axis the pieces live on, and a year-first tree would separate a piece from the brief that specified it and the report that measured it. The parent-context rule fixes the rest: \"a parent dimension should provide the context required to understand the child\", and Round 2 or v3 of a guide is meaningless without the guide, exactly as Homework 3 is meaningless without the course.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "design_creative",
+      "email",
+      "audio_video",
+      "presentation",
+      "archive",
+      "ocr",
+      "code_structured",
+      "filesystem"
+    ],
+    "extensions": [
+      ".md",
+      ".mdx",
+      ".docx",
+      ".gdoc",
+      ".html",
+      ".xml",
+      ".json",
+      ".csv",
+      ".xlsx",
+      ".pdf",
+      ".pptx",
+      ".png",
+      ".jpg",
+      ".psd",
+      ".ai",
+      ".fig",
+      ".mp4",
+      ".eml",
+      ".zip"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "2026-Q3 Editorial Calendar.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per piece with columns Title, Channel, Owner, Target publish date, Status",
+        "target publish dates fall after the file's own modification time",
+        "Status values repeat from a small set: Idea, Drafting, In review, Scheduled, Live",
+        "several Title cells match filename stems of drafts in sibling folders"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a row's title is a project fact copied onto any draft that shares its stem",
+        "that a Status value is a stage fact on any file other than this one",
+        "that a person in the Owner column authored any particular draft"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "how-to-choose-a-payroll-provider.md",
+      "source_type": "text_document",
+      "observations": [
+        "opens with a delimited key/value block carrying title, date, slug, tags, description, canonical URL",
+        "body is prose with heading levels and inline links to other slugs on the same host",
+        "no repository markers in any ancestor directory"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the frontmatter date is the publication date rather than a written-on date",
+        "that the canonical URL host is the holder's own property"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Content Brief - payroll provider comparison.docx",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots: Target query, Secondary queries, Search intent, Target length, Competitors to beat, Internal links required",
+        "Competitors to beat holds three third-party URLs",
+        "no commissioning organisation block, no fee, no deliverables schedule"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a competitor URL makes those organisations part of this programme",
+        "that the target query is a topic fact about any draft that quotes it"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Northwind - Customer Story - DRAFT not approved.docx",
+      "source_type": "text_document",
+      "observations": [
+        "names a real customer organisation and quotes a named individual with a job title",
+        "header line reads DRAFT - awaiting customer approval",
+        "comment balloons from a second account requesting quote changes",
+        "structure follows a challenge / solution / result template"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the customer organisation is a client of the holder in the commissioning sense",
+        "that approval has been given, or that the quoted individual consented to publication",
+        "that the named individual is a contact record"
+      ],
+      "also_schema": "business_operations.customer-account-management",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "newsletter-2026-08-14.html",
+      "source_type": "text_document",
+      "observations": [
+        "table-based HTML with inline styles",
+        "merge tokens in a delimiter syntax appear in the greeting and signature",
+        "a preheader line precedes the visible body; an unsubscribe footer closes it",
+        "image sources point at a hosted media path"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the file was sent, or sent on the date in its stem",
+        "that the merge tokens imply any recipient identity"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "subscriber-export-2026-08.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "header row with email address, first name, signup date, source, segment, consent state",
+        "many thousands of data rows, one per person",
+        "no piece, slug or campaign reference anywhere in the file"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that any row is a contact of the holder",
+        "that the consent column establishes lawful basis for anything",
+        "that programme membership makes these rows less sensitive"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "payroll-guide-promo_variants.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists one stem exported at 1x1, 4x5, 9x16 and 16x9",
+        "manifest also lists a copy sheet document",
+        "no extraction performed; manifest read in place"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the aspect ratios name specific platforms",
+        "that members inherit any fact from the archive's name"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Social captions - week of 2026-08-17.docx",
+      "source_type": "text_document",
+      "observations": [
+        "sections headed by platform names, each holding one short paragraph and a hashtag line",
+        "character counts noted in brackets beside two of the sections",
+        "one section references the promo image stem by name"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the platform headings are facts about where anything was posted",
+        "that the hashtags are topics of the referenced image"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "wordpress-export-2026-08-01.xml",
+      "source_type": "code_structured",
+      "observations": [
+        "post elements carrying status, publish timestamp, author login, categories and an embedded HTML body",
+        "a separate attachment section listing uploaded media filenames",
+        "several post titles match drafts held loose elsewhere in the corpus"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a matching title makes a loose draft the same file version as an exported post",
+        "that author logins are people facts"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "site-pages-export-2026-07.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "first column holds page paths that begin with a blog path segment and end in slugs",
+        "columns for sessions, average engagement time and conversions",
+        "a stated date range in a header cell"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that the slugs are project facts on the drafts that share them",
+        "that the numbers say anything about the holder's business"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Q3_Launch_Banner_300x250_v4.psd",
+      "source_type": "design_creative",
+      "observations": [
+        "canvas dimensions match a standard display advertising unit",
+        "sibling files repeat the same artwork at several other standard unit sizes",
+        "a neighbouring document lists placements, flight dates and a budget",
+        "layer names include a legal disclaimer layer and a logo lockup layer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that this row activates because the launch is the same launch as a blog post in the same folder",
+        "that the disclaimer layer is a legal fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "docs/getting-started.md",
+      "source_type": "text_document",
+      "observations": [
+        "delimited frontmatter block with title, sidebar position and description",
+        "ancestor directory contains a version-control directory, a package manifest and a static-site build config",
+        "body contains fenced code blocks and CLI invocations",
+        "no slug, no canonical URL, no publish date"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that frontmatter alone activates this row",
+        "that documentation prose is programme content"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "The-Rise-of-Embedded-Finance-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "designed cover, a third-party publisher's logo and a report-style contents page",
+        "a gated-download filename pattern and a browser download timestamp",
+        "no slug, no calendar row, no draft history, no performance export keyed to it"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a designed layout makes it the holder's own published asset",
+        "that its subject is this programme's topic"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Byline - essay on remote work - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "a personal byline under the title and a word count in a header",
+        "an editor's tracked changes from an external publication account",
+        "no brand voice guide, no calendar row, no slug on a host the holder controls"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that publication makes it brand programme material",
+        "that the external editor is a colleague"
+      ],
+      "also_schema": "career.portfolio-work-samples",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-08-19 at 10.02.13.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence in metadata and dimensions matching a display",
+        "OCR reveals a content-management dashboard listing post titles and scheduled dates",
+        "one visible post title matches a calendar row"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that OCR of a dashboard creates publication facts about the posts it lists",
+        "that missing metadata would have proved screenshot origin"
+      ],
+      "also_schema": "photos.screenshot-captures",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "creative.ad-campaign",
+      "signal": "The sharpest sibling collision, because both rows hold brand-published material and the same Q3 folder often contains both. The discriminating evidence in THIS direction: an editorial calendar with forward-dated rows, an owned-property slug or send, a search brief, or a performance export keyed by page path supports this row. In the OTHER direction: a standard display-unit size matrix on one artwork, a placements-and-flight-dates plan, a budget or media buy, or a platform ad-account export supports the advertising row. The shared fixture is one launch folder holding both Q3_Launch_Banner_300x250_v4.psd and how-to-choose-a-payroll-provider.md; neither file lends its row to the other, and a shared launch token is not a discriminator. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.short-form-writing",
+      "signal": "A brand blog post and an authored article are the same bytes in the same format, often by the same person. The discriminating evidence in THIS direction: brand ownership of the destination - a slug on a property the holder controls, a calendar row, a voice or style guide, a search brief, an approval trail addressed at publication. In the OTHER direction: a personal byline, a submission or pitch to an outlet the holder does not own, an external editor's marks, a fee or rights note. The shared fixture is Byline - essay on remote work - final.docx, which this row must not claim merely because its holder also runs a content programme. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.creative-brief",
+      "signal": "A search brief and a client creative brief are both short specification documents that precede the work. The discriminating evidence in THIS direction: target query, search intent, target length, competitors to outrank and required internal links - a specification addressed at a public index. In the OTHER direction: a commissioning organisation block, deliverables, a schedule and a fee - a specification addressed at a commissioner. The shared fixture is Content Brief - payroll provider comparison.docx; if a brief carries both slot families it is a coactivation for R1c to adjudicate, not a silent win for either row. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.go-to-market",
+      "signal": "Reciprocates the edge that row already authored against this one (its NJ-BO-GTM-1 records the boundary as one-way pending this file). The discriminating evidence in THIS direction, agreeing with its wording: an editorial calendar, a content brief, or an asset production trail supports this row. In the OTHER direction: the launch plan and readiness record that commissioned the piece supports that row. The shared fixture is a launch blog post drafted inside a launch folder: the draft, its brief and its performance export are this row's; the readiness checklist and the dated gate beside them are not. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.market-research",
+      "signal": "Reciprocates that row's authored edge. It states the discriminator as an editorial calendar, a channel, a designed layout and an external audience for this row versus an internal decision audience for its own, and this row adopts that wording unchanged. Reciprocally, this row must NOT claim a research workbook merely because a published report quotes its numbers, and must not claim a third-party analyst report merely because it names the programme's market - The-Rise-of-Embedded-Finance-2026.pdf is that fixture and both rows send it to Reading Inbox. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "code.software-project",
+      "signal": "Frontmatter-carrying Markdown is the collision: a blog post source and a documentation page are structurally identical inside the file. The discriminating evidence in THIS direction: a slug, canonical URL, publish date, or a calendar row naming the title, with no repository markers around it. In the OTHER direction: version-control and package manifests in an ancestor directory, a static-site build config, and fenced code blocks with CLI invocations. The shared fixture is docs/getting-started.md. Neither row may read the frontmatter delimiter itself as proof. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.portfolio-work-samples",
+      "signal": "A published piece kept as a work sample is the collision, and it runs both ways for the same document. The discriminating evidence in THIS direction: the making record - drafts, brief, approval marks, variants, performance export - held in the programme's own neighbourhood. In the OTHER direction: one finished, self-contained copy assembled with other finished pieces to be shown to an employer or client, with no making record around it. The shared fixture is a PDF print of a live post sitting in a folder beside a resume. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "photos.screenshot-captures",
+      "signal": "A screen capture of a CMS dashboard, a scheduled-post view or an analytics chart looks like this row's evidence and is a screenshot. The discriminating evidence in THIS direction: OCR resolving to a piece already anchored in an accepted programme group, which makes the capture a member. In the OTHER direction: positive screen-origin evidence, which stands regardless and is never overwritten by membership. The shared fixture is Screenshot 2026-08-19 at 10.02.13.png; note that OCR of a dashboard must not manufacture publication facts about the posts it lists. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "creative.podcast-episode",
+      "signal": "Reciprocates the edge that row authored: a branded episode is both a production and a programme deliverable. That row owns the audio lifecycle; this row owns the calendar slot, the show-notes page slug and the send that distributes it. Shared bytes copy no facts in either direction.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.licensing-rights",
+      "signal": "A stock image licence, a music licence for a social cutdown, an influencer or contributor agreement, and a customer's approval to be quoted are rights instruments that are also programme members. That row owns the grant, territory and term observations; this row owns programme membership and infers no legal effect from either.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "creative.deliverable-handoff",
+      "signal": "An agency delivering a content programme to a brand produces a handoff set whose members are this row's pieces. The handoff row owns the delivery event and its manifest; this row owns the pieces' own making record. A file may legally carry both.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Reading Inbox",
+      "why": "00: \"Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.\" This is the destination for downloaded competitor articles, third-party analyst reports and received newsletters that carry every surface feature of this row and none of its anchors.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00: \"Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.\" A lone draft, a lone newsletter template, a lone export or a lone performance CSV with no accepted programme around it is exactly that.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\" This carries the unresolved sibling cases - a brief that could be editorial or client, an asset set that could be organic or paid, a frontmatter file whose repository status is unclear.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Protected Records",
+      "why": "00: Protected Records \"should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Recipient and subscriber lists, and unapproved drafts quoting named third parties, must route here rather than to a generic residual even when this row does not activate.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "THIS IS THE LEG ON WHICH THE NODE TEST TURNS, and the row states it against its own instinct: content marketing material is made to be public, so the expected value is none, and the cautious value is taken anyway because two members of the ordinary programme are personal data about people who are not the user and cannot consent by holding the file. The first is the recipient list - subscriber-export-2026-08.csv is thousands of email addresses, names, signup sources and consent states, and it arrives in the same folder as the template it belongs to; it is closer to 00's corpus description, a corpus that \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\", than to anything else in the creative family. The second is the unapproved draft that quotes a named individual at a named customer before that customer has approved it - Northwind - Customer Story - DRAFT not approved.docx - where the exposure is a third party's words attributed to them in a document that says on its face it is not cleared. The DIFFERENCE from the creative anchor's default posture is a difference in kind, not degree: the anchor protects the maker's UNRELEASED WORK, which becomes harmless once published; this row protects an AUDIENCE ROSTER and a THIRD PARTY'S UNCLEARED WORDS, neither of which ever becomes harmless by publication, and one of which is sensitive precisely because it is a list rather than a document. Enforcement is 00's: \"Privacy policy must be enforced before content reaches any model or external connector\" - a recipient list should never be summarised remotely to name a programme, and a draft's third-party quotes should not be sent to a model to decide a calendar slot. This row assigns only the catalogue value potentially_sensitive; the handling class is P7's and is not set here.",
+  "open_question": "NJ-CM-1: the boundary against creative.ad-campaign is authored one-way, because that row has no node file yet; R1c should confirm the paid-placement-versus-owned-property discriminator reciprocally, and decide the genuinely mixed case where one artwork is resized for both an ad unit and an organic post. NJ-CM-2: the legacy row media.social-assets is absorbed here on the argument that per-platform cutdowns are channel VARIANTS of one stem rather than a world of their own; if real corpora show social assets living entirely apart from any editorial calendar, send or slug - a pure asset library with no programme around it - the alternative is that they belong with creative.stock-asset-library or with creative.deliverable-handoff, and this row would shrink to written-and-published material only. NJ-CM-3: a recipient or subscriber list is personal data about many third parties and is not a making record at all; the alternatives are (a) keep it here as a programme member with a protected posture, as written, (b) route it out of the creative family entirely to a records row, or (c) treat any list-shaped file of contact rows as a cross-cutting protected object regardless of which domain activates - this row cannot settle it and recommends R1c ask Joseph. NJ-CM-4: a published piece is often REVISED IN PLACE years later at the same URL, so its stage returns from live to drafting and the version family has no final member; the creative anchor's stage progression assumes a terminus and this world has none, which is a values problem today and would become a dimension problem if fields ever land."
+}

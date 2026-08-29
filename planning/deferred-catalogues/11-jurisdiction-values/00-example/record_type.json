@@ -1,0 +1,83 @@
+{
+  "list_id": "jv-00-example-record-type",
+  "title": "record_type values — shape-example seed",
+  "pack": "00-example",
+  "version": "r5-draft-1",
+  "authored": "2026-08-22",
+  "field_key": "record_type",
+  "field_key_status": "resolves",
+  "owner": "P6 (injected) — never P5",
+  "consumer": "the caller-supplied value lookup injected at P6 fact-resolver construction. A hit is a ranked candidate for record_type's value, entering the section-3.7 ranking with positional weighting; it is never a fact by itself and never activates a schema alone (CONNECTION.md section 4, activation step 2). Rows whose gate_slots name tax_form_identifier_gazetteer are additionally projected into that catalogue-08 slot by the pack loader.",
+  "status": "shape_example",
+  "match_rule": {
+    "matching": "word_boundary",
+    "case_rule": "per alias"
+  },
+  "injected_slots": {
+    "min_score": null,
+    "min_margin": null,
+    "positional_weight_by_zone": null
+  },
+  "entries": [
+    {
+      "value_id": "rt-us-w2",
+      "row_kind": "value",
+      "field_key": "record_type",
+      "label": "W-2",
+      "aliases": [
+        {"alias": "W-2", "case_sensitive": true, "script": "Latin"},
+        {"alias": "Form W-2", "case_sensitive": true, "script": "Latin"},
+        {"alias": "Wage and Tax Statement", "case_sensitive": false, "script": "Latin"}
+      ],
+      "jurisdiction": "us",
+      "provenance": "proposal",
+      "source_kind": "overnight_prose",
+      "source_cite": {
+        "source": "seat-design-reading",
+        "quote": "the design says `record type`, the catalogue wants to know whether that record is a W-2 or a P60"
+      },
+      "safety_relevant": true,
+      "detector_hook": "det-tax-form-completed",
+      "gate_slots": ["tax_form_identifier_gazetteer"],
+      "example_true": "W-2 2025 - Halden Bio.pdf",
+      "example_false": "SW-2000 spec sheet",
+      "status": "seed",
+      "notes": "W-2 appears nowhere in 00 (zero occurrences, verified mechanically 2026-08-22); it is design-adjacent only through the overnight council prose, hence proposal and source_kind overnight_prose. Two seat documents attribute it to the design's worked examples; that attribution is corrected in RESEARCH.md. The completed-vs-blank-template discrimination is det-tax-form-completed's populated-values conjunct — catalogue 08's, never this row's. 'Wage and Tax Statement' is the form's printed subtitle, carried as a case-insensitive alias; the two form-code aliases are case-sensitive because lowercase 'w-2' shapes occur in ordinary text and part codes."
+    },
+    {
+      "value_id": "rt-uk-p60",
+      "row_kind": "value",
+      "field_key": "record_type",
+      "label": "P60",
+      "aliases": [
+        {"alias": "P60", "case_sensitive": true, "script": "Latin"},
+        {"alias": "P60 End of Year Certificate", "case_sensitive": false, "script": "Latin"}
+      ],
+      "jurisdiction": "uk",
+      "provenance": "proposal",
+      "source_kind": "overnight_prose",
+      "source_cite": {
+        "source": "seat-design-reading",
+        "quote": "the design says `record type`, the catalogue wants to know whether that record is a W-2 or a P60"
+      },
+      "safety_relevant": true,
+      "detector_hook": "det-tax-form-completed",
+      "gate_slots": ["tax_form_identifier_gazetteer"],
+      "example_true": "P60 2024-25 J Yung.pdf",
+      "example_false": "P600 printer manual",
+      "status": "seed",
+      "notes": "P60 appears in no design file; it is the overnight prose's own UK counterexample to W-2, carried here so the shape demonstrably does not pick a jurisdiction: one us row, one uk row, in a pack no loader may accept. The row that ships lives in whichever pack Joseph names."
+    }
+  ],
+  "refused": [
+    {
+      "value": "self assessment",
+      "why_refused": "already load-bearing elsewhere: catalogue 08's det-tax-form-completed carries 'self assessment' among its tax_context_terms labels, and the 574's receipts recognition carries 'VAT' the same way. Context terms are catalogue 08's data; this file holds form identifiers as record_type values, and duplicating a context term as a value would give one string two owners."
+    },
+    {
+      "value": "VAT return",
+      "why_refused": "named in the R5 dispatch prompt as an example value, but the seed's licence is overnight-prose design-adjacency (the W-2 / P60 pair quoted above). Adding further members before Joseph names the pack is picking a jurisdiction silently, which the prompt forbids. VAT return is in the uk pack sketch (RESEARCH.md) where it belongs."
+    }
+  ],
+  "uncertain": []
+}

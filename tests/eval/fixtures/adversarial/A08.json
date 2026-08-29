@@ -1,0 +1,11 @@
+{"case_id": "A08", "wording": "screenshots with unreadable OCR",
+ "attacks": "residual interpretation", "sections": ["§7.8", "§7.9"],
+ "assert_against": "stage", "dimension": "residual", "subject_ref": "A08::screenshot",
+ "expected_outcome_kind": "produced", "expected_value": {"outcome": "leave_in_place"},
+ "forbidden_value": {"outcome": "return_to_placement"},
+ "extraction_runs": [{"run_id": "A08-run", "file_id": "A08-file",
+                      "content_hash": "sha256:A08", "extractor_name": "ocr.fixture",
+                      "extractor_version": "1.0.0", "source_type": "ocr",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "pages", "processed": 1, "total": 1},
+                      "observation_count": 0}]}

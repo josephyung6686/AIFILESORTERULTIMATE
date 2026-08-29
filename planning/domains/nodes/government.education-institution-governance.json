@@ -1,0 +1,515 @@
+{
+  "id": "government.education-institution-governance",
+  "kind": "template",
+  "schema_id": "government",
+  "parent_id": null,
+  "name": "Education institution governance and administration",
+  "one_line": "The institution's own side of running itself as an academic body: governing-instrument and committee business, academic regulations, programme approval and assessment-board records, registry and award operations, institution-authored quality self-evaluation, and statutory institutional returns. It is not activated by a university, college, or school name, by an academic-sounding topic, by an .edu-style domain, or by holding a document an institution issued. It differs from the Government default template by requiring an academic-cycle administrative anchor — academic year, programme or module code, cohort, assessment board, conferral round, or collection round — held on the producing institution's own side, and by carrying a mass named-student privacy posture that the proceeding-shaped default does not describe.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION: these are template-activation signals, not licences to write facts. The Government schema declares no field rows under PR-6, so nothing here mints a school, programme, cohort, committee, or academic-year fact. Every accepted signal must show the corpus holder as the institution administering ITSELF, not as a student, an employee, a district or authority above it, an accrediting body reviewing it, or a reader.",
+      "a governing-instrument document — charter, statutes, ordinances, instrument and articles of government, or academic regulations — carrying numbered articles or regulations, a scheme of delegation or reservation of powers, a named governing body of the institution in whose header it sits, and an approving-committee and effective-date block; a generic employee handbook with the same furniture does not qualify",
+      "a two-tier academic governance pack in which a governing board or council paper set and a senate or academic board paper set carry the same institution block, a committee and meeting reference, numbered papers, attendance and apologies, a reserved-business or confidential-items section, and a minute or resolution; the two-body split (corporate governance separate from academic authority) is the discriminating structure",
+      "a programme approval or validation dossier repeating one programme identifier across a programme specification with credit values and learning outcomes, a module or unit list with module codes, a validation or approval panel report with conditions and recommendations, and a periodic-review or revalidation date",
+      "an assessment or examination board record combining a board minute, a ratified results or classification schedule keyed by module code and cohort, an external examiner report, and the institution's formal response to that report; the external-examiner-plus-response pair is the structure that distinguishes it from any one teacher's grading",
+      "a registry operations record keyed by academic year and programme — enrolment or registration register, census-date headcount return, programme transfer, interruption, withdrawal or reinstatement records, progression decisions, and award and conferral lists — produced by the institution about its own registered students",
+      "a statutory or funder institutional data return produced by the institution about itself, carrying a collection-round or reporting-year identifier, an institution identifier, a submission or validation report with error and query rows, and a sign-off block; the same statistics downloaded as a published table are reading material",
+      "an institution-authored quality self-evaluation or accreditation submission — self-study or self-evaluation document, standards-to-evidence mapping, evidence index, action or enhancement plan, review-visit schedule, and the institution's response to findings; authorship and custody must sit with the reviewed institution, not the reviewer",
+      "an academic policy or regulation set with version, approving-committee, review-date and applicability slots — assessment and progression regulations, academic misconduct procedure, admissions policy, appeals and complaints procedure, student protection or continuity plan — issued under the institution's own governing instrument",
+      "an institutional archive, student-records-system export, or backup manifest whose member paths repeatedly encode one academic year plus a programme, module, cohort, committee, or conferral round, and whose system or custodian metadata identifies the institution's registry, governance, or quality office; manifests are inspected without unpacking",
+      "an institutional email or calendar record whose structured sender, recipient, organizer, attendee, subject, attachment or event slots tie it to an already evidenced governance, registry, assessment-board, validation, return, or review workflow; an institutional mail domain alone never fires"
+    ],
+    "needs_llm": [
+      "deciding whether the institution is a publicly constituted body at all — a state university, a further-education corporation, or a maintained school sits inside the Government world, while an independent school, a private college, or a charitable university foundation may not; where public status cannot be evidenced the classifier must abstain and route to nonprofit or business_operations rather than assume, and this is the node's principal unresolved question",
+      "separating the institution's own side from the tier above it — a district, board, ministry, or local education authority administering many institutions — when both hold admissions data, statutory returns, funding allocations, and inspection correspondence with identical headings",
+      "separating the institution's own side from the reviewer's side when the same self-evaluation, evidence index, standards mapping, and visit schedule exist in both the accreditor's received-submissions pile and the institution's authoring folder",
+      "distinguishing an academic-governance paper from a generic organisational board pack when the agenda item is estates, audit, pay, or investment and nothing academic appears on the page; the surrounding pack, the governing instrument it cites, and the committee's terms of reference must supply the anchor",
+      "recognizing an unlabelled prose paper — a provost's discussion note, an unsigned options paper on programme closure, a draft regulation change — as institution-side governance work rather than a scholarly article about higher-education policy",
+      "deciding whether a cohort spreadsheet of marks is registry or assessment-board evidence held institutionally, or one instructor's private gradebook for one module, when both carry student names, module codes, and numeric columns",
+      "deciding whether an academic-year token, a programme title, or a module code in a filename reflects institution-side administration or merely the subject matter of a student's or reader's own file"
+    ],
+    "never_alone": [
+      "a university, college, school, faculty, campus, or academy name, crest, letterhead, seal, footer, PDF producer string, or metadata author; the design already refuses this shape, listing a “public school” among entities that may be issuer, counterparty, subject, employer, cited authority, research venue, or service provider",
+      "an institutional email domain, student-portal URL, or virtual-learning-environment link",
+      "the words university, campus, faculty, dean, provost, chancellor, registrar, senate, academic board, semester, syllabus, credits, or instructor; academic vocabulary is topic, not custody",
+      "an academic-year-shaped token such as 2025/26 or 2025-2026, a bare four-digit year, a term name, or an intake month",
+      "a course- or module-code-shaped token on its own; it needs institution-side administrative context, and even with academic context it evidences a course, not the governance of an institution",
+      "a student's own transcript, enrolment confirmation, results letter, degree certificate, tuition invoice, or student-card scan; the individual's education record belongs to the person's own academic, identity, finance, or Protected Records holdings even though a registry issued it",
+      "a downloaded prospectus, course catalogue, published inspection or accreditation report, league table, annual report, or higher-education policy paper held for reading; publication by an institution is not institution-side custody",
+      "one instructor's course pack, lecture deck, reading list, or single-module gradebook; teaching one course is not administering the institution",
+      "an employment contract, payslip, appraisal, or job advertisement bearing an institution's name; an institution as employer is not this template",
+      "a research grant application, ethics submission, or paper written at an institution; a research venue is not an administered institution",
+      "a file extension or source_type alone; the design says to “treat the file extension as a routing signal rather than an assumption about meaning”",
+      "a parent folder named University, School, College, Admin, Registry, Governance, Committee, or Academic Year alone",
+      "a shared download session or browser batch; “A session should never be treated as proof of topic”",
+      "missing EXIF or dense OCR as proof that an image is a student-records-system screenshot; “the system must not mistake the absence of EXIF for proof that an image is a screenshot”"
+    ]
+  },
+  "proposed_context_terms": [
+    "the design floor for academic context is unchanged: syllabus, lecture, credits, instructor, semester. These are the institution-side administrative terms this template observes in real fixtures and proposes for R2's consideration; they are proposals, not design text.",
+    "governing instrument: statutes, ordinances, instrument of government, articles of government, scheme of delegation, reservation of powers, terms of reference",
+    "governance bodies: governing body, board of governors, council, senate, academic board, court, corporation, register of interests, reserved business",
+    "academic quality: programme specification, validation, revalidation, periodic review, learning outcomes, credit value, external examiner, self-evaluation, enhancement plan, condition of approval",
+    "registry operations: enrolment, registration, matriculation, census date, cohort, progression, interruption, withdrawal, conferral, award, academic transcript of record, student record system",
+    "institutional reporting: statutory return, collection round, data quality report, submission validation, institution identifier, reporting year"
+  ],
+  "work_types": [
+    "governing instrument and constitutional document — charter, statutes, ordinances, articles or instrument of government, scheme of delegation, committee terms of reference",
+    "governing body and academic body business — notice, agenda, numbered papers, pack, minute, resolution, action log, register of interests, effectiveness review",
+    "academic regulation and policy — assessment and progression regulations, academic misconduct procedure, admissions policy, appeals and complaints procedure, student protection or continuity plan",
+    "programme lifecycle — proposal, business case, programme specification, module descriptors, validation panel report, conditions, revalidation, suspension or closure and teach-out plan",
+    "assessment governance — assessment board minute, ratified results and classification schedule, moderation record, external examiner appointment, report and institutional response",
+    "registry operations — enrolment and registration register, census headcount, transfer, interruption and withdrawal record, progression decision, award and conferral list, certificate and transcript production record",
+    "admissions administration on the institution's side — cycle plan, offer-making and confirmation records, entry-requirement schedules, clearing and appeals against admission decisions",
+    "institutional reporting — statutory and funder data returns, validation and error reports, institutional performance and effectiveness reports, annual monitoring and enhancement reports",
+    "quality assurance on the reviewed side — self-evaluation or self-study, standards-to-evidence mapping, evidence index, review-visit logistics, findings response, condition-closure evidence",
+    "student-body and complaints administration — student charter, student-representation records, academic appeals, complaints and misconduct case administration held by the institution",
+    "institutional records management — retention schedule, records survey, archive accession, data-protection register entries for student and staff records"
+  ],
+  "grouping_reasons": [
+    "one governance cycle of one named body, linking notice, agenda, numbered papers, minute, resolutions, and action log by an exact committee-and-meeting reference; sparse members such as an unlabelled appendix join without acquiring a body, meeting, or date fact",
+    "one programme's approval lifecycle, linking proposal, specification, module descriptors, panel report, conditions, condition-closure evidence, annual monitoring, and revalidation by an exact programme identifier",
+    "one assessment board's cohort packet, linking board minute, ratified schedule, moderation record, external examiner report, and institutional response by an exact board-and-session reference; membership never copies a classification, mark, or student fact onto a member",
+    "one statutory return round, linking instrument or specification, extracted data, validation and error reports, resubmission, and sign-off by an exact collection-round identifier; the published output derived from it retains a different access boundary from the submitted record",
+    "one quality review episode, linking self-evaluation, evidence index, mapping, visit schedule, findings, and response by an exact review reference; the reviewer's own decision letter may sit in the same episode without making this corpus the reviewer's",
+    "one institutional export or archive manifest, kept shallow until access boundaries inside it are known, and never unpacked merely to strengthen recognition",
+    "duplicate and version families remain universal relationships; successive drafts of a regulation, specification, or policy do not acquire new facts from their neighbourhood",
+    "no group is a valid outcome for a standalone certificate, notice, published report, or confirmation; “Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.”"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by contract: PR-6 leaves the Government schema fieldless and a template cannot branch on undeclared fields. The world nevertheless has a clear latent order, recorded here as prose for later adjudication rather than serialized: the administering institution, then the governing function or bounded academic object (governing body and committee, programme, assessment board, return round, or review episode), then the academic year or cycle, then work type. Named students and named staff must never become an organizing dimension, because a visible branch label can disclose an individual's education or disciplinary record. Time is not first: “For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.” The academic year is a strong secondary cycle here but putting it first would split one programme's validation-to-revalidation record and one committee's continuous business across calendar folders. Any later order remains editable because “The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.”",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "audio_video",
+      "archive",
+      "opaque_binary",
+      "filesystem"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".odt",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".ics",
+      ".png",
+      ".jpg",
+      ".mp4",
+      ".zip",
+      ".xml",
+      ".json"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Statutes and Ordinances - consolidated - approved by Council 12 March 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "numbered articles and ordinances with a scheme of delegation appendix",
+        "cover block names the institution's own governing council and an effective date",
+        "reservation-of-powers table separates council business from senate business"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any government field because the schema declares none",
+        "that the instrument is in force, lawful, or currently amended",
+        "that the institution is a public authority merely because its instrument uses statutory language",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Senate - Agenda and Papers - 14 May 2026 - papers S26-31 to S26-44.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "institution block plus academic body name and meeting date on the cover",
+        "numbered paper index, attendance and apologies, a reserved-business section",
+        "papers include a programme closure proposal and an annual monitoring summary"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that a resolution was carried, is binding, or took effect",
+        "that reserved business is safe to summarize in a general group view",
+        "committee or meeting identity as a stored fact"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Programme Specification - MSc Data Science - validated 2026 - conditions.docx",
+      "source_type": "text_document",
+      "observations": [
+        "one programme identifier repeats in header, module table, and panel report",
+        "credit values, learning outcomes, and module codes in labelled tables",
+        "validation panel section lists conditions and a revalidation date"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the programme is approved, running, or accredited",
+        "that a module code is an Academic course fact for this corpus",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Assessment Board - BSc Computer Science - June 2026 - ratified results.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "board and session reference repeats across sheets",
+        "rows are identified students with module codes, marks, classification, and progression decision columns",
+        "separate sheets hold moderation notes and mitigating-circumstances flags"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any mark, classification, award, or progression outcome as a stored fact",
+        "student identity as a folder level or a display label",
+        "that a ratified schedule is final, correct, or released"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "External Examiner Report 2025-26 - Law - and School response.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "examiner appointment block, standards commentary, and recommendations",
+        "a second labelled section is the institution's formal response with owners and dates",
+        "named students appear only in an anonymized sample table"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that standards were met or that a recommendation was implemented",
+        "the examiner's home institution as a fact about this corpus",
+        "a quality judgement of any kind"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Enrolment Census - 01 October 2025 - by programme and mode.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "census date and academic year in the header row",
+        "columns for programme code, mode of study, level, fee status, headcount and full-time equivalent",
+        "a supplementary sheet lists individual registration numbers"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "a headcount as an institutional fact",
+        "fee status, nationality, or funding eligibility of any registered person",
+        "that a census extract equals a submitted statutory return"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Student Record Return 2025-26 - submission validation errors.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "collection-round identifier and institution identifier repeat in every sheet header",
+        "error and query rows with field names, record identifiers, severity labels and resolution notes",
+        "a sign-off sheet names the responsible office"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the return was accepted, is compliant, or is complete",
+        "source severity labels as P7 handling classes",
+        "the collection body as an owner of this corpus"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Self-Evaluation Document - institutional review 2026 - v7 with evidence index.docx",
+      "source_type": "text_document",
+      "observations": [
+        "standards are mapped row by row to numbered evidence items",
+        "authorship and sign-off blocks name the institution's own quality office",
+        "an action plan carries owners, dates and condition references"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "an accreditation status, outcome, or finding",
+        "that the evidence cited exists in this corpus",
+        "that the reviewing body's own records are held here"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Academic Misconduct Panel - case AM-2026-118 - outcome and appeal window.docx",
+      "source_type": "text_document",
+      "observations": [
+        "case reference repeats in header and outcome block",
+        "labelled allegation, evidence, hearing, panel-membership and outcome sections",
+        "a named registered student and a named academic appear throughout"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "guilt, penalty validity, or appeal rights",
+        "the named person as a folder level, group label, or search facet",
+        "that a disciplinary record may enter a remote prompt"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Conferral List - Summer 2026 congregation - final.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "award round and ceremony date in the heading",
+        "rows of names with award titles and classifications",
+        "a registrar sign-off block"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "any individual's award or classification as a fact",
+        "that a published ceremony programme makes the working list non-sensitive",
+        "a folder path"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Governance and Nominations Committee - papers - meeting 26-04.eml",
+      "source_type": "email",
+      "observations": [
+        "sender is the institution's governance office; recipients are committee members",
+        "subject carries the exact committee-and-meeting reference",
+        "attachment names match numbered papers in an already evidenced pack"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that an institutional mail domain activates this template",
+        "attendee identity as a stored fact",
+        "that attachments may be opened or summarized remotely by default"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Validation panel visit - MSc Data Science.ics",
+      "source_type": "calendar",
+      "observations": [
+        "organizer is the institution's quality office",
+        "event description carries the exact programme identifier and panel reference",
+        "attendee list mixes internal staff and external panel members"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that the visit occurred or that the programme was approved",
+        "attendee affiliation as a fact",
+        "a deadline or compliance consequence"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Student records system export - 2025-26 registry.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest paths repeatedly encode academic year, programme code and cohort",
+        "member families cover registration, progression, awards and appeals",
+        "no readable access-control statement inside the manifest"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "member-level student facts from manifest paths",
+        "that the export may be unpacked to improve classification",
+        "that path segments are a proposed folder tree"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-06-11 - registry portal progression queue.png",
+      "source_type": "image",
+      "observations": [
+        "positive screen-origin evidence: exact display resolution, PNG, software metadata",
+        "OCR reveals a records-system header, a cohort filter and identified student rows",
+        "no camera EXIF present"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "screenshot origin from missing EXIF alone",
+        "any student's progression state",
+        "that OCR text may be sent to a remote model by default"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Self-Evaluation Document - Example College - received for review 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "identical self-study structure to the institution-authored fixture",
+        "a covering transmittal shows it was received by a reviewing body's case inbox with a review reference",
+        "reviewer annotations and a panel worksheet accompany it"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "that this template is active merely because the bytes are an institutional self-study",
+        "an accreditation outcome",
+        "the reviewed institution as this corpus's owner"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Board of Governors - Minutes - 9 February 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "collected as one of forty similar packs from many named institutions",
+        "surrounding files are coding frames, an interview schedule and a literature matrix",
+        "no institution in the set matches any employment, enrolment or governance role of the holder"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "institution-side custody from governance vocabulary",
+        "that a published minute is this holder's administrative record",
+        "a governance group across unrelated institutions"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "Official Transcript - J Yung - issued 2019.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "registrar language, institutional seal and a verification code",
+        "one named person, module rows, grades and an award line",
+        "surrounding files are the holder's own identity and application material"
+      ],
+      "facts_legal": ["file_type", "creation_date", "language", "duplicate_family", "version_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "institution-side registry custody from registrar language or a seal",
+        "that issuance by an institution places the record in this template",
+        "a grade or award fact for a Government corpus"
+      ],
+      "also_schema": "academic",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Registry archive 2011-2015 - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted container; no readable manifest",
+        "filename asserts a registry origin and a year span",
+        "no extractor can reach members"
+      ],
+      "facts_legal": ["file_type", "creation_date", "duplicate_family", "sensitivity_status"],
+      "must_not_conclude": [
+        "registry custody, an institution, or an academic year from the filename",
+        "sensitivity resolved by inspection",
+        "that the archive should be cracked or unpacked"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "government.school-district-administration",
+      "signal": "The same admissions data, statutory returns, funding allocations, staffing records and inspection correspondence occur on both sides. The deciding evidence is the administrative tier: a district, board, ministry or local education authority administering many institutions it does not itself teach in, versus one institution administering itself under its own governing instrument. Same fixture both ways — an enrolment census by programme and mode: held by the district office as one school's row inside a multi-school aggregation it belongs to that row; produced by the institution's own registry about its own registered students it belongs here.",
+      "design_cite": null
+    },
+    {
+      "domain": "government.education-accreditation",
+      "signal": "Self-evaluation documents, standards-to-evidence mappings, evidence indexes, visit schedules and findings responses exist identically on both sides. The deciding evidence is authorship and custody. Same fixture both ways — the self-evaluation document: authored and held by the reviewed institution's quality office it belongs here; received into a reviewing body's case inbox with a review reference, reviewer annotations and a panel worksheet it belongs to the accreditation row. Neither side may infer an accreditation outcome.",
+      "design_cite": null
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "Notices, agendas, numbered papers, packs, minutes, resolutions and registers of interests are the same furniture in both worlds. The deciding evidence is the governing instrument and the two-tier academic split. Same fixture both ways — a governing-body minute: if its authority derives from an institution's statutes or instrument of government and an academic body (senate or academic board) holds separate academic authority, it belongs here; if it is a company or unit board operating under corporate articles with no academic authority tier, it belongs to board-governance. A university's audit-committee minute discussing only investments and estates is the hardest case and should abstain to Review Later rather than guess.",
+      "design_cite": null
+    },
+    {
+      "domain": "nonprofit.governance",
+      "signal": "Governing documents, trustee or board business, policies, annual reporting and regulator correspondence overlap almost completely for an independent school, a charitable university foundation or a private college. The deciding evidence is public constitution. Same fixture both ways — a set of statutes with a scheme of delegation: if the institution is independently evidenced as a publicly constituted body it belongs here; if it is a charity, trust or private company running an educational institution, or if public status cannot be evidenced at all, it belongs to nonprofit governance. This template abstains rather than assuming, and NJ-1 records that the abstention may be wide.",
+      "design_cite": null
+    },
+    {
+      "domain": "academic.teaching",
+      "signal": "Cohort spreadsheets with student names, module codes and mark columns occur on both sides. The deciding evidence is institutional apparatus versus one course. Same fixture both ways — a marks spreadsheet: with a board-and-session reference, moderation sheet, external examiner report and ratification it belongs here; as one instructor's working gradebook for one module with no board apparatus it belongs to academic.teaching, where school, term, subject and instructor are legal facts and none of them may be minted here.",
+      "design_cite": null
+    },
+    {
+      "domain": "academic.transcripts-credentials",
+      "signal": "Literally the same transcript bytes may sit in a registry's production record and in the graduate's own folder. The deciding evidence is holder role. Same fixture both ways — an official transcript with a seal and verification code: held by the named person alongside their identity and application material it belongs to transcripts-credentials; held inside a registry's conferral, reissue or verification workflow keyed by an award round it belongs here. Registrar language and a seal alone decide nothing.",
+      "design_cite": null
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "when": "registry, assessment, misconduct, appeals, admissions or return material carrying identified students or staff has no safe accepted group, including cohort spreadsheets, conferral lists, case files and unopened records-system exports",
+      "design_cite": "Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts."
+    },
+    {
+      "residual_template": "Independent Records",
+      "when": "a readable standalone institutional document — a consolidated statutes copy, a policy issue, a published notice or a certificate — has durable value but no evidenced governance, programme, board, return or review workflow",
+      "design_cite": "Independent Records may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group."
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "when": "prospectuses, published inspection or accreditation reports, sector policy papers, league tables and other institutions' governance documents are held for reading or study rather than as this institution's own administration",
+      "design_cite": "Reading Inbox may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association."
+    },
+    {
+      "residual_template": "Review Later",
+      "when": "a document is plainly institutional administration but the tier, the reviewer-versus-reviewed side, or the institution's public constitution cannot be settled safely — including an unlabelled options paper and a university audit-committee pack with no academic content",
+      "design_cite": "Review Later may hold files whose meaning is partly understood but whose final location requires a future decision."
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "when": "an encrypted registry archive, a student-records database file, a damaged export or an unknown binary yields nothing beyond metadata",
+      "design_cite": "Unsupported or Encrypted may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats."
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The design names the material directly: the corpus “can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.” This template's registry side is the institutional aggregation of exactly those educational records — a single ratified results sheet, conferral list, census extract or records-system export can carry an entire cohort of identified people with marks, classifications, progression outcomes, fee status, mitigating circumstances or disciplinary findings, and school-level cohorts may be minors. Governance packs add reserved business, staff disciplinary and pay items, and pre-decisional closure proposals. That is why the default posture is protective even though statutes, policies and published reports are low-risk bytes on their own: “Privacy policy must be enforced before content reaches any model or external connector,” and “Protected material should not be included in cloud-model prompts by default, should not display raw content in general group summaries, and should not be moved automatically without a user policy that explicitly permits it.” No named student or staff member may become a folder level or a display label.",
+  "open_question": "NEEDS-JOSEPH (NJ-1): the roster places this row on the Government schema, but that schema requires an evidenced public authority, while a large share of the world named in the one_line_hint — independent schools, private colleges, charitable university foundations — is not one. This pass narrows the row to publicly constituted institutions and abstains to nonprofit or business_operations otherwise. The alternatives are: (a) keep the narrowing and accept that private-institution governance is covered only by nonprofit.governance and business_operations.board-governance; (b) reassign the row to a schema that does not presuppose public status; (c) split it into a public and an independent sibling. R1c should decide before any field vocabulary is adjudicated. NJ-2: decide whether a bounded academic-cycle anchor (academic year plus a programme, board, return round or committee reference) may ever be a stored fact and a destination level, given that its display label is safe while a student identifier's is not."
+}

@@ -1,0 +1,444 @@
+{
+  "id": "academic.k12-schooling",
+  "kind": "template",
+  "schema_id": "academic",
+  "parent_id": null,
+  "name": "K-12 schooling records",
+  "one_line": "The organizational situation in which an institution's records about one enrolled primary- or secondary-school child accumulate over a school year — report cards, enrollment and consent forms, attendance and school communications — usually held by a parent rather than by the person the records are about.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+
+  "fields": [],
+
+  "proposed_fields": [
+    {
+      "key": "student",
+      "type": "string",
+      "example": "the child a report card is about",
+      "destination_eligible": "recommended true, but this is Joseph's call and R1c's to place, not this node's",
+      "role_split_with": ["authored_by"],
+      "provenance": "proposal",
+      "why": "No canonical key names the person a record is ABOUT when the holder is not that person. `authored_by` is the producer, `instructor` is the teacher, `people` is photo-side and is seeded destination_eligible false, and `subject` in this catalogue means the course, not the human being — a naming hazard R1c must not resolve by overloading `subject`. 00 states the general rule this instance falls under: \"The system must separate roles that happen to contain the same entity type.\" It is not the authorship prohibition — 00 excludes authorship from destinations (\"It should avoid using authorship or creator identity as a destination dimension\") while placing on the other side of that same sentence \"the document’s purpose, project, subject, or target is more informative for placement\", and a record's data subject sits on the informative side. The organizational consequence is concrete: a household with two children has no declared field that separates their report cards, so this template's dimension_order cannot express the split a parent actually files by. NOT placed in dimension_order: a template may only branch on fields its schema declares (CONNECTION section 3), and the Academic schema declares no such field. If R1c or Joseph adopts it, it belongs on the Academic schema with a role_split against authored_by; until then this node recommends nothing that depends on it."
+    }
+  ],
+
+  "recognition": {
+    "deterministic": [
+      "a report-card vocabulary term (report card, progress report, marking period, grading period shapes) in a high-weight zone — filename, document title, page-one heading — together with a school-year-shaped term token or a grade-level-shaped token",
+      "a grade-level-shaped token (Kindergarten, Grade 5, 5th Grade, Year 9 shapes) co-occurring with a school-year-shaped term pattern (2025-2026, AY 2024-25 shapes) in a high-weight zone; the shapes themselves are R6's pattern catalogue, and 00 requires dedicated patterns here — \"Academic terms such as Spring 2025, AY 2024-25, and Michaelmas Term 2024 require dedicated patterns rather than generic parsing.\"",
+      "a labelled enrollment or registration slot set read from form fields or table cells (Student Name, Grade Level, School, School Year, Parent/Guardian), which is the extraction 00 preserves: \"Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.\"",
+      "a schools-gazetteer hit matched at a word boundary together with enrolled-student role context (homeroom, attendance, marking period, student handbook, school district, principal) rather than admissions, clinical, billing or employment language",
+      "a labelled Homeroom Teacher or Teacher slot on a document already carrying school-year or grade-level evidence",
+      "OCR of a parent-portal view carrying a school name, a school-year token and a grade-level token together in the header zone",
+      "an ICS SUMMARY or DESCRIPTION field carrying school-operations language (parent-teacher conferences, no school, end of quarter) plus a schools-gazetteer hit, where source_type=calendar contributed only as a file-kind signal",
+      "NOT a signal here, and this is what separates this template from academic.coursework: 00's course-code-plus-context pair (\"BUSIB 4300 becomes a course fact only when the engine finds a course-code pattern together with academic context such as\" its five terms) almost never fires on K-12 material, which names plain subjects rather than code-shaped tokens"
+    ],
+    "needs_llm": [
+      "an unlabelled letter or note from a teacher whose only signals are register and a person name — the model must decide whether it is a school communication about an enrolled child at all, and return unknown when it cannot cite support",
+      "a worksheet or graded page whose OCR shows a plain subject word and a child's handwriting but no school, school-year or grade-level token — whether it is this template's institutional record set, academic.coursework's student artifact, or neither",
+      "a report card or school notice in a language whose grade-level and school-year vocabulary the deterministic pattern catalogue does not cover",
+      "a start-of-year packet whose members mix school forms, a health form and a payment stub — whether one shared purpose explains the packet, and which members are not this template's at all",
+      "separating an enrolled-student record from an admission packet when a school name and a year appear together with neither enrollment nor decision language"
+    ],
+    "never_alone": [
+      "a school or district name alone — 00's rule for the neighbouring case applies with the same force: \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" A K-12 school name can equally be the child's school, an admission target, an employer, a venue, or the requester named on someone else's form",
+      "a school name appearing only inside a 'required for school enrollment' line on a clinic's immunization record — that document is medical.dependant-child-health's, and this is the tempting false file this template must refuse",
+      "a bare 4-digit number or a bare year-pair alone — 00: \"numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values\", so 2025-2026 in a filename is not a term fact by itself",
+      "a grade-level-shaped token alone — Grade 5 may be a grade level, a letter-grade table row, a reading level, a lumber or fuel grade, or a product grade",
+      "a child's given name in a filename alone (Emma_2025.pdf) — a person name evidences no schooling, and the person named is a data subject this schema does not declare a field for",
+      "source_type alone: text_document, archive, calendar, email, image or ocr membership never activates this template without content evidence — 00 requires the engine \"treat the file extension as a routing signal rather than an assumption about meaning\"",
+      "a teacher or staff person name alone, including a DOCX or PDF author field — \"PDF metadata should be treated as supporting evidence, not as truth\", and the field may name a template, a prior editor or a script",
+      "a school mail domain in a sender or ORGANIZER address alone, with no school-operations content in the message itself",
+      "a parent folder named School, Kids or a child's name alone — folder context is a clue, and 00 requires that existing structure not be silently reinterpreted: \"The system learns from existing folders but must not silently reorganize them.\""
+    ]
+  },
+
+  "proposed_context_terms": [
+    "report card",
+    "progress report",
+    "marking period",
+    "grading period",
+    "homeroom",
+    "attendance",
+    "tardy",
+    "principal",
+    "school district",
+    "parent-teacher conference",
+    "student handbook",
+    "school year",
+    "guardian",
+    "dismissal",
+    "honor roll"
+  ],
+
+  "work_types": [
+    "report card",
+    "progress report",
+    "enrollment form",
+    "registration form",
+    "permission slip",
+    "school communication",
+    "attendance record",
+    "class schedule",
+    "school calendar",
+    "homework",
+    "worksheet",
+    "reading log",
+    "school handbook",
+    "student portfolio",
+    "conference notes",
+    "award certificate"
+  ],
+
+  "grouping_reasons": [
+    "one child in one school year — the analogue of 00's course rule, \"A course code alone should not merge different semesters; course packet identity should include a term when it is available.\" A school name alone must not merge two school years, and with no declared field for the child it must not merge two children either",
+    "one start-of-year or end-of-year packet, which is purpose-coherent while its members are not content-coherent — 00: \"The documents are content-incoherent but purpose-coherent.\"",
+    "one report-card sequence across marking periods, joined by the universal version and duplicate families plus shared school and term evidence rather than by any new fact",
+    "one school-communication stream (notices, calendars, portal captures) around a school and a school year, in which sparse members stay context-supported — 00: \"The graph does not automatically copy those missing facts onto sparse files.\""
+  ],
+
+  "template": {
+    "dimension_order": ["school", "term", "work_type"],
+    "why": "The Academic schema's default order is 00's own — \"An Academic template may define school → term → course → work type\" — and this situation drops the course level. K-12 records are mostly whole-child, whole-year institutional records (a report card covering every subject at once, an enrollment form, a permission slip, an attendance summary); the per-subject artifact is the exception, and a plain subject name cannot pass the course-code-plus-context rule that makes `subject` a validated fact, so branching on it would open a level facts cannot fill and produce exactly what 00 tells the canvas to warn about: \"It should warn when a level produces only one child, repeats a concept already expressed in the parent, creates excessive depth, or creates a large number of tiny folders.\" school stays first because the school is what makes a marking period intelligible, in the same shape as 00's reason for course before work type: \"A work type such as Homework 3 is meaningful only after the course is known\". Time is not first — \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" The order this situation actually wants is child → school year → work type, and no declared field names the child (see proposed_fields and open_question); where a parent already keeps a folder per child, that is existing structure to attach beneath, not structure to reinterpret. This is a recommendation: the user may reverse, flatten, or drop any level.",
+    "time_first": false
+  },
+
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "image",
+      "ocr",
+      "spreadsheet",
+      "archive",
+      "calendar",
+      "email"
+    ],
+    "extensions": [".pdf", ".docx", ".jpg", ".heic", ".png", ".xlsx", ".csv", ".zip", ".ics", ".eml"],
+    "never_alone": true
+  },
+
+  "file_examples": [
+    {
+      "filename": "Report Card - Grade 5 - Q2 - 2025-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries a grade-level-shaped token, a marking-period token and a school-year-shaped token",
+        "page-one heading reads Report Card above an elementary school name and a district line",
+        "a table whose rows pair plain subject names with letter grades and teacher comments",
+        "a labelled Homeroom Teacher cell",
+        "an attendance summary row of days present and days absent"
+      ],
+      "facts_legal": ["school", "term", "work_type", "instructor"],
+      "must_not_conclude": [
+        "a folder path",
+        "one subject value for the file when the table holds many subject rows",
+        "a term from the letter grades or from the file's modification timestamp",
+        "that the child named in the heading is the holder of the corpus",
+        "school from a district logo caption alone"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Emma_Enrollment_Form_2025-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled form slots read Student Name, Grade Level, School, School Year, Parent/Guardian, Emergency Contact, Date of Birth",
+        "school letterhead in the title zone",
+        "a signature line and a date-signed slot",
+        "the filename's leading token is a child's given name"
+      ],
+      "facts_legal": ["school", "term", "work_type"],
+      "must_not_conclude": [
+        "instructor",
+        "subject",
+        "that a date-of-birth, address or emergency-contact slot becomes an academic fact — this schema declares no field for them and they are privacy-side values",
+        "identity-schema activation from a date-of-birth slot alone",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Note from Ms. Alvarez.docx",
+      "source_type": "text_document",
+      "observations": [
+        "one page of unlabelled prose about a child's reading progress",
+        "no form labels, no grade-level token, no school-year token, no report-card vocabulary",
+        "DOCX author metadata names a school-issued account",
+        "the only person name in the file is the one in the filename"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "instructor from the filename person name or from the DOCX author field",
+        "school from the author account's mail domain",
+        "work_type",
+        "that the letter is coursework",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "IMG_0421.HEIC",
+      "source_type": "image",
+      "observations": [
+        "camera EXIF make, model and DateTimeOriginal present",
+        "the frame is a photograph of a paper report card lying on a table",
+        "no text layer",
+        "camera-pattern filename, stored beside the year's other school PDFs"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from the directory the file sits in",
+        "school, term or grade level before OCR has run",
+        "term from the capture date",
+        "that no academic fact can ever exist here — OCR re-runs recognition under a new cache key and may then supply school, term and work_type"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "One-Off Images"
+    },
+    {
+      "filename": "Screenshot 2026-03-04 at 08.12.14.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR text carries a school name in a portal header, a school-year token and a grade-level token",
+        "OCR text lists missing assignments with due dates",
+        "OCR text also carries a portal navigation menu and a Sign Out label"
+      ],
+      "facts_legal": ["school", "term", "work_type"],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone — \"the system must not mistake the absence of EXIF for proof that an image is a screenshot\"",
+        "a subject fact from the missing-assignment list",
+        "a term from a due date in the list",
+        "that the assignments listed are facts about this file",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "beginning-of-year-packet.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Emergency Contact Form.pdf, Media Release.pdf, Immunization Record.pdf, Handbook Acknowledgement.pdf and Bus Route.pdf",
+        "outer archive name is vague and download-session shaped",
+        "no member is opened to disk during the normal scan"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "work_type from a member filename",
+        "school from a member without inspecting it",
+        "medical activation for the outer archive from an Immunization Record member name",
+        "that one purpose explains every member",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "School Calendar 2025-2026.ics",
+      "source_type": "calendar",
+      "observations": [
+        "VEVENT SUMMARY fields read Parent-Teacher Conferences, No School - Teacher In-Service, End of Quarter 2",
+        "ORGANIZER is a school mail address",
+        "DTSTART and DTEND present on every event",
+        "the school's name appears in the calendar name and in several summaries"
+      ],
+      "facts_legal": ["school", "work_type"],
+      "must_not_conclude": [
+        "activation from source_type = calendar alone",
+        "term from the DTSTART year",
+        "instructor from the ORGANIZER address",
+        "subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Immunization Record - Emma.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "clinic letterhead and a provider identifier in the title zone",
+        "a vaccine table with dose dates and lot numbers",
+        "one line reading Required for school enrollment, naming the school",
+        "the child's name and date of birth in a labelled header block"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "school from the enrollment-requirement line",
+        "work_type",
+        "that being filed inside a school packet makes this a schooling record — it is medical.dependant-child-health's, and protection precedes any model or placement path",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "IEP Meeting Notice - 2026-01-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school letterhead and a meeting date in the title zone",
+        "body names an Individualized Education Program team meeting",
+        "a table of service minutes and eligibility categories",
+        "a parental-rights notice paragraph in the footer"
+      ],
+      "facts_legal": ["school"],
+      "must_not_conclude": [
+        "work_type = school communication when accommodation-plan vocabulary is present — that evidence is academic.iep-accommodation-plans's discriminator, and its privacy rules dominate",
+        "subject",
+        "term from the meeting date",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Oakwood Academy - Application for Admission.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "heading reads Application for Admission",
+        "labelled slots for Applicant Name, Entering Grade and Entering Year",
+        "a paragraph naming an application fee and a decision-notification date",
+        "nothing in the file indicates the child currently attends the named school"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "school from the addressed institution — that is the application target, the role split this template must not cross",
+        "term from the entering year",
+        "work_type = enrollment form",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Field Trip Permission Slip - Science Museum.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school letterhead in the title zone",
+        "labelled slots read Student Name, Teacher, Trip Date and Parent/Guardian Signature",
+        "the destination and departure time appear in the body",
+        "a tear-off return portion at the foot of the page"
+      ],
+      "facts_legal": ["school", "work_type", "instructor"],
+      "must_not_conclude": [
+        "event or location facts from the trip destination — those are photo-schema fields and this file is not a capture",
+        "term from the trip date",
+        "subject",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Oakwood Academy Enrollment Agreement 2025-2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "school name and a school-year token in the title zone",
+        "a labelled Grade Level slot and a labelled Student Name slot",
+        "a tuition schedule table with amounts, a payment plan and a billing institution",
+        "a signature block for the parent or guardian"
+      ],
+      "facts_legal": ["school", "term", "work_type"],
+      "must_not_conclude": [
+        "an institution or record_type value as an academic fact — the finance facts belong to the finance schema and are kept alongside, not merged",
+        "that one schema's activation cancels the other's",
+        "term from a payment due date",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "FW_ Snow Day - Lincoln Elementary.eml",
+      "source_type": "email",
+      "observations": [
+        "From address is a school district mail domain; the display name is a staff person",
+        "Subject names the school and a closure",
+        "body is a short notice naming the school year and the make-up day",
+        "no attachments"
+      ],
+      "facts_legal": ["school", "work_type"],
+      "must_not_conclude": [
+        "school from the sender's mail domain alone, without the school name and school-operations content in the message itself",
+        "instructor from the sender display name",
+        "term from the Date header",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+
+  "collides_with": [
+    {
+      "domain": "medical.dependant-child-health",
+      "signal": "School-required health paperwork — immunization records, medication authorizations, sports physicals — carries the school's name and the child's name and is filed inside school packets. Discriminating evidence: a clinician or clinic letterhead, a vaccine or medication table, a provider identifier or a diagnosis makes it the dependant-health template's; this template needs enrolled-student record evidence (report-card or marking-period vocabulary, enrollment or attendance slots, homeroom). A school name appearing only in a 'required for school' line is never enough, and protection runs first — 00: \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\""
+    },
+    {
+      "domain": "legal.personal-legal-matters",
+      "signal": "Custody orders, guardianship affidavits, records-release authorizations and truancy notices arrive on school letterhead and concern the same child in the same school year. Discriminating evidence: a court caption, a case or docket number, a notarization block or a statutory citation makes it the legal template's; this template needs enrolled-student record evidence. School letterhead alone discriminates nothing, and 00 places legal material in the protect-first set."
+    },
+    {
+      "domain": "applications.k12-admission",
+      "signal": "A school name paired with a year appears on both sides. Discriminating evidence: the admission template needs a target institution paired with an admission cycle, an application fee, or decision, offer or waitlist language; this template needs evidence the child is already enrolled at the named school — a report card, an attendance record, a homeroom assignment, an enrollment confirmation. The school on an admission form is the role-split target, not the child's school."
+    },
+    {
+      "domain": "academic.iep-accommodation-plans",
+      "signal": "Both are school-issued records about one child in one school year, on the same letterhead. Discriminating evidence: accommodation-plan vocabulary — individualized education program, 504 plan, service minutes, eligibility determination, parental-rights notice — belongs to the IEP template, whose privacy rules dominate; without it the document is this template's ordinary record set. Neither side may be reached by a school name plus a child's name."
+    },
+    {
+      "domain": "academic.homeschool",
+      "signal": "Parent-run schooling produces report-card-shaped portfolios, attendance logs and progress summaries about a child, using the same grade-level and school-year tokens. Discriminating evidence: a schools-gazetteer hit with district, registrar, homeroom or principal context indicates an institution's record; homeschool material has no institutional issuer and typically names a curriculum publisher or a parent instead. A grade-level token plus a school-year token clears neither side alone."
+    },
+    {
+      "domain": "academic.coursework",
+      "signal": "Both use the Academic schema, so the collision is about which situation's signals fire. Discriminating evidence: coursework's own signal is 00's course-code-plus-context pair and per-course artifacts held by the student who took the course; this template's records are whole-child institutional records for a school year and usually carry no code-shaped token at all. A K-12 worksheet held by the student is coursework's; a report card naming many subjects at once is this template's, and neither may take a bare school name."
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "Tuition invoices, payment receipts and lunch-account statements are issued by the school and carry the school name and school year in exactly this template's high-weight zones. Discriminating evidence: an amount due, a payment schedule, an invoice or account number and a billing institution are finance vocabulary; this template needs enrolled-student record evidence. A single document can genuinely carry both fact sets (the enrollment agreement in file_examples) — that co-holding is a schema-level relation, recorded there rather than as an edge from this template."
+    }
+  ],
+
+  "also_holds_with": [],
+
+  "falls_through_to": [
+    "Independent Records",
+    "Review Later",
+    "Temporary Screenshots"
+  ],
+
+  "role_split": [
+    {
+      "field": "school",
+      "other_field": "target_university",
+      "neighbor": "applications.k12-admission",
+      "why": "Same entity type, different role: the school the child is enrolled at versus the school an admission application is addressed to. Both appear on paperwork a parent keeps in the same year, often for the same child, which is why the split has to be read off the document's own language rather than off the institution name. 00's general rule: \"The system must separate roles that happen to contain the same entity type.\" The canonical field list already records the pair."
+    }
+  ],
+
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00 counts this material in the corpus it protects: the product \"processes a highly personal corpus that can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records.\" What makes this situation heavier than the coursework default is the holder-versus-subject gap: the records are about a minor who is not the holder, report cards carry grades, enrollment and consent forms carry a child's date of birth, home address and emergency contacts, and the neighbouring health, IEP and custody documents that arrive on the same letterhead are protect-first material. Which handling class applies is P7's and is not set here.",
+
+  "open_question": "The dimension this situation actually organizes by is the child, and no canonical field names a record's data subject (see proposed_fields.student). Should the Academic schema declare such a field — destination-eligible, role-split against authored_by — so a household with more than one child can branch on it, or should a per-child folder remain purely the user's own existing structure that the product attaches beneath and never proposes? Adding it makes person-shaped folders for minors a product-proposed default, which is a privacy decision as much as a filing one; leaving it out means this template's recommended order silently omits the level a parent files by. Joseph's call, not this node's."
+}

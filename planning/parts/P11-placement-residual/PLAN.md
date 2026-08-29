@@ -1,0 +1,1 @@
+../../../docs/superpowers/plans/2026-08-25-p11-placement-residual.md

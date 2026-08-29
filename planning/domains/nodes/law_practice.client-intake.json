@@ -1,0 +1,432 @@
+{
+  "id": "law_practice.client-intake",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Client intake and instructions",
+  "one_line": "The PRE-ANCHOR end of a practice's apparatus: the artefacts a firm generates while deciding whether to act at all - the prospective-party enquiry and instructions form, the client due-diligence and identity-verification pack collected about someone who is not yet a client, the source-of-funds and beneficial-ownership evidence behind it, the first-interview note taken before a file exists, the enquiry portfolio table, and the acceptance or NON-ENGAGEMENT decision that closes the episode. It is not the intake STAGE of a matter and not the word intake: its positive structure is a labelled PROSPECTIVE-PARTY slot paired with a REQUESTED-WORK slot and a DISPOSITION, plus a per-document verification attestation, and it is precisely the material on which the `law_practice` schema's own default cannot fire, because no matter reference has been allocated yet and in the declined case never will be. Its privacy posture is the strictest in the family for a reason no sibling shares: the exposed person may never have become a client, has no engagement to justify the practice holding their passport, and the mere existence of their intake record discloses that they approached this practice about this kind of trouble.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION, INHERITED UNCHANGED FROM THE SCHEMA AND NOT WEAKENED HERE. Every accepted signal is a STRUCTURE plus a LABELLED SLOT. A law-firm name, a letterhead, a practising-certificate reference, a legal-services label, a personal name, or a document-type word such as intake, onboarding, KYC, AML or due diligence is NEVER sufficient, alone or in combination with another struck token. The deletion test applies: delete every entity name and every document-type word, and if no labelled structure survives, nothing fires. These are schema-activation signals only - `law_practice` declares no field rows, so activation unlocks recognition, safety posture and grouping, and writes no facts.",
+      "A PROSPECTIVE-PARTY INTAKE structure, and it is this row's positive core. A form whose OWN labelled slots pair (i) a prospective, proposed, potential or enquiring party slot - the label itself carries the not-yet-a-client role - with (ii) a REQUESTED-WORK or nature-of-enquiry slot describing what the person wants done, (iii) a receiving or responsible practitioner slot, and (iv) a DISPOSITION slot whose values are decisions about whether to act (accepted, declined, referred out, awaiting information). Read through 00's direct-fact path: deterministic extractors create direct facts \"when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.\" There is no bound party pair, no execution block and no tribunal caption anywhere on this form, which is why `legal`'s instrument and proceeding signals do not fire on it.",
+      "A CLIENT DUE-DILIGENCE VERIFICATION structure: a checklist or pack whose rows are PER IDENTITY DOCUMENT - document type, identifying number, expiry, date seen, original-or-copy, and a CERTIFIED-BY or verified-by attestation naming the person who inspected it - together with a source-of-funds, source-of-wealth or beneficial-ownership section naming the party being checked. The attestation row is the discriminating slot: it records that a practitioner inspected a document belonging to someone else. Any risk wording carried on the form stays a raw literal observation and never becomes this product's sensitivity classification; handling classes are P7's.",
+      "A NON-ENGAGEMENT or DECLINE structure, the family's most decisive artefact and one no other row can hold: a letter whose own body states that the practice will not act, that no retainer or relationship arises, that no advice has been given or should be relied on, and that the recipient should seek advice elsewhere before any time limit expires - addressed to a named person, with NO matter reference, because none was ever allocated. It is the structural proof that this row's world exists outside the matter anchor.",
+      "AN ENQUIRY-PORTFOLIO structure: a table over MANY PROSPECTS with one row per enquiry carrying a date received, an enquirer, a requested-work description, a referral or source column, an owning practitioner, and a DISPOSITION column. The portfolio shape plus a disposition column is the signal. It is deliberately stated this way so it can be separated from the schema's limitation-and-diary table, whose rows are OPEN MATTERS with key-date columns, and from a sales pipeline, whose rows are accounts with stage and value columns.",
+      "A CORROBORATING CONDITION, NEVER A SIGNAL ON ITS OWN: no allocated matter, file or engagement reference appears anywhere on the artefact, and none of the other artefacts in its neighbourhood carries one either. This raises confidence for this row over its post-opening siblings once one of the positive structures above has already fired. Standing alone it activates nothing - a row defined by an absence cannot activate, and this row is not."
+    ],
+    "needs_llm": [
+      "Deciding whether an unlabelled prose first-interview note is pre-opening intake or a post-opening attendance note. The grammar is the only evidence - a note that records what the person wants, what they were told about costs, and what still has to happen before the firm can act, versus a note that reports a step taken IN an existing file.",
+      "Separating a prospective-client due-diligence pack from an employee right-to-work or contractor onboarding pack when both are ID scans plus a per-document checklist with a certifier. The structures are near-identical; the deciding slot is whether the form asks what work the person WANTS DONE FOR THEM or what work they will DO FOR THE HOLDER.",
+      "Reading a screen capture or scan of a web intake submission through OCR, where the labelled slots survive only as visual layout.",
+      "Reading an intake pack archive's manifest to judge whether its members form one intake episode, without unpacking it merely to improve classification.",
+      "Judging whether an unsolicited enquiry email from a stranger is intake material at all, when the practice never replied and no disposition exists."
+    ],
+    "never_alone": [
+      "The words intake, onboarding, new client, client care, KYC, AML, CDD or due diligence, alone or in the filename. Every one of them occurs in accountancy, banking, estate agency, recruitment, consultancy and clinical onboarding, and 'client intake' is a work-type phrase used by whole industries that are not law.",
+      "A law-firm name, a solicitor's or attorney's name, a practising-certificate number, or firm letterhead. A role name and an organisation name are never-alone evidence and cannot carry a node.",
+      "A passport, driving-licence or identity-card scan on its own. The scan says what the document is; it does not say whose corpus it belongs in or why it is held. It must NEVER be allowed to manufacture a prospective-client relationship - this is the tempting false file the row would otherwise swallow, and 00 already names the residual for it.",
+      "A bank statement or account summary on its own, even one filed beside identity documents. Whose account it is is the whole question, and finance owns that evidence on its own terms.",
+      "A person's name repeated across several files. Recurrence is not an anchor: 00's stop rules refuse a group formed \"when one high-frequency entity acts as the only bridge\".",
+      "The absence of a matter reference. Absence corroborates once a positive structure has fired and activates nothing by itself.",
+      "File extension, source type, folder path, or a shared download session. 00 forbids treating a \"download session as topic\"-style artefact of collection as evidence of purpose."
+    ]
+  },
+  "proposed_context_terms": [
+    "prospective client",
+    "nature of enquiry",
+    "instructions sought",
+    "responsible fee-earner",
+    "source of funds",
+    "certified true copy",
+    "we will not be acting",
+    "no retainer",
+    "referred elsewhere"
+  ],
+  "work_types": [
+    "initial enquiry and referral record",
+    "prospective-client instructions and requested-work form",
+    "first interview or attendance note taken before a file is opened",
+    "client due-diligence and identity-verification pack",
+    "source-of-funds, source-of-wealth and beneficial-ownership evidence",
+    "capacity, vulnerability or interpreter-need note taken at intake",
+    "costs and funding information given before engagement",
+    "intake decision record: accept, decline, refer out, await information",
+    "non-engagement or decline letter",
+    "enquiry portfolio table or intake register",
+    "intake portal or web-form submission record"
+  ],
+  "grouping_reasons": [
+    "An exact enquiry, reference or intake identifier allocated by the practice's own intake system and repeated across two or more artefacts of the episode.",
+    "One intake episode bounded by the same prospective party AND the same requested-work description appearing on an enquiry form, its verification checklist and its decision letter. The name alone never bounds it; the requested-work description is what makes the episode one thing.",
+    "An intake-pack archive whose manifest lists the members of one episode, read without unpacking.",
+    "A STOP RULE THAT IS SPECIFIC TO THIS ROW: when the disposition is DECLINED, no group into a matter may ever form, because none exists and none ever will. 00's stop rules are explicit that the system \"should not form a supported group when there is no valid anchor\". Declined intake material stays isolated and protected, and the temptation to attach it to a later matter for the same person by name recurrence must be refused.",
+    "Membership never copies facts. A certified passport copy inside an intake pack keeps its own identity evidence and acquires no client, matter, engagement or outcome fact from the pack around it."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY, and for the schema's three reasons plus one that belongs only to this row. (1) BY CONTRACT: a dimension may branch only on a field the same schema declares, and `law_practice` declares none under PR-6, so no order is available to serialize. (2) BY THE SAFETY NEIGHBOUR: this material co-activates `legal` and `identity`, and 00 puts them first as safety domains - \"Finance, identity, medical, and legal material should be implemented first as safety domains, meaning the system detects and protects them before any cloud or automated placement decision is allowed.\" (3) NOT TIME-FIRST: \"For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.\" Enquiry date, verification date, certification date and filesystem date all mean different things here and nothing is capture-based. (4) THE REASON THAT IS THIS ROW'S OWN, and it is why the row's recommendation held as prose differs from the schema's: the schema's prose recommendation is client, then matter, then function, then period. NEITHER of its first two levels exists here. There is no matter, and there is no client - there is a person who asked, and who in the declined case is a stranger the firm refused. Naming a folder after them would write into the filesystem, where every later process reads it, the fact that a named individual approached this practice about this kind of trouble and was turned away; the schema's own rule that a named third party may never be a folder level applies at its strongest to the person who never became a client. The recommendation held as prose is therefore: no person level at any depth, the intake EPISODE as one shallow protected unit, function inside it only if the user asks, and period last. This differs from the schema default not in ordering but in striking its top two levels outright.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "image",
+      "ocr",
+      "email",
+      "archive",
+      "filesystem",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".doc",
+      ".xlsx",
+      ".csv",
+      ".jpg",
+      ".png",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".tif"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "New Client Enquiry Form - Ellery Vance - 2026-07-14.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots read PROSPECTIVE CLIENT, CONTACT DETAILS, NATURE OF ENQUIRY, INSTRUCTIONS SOUGHT, REFERRED BY, RECEIVED BY, DISPOSITION",
+        "the disposition slot is filled with a decision about whether to act, not with a stage of an open file",
+        "no matter or file reference anywhere on the page; no signature block; no tribunal caption"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "a folder path",
+        "that a client relationship exists - the labelled role is prospective",
+        "that the requested work will be, or was, undertaken",
+        "any law_practice field value; the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client Due Diligence Checklist - Vance - certified copies.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-document rows: document type, number, expiry, date seen, original or certified copy, CERTIFIED BY with a name and date",
+        "a source-of-funds section naming the party checked and the evidence relied on",
+        "a risk-rating box completed by the practice",
+        "no employment, right-to-work or job-title slot anywhere on the form"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the practice's own risk wording is this product's sensitivity classification or a P7 handling class",
+        "that verification succeeded, that the identity is genuine, or that any regulatory duty was discharged",
+        "that the checked party is the holder of this filesystem"
+      ],
+      "also_schema": "identity.core-documents",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Passport copy - certified true copy - E Vance.jpg",
+      "source_type": "image",
+      "observations": [
+        "machine-readable-zone layout and passport page structure are visible; OCR may recover the document type and expiry",
+        "a certification stamp and a practitioner's signature overlay the copy",
+        "nothing on the image states why it is held or by whom"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a prospective-client relationship exists - the scan alone is never-alone evidence",
+        "that the person is the holder of this corpus",
+        "a folder path, or any client or matter fact copied from a surrounding pack"
+      ],
+      "also_schema": "identity.core-documents",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Source of Funds - Vance - statements Jan to Jun 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "account statement structure: institution header, account identifier, dated transaction rows, balances",
+        "a covering page from the practice labels it as source-of-funds evidence supplied by the enquirer",
+        "the account holder named on the statement is not the holder of this filesystem"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this is the holder's own account record",
+        "that the funds are lawful, sufficient, or accepted",
+        "that a finance record_type or institution fact belongs to law_practice; finance owns its own slots on its own evidence"
+      ],
+      "also_schema": "finance.personal-records",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "First interview note - Vance - possible unfair dismissal.docx",
+      "source_type": "text_document",
+      "observations": [
+        "free prose with weak internal headings: what happened, what the person wants, what they were told about costs, what must happen before we can act",
+        "closes with an action line that conflicts and identity checks are still outstanding",
+        "no matter reference; no addressee; no signature"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that advice was given or relied on",
+        "that any limitation period, entitlement or legal position stated in the note is correct or current",
+        "privilege, work-product protection or confidentiality status - the product decides no legal status"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Non-engagement letter - Vance - DECLINED.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "letter body states the practice will not act, that no retainer arises, that no advice has been given, and that other advice should be sought before any time limit expires",
+        "addressed to a named individual on firm letterhead",
+        "no matter reference, because none was ever allocated; no counter-signature"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that a matter exists, or that this letter may be grouped into any later matter for the same person",
+        "the reason for the refusal, which the letter deliberately does not state",
+        "that the material collected during the episode may now be attached to anything"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Intake enquiries - Q3 2026.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "column headers: date received, enquirer, nature of enquiry, referred by, fee-earner, DISPOSITION, date closed",
+        "one row per enquiry, many of them dispositioned declined or no response",
+        "no key-date columns of the limitation-diary kind and no matter-reference column"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that any row names a client",
+        "that the table is a matter diary or a sales pipeline",
+        "a person-named folder level derived from any row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-07-14 at 09.11.24 - intake portal submission.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence: capture-tool filename grammar plus interface chrome visible in the image",
+        "OCR recovers form labels for the enquiring party and the assistance requested, and a submission acknowledgement",
+        "no matter reference is visible"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that missing EXIF proves screen origin - 00 forbids missing metadata as screenshot proof",
+        "that the submission was accepted, read, or acted on",
+        "that OCR text of a person's details creates a client fact"
+      ],
+      "also_schema": "photos.screenshot-captures",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE Initial enquiry - employment matter - attachments.eml",
+      "source_type": "email",
+      "observations": [
+        "unsolicited inbound message from a stranger describing their situation, with documents attached",
+        "recipient is a general practice enquiry address; no reply is present in the thread",
+        "no disposition, no reference, no engagement language"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that sending the email created any relationship or duty",
+        "that the attachments belong to a matter",
+        "that the sender is a client, or that the practice ever responded"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "intake-pack-vance.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists an enquiry form, three identity images, a statement PDF and a decision letter",
+        "members are of mixed source types and the archive is coherent as one episode",
+        "no member carries a matter reference"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "anything from unpacking performed solely to improve classification",
+        "that the pack's members share one another's facts",
+        "that the episode was accepted"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Client Intake Form - BLANK - firm template v4.docx",
+      "source_type": "text_document",
+      "observations": [
+        "the labelled intake structure is fully present but every party slot is empty by design",
+        "bracketed placeholders and drafting notes where a person's details would go",
+        "a firm template version marker in the footer"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that any person is described by this file - there is nobody in it",
+        "that it is protected material; it discloses no third party",
+        "that a blank form activates the row"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Conflict Search Result - Vance v Northgate Retail.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a list of searched names with hit or no-hit results against the practice's records",
+        "a clearance decision, a clearing practitioner and a date",
+        "no requested-work slot and no identity-document rows"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that this row holds it - the searched-names-and-clearance structure is `law_practice.conflicts-check`'s",
+        "that a hit or no-hit result is a legal or ethical conclusion",
+        "that the adverse names listed may become folder levels"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employee Onboarding - Right to Work Check - J Okafor.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "per-document rows with document type, number, expiry, date seen and a CERTIFIED BY attestation - structurally near-identical to a client due-diligence checklist",
+        "the form's own slots name a job title, a start date and a hiring manager",
+        "no requested-work slot; the person will do work FOR the holder organisation"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that an identity-verification checklist plus ID scans means client intake",
+        "that the certifier attestation is this row's discriminating slot in isolation"
+      ],
+      "also_schema": "identity.core-documents",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "New Client Onboarding Questionnaire - Northgate Retail.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "labelled slots for client organisation, primary contact, scope of services required, and account owner",
+        "sections on deliverables, milestones and billing contacts",
+        "prepared-for and prepared-by organisation blocks; no identity-document rows, no practitioner-and-client legal role split"
+      ],
+      "facts_legal": [],
+      "must_not_conclude": [
+        "that the phrase client intake or client onboarding activates a law-practice row",
+        "that a services-scope questionnaire is a legal instructions form"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.conflicts-check",
+      "signal": "THE SIBLING COLLISION, and the one that most nearly kills this row, because in many practices the two live on ONE SHEET OF PAPER. The fixture is the same bytes on both sides: a combined intake-and-conflicts form. The seam is by STRUCTURE, not by stage. This row fires on the prospective-party-plus-requested-work-plus-disposition half and on the per-document identity attestation rows. `law_practice.conflicts-check` fires on the searched-names-against-our-records half: a list of names run, hit or no-hit results, a clearing practitioner and a clearance decision. `Conflict Search Result - Vance v Northgate Retail.pdf` is that row's on its own evidence and is not this row's, because it has no requested-work slot and no identity rows. Where one document carries both structures, both are recognised and the file is protected once; R1c should decide whether the combined form is the reason to merge the two rows.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.engagement-terms",
+      "signal": "The other sibling squeeze, and the seam is EXECUTION. This row stops at the decision whether to act. `law_practice.engagement-terms` begins at the retainer, scope and funding-basis record that follows a decision to act. The fixture is `Client Care and Retainer Letter - Vance - executed.pdf`: it carries a bound party pair and a signature block, which is why it is not only that sibling's but also fires `legal`'s executed-instrument signal, and `legal` is a safety domain whose protection runs first. Conversely `Non-engagement letter - Vance - DECLINED.pdf` is this row's and can never be engagement-terms', because it states that no retainer arises. Costs and funding information GIVEN AT INTAKE, before any acceptance, stays here.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.practice-matter-file",
+      "signal": "The cross-schema marker for this world. That landed template sits on the `legal` schema and recommends one shallow, redacted, user-approved matter packet; its anchor is a representation that EXISTS. This row's characteristic episode has no representation and in the declined case never acquires one. The shared fixture is the intake or client-and-matter assessment document: where an accepted representation is separately evidenced, that landed row may hold it as a matter member; where the episode is an enquiry with a disposition and no matter reference, it is this row's. Neither may attach declined intake material to a matter packet.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "The industry-word collision. Consultancies, agencies and freelancers run client intake and client onboarding under exactly those words. The fixture is `New Client Onboarding Questionnaire - Northgate Retail.pdf`: prepared-for and prepared-by organisation blocks, scope of services, deliverables and milestones support Career. What supports this row instead is a legal practitioner-and-client role split plus identity-verification rows plus a decision whether to ACT FOR the person - none of which a services questionnaire has. In the reverse direction, this row must not claim a consulting onboarding pack merely because it collects identity and billing details.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.customer-account-management",
+      "signal": "The register collision. `Intake enquiries - Q3 2026.xlsx` is a portfolio table with a disposition column, and a sales or account pipeline is a portfolio table with a stage and value column. The rows are what discriminates: enquiries about whether to act, versus accounts already held. That landed row holds pipelines and account records; this row holds the enquiry register of a practice deciding whom to represent. Neither is decided by which profession keeps the table.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "THE STRUCTURAL TWIN, and the most dangerous false positive because the two forms are near-identical. The fixture is `Employee Onboarding - Right to Work Check - J Okafor.pdf`: per-document identity rows, expiry, date seen and a certified-by attestation, exactly as on a client due-diligence checklist. The deciding slot is the direction of the work: HR's form names a job title, a start date and a hiring manager, and the person will do work FOR the holder; this row's form names the work the person WANTS DONE FOR THEM. Absent that slot on either side, neither activates and the pack is protected and left for review.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.personal-records",
+      "signal": "The source-of-funds collision, and it runs in both directions on `Source of Funds - Vance - statements Jan to Jun 2026.pdf`. Finance owns account-statement structure on its own evidence and keeps its institution and record slots. This row's claim is only that the statement arrived as intake evidence about a party who is NOT the holder. Where nothing but the statement exists, finance's reading wins and this row does not fire; where the practice's own covering evidence labels it as supplied by an enquirer, both readings are true and the file is protected once, with no finance fact copied into this row and no client fact copied onto the statement.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "identity.core-documents",
+      "signal": "A certified identity copy inside an intake pack is genuinely two things at once, in 00's abstract-that-is-also-an-application sense: it is a passport by its own structure and intake evidence by its context. Identity's recognition is holder-agnostic and must keep firing, because it is a safety domain and its protection runs first. Membership of an intake pack must never overwrite or erase identity's own reading, and identity's reading must never be taken to mean the document is the holder's.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The principal fallback and the one this row leans on hardest, because its characteristic isolated file is an identity document about a person who never became a client. 00 names the residual and this exact material together: \"Protected Records may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.\" Declined intake material lands here permanently, since no anchor exists for it to join.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "The home for this row's defining failure: a real professional artefact whose SIDE or DIRECTION is unresolved - prospective client or new employee, legal instructions or consulting scope, pre-opening note or matter attendance note. \"Review Later may hold files whose meaning is partly understood but whose final location requires a future decision.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "Password-protected intake packs and practice-system exports are ordinary here and are exactly the files that must not be forced open. 00 routes them without moving them: \"Unsupported or Encrypted may hold\" - and, more safely, represent without moving - password-protected archives and unknown formats.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "The correct home for the blank firm intake template, which has the full labelled structure and no person in it at all. It is not protected material because it discloses no third party, and it is not an enquiry because nobody enquired. Routing it to Protected Records would be a false positive that also teaches the wrong lesson about what makes this material sensitive.",
+      "provenance": "inference"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "A positively evidenced screen capture of an intake portal whose OCR does not establish a labelled intake structure is a screenshot and nothing more. Missing metadata never establishes screen origin.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and this row's claim to it is stronger than its schema's on one specific axis. 00's corpus sentence names this material directly - a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and an intake pack is, by construction, identity documents plus account statements plus private correspondence about ONE named individual, gathered in a single bundle. Where `law_practice` protects a third-party CLIENT who at least entered a relationship and can be asked, this row's exposed person may have been REFUSED: they never became a client, no engagement justifies the practice holding their passport, and nobody is in a position to consent on their behalf. Existence is disclosive in the sharpest form the family has - an enquiry record can reveal that a named person approached a criminal-defence, family, immigration or insolvency practice about their own trouble, and a decline record reveals that they were turned away. The enquiry register multiplies this by row count. Recognition and grouping should therefore run locally on the minimum necessary excerpt or manifest; 00's default posture is \"local-first and data-minimizing\", and P7 owns handling classes, which this row does not assign.",
+  "open_question": "Whether `law_practice.client-intake` and `law_practice.conflicts-check` should remain two rows. In a large share of real practices they are one combined form, and this row concedes that the same bytes can carry both structures. Two alternatives for R1c: (a) keep both, with the seam as authored here - prospective-party-plus-requested-work-plus-identity-attestation versus searched-names-plus-clearance-result - accepting that a combined form activates both and is protected once; or (b) merge them into one intake-and-conflicts row matching the schema's own deterministic signal, which names them together, and let the enquiry register and non-engagement letter live in the merged row. This row does not decide it, and neither row should be edited unilaterally."
+}

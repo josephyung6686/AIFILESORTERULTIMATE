@@ -1,0 +1,554 @@
+{
+  "id": "law_practice.transactional-deal",
+  "kind": "template",
+  "schema_id": "law_practice",
+  "parent_id": null,
+  "name": "Transactional deal file (multi-side, codenamed)",
+  "one_line": "J-DEPTH placeholder template for the DEAL-LEVEL SPINE of a negotiated corporate transaction run by a practitioner - the deal codename, the working group list that names three or more organisations in separately labelled deal roles, the steps plan, the conditions-precedent tracker while conditions are still open, the disclosure letter and its indexed bundle, the signing-authority pack, the insider list and the embargoed announcement. It is NOT activated by a deal codename, by an entity pair, by the words merger, acquisition, transaction or SPA, by a corporate practice-area label, or by a law-firm name. Its distinct default is an N-SIDED PSEUDONYMOUS ANCHOR - a codename that is deliberately used INSTEAD of the party names, carried by artefacts produced by several different firms each under their OWN matter reference - which is precisely what the schema default's one-matter-reference-plus-one-practitioner/client-pair test does not describe. It deliberately does NOT hold the diligence findings (`law_practice.due-diligence`), the redline-by-redline negotiation of one instrument (`law_practice.contract-negotiation`), the completion event and its executed running order (`law_practice.closing-binder`), the registered-parcel transaction (`law_practice.conveyancing`), the entity's continuous constitutional state (`law_practice.corporate-secretarial`), or the executed and dated instrument itself (`legal`, on `legal`'s own execution-block evidence, and `legal` is a safety domain whose protection runs first). Declares no field rows and no folder dimensions under PR-6.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "PRECONDITION. These are schema-activation signals only; the `law_practice` schema declares no field rows, so nothing here licenses a fact. Every accepted signal is a STRUCTURE plus a LABELLED SLOT, and this row's family test replaces the schema default's one rather than repeating it: (i) a REPEATED CODENAME-SHAPED DEAL TOKEN carried in page furniture, filenames, document footers and email subjects across two or more artefacts, PLUS (ii) at least one artefact whose own labelled slots enumerate THREE OR MORE ORGANISATIONS IN SEPARATELY NAMED DEAL ROLES (buyer, seller, target, buyer's counsel, seller's counsel, financial adviser, lender, tax adviser), one of which is the holder's own practitioner side. The anchor's deletion test applies unchanged: strike every entity name and every document-type word, and if no column set, no role enumeration and no clause-referenced status table survives, nothing fires. A codename alone is struck first - see never_alone.",
+      "A WORKING GROUP LIST, and it is this row's cleanest and most distinctive structure because no sibling produces it: a table whose COLUMN SET pairs an organisation column with a DEAL-ROLE column, individual names, job titles, direct and mobile numbers, email addresses, and frequently an INITIALS column whose values reappear in the footers of the drafts. Read through 00's spreadsheet path - \"Spreadsheets such as XLSX, XLS, CSV, TSV, ODS, and Numbers exports should yield workbook or file metadata, sheet names, column headers, visible cell values, table-like regions, formulas only when useful, and dates or identifiers from labeled cells\". The discriminating evidence is the ROLE COLUMN with three or more distinct organisational sides, not the contact details: a contact export, a firm directory and a distribution list all have names, phones and emails and none of them has deal roles.",
+      "A CONDITIONS-PRECEDENT or COMPLETION-CONDITIONS TRACKER WHILE CONDITIONS ARE STILL OPEN: one row per condition carrying a CP reference, a CLAUSE CROSS-REFERENCE into a named agreement, a description, a responsible party drawn from the working group list, a STATUS drawn from a small closed set (outstanding, in progress, satisfied, waived), and an evidence-document column. The clause cross-reference is the discriminating slot - it ties the table to an instrument by number rather than by subject - and the OPEN status values are what separate this from `law_practice.closing-binder`'s executed running order, which carries a completion date and a fully populated status column.",
+      "A STEPS PLAN or STRUCTURE PAPER: a numbered sequence of pre-completion and post-completion steps, each carrying an acting entity, a jurisdiction column, a consequence or treatment column, and a timing column, frequently with an accompanying before-and-after structure diagram. The evidence is the ORDERED-STEPS-OVER-MULTIPLE-ENTITIES grammar. It is not a project plan and not a checklist of documents: its rows are corporate acts by named legal persons in a required order.",
+      "A DISCLOSURE LETTER: a document whose body is organised AS A MIRROR OF ANOTHER DOCUMENT'S WARRANTY SCHEDULE - a general disclosures part, then specific disclosures numbered to warranty paragraph references, each cross-referring to a numbered tab or document reference in a separate bundle. Two structural facts make it unmistakable and neither is a word: it is indexed against a foreign numbering scheme, and it declares its own counterpart bundle. It is the seller side qualifying its own statements, which is why it is not a diligence report - that flows the other way.",
+      "A DISCLOSURE-BUNDLE or DATA-ROOM MANIFEST read WITHOUT unpacking, because \"the normal scan should never extract archive contents to the filesystem\": member paths that encode one codename plus a contiguous numbered tab range, with folder names that repeat the disclosure letter's own section numbering. Directory names are observations and become facts on no member.",
+      "AN INSIDER LIST or PROJECT-CONFIDENTIALITY REGISTER: one row per NATURAL PERSON carrying a reason for inclusion, the date and time that person obtained the information, and personal identifying columns (personal phone, home address, national identifier). This is the family's most structurally distinctive artefact after the working group list, and it is detected in order to be protected and never in order to be moved. Its slots are a regulator's, not this product's; the product decides nothing about market conduct.",
+      "AN EMBARGOED ANNOUNCEMENT or PRESS-RELEASE DRAFT whose own header carries a release time, an embargo line, or a not-for-release-until slot, together with the codename in the filename and real party names in the body. The MAPPING between codename and real names is what makes this artefact the leak surface, not its prose.",
+      "A SIGNING-AUTHORITY PACK: written resolutions, powers of attorney and signing arrangements assembled for one signing event, where the discriminating structure is the pairing of an AUTHORISING BODY slot with a NAMED SIGNATORY slot for a transaction that has not yet been executed. Executed and dated, the same document is `legal`'s; as a permanent register entry it is `law_practice.corporate-secretarial`'s.",
+      "AN EMAIL or CALENDAR record whose structured slots tie it to an already-evidenced deal: a subject carrying the codename plus a clause or CP reference, sender and recipient roles crossing a named side boundary from the working group list, an attendee set spanning three or more organisations. Position is weighted per 00's own reasoning that a token in a filename, title or page-one heading is more meaningful than the same text in a reference list on page eighteen. A firm email domain, a source type, or a deal-sounding subject alone never fires."
+    ],
+    "needs_llm": [
+      "DECIDING THE SIDE, which is inherited from the schema and is worse here, because a deal has more than two sides. Buyer's counsel, seller's counsel, target's counsel and lender's counsel all hold a working group list, a CP tracker and a disclosure letter, and the documents are frequently byte-identical because they were circulated to everyone. The only discriminator is which organisation's row in the working group list matches the holder's own apparatus. Where the side is unresolved the model must abstain: a model that cannot cite sufficient evidence \"must return unknown\".",
+      "Separating a practitioner-run deal from the holder's OWN company being bought or sold. A founder selling their company holds a codename, a working group list, a CP tracker and a disclosure letter too - as the recipient. The practitioner-side anchor is the schema's, not this row's, and this row inherits it: an allocated matter reference belonging to the holder's own firm, a time record, work product the holder produced. Absent that, this is `legal.personal-legal-matters` or `business_operations` material and the row must abstain rather than treat someone's own sale as a client file.",
+      "Deciding whether a codename is a DEAL at all. Codenames are used for reorganisations, product launches, strategy offsites, redundancy programmes, fundraising rounds and office moves. Only the role enumeration settles it, and topic will not: \"purpose answers what the file was for\".",
+      "Deciding whether two codenames are one deal or two - a bid that failed and a later bid for the same target, a main acquisition and its financing, a carve-out inside a group reorganisation. Bridging by matching party names, subject or similarity is forbidden regardless of what the model concludes.",
+      "Distinguishing an operative deal document from a study or marketing copy: a firm's published deal precedent, a training-course sample SPA and disclosure letter, an anonymised case study, a bank's pitch deck naming a codename it invented. This family's exemplars are unusually convincing because the profession and its advisers publish their own transaction templates.",
+      "Reading unlabelled deal prose - an attendance note of an all-hands call, a running-text summary of open points, a scanned marked-up page of a schedule - where no column set exists to detect.",
+      "Interpreting jurisdiction-specific or multilingual transaction artefacts whose labelled roles no approved pattern covers. This row defines no jurisdiction catalogue and no legal rule, and jurisdiction is never a field or a dimension.",
+      "Abstaining whenever the codename-and-role pair cannot be cited: \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\""
+    ],
+    "never_alone": [
+      "A DEAL CODENAME ALONE. This is the row's defining strike and the one a tempting false file trips: `Project Sunrise - Strategy Offsite.pptx` carries a codename-shaped token in exactly the right position and is not a deal at all. A codename is a concealment token with no semantics - it is chosen precisely so that it means nothing - and organisations apply the same convention to reorganisations, product launches and redundancy programmes. Only the role enumeration promotes it.",
+      "AN ENTITY PAIR ALONE - two company names, with or without registration numbers, appearing together. Suppliers, subsidiaries, litigants, joint venturers, a landlord and a tenant, a payer and a payee all appear as pairs. The relation this row rests on is between three or more LABELLED SIDES, not between two named entities.",
+      "TRANSACTION VOCABULARY ALONE - merger, acquisition, disposal, SPA, share purchase, asset purchase, completion, warranty, indemnity, conditions precedent, disclosure, closing, term sheet, heads of terms, exclusivity. Commercial contracts, insurance policies, banking documents, corporate finance decks, business-school material and news reporting all use it.",
+      "A LAW-FIRM, INVESTMENT-BANK, TARGET, BIDDER, ADVISER or COUNTERPARTY NAME ALONE, or any of them beside a document-type word. Read across from 00's role-ambiguity rule that \"A university name alone should not create a group because Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization.\" - one firm name appears here as the holder's firm, as another side's counsel, as the target, as a cited precedent producer and as an employer, sometimes in one folder.",
+      "A CORPORATE PRACTICE-AREA LABEL ALONE - corporate, M&A, private equity, capital markets, banking and finance. A practice area is a VALUE on a work_type, not a structure, and this row concedes that a practice-area reading of its own id would be a refusal.",
+      "A CLAUSE, SCHEDULE, TAB, CP or WARRANTY REFERENCE ALONE, or a BARE VERSION NUMBER. An identifier supplies LINKAGE only after its own labelled role is established, and its digits are never a date; 00's narrow-date rule covers numbers that look like years but are version numbers or other values.",
+      "A CONFIDENTIAL, PRIVILEGED, PRICE-SENSITIVE, INSIDE-INFORMATION, EMBARGOED or SUBJECT-TO-CONTRACT LABEL. The literal observation is preserved and no legal, regulatory or market status is decided - and such a label is not evidence that this row applies, since it appears on commercial, HR and insurance documents constantly.",
+      "A SOURCE TYPE or EXTENSION ALONE, including spreadsheet, text_document, email, archive, image, ocr and calendar and every extension this row lists. file_kind_plausible is constitutionally never-alone.",
+      "A FILENAME or FOLDER containing deal, project, transaction, closing, signing, SPA, DD, dataroom or final. Paths stay local, an existing folder supports review only, and a folder name is an unlabelled position.",
+      "AUTHOR, CREATOR, PRODUCER or LAST-SAVED-BY METADATA naming a practitioner, a firm or a document-comparison tool. 00: \"It should avoid using authorship or creator identity as a destination dimension\", and in this family the metadata is routinely another side's firm because the draft was circulated.",
+      "DOWNLOAD-SESSION, THREAD, ARCHIVE or CURRENT-DIRECTORY MEMBERSHIP. 00: a session should \"never be treated as proof of topic\". A data-room bulk download is a session, not a deal, and its folder structure is the room's, not the holder's.",
+      "MATCHING PARTY NAMES, SUBJECT MATTER, CLAUSE TEXT or SEMANTIC SIMILARITY ACROSS TWO DEALS. Transaction drafts are near-identical by drafting convention - two SPAs from the same precedent will embed at almost the same point - so similarity would bridge unrelated confidential deals. This is a privacy rule before it is an accuracy one.",
+      "PUBLIC AVAILABILITY of an announcement, a regulatory filing or a press report about the transaction as proof that the local deal file, the codename mapping or the surrounding context is low-sensitivity or eligible for a cloud prompt.",
+      "A PERSON'S NAME ALONE, in any of this row's roles. The insider list and the working group list are lists of named natural persons who never chose this filesystem, so a bare name is simultaneously the least discriminating evidence here and the most dangerous."
+    ]
+  },
+  "proposed_context_terms": [
+    "working group list",
+    "conditions precedent",
+    "disclosure letter",
+    "steps plan",
+    "completion accounts",
+    "signing protocol",
+    "insider list"
+  ],
+  "work_types": [
+    "term sheet, heads of terms and exclusivity or lock-out agreement",
+    "confidentiality or non-disclosure agreement for a transaction process",
+    "working group list and deal-role contact roster",
+    "steps plan, structure paper and before-and-after structure diagram",
+    "conditions-precedent and completion-conditions tracker while open",
+    "disclosure letter and its numbered disclosure bundle index",
+    "unexecuted transaction instrument under negotiation, with issues list",
+    "signing-authority pack - written resolutions, powers of attorney, signing arrangements",
+    "insider list and project-confidentiality register",
+    "embargoed announcement, stakeholder and employee communication draft",
+    "post-completion integration, notification and consent-to-assign schedule",
+    "deal correspondence and all-hands call attendance note"
+  ],
+  "grouping_reasons": [
+    "ONE TRANSACTION FROM MANDATE TO POST-COMPLETION, joined by the codename plus the role enumeration: the term sheet, the confidentiality agreement, the working group list, the steps plan, the CP tracker, the disclosure letter and bundle index, the signing pack, the announcement and the post-completion notification schedule. Content-incoherent and purpose-coherent, which is 00's own licence for the group. The anchor supports candidate membership and copies no party, price, date or status fact onto any member.",
+    "ONE ISSUE THREAD INSIDE THAT TRANSACTION, joined by an exact clause or CP reference repeated across an email, a marked-up schedule extract, an attendance note and a tracker row. This is the one grouping here that is genuinely NOT joined by the codename, because internal fragments frequently omit it - which is why the clause cross-reference had to be admitted, and why it is struck as never-alone when it appears without one.",
+    "ONE VERSION FAMILY ACROSS SIDES: successive drafts of the same instrument circulated between firms, linked by an explicit document-comparison header naming its two source versions. 00 already treats membership of a version family as a universal fact - \"A file can simultaneously be a syllabus, part of a particular course, created for a particular semester, related to a university, included in an application package, a member of a version family, and potentially sensitive.\" - so `version_family` carries this without any law_practice field.",
+    "SPARSE MEMBERS JOIN WITHOUT INHERITING. A marked-up schedule page, a signature-page scan, an attendance note or a spreadsheet extract may be brought into the candidate neighbourhood by an exact reference and still carry no deal, party or status fact of its own. \"It should not form a supported group when there is no valid anchor\", and the converse holds too: a valid anchor does not write itself onto its members."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, for the schema's three reasons - no declared field to branch on under PR-6, no deep template unlocking from a safety co-activation since \"Finance, identity, medical, and legal material should be implemented first as safety domains\", and the disclosure cost of client and matter levels. WHERE THIS ROW'S PROSE RECOMMENDATION DIFFERS FROM THE SCHEMA'S, and it is the reason the row exists at all: the schema default recommends the client only where the corpus provably spans more than one AND the user has approved a client-named branch, then the matter, then the document function, then the period. HERE THE FIRST LEVEL IS THE CODENAME, AND IT INVERTS THE SCHEMA'S PRIVACY RULE RATHER THAN RESTATING IT. A deal codename is a token chosen to conceal the parties; a folder called `Project Hartley` names nobody, which is exactly what a folder called by a client's name does not achieve, and 00's posture is \"local-first and data-minimizing\". So the codename is the one organising token in this family that may be seeded destination-ELIGIBLE where a client name is seeded ineligible - subject to the standing rule that the user approves any branch at all. Two further rules bind. First, the codename may NEVER be co-displayed with a party name in the same tree, because the value of the pseudonym is destroyed by the mapping, not by either half; the announcement draft and the working group list are the artefacts that hold that mapping and neither may be used to relabel a branch. Second, function must follow the deal because a child is unintelligible without its parent - 00's own argument is that a work type such as Homework 3 \"is meaningful only after the course is known\", and a CP tracker, a disclosure letter or a signature page is meaningless without the transaction it belongs to. NOT TIME-FIRST: signing time, completion time, document date, circulation time and filesystem time all differ here, and for document and record domains project, function or subject \"usually comes before time because putting year first scatters\" related work across calendar folders. And whatever lands stays a recommendation - \"The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions\".",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "spreadsheet",
+      "email",
+      "archive",
+      "presentation",
+      "image",
+      "ocr",
+      "calendar",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".docx",
+      ".doc",
+      ".pdf",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".eml",
+      ".msg",
+      ".zip",
+      ".png",
+      ".jpg",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Project Hartley - Working Group List - v6.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "sheet with a header row whose columns are Organisation, Role, Name, Title, Direct, Mobile, Email, Initials",
+        "the Role column carries at least six distinct labelled sides - Buyer, Seller, Target, Buyer's counsel, Seller's counsel, Financial adviser",
+        "a codename-shaped token repeated in the sheet name, the filename and the page header",
+        "the Initials values recur in the footers of other documents in the same corpus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "which of the listed organisations is the holder's",
+        "that any listed person is a client, a contact or a colleague",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - CP Checklist - status 2026-08-12.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per condition with columns CP ref, Agreement clause, Description, Responsible, Status, Evidence document",
+        "Status values drawn from a small closed set with several rows still Outstanding and none carrying a completion date",
+        "clause cross-references numbered into a separately named agreement",
+        "Responsible values match organisation names on the working group list"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any condition is legally satisfied, waived or capable of waiver",
+        "that the transaction completed",
+        "a deal date from the filename token"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - Disclosure Letter - v8 (against SPA v12).docx",
+      "source_type": "text_document",
+      "observations": [
+        "addressed from one named party to another with a subject-to-contract legend",
+        "a General Disclosures part followed by Specific Disclosures numbered to warranty paragraph references of another document",
+        "each specific disclosure cross-refers to a numbered tab in a separately named bundle",
+        "no execution block and no tribunal caption anywhere on the document"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "language"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a disclosure is effective, sufficient or qualifies any warranty",
+        "that the referenced agreement exists in this corpus",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - Disclosure Bundle - Index and Tabs 001-140.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest read without extraction shows a contiguous numbered tab range under folder names repeating the disclosure letter's section numbering",
+        "member extensions span text documents, spreadsheets, images and a small number of unreadable proprietary formats",
+        "one codename token repeated across member paths",
+        "an index document sits at the archive root"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "any fact about a member the manifest merely names",
+        "that the archive should be unpacked to improve classification",
+        "that the tab numbering is a date or a version"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    },
+    {
+      "filename": "Project Hartley - Insider List.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one row per natural person with columns for reason for inclusion, date and time of obtaining the information, personal telephone, home address and a national identifier",
+        "a project section header carrying the codename",
+        "a notification-acknowledged column with dates"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "people - the listed names must not become a people fact on this or any file",
+        "any conclusion about market conduct, disclosure duty or regulatory status",
+        "that a listed person is the holder or the holder's client"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - Steps Plan - v11 (tax).docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered pre-completion and post-completion steps, each row naming an acting entity, a jurisdiction, a treatment column and a timing column",
+        "an accompanying before-and-after structure diagram embedded as an image",
+        "several named legal persons that appear nowhere else in the corpus",
+        "no party pair bound by an execution block"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that any step occurred, is permitted or has the stated treatment",
+        "a jurisdiction fact - jurisdiction is neither a field nor a dimension here",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - SPA - v12 (blackline vs v11 SC markup).docx",
+      "source_type": "text_document",
+      "observations": [
+        "a document-comparison header naming two source versions produced by two different organisations",
+        "tracked insertions and deletions throughout with comment bubbles carrying initials that match the working group list",
+        "party recitals naming specific entities with registration numbers, and an execution page that is blank",
+        "a footer carrying a firm reference and a version stem"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "authored_by"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the agreement was made, is binding or reflects agreed terms",
+        "that the last-saved-by firm is the holder's side",
+        "a destination level from authorship - authorship is never a destination dimension"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Completion Agenda - Project Hartley - v14 (clean).docx",
+      "source_type": "text_document",
+      "observations": [
+        "an ordered list of documents to be delivered and steps to be taken, with columns for who provides each item and a signature or undertaking column",
+        "a Status column that is present but empty, and no completion date stated",
+        "a version stem in the filename and a redline counterpart elsewhere in the corpus",
+        "the codename in the header and in the filename"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a completion occurred or is scheduled",
+        "that this row owns the same document once its Status column is populated against a completion date",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "RE Project Hartley - CP 4.2 - can the buyer waive this.eml",
+      "source_type": "email",
+      "observations": [
+        "subject carrying the codename and an exact CP and clause reference",
+        "sender and recipient domains crossing two named organisations that both appear on the working group list",
+        "a short attachment list naming a schedule extract",
+        "body in running text with no labelled slots of its own"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a waiver was given, sought or is available",
+        "that the sender's firm is the holder's side",
+        "a deal fact from the thread's other members"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Hartley - Announcement (embargoed until 07:00).docx",
+      "source_type": "text_document",
+      "observations": [
+        "a not-for-release-until slot with a stated time in the header",
+        "the codename in the filename and the real party names throughout the body",
+        "quote-attribution blocks and a notes-to-editors section",
+        "a distribution list naming an exchange or newswire"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the transaction was announced or completed",
+        "that the codename and the party names may be co-displayed in a tree because both appear here",
+        "any market, regulatory or disclosure conclusion"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Project Sunrise - Strategy Offsite.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a codename-shaped token in the filename and on the title slide",
+        "slide titles about priorities, headcount and a three-year plan",
+        "an attendee slide listing individuals from ONE organisation only",
+        "no role column, no clause references, no counterparty"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "that a codename token is a deal",
+        "a folder path",
+        "that this joins any deal group",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Report on Title - Project Harbour property portfolio.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "a codename and a corporate addressee in the header",
+        "a schedule of many parcels with real title numbers, summarised rather than reported parcel by parcel",
+        "cross-references to a disclosure letter and to numbered bundle tabs",
+        "no ordering reference, no apportionment and no registry application"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that title is good, marketable or unencumbered",
+        "that a single-parcel reading applies - the portfolio is a diligence chapter here, not the subject",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Acme Capital - M&A Opportunity - Project Hartley - pitch.pptx",
+      "source_type": "presentation",
+      "observations": [
+        "a bank's branding, a codename and an indicative valuation range",
+        "slides on process timetable, buyer universe and fee proposal",
+        "a credentials section listing unrelated prior transactions",
+        "no working group list, no clause references, no practitioner apparatus"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that a mandate exists or a transaction is live",
+        "that a codename plus transaction vocabulary activates this row",
+        "any law_practice field - the schema declares none"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Screenshot 2026-08-14 at 09.11.02 - data room 47 new documents.png",
+      "source_type": "ocr",
+      "observations": [
+        "positive screen-origin evidence - display-shaped dimensions plus a capture-tool filename convention",
+        "OCR yields a portal chrome, a folder tree with numbered sections and a notification count",
+        "a codename token appears in the OCR text of the page header",
+        "no role enumeration and no clause reference in the recognised text"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that the OCR'd folder tree is this corpus's folder tree",
+        "screenshot status from missing EXIF - the evidence must be positive",
+        "membership of a deal group from a codename in OCR text alone"
+      ],
+      "also_schema": "photos",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "Project Hartley - Bible - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "encrypted archive; no manifest readable",
+        "filename carries a codename and a document-type word",
+        "no other artefact in the corpus references it"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a folder path",
+        "that it contains deal material",
+        "a sensitivity result from the filename",
+        "membership of any group"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "law_practice.closing-binder",
+      "signal": "THE TENSE SEAM, and that row already authored it from its side. SAME FIXTURE BOTH SIDES: `Completion Agenda - Project Hartley - v14 (clean).docx`. As a versioned working draft with an empty Status column and no stated completion date it is THIS row's; with Status populated against an operative completion date, or bound into a contiguous tab-numbered closing index, it is the neighbour's - and the same document is genuinely both at different times, which is why neither row may claim it from a filename. Read in the other direction: a document-status matrix with signatory and delivery columns, the counterpart-signature release, the funds flow and the bible manifest leave this row's scope entirely. Provenance: inference; the neighbour states the same fixture and the same discriminator.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.due-diligence",
+      "signal": "THE DIRECTION SEAM. SAME FIXTURE BOTH SIDES: `Project Hartley - Disclosure Bundle - Index and Tabs 001-140.zip`. Buyer-side findings flowing INWARD - a report on findings, a red-flag summary, a data-room index whose sections are enumerated for inspection - are the neighbour's; the SELLER's structured qualification of its own statements flowing OUTWARD, indexed to another document's warranty paragraph numbering, is this row's, and the bundle it declares comes with it. A data-room index and a disclosure index are the same enumerated shape and neither row may claim one from the word index. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.contract-negotiation",
+      "signal": "THE SCOPE SEAM, and it is this row's sharpest internal risk. SAME FIXTURE BOTH SIDES: `Project Hartley - SPA - v12 (blackline vs v11 SC markup).docx`. The redline-by-redline life of ONE instrument - comparison headers, tracked changes, the issues list against that instrument, the turn record - is the neighbour's; this row claims only the DEAL-LEVEL artefacts that are about the transaction as a whole and belong to no single instrument: the role enumeration, the steps plan, the CP tracker, the disclosure letter, the signing pack. `version_family` spans the seam without either row copying a fact. If R1c judges that split too fine, the honest outcome is that ONE of the two rows folds into the other - see NJ-TD-2. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.conveyancing",
+      "signal": "THE ANCHOR SEAM, already authored from the neighbour's side and reciprocated here in its own terms. SAME FIXTURE BOTH SIDES: `Report on Title - Project Harbour property portfolio.pdf`. The neighbour requires the REGISTERED-PARCEL anchor - one parcel, third-party returns keyed to it, an apportionment split at a completion date, a registry application; this row requires the CODENAME-PLUS-ROLE-ENUMERATION anchor, with property appearing as a diligence CHAPTER over many parcels rather than as the subject. A corporate acquisition that includes freehold sites is a deal that owns land; a residential purchase by a company is a conveyance with a corporate buyer. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "law_practice.corporate-secretarial",
+      "signal": "THE DURATION SEAM, already authored from the neighbour's side. SAME FIXTURE BOTH SIDES: `Project Hartley - Signing Protocol and Board Approvals pack.pdf`. Resolutions, powers of attorney and allotment paperwork assembled FOR one signing event, unexecuted and bounded by the deal, are this row's while the deal is live; the entity's continuous constitutional state - the register entries those acts cause, which exist before the deal and outlive it - is the neighbour's permanently. Neither reading is available from the document type. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.contract-administration",
+      "signal": "THE PORTFOLIO-TABLE SEAM, which the schema anchor already flagged as this family's generic trap. SAME FIXTURE BOTH SIDES: `Project Hartley - CP Checklist - status 2026-08-12.xlsx`. A table of dated obligations with a responsible-party column and a status column is byte-shaped the same as a contract register with a notice calendar. The discriminator is what the ROWS ARE ABOUT: conditions of ONE unclosed transaction, clause-cross-referenced into a single named agreement, are this row's; live obligations across MANY unrelated contracts with renewal and notice dates are the neighbour's. Never decided by which profession keeps the table. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal",
+      "signal": "THE EXECUTION SEAM, and `legal`'s protection runs first because it is one of the domains 00 names where \"Finance, identity, medical, and legal material should be implemented first as safety domains\". SAME FIXTURE BOTH SIDES: the share purchase agreement. Unexecuted, versioned, with an open execution page, it is this row's working material; executed and dated with a bound party pair and completed execution blocks it is `legal`'s on `legal`'s own evidence, and this row never reclaims it because a deal group contains it. Provenance: design for the safety-first clause, inference for the seam.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "A consideration allocation, a completion-accounts working schedule and a shareholder-by-shareholder split of proceeds are simultaneously deal artefacts and genuine equity records with their own columns. Disjoint evidence, one folder: the finance side owns the holding and consideration slots on its own structure, and deal membership never converts them into anything this fieldless schema could hold, nor erases the finance reading. One-way here; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "business_operations.board-governance",
+      "signal": "The approval side of a signing pack - a board pack, a written resolution circulated for approval, minutes of an approving meeting - carries board-governance structure of its own while also belonging to the deal. Both readings are legitimate on the same bytes and neither row may erase the other; the corporate REGISTER consequence is `law_practice.corporate-secretarial`'s and is expressed as a collision rather than here. One-way; R1c owes the reciprocal. Provenance: inference.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity",
+      "signal": "Signatory verification, beneficial-ownership evidence and the insider list's personal columns put other people's identity documents and home addresses inside this world. Identity's own evidence and protection apply on their own terms; membership of a deal group never turns identity data into a deal fact and never lowers identity's posture. Provenance: inference.",
+      "provenance": "inference"
+    }
+  ],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "The principal fallback and the correct default for the characteristic isolated file here, which names third parties and an unannounced transaction at the same time - a stray disclosure letter, a working group list, an insider list, a CP tracker, an announcement draft. These should remain local-only and must not cause filenames or content to be exposed in model prompts, and 00 licenses surfacing them without a group because rare but sensitive files may be surfaced as protected records even when they do not meet a normal group-size threshold.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "For the readable, deal-shaped artefact whose SIDE or whose deal-hood is unresolved: a completion agenda with neither an empty nor a populated status reading, a codenamed deck from an adviser, a portfolio report on title, a founder's own sale documents with no practitioner apparatus. This is the row's honest default whenever the role enumeration cannot be cited, because \"Correct abstention is a successful outcome because the product’s goal is reliable organization, not maximum file movement.\"",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "For the encrypted bible archive, the malformed data-room export and the proprietary deal-platform binary. The filename cannot manufacture a deal, a party, a sensitivity result or group membership, and the archive is not forced open, since \"the normal scan should never extract archive contents to the filesystem\".",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Reading Inbox",
+      "why": "For the published side of this world, which is unusually large because the profession and its advisers publish their own transaction material: a firm's precedent SPA and specimen disclosure letter with the party slots left open, a training-course sample pack, a market study of deal terms, a news report naming a completed transaction. These have no client, no side and no third party in them, so they are not protected material and must not be routed as if they were.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "The strictest posture available, and it differs from the schema default in KIND rather than in degree, which is the third leg of this row's node test. The schema default protects a third party who cannot consent - a client, an adverse party, a witness. That reason applies here too, and adds two of its own. FIRST, THE PROTECTED THING IS THE EXISTENCE OF THE TRANSACTION, not only the identity of a person: an unannounced deal is material non-public information about legal persons, and the harm from leaking a codename-to-party mapping does not require any individual to be named. This produces a rule no sibling has - the pseudonym may be shown while the mapping may not - and it is why the working group list and the announcement draft, which are the two artefacts that hold the mapping, are the most protected files in the folder rather than the most administrative. SECOND, BULK AND NON-CONSENT TOGETHER: an insider list is a register of named natural persons with home addresses and national identifiers, compiled about people who are usually employees of a company the holder does not employ, and a disclosure bundle is N other parties' contracts, claims and correspondence. Sensitivity scales with row count. THIRD, 00's own corpus sentence describes this folder directly - a real collection \"can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records\" - and a single deal file routinely contains identity documents (signatory verification), account statements (funds flow and diligence), private correspondence (disclosed contracts) and employment materials (TUPE and key-employee schedules) at once. The consequence for the pipeline: recognition and grouping happen locally from the minimum necessary excerpt or manifest; cross-deal semantic similarity is suppressed because two SPAs from one precedent are near-identical by drafting convention; and the product decides nothing about market conduct, disclosure duty, privilege, confidentiality scope or whether an embargo has expired. P7 owns handling policy and its class vocabulary; none is assigned here.",
+  "open_question": "NJ-TD-1, THE WORK_TYPE CHARGE, partly conceded: the schema anchor's own work_types enum bundles \"transaction document set, due-diligence report, data-room index and completion or closing record\" into a single value, and read strictly that value names this row, `law_practice.due-diligence` and `law_practice.closing-binder` at once. This row is defended on its three differing legs (codename-plus-role-enumeration detection, a codename-first prose recommendation that inverts the schema's client-level rule, and an existence-disclosive privacy rule), not on the enum. If R1c reads the enum as binding, the correct outcome is REFUSAL and the coverage routes to `law_practice.contract-negotiation` for the drafts, `law_practice.due-diligence` for the indexes, `law_practice.closing-binder` for completion, `legal` for executed instruments and Protected Records for the strays. NJ-TD-2, THE CONTRACT-NEGOTIATION FOLD: the deal-level/instrument-level split proposed here is real but fine, and one of the two rows may be surplus; alternatives are (a) keep both with the seam as authored, (b) fold `contract-negotiation` in here as this row's drafting function, (c) fold this row in there and lose the codename anchor - which this row argues is the loss that matters. NJ-TD-3, THE CODENAME AS A FIELD: the organising token has no canonical key. The anchor already proposed `project` for this schema and reusing it beats minting `deal_reference` as a variant, but a codename is a concealment token rather than a body of work, and `project` is destination-eligible in Research and Code for reasons that do not transfer. Joseph decides: reuse `project`, mint one key later, or leave the codename search-only. This row mints nothing. NJ-TD-4, THE CODENAME BRANCH: this row asks for the codename to be seeded destination-eligible where a client name is not, on the argument that a pseudonym names nobody. The counter-argument is that in a small corpus one codename resolves to one client anyway and the branch is a disclosure by inference. Alternatives: eligible with user approval, eligible only where the corpus spans more than one deal, or search-only."
+}

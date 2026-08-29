@@ -1,0 +1,13 @@
+{"case_id": "A12",
+ "wording": "files that legitimately belong to more than one purpose group",
+ "attacks": "multi-membership", "sections": ["§4.9", "§3.11", "§6.9"],
+ "assert_against": "stage", "dimension": "grouping", "subject_ref": "A12::file",
+ "expected_outcome_kind": "produced",
+ "expected_value": {"memberships": ["g-1", "g-2"]},
+ "forbidden_value": {"memberships": ["g-1"]},
+ "extraction_runs": [{"run_id": "A12-run", "file_id": "A12-file",
+                      "content_hash": "sha256:A12", "extractor_name": "pdf.native",
+                      "extractor_version": "1.0.0", "source_type": "text",
+                      "config_fingerprint": "sha256:cfg", "completeness": "complete",
+                      "coverage": {"units": "pages", "processed": 1, "total": 1},
+                      "observation_count": 4}]}

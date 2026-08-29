@@ -1,0 +1,502 @@
+{
+  "id": "career.employment-records",
+  "kind": "template",
+  "schema_id": "career",
+  "parent_id": null,
+  "name": "Employment records at one employer",
+  "one_line": "The paperwork of a job actually held at one employer, across its whole tenure: the executed agreement and onboarding forms, benefits and leave administration, performance reviews and compensation changes, equity granted as pay, and the separation record at the end. It is the situation AFTER career.recruiting's process closed, it is materially more sensitive than recruiting, and the recurring pay statement belongs to the finance neighbour rather than here.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": "00 names the domain at launch and records its template dimensions verbatim: 'a Career template may define company → role or recruiting cycle → document type'. It names this material in its privacy sentence — the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. 00 does not itself split recruiting from employment-held, so this row is an extension of a named domain, not a design assertion: provenance inference.",
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [
+    {
+      "key": "employer",
+      "type": "string",
+      "example": "a named organization of record for a job held",
+      "reliability_ceiling": "validated",
+      "rule_family": "organization gazetteer (R4's contents) matched at word boundary in a letterhead, party-block or labelled employer slot, together with employment-relationship context in a labelled position (an effective start date, a position title, a signature block naming the person as employee). 00 states the pattern-plus-context SHAPE only for course codes — 'a course-code pattern together with academic context' — and this row copies the shape, not a term list 00 wrote. 00's word-boundary rule is the reason the match must be bounded: 'It should use word-boundary matching rather than substring matching.'",
+      "destination_eligible": true,
+      "why": "PROPOSAL ONLY, AND DELIBERATELY NOT WRITTEN AS A FIELD ROW. The career schema declares no fields (D1 as narrowed / _CONTRACT rule 10, PR-6; career.json records the same deferral), so this template writes fields: [] and dimension_order: []. Recorded here because 00's own Career recommendation puts the company FIRST as a folder level, and no canonical key can carry a destination-eligible employer of record: 'institution' is scoped to a financial or record-issuing institution; 'client' is the counterparty of an engagement, which is the opposite side of the relationship 00 describes as 'the author’s firm and the client organization'; 'school' is the holder's own educational institution; and 'our_firm' — the nearest existing key — is recorded as authorship-side identity and is NOT destination_eligible, which 00 requires it not be ('It should avoid using authorship or creator identity as a destination dimension'). A destination-eligible employer key is therefore a genuinely new key, and minting versus reusing is Joseph's vocabulary decision, carried in open_question.",
+      "provenance": "proposal"
+    },
+    {
+      "key": "role",
+      "type": "string",
+      "example": "the position title a person held at that employer",
+      "reliability_ceiling": "direct",
+      "rule_family": "read from a labelled slot where one exists (an agreement's Position line, a review form's Title cell) — 00's own direct source: 'Deterministic extractors create direct facts when the information comes from a reliable, explicit source, such as a content hash, EXIF timestamp, a document title, or a labeled form field.' From free text or a filename it is 'possible' only.",
+      "destination_eligible": true,
+      "why": "PROPOSAL ONLY, not a field row (same D1 deferral as above). 00's recorded Career order names this level in its own words — 'company → role or recruiting cycle → document type' — and on the employment-held side the 'role' half is the live one while the 'recruiting cycle' half belongs to career.recruiting; that divergence is part of what makes these two separate templates. No canonical key carries a held position: 'work_type', 'artifact_type', 'record_type' and 'application_document_type' all answer what KIND OF DOCUMENT this is, and 'stage' is a research workflow position. Naming caution recorded: 'role' as a field key sits uncomfortably beside the 'role_split' EDGE name in CONNECTION §5; a different spelling may be preferable and that is Joseph's call, not this row's.",
+      "provenance": "proposal"
+    }
+  ],
+  "recognition": {
+    "deterministic": [
+      "an executed employment agreement: an organization-gazetteer hit at word boundary in a letterhead or party-block position, together with a signature-and-countersignature block AND a labelled effective-or-start-date slot in the same document. All three parts are required — the organization name alone is never-alone below, and a signature block alone is the legal neighbour's shape as much as this one's. (PROPOSED context terms; R4 owns the gazetteer's contents and R6 the date patterns — this row writes neither a regex nor a list.)",
+      "a performance-review form: labelled table cells naming a review period, a reviewer and a rated dimension, read from the DOCX/PDF table structure rather than the prose. 00 makes this the reason table extraction exists: 'Tables matter because resumes, forms, applications, invoices, and administrative documents often place their most useful information in cells rather than body paragraphs.'",
+      "onboarding paperwork: a labelled employer-or-authority form carrying an employer-name slot beside an employee-signature slot — a labelled form field is 00's own direct-fact source. The form's own name (a jurisdiction's withholding or work-authorization form) is a VALUE, never a field: 'The system may create new values when it sees a new course, project, company, university, or event, but it should not invent new fields automatically.'",
+      "a separation record: an employer-letterhead document carrying a labelled last-day-of-employment or effective-termination date slot, together with release, severance or final-pay terms in the body. The date slot must be labelled — a bare year is struck by the never-alone rule below.",
+      "an archive whose manifest lists employment-onboarding members together, read without unpacking to disk — 00's own packet-from-manifest shape, which it states for the application case: a ZIP 'may contain a transcript, personal statement, resume, certificate, and form, which is meaningful evidence of a purpose-defined application packet even when the outer archive name is vague'. The manifest is the evidence; the outer name is not.",
+      "an HR-system message: the email extractor's labelled sender slot resolving to an employer or HR-platform domain, together with a benefits, review, leave or compensation-change term in the labelled subject slot. 00's email extraction yields 'sender, recipients, subject, sent date, thread identifiers, message body, attachment names, and reply-chain context, while treating addresses and message content as potentially sensitive'; the source_type alone is never sufficient."
+    ],
+    "needs_llm": [
+      "an unlabelled prose letter that could be a resignation, a reference, a grievance or a thank-you note — no letterhead, no form field, no labelled slot. 00 lists exactly this judgement among the model's allowed determinations: it 'may determine whether an extracted document appears to be an application essay, research artifact, recruiting document, travel record, or other supported domain'.",
+      "an OCR'd HR-portal capture: deciding it is a benefits-enrolment or review-cycle page rather than a generic image. 00's worked parallel is admissions — a screenshot reading 'Your Columbia University application has been submitted' — and the HR portal is the same shape with an employer in place of a school.",
+      "whether a heterogeneous set of files is purpose-coherent as ONE tenure at ONE employer rather than several jobs, or rather than one recruiting process. 00's phrase for the shape is that documents can be 'content-incoherent but purpose-coherent', and 'Purpose must be a first-class facet.'",
+      "an 'unusual professional artifact' — 00's own phrase for why rules alone are insufficient — whose document kind has no labelled slot: a secondment memo, a works-council notice, a role-change confirmation buried in a thread."
+    ],
+    "never_alone": [
+      "an employer or organization name alone. 00: 'Columbia can appear as an authoring school, course provider, target institution, employer, research venue, or merely a cited organization' — employer is literally one of the six readings on that list, so the same ambiguity that forbids the name as group proof forbids it as sole activation proof here.",
+      "an employer name on a pay statement, payslip or payroll tax summary. THE TEMPTING FALSE FILE for this node: it carries an employer name, an employment relationship and a date, and it is the finance neighbour's record (finance.payroll-received / finance.tax-filings). The discriminating evidence is structural — a labelled pay-period, gross/net and deduction table is payroll; employment-terms, review or appointment language describing the document itself is this template. Fixture: ADP Pay Statement Mar 2026.pdf.",
+      "a signature or countersignature block alone. A signed two-party document is equally a lease, a service agreement, an NDA or a consent form — legal.leases-agreements has the identical shape — so the signature must arrive with an employment-relationship slot (position, start date, employee party) before it counts here.",
+      "an employment-shaped filename token with no employer and no employment-language context: 'Review', 'Contract', 'Agreement', 'Onboarding'. 'Review' is equally a peer review, a book review, a code review or a product review. Fixture: Review.docx, which activates nothing and may still join a P9 neighbourhood without gaining a fact.",
+      "a bare 4-digit number read as a year of employment or a review cycle. 00's narrow-date rule: filenames contain 'numbers that look like years but are course identifiers, version numbers, build numbers, ZIP codes, or other unrelated values', and 'Date extraction should be deliberately narrow.'",
+      "a source_type of email, calendar, archive, spreadsheet or image alone — file-kind plausibility is constitutionally never-alone. A recurring one-to-one calendar entry on an employer's domain is a meeting, not an employment record. Fixture: 1-1 with Sarah - weekly.ics.",
+      "membership in a download session that happened to bundle several employer PDFs. 00: 'A session should never be treated as proof of topic'.",
+      "the absence of EXIF on an HR-portal capture, read as proof of a screenshot. 00: 'the system must not mistake the absence of EXIF for proof that an image is a screenshot', and where signals disagree, 'conflicting signals should lead to abstention rather than an invented classification'.",
+      "an authoring, creator or producer metadata string naming an employer or an e-signature platform. 00: 'It should avoid using authorship or creator identity as a destination dimension.'",
+      "P9 group membership. A file attached to an employment neighbourhood gains no employment fact from the attachment: 'The graph does not automatically copy those missing facts onto sparse files.'"
+    ]
+  },
+  "work_types": [
+    "employment agreement",
+    "offer acceptance / countersigned offer",
+    "onboarding form",
+    "work authorization record",
+    "tax withholding election form",
+    "direct deposit authorization",
+    "employee handbook",
+    "policy acknowledgement",
+    "benefits enrollment confirmation",
+    "leave of absence paperwork",
+    "performance review",
+    "goals or objectives document",
+    "promotion or compensation change letter",
+    "equity grant notice",
+    "disciplinary record",
+    "training completion record",
+    "employment verification letter",
+    "timesheet or hours record",
+    "resignation letter",
+    "separation agreement",
+    "exit checklist",
+    "reference letter received"
+  ],
+  "grouping_reasons": [
+    "one employer across one tenure — the lifecycle from executed agreement through reviews to separation. 00 lists 'one course, project, application, recruiting process, photo event, or submission packet' among the single organizing reasons a coherent group may have; a job held is the same shape on the career side, and the recorded career label example is 'a career packet EY Internship Application'.",
+    "one onboarding packet: an agreement, forms, a handbook and an ID copy that are 'content-incoherent but purpose-coherent'. 00 requires the evidence to be the manifest or explicit language, never the download session.",
+    "one review cycle: a self-assessment, a manager review and a goals document that name the same review period.",
+    "the countersigned offer, which legitimately belongs to BOTH the recruiting process that produced it and the employment that followed — 'A file may validly belong to more than one accepted group'. Multi-membership, never a copied fact.",
+    "one document across its draft and signed versions (the universal version_family fact, not a career fact)."
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "EMPTY BY CONTRACT, NOT BY REFUSAL — and the emptiness is the same one career.json records, for the same reason: a dimension may only branch on a field the schema declares, and the career schema declares none (D1 as narrowed; _CONTRACT rules 10 and 12; CONNECTION PR-6, which holds the recommendation 'as prose until the schema lands'). The recommendation, recorded as prose so R1c/P10 can restore it the moment the field keys are decided: EMPLOYER first, then ROLE HELD, then DOCUMENT TYPE. Employer first because a folder named Performance Review or Separation Agreement is unintelligible until the employer is known, which is exactly 00's parent-context rule — 'A work type such as Homework 3 is meaningful only after the course is known, and a course code may require the school or term to disambiguate it.' Role second, and this is where this template DIVERGES from career.recruiting rather than repeating it: 00's recorded Career order offers 'role or recruiting cycle', and a job held has no recruiting cycle — the tenure is bounded by an agreement and a separation, not by an application season — so the role (or, for a single-role tenure, nothing at all) occupies that level while recruiting takes the cycle. Document type last. NOT time-first: 00 — 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders.' Optional branch patterns this situation genuinely offers: a flat employer-then-document-type branch for the common case of one role at one employer, since 'The product should not force every branch to use the full template or have the same number of levels'; and a protected-first pattern in which the compensation-bearing and identity-bearing members stay in a redacted branch while the handbook and training records file normally — 00 allows the split ('Protected branches should have configurable redaction in the canvas and review screens'). All of it is a recommendation: 'The system recommends an order based on the domain template, but the user can reverse, remove, add, or flatten dimensions.'",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "text_document",
+      "ocr",
+      "image",
+      "email",
+      "archive",
+      "spreadsheet",
+      "calendar",
+      "presentation"
+    ],
+    "extensions": [
+      ".pdf",
+      ".docx",
+      ".eml",
+      ".msg",
+      ".png",
+      ".jpg",
+      ".zip",
+      ".xlsx",
+      ".ics"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Employment Agreement - Signed.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "page-one party block names an organization at word boundary and a natural person",
+        "labelled body slots: Position, Start Date, Base Salary",
+        "signature and countersignature blocks on the final page, each with a dated line",
+        "PDF producer metadata names an e-signature platform"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any career-domain fact: the career schema declares no field rows, so activation legitimises the universal facts only",
+        "a finance fact (institution / account_type / record_type) from the salary figure — an agreement states pay, it is not an account record",
+        "an employer fact from the e-signature platform's producer metadata",
+        "a folder path"
+      ],
+      "also_schema": "legal",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Offer letter - countersigned.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead in the page-one heading zone",
+        "labelled role title, start date and base compensation lines",
+        "a countersignature line carrying a date, which the earlier unsigned copy of the same document does not have",
+        "shares a normalized filename stem with an unsigned copy sitting in a recruiting neighbourhood"
+      ],
+      "facts_legal": [
+        "version_family",
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that countersigning this copy moves the earlier unsigned copy into this template — each file version is evidenced on its own; the version_family link is not a fact transfer",
+        "any career-domain fact — none is declared",
+        "a folder path; the same evidence may later be organized employer-first or process-first"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Mid-Year Review 2025.docx",
+      "source_type": "text_document",
+      "observations": [
+        "DOCX table cells labelled Review Period, Reviewer, Overall Rating",
+        "a page-one heading naming an employer",
+        "free-text comment cells beneath each rated dimension",
+        "DOCX author metadata names an HR template producer, not the reviewer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a term fact from the filename's 4-digit token — term is the academic key and the token is struck by 00's narrow-date rule",
+        "an authored_by value used as a folder level — the DOCX author is an HR template producer, and authorship is never a destination dimension",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Review.docx",
+      "source_type": "text_document",
+      "observations": [
+        "filename carries the token 'Review' with no employer and no employment-language context",
+        "body is a short paragraph of unlabelled prose; no letterhead, no table, no labelled slot",
+        "sits in a folder alongside two files that DO name an employer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language"
+      ],
+      "must_not_conclude": [
+        "an employment record from the filename token alone — 'Review' is equally a peer review, a book review, a code review or a product review; this is the sparse-file case and it activates nothing",
+        "an employer fact copied from the two neighbouring files because a P9 neighbourhood exists — the graph assembles context, it does not write facts onto sparse members",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "onboarding.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists Employment Agreement.pdf, Handbook.pdf, Direct Deposit Form.pdf, Benefits Guide.pdf and ID copy.jpg",
+        "manifest read without extraction to disk",
+        "outer archive name is generic and names no employer"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a purpose from the outer archive name — the manifest is the evidence, exactly as 00 argues for the application packet whose 'outer archive name is vague'",
+        "that the ID copy inside makes the whole archive an identity record — each member is evidenced on its own; the archive's presence of one protected member raises protection, not membership",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Screenshot 2026-01-08 at 09.14.22.png",
+      "source_type": "ocr",
+      "observations": [
+        "PNG at an exact display resolution, no camera EXIF",
+        "OCR region reads a benefits-enrolment confirmation beside an employer name and an employee-id-shaped token",
+        "filename carries the platform's default screenshot pattern"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "media_type = screenshot from the absence of EXIF alone; the display resolution plus the filename pattern are what may support it, and conflicting signals abstain",
+        "any career-domain fact — none is declared",
+        "a year of employment from the employee-id digits",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "ADP Pay Statement Mar 2026.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer name in a labelled header cell",
+        "table rows labelled gross pay, deductions, net pay, pay period",
+        "a payroll provider's producer metadata"
+      ],
+      "facts_legal": [
+        "institution",
+        "record_type",
+        "tax_year"
+      ],
+      "must_not_conclude": [
+        "that this is an employment record because it carries an employer name and an employment relationship — it is the finance neighbour's recurring record (THE collision fixture for this node)",
+        "a tax_year from a bare 4-digit token; an explicit labelled year pattern is required",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Leave of absence - medical certification.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer HR form with labelled leave-start and leave-end slots and an employer signature block",
+        "an appended page carries a clinician letterhead and a diagnosis-shaped line",
+        "producer metadata names a document scanner"
+      ],
+      "facts_legal": [
+        "file_type",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a clinical value used to build a folder level — the medical schema is a field-less safety placeholder, so co-activation here carries protection, not fields",
+        "that the employer form half routes the file away from protection — 00's protected-state rule leads either way",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": "medical",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Employment verification letter.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "employer letterhead with labelled job-title and dates-of-employment slots and an HR signature",
+        "an addressee block naming a third party — a landlord, a consulate or a lender",
+        "one page, no attachments, arrived alone"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a target-institution or target_school fact from the addressee — 00's role-separation rule applies: the organization the letter is ABOUT and the organization it is ADDRESSED TO are different roles",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": "identity",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "1-1 with Sarah - weekly.ics",
+      "source_type": "calendar",
+      "observations": [
+        "labelled SUMMARY slot carries a person's first name and the token '1-1'",
+        "recurrence metadata; organizer address on an employer domain",
+        "labelled start and end times, one attendee"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "activation from source_type = calendar — the CONTENT of a labelled slot is what may fire, and a recurring meeting with a colleague is not an employment record",
+        "an employer fact from the organizer's address domain",
+        "a contact fact used to create a folder proposal — 00 keeps address-book data privacy-protected rather than a proposal basis, and the attendee slot is address-book data",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Timesheet Q1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "one sheet named by a quarter; column headers Date, Project, Hours, Approver",
+        "visible cells in the Project column carry organization-shaped names",
+        "no employer name anywhere in the workbook metadata"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date"
+      ],
+      "must_not_conclude": [
+        "a client fact making this a consulting engagement record from organization-shaped strings in a Project column alone — that is the career.consulting-client-engagement seam and the discriminator is whether the workbook records hours worked FOR an employer or deliverable time billed TO a counterparty",
+        "an employer fact from the Approver cell — that is a person, and person-identity is not a destination dimension",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "RSU Grant Notice.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "company letterhead; labelled Grant Date, Number of Units and Vesting Schedule slots",
+        "body text ties the grant to continued employment and to a role",
+        "an attached plan document is referenced by name but is not present"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that this is the company's ownership register — that is the finance.cap-table-equity seam; a grant notice issued TO a person as compensation is this template's, an instrument or shareholder register describing the company itself is not",
+        "a tax_year from the grant date's year token",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": "finance",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "HR docs.zip",
+      "source_type": "archive",
+      "observations": [
+        "archive header indicates encryption; no member manifest is readable",
+        "outer name carries a generic HR-shaped token",
+        "filesystem size and timestamps are readable"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family"
+      ],
+      "must_not_conclude": [
+        "a purpose from the filename alone — 00 states it for exactly this case: 'the system should not infer a purpose from their filename alone'",
+        "anything obtained by forcing the archive open — 00: 'Password-protected, malformed, nested, or oversized archives should be marked as unreadable or partially inspected rather than forced open'",
+        "any career-domain fact — none is declared",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "career.recruiting",
+      "signal": "THE seam this row exists on, and both sides share one file shape: the offer letter. One evidence item — an employer name beside a role title — supports either. The discriminating evidence: recruiting is evidenced by candidacy language about a process still open (application, interview, candidacy, requisition) with no executed commencement; this template is evidenced by an executed signature or countersignature block together with a labelled effective-or-start-date slot, and by anything downstream of it (reviews, benefits, separation). The unsigned offer is recruiting's; the countersigned offer is this template's, and the two copies are one version_family without either fact crossing. Fixture: Offer letter - countersigned.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.payroll-received",
+      "signal": "a pay statement and an employment record both carry an employer name, an employment relationship and a date, and the employer name is one evidence item that must never count for both. The discriminating evidence is structural: a labelled pay-period with gross/net and deduction rows is the payroll record; employment-terms, review, benefits or separation language describing the document itself is this template. Recurrence is the tell — payroll arrives every period, an employment record arrives at a lifecycle event. Fixture: ADP Pay Statement Mar 2026.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "legal.leases-agreements",
+      "signal": "an executed two-party agreement with a term, a signature block and a governing-law clause is one document shape and one evidence item on both sides — an employment agreement, an NDA and a non-compete sit directly on the line. The discriminating evidence: this side needs the parties to be an employer and a natural person IN an employment relationship, evidenced by a position, an effective start date or an employee-party label; the leases side needs a property, a service or a non-employment subject as the thing the agreement governs. A signature block alone discriminates nothing and neither side may take it. Fixture: Employment Agreement - Signed.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "identity.core-documents",
+      "signal": "onboarding work-authorization paperwork routinely carries a national-id or passport number and often photocopies the identity document itself, so an identity-number slot is one evidence item supporting both. The discriminating evidence: the identity side is a document whose OWN purpose is to establish who a person is; this side is an employer's form that copies one in order to complete a hire. Where both clear, 00's protection rule leads — 'A scanned passport, tax statement, medical document, authentication key, or account record should enter a protected state immediately' — and no deep filing unlocks from this template. Fixture: onboarding.zip, whose manifest names an ID copy beside the agreement.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "medical.personal-health-records",
+      "signal": "leave, accommodation and occupational-health paperwork pairs an employer HR form with a clinician's certification in one file, and the clinical page is one evidence item supporting both. The discriminating evidence: the medical side is a clinical record about a person's health; this side is the employer's leave-administration form that a clinical page is attached to. Protection leads on either reading, and the medical placeholder writes no fields, so the join carries protection rather than facts. Fixture: Leave of absence - medical certification.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "finance.cap-table-equity",
+      "signal": "an equity grant names a company, a share or unit count and a vesting schedule, and that instrument language is one evidence item on both sides. The discriminating evidence: this side is a grant issued TO the holder as compensation for a role held, evidenced by employment-continuation language and a grantee slot naming the person; the cap-table side is the company's own ownership register or instrument set, evidenced by a shareholder ledger or issuance record describing the company rather than a grantee. Fixture: RSU Grant Notice.pdf.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.consulting-client-engagement",
+      "signal": "hours records, statements of work and rate letters look identical from either side, and an organization name plus a time-and-rate table is one evidence item supporting both. The discriminating evidence: this template is evidenced by an employment relationship with the organization (a position, an employer party, payroll-side language); the engagement side is evidenced by the our_firm-versus-client role split 00 names — 'A consulting document may mention the author’s firm and the client organization' — where the organization is a counterparty being served rather than an employer of record. Fixture: Timesheet Q1.xlsx.",
+      "provenance": "inference"
+    },
+    {
+      "domain": "career.employer-side-hiring",
+      "signal": "a performance review, a personnel form or a compensation letter is the SAME document shape whether it is about the holder or about someone the holder manages, and the employer name plus the review structure is one evidence item on both sides. The discriminating evidence is whose data the document records: a subject slot naming the holder is this template; a subject slot naming a candidate or a direct report is the employer-side row, where 00's privacy posture applies hardest because the material is another person's. Neither side may take a review form with an unresolved subject; that abstains.",
+      "provenance": "proposal"
+    },
+    {
+      "domain": "academic.teaching",
+      "signal": "an instructor is an employee of the school, so a teaching-load letter, appointment contract, promotion dossier or review carries the same school name, the same term and the same person on both sides. The discriminating evidence: the teaching side needs a course-code-shaped token with academic context, a cohort artifact or an instructor-side work type; this side needs employment language (appointment, salary, contract, review cycle) describing the document itself. Reciprocates the edge academic.teaching already states toward this row, in its own words.",
+      "provenance": "inference"
+    }
+  ],
+  "also_holds_with": [],
+  "falls_through_to": [
+    {
+      "residual_template": "Protected Records",
+      "why": "the default home for this template's leftovers, not an afterthought. 00 defines the residual for 'sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials' and requires it to behave — it 'should normally remain local-only and must not cause filenames or content to be exposed in model prompts'. 00 also allows it to surface alone: 'Rare but sensitive files such as passports, visas, and legal documents may be surfaced as protected records even when they do not meet a normal group-size threshold.' Fixtures: Employment Agreement - Signed.pdf, Offer letter - countersigned.pdf, Mid-Year Review 2025.docx, Leave of absence - medical certification.pdf, onboarding.zip, RSU Grant Notice.pdf.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Independent Records",
+      "why": "00's own description fits the non-sensitive durable leftovers almost word for word: 'standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group'. A verification letter, a training certificate or a timesheet belonging to no accepted employer group is exactly that. Fixtures: Employment verification letter.pdf, Timesheet Q1.xlsx, and ADP Pay Statement Mar 2026.pdf once it is routed to the finance neighbour and finds no group there.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Review Later",
+      "why": "00: 'files whose meaning is partly understood but whose final location requires a future decision' — the shape where a document kind resolved and the employer did not, which is what a sparse filename or an unlabelled letter leaves behind. Fixtures: Review.docx, 1-1 with Sarah - weekly.ics.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Temporary Screenshots",
+      "why": "an HR-portal capture whose OCR yields no employer and no record kind has 'no accepted project, trip, application, or event relationship'. Fixture: Screenshot 2026-01-08 at 09.14.22.png when its OCR is unusable.",
+      "provenance": "design"
+    },
+    {
+      "residual_template": "Unsupported or Encrypted",
+      "why": "00 keeps a home for 'password-protected archives, unreadable documents, damaged files, and unknown formats', and requires that such files still be indexed — 'Unreadable, encrypted, corrupted, or unsupported files should retain basic metadata and remain eligible for manual attachment to a user-created group'. 00's safer option applies here in particular: represent it without moving it. Fixture: HR docs.zip.",
+      "provenance": "design"
+    }
+  ],
+  "role_split": [],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "00's privacy sentence names this material directly: the corpus 'can include identity documents, account statements, tax records, medical information, legal records, credentials, private correspondence, GPS metadata, employment materials, and educational records'. Executed compensation terms, work-authorization paperwork carrying identity numbers, disciplinary and separation records, and leave paperwork carrying a clinician's certification all sit inside 'employment materials', and this template's privacy posture is the main thing separating it from career.recruiting: 00 requires that 'Privacy policy must be enforced before content reaches any model or external connector' and that 'Protected material should not be included in cloud-model prompts by default'. Only 00's phrases are asserted here; the handling class is P7's and is not set.",
+  "open_question": "Three, all deferred rather than resolved here. (1) Which canonical field keys the career schema gets when S3/D1's deferral lifts — career.json already carries this question and this row adds one concrete constraint to it: 00's recorded Career order puts the company FIRST as a folder level, so whatever key carries the employer must be destination_eligible, which rules out reusing 'our_firm' (recorded as authorship-side identity and never a destination) and rules out 'client' (the counterparty role, the opposite side of the relationship). (2) How the document-kind level is spelled. This row deliberately does NOT propose a third scoped document-type key beside 'work_type' (academic), 'record_type' (finance) and 'application_document_type' (admissions) — minting a fourth spelling for one concept is the 574's exact fragmentation failure, and the honest fork is whether one of the existing enums has its role widened across domains or whether a career-scoped key is genuinely warranted. That is a decision about the product's shared vocabulary, so it is Joseph's, not this row's. (3) Whether one's own employment file and a direct report's personnel file share this template under a privacy rule, or split to career.employer-side-hiring as this row provisionally assumes. The provisional split is recorded as a collision with a subject-slot discriminator; if it is wrong, this row's privacy rules absorb the other-person case instead, which is a materially stronger protection requirement than the one written here."
+}

@@ -1,0 +1,491 @@
+{
+  "id": "hr.engagement-survey",
+  "kind": "template",
+  "schema_id": "hr",
+  "parent_id": null,
+  "name": "Employee listening: engagement and pulse survey waves",
+  "one_line": "One bounded listening wave that an employer runs on its own workforce — the instrument, the fielding and participation record, the de-identified response export, the results report and its unit cuts, and the action planning that follows. This template exists because these files deliberately carry NO employee identifier and would therefore be under-detected by the hr schema's dominant identity-plus-process signal, and because their privacy rule is inverted: they are protected not because they name a person but because an anonymity undertaking was given and small cuts joined to free text can re-identify one. PLACEHOLDER ROW: the hr schema declares no canonical field rows under PR-6, so this template serializes no fields and no dimension order.",
+  "launch": "placeholder",
+  "provenance": "inference",
+  "design_cite": null,
+  "refuse_node": false,
+  "refuse_reason": null,
+  "fields": [],
+  "proposed_fields": [],
+  "recognition": {
+    "deterministic": [
+      "an instrument document whose body is a numbered item bank in which every item is a first-person statement scored against one repeated ordinal agreement or frequency scale, with the scale anchors printed once and no respondent-identity slot anywhere in the document. The repeated-scale-plus-absent-subject structure is the signal; a numbered question list alone is a form of any kind",
+      "a response export whose column set jointly contains (a) item codes or item text repeated as columns, (b) two or more EMPLOYMENT-attribute cut columns — business unit, site, grade or level, manager level, tenure or length-of-service band, employment type, joiner cohort — and (c) at least one free-text comment column. The employment character of the cut columns is what makes it workforce listening rather than customer or market research",
+      "a results report whose measures are stated as favourability, index, or score by workforce population cut, alongside an external or prior-wave comparison column and an explicit minimum-reporting-group or suppression note. The suppression note is the strongest single artefact of employee listening: no customer or market report needs one",
+      "a fielding or participation record whose rows are populations rather than people and whose columns are invited, responded, participation rate, and reminder or close date. It reports coverage of a wave, not the identity of respondents",
+      "an action-planning artefact whose rows map a survey theme or item to an owner, an action, a target date, and a status, and whose header names a wave rather than an employee, a review period, or a personnel case",
+      "an email or calendar item whose structured subject and participants anchor a named wave event — launch communication, close reminder, results readout, manager action-planning session — where the wave name also appears on an instrument, export, or report already recognised. Email or calendar source type alone never activates",
+      "an archive whose manifest lists an instrument, an export, a report and an action plan under one repeated wave name. The repeated wave name across heterogeneous member kinds is the coherence signal, not member similarity"
+    ],
+    "needs_llm": [
+      "whether a Likert-shaped export is workforce listening or customer, market, product, event, or academic research. The cut columns decide it and they are often abbreviated; a local model must read the header semantics rather than the file name, and must not resolve the question by reading the free-text comments",
+      "whether a survey on the workforce is engagement listening or an individually attributable instrument — 360 or multi-rater feedback, a manager effectiveness review tied to one named subject, a training course evaluation tied to one session. The presence of a single named subject or a review outcome moves it off this row",
+      "whether a heterogeneous wave packet is purpose-coherent as one listening cycle when its members include vendor collateral, communications, policy extracts, a results deck and a spreadsheet of actions",
+      "whether a results narrative is this employer's own wave or a benchmark, vendor case study, industry report, or academic paper reproducing the same item wording. Item wording is shared across the whole field and is not ownership evidence",
+      "whether free-text comment content has crossed into individual employee-relations, health, or safety material that must be handled under the stricter posture even though the file as a whole is aggregate"
+    ],
+    "never_alone": [
+      "the ABSENCE of an employee identifier column as proof that a spreadsheet is an anonymous survey export. This mirrors the design's refusal to treat missing EXIF as proof of a screenshot: a de-identified shape is corroborating, never activating. A ledger extract, a price list, and a customer NPS export are all identifier-free",
+      "a repeated ordinal scale, a Likert grid, an agree/disagree column, or a 0-to-10 recommendation score. `Q3 NPS - responses.csv` has all of them and is customer research",
+      "the words engagement, pulse, listening, eNPS, survey, questionnaire, feedback, participation, favourability, or the name of a survey platform. Each occurs in the platform's own marketing PDF, in a vendor contract, in a customer research export, and in an academic questionnaire held as reading material",
+      "a free-text comment column. Support tickets, product reviews, exit interviews, event feedback, and open-text market research all have one",
+      "demographic-looking columns alone. Region, age band, and gender appear in customer segmentation as readily as in a workforce cut; only employment attributes such as grade, manager level, business unit, tenure band, or employment type carry the workforce reading",
+      "the employer's name, letterhead, email domain, or authorship. A vendor invoice, an all-hands deck, and a recruitment brochure carry the same marks",
+      "a benchmark comparison or an industry percentile. Vendor benchmark reports and published research contain these and are not this employer's wave",
+      "source type or extension alone, including spreadsheet, csv, presentation, email, calendar, image, ocr, or archive",
+      "a bare year, quarter, wave-shaped number, response count, or percentage",
+      "membership in a download session, a mailbox folder, or a parent directory named Survey, Engagement, People, HR, or Culture"
+    ]
+  },
+  "proposed_context_terms": [
+    "favourable",
+    "favourability",
+    "engagement index",
+    "participation rate",
+    "response rate",
+    "item bank",
+    "scale anchors",
+    "strongly agree",
+    "pulse wave",
+    "listening strategy",
+    "minimum reporting group",
+    "suppressed",
+    "benchmark comparison",
+    "key driver",
+    "heatmap by business unit",
+    "tenure band",
+    "manager level",
+    "action plan owner",
+    "confidential and anonymous",
+    "your responses cannot be linked to you"
+  ],
+  "work_types": [
+    "survey instrument, item bank, scale definition, or translated questionnaire version",
+    "fielding plan, sampling or population definition, and launch or reminder communication",
+    "participation and response-rate tracker",
+    "de-identified response export or item-level dataset",
+    "results report, scorecard, heatmap, or driver analysis",
+    "manager or unit action plan and its progress record",
+    "pulse or follow-up wave measuring movement against a prior wave",
+    "listening-programme design, vendor selection input, or governance record for the wave"
+  ],
+  "grouping_reasons": [
+    "one bounded listening wave: instrument, fielding record, export, report, action plan and follow-up communications joined by one repeated wave name",
+    "one workforce population cut carried across the export, the report page and the unit action plan, without copying the cut label onto a member that does not state it",
+    "a prior-wave and current-wave pair joined only where both files name both waves; trend adjacency is never inferred from two files that merely share an item bank",
+    "sparse members — an untitled action-plan spreadsheet, a results slide saved alone, a reminder email — may join an accepted wave group by membership without acquiring a wave, unit, or cycle fact",
+    "one duplicate or version family across draft, final, and vendor-delivered copies of an instrument or report through universal duplicate_family and version_family facts, not through an engagement-only field",
+    "no group is valid when a Likert-shaped export names no wave and carries no employment cut columns; protected residual placement is safer than inventing a listening programme"
+  ],
+  "template": {
+    "dimension_order": [],
+    "why": "Empty by PR-6: the hr schema declares no canonical field rows, so no proposed key may become a folder dimension yet. The recommendation is held as prose for R1c and it deliberately INVERTS the hr default. The hr anchor recommends work type or programme first, then workforce unit, and says the people cycle 'should follow a programme or workforce unit rather than lead merely because it contains a year.' For engagement listening the wave must lead: a unit's favourability page is unreadable without knowing which wave produced it, wave-over-wave comparison is the entire point of the artefact family, and the same unit appears in every wave. So the recommended order is people_cycle (the wave) first, then work type (instrument / export / report / action plan), then workforce_unit only where a real multi-unit corpus exists. Never a respondent level — there are no respondents to name — and never the employer as a one-child collector. Not time-first: a wave is a named process instance, not a date; two waves can close in the same quarter and a report can be written a quarter after fielding.",
+    "time_first": false
+  },
+  "file_kinds": {
+    "source_types": [
+      "spreadsheet",
+      "text_document",
+      "presentation",
+      "email",
+      "calendar",
+      "image",
+      "ocr",
+      "archive",
+      "audio_video",
+      "opaque_binary"
+    ],
+    "extensions": [
+      ".csv",
+      ".xlsx",
+      ".docx",
+      ".pdf",
+      ".pptx",
+      ".eml",
+      ".ics",
+      ".png",
+      ".zip",
+      ".m4a"
+    ],
+    "never_alone": true
+  },
+  "file_examples": [
+    {
+      "filename": "Engagement survey 2026 - item bank and scale - final.docx",
+      "source_type": "text_document",
+      "observations": [
+        "numbered items are first-person statements such as 'I would recommend this as a great place to work'",
+        "one five-point agreement scale is defined once and applies to every item",
+        "a front-matter paragraph states responses are confidential and that results are reported only for groups at or above a stated minimum",
+        "no respondent name, employee ID, or signature slot appears anywhere"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "any hr fact as canonical because the schema declares no fields",
+        "that the stated minimum reporting group is a threshold this catalogue may store or apply",
+        "that identical item wording in another document proves the same wave",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "engagement_2026_wave1_responses_deidentified.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "columns are item codes Q01 to Q48 holding integer scale values",
+        "cut columns are business unit, site, grade, manager level, tenure band, and employment type",
+        "one free-text column headed 'What would make this a better place to work?'",
+        "no employee ID, name, or email column"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that removal of names makes the file non-sensitive; intersecting small cuts and comment content can re-identify",
+        "that any row may be joined to a payroll or roster file to recover identity",
+        "a demographic attribute as a schema fact",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Participation tracker - wave 1 - daily.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows are business units and sites, not people",
+        "columns are invited, responded, participation rate, and last reminder date",
+        "a closing-date cell and a target participation cell sit above the table"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a low-participation unit is an employee-relations signal",
+        "that this is a marketing campaign report because it counts sends and responses",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "2026 Engagement Results - Group Report.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "engagement index and favourability percentages presented by business unit and tenure band",
+        "columns compare against the prior wave and against an external benchmark",
+        "several unit cells read 'suppressed - below minimum reporting group'",
+        "a key-driver section ranks items by association with the index"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that suppressed cells may be reconstructed from the response export",
+        "that a benchmark percentile is a fact about this employer",
+        "that driver ranking is a causal finding",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Customer Ops - manager action plan - wave 1.xlsx",
+      "source_type": "spreadsheet",
+      "observations": [
+        "rows map a survey theme and its item code to an action, an owner, a target date, and a status",
+        "the header names the wave and the business unit",
+        "no employee is the subject of any row; owners are accountable managers"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "version_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that a named owner is a workforce_member subject",
+        "that this is a project delivery plan because it has owners, dates and statuses",
+        "a folder path"
+      ],
+      "also_schema": "business_operations",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "Screenshot 2026-05-12 at 09.14.22 - engagement heatmap.png",
+      "source_type": "ocr",
+      "observations": [
+        "OCR recovers a grid of unit names against item labels with percentage cells and a colour legend",
+        "a platform chrome strip and a signed-in user name are visible at the top",
+        "OCR recovers the words 'below minimum reporting group' in several cells"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that absence of camera metadata proves this is a screen capture; positive screen-origin evidence is required",
+        "that the signed-in user name is a fact about the survey",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Temporary Screenshots"
+    },
+    {
+      "filename": "RE Engagement survey closes Friday - please remind your teams.eml",
+      "source_type": "email",
+      "observations": [
+        "subject names the wave and its close date",
+        "body contains the survey link and a restatement of the confidentiality undertaking",
+        "recipients are a manager distribution list, not respondents"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that the recipient list is a workforce population fact",
+        "that the embedded link may be followed to retrieve results",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Review Later"
+    },
+    {
+      "filename": "Engagement 2026 wave 1 - full delivery pack.zip",
+      "source_type": "archive",
+      "observations": [
+        "manifest lists the instrument, the de-identified export, the group report, per-unit report PDFs, and an action-plan template",
+        "the wave name repeats on the outer name and on most members",
+        "one member is an unlabelled comment-only extract"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "duplicate_family",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that every member inherits the unit or wave label of the manifest",
+        "that the archive may be unpacked into a cloud prompt to improve classification",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": true,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Q3 NPS - responses.csv",
+      "source_type": "spreadsheet",
+      "observations": [
+        "a 0-to-10 recommendation column and a free-text 'why did you give this score' column",
+        "cut columns are region, plan tier, account size band, and months since signup",
+        "no employment attribute column of any kind"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "employee listening from Likert shape, comment column, or the word survey",
+        "that a tenure-like column proves workforce tenure when it measures customer tenure",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Independent Records"
+    },
+    {
+      "filename": "360 feedback report - J Patel - FY26.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "Likert items rated by manager, peers and reports, with an aggregate per competency",
+        "one named subject on the cover and throughout",
+        "verbatim comments are attributed to rater group and feed a review conversation"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "engagement listening because the instrument is a survey on the workforce",
+        "that rater anonymity within a group makes this an aggregate listening file; a single named subject is present",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Protected Records"
+    },
+    {
+      "filename": "Utrecht Work Engagement Scale - validation study.pdf",
+      "source_type": "text_document",
+      "observations": [
+        "an academic paper reproducing an engagement item bank with the same first-person statements and a fixed frequency scale",
+        "sections are abstract, method, sample, results, references",
+        "the sample is another organisation's employees, described in the past tense"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "language",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "that reproduced item wording establishes this employer's wave",
+        "that a published sample is this employer's workforce population",
+        "a folder path"
+      ],
+      "also_schema": "research",
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Reading Inbox"
+    },
+    {
+      "filename": "wave1_verbatims_export.zip - password protected.zip",
+      "source_type": "opaque_binary",
+      "observations": [
+        "archive listing is unreadable without a password",
+        "the outer name repeats a wave-shaped token and the word verbatims",
+        "no member manifest is available"
+      ],
+      "facts_legal": [
+        "file_type",
+        "creation_date",
+        "sensitivity_status"
+      ],
+      "must_not_conclude": [
+        "a wave fact, a comment corpus, or a sensitivity finding from the filename",
+        "that the name licenses membership in an accepted wave group",
+        "a folder path"
+      ],
+      "also_schema": null,
+      "group_without_copying_facts": false,
+      "falls_through_if_inactive": "Unsupported or Encrypted"
+    }
+  ],
+  "collides_with": [
+    {
+      "domain": "business_operations.market-research",
+      "signal": "Shared fixture: `Q3 NPS - responses.csv` and, symmetrically, `engagement_2026_wave1_responses_deidentified.csv`. Both are identifier-free Likert exports with a comment column and cut columns. MARKET-RESEARCH MUST NOT TAKE an export whose cut columns are employment attributes — grade, manager level, business unit, tenure band, employment type — or a report carrying a minimum-reporting-group suppression note, merely because the artefact is a survey. HR.ENGAGEMENT-SURVEY MUST NOT TAKE a customer, user, market, or event survey merely because it is anonymous, Likert-shaped, and run by the same employer. The discriminator is who the respondent population is, evidenced by the cut columns, never the word survey and never the presence of a comment field."
+    },
+    {
+      "domain": "hr.performance-cycle",
+      "signal": "Shared fixture: `360 feedback report - J Patel - FY26.pdf`. Both worlds field Likert instruments on the workforce and both promise rater confidentiality. PERFORMANCE-CYCLE MUST NOT TAKE an aggregate wave export or group report merely because engagement items mention managers and are read during a review season. ENGAGEMENT-SURVEY MUST NOT TAKE any instrument whose results are attributable to one named subject or feed a rating, calibration, or improvement outcome — multi-rater feedback, manager effectiveness reviews of a named manager, probation reviews. One named subject moves the file across the boundary regardless of how anonymous the raters are."
+    },
+    {
+      "domain": "hr.workforce-analytics",
+      "signal": "Shared fixture: `2026 Engagement Results - Group Report.pdf` and any people dashboard that carries an engagement index tile beside attrition and headcount. WORKFORCE-ANALYTICS MUST NOT TAKE the instrument, the response export, the participation tracker, or the wave's own results report; those are respondent-supplied and consent-bearing. ENGAGEMENT-SURVEY MUST NOT TAKE HRIS-derived measurement — headcount, attrition, absence, cost, movement — merely because an engagement figure is quoted alongside it. The discriminator is provenance: responses volunteered under an anonymity undertaking versus records the employer already holds about identified people."
+    },
+    {
+      "domain": "hr.dei-program",
+      "signal": "Shared fixture: an inclusion or belonging item block and its demographic cut, which may sit inside `engagement_2026_wave1_responses_deidentified.csv` or be fielded as a standalone monitoring survey. DEI-PROGRAM MUST NOT TAKE a whole engagement wave because it contains inclusion items or a diversity cut. ENGAGEMENT-SURVEY MUST NOT TAKE a diversity monitoring return, a self-identification campaign, a pay-gap report, or a DEI programme plan merely because a questionnaire was used to collect it. Where a single wave genuinely serves both, this is co-activation on the same bytes rather than a contest."
+    },
+    {
+      "domain": "business_operations.meeting-record",
+      "signal": "Shared fixture: an all-hands or leadership deck containing one engagement results slide. MEETING-RECORD MUST NOT TAKE the standalone group report, the export, or the unit action plan because they were discussed at a meeting. ENGAGEMENT-SURVEY MUST NOT TAKE a meeting deck, minutes, or notes whose engagement content is one slide among unrelated agenda items; the wave content there is a citation, not the artefact."
+    }
+  ],
+  "also_holds_with": [
+    {
+      "domain": "hr.dei-program",
+      "signal": "One wave can carry both an engagement index and an inclusion index over the same responses. Both templates may hold disjoint facts about the same file; neither copies the other's cuts, and the stricter handling governs the free-text column."
+    },
+    {
+      "domain": "hr.onboarding-offboarding",
+      "signal": "New-hire onboarding surveys and exit surveys are simultaneously listening instruments and members of a joiner or leaver process. Co-activation is lawful; note that exit responses are frequently attributable to one leaver and then lose this row's anonymity property, which is why NJ-ENG-2 asks Joseph to settle the seam."
+    },
+    {
+      "domain": "hr.training-development",
+      "signal": "A post-course evaluation is both a listening instrument and a learning record. This row holds it only where it is fielded as part of a listening programme rather than attached to one session and one cohort roster."
+    },
+    {
+      "domain": "business_operations.vendor-management",
+      "signal": "A survey-platform deliverable can evidence both this wave and the vendor relationship that produced it. The wave's content stays on this row; the contract, invoice, and service record stay with the vendor row."
+    }
+  ],
+  "falls_through_to": [
+    {
+      "template": "Protected Records",
+      "when": "response exports, verbatim comment extracts, suppressed-cell reports, and wave packets are recognised as sensitive but no accepted wave group is active. The design says Protected Records 'may represent sensitive isolated material such as passport scans, medical documents, account statements, visas, legal forms, or credentials; it should normally remain local-only and must not cause filenames or content to be exposed in model prompts.' Local-only representation is the correct posture for de-identified but re-identifiable workforce responses."
+    },
+    {
+      "template": "Independent Records",
+      "when": "a durable standalone instrument, action-plan template, or participation summary has no wave association. The design says Independent Records 'may live under Personal/Independent Records and hold standalone certificates, notices, confirmations, forms, and PDFs that have a durable purpose but no broader group.'"
+    },
+    {
+      "template": "Review Later",
+      "when": "a survey-shaped file's respondent population cannot be resolved locally — abbreviated cut headers, a results deck with no population statement. The design says Review Later 'may hold files whose meaning is partly understood but whose final location requires a future decision.'"
+    },
+    {
+      "template": "Reading Inbox",
+      "when": "a questionnaire, benchmark study, vendor whitepaper, or academic engagement paper is reading material with no wave association. The design says Reading Inbox 'may hold papers, articles, reports, and saved PDFs that appear to be reading material but have no active research, course, or project association.'"
+    },
+    {
+      "template": "Unsupported or Encrypted",
+      "when": "a verbatim or platform export cannot be opened. The design says Unsupported or Encrypted 'may hold—or, more safely, represent without moving—password-protected archives, unreadable documents, damaged files, and unknown formats.'"
+    },
+    {
+      "template": "Temporary Screenshots",
+      "when": "a positively evidenced screen capture of a results dashboard yields no accepted wave through OCR"
+    }
+  ],
+  "role_split": [
+    {
+      "domain": "business_operations.market-research",
+      "this_role": "the organisation asking its own workforce, under an anonymity undertaking it gave to those respondents",
+      "other_role": "the organisation asking its customers, users, or a market panel, under a commercial research relationship"
+    },
+    {
+      "domain": "hr.performance-cycle",
+      "this_role": "aggregate measurement of a workforce population, with no attributable subject",
+      "other_role": "measurement attributable to one named employee that produces a rating, calibration, or development outcome"
+    },
+    {
+      "domain": "hr.workforce-analytics",
+      "this_role": "respondent-volunteered measurement collected for one bounded wave",
+      "other_role": "employer-held administrative measurement of identified people, derived from records the employer already has"
+    }
+  ],
+  "sensitivity": "potentially_sensitive",
+  "sensitivity_why": "This row's sensitivity rule differs in mechanism from the hr schema default, which protects because employee identity is joined to pay, performance, allegations, or health. Here there is usually no identity at all, and the material is still sensitive for three distinct reasons. First, an anonymity undertaking was made to the respondents inside the instrument itself, so exposing the bytes breaks a promise the file records. Second, intersecting small population cuts with free-text comments can re-identify a respondent even when every column is de-identified, which means aggregation is not a safety proof. Third, the free-text column can contain individual grievance, health, safety, or allegation content that is sensitive on its own terms and would independently attract the employee-relations posture. The operative rules that follow: never join a response row to a roster, payroll, or directory file to recover identity; never treat removal of names or the presence of a suppression note as making the file non-sensitive; never reconstruct a suppressed cell from a response export; and prefer local recognition from headers and manifests over sending comment text to a remote model. This catalogue value assigns no handling class and states no minimum-group number.",
+  "open_question": "NEEDS-JOSEPH NJ-ENG-1: this row depends entirely on NJ-HR-1. If R1c refuses the hr schema, engagement waves have no home; the alternatives are (a) route the whole family to business_operations as a programme with Protected Records for the exports, or (b) promote listening to a standalone row on another schema. This row recommends (a) and does not assume its own survival. NEEDS-JOSEPH NJ-ENG-2: settle the exit-survey and onboarding-survey seam. Exit responses are often attributable to one leaver, which destroys the anonymity property that justifies this row; the alternatives are to treat attributable exit responses as hr.onboarding-offboarding members with this row holding only the aggregated exit dataset, or to hold the whole exit instrument here and accept a mixed privacy rule. This row prefers the former. NEEDS-JOSEPH NJ-ENG-3: decide whether the minimum-reporting-group statement found inside a report may be recorded as a literal observation at all. It is the single most discriminating artefact of employee listening, but recording it edges toward storing a threshold, which the contract forbids. The alternatives are to record only that a suppression statement is present, or to record nothing and lose the strongest signal. This row records presence only. NEEDS-JOSEPH NJ-ENG-4: decide whether verbatim comment text may ever enter a remote prompt for classification. This row says no by default and accepts the resulting under-detection of comment-only extracts, which then fall to Protected Records."
+}

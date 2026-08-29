@@ -1,0 +1,2701 @@
+{
+  "definitions": [
+    {
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.subject-then-artifact",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.matter-function-period",
+          "is_default": true,
+          "rationale": "law_practice.json's held-as-prose default, which every one of its templates is measured against: 'the CLIENT only where the corpus genuinely spans more than one AND the user has explicitly approved a client-named branch, then the MATTER, then the DOCUMENT FUNCTION, then the period last.' Function follows the matter for 00's own reason - 'A work type such as Homework 3 is meaningful only after the course is known' - because an amendment, a schedule or a supplemental list is meaningless without the matter it belongs to. The period is last and never first: 'For document and record domains, project, function, or subject usually comes before time because putting year first scatters related work across calendar folders', and the anchor adds that no sibling may claim otherwise, since nothing in this world is capture-based. The client level is absent rather than optional; see the validation constraints.",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The matter is the one thing every artefact in a practitioner file agrees on, and it is the parent that makes a document function intelligible."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "What the document does is the leaf a practitioner searches for once the matter is fixed; law_practice.motions-and-briefs records that its whole situation is one value at this level rather than a level of its own."
+            },
+            {
+              "role_ref": "scope_period",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The period separates recurring cycles inside one long matter and is the only level several rows drop outright, so it is offered last and never required."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "client is NOT a role of this definition, and its absence is the family's own ruling rather than an oversight: law_practice.json seeds the client level ineligible because 'in a single-client corpus it is \"use an author or organization merely as a collector\" and would \"create meaningless one-child levels\", and in any corpus it is a disclosure', and no record shape here can express 'ineligible until the user explicitly approves it'. A bound optional role is an OFFERED level, so binding client would ship the disclosure by default. client stays a declared, searchable fact on law_practice and is never a folder level.",
+        "a NAMED THIRD PARTY may never become a level under any of this recipe's roles - 'an adverse party, a witness, a deponent, an accused, a complainant, a child - may NEVER be a folder level, however strong the grouping axis, because a path writes their identity into the filesystem where every later process reads it'",
+        "scope_period may never be promoted above subject_anchor: 00 reserves time-primacy for capture-based media and law_practice.json forbids a sibling claiming it - '`time_first: true` in this family would be claiming the photos exception without the photos evidence'",
+        "the levels several rows want above the matter - the proceeding tier, the parcel, the corporate entity, the sitting, the diligence chapter, the submission reference - have no declared key on law_practice, and this definition proposes none of them; each is recorded as an exclusion on the row that wanted it"
+      ],
+      "example_label_chains": [
+        [
+          "ABC-2026-014",
+          "Witness statements",
+          "2026"
+        ]
+      ],
+      "relative_order": [
+        [
+          "artifact_kind",
+          "scope_period"
+        ]
+      ],
+      "sole_order_attestation": "law_practice's 28 kept template rows attest exactly one nesting of these three roles. Every departure the corpus records SUBTRACTS a level or asks for a level that has no declared key; not one reverses a pair. law_practice.closing-binder drops the period ('a period level here is exactly the fault 00 names for generated templates - it would \"create meaningless one-child levels\"'), law_practice.estates-administration drops the client and the period, law_practice.time-and-billing drops the matter for its firm-wide export, and law_practice.corporate-secretarial, .conveyancing, .hearing-transcripts, .due-diligence, .transactional-deal, .contract-negotiation and .regulatory-submission each ask for a top level this schema declares no key for. The one reversal a second order would plausibly offer is period-first, and the schema anchor forbids it by name: 'NOT TIME-FIRST, and no sibling may claim otherwise.' A second order authored here would therefore be an invented alternative shown beside a real one, which is worse than an absent one because the user cannot tell which is which."
+    },
+    {
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.preserved-root",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.matter-only",
+          "is_default": true,
+          "rationale": "One level, deliberately, for the six law_practice situations whose own recommendation is that nothing below the matter may become a branch. law_practice.trial-preparation states the rule: 'A COMPILATION MUST NOT BE EXPLODED INTO FOLDER LEVELS AT ALL... those are the bundle's SECTIONS and turning them into folders dissolves the only object that exists.' law_practice.closing-binder reaches it from the other side - a closing index 'is a negotiated running order' and 'imposing a function taxonomy over a set that arrives with its own agreed order destroys the one thing every party to the deal can navigate' - which is the same answer 00 gives an existing folder: 'Existing folders must not be automatically flattened, renamed, or reorganized simply because a template would produce a different structure.'",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The matter, transaction or case package is the only level these situations accept; their members are held together as files beneath it rather than sorted into branches that would separate each item from the thing that makes it intelligible."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "a document-function level is deliberately absent here and is not an omission: law_practice.court-filing-record records that 'Every member of this situation has the same function - it is a receipt - so a function level would be exactly the \"meaningless one-child levels\" 00 warns against', and law_practice.evidence-exhibits that 'the exhibit set should stay a FLAT set beneath it, ordered by nothing'",
+        "no level may be named from an identifier that resolves to a party through one public search - the exhibit designator, the production control number, the regulatory submission reference and the data-room folder tree are each excluded on the row that named them",
+        "client is not a role here for the same reason it is not a role on def.matter-file"
+      ],
+      "example_label_chains": [
+        [
+          "Project Hartley"
+        ]
+      ],
+      "relative_order": []
+    },
+    {
+      "template_id": "def.practice-register",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.record-kind-only",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.function-then-period",
+          "is_default": true,
+          "rationale": "The shape law_practice's three register-like situations reach when the matter level is unavailable to them. law_practice.conflicts-check: 'FUNCTION FIRST - the screening record as a standalone register-shaped administrative area rather than a per-client tree - then PERIOD.' law_practice.time-and-billing: 'for a MATTER-PLURAL artefact the matter level drops out entirely and what remains is function then PERIOD, with period doing the work the matter cannot.' law_practice.corporate-secretarial: 'Period comes LAST but is genuinely load-bearing here, unlike in the schema default, because the world is anniversary-cyclical.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The register's own function has to come first because a bare year folder of screening or billing documents is unintelligible - 00's rule that a work type 'is meaningful only after the course is known', read across."
+            },
+            {
+              "role_ref": "scope_period",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "These are the three situations whose material is genuinely cyclical: a screening register is chronological, a bill covers a period, and corporate secretarial work repeats the same four functions every anniversary year."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "the matter level is absent by argument rather than by contract: law_practice.corporate-secretarial records that a matter level under a perpetual retainer 'would hold one child forever', and law_practice.time-and-billing that for a firm-wide export the matter 'is not merely disclosive here, it is INAPPLICABLE to the container - filing it under any one matter would be false'",
+        "this is the closest anything in law_practice comes to a period-led tree and it is still not time-first: 'the period rises only because the project level is absent, not because this world is capture-based'",
+        "a payee, a searched counterparty, a screened colleague or a natural person named in a register may never become a level"
+      ],
+      "example_label_chains": [
+        [
+          "Conflict screens",
+          "2026"
+        ]
+      ],
+      "relative_order": [
+        [
+          "artifact_kind",
+          "scope_period"
+        ]
+      ],
+      "sole_order_attestation": "The three law_practice rows that reach this shape record the same nesting and the reversal is refused in writing by two of them. law_practice.conflicts-check: 'This is the closest any row in this family comes to earning a time level, and it still does not earn `time_first`: the function level must come first because a bare year folder of screening documents is unintelligible.' law_practice.time-and-billing: 'the schema's prohibition on siblings claiming time-first is respected in letter and in substance.' A period-first alternative is the only second order the corpus suggests, and the corpus is what rules it out."
+    },
+    {
+      "template_id": "def.know-how-bank",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.record-kind-only",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.instrument-function-only",
+          "is_default": true,
+          "rationale": "law_practice.precedent-bank is the one row in the family whose first two levels are not disclosure-restricted but STRUCTURALLY ABSENT: 'this row's material has no client and no matter to disclose, so the disclosure objection that seeds the client level ineligible everywhere else is silent here... the recommendation begins at DOCUMENT OR INSTRUMENT FUNCTION (what the model document is for), and then version lineage sits BELOW it rather than as a level, because versions of one precedent are a version family and not a folder generation.'",
+          "dimensions": [
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "What the model document is FOR is the only thing on the bytes to branch on, and it is the word a practitioner uses to go and find one."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "the practice or department name must not become the top level by default: that would 'use an author or organization merely as a collector' and in a single-practice corpus would 'create meaningless one-child levels'",
+        "version lineage is a version family and never a level - 00 already collects duplicate and version-family signals universally without needing a branch"
+      ],
+      "example_label_chains": [
+        [
+          "Share purchase agreement"
+        ]
+      ],
+      "relative_order": []
+    },
+    {
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.subject-then-stage",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.client-work-stage-kind",
+          "is_default": true,
+          "rationale": "creative.json's held-as-prose default verbatim, which the 41 creative.* siblings are measured against: 'client only where the corpus genuinely serves more than one client (otherwise it is the collector level 00's own validator rejects), then project, then stage, then artifact_type as the optional deepest level.' The parent-context test fixes it - 'a parent dimension should provide the context required to understand the child. A work type such as Homework 3 is meaningful only after the course is known' - and 'Round 2' or '_v3' is meaningless without the work, exactly as Homework 3 is meaningless without the course. Not time-first: the anchor grants the capture exception to creative.shoot-day-media and creative.raw-photo-catalogue by name and to nobody else.",
+          "dimensions": [
+            {
+              "role_ref": "client_org",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Only where the corpus genuinely serves more than one commissioner; in a single-client or in-house corpus this level must flatten because it would be a one-child collector."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The work is the parent that makes every file under it intelligible, and it is the level a maker names out loud."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Where the work had got to is what separates two otherwise identical files of one job, and it is unfilled for material that never moved through review."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The kind of file is the optional deepest level; the anchor makes it optional because many creative corpora are better flat at this depth."
+            }
+          ]
+        },
+        {
+          "order_id": "ord.client-work-kind-stage",
+          "is_default": false,
+          "rationale": "Three creative rows argue independently that stage is the weak level and must not stand between the work and the kind of file. creative.printmaking-editions: 'An edition does not move through stages; it passes through ONE-WAY TERMINAL EVENTS... A `stage` level here would open branches that are empty for the whole life of the material and then permanently empty afterwards' - its recommendation is 'project then artifact_type, with NO stage level'. creative.short-form-writing: 'The state that actually matters here repeats per destination, so a stage level would collapse one piece's AGNI rejection and its Ploughshares acceptance into a single folder named \"submitted\". The recommendation is therefore the piece, then artifact_type.' creative.ad-campaign: 'a route that survives selection carries files at every stage at once while a route that was killed carries only early ones, so a stage level scatters one idea across three branches', with stage 'demoted to an optional leaf rather than a standing level'. This order is argued from those three corpora and is not an authored alternative.",
+          "dimensions": [
+            {
+              "role_ref": "client_org",
+              "order_index": 0,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Unchanged from the default: only where the corpus genuinely serves more than one commissioner."
+            },
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 1,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The work stays the parent under either order; that is the one thing every creative row agrees on."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Where the material passes through terminal events rather than stages, the kind of file is what actually varies under the work."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 3,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Demoted to a leaf, which is what creative.ad-campaign asks for and what an edition or a repeatedly-submitted piece needs."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.holder-own-record@1",
+      "validation_constraints": [
+        "client_org may never bind a counterparty in a SUBMITTED-TO role: creative.submission-query records that 'Recording a market as `client` would assert a paid relationship that does not exist and would fuse forty rejections with one job', and 00 requires that 'The system must separate roles that happen to contain the same entity type'",
+        "the maker is never a level: creative.self-initiated-work records that an author-named branch is one 00 'refuses in advance - a template must not \"create meaningless one-child levels\" and must not \"use an author or organization merely as a collector\"'",
+        "no level may be derived from a medium, format, channel, locale, software, engine target or screen: each is a value, and 'A folder level for medium or format would scatter one named work across Posters, PDFs, PNGs and Source Files'",
+        "this recipe may not be applied to capture-led material: creative.json grants the time-first exception to creative.shoot-day-media and creative.raw-photo-catalogue by name, and both are refused a template in this wave rather than filed project-first"
+      ],
+      "example_label_chains": [
+        [
+          "Northwind",
+          "Spring campaign",
+          "Concept",
+          "Key visual"
+        ]
+      ],
+      "relative_order": [
+        [
+          "client_org",
+          "subject_anchor"
+        ],
+        [
+          "lifecycle_stage",
+          "artifact_kind"
+        ]
+      ]
+    },
+    {
+      "template_id": "def.shown-work-run",
+      "template_version": 1,
+      "origin_kind": "built-in",
+      "scope_kind": "domain-focused",
+      "publication_state": "published",
+      "fragment_refs": [
+        {
+          "fragment_id": "frag.venue-in-submission-chain",
+          "fragment_version": 1
+        }
+      ],
+      "candidate_orders": [
+        {
+          "order_id": "ord.show-venue-stage-kind",
+          "is_default": true,
+          "rationale": "creative.exhibition's NJ-EXH-3, answered. The row states the recommendation as '`project` (the show) first, then `stage`, then `artifact_type`' and then records that touring breaks it: 'One show at three venues has one stable checklist and three sets of plans, texts, schedules and documentation.' Its three alternatives are '(a) show first with venue as a leaf under `stage` - lossy but harmless; (b) show first with `venue` as a genuine second level, which requires the creative schema to adopt `venue` alongside its four candidates; (c) venue first, which scatters one show across institutions and is the exhibition analogue of the year-first mistake 00 warns about', and it says 'Recommendation offered, not taken: (b).' 60 section 5 adopts `venue` on creative, which is the condition (b) named, so (b) is what this recipe builds. The stage level is a CUSTODY sequence here rather than a maturity sequence - 'pre-install, install, run, deinstall and tour' - which is what makes a condition report dated after the close intelligible.",
+          "dimensions": [
+            {
+              "role_ref": "subject_anchor",
+              "order_index": 0,
+              "requirement": "required",
+              "metadata_only": false,
+              "retrieval_rationale": "The show is the parent: 'a file named `Condition report - cat 14 - incoming.pdf` is meaningless without the show', exactly as Homework 3 is meaningless without the course."
+            },
+            {
+              "role_ref": "addressed_org",
+              "order_index": 1,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "The venue is a genuine second level only for a touring show; a single-venue exhibition leaves it unbound rather than producing a one-child level."
+            },
+            {
+              "role_ref": "lifecycle_stage",
+              "order_index": 2,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Pre-install, install, run, deinstall and tour is a custody sequence, and it is what separates the same document class before and after the hang."
+            },
+            {
+              "role_ref": "artifact_kind",
+              "order_index": 3,
+              "requirement": "optional",
+              "metadata_only": false,
+              "retrieval_rationale": "Checklist, hang plan, loan agreement, condition report and wall text are the leaf a registrar searches for once the show and the leg are fixed."
+            }
+          ]
+        }
+      ],
+      "optional_branch_patterns": [],
+      "sensitivity_policy_ref": "sp.third-party-confidential@1",
+      "validation_constraints": [
+        "the lender or courtesy line may never become a level: NJ-EXH-1 records that there is no canonical key for it, that '`client` is wrong (a lender does not commission), `venue` is wrong (a lender does not host)', and that 'a folder named for a private collector publishes exactly the identity the courtesy line was written to protect'. NO FIELD IS PROPOSED.",
+        "client is not a role here: 'an exhibiting institution is not a commissioning counterparty - it shows work it did not order'",
+        "this recipe never claims the works on the checklist: 'The artwork files and the exhibition files are different objects', and the making record of any listed work belongs to its own creative row"
+      ],
+      "example_label_chains": [
+        [
+          "Quiet Machines",
+          "Ikon Gallery",
+          "Install",
+          "Condition report"
+        ]
+      ],
+      "relative_order": [
+        [
+          "lifecycle_stage",
+          "artifact_kind"
+        ]
+      ],
+      "sole_order_attestation": "creative.exhibition is the only corpus behind this recipe and it enumerates its own alternatives, rejecting the one that would be a second nesting: '(c) venue first, which scatters one show across institutions and is the exhibition analogue of the year-first mistake 00 warns about.' Alternative (a) is a leaf PLACEMENT for the venue rather than a different ordering of these roles, so it is not a candidate order either. One nesting is attested and a second would have to be invented against the row's own words."
+    }
+  ],
+  "applicabilities": [
+    {
+      "applicability_id": "ap.law_practice.appeals",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.appeals"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter on appeal"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of appeal document"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Appeal year"
+        }
+      ],
+      "exclusions": [
+        "the proceeding tier as a folder level: the row's own recommendation is 'matter, then PROCEEDING TIER, then function, then period, with the tier level named by the proceeding's own identifier and never by a party', and no key law_practice declares carries a tier, so the level is left to the user rather than proposed",
+        "a named third party as a folder level - 'an adverse party, a witness, a deponent, an accused, a complainant, a child - may NEVER be a folder level, however strong the grouping axis'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.appeals",
+        "memo:planning/domains/nodes/law_practice.appeals.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.closing-binder",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.closing-binder"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Completion"
+        }
+      ],
+      "exclusions": [
+        "a document-function level: 'A closing index is not a function taxonomy; it is a negotiated running order... Imposing a function taxonomy over a set that arrives with its own agreed order destroys the one thing every party to the deal can navigate'",
+        "a period level: 'Every artefact in a completion set shares one operative date by construction, so a period level here is exactly the fault 00 names for generated templates - it would \"create meaningless one-child levels\"'",
+        "a Signature Pages or Bank Details branch: 'a branch called Signature Pages or Bank Details advertises the two most exploitable items in the corpus'",
+        "a client, counterparty, guarantor, director, witness or individual signatory name as a folder level"
+      ],
+      "provenance": [
+        "row:law_practice.closing-binder",
+        "memo:planning/domains/nodes/law_practice.closing-binder.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.conflicts-check",
+      "applicability_version": 1,
+      "template_id": "def.practice-register",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.conflicts-check"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of screening record"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "When it was screened"
+        }
+      ],
+      "exclusions": [
+        "the matter as a folder level: 'A cleared screen that never became an engagement has no matter to sit under; a hit report's decisive content names a DIFFERENT client's matter... and a barrier record filed inside the matter it walls off defeats itself'",
+        "the prospective client as a folder level: 'a screening branch would name people the practice REFUSED, and a declined enquirer's name in a visible path is a disclosure with no representation behind it to justify it'",
+        "a searched counterparty, an existing client surfaced by a hit, or a screened colleague as a folder level"
+      ],
+      "provenance": [
+        "row:law_practice.conflicts-check",
+        "memo:planning/domains/nodes/law_practice.conflicts-check.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.conveyancing",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.conveyancing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Transaction"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of conveyancing document"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Year it completed"
+        }
+      ],
+      "exclusions": [
+        "a property address as a folder level: 'A PROPERTY ADDRESS MUST NEVER BE A FOLDER LEVEL, even though it is the most natural label in this world, because it writes where a named person lives into a path that every later process reads'",
+        "the parcel as a folder level: the row's preferred parent is 'the parcel where a pseudonymous title or parcel reference is available', and law_practice declares no property key, so the level is recorded here rather than proposed",
+        "a counterparty, a chain member, a gifted-deposit donor or a tenant as a folder level - 'they are third parties to a third party'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.conveyancing",
+        "memo:planning/domains/nodes/law_practice.conveyancing.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.corporate-secretarial",
+      "applicability_version": 1,
+      "template_id": "def.practice-register",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.corporate-secretarial"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of entity record"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Anniversary year"
+        }
+      ],
+      "exclusions": [
+        "the entity as a folder level: the row asks for it - 'the ENTITY comes before the matter, because one engagement routinely spans fifty entities' - and law_practice declares no entity key; the row also requires that such a level be 'user-approved, never automatic', because 'the fact that THIS FILESYSTEM HOLDS ITS CONSTITUTIONAL RECORD is not [public], and it discloses a service relationship'",
+        "the matter as a folder level: 'corporate secretarial work is a PERPETUAL RETAINER, not a matter with a start and an end, and a matter level under it would hold one child forever'",
+        "a named natural person from a register - 'a member, a beneficial owner, a director whose residential address the register carries - may NEVER be a folder level'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.corporate-secretarial",
+        "memo:planning/domains/nodes/law_practice.corporate-secretarial.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.court-filing-record",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.court-filing-record"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter the filing belongs to"
+        }
+      ],
+      "exclusions": [
+        "a document-function level, and a Filings folder above all: 'A Filings folder collecting every receipt in the corpus is the anti-pattern this row exists to name, because it separates each receipt from the only thing that makes it intelligible'",
+        "any of the five filing moments as a level: 'A single filing event carries FIVE different moments... Branching on any one of them scatters one event across calendar folders and silently asserts that the chosen moment is the operative one, which is a legal conclusion this product must never reach'",
+        "the caption or the service list as a level: 'a caption is X v Y, and a service list is a column of other people's home addresses'"
+      ],
+      "provenance": [
+        "row:law_practice.court-filing-record",
+        "memo:planning/domains/nodes/law_practice.court-filing-record.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.criminal-defence",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.criminal-defence"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Case reference"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of defence document"
+        }
+      ],
+      "exclusions": [
+        "the client as a folder level, and here it is 'INELIGIBLE OUTRIGHT AND NOT UNLOCKABLE': 'a client-named branch writes into the filesystem that a named natural person stands accused of a crime, which is a statement about their liberty that no folder should make'",
+        "a function value that names a plea, a disposal, a conviction history or a clinical assessment: 'mitigation, basis of plea, previous convictions, pre-sentence report, fitness to plead each publish the accusation, the client's history or their mental health from the branch label alone, with no name anywhere in the path'",
+        "a complainant, a witness, a co-accused or a person never charged as a folder level",
+        "a period level: 'Charge date, service date, hearing date, document date and filesystem time mean different things here'"
+      ],
+      "provenance": [
+        "row:law_practice.criminal-defence",
+        "memo:planning/domains/nodes/law_practice.criminal-defence.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.depositions-testimony",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.depositions-testimony"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of examination paper"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "When they were examined"
+        }
+      ],
+      "exclusions": [
+        "the deponent as a folder level, which is this row's own primary anchor and is banned anyway: 'the deponent [is] held as a grouping key that is never written into a path'",
+        "splitting the media segments from the transcript by source type: 'Splitting a package by file kind is the one placement that would break the coordinate relationship the whole family is built on, and it is the placement a naive extension-driven tree produces first'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.depositions-testimony",
+        "memo:planning/domains/nodes/law_practice.depositions-testimony.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.discovery",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.discovery"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Disclosure exercise"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Production period"
+        }
+      ],
+      "exclusions": [
+        "a production-volume label as a level: 'a visible Prod Vol 3 (HN0004512-HN0009880) branch announces both whose documents are held and how many of them'",
+        "a control-number level: 'A control-number branch would create one folder per document, which is the meaningless-one-child-level failure at industrial scale'",
+        "a custodian level, 'the worst of the three: it would name real third parties - usually the client's own employees, who are not the user, are not the client and have consented to nothing - as permanent directory labels'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.discovery",
+        "memo:planning/domains/nodes/law_practice.discovery.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.due-diligence",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.due-diligence"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Diligence exercise"
+        }
+      ],
+      "exclusions": [
+        "the target's name as a level: 'Naming the target as a folder publishes that a named company is under examination before any announcement', and 00 forbids the corresponding structural move - a template may not 'use an author or organization merely as a collector'",
+        "a data-room folder level, which 'would \"create meaningless one-child levels\" at industrial scale - one folder per uploaded PDF - and would also advertise the room's own access tree, which is a third party's filing system, not the holder's'",
+        "the chapter grammar as a level: the row's recommendation is 'the DEAL OR DILIGENCE EXERCISE, then the CHAPTER (corporate function)', and law_practice declares no key for a corporate-function chapter, so the level is recorded rather than proposed"
+      ],
+      "provenance": [
+        "row:law_practice.due-diligence",
+        "memo:planning/domains/nodes/law_practice.due-diligence.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.estates-administration",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.estates-administration"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Estate"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Step in the administration"
+        }
+      ],
+      "exclusions": [
+        "the client as a folder level, STRUCK rather than seeded ineligible: 'the client is the personal representative, and personal representatives are plural, substitutable and sometimes themselves beneficiaries, so a client level would scatter one estate across co-executors and would file a dead person's affairs under a living person who is not their subject'",
+        "a period level: 'an administration is one bounded episode measured from one instant, so a year level would cut it at an arbitrary point and would separate the date-of-death valuation from the distribution it feeds'",
+        "the administration stage - pre-grant, grant, collection, distribution, closure - as a level: 'a stage is a lifecycle value and would move files as the matter progressed, which is the opposite of a durable destination'"
+      ],
+      "provenance": [
+        "row:law_practice.estates-administration",
+        "memo:planning/domains/nodes/law_practice.estates-administration.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.evidence-exhibits",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.evidence-exhibits"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter the exhibits belong to"
+        }
+      ],
+      "exclusions": [
+        "the exhibit designator as a level: 'a designator is an identifier, not a fact - branching on it would create one leaf per item, which is the meaningless-one-child-level failure, and a branch named Exhibit D - Patel medical records would write a third party's identity and condition into the filesystem'",
+        "a producing-party level, 'worse still, because it names the adverse side'",
+        "a document-function level: 'the exhibit set should stay a FLAT set beneath it, ordered by nothing, because the host documents belong to other domains and any function level here would compete with the level those domains would want'"
+      ],
+      "provenance": [
+        "row:law_practice.evidence-exhibits",
+        "memo:planning/domains/nodes/law_practice.evidence-exhibits.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.expert-materials",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.expert-materials"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of expert material"
+        }
+      ],
+      "exclusions": [
+        "the specialist as a folder level, and the ban is this row's own addition: 'a branch named for a specialist publishes which discipline a matter turned on and which specialist a firm chose, including specialists instructed and then not used', and 'a specialist-named level would place two unrelated matters under one parent in the filesystem, materialising as a path the very bridge the schema suppresses in facts'",
+        "the engagement lifecycle - instruction, materials, draft, signed, questions, joint statement - as a level: 'it is a lifecycle stage and a version series, and 00 already resolves version differences as a fact rather than a folder'",
+        "a period level: 'Instruction date, inspection date, report date, service date and filesystem date mean five different things here'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.expert-materials",
+        "memo:planning/domains/nodes/law_practice.expert-materials.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.family-law",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.family-law"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "File reference"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of family document"
+        }
+      ],
+      "exclusions": [
+        "the client as a folder level, INELIGIBLE FULL STOP here: 'every party in this world is a private individual and the branch does not disclose that a company has lawyers - it discloses that a named person is being divorced, is seeking protection from someone, or has a child in proceedings'",
+        "any matter label that embeds a party name; the surviving recommendation is 'an opaque matter token that names nobody'",
+        "a named third party, and here it is the family's sharpest case: 'the third parties include a CHILD who cannot consent at any age and a person whose ADDRESS IS DELIBERATELY WITHHELD INSIDE THE FILE ITSELF - a filesystem path that named either would defeat, in the one place a later process is guaranteed to read it, the very protection the document was constructed to provide'"
+      ],
+      "provenance": [
+        "row:law_practice.family-law",
+        "memo:planning/domains/nodes/law_practice.family-law.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.hearing-transcripts",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.hearing-transcripts"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Proceeding"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of transcript record"
+        }
+      ],
+      "exclusions": [
+        "the sitting as a folder level: the row inserts it - 'this row therefore inserts the SITTING between matter and function - the proceeding and its hearing, named by the proceeding's own identifier and never by a party' - and law_practice declares no key for a sitting, so the level is recorded rather than proposed",
+        "the deponent or witness as a folder level: 'a path writes a named third party's compelled testimony into the filesystem where every later process reads it. This ban is stated here because the neighbouring catalogue entry for out-of-court examinations proposes a deponent level, and that proposal must not be read across'",
+        "status as a level - 'rough, uncertified and certified of one day would produce the one-child folders 00 warns against'",
+        "the sitting day as a level - 'a twelve-day hearing would produce twelve folders of one file each'"
+      ],
+      "provenance": [
+        "row:law_practice.hearing-transcripts",
+        "memo:planning/domains/nodes/law_practice.hearing-transcripts.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.immigration-casework",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.immigration-casework"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Case package"
+        }
+      ],
+      "exclusions": [
+        "the case type as a level, which is this row's substantive delta: 'a case-type folder discloses a STATUS about a person WITHOUT NAMING THEM: a branch called asylum, removal defence, trafficking, domestic-violence self-petition or crime-victim states that the human being underneath it is a claimed refugee, is facing removal, or is a victim of trafficking or domestic violence... and it survives redaction of the name'",
+        "any automatic internal depth: 'The physical recommendation this row actually makes is one shallow, redacted, user-approved case package per applicant with no automatic internal depth and no case-type branch'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.immigration-casework",
+        "memo:planning/domains/nodes/law_practice.immigration-casework.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.investigation",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.investigation"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Enquiry"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of enquiry document"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "When the enquiry ran"
+        }
+      ],
+      "exclusions": [
+        "the subject of the investigation as a folder level: 'naming either in a path publishes that a named person is under enquiry... A named subject may NEVER be a folder level'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.investigation",
+        "memo:planning/domains/nodes/law_practice.investigation.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.ip-prosecution",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.ip-prosecution"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of prosecution paper"
+        }
+      ],
+      "exclusions": [
+        "the right or application number as a level, and it is 'seeded ineligible... more strongly than the schema's client level': 'an application-number-named folder discloses [that a named person is in a legal matter] AND, through one public search, the technical content of what the client is building and who else is in the family - and where the application has not yet published, the folder name publishes the existence of a filing that the whole exercise depends on keeping unpublished'. That is also the level the row wanted above the matter, so its preferred order is recorded here rather than built.",
+        "jurisdiction, office or classification as levels: 'they are values... and a per-office branch would create exactly the \"create meaningless one-child levels\" the design warns against for most portfolios'",
+        "a period level: 'filing date, priority date, publication date, grant date, renewal due date, correspondence date and filesystem date all mean different things here and several of them are legal positions rather than document dates'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.ip-prosecution",
+        "memo:planning/domains/nodes/law_practice.ip-prosecution.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.motions-and-briefs",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.motions-and-briefs"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Proceeding it belongs to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of application paper"
+        }
+      ],
+      "exclusions": [
+        "a hearing or return date as a level: 'it is the one date in this family the product is most likely to be asked to act on and it must not be structurally privileged'",
+        "a named third party as a level, 'because an emergency application names a child'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.motions-and-briefs",
+        "memo:planning/domains/nodes/law_practice.motions-and-briefs.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.opinions-advice",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.opinions-advice"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter advised on"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of advice"
+        }
+      ],
+      "exclusions": [
+        "the addressee as a level, refused harder than the client axis: 'an ADDRESSEE-named branch discloses a named bank, auditor or regulator AND the transaction they are party to, to a reader who is not the client and never consented'",
+        "a reliance level, which 'looks harmlessly non-identifying and is worse than it looks: a folder literally named for a graded legal confidence sorts a corpus by how weak its positions are'",
+        "a period level: 'this world has at least four unrelated dates on one page - the date the opinion speaks as of, the date of the instrument opined on, the delivery date and the filesystem date'",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.opinions-advice",
+        "memo:planning/domains/nodes/law_practice.opinions-advice.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.precedent-bank",
+      "applicability_version": 1,
+      "template_id": "def.know-how-bank",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.precedent-bank"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "What the model document is for"
+        }
+      ],
+      "exclusions": [
+        "the practice or department name as a top level: 'that would \"use an author or organization merely as a collector\" and in a single-practice corpus would \"create meaningless one-child levels\"'",
+        "version lineage as a level: 'versions of one precedent are a version family and not a folder generation'"
+      ],
+      "provenance": [
+        "row:law_practice.precedent-bank",
+        "memo:planning/domains/nodes/law_practice.precedent-bank.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.pro-bono",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.pro-bono"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Funded matter"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of casework document"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Funding year"
+        }
+      ],
+      "exclusions": [
+        "the funding basis as a level, which is this row's own prohibition and the schema does not state it: 'A branch named for a scheme, or named Pro Bono, or named Legal Aid, publishes a means-test outcome about a person who is not the user: it says this client was assessed and found poor enough'. It is 'ineligible in both directions and there is no corpus in which it is correct'.",
+        "the client as a folder level: 'A visible client or matter label can itself disclose the existence and subject of a representation', and the schema seeds the level ineligible rather than offering it"
+      ],
+      "provenance": [
+        "row:law_practice.pro-bono",
+        "memo:planning/domains/nodes/law_practice.pro-bono.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.regulatory-submission",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.regulatory-submission"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter behind the submission"
+        }
+      ],
+      "exclusions": [
+        "the submission reference as a level: 'it resolves, via one public search on many registers, to the named applicant and often to the subject matter'. It is also the level the row wanted second, so its preferred order is recorded here rather than built.",
+        "the client and the regulated entity as levels, 'MORE STRONGLY INELIGIBLE HERE THAN IN THE DEFAULT': 'A merger notification or a licence application before public announcement discloses not only that a client is in a matter but THAT A DEAL OR AN ACTIVITY EXISTS - existence is the secret'",
+        "an automatic outbound/inbound split: the row offers it 'only if the user wants it', and a Filings folder across regulators is named as the anti-pattern"
+      ],
+      "provenance": [
+        "row:law_practice.regulatory-submission",
+        "memo:planning/domains/nodes/law_practice.regulatory-submission.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.time-and-billing",
+      "applicability_version": 1,
+      "template_id": "def.practice-register",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "work_type",
+        "record_period"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.time-and-billing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of billing record"
+        },
+        {
+          "role_ref": "scope_period",
+          "field_ref": "record_period",
+          "label": "Billing period"
+        }
+      ],
+      "exclusions": [
+        "the matter as a folder level for the firm-wide export: 'a firm-wide time or WIP export belongs to no single matter, so the matter dimension is not merely disclosive here, it is INAPPLICABLE to the container - filing it under any one matter would be false, and filing it under all of them would copy a fact onto a file that does not carry it'. For a matter-singular bill the family's own def.matter-file order stands and is a user edit away.",
+        "the billed-to block as a collector level: 'a bill's billed-to block would make an especially tempting collector, and 00 forbids exactly that - \"use an author or organization merely as a collector\"'",
+        "a payee as a level: 'A PAYEE is a named third party and may never be a level... counsel and experts are also witnesses'"
+      ],
+      "provenance": [
+        "row:law_practice.time-and-billing",
+        "memo:planning/domains/nodes/law_practice.time-and-billing.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.transactional-deal",
+      "applicability_version": 1,
+      "template_id": "def.matter-file",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "work_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.transactional-deal"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Deal codename"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "work_type",
+          "label": "Kind of deal document"
+        }
+      ],
+      "exclusions": [
+        "the client as a level, and here the codename replaces it rather than merely suppressing it: 'A deal codename is a token chosen to conceal the parties; a folder called Project Hartley names nobody, which is exactly what a folder called by a client's name does not achieve'",
+        "co-displaying the codename with a party name anywhere in one tree: 'the value of the pseudonym is destroyed by the mapping, not by either half; the announcement draft and the working group list are the artefacts that hold that mapping and neither may be used to relabel a branch'",
+        "a period level: 'signing time, completion time, document date, circulation time and filesystem time all differ here'"
+      ],
+      "provenance": [
+        "row:law_practice.transactional-deal",
+        "memo:planning/domains/nodes/law_practice.transactional-deal.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.law_practice.trial-preparation",
+      "applicability_version": 1,
+      "template_id": "def.matter-only-packet",
+      "template_version": 1,
+      "uses_schema": "law_practice",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:law_practice.trial-preparation"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Matter being prepared"
+        }
+      ],
+      "exclusions": [
+        "a document-function level, and its removal is the row's sharper difference: 'The natural-looking dimension here is document function - pleadings, statements, medical, correspondence, authorities - and it is precisely the wrong one, because those are the bundle's SECTIONS and turning them into folders dissolves the only object that exists'",
+        "the sitting as a level: the row wants one - 'THE SITTING - one hearing or trial listing as a single level' - and law_practice declares no key for it; the row also warns that 'in a small corpus a lone dated hearing level identifies the matter it hangs under'",
+        "the compilation's volumes as branches: 'the compilation and its volumes stay together inside that level as files, not as further branches'"
+      ],
+      "provenance": [
+        "row:law_practice.trial-preparation",
+        "memo:planning/domains/nodes/law_practice.trial-preparation.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - law_practice declares project, work_type, client, record_period, our_firm and subject_of_record, and section 9.1 makes the last two globally non-destination; that declaration is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.3d-asset",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.3d-asset"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Asset"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the build got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of 3D file"
+        }
+      ],
+      "exclusions": [
+        "software, renderer, format, platform, polygon budget and delivery channel as levels: '[they] remain values or retrieval metadata until a future creative schema decision'"
+      ],
+      "provenance": [
+        "row:creative.3d-asset",
+        "memo:planning/domains/nodes/creative.3d-asset.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.ad-campaign",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.ad-campaign"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "client_org",
+          "field_ref": "client",
+          "label": "Advertiser"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Campaign"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "How far the work got"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of campaign asset"
+        }
+      ],
+      "exclusions": [
+        "the concept route as a level, which is the level this row actually wants second: 'a route that survives selection carries files at every stage at once while a route that was killed carries only early ones, so a stage level scatters one idea across three branches while a route level holds it together'. creative declares no key for a route, so the level is recorded rather than proposed, and the row's stage-demoting preference is carried by this recipe's second candidate order.",
+        "the market or placement variant as a level: no key carries it either",
+        "the flight period as a first level: 'a flight window is a scheduled property of the work, not a capture date of the file'"
+      ],
+      "provenance": [
+        "row:creative.ad-campaign",
+        "memo:planning/domains/nodes/creative.ad-campaign.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.architectural-visualisation",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.architectural-visualisation"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Scheme"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the scheme got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of drawing or render"
+        }
+      ],
+      "exclusions": [
+        "view or camera, software, model format and use purpose as levels: they 'remain values or retrieval metadata unless the schema is deliberately changed'",
+        "the building as a level: 'The distinctive architecture-specific chain is a grouping and activation signal, not a permission to mint scheme, building, view, client or stage fields'"
+      ],
+      "provenance": [
+        "row:creative.architectural-visualisation",
+        "memo:planning/domains/nodes/creative.architectural-visualisation.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.book-manuscript",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.book-manuscript"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "The book"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Draft it reached"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of manuscript file"
+        }
+      ],
+      "exclusions": [
+        "the ordered section as a folder level: 'A per-chapter branch is 00's named validator failure twice over - it would \"create meaningless one-child levels\" and it would \"produce empty branches when tested against the accepted group\" for every chapter not yet written'",
+        "the client as a level: 'client [is] normally absent because a book usually has no commissioning party'"
+      ],
+      "provenance": [
+        "row:creative.book-manuscript",
+        "memo:planning/domains/nodes/creative.book-manuscript.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.brand-identity",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.brand-identity"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Identity system"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the rule got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of identity asset"
+        }
+      ],
+      "exclusions": [
+        "the logo as a folder level: 'identity-system governance is a situation distinguished by its coordinated rule/asset/approval structure, not by a new field or by logo as a folder level'"
+      ],
+      "provenance": [
+        "row:creative.brand-identity",
+        "memo:planning/domains/nodes/creative.brand-identity.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.client-engagement",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.client-engagement"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "client_org",
+          "field_ref": "client",
+          "label": "Who commissioned it"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Commission"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the job got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of engagement document"
+        }
+      ],
+      "exclusions": [
+        "the client level in a single-client or in-house corpus: 'the client level must flatten because it would be a one-child collector'"
+      ],
+      "provenance": [
+        "row:creative.client-engagement",
+        "memo:planning/domains/nodes/creative.client-engagement.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.commissioned-shoot",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.commissioned-shoot"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "client_org",
+          "field_ref": "client",
+          "label": "Who commissioned the shoot"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Shoot"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the shoot got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of shoot file"
+        }
+      ],
+      "exclusions": [
+        "the capture date as a level above the shoot: 'capture date belongs inside the shoot because it identifies the production day but does not explain who commissioned the work'"
+      ],
+      "provenance": [
+        "row:creative.commissioned-shoot",
+        "memo:planning/domains/nodes/creative.commissioned-shoot.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.content-marketing",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.content-marketing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "client_org",
+          "field_ref": "client",
+          "label": "Brand it serves"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Programme"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the piece got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of content piece"
+        }
+      ],
+      "exclusions": [
+        "the channel as a level: 'blog, newsletter, social and landing page are media, and the anchor already rules that the media-form vocabulary is VALUES of artifact_type; a channel level would also be the collector shape 00's validator rejects'",
+        "the editorial calendar as a time-first level: 'the calendar is one artefact that PLANS the pieces, not the axis the pieces live on'"
+      ],
+      "provenance": [
+        "row:creative.content-marketing",
+        "memo:planning/domains/nodes/creative.content-marketing.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.deliverable-handoff",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.deliverable-handoff"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "client_org",
+          "field_ref": "client",
+          "label": "Who received it"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Job it completes"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Delivery state"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of handoff file"
+        }
+      ],
+      "exclusions": [
+        "any of the delivery clocks as a level: 'upload, receipt, acceptance, rights-effective, expiry, and return dates are distinct clocks'"
+      ],
+      "provenance": [
+        "row:creative.deliverable-handoff",
+        "memo:planning/domains/nodes/creative.deliverable-handoff.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.exhibition",
+      "applicability_version": 1,
+      "template_id": "def.shown-work-run",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "venue",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.exhibition"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "The show"
+        },
+        {
+          "role_ref": "addressed_org",
+          "field_ref": "venue",
+          "label": "Where it was shown"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Install, run or deinstall"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of show document"
+        }
+      ],
+      "exclusions": [
+        "the lender or courtesy line as a level (NJ-EXH-1): 'a folder named for a private collector publishes exactly the identity the courtesy line was written to protect'. NO FIELD IS PROPOSED.",
+        "the client as a level: 'an exhibiting institution is not a commissioning counterparty - it shows work it did not order'",
+        "the works on the checklist as levels: 'The artwork files and the exhibition files are different objects: this row never claims the making record of any work on the checklist'"
+      ],
+      "provenance": [
+        "row:creative.exhibition",
+        "memo:planning/domains/nodes/creative.exhibition.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.fashion-collection",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.fashion-collection"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Collection"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the collection got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of collection document"
+        }
+      ],
+      "exclusions": [
+        "collection, season, garment or stage as minted fields: 'The lifecycle is a template situation, not permission to mint collection, season, garment, or stage fields here'",
+        "the season or launch date as a first level: 'season and launch dates describe the collection's chronology rather than replacing its identity'"
+      ],
+      "provenance": [
+        "row:creative.fashion-collection",
+        "memo:planning/domains/nodes/creative.fashion-collection.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.film-production",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.film-production"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Production"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the production got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of production file"
+        }
+      ],
+      "exclusions": [
+        "the production stage as the TOP level: 'a production-stage-first tree would scatter the same work across script, shoot and edit'",
+        "shoot dates or release dates as levels: 'shoot dates and release dates are distinct observations, and capture-first organization belongs to the photos/capture situation'"
+      ],
+      "provenance": [
+        "row:creative.film-production",
+        "memo:planning/domains/nodes/creative.film-production.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.game-art-asset",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.game-art-asset"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Production it belongs to"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the asset got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of game asset"
+        }
+      ],
+      "exclusions": [
+        "the engine target as a level: it is recommended 'only when directly evidenced', which is a value condition rather than a standing level",
+        "version as a level: 'The stable unit is source -> review -> export -> import -> integration/build verification'"
+      ],
+      "provenance": [
+        "row:creative.game-art-asset",
+        "memo:planning/domains/nodes/creative.game-art-asset.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.interior-design",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.interior-design"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Commission"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the fit-out got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of interior document"
+        }
+      ],
+      "exclusions": [
+        "space, room, style, material and property as levels: 'Space, room, style, material, property and stage remain runtime values or observations until R1c adjudicates shared canonical fields; they must not be smuggled into dimension_order'",
+        "the property or venue as a second level: the row offers 'project or commission, property/venue, stage, then room or artifact type' and immediately calls it 'a future proposal, not a legal current path', so it is recorded here and not built"
+      ],
+      "provenance": [
+        "row:creative.interior-design",
+        "memo:planning/domains/nodes/creative.interior-design.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.journalism-reporting",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.journalism-reporting"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "The story"
+        }
+      ],
+      "exclusions": [
+        "the provenance of the material - obtained, authored, published - as a level, which is the level this row actually wants second: 'an interview recording and a draft are not two stages of one thing; one is input and one is output, and putting them on a shared stage level files a source's recording as though it were a revision of the story'. The row's own proposed key, material_role, is unadopted (NJ-R1a-1), so no second level is proposed here.",
+        "a stage level, for the same reason: with provenance unavailable, a bare stage level under the story is exactly the placement the row forbids - 'the source material must not be filed like the output'",
+        "people as a level: 'Whatever order lands, `people` must never open a level here'",
+        "the client as a level: creative.json seeds it 'only where the corpus genuinely serves more than one client (otherwise it is the collector level 00's own validator rejects)', and a news outlet does not commission a story the way a brand commissions a campaign - the story is reported and then filed"
+      ],
+      "provenance": [
+        "row:creative.journalism-reporting",
+        "memo:planning/domains/nodes/creative.journalism-reporting.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.motion-graphics",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "client",
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.motion-graphics"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "client_org",
+          "field_ref": "client",
+          "label": "Who commissioned the piece"
+        },
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Piece"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the piece got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of motion file"
+        }
+      ],
+      "exclusions": [
+        "the client level where it is a one-child collector: the row's own condition is 'client only when it is not a one-child collector'"
+      ],
+      "provenance": [
+        "row:creative.motion-graphics",
+        "memo:planning/domains/nodes/creative.motion-graphics.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.music-session",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.music-session"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Session or record"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the track got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of session file"
+        }
+      ],
+      "exclusions": [
+        "artist and release as levels: 'project, stage, artifact_type, work_type, artist and release cannot become authored folder dimensions here'",
+        "any of the session clocks as a level: 'recording date, session date, mix date and release date are different workflow clocks, and filesystem time cannot order them'"
+      ],
+      "provenance": [
+        "row:creative.music-session",
+        "memo:planning/domains/nodes/creative.music-session.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.periodical-issue",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.periodical-issue"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Title"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the issue got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of issue file"
+        }
+      ],
+      "exclusions": [
+        "the issue designator as a level, which is the level this world actually needs (NJ-PERIODICAL-1): 'the issue designator maps to no candidate key. It is not `project` (the project is the title, and collapsing them makes every instalment a separate work, losing the series); it is not `stage` (stage is progression toward acceptance, and Vol 47 No 3 is a serial POSITION, not a step); it is not `artifact_type` (that names the document, not the container it sits in).' NO KEY IS PROPOSED.",
+        "a per-contributor level: 'it is authorship, and it is the collector shape 00's validator rejects'",
+        "the press date as a first level: 'an instalment is dated, but its designator is a serial position that files beside No 2 regardless of when it actually went to press'"
+      ],
+      "provenance": [
+        "row:creative.periodical-issue",
+        "memo:planning/domains/nodes/creative.periodical-issue.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.podcast-episode",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.podcast-episode"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Show or episode"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the episode got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of episode file"
+        }
+      ],
+      "exclusions": [
+        "host or guest as levels: 'this placeholder cannot serialize episode, season, host, guest, or stage as dimensions', and a person-named branch is the authorship collector 00 rejects",
+        "release state as a level: it belongs 'as a value rather than a new node'"
+      ],
+      "provenance": [
+        "row:creative.podcast-episode",
+        "memo:planning/domains/nodes/creative.podcast-episode.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.post-production",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.post-production"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Job"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the cut got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of post file"
+        }
+      ],
+      "exclusions": [
+        "post-production as a top-level collector: 'the lifecycle is terminal under project and stage/work_type rather than a post-production-first collector'"
+      ],
+      "provenance": [
+        "row:creative.post-production",
+        "memo:planning/domains/nodes/creative.post-production.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.print-production",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.print-production"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Print job"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the job got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of print file"
+        }
+      ],
+      "exclusions": [
+        "medium, colour process, vendor, quantity and format as levels: they 'are workflow observations or values, not new field keys'",
+        "any one of the job's clocks as a level: 'one job contains several clocks (artwork, proof, approval, press and delivery)'"
+      ],
+      "provenance": [
+        "row:creative.print-production",
+        "memo:planning/domains/nodes/creative.print-production.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.printmaking-editions",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.printmaking-editions"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "The work"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of edition record"
+        }
+      ],
+      "exclusions": [
+        "a stage level, and its omission is this row's one arguable difference from the creative default: 'An edition does not move through stages; it passes through ONE-WAY TERMINAL EVENTS - the matrix is worked, one proof is approved, the run is pulled, the matrix is cancelled - after which nothing further can be produced. A `stage` level here would open branches that are empty for the whole life of the material and then permanently empty afterwards.'",
+        "the client as a level: 'most of this material is self-initiated and has no commissioning counterparty, so the level would be the collector level 00's own validator rejects'"
+      ],
+      "provenance": [
+        "row:creative.printmaking-editions",
+        "memo:planning/domains/nodes/creative.printmaking-editions.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.publishing-title",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.publishing-title"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "The title"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Production milestone"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of title file"
+        }
+      ],
+      "exclusions": [
+        "the client as a level, because here 'the counterparty relation INVERTS. The maker is the publisher and the author is the supplier, so `client` would either be empty or would wrongly name the author as the commissioner'",
+        "a per-proof-round level below the kind of file: 'rounds are a version family and 00 already collects \"duplicate and version-family signals\" universally without needing a branch'",
+        "the season, list or pub date as a time-first level"
+      ],
+      "provenance": [
+        "row:creative.publishing-title",
+        "memo:planning/domains/nodes/creative.publishing-title.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.short-form-writing",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.short-form-writing"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "The piece"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of writing record"
+        }
+      ],
+      "exclusions": [
+        "a client level, 'ever, and not merely usually absent': 'An outlet is not a commissioner: the relationship runs the other way, the piece is offered and may be refused, and the SAME piece has many outlets sequentially'",
+        "a stage level: 'The state that actually matters here repeats per destination, so a stage level would collapse one piece's AGNI rejection and its Ploughshares acceptance into a single folder named \"submitted\"'",
+        "the per-piece level where the corpus is many one-file pieces: 'forty poems, a year of columns - the per-piece level produces forty folders holding one file each, which is not organisation. In that shape the recommendation flattens to artifact_type alone'"
+      ],
+      "provenance": [
+        "row:creative.short-form-writing",
+        "memo:planning/domains/nodes/creative.short-form-writing.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.sound-design",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.sound-design"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Picture it belongs to"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the mix got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of audio file"
+        }
+      ],
+      "exclusions": [
+        "the reusable library half of this material, which this recipe does not claim: 'A self-recorded ambience filed under the film it was first cut into is destroyed as a reusable asset, because reuse across unrelated jobs is the only reason it was kept; its parent dimension is the sound's own category, which is a key the creative schema does not have and which this placeholder deliberately does not mint'",
+        "the capture date as a level: 'A field recording is capture-based, but its defining aspect is what it is a recording OF, not when it was made - a rain recording is sought by weather and surface, never by the afternoon it happened'"
+      ],
+      "provenance": [
+        "row:creative.sound-design",
+        "memo:planning/domains/nodes/creative.sound-design.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.theatre-production",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.theatre-production"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Production"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the production got to"
+        }
+      ],
+      "exclusions": [
+        "the department as a level, which is this row's deepest useful one: 'an LX plot, an LX cue sheet and an LX note are one person's working set and belong together, whereas the default's deepest level would file the plot with other drawings and the cue sheet with other spreadsheets.' NO KEY IS PROPOSED, so artifact_type is deliberately left unbound here rather than standing in for a department.",
+        "a date level for the run: the row wants one 'UNDER the production, for the run only, and no creative sibling needs this', and creative declares no period key",
+        "the client as a level: 'a production is normally mounted BY the producing organisation, not FOR a commissioning counterparty, so the default's top level would be exactly the collector 00's own validator rejects'",
+        "the touring venue leg as a level: 'No design doc settles it, and it is a question about a real touring company's filesystem rather than about the design'"
+      ],
+      "provenance": [
+        "row:creative.theatre-production",
+        "memo:planning/domains/nodes/creative.theatre-production.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.translation-project",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.translation-project"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Job"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the translation got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of translation file"
+        }
+      ],
+      "exclusions": [
+        "the target locale as a level: 'A locale branch would scatter the two sides of one text into two subtrees... `de-DE` is meaningless without the work, exactly as Homework 3 is meaningless without the course, and the work is meaningless split across its languages'",
+        "the memory and the termbase, which belong ABOVE any project branch: 'a .tmx filed under the job that happened to export it stops being findable by the next job, and its whole value is that it spans jobs.' creative declares no key for a practice level, so this recipe does not file them."
+      ],
+      "provenance": [
+        "row:creative.translation-project",
+        "memo:planning/domains/nodes/creative.translation-project.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    },
+    {
+      "applicability_id": "ap.creative.uiux-product-design",
+      "applicability_version": 1,
+      "template_id": "def.making-record",
+      "template_version": 1,
+      "uses_schema": "creative",
+      "purpose_profile_ref": null,
+      "allowed_fields": [
+        "project",
+        "stage",
+        "artifact_type"
+      ],
+      "detection_signal_refs": [
+        "recognition:creative.uiux-product-design"
+      ],
+      "role_bindings": [
+        {
+          "role_ref": "subject_anchor",
+          "field_ref": "project",
+          "label": "Product or project"
+        },
+        {
+          "role_ref": "lifecycle_stage",
+          "field_ref": "stage",
+          "label": "Where the design got to"
+        },
+        {
+          "role_ref": "artifact_kind",
+          "field_ref": "artifact_type",
+          "label": "Kind of design file"
+        }
+      ],
+      "exclusions": [
+        "screen, flow and test round as levels: they belong 'as runtime values' rather than as dimensions",
+        "any of the design clocks as a level: 'research, design, testing, approval, and implementation dates are different clocks'"
+      ],
+      "provenance": [
+        "row:creative.uiux-product-design",
+        "memo:planning/domains/nodes/creative.uiux-product-design.research.md",
+        "60-VOCABULARY-RULINGS.md section 5 - creative declares project, artifact_type, stage, client and venue, which is what makes this row's recorded order buildable at all",
+        "51-LAUNCH-TEMPLATE-DRAFT.md section 4.8 - the hole this wave closes, named there for one schema and true of seventeen",
+        "53-HUMAN-SENSE-CHECK.md section 4 - the name-out-loud test, which every label on this row answers"
+      ],
+      "privacy_floor": null
+    }
+  ]
+}
