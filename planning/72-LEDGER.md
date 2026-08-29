@@ -16,7 +16,13 @@ produced roughly seventy distinct findings; this table is the only place they ar
 | **STALE** | the audit was right when written and the finding no longer reproduces |
 | **REJECTED** | verified and found not to be a defect; the reason is given |
 
-Suite at time of writing: **5324 passed, 19 skipped, 2 xfailed**, fixed and randomised order.
+Suite at time of writing: **5354 passed, 19 skipped, 1 xfailed**, fixed and randomised order.
+
+**Second pass, 2026-08-30.** Joseph answered four of the six owner questions in §8;
+three of them are now shipped and their rows below are updated in place. What that
+pass found on the way is in §9, and it is the more useful half: adopting the
+folders turned out to need five more things, each of which was a defect nothing
+had been able to see while every folder was dropped.
 
 ---
 
@@ -30,7 +36,7 @@ Its central claim is correct and is the most useful sentence written about this 
 | | finding | status | what happened |
 |---|---|---|---|
 | R1 | Chooser under-wires hybrid intelligence: `rule=None`, `llm=None`, `p8_run_call=None`, `EmbeddingsOff()` | **OPEN** | The single largest remaining gap. Recognition was widened four ways instead — safety-domain precaution, pattern corroboration, the user's own answers (P15), and `DirectSlot.matches` — which is why the personas file at all. **A local model needs no mode change**: P7 defines `offline` as "only local rules and LOCAL MODELS may run", and `ollama` is installed on this machine. What blocks it is R7's oracles and the prompts, which are "templates and mechanisms" and need approval. |
-| R2 | Extraction deployment does not match P5's formats: `read_docx`/`read_image`/`read_manifest`/`read_long_tail` = `_no_reader` | **PARTLY FIXED** | `.docx` wired (`2ab08e1`) — `python-docx` was installed all along, so "ships no library" was false and every Word file recorded "the bytes were never looked at". Images, archives and the long tail are still unwired; `PIL` and `openpyxl` are also installed. |
+| R2 | Extraction deployment does not match P5's formats: `read_docx`/`read_image`/`read_manifest`/`read_long_tail` = `_no_reader` | **PARTLY FIXED**, two of four | `.docx` wired (`2ab08e1`) and `.zip` wired (`c7836b7`). Both had the same shape: the comment said "ships no library" and the library was already there — `python-docx` installed, `zipfile` in the standard library — so every Word document and every archive recorded §2.4's `unsupported`, "the bytes were never looked at". The archive reader takes §2.5 literally and yields the manifest WITHOUT extraction, which is also what makes it safe: nothing is decompressed, so a zip bomb is never expanded and an encrypted member is listed by name and never decrypted. Verified live: 9 observations over 3 entries where the same file produced none. Images and the long tail remain unwired; `PIL` is installed and an image reader without OCR yields metadata only, which is why it is not simply the next hour's work. |
 | R3 | Targeted OCR disabled by `usable_threshold=lambda: True` | **OPEN** | Verified. A broken text layer never gets the second pass. |
 | R4 | Freeze catalogue vs launch-domain posture | **OWNER** | Whether the initial release routes 208 situations or six launch domains is a product decision. |
 | R5 | `RESIDUAL_LIBRARY = {}` | **OWNER** | §7.3 fixes nine residual names and leaves their eight attribute slots deferred. Enabling one means inventing slot values. |
@@ -53,9 +59,9 @@ launch set — **OWNER**, same question as R4. #4 = R2. #5 P9 purpose fixture mi
 | A | The document's words never reach the detector | **FIXED** | `36764b0`. |
 | B | No handling class for ordinary schemas | **FIXED** | `36764b0` — all 23 schemas, safety four unchanged. |
 | C | Templates need a hierarchy the deployment cannot fill | **FIXED**, and this was the keystone | `689566f`. A level nobody answered COLLAPSED every level beneath it; it is now skipped. Trees nest. |
-| D | The folders the person already made are read, then discarded | **OWNER**, and it got WORSE before it got honest | Traced to one line: `pipeline.py:518` keeps candidates whose `subject_id` is in `branch_group_ids`; a folder candidate's `subject_id` is a directory PATH and `cli.py` passes one synthetic id, so no folder can ever match and eight cards are dropped unread with nothing recording it. `node_type='existing'` is DESIGNED AND ABSENT — storage, validation and a live consumer in `residuals.py` all exist, the only writer is a test fixture, so that consumer is dead by construction. **The tempting fix is actively harmful** and was rejected: putting folder paths into `branch_group_ids` mints top-level *proposed* nodes at the root, so the product would propose moving `Uni/PHYS1401/lab.txt` into a NEW `PHYS1401` — flattening the hierarchy in the name of honouring it, which `00`:100 forbids by name. Shipped instead: disclosure, plus the report no longer calling an already-filed file a move. |
+| D | The folders the person already made are read, then discarded | **FIXED** (`cf7bf2f`) | Traced to one line: `pipeline.py:518` keeps candidates whose `subject_id` is in `branch_group_ids`; a folder candidate's `subject_id` is a directory PATH and `cli.py` passes one synthetic id, so no folder can ever match and eight cards are dropped unread with nothing recording it. `node_type='existing'` is DESIGNED AND ABSENT — storage, validation and a live consumer in `residuals.py` all exist, the only writer is a test fixture, so that consumer is dead by construction. **The tempting fix is actively harmful** and was rejected: putting folder paths into `branch_group_ids` mints top-level *proposed* nodes at the root, so the product would propose moving `Uni/PHYS1401/lab.txt` into a NEW `PHYS1401` — flattening the hierarchy in the name of honouring it, which `00`:100 forbids by name. Joseph ruled: adopt as `existing` nodes. Shipped — and the naive fix is still rejected, now by a test that says so. `_top_level_node` reads the card's SOURCE and writes `00`:102's `existing` node with the real path, nested under whichever of its own parent directories was also adopted, so the person's shape survives adoption instead of being flattened into a row of root-level proposals. Five more things were needed to make it real rather than cosmetic; see §9. Verified over a half-organised corpus: six files, all six placed into the person's own folders, four reading "nothing to do". |
 | — | `preferred_fact` counts rows, not distinct values, so two producers that AGREE delete the file's folder level | **FIXED** | Counted by `value_id` now. OQ6 untouched: two values still return `None`, and the falsifying twin pins it. |
-| — | Protection covers one extension (`.app`) | **OWNER** | The suffix list is Joseph's ruling. |
+| — | Protection covers one extension (`.app`) | **OWNER**, still unasked | The suffix list is Joseph's ruling. One of the two questions in §8 that has not been put to him. |
 | — | Five of nine `completeness` values unreachable | **OWNER** | Which value a text-less document gets is Joseph's ruling. |
 
 ---
@@ -114,30 +120,46 @@ Every one of these was invisible to 5,000 green tests.
 
 ## 5. What is honestly still broken
 
-Ranked by what it costs the person whose files these are.
+Ranked by what it costs the person whose files these are. Re-ranked on 2026-08-30:
+what was third is done, and what was first is now first by a wider margin.
 
-1. **`--situation` and `--label` are one value per run.** Tom's household is filed as `Coursework`.
-   The report now admits it; nothing fixes it. This is `66` §13's structural-versus-contextual
-   split at corpus scale, and P15 is the mechanism that should resolve it.
-2. **R1 — no rule stage, no LLM stage, no P8 on the live path.** Recognition is term-matching plus
-   three narrow widenings. It is the reason a deposition transcript needs a human to say what it is.
-3. **Cause D — existing folders discarded.** A person who has already organised half their disk
-   gets no credit for it.
-4. **P12/P13 — nothing moves, nothing is really reviewed.**
-5. **The audit log names a surface that does not exist**, under a real person's login name.
-
----
+1. **`--situation` and `--label` are one value per run.** Tom's household is filed
+   as `Coursework`; the four-role persona's legal matter number `CV20261234` is
+   filed under `Coursework` too. Measured this pass: P9 had already named four
+   groups correctly and by itself — `PHYS1401`, `PHYS2801`, `CV20261234`,
+   `Spring2026`, every one `label_source='engine'` and `coherent` — and
+   `review_and_accept` merged them into one. **The merge is not the bug and
+   removing it makes things worse**: the names survive through the vertical pass,
+   so the tree really does read `Coursework/PHYS1401`, while accepting the four
+   separately would put four course codes at the ROOT and destroy the nesting.
+   The bug is that one `--situation` overrides four categories. This is `66`
+   §13's structural-versus-contextual split at corpus scale, and it needs a
+   per-group answer, which is P15's shape or P13's.
+2. **R1 — no rule stage, no LLM stage, no P8 on the live path.** Recognition is
+   term-matching plus four narrow widenings. It is why a deposition transcript
+   needs a human to say what it is, and why `CV20261234` is categorised
+   `academic` by the engine itself — that categorisation is upstream of the
+   merge above, and fixing the merge would not fix it.
+3. **P12/P13 — nothing moves, nothing is really reviewed.** Correctly sequenced
+   after Find (`66` §22), and now the largest thing between this and a product.
+4. **R2's remaining half.** Images and the long tail still record "the bytes were
+   never looked at". An image reader without OCR yields metadata only, so this
+   is not merely the next hour's work.
+5. ~~Existing folders discarded~~ — **fixed** (`cf7bf2f`), see §9.
+6. ~~The audit log names a surface that does not exist~~ — **fixed** (`a1fe0b9`).
 
 ## 6. The two standing questions this ledger does not answer
 
-Both are Joseph's, both are cheap to answer, and both block work that is otherwise ready:
+Both were Joseph's. **Both are now answered**, and both were answered the same way:
 
-- **May a closed vocabulary gain a member** when it cannot express what happened? Two cases now:
-  `REVIEW_SURFACES` has no "no surface", and §8.2 has no event type for a move REFUSED before it was
-  attempted. `69` §3a ruled the second one Joseph's; the first is identical in shape.
-- **Is the initial release six launch domains or 208 situations?** R4, drift #3 and the residual
-  library all reduce to this one question.
-
+- **May a closed vocabulary gain a member** when it cannot express what happened?
+  **Yes, with approval recorded at the member.** `SURFACE_UNATTENDED` and §8.2's
+  `refused move` shipped in `a1fe0b9`. The naming was the agent's and is better
+  than the brief's: `unattended` over `none`, because "none" reads as "not filled
+  in yet", which is the exact ambiguity the member exists to remove.
+- **Is the initial release six launch domains or 208 situations?** **208, at full
+  scale.** R4, drift #3 and the residual library all reduce to this and all now
+  have their answer: fix recognition rather than shrink the catalogue.
 
 ---
 
@@ -147,42 +169,77 @@ Both are Joseph's, both are cheap to answer, and both block work that is otherwi
 |---|---|---|
 | `66` §12–§21's structural-question registry does not exist | **FIXED** — P15, `b382ef9`. Raise → print → `--answer` → persist → consume, verified end to end on the litigator's corpus. |
 | §3.5 speaks of slots in the PLURAL and `DirectSlot.names` is a predicate over the LOCATOR, so two slots over one body each claim the other's readings — a deployment could ship only ONE text slot | **FIXED** — `DirectSlot.matches`, additive, `None` claims everything as before. |
-| **V2 fails the WHOLE candidate when any level has one child.** A household with one term and two subjects gets NO tree rather than a tree without the redundant level | **OWNER** — V5's mistake in a third place. Implemented and reverted: it changes what V1–V6 mean, sixteen P10 tests pin the current behaviour, and expressing it needs a numeric literal `test_p10_no_invention` forbids a part to hold. Strict xfail states the case. **This is what blocks the term dimension**, which is written and unshipped in `cli.py` — shipping it made two of four personas worse, through V2 and not through the pattern. |
+| **V2 fails the WHOLE candidate when any level has one child.** A household with one term and two subjects gets NO tree rather than a tree without the redundant level | **FIXED** (`8d35912`) — Joseph ruled "skip the level, say so". `<= 1` rather than `< 2`, because `test_p10_no_invention` forbids a part to hold a numeric literal beyond 0 and 1; and counted over the LEVEL's own values rather than per parent, because the first attempt broke thirteen tests that were correct. The term dimension shipped immediately after (`a1fe0b9`) — it had been written, shipped, and reverted once, and V2 was the reason both times. |
 | Plan ids were seeded from `COUNT(plan_versions) + COUNT(tree_nodes)` as "an upper bound"; previews mint node ids that are never written, so the highest id ran ahead of the rows and a second run collided with an `IntegrityError` | **FIXED** — unique by construction, per-run token. Hidden while every tree was one node deep. |
 
-**Three instances of one mistake, now named.** V5, V2, and `_project`'s truncation
-all took a fault about ONE LEVEL and applied it to the WHOLE composition or the whole
-branch. Two are fixed; V2 is the third and is the owner's. It is worth stating as a
-class, because the next check written in `validation.py` will face the same choice.
+**Four instances of one mistake, now named, and all four fixed.** V5, V2,
+`_project`'s truncation and — found on 2026-08-30 — an adopted folder's expected
+values all took a fault about ONE LEVEL, or one value, and applied it to a WHOLE
+composition, branch, or destination. It is worth stating as a class because it has
+now recurred four times in four different modules written months apart, and because
+the fourth was found only by running the command over a corpus that had already been
+organised. The next check written in `validation.py` will face the same choice.
 
 
 ---
 
-## 8. The owner questions, collected
+## 8. The owner questions, and what Joseph answered
 
-Every OWNER row above reduces to one of these six. They are listed together because
-each one blocks work that is otherwise ready, and none needs more investigation.
+Six were collected. **Four were put to him and answered on 2026-08-29**; all four
+are shipped. Two were never asked, and both are still open.
 
-1. **May V2 skip a level instead of failing the tree?** Blocks the term dimension,
-   which is written and unshipped. Three instances of one mistake now: V5 and
-   `_project` fixed, V2 outstanding.
-2. **May a closed vocabulary gain a member when it cannot express what happened?**
-   `REVIEW_SURFACES` has no "no surface", so the audit log names a canvas that does
-   not exist under a real login name; §8.2 has no event type for a move REFUSED
-   before it was attempted.
-3. **When a person's existing folder and a proposed branch claim the same files,
-   which wins — per folder or per run?** `00`:100 gives six gestures and states no
-   default. And when a folder IS adopted, is a file placed into its own folder — or
-   does this need the sixth product state, "already where it belongs", which `00`
-   implies at :102 and :104 but never names? `LEAVE_UNTOUCHED` and `PRESERVE` are
-   the vocabulary; neither has a consumer.
-4. **Six launch domains or 208 situations?** R4, drift #3 and the residual library
-   all reduce to this.
-5. **Which suffixes are protected containers?** The list is `(".app",)`.
-6. **Which `completeness` value does a text-less document get?** Five of nine are
-   unreachable, so a file that could not be read is recorded as read-and-empty.
+| | question | answer | state |
+|---|---|---|---|
+| 1 | May V2 skip a level instead of failing the tree? | **Skip the level, say so** | shipped `8d35912`; unblocked the term dimension, shipped `a1fe0b9` |
+| 2 | May a closed vocabulary gain a member it cannot express what happened without? | **Add both members** | shipped `a1fe0b9`; the audit log stopped naming a canvas that does not exist |
+| 3 | Existing folder vs proposed branch — which wins? | **Adopt as `existing` nodes** | shipped `cf7bf2f`; needed five more things, §9 |
+| 4 | Six launch domains or 208 situations? | **208, full scale** | standing direction: fix recognition, do not shrink the catalogue |
+| 5 | Which suffixes are protected containers? | — | **unasked.** The list is `(".app",)`. |
+| 6 | Which `completeness` value does a text-less document get? | — | **unasked.** Five of nine are unreachable, so a file that could not be read is recorded as read-and-empty. |
+
+**Question 3 carried a second question inside it**, raised by the agent that traced
+it: when a folder IS adopted, is a file already in it "placed" into its own folder,
+or does that need a sixth product state, "already where it belongs", which `00`
+implies at :102 and :104 but never names? `LEAVE_UNTOUCHED` and `PRESERVE` are the
+vocabulary and neither has a consumer.
+
+**Answered by building, and the answer is that no sixth state is needed.** The
+state is DERIVABLE and now derived: a file whose current directory is the
+destination's own `existing_path` is reported as staying put, not moved, and is
+excluded from the "ready to file" count. The report distinguishes three cases where
+it had words for two — this folder, another folder of the same name, and somewhere
+else — because once the person's folders are adopted, "already in a folder CALLED
+CHEM1500; the plan would put it in the one it proposes" describes a move out of a
+folder and back into it. If a later part needs the state as a first-class outcome,
+`LEAVE_UNTOUCHED` is there and its meaning is now settled by use.
 
 **And one that is not a question but a permission:** wiring a LOCAL model needs no
 mode change — P7 defines `offline` as "only local rules and local models may run",
 and `ollama` is on this machine. What it needs is R7's oracles and a prompt, and a
 prompt is a "template and mechanism", which house rules say is approved manually.
+
+
+---
+
+## 9. What adopting the folders found
+
+Every one of these was invisible while every folder was read and dropped, and each
+had to be fixed before adoption was worth having rather than actively worse.
+
+| | finding | status |
+|---|---|---|
+| **Folder candidates were keyed by their LAST PATH SEGMENT.** A person with `Uni/PHYS1401` and `Physics/PHYS1401` — two real folders, two places, different files — had one overwritten in a dict and dropped with nothing recording it. The one outcome the owner's standing rule forbids without exception | **FIXED** — keyed by path, which is unique; the label was never a workable identity |
+| **The scan ROOT was adopted as a folder inside its own proposal** — a node called `organised` holding `Uni` and `Inbox`, which is the whole corpus wearing a folder's clothes | **FIXED** — P3 marks a root by recording no parent |
+| **An adopted folder expected nothing, so §6.2 could never choose it.** Adoption would have been cosmetic: the folders would appear and never receive a file | **FIXED** — a folder expects what its own contents AGREE on, read through P6's preferred-fact surface. Nothing composed: §5.4 forbids inventing a value and every one of these is P6's |
+| **…and the first version of that expected too much.** Every file in one corpus was Columbia's and in one term, so all four adopted folders expected `term=Spring2026`, each matched every file, §6.10 called it multiple supported homes, and six files that had been placing fine abstained to a model offline mode forbids | **FIXED**, and it is **the fourth appearance of one mistake** — after V5, V2 and `_project`. An expectation the whole corpus satisfies divides nothing. This is V2's own test applied to a folder instead of a level, and it needs no threshold: either some file disagrees or none does |
+| **An adopted folder named no accepted group**, so it carried `DIRECT_FACT` alone — 3 of §6.3's 7 points, against a 0.5 threshold — and everything in it abstained `no_supported_destination` | **FIXED** — it names the groups whose files it already holds, which `00`:100 lists by name among what the person should see about their own folder |
+| **Step 6 had no cross-branch half.** The person's `Uni/CHEM1500` and the engine's `Coursework/CHEM1500` tied at every file | **FIXED** — a proposal whose expectations the person's folder wholly contains is not a second home but a vaguer copy of one. Three refusals keep it narrow: an expectant proposal only, a superset only, and never one of the person's folders against another |
+| **`curated_folder_labels` had been passed `()` since the command was written.** §6.2's `CURATED_FOLDER` channel is `00`:100 in the scoring, and it had never once fired | **FIXED** — fed with the folders the file is already in |
+| The report counted the person's folders as "Proposed folders" and drew them identically to proposals | **FIXED** — counted separately and marked `[yours already]`. `00`:100 asks for exactly this distinction and names it as a visual one |
+
+**Two architectural guards refused a first attempt and were right both times.** §7.11
+and B3 keep every composed path out of P11 — "P11 names a node and P12 resolves a
+path" — so the index carries P10's `node_type` and not `existing_path`; and P10 may
+not import a module that can write facts, so the new read goes through
+`facts.read_surface` rather than `facts.file_facts`. Both were caught by tests that
+existed before this work and knew what they were protecting.
