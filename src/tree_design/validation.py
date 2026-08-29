@@ -249,7 +249,26 @@ def _v5(candidate: MaterialisedCandidate,
 
 
 def _v6(candidate: MaterialisedCandidate) -> CheckFailure | None:
-    """Produces empty branches when tested against the accepted group."""
+    """Produces empty branches when tested against the accepted group.
+
+    **A level with NO VALUES AT ALL is invisible here, and that is deliberate.**
+    An audit found it and was right that the loop cannot see it -- it iterates
+    `level.values`, so a level holding nothing contributes nothing to `empty` and
+    V6 passes. The tempting fix is to fail such a candidate, and it would be the
+    same mistake this project has now made four times: V5 failed a whole
+    candidate for one level's fault, V2 failed a whole tree, `_project` truncated
+    a whole branch, and an adopted folder claimed an expectation that divided
+    nothing. Failing here would be the fifth.
+
+    It is also unnecessary. A level with no values cannot reach the tree: both
+    `_project` and `_v2` skip a level that does not DIVIDE, and zero values is the
+    extreme case of not dividing. The branch is built without it and the report
+    says so in as many words -- "any level your files did not actually divide".
+
+    So the outcome is right, the person is told, and V6 keeps the job its name
+    describes: refusing a level whose values would be created EMPTY, which is a
+    statement about values that exist.
+    """
     empty = [
         value
         for level in candidate.levels if not level.metadata_only

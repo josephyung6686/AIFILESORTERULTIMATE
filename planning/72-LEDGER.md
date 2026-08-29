@@ -37,7 +37,7 @@ Its central claim is correct and is the most useful sentence written about this 
 |---|---|---|---|
 | R1 | Chooser under-wires hybrid intelligence: `rule=None`, `llm=None`, `p8_run_call=None`, `EmbeddingsOff()` | **OPEN** | The single largest remaining gap. Recognition was widened four ways instead — safety-domain precaution, pattern corroboration, the user's own answers (P15), and `DirectSlot.matches` — which is why the personas file at all. **A local model needs no mode change**: P7 defines `offline` as "only local rules and LOCAL MODELS may run", and `ollama` is installed on this machine. What blocks it is R7's oracles and the prompts, which are "templates and mechanisms" and need approval. |
 | R2 | Extraction deployment does not match P5's formats: `read_docx`/`read_image`/`read_manifest`/`read_long_tail` = `_no_reader` | **PARTLY FIXED**, two of four | `.docx` wired (`2ab08e1`) and `.zip` wired (`c7836b7`). Both had the same shape: the comment said "ships no library" and the library was already there — `python-docx` installed, `zipfile` in the standard library — so every Word document and every archive recorded §2.4's `unsupported`, "the bytes were never looked at". The archive reader takes §2.5 literally and yields the manifest WITHOUT extraction, which is also what makes it safe: nothing is decompressed, so a zip bomb is never expanded and an encrypted member is listed by name and never decrypted. Verified live: 9 observations over 3 entries where the same file produced none. Images and the long tail remain unwired; `PIL` is installed and an image reader without OCR yields metadata only, which is why it is not simply the next hour's work. |
-| R3 | Targeted OCR disabled by `usable_threshold=lambda: True` | **OPEN** | Verified. A broken text layer never gets the second pass. |
+| R3 | Targeted OCR disabled by `usable_threshold=lambda: True` | **FIXED** (`c77f302`) | The empty case needs no threshold: a pass that produced no fact and recorded nothing unresolved settled nothing, and "usable" is not a defensible word for it. The Deferred threshold (M11, P5 OQ1) is still not chosen, so no text-bearing PDF is re-read on the strength of an unauthored number. Scope verified rather than assumed — `extract_targeted_ocr` returns immediately for any family but PDF, so an empty `.txt` cannot reach Vision. |
 | R4 | Freeze catalogue vs launch-domain posture | **OWNER** | Whether the initial release routes 208 situations or six launch domains is a product decision. |
 | R5 | `RESIDUAL_LIBRARY = {}` | **OWNER** | §7.3 fixes nine residual names and leaves their eight attribute slots deferred. Enabling one means inventing slot values. |
 | R6 | No apply/undo (P12), no review surface (P13) | **OPEN** | Both have SPECs and PLANs. Unstarted, correctly — `66` §22 sequences them after Find. |
@@ -75,7 +75,12 @@ launch set — **OWNER**, same question as R4. #4 = R2. #5 P9 purpose fixture mi
 `record_group`, so groups reaching review are already named. #3 the single-signal routing funnel
 (`detection_signals_for=lambda group: frozenset({signal})`): **OPEN** — measured, fixing it alone
 still yields one folder, but it is why Tom's household routes through `academic.coursework`. #4 V6
-is blind to an empty LEVEL (it iterates values): **OPEN**. #5 `choose_option`: **REJECTED**, behaving
+is blind to an empty LEVEL (it iterates values): **REJECTED**, and the reasoning is
+now in V6's own docstring. The finding is correct about the loop and the fix would be
+the fifth instance of the mistake named at the end of §7 — failing a whole candidate
+for one level's fault. It is also unnecessary: `_project` and `_v2` both skip a level
+that does not divide, zero values is the extreme case of not dividing, and the report
+tells the person which levels were left out. #5 `choose_option`: **REJECTED**, behaving
 as documented, the last domino rather than a cause. Its bonus finding — horizontal branch nodes carry
 no expected values, so only `_project`-minted nodes can receive files — **CONFIRMED**, and it is why
 cause C was the single point of failure for the whole product.
