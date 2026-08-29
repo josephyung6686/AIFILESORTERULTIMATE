@@ -29,7 +29,7 @@ Its central claim is correct and is the most useful sentence written about this 
 
 | | finding | status | what happened |
 |---|---|---|---|
-| R1 | Chooser under-wires hybrid intelligence: `rule=None`, `llm=None`, `p8_run_call=None`, `EmbeddingsOff()` | **OPEN** | The single largest remaining gap. `--situation`-driven recognition was widened three ways instead (safety-domain precaution, pattern corroboration, user answers), which is why the personas now file at all. The rule and LLM stages remain unwired. |
+| R1 | Chooser under-wires hybrid intelligence: `rule=None`, `llm=None`, `p8_run_call=None`, `EmbeddingsOff()` | **OPEN** | The single largest remaining gap. Recognition was widened four ways instead — safety-domain precaution, pattern corroboration, the user's own answers (P15), and `DirectSlot.matches` — which is why the personas file at all. **A local model needs no mode change**: P7 defines `offline` as "only local rules and LOCAL MODELS may run", and `ollama` is installed on this machine. What blocks it is R7's oracles and the prompts, which are "templates and mechanisms" and need approval. |
 | R2 | Extraction deployment does not match P5's formats: `read_docx`/`read_image`/`read_manifest`/`read_long_tail` = `_no_reader` | **PARTLY FIXED** | `.docx` wired (`2ab08e1`) — `python-docx` was installed all along, so "ships no library" was false and every Word file recorded "the bytes were never looked at". Images, archives and the long tail are still unwired; `PIL` and `openpyxl` are also installed. |
 | R3 | Targeted OCR disabled by `usable_threshold=lambda: True` | **OPEN** | Verified. A broken text layer never gets the second pass. |
 | R4 | Freeze catalogue vs launch-domain posture | **OWNER** | Whether the initial release routes 208 situations or six launch domains is a product decision. |
@@ -53,8 +53,8 @@ launch set — **OWNER**, same question as R4. #4 = R2. #5 P9 purpose fixture mi
 | A | The document's words never reach the detector | **FIXED** | `36764b0`. |
 | B | No handling class for ordinary schemas | **FIXED** | `36764b0` — all 23 schemas, safety four unchanged. |
 | C | Templates need a hierarchy the deployment cannot fill | **FIXED**, and this was the keystone | `689566f`. A level nobody answered COLLAPSED every level beneath it; it is now skipped. Trees nest. |
-| D | The folders the person already made are read, then discarded | **OPEN** | Under investigation. A four-level hierarchy and a flat control produced identical proposals. |
-| — | `preferred_fact` counts rows, not distinct values, so two producers that AGREE delete the file's folder level | **OPEN** | Under repair. |
+| D | The folders the person already made are read, then discarded | **OPEN** | Already pinned by a test that states the mechanism: `cli.py` puts one synthetic id in `branch_group_ids`, a folder candidate's `subject_id` is a directory path, so no folder can ever match and every folder card is dropped unread. |
+| — | `preferred_fact` counts rows, not distinct values, so two producers that AGREE delete the file's folder level | **FIXED** | Counted by `value_id` now. OQ6 untouched: two values still return `None`, and the falsifying twin pins it. |
 | — | Protection covers one extension (`.app`) | **OWNER** | The suffix list is Joseph's ruling. |
 | — | Five of nine `completeness` values unreachable | **OWNER** | Which value a text-less document gets is Joseph's ruling. |
 
@@ -136,3 +136,20 @@ Both are Joseph's, both are cheap to answer, and both block work that is otherwi
   attempted. `69` §3a ruled the second one Joseph's; the first is identical in shape.
 - **Is the initial release six launch domains or 208 situations?** R4, drift #3 and the residual
   library all reduce to this one question.
+
+
+---
+
+## 7. Added after the first version of this ledger
+
+| | finding | status |
+|---|---|---|
+| `66` §12–§21's structural-question registry does not exist | **FIXED** — P15, `b382ef9`. Raise → print → `--answer` → persist → consume, verified end to end on the litigator's corpus. |
+| §3.5 speaks of slots in the PLURAL and `DirectSlot.names` is a predicate over the LOCATOR, so two slots over one body each claim the other's readings — a deployment could ship only ONE text slot | **FIXED** — `DirectSlot.matches`, additive, `None` claims everything as before. |
+| **V2 fails the WHOLE candidate when any level has one child.** A household with one term and two subjects gets NO tree rather than a tree without the redundant level | **OWNER** — V5's mistake in a third place. Implemented and reverted: it changes what V1–V6 mean, sixteen P10 tests pin the current behaviour, and expressing it needs a numeric literal `test_p10_no_invention` forbids a part to hold. Strict xfail states the case. **This is what blocks the term dimension**, which is written and unshipped in `cli.py` — shipping it made two of four personas worse, through V2 and not through the pattern. |
+| Plan ids were seeded from `COUNT(plan_versions) + COUNT(tree_nodes)` as "an upper bound"; previews mint node ids that are never written, so the highest id ran ahead of the rows and a second run collided with an `IntegrityError` | **FIXED** — unique by construction, per-run token. Hidden while every tree was one node deep. |
+
+**Three instances of one mistake, now named.** V5, V2, and `_project`'s truncation
+all took a fault about ONE LEVEL and applied it to the WHOLE composition or the whole
+branch. Two are fixed; V2 is the third and is the owner's. It is worth stating as a
+class, because the next check written in `validation.py` will face the same choice.
