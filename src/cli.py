@@ -62,7 +62,7 @@ from grouping.store import (
     stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, USER, USER_EDITED,
+    ACCEPTED, COHERENT, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES, USER_EDITED,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -486,7 +486,15 @@ def review_and_accept(conn: sqlite3.Connection,
     schema = situation.split(".", 1)[0]
     reviewed = Group(
         group_id=merged_id, seed_ref=first.seed_ref, seed_kind=first.seed_kind,
-        proposed_basis=f"the user confirmed these files are {label!r}",
+        # RULES, not USER. `--label` and `--situation` really are the person's
+        # answers -- they are required flags and this command refuses to guess
+        # them. The FILE SET is not: this review keeps every group P9 proposed
+        # and shows nobody. Saying "the user confirmed these files" writes a
+        # human judgement into a record P13, a replay and the audit log all read
+        # back, about an act nobody performed.
+        proposed_basis=(
+            f"the rules kept every group P9 proposed and the user named them "
+            f"{label!r}; nobody was shown which files went into this one"),
         anchor_facts=tuple(
             fact for result in grouped for fact in result.group.anchor_facts),
         pre_model_signals={"reviewed_proposals": len(grouped)},
@@ -498,9 +506,10 @@ def review_and_accept(conn: sqlite3.Connection,
         group_category=schema, display_label=label, label_source=USER_EDITED,
         conflicts=(), stop_rule_hits=(), state=first.state,
         sensitivity_state=first.sensitivity_state, dossier_id=None,
-        llm_response_ref=None, validation_verdict_ref=None, created_by=USER,
+        llm_response_ref=None, validation_verdict_ref=None, created_by=RULES,
         created_at=created_at, supersedes=first.group_id,
-        supersede_reason="the user named and categorised this group at review")
+        supersede_reason=("the rules merged P9's groups under the label and "
+                          "situation the user supplied on the command line"))
     record_group(conn, reviewed)
     for result in grouped:
         for membership in memberships_for_group(conn, result.group.group_id):
@@ -509,7 +518,7 @@ def review_and_accept(conn: sqlite3.Connection,
         acceptance_id=f"acc:{merged_id}", plan_version_id=PLAN_VERSION,
         group_id=merged_id, membership_id=None, acceptance=ACCEPTED,
         review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
-        review_decision_ref=None, decided_by=USER, created_at=created_at))
+        review_decision_ref=None, decided_by=RULES, created_at=created_at))
     return (merged_id,)
 
 
@@ -519,7 +528,7 @@ def _carried(membership, group_id: str):
     return dataclasses.replace(
         membership, membership_id=f"{membership.membership_id}:{group_id}",
         group_id=group_id, supersedes=membership.membership_id,
-        supersede_reason="carried onto the group the user confirmed")
+        supersede_reason="carried onto the group the rules merged these into")
 
 
 def choose_option(candidate, options) -> str:
@@ -704,7 +713,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 plan_version_id=plan_version, group_id=group_id,
                 membership_id=None, acceptance=ACCEPTED,
                 review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
-                review_decision_ref=None, decided_by=USER, created_at=clock))
+                review_decision_ref=None, decided_by=RULES, created_at=clock))
 
     def set_privacy_policy(db: sqlite3.Connection, plan_version: str) -> None:
         set_policy(db, Policy(

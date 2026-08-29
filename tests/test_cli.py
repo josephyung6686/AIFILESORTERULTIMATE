@@ -535,3 +535,92 @@ def test_each_decision_made_for_the_person_says_what_was_taken():
             "Where material that belongs to two folders goes",
             "Which nesting to use"):
         assert fragment in printed, f"{fragment!r} missing from:\n{printed}"
+
+
+# ======================================================================================
+# Who the record says decided
+# ======================================================================================
+
+
+def test_the_group_record_does_not_claim_a_person_chose_its_file_set(tmp_path):
+    """Nobody saw which files went into that group, so nothing may say they did.
+
+    `--label` and `--situation` really are the person's -- they are required flags
+    and the command refuses to guess them. The FILE SET is not: the non-interactive
+    review keeps every group P9 proposed and shows nobody. Writing `decided_by =
+    'user'` and "the user confirmed these files are 'Coursework'" makes a record
+    that a later part, a replay, or P13 will read as a human judgement.
+
+    `DECIDED_BY` and `CREATED_BY` already carry `rules`, which is what actually
+    decided, so the honest value was in the vocabulary at every one of these sites.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    for name in ("a.txt", "b.txt"):
+        (corpus / name).write_text("PHYS1401\n")
+    database = tmp_path / "plan.sqlite"
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=io.StringIO())
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    groups = [dict(r) for r in conn.execute(
+        "SELECT display_label, created_by, proposed_basis, supersede_reason "
+        "FROM groups")]
+    accept = [dict(r) for r in conn.execute(
+        "SELECT decided_by FROM group_acceptance")]
+    conn.close()
+
+    reviewed = [g for g in groups if g["display_label"] == "Coursework"]
+    assert reviewed, groups
+    for group in reviewed:
+        assert group["created_by"] != "user", (
+            "the record says a person created this group's file set; nobody saw it")
+        # The claim that must not survive is about the FILE SET. Mentioning the
+        # user is not itself the defect -- the label really is theirs, and a
+        # record scrubbed of them would lose the one thing they did supply.
+        basis = group["proposed_basis"] or ""
+        assert "the user confirmed these files" not in basis, basis
+        assert "nobody was shown which files" in basis, (
+            f"the basis does not admit that nobody saw the file set: {basis!r}")
+        assert "the user named and categorised" not in (
+            group["supersede_reason"] or ""), group["supersede_reason"]
+    assert accept, "no acceptance was recorded at all"
+    for row in accept:
+        assert row["decided_by"] != "user", (
+            "the acceptance says a person decided it; nobody was asked")
+
+
+def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
+    """The negative twin, and the reason this is not a blanket rename.
+
+    `--label` IS the user's answer -- required, refused rather than guessed. A fix
+    that scrubbed every trace of the person from the record would lose the one
+    thing they really did supply, which is worse than the overclaim it replaces.
+    """
+    import sqlite3
+
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    for name in ("a.txt", "b.txt"):
+        (corpus / name).write_text("PHYS1401\n")
+    database = tmp_path / "plan.sqlite"
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=io.StringIO())
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    rows = [dict(r) for r in conn.execute(
+        "SELECT display_label, label_source FROM groups "
+        "WHERE display_label = 'Coursework'")]
+    edited = [dict(r) for r in conn.execute(
+        "SELECT user_edited_label FROM group_acceptance")]
+    conn.close()
+
+    assert rows, "the label the person typed is not on any group"
+    assert all(r["label_source"] == "user-edited" for r in rows), rows
+    assert any(r["user_edited_label"] == "Coursework" for r in edited), edited
