@@ -1614,6 +1614,11 @@ def act_on_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
     by_label: dict[str, list[ResidualSet]] = {}
     for item in result.residual_sets:
         by_label.setdefault(item.label, []).append(item)
+    # EVERY pair is resolved before ANY is recorded. Recording as it goes would
+    # let `--send-set A --send-set typo` file A and then refuse the run, leaving
+    # an answer standing for a plan the person was never shown -- a refusal that
+    # half happened is the one thing worse than a refusal.
+    resolved: list[tuple[ResidualSet, str]] = []
     for label, area_label in sends.items():
         if label not in by_label:
             raise ResidualSendRefused(
@@ -1622,16 +1627,16 @@ def act_on_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
                    if by_label else "none, so there is nothing to send"))
         area = approved_residual_area(conn, plan_version=inputs.plan_version,
                                       display_label=area_label)
-        for item in by_label[label]:
-            record_set_decision(
-                conn,
-                ResidualSetDecision(set_id=item.set_id,
-                                    plan_version=inputs.plan_version,
-                                    choice=SEND_TO_APPROVED_NODE,
-                                    node_id=area.node_id,
-                                    decided_at=observed_at),
-                component_version=component_version, observed_at=observed_at,
-                user_id=user_id)
+        resolved.extend((item, area.node_id) for item in by_label[label])
+    for item, node_id in resolved:
+        record_set_decision(
+            conn,
+            ResidualSetDecision(set_id=item.set_id,
+                                plan_version=inputs.plan_version,
+                                choice=SEND_TO_APPROVED_NODE, node_id=node_id,
+                                decided_at=observed_at),
+            component_version=component_version, observed_at=observed_at,
+            user_id=user_id)
     written = review_residual_sets(
         conn, result=result, inputs=inputs, evidence_for=evidence_for,
         component_version=component_version, observed_at=observed_at)

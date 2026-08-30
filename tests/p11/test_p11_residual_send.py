@@ -359,3 +359,79 @@ def test_a_sent_set_never_makes_a_file_movable_without_a_look(p11_conn):
     placed = [d for d in after.decisions if d.outcome == v.PLACE]
     assert placed
     assert all(d.review_policy != v.AUTO_ELIGIBLE for d in placed)
+
+
+# --- the split set: what a bare label does ------------------------------------------
+
+def _two_files(conn):
+    _classify(conn, file_id="f2", content_hash="h2")
+    return (SUBJECT, Subject(kind=v.FILE, file_id="f2", content_hash="h2",
+                             group_id=None, member_file_ids=()))
+
+
+def _split_limits(conn):
+    """One file per batch, so `surface_residual_sets` splits rather than truncates."""
+    from dataclasses import replace
+
+    return replace(placement_limits(conn), max_residual_files_per_batch=1)
+
+
+def test_a_split_set_is_two_labels_and_the_bare_one_names_neither(skeleton):
+    """§8.6 splits a set over the batch ceiling rather than truncating it, and each
+    half gets its own label -- "Not yet placed (1 of 2)" and "(2 of 2)".
+
+    A bare "Not yet placed" is then the name of NO surfaced set, and it refuses.
+    Matching one half would file half of what the person meant and say nothing
+    about the other; matching both would read a name the report never printed as
+    an instruction covering two sets. The refusal names both halves, so the way
+    out is to type what the report actually said.
+    """
+    from placement.pipeline import ResidualSendRefused
+
+    result = _corpus(skeleton, subjects=_two_files(skeleton),
+                     inputs=_inputs(skeleton, limits=_split_limits(skeleton)))
+    assert [item.label for item in result.residual_sets] == [
+        "Not yet placed (1 of 2)", "Not yet placed (2 of 2)"]
+
+    with pytest.raises(ResidualSendRefused) as refusal:
+        _act(skeleton, result, {"Not yet placed": REVIEW_LATER_LABEL},
+             inputs=_inputs(skeleton, limits=_split_limits(skeleton)))
+    assert "Not yet placed (1 of 2)" in str(refusal.value)
+    assert "Not yet placed (2 of 2)" in str(refusal.value)
+    # And nothing was filed on the way to refusing.
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM residual_set_decisions").fetchone()["c"] == 0
+
+
+def test_each_half_of_a_split_set_can_be_sent_by_the_name_the_report_printed(
+        skeleton):
+    """The discriminating twin: the refusal above is about the bare label being no
+    set's name, not about split sets being unsendable."""
+    inputs = _inputs(skeleton, limits=_split_limits(skeleton))
+    result = _corpus(skeleton, subjects=_two_files(skeleton), inputs=inputs)
+    after = _act(skeleton, result,
+                 {"Not yet placed (1 of 2)": REVIEW_LATER_LABEL,
+                  "Not yet placed (2 of 2)": REVIEW_LATER_LABEL},
+                 inputs=inputs)
+    placed = sorted(d.subject.file_id for d in after.decisions
+                    if d.outcome == v.PLACE)
+    assert placed == ["f1", "f2"]
+
+
+def test_a_refused_send_records_no_answer_for_the_sets_that_were_fine(skeleton):
+    """`--send-set <real> --send-set <typo>` refuses the run and files neither.
+
+    Sabotage twin: record each pair as the loop resolves it, and the real one is
+    already answered when the typo refuses -- a set answered against a plan the
+    person never got a report for.
+    """
+    from placement.pipeline import ResidualSendRefused
+
+    inputs = _inputs(skeleton, limits=_split_limits(skeleton))
+    result = _corpus(skeleton, subjects=_two_files(skeleton), inputs=inputs)
+    with pytest.raises(ResidualSendRefused):
+        _act(skeleton, result,
+             {"Not yet placed (1 of 2)": REVIEW_LATER_LABEL,
+              "Not yet placed (2 of 2)": "Reading Inbox"}, inputs=inputs)
+    assert skeleton.execute(
+        "SELECT count(*) AS c FROM residual_set_decisions").fetchone()["c"] == 0
