@@ -312,9 +312,27 @@ def test_the_version_diff_is_reachable_from_somewhere_in_placement():
     """`reproject` and `learned_preferences_still_applicable` have no caller.
 
     Their owed consumer is the pipeline's adopt-a-new-version path and P13's
-    version-diff surface, neither of which is built. Until one lands, §8.8's
-    re-projection is a fully-tested component connected to nothing -- the shape
-    this codebase shipped seven times.
+    version-diff surface. Until one lands, §8.8's re-projection is a fully-tested
+    component connected to nothing -- the shape this codebase shipped seven times.
+
+    **Corrected 2026-08-31: P13's surface IS built, and the gap is still open.**
+    This docstring used to say "neither of which is built", and half of that is
+    now false: `review_surface/versions_view.py:115`'s `structural_diff_view`
+    exists and takes a `VersionDiff`. It does not call `reproject` -- deliberately,
+    per its own docstring at `versions_view.py:120-124`, because "`reproject` is a
+    P11 call with its own revalidation inputs and P13 must not choose them" -- and
+    `structural_diff_view` is itself unreachable from `cli.main`, which imports
+    only `review_surface.schema` and `review_surface.vocabulary`.
+
+    So the caller is still owed, and the reason has moved: it is no longer "the
+    consumer is unbuilt" but "the consumer is built, unreached, and correct not to
+    call this itself". The remaining blocker is upstream of all three names --
+    `cli.py:1211` mints a fresh `uuid4` run token per run and
+    `tree_design/pipeline.py:789` writes each run's root version with
+    `predecessor_id=None`, so two runs share no `origin_node_id` and a `reproject`
+    across them would report every file as needing renewed review. Wiring a call
+    before that lineage exists would return confident nonsense, not a missing
+    answer.
 
     `xfail(strict=True)`: it reports the gap today and turns the suite RED the
     day a caller appears, which forces the marker off.

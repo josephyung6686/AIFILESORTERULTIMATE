@@ -25,7 +25,7 @@ fails for a defect nobody is fixing today is a defect nobody reads twice.
    this ref is redundant rather than dangerous, and removing a shipped field is
    wider than that amendment — so it is named here to be inherited knowingly.
 
-2. SIX P2 STAGE EMITTERS HAVE NO `src/` CALLER, across four parts:
+2. SIX P2 STAGE EMITTERS ARE NEVER REACHED IN A RUN, across four parts:
    `grouping.emit_retrieval_stage`, `emit_graph_stage`, `emit_grouping_stage`,
    `placement.emit_retrieval_stage`, `emit_scoring_stage`, and P10's own two.
    That is DELIBERATE and the reason is in P9's code at
@@ -33,6 +33,17 @@ fails for a defect nobody is fixing today is a defect nobody reads twice.
    ingestion would put a measurement in the harness for a run nobody asked to
    evaluate." The test that settles it: would wiring the consumer today be
    correct? No — so this is a scheduled gap, not the inert-concept defect.
+
+   Corrected 2026-08-31: this used to say the six "have no `src/` caller", and
+   two of them now do — `placement/pipeline.py:386,460` call P11's pair. It
+   changes nothing, and saying so precisely is what keeps the entry usable: both
+   calls sit behind `if inputs.p2 is not None`, and `cli.py:1575` passes
+   `p2=None` unconditionally, so no shipped run writes a stage row through them
+   either. P11 built the optional seam and left it unfilled; P10 did not build
+   the seam. Same posture, two implementations — and the whole-tree census
+   (`tests/integration/test_composition_root.py`) reads P11's pair as reachable
+   and P10's as not, which is an artifact of its AST walk not seeing a runtime
+   guard and not a difference in wiring.
 
    THE RISK, stated so it is not rediscovered: "deliberate" decays into
    "forgotten" if P2's replay driver is never built. Six emitters across four
