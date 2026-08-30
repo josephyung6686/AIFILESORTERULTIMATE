@@ -9,6 +9,11 @@ Reads: `planning/74-PLAN-P12-P13.md`, `planning/69-HANDOFF.md`,
 `planning/parts/P9-grouping/SPEC.md`, `src/`, `tests/`, the strict-xfail compatibility report, and
 four probe runs that handed P13's real record to each of the three live receivers.
 
+**Read §13 first if you want only the decision.** §1-§10 were written and committed before P13
+Wave B landed; §11-§13 are a second pass after it. §13.1 replaces §8 and §13.3 replaces §9 --
+the decision reduced from "which of four vocabularies wins" to one ownership question, because the
+project turned out to already have the rule.
+
 Every factual claim about behaviour carries a file and line and was checked by reading the code or by
 running it. Where a claim is a reading rather than a fact it says so. Judgement is in §9 and nowhere
 else.
