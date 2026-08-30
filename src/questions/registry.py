@@ -30,7 +30,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from questions.records import QuestionOption
-from questions.store import activated_schemas, gated_template
+from questions.store import (
+    activated_schemas, gated_template, selected_situation,
+)
 from questions.vocabulary import (
     SCOPE_BRANCH, SCOPE_ORGANIZATION, SCOPES, check,
 )
@@ -105,9 +107,22 @@ NESTING_KIND = QuestionKind(
     consequence_field="gates_template",
     reader=gated_template)
 
-#: Every kind this deployment ships. Two, and the tests assert that every
+#: `triggers.question_for_situation`. Two situations the shipped library carries
+#: both fire on one branch's evidence -- `68` F6's graduate student who also
+#: teaches -- and the person says which this branch is. `kind_id` is its own word
+#: rather than the scope's, because `branch` is already NESTING_KIND's: two kinds
+#: share the branch SCOPE and cannot share a question-id prefix, or `kind_of` would
+#: have to guess which mechanism an answer belongs to.
+SITUATION_KIND = QuestionKind(
+    kind_id="situation",
+    scope_kind=SCOPE_BRANCH,
+    consequence_field="selects_situation",
+    reader=selected_situation)
+
+#: Every kind this deployment ships, and the tests assert that every
 #: consequence `QuestionOption` can carry is claimed by one of them.
-QUESTION_KINDS: tuple[QuestionKind, ...] = (READING_KIND, NESTING_KIND)
+QUESTION_KINDS: tuple[QuestionKind, ...] = (
+    READING_KIND, NESTING_KIND, SITUATION_KIND)
 
 
 def kind_of(question_id: str) -> QuestionKind | None:

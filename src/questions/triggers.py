@@ -35,7 +35,7 @@ from dataclasses import dataclass
 from privacy.vocabulary import check_handling_class
 
 from questions.records import QuestionOption, StructuralQuestion
-from questions.registry import NESTING_KIND, READING_KIND
+from questions.registry import NESTING_KIND, READING_KIND, SITUATION_KIND
 from questions.vocabulary import SCOPE_BRANCH, SCOPE_ORGANIZATION, STRUCTURAL
 
 #: `66` §14 keeps these two answers first-class, so every derived question carries
@@ -242,3 +242,50 @@ def _nesting_label(choice: NestingChoice) -> str:
     for warning in choice.warnings:
         parts.append(f"warning: {warning}")
     return " -- ".join(parts)
+
+
+def question_for_situation(*, branch_label: str, situations: Iterable[str],
+                           file_count: int) -> StructuralQuestion:
+    """§13's third consequence: the person says which of their lives a branch is.
+
+    `--situation` takes ONE string for a whole disk and derives the schema from it.
+    `68` F6 measured the cost on a real corpus: Priya's entire disk is
+    `academic.coursework` "including the material that is `academic.teaching`, a
+    situation the shipped library now carries". She is a graduate student who also
+    teaches, and the command line made her choose which of her two lives to file.
+    §16:543 says the same thing from the other end -- "being more than one thing is
+    normal".
+
+    So this asks per BRANCH, where the ambiguity actually is, and only when two
+    situations the shipped library carries both fire on that branch's evidence.
+
+    **The labels are the library's own names, verbatim.** Not a friendlier phrasing
+    of them: `_schema_words` already records why this module does not invent
+    vocabulary the template library owns, and `--list-situations` prints these exact
+    strings, so they are what the person has already been shown.
+    """
+    offered = tuple(dict.fromkeys(situations))
+    if len(offered) < 2:
+        raise ValueError(
+            "a question is asked where TWO situations both fire on one branch; "
+            "one situation is an answer and not a question, and asking anyway "
+            "would be the generic questionnaire §12 rejects, one branch at a time")
+    files = "file" if file_count == 1 else "files"
+    return StructuralQuestion(
+        question_id=f"{SITUATION_KIND.kind_id}:{branch_label}",
+        answer_class=STRUCTURAL,
+        prompt=f"Which of these is {branch_label}?",
+        evidence_context=(
+            f"{file_count} {files} sit under {branch_label}, and their own facts "
+            f"fit {len(offered)} of the situations this library carries equally."),
+        unlocks=(
+            f"This decides which templates {branch_label} is offered, and so which "
+            "folders it can have. Until it is answered the situation you gave on "
+            "the command line is used for this branch as well as the rest."),
+        will_not_do=WILL_NOT_DO,
+        scope=f"{SCOPE_BRANCH}:{branch_label}",
+        handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
+        options=tuple(QuestionOption(situation, situation,
+                                     selects_situation=situation)
+                      for situation in offered),
+        evidence_refs=(f"{SCOPE_BRANCH}:{branch_label}",))

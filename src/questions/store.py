@@ -265,6 +265,30 @@ def gated_template(conn: sqlite3.Connection, *, scope: str) -> str | None:
     return chosen[0] if chosen else None
 
 
+def selected_situation(conn: sqlite3.Connection, *, scope: str) -> str | None:
+    """The situation the person chose for ONE branch, or `None` if they have not.
+
+    `66` §13: a structural answer may "RESOLVE ROLE AMBIGUITY". This is the whole
+    of that consequence, in one place, for the same reason `activated_schemas` and
+    `gated_template` are each in one place.
+
+    Scoped, and required to be -- no default, exactly as `gated_template` has none.
+    A corpus-wide read would be `--situation` again under a new name, and
+    `--situation` is the thing this exists to narrow: `68` F6 recorded a graduate
+    student who also teaches having her whole disk filed as coursework because the
+    command line takes one string.
+
+    `None` for unanswered AND for skipped and "not about me". Those are different
+    facts about the person and the same fact about the tree: nobody chose, so the
+    caller keeps the situation the run was given, and the run produces the tree it
+    produced before. That is what makes asking free.
+    """
+    chosen = [option.selects_situation
+              for option in answered_options(conn, scope=scope)
+              if option.selects_situation]
+    return chosen[0] if chosen else None
+
+
 def questions_for(conn: sqlite3.Connection,
                   question_ids: Sequence[str]) -> tuple[StructuralQuestion, ...]:
     """The named questions, for a caller that already knows which it wants."""

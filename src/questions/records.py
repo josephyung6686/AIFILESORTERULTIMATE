@@ -69,6 +69,23 @@ class QuestionOption:
     #: the moment the corpus does, so a person would silently get a different tree
     #: from the same recorded answer.
     gates_template: str | None = None
+    #: §13's THIRD consequence: "resolve role ambiguity". The situation this branch
+    #: is, chosen by the person, replacing the one `--situation` gives a whole disk.
+    #: `68` F6: Priya's entire disk is `academic.coursework` "including the material
+    #: that is `academic.teaching`" -- one command-line string made a graduate
+    #: student who also teaches choose which of her two lives to file.
+    #:
+    #: Deliberately unchecked here, where `activates_schema` is checked against
+    #: SCHEMA_IDS. The situations are the TEMPLATE LIBRARY's -- two hundred of them
+    #: in a release this module must not import, the same reason `gates_template`
+    #: holds an unchecked chain. The composition root already refuses a situation
+    #: the release does not carry, before a file is read, and that is the right
+    #: place for the check: it moves when the library does.
+    #:
+    #: NOT `CompositionOverride.role_choices`, which is about a template DIMENSION
+    #: role. §13's "role ambiguity" is the USER's role -- student or teacher. Two
+    #: different nouns, and joining them would be a category error that typechecks.
+    selects_situation: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("option_id", "label"):
@@ -166,6 +183,16 @@ class StructuralQuestion:
                     "template. §13 forbids a contextual answer to 'create, remove, "
                     "hide, or rename folders', and a nesting IS which folders the "
                     "branch has -- the same reason activation is refused above")
+            selecting = [option.option_id for option in self.options
+                         if option.selects_situation]
+            if selecting:
+                raise AnswerNotPermitted(
+                    f"a contextual question's options {selecting} would select a "
+                    "situation. A situation decides which applicability rows are "
+                    "eligible, which decides which templates are available, which "
+                    "decides which folders exist -- so §13's ban on a contextual "
+                    "answer that may 'create, remove, hide, or rename folders' "
+                    "reaches it exactly as it reaches the two above")
 
 
 @dataclass(frozen=True, slots=True)
