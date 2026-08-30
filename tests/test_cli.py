@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import io
 import shlex
+import sqlite3
 import pathlib
 import subprocess
 import sys
@@ -2059,3 +2060,97 @@ def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
     ordinary = next(block for block in printed.split("Held for review as ")
                     if block.startswith('"Not yet placed'))
     assert "--send-set" in ordinary.split("\n\n", 1)[0], ordinary
+
+
+def _course_corpus(tmp_path):
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "PHYS 1401 syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor office hours.\n")
+    (corpus / "PHYS 1401 homework 3.txt").write_text(
+        "PHYS 1401 Homework 3\n\nSpring 2026 lecture notes.\n")
+    (corpus / "PHYS 1401 lab.txt").write_text(
+        "PHYS 1401 Lab\n\nSpring 2026 lab report.\n")
+    return corpus
+
+
+def test_a_second_run_after_the_person_deletes_a_file_still_produces_a_plan(tmp_path):
+    """A disk changes between runs. That is the normal case, not an edge one.
+
+    The merged group this command accepts was addressed `plan_0:<category>:<label>`
+    -- and `PLAN_VERSION` is a fixed constant, so the address was completely
+    stable across runs while its contents were the person's corpus, which is
+    not. Delete one file and the next run raised `MalformedGroupRecord` with a
+    traceback: "already recorded with different content; a revision supersedes
+    rather than replaces".
+
+    P9's store is right, and the address was wrong. Its own rule says a group id
+    derived from its seed is an address, so a rerun over unchanged evidence is
+    the same group and not a conflict. This id was derived from the label, which
+    says nothing about what the group holds.
+
+    This blocked every second-run mechanism at once -- answering a question,
+    revoking one, sending a review set, rejecting a fact -- because all of them
+    are a second run by definition.
+    """
+    corpus = _course_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    assert cli.main(argv, out=io.StringIO()) == 0
+
+    (corpus / "PHYS 1401 lab.txt").unlink()
+    after = io.StringIO()
+    assert cli.main(argv, out=after) == 0, after.getvalue()
+    printed = after.getvalue()
+    # A plan, not a traceback. What the plan then SAYS about the file that is
+    # gone is a separate defect and has its own test below; conflating the two
+    # here would let either one mask the other.
+    assert "Folders in this plan:" in printed, printed
+    assert "PHYS 1401 syllabus.txt" in printed, printed
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "A file the person deleted is still named in the next run's plan. The scan "
+    "does not find it; the report reads it back out of the database, which "
+    "remembers it from the run before. So the product offers to file something "
+    "that is not there. Found while fixing the crash that used to hide it -- "
+    "until the second run stopped raising, nobody could see this. Strict, so "
+    "the suite turns red the day it is fixed."))
+def test_a_file_the_person_deleted_is_not_in_the_next_plan(tmp_path):
+    corpus = _course_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    assert cli.main(argv, out=io.StringIO()) == 0
+    (corpus / "PHYS 1401 lab.txt").unlink()
+    after = io.StringIO()
+    cli.main(argv, out=after)
+    assert "PHYS 1401 lab.txt" not in after.getvalue(), after.getvalue()
+
+
+def test_a_rerun_over_an_unchanged_corpus_is_the_same_group_and_not_a_new_one(tmp_path):
+    """The negative twin, and the property the old address got right.
+
+    Deriving the id from the contents must not make every run a fresh group: a
+    rerun over unchanged evidence is the SAME group, which is what makes the
+    record an address rather than a log. A fix that simply minted a new id each
+    time would pass the test above and quietly destroy that.
+    """
+    corpus = _course_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    assert cli.main(argv, out=io.StringIO()) == 0
+    assert cli.main(argv, out=io.StringIO()) == 0
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    accepted = [row["group_id"] for row in conn.execute(
+        "SELECT group_id FROM groups WHERE label_source = 'user-edited'")]
+    conn.close()
+    assert len(set(accepted)) == 1, (
+        f"two identical runs minted {len(set(accepted))} accepted groups: {accepted}")

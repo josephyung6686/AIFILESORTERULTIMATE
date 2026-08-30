@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import getpass
+import hashlib
 import json
 import re
 import shlex
@@ -811,11 +812,28 @@ def review_and_accept(conn: sqlite3.Connection,
     if not grouped:
         return ()
     first = grouped[0].group
-    # The category is part of the address, not only the label. Two situations
-    # filed under one `--label` are two groups of two different kinds, and an
-    # id built from the label alone asks them to be one record -- which P9
-    # refuses, correctly, as a revision that supersedes nothing.
-    merged_id = f"{PLAN_VERSION}:{group_category}:{label}"
+    # DERIVED FROM WHAT IT MERGES, which is P9's own rule for its own ids:
+    # "a group id derived from its seed is an address, so a rerun over unchanged
+    # evidence is the same group and not a conflict."
+    #
+    # This id used to be `{PLAN_VERSION}:{category}:{label}`, and `PLAN_VERSION`
+    # is a fixed constant -- so the address was perfectly stable across runs
+    # while its contents were the person's corpus, which is not. Delete one file
+    # and the next run raised `MalformedGroupRecord` at the store, correctly,
+    # because a revision supersedes rather than replaces. A disk that changes
+    # between runs is the normal case, and that traceback blocked every
+    # second-run gesture at once: answering a question, revoking one, sending a
+    # review set, rejecting a fact -- each of them is a second run by
+    # definition.
+    #
+    # The category stays in the address for the reason it was put there: two
+    # situations filed under one `--label` are two groups of two different
+    # kinds. The digest is over the group ids being merged, which are themselves
+    # content-derived, so an unchanged corpus still produces one address and one
+    # accepted group rather than a new one per run.
+    merged_of = ",".join(sorted(result.group.group_id for result in grouped))
+    digest = hashlib.sha256(merged_of.encode("utf-8")).hexdigest()[:12]
+    merged_id = f"{PLAN_VERSION}:{group_category}:{label}:{digest}"
     reviewed = Group(
         group_id=merged_id, seed_ref=first.seed_ref, seed_kind=first.seed_kind,
         # RULES, not USER. `--label` and `--situation` really are the person's
