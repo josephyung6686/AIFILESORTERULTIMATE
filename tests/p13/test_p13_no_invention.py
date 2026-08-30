@@ -194,6 +194,7 @@ def test_the_package_is_the_modules_this_wave_has_built():
         "bulk", "citations", "collect", "consent_surface", "evaluation",
         "items", "labels", "learning_view", "locations", "move_permission",
         "presentation", "progress", "records", "redaction_boundary",
+        "replay",
         "rejections", "residual", "routing", "schema", "states", "store",
         "versions_view", "vocabulary",
     }
