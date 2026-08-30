@@ -229,3 +229,67 @@ satisfy in the data and lose in the rendering.
    invariant rather than a default.
 3. No per-file re-confirmation of an established role (R2).
 4. No presentation that reintroduces ranking the data does not carry (R7).
+
+---
+
+## 8. AMENDMENT, 2026-08-31 — the always-local rule is suspended for development
+
+**Joseph overruled §2 on the same day it was recorded, after the conflict was put to him
+explicitly and with the irreversibility named.** His reason, in his words:
+
+> *"we are still building the product so right now its ok we can just send it for now"*
+
+That reason is sound for what it covers. During a build the corpora are fixtures rather than a
+person's disk, and the whole point of wiring a provider is to see real behaviour. It is recorded
+here rather than applied quietly because §2 is a privacy ruling and a privacy ruling that gets
+softened without a paper trail is how a temporary exception becomes a permanent one.
+
+### 8.1 What is suspended, exactly
+
+A person's typed self-description may reach the configured model provider (**DeepSeek**, an
+external provider in a different jurisdiction from the one `00`'s privacy sections were reasoned
+against). §2's ruling that it is a `user_edits` item is **not** withdrawn — the classification
+stands, and the enforcement is suspended for this deployment only.
+
+Everything else in §2 stands unchanged. The other eight always-local kinds are untouched, and
+this suspension reaches nothing but the self-description.
+
+### 8.2 What it costs, stated plainly so nobody has to rediscover it
+
+`00`:200: *"Revocation cannot necessarily retract data already sent to an external provider."*
+There is no temporary about a sent sentence. Every self-description used in a development run is
+permanently outside this project's control, including the ones in the test corpora — and `68`'s
+Mara corpus contains a client's passport.
+
+The adviser's argument against exactly this remains on the record and is not answered by the
+amendment, only outweighed by it for now:
+
+> *"You don't have enough information yet to spend an irreversible action on a feature you
+> haven't shipped."*
+
+### 8.3 The three conditions, which are not optional
+
+The suspension is scoped, and these are what keep it from silently becoming permanent.
+
+**C1 — local is still the DEFAULT.** Sending a self-description requires an explicit, deliberate
+act by whoever runs the command. It is never what happens by not choosing. A developer who
+forgets this exception exists gets the safe behaviour.
+
+**C2 — a run that sends says so, on screen, before it sends.** Not in a log, not in a docstring:
+on the screen, in the same breath as `00`:200's sentence about revocation. The product may not
+send a person's description of themselves without the person being told.
+
+**C3 — it reverts before anyone who is not Joseph uses this.** The trigger is the first real
+user, not a date. When that happens, C1 becomes absolute again, the flag is removed, and §2 is
+enforced as written. **Any self-descriptions sent under this amendment stay sent, and that cannot
+be undone by reverting it.**
+
+### 8.4 What did NOT change
+
+- The other eight always-local kinds. Untouched.
+- **Prompt text still requires the owner's manual approval.** No agent may author or adopt it.
+- Option 4 is still closed. The amendment permits a self-description to be SENT; it does not
+  permit it to become ambient untraceable context, which is what §1.2 closed and for reasons the
+  amendment does not touch.
+- R1–R7 all still bind. In particular R2: the friction budget is spent once, and a confirmation
+  a person learns to click through is not a safety mechanism.

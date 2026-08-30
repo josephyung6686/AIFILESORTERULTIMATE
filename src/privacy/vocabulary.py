@@ -158,6 +158,16 @@ def check_mode(value: object) -> str:
 #: sensitivity the person cannot preview or bound in advance. So a self-description
 #: never leaves the device, and any future proposal to send one is a change to
 #: `00`:186 and is refused until `00`:186 changes.
+#:
+#: AMENDED 2026-08-31 (`80` §8). Joseph suspended the ENFORCEMENT of this one
+#: reading for development, with the irreversibility put to him first and
+#: reaffirmed: the product is being built and the corpora are fixtures. The
+#: CLASSIFICATION above is not withdrawn -- a self-description is still a
+#: `user_edits` item -- and the other eight kinds are untouched. Three
+#: conditions hold it scoped: local stays the DEFAULT and sending is an
+#: explicit act; a run that sends says so on screen before it sends; and it
+#: reverts before anyone who is not Joseph uses this. A sentence already sent
+#: stays sent, and reverting does not recall it.
 ALWAYS_LOCAL: tuple[str, ...] = (
     "paths", "complete_extracted_text", "ocr_output", "file_hashes", "image_exif",
     "gps", "user_edits", "group_memberships", "raw_sensitive_values",

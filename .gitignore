@@ -18,3 +18,9 @@ graphify-out/
 # They appear whenever a run is interrupted and are regenerated on the next open.
 *.sqlite-wal
 *.sqlite-shm
+
+# API credentials. NEVER committed. `.env` is where a key is pasted and
+# `.env.example` is the tracked template that shows which names are read.
+.env
+.env.*
+!.env.example
