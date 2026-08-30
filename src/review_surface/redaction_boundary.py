@@ -147,3 +147,137 @@ def proposed_folder_chain(segments: Sequence[tuple[str, bool]], *,
                 "value",
                 aggregate=refusal.aggregate, position=position) from None
     return tuple(names)
+
+
+# --------------------------------------------------------------------------
+# §8.4's aggregate, the filename P13 never asks for, and the retraction limit.
+#
+# The rule above -- P13 has NO code path that receives protected content and then
+# hides it -- is honoured here the same way: `name_for` RAISES. A function
+# returning "[redacted]" would be exactly the forbidden path, because it received
+# the name and hid it. A function that raises is one that says the caller should
+# not have asked, and its message deliberately does not repeat the name.
+#
+# D11's two denominators are kept apart by construction. `count` is the PROTECTED
+# count. `class_breakdown` is a census of the WHOLE SCOPE, zero-filled across
+# `HANDLING_CLASSES`, so `sum(class_breakdown.values())` is `scope_total` and not
+# `count`. A percentage built from the two would describe an unprotected file as
+# protected -- and it is the sort of error a passing suite hides, because the
+# arithmetic runs and the number looks reasonable.
+#
+# SCOPE: `privacy.display.display_policy(conn, *, plan_version)` takes NO scope
+# argument, so nothing here takes one either. SPEC Open question 7 -- whether the
+# setting is per-branch or global -- is P7's and is open; inventing a scope
+# argument would answer it in P13's code.
+# --------------------------------------------------------------------------
+
+from privacy.display import ProtectedSummary  # noqa: E402
+from privacy.revocation import PriorRelease, RevocationResult  # noqa: E402
+from privacy.vocabulary import REDACTED, SHOWN  # noqa: E402
+
+
+class NameRedacted(RuntimeError):
+    """A filename was asked for that the display policy does not permit."""
+
+
+class ProtectedSetNotExpandable(RuntimeError):
+    """A protected aggregate was asked to become a list while names redact."""
+
+
+def name_for(*, protected: bool, settings: RedactionSettings,
+             filename: str) -> str:
+    """The name, or a refusal. Never a mask.
+
+    The refusal message does not contain `filename`. A message that quoted the
+    name it refused would put it in a log, a traceback and an error surface --
+    three places a redaction policy has no reach.
+    """
+    if protected and settings.names == REDACTED:
+        raise NameRedacted(
+            "the display policy redacts names and this file is protected. No "
+            "surface -- canvas, placement review, residual screen, apply screen "
+            "or evaluation view -- renders a filename for a protected file "
+            "under this policy (§8.4). Show the protected aggregate instead")
+    return filename
+
+
+@dataclass(frozen=True)
+class ProtectedAggregate:
+    """§8.4's aggregate over a scope, with D11's two denominators kept apart."""
+
+    count: int
+    scope_total: int
+    class_breakdown: Mapping[str, int]
+    sentence: str
+    expandable: bool
+
+    def expand(self) -> tuple[str, ...]:
+        """The member list, or a refusal. Never a partial list."""
+        if not self.expandable:
+            raise ProtectedSetNotExpandable(
+                "this protected set cannot be expanded into a filename list "
+                "while the display policy redacts names (§8.4, §7.5). §8.4's "
+                "own example is that a summary may be safe to show where a "
+                "visible list of passport filenames on a shared screen is not")
+        # P13 holds no member list of its own. When the policy permits names the
+        # caller asks P7 for them; an empty tuple here says "this object is not
+        # where the names live", which is true and is better than inventing one.
+        return ()
+
+
+def protected_aggregate(summary: ProtectedSummary, *,
+                        settings: RedactionSettings) -> ProtectedAggregate:
+    """§8.4's aggregate form. The breakdown is zero-filled across every class.
+
+    `67` §1: protected material is marked and COUNTED, and never silently
+    omitted. A class absent from the breakdown would read as a class that does
+    not exist rather than one with nothing in it.
+    """
+    breakdown = {klass: int(summary.class_breakdown.get(klass, 0))
+                 for klass in HANDLING_CLASSES}
+    return ProtectedAggregate(
+        count=summary.count,
+        scope_total=summary.scope_total,
+        class_breakdown=breakdown,
+        sentence=(
+            f"{summary.count} protected item(s) are present and were not "
+            f"opened, out of {summary.scope_total} file(s) in scope."),
+        expandable=settings.names == SHOWN)
+
+
+@dataclass(frozen=True)
+class RetractionStatement:
+    """§8.4's revocation limit, said about real releases rather than in general."""
+
+    effective_from: str
+    retraction_limit: str
+    prior_releases: tuple[PriorRelease, ...]
+    sentence: str
+    is_generic: bool
+
+
+def retraction_statement(result: RevocationResult) -> RetractionStatement:
+    """Done-means 17: specific, listing the prior releases. Never a disclaimer.
+
+    `is_generic` is always False and it is a FIELD rather than a constant so a
+    consumer can assert on it. If a future change ever produces a generic
+    statement, the flag is where that becomes visible instead of the sentence
+    quietly getting shorter. P7's own limit sentence is included INSIDE the
+    statement rather than replaced by it.
+    """
+    releases = tuple(result.prior_releases)
+    if releases:
+        listed = "; ".join(
+            f"{release.model} at {release.provider} on {release.when} "
+            f"({len(release.excerpts)} excerpt(s))" for release in releases)
+        body = (f"{len(releases)} prior release(s) were made before this "
+                f"revocation took effect on {result.effective_from}: {listed}.")
+    else:
+        body = ("No prior release was made before this revocation took effect "
+                f"on {result.effective_from}.")
+    return RetractionStatement(
+        effective_from=result.effective_from,
+        retraction_limit=result.retraction_limit,
+        prior_releases=releases,
+        sentence=f"{body} {result.retraction_limit}",
+        is_generic=False)
