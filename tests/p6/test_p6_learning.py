@@ -441,29 +441,57 @@ def test_the_write_half_has_no_caller_inside_facts():
     assert binders == ["learning"]
 
 
-def test_the_i4_guard_still_has_no_caller_and_says_so():
-    """I4 is not enforced yet, and the module must not claim otherwise.
+def test_the_i4_guard_has_a_caller_and_it_is_the_one_producer_that_runs():
+    """I4 is enforced, and the module names where. THIS TEST WAS INVERTED.
 
-    The docstring asserted "Its call site is Task 20's resolver" — a sentence the
-    builder added, absent from the PLAN, and false: nothing in `src/` calls
-    `is_suppressed`. A docstring stating a fact about OTHER code is a claim, and an
-    unchecked claim is how a guard ships unreachable.
+    It used to read `test_the_i4_guard_still_has_no_caller_and_says_so` and assert
+    `callers == []` — an OWED marker, deliberately written to fail on the day the
+    guard was wired so the docstring could not go on saying it was owed. That day is
+    this one, so the marker becomes its opposite: `is_suppressed` must have a caller,
+    and the caller must be the producer that a person's run actually reaches.
 
-    This test fails the day the guard IS wired, which is the day the docstring must
-    stop saying it is owed.
+    `facts.direct` is that producer: `src/cli.py`'s `_resolver` binds `rule` and `llm`
+    to `None`, so `direct_facts` is the whole of this deployment's fact production. A
+    guard wired into `facts.rules` instead would be as unreachable as no guard at all,
+    which is the failure this whole file exists to make visible.
+
+    `tests/p6/test_p6_learning_guard_wiring.py` drives the behaviour end to end. This
+    one is only about reachability, and it counts CALLS rather than mentions. A
+    substring scan was written first and it was worthless: deleting the guard while
+    leaving `from facts.learning import is_suppressed` behind kept it green, which is
+    the exact shape of unreachable-but-looks-wired that this file is about.
     """
+    import ast
     import pathlib
     import facts.learning as learning
 
-    callers = [
-        path for path in pathlib.Path("src").rglob("*.py")
-        if path.name != "learning.py" and "is_suppressed" in path.read_text()
-    ]
-    assert callers == [], (
-        "is_suppressed now has a caller; update the OWED paragraph in "
-        "facts/learning.py, which still says I4 is enforced by nothing")
-    # The docstring now QUOTES the old sentence in order to deny it, so the check is
-    # that the denial is present — not that the words are absent.
-    assert "That sentence is not in the PLAN and it is not\ntrue" in learning.__doc__
-    assert "enforced by nothing" in learning.__doc__
-    assert "OWED" in learning.__doc__
+    def calls_the_guard(tree: ast.Module) -> bool:
+        aliases = {"is_suppressed"}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module == "facts.learning":
+                aliases.update(alias.asname or alias.name for alias in node.names
+                               if alias.name == "is_suppressed")
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            name = (func.id if isinstance(func, ast.Name)
+                    else func.attr if isinstance(func, ast.Attribute) else None)
+            if name in aliases:
+                return True
+        return False
+
+    callers = sorted(
+        str(path) for path in pathlib.Path("src").rglob("*.py")
+        if path.name != "learning.py"
+        and calls_the_guard(ast.parse(path.read_text(encoding="utf-8")))
+    )
+    assert callers == ["src/facts/direct.py"], (
+        "I4's guard is enforced by `facts.direct.direct_facts` and by nothing else. "
+        "If a second producer now writes facts it owes the same three lines; if this "
+        "list is empty the guard has gone dark again and every rejection a person "
+        "makes is forgotten on their next run.")
+    # The docstring must name that call site rather than describe a debt.
+    assert "ITS CALL SITE IS `facts.direct.direct_facts`" in learning.__doc__
+    assert "enforced by nothing" in learning.__doc__  # only in the past tense, below
+    assert "while it stood" in learning.__doc__

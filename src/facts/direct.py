@@ -59,6 +59,8 @@ from facts.evidence import cite as _cite
 from facts.evidence import observations_for_version as _observations_for_version
 from facts.file_facts import write_fact as _write_fact
 from facts.file_facts import DETERMINISTIC_EXTRACTOR
+from facts.learning import FILE_SCOPE as _FILE_SCOPE
+from facts.learning import is_suppressed as _is_suppressed
 from facts.states import DIRECT
 from facts.values import VALUE_ORIGINS as _VALUE_ORIGINS
 from facts.values import ensure_value as _ensure_value
@@ -164,6 +166,28 @@ def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                                  canonical_value=canonical_value,
                                  first_evidence_ref=refs[0],
                                  origin=_VALUE_ORIGINS[0])
+        # I4's QUERY BEFORE PROPOSE, at the last moment before the row exists.
+        #
+        # §8.7's failure mode is literal: without this the product "will repeatedly
+        # resurface the same attractive but incorrect grouping". P7, P9, P10 and P11
+        # each ask their own version of this question at their own proposal point --
+        # `privacy.learning_seam.suppressed`, `grouping.graph`, `tree_design.provenance`,
+        # `placement.learning.suppressed_nodes` -- and P6 was the only proposing part
+        # that did not, which meant a person's rejection of a FACT was the one
+        # correction this product forgot.
+        #
+        # AFTER `ensure_value` because the basis is keyed on the value id, and the id
+        # is what the fact would have carried. This creates no row that the guard then
+        # throws away: a suppression can only exist where a rejection was recorded, and
+        # a rejection names a value that already exists.
+        #
+        # A hit writes NOTHING -- no fact, and no `unresolved` row either. The field is
+        # not unsettled; the person settled it. `UNRESOLVED_REASONS` has no member for
+        # a suppression, and filing the user's own decision under one of the thirteen
+        # that do exist would report their answer as a refusal the system made.
+        if _is_suppressed(conn, scope=_FILE_SCOPE, subject_id=file_id,
+                          file_id=file_id, field_key=field_key, value_id=value_id):
+            continue
         written.append(_write_fact(
             conn, file_id=file_id, content_hash=content_hash, field_key=field_key,
             value_id=value_id, reliability_state=DIRECT_STATE,
