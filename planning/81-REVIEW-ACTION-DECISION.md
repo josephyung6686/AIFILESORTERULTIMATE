@@ -15,8 +15,8 @@ the decision reduced from "which of four vocabularies wins" to one ownership que
 project turned out to already have the rule.
 
 Every factual claim about behaviour carries a file and line and was checked by reading the code or by
-running it. Where a claim is a reading rather than a fact it says so. Judgement is in §9 and nowhere
-else.
+running it. Where a claim is a reading rather than a fact it says so. Judgement is in §9 and §13.3 and
+nowhere else.
 
 ---
 
