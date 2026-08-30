@@ -156,7 +156,7 @@ Two harms are already structurally closed, and the adviser should know they are 
 
 ### 3.1 The question-and-answer machinery is real and is not a stub
 
-`src/questions/` is eight modules. It stores questions, answers, scopes, periods, revocations, and
+`src/questions/` is nine modules (plus an empty `__init__.py`). It stores questions, answers, scopes, periods, revocations, and
 what each answer controls. Ten commits landed on it in the last two days
 (`git log --oneline --grep=onboarding`). `tests/p15/` holds 118 tests; I ran them
 (`python3 -m pytest tests/p15 -q -p no:randomly`) — **118 passed**.
@@ -224,12 +224,13 @@ One correction to the run output quoted above, so the reader is not misled: the 
 refuse. The wording is imprecise for the no-model-wired case. That is a separate finding and not
 this brief's subject.
 
-### 3.5 Work in flight, uncommitted, at the time of writing
+### 3.5 Work that landed while this brief was being written
 
-A second agent is building §16's *buildable half* right now, and the working tree is moving under
-this document. As of HEAD `6b46571`, `src/questions/roles.py` and `tests/p15/test_p15_roles.py` are
-**untracked**, and `src/questions/registry.py` and `src/questions/vocabulary.py` are **modified and
-uncommitted**. What they add:
+A second agent built §16's *buildable half* during this investigation. I first read it as untracked
+files in the working tree; it landed mid-document as
+**`6b46571` — `feat(onboarding-D1,D2,D3): a person can be more than one thing, and the matcher is
+still not built`**, adding `src/questions/roles.py` and `tests/p15/test_p15_roles.py` and modifying
+`src/questions/registry.py` and `src/questions/vocabulary.py`. What it adds:
 
 - A role declaration built on the existing answer record, with several roles live at once, each with
   its own scope and optional period (`roles.py:99-151`, `:180-227`).
