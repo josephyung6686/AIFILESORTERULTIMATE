@@ -24,6 +24,7 @@ P13's real `review_approval` read back out of P13's own table.
 from __future__ import annotations
 
 import dataclasses
+import inspect
 import itertools
 from pathlib import Path
 
@@ -51,6 +52,18 @@ from mutation.execute import apply_plan
 from mutation.plan import build_plan, record_plan
 from mutation.schema import create_mutation_schema
 
+from review_surface.activity import (
+    ACTIVITY_ATTRIBUTES,
+    AUTHORIZING_POLICY_HAS_NO_PRODUCER,
+    UNDO_AVAILABILITY_HAS_NO_PRODUCER,
+    ActionNotOneAction,
+    ActivityEntry,
+    CompletedAction,
+    UndoAvailabilityRequired,
+    activity_entry,
+    activity_list,
+    faked_authorizations,
+)
 from review_surface.approvals import (
     ApprovalPresentationRequired,
     approve,
@@ -81,6 +94,19 @@ CONSTRAINTS = FilesystemConstraints(
 
 PROTECTED_CLASSES = frozenset({
     "sensitive_personal", "highly_sensitive_credential_bearing"})
+
+
+@dataclasses.dataclass(frozen=True)
+class _Faked:
+    """An activity row that DOES claim an authorizing policy.
+
+    The twin needs something the guard can find. Built here rather than by
+    mutating a real `ActivityEntry`, because a real one has no field to set --
+    which is the property under test.
+    """
+
+    entry_id: str
+    authorizing_policy: object
 
 
 def _node(node_id, label, parent, **kwargs):
@@ -376,3 +402,187 @@ def test_a_plan_that_demands_no_review_is_not_given_an_approval_to_lift(
                     approval_for=_approval_for(seam_conn))
     assert record.result == v.APPLIED
     assert approvals_for(seam_conn, plan_id=plan.plan_id) == ()
+
+
+# ---------------------------------------------------------------------------
+# G3 -- `66` §9's activity list, rendered end to end.
+#
+# "Every completed action appears in a reviewable activity list with the source
+# path, destination path, evidence summary, policy that authorized it, collision
+# behavior, move time, current status, and undo availability."
+#
+# Six of the eight have a producer today. Two do not, and this is where that is
+# carried rather than filled: there is no filing-policy record in any part's
+# Contract-out (`74` §10), and P12's undo retention is Wave F's.
+# ---------------------------------------------------------------------------
+
+
+def _completed(conn, plan):
+    """The three P12 records one completed action is made of, by P12's readers.
+
+    `src/cli.py` does exactly this. P13 may not import P12 and P12 may not import
+    P13, so assembling the triple is the composition root's job and the readers
+    it uses are P12's own published ones -- not a query this file invented.
+    """
+    from mutation.execute import JournalEntry, executions_for
+    from mutation.plan import current_plan
+
+    entry = JournalEntry.for_plan(conn, plan.plan_id)
+    if entry is None:
+        return None
+    return CompletedAction(
+        journal_entry=entry,
+        execution=executions_for(conn, plan.plan_id)[-1],
+        plan=current_plan(conn, plan.plan_id))
+
+
+def _applied(seam_conn, landscape, root, clock, ids, **planning):
+    """One real, approved, completed move. The precondition for an activity row."""
+    plan, source = _plan(seam_conn, landscape, ids, **planning)
+    _collect_approval(seam_conn, plan, ids=ids)
+    record = _apply(seam_conn, plan, root, clock, ids,
+                    approval_for=_approval_for(seam_conn))
+    assert record.result == v.APPLIED
+    return plan, source, record
+
+
+def test_every_completed_action_appears_with_all_eight_attributes(
+        seam_conn, landscape, root, clock, ids):
+    """`74` §6 G3's named test, over a move that really happened."""
+    plan, source, record = _applied(seam_conn, landscape, root, clock, ids)
+
+    entries = activity_list([_completed(seam_conn, plan)],
+                            undo_availability_for=lambda entry: None)
+    assert len(entries) == 1
+    entry = entries[0]
+
+    # All eight are present. Read off `66` §9's own list rather than spelled
+    # again here, so a renderer that dropped one is caught by the list itself.
+    assert len(ACTIVITY_ATTRIBUTES) == 8
+    for attribute in ACTIVITY_ATTRIBUTES:
+        assert hasattr(entry, attribute), attribute
+
+    # And each of the six that HAS a producer carries the real value, not a
+    # plausible one. `source_path` and `destination_path` are P12's own -- P13
+    # composed neither and resolved neither; §9 requires them and B3's line is
+    # about who RESOLVES a path, not about who may show one P12 published.
+    assert entry.source_path == plan.expected_source_path == str(source)
+    assert entry.destination_path == record.final_destination_path
+    assert entry.evidence_summary == plan.reason_and_evidence_summary
+    assert entry.collision_behaviour == plan.collision_policy
+    assert entry.move_time == record.finished_at
+    assert entry.status == v.APPLIED
+
+    # The two with no producer are explicit, named absences -- never a blank,
+    # never omitted, and never a nearby value wearing the missing one's name.
+    assert entry.authorizing_policy is None
+    assert entry.authorizing_policy_absence == AUTHORIZING_POLICY_HAS_NO_PRODUCER
+    assert "filing policy" in entry.authorizing_policy_absence
+    assert entry.undo_availability is None
+    assert entry.undo_availability_absence == UNDO_AVAILABILITY_HAS_NO_PRODUCER
+
+
+def test_an_absent_authorizing_policy_renders_as_an_explicit_none_and_is_never_faked(
+        seam_conn, landscape, root, clock, ids):
+    """`74` §6 G3's negative twin. The gap is CARRIED, not filled.
+
+    Three plausible fakes are available at the moment the row is built, and each
+    would read as an answer to "what authorized this?": the plan's
+    `required_review_policy`, which is the policy that DEMANDED REVIEW and is the
+    opposite claim; the approval's copy of the same value; and P7's
+    `permitting_policy`, which is a privacy exemption rather than a filing
+    authority. None of the three is `66` §9's *policy that authorized it*, and the
+    guard below is run against a row that carries one.
+    """
+    plan, _, _ = _applied(seam_conn, landscape, root, clock, ids)
+    real = activity_list([_completed(seam_conn, plan)],
+                         undo_availability_for=lambda entry: None)
+
+    # The fake was available: this is a real, non-empty policy string sitting one
+    # attribute away. A guard whose fake was unavailable proves nothing.
+    assert plan.required_review_policy == REVIEW_REQUIRED
+
+    assert faked_authorizations(real) == []
+    assert faked_authorizations([_Faked(entry_id="fake-1",
+                                        authorizing_policy=plan.required_review_policy)])
+    assert faked_authorizations([_Faked(entry_id="fake-2",
+                                        authorizing_policy="auto_eligible")])
+    # An empty string is a fake too: it renders as "authorized by nothing in
+    # particular" rather than as "nothing here can say".
+    assert faked_authorizations([_Faked(entry_id="fake-3",
+                                        authorizing_policy="")])
+
+    # And there is no parameter through which one could be supplied. The C2
+    # house pattern: a value that cannot be passed cannot be passed by accident.
+    field_names = {f.name for f in dataclasses.fields(ActivityEntry)}
+    assert "authorizing_policy" not in field_names
+    parameters = set(inspect.signature(activity_entry).parameters)
+    assert not parameters & {"authorizing_policy", "policy", "authorized_by"}
+
+
+def test_undo_availability_is_injected_and_absent_means_refuse(
+        seam_conn, landscape, root, clock, ids):
+    """A7 one part over: `66` §11's retention is the composition root's.
+
+    P12's undo retention is Wave F's and does not exist yet, so what the product
+    can honestly say today is "nothing here can tell you". Guessing `66` §11's
+    90-day default inside P13 would put a number this package has no authority to
+    choose in front of a person as a promise.
+    """
+    plan, _, _ = _applied(seam_conn, landscape, root, clock, ids)
+    action = _completed(seam_conn, plan)
+
+    with pytest.raises(UndoAvailabilityRequired):
+        activity_list([action], undo_availability_for=None)
+
+    # And when a producer DOES exist, what it says is what is shown.
+    answered = activity_list(
+        [action], undo_availability_for=lambda entry: "undoable until 2026-11-27")
+    assert answered[0].undo_availability == "undoable until 2026-11-27"
+    assert answered[0].undo_availability_absence is None
+
+
+def test_an_action_stitched_from_three_different_plans_is_refused(
+        seam_conn, landscape, root, clock, ids):
+    """One row is one action. Three records from three actions are not one."""
+    first, _, _ = _applied(seam_conn, landscape, root, clock, ids)
+    second, _, _ = _applied(seam_conn, landscape, root, clock, ids,
+                            name="Other.pdf")
+    mixed = dataclasses.replace(_completed(seam_conn, first),
+                                plan=_completed(seam_conn, second).plan)
+    with pytest.raises(ActionNotOneAction):
+        activity_list([mixed], undo_availability_for=lambda entry: None)
+
+
+def test_a_refused_move_has_no_activity_row_and_is_not_invented_one(
+        seam_conn, landscape, root, clock, ids):
+    """§9 is about COMPLETED actions; §19's visibility of a refusal is an event.
+
+    A refused move never happened, so there is no source it left, no destination
+    it reached and no time it took. A row for it would have to invent all three.
+    """
+    plan, source = _plan(seam_conn, landscape, ids)
+    record = _apply(seam_conn, plan, root, clock, ids,
+                    approval_for=_approval_for(seam_conn))
+    assert record.result == f"{v.REFUSED}:{v.REVIEW_POLICY_UNSATISFIED}"
+    assert source.exists()
+    assert _completed(seam_conn, plan) is None
+    assert activity_list([], undo_availability_for=lambda entry: None) == ()
+
+    # The refusal is visible where §19 puts it, so nothing has gone quiet.
+    assert seam_conn.execute(
+        "SELECT count(*) FROM events WHERE event_type = ?",
+        (v.REFUSED_MOVE,)).fetchone()[0] == 1
+
+
+def test_the_activity_list_is_ordered_by_when_the_move_happened(
+        seam_conn, landscape, root, clock, ids):
+    """"What moved today" needs an order, and it is the move's own, not the caller's."""
+    first, _, _ = _applied(seam_conn, landscape, root, clock, ids)
+    second, _, _ = _applied(seam_conn, landscape, root, clock, ids,
+                            name="Later.pdf")
+    actions = [_completed(seam_conn, second), _completed(seam_conn, first)]
+    entries = activity_list(actions, undo_availability_for=lambda entry: None)
+    assert [entry.plan_id for entry in entries] == [first.plan_id,
+                                                    second.plan_id]
+    assert entries[0].move_time <= entries[1].move_time
