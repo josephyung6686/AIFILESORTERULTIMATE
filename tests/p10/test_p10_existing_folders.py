@@ -318,3 +318,31 @@ def test_an_expectation_the_whole_corpus_shares_is_not_recorded(corpus,
     assert not [value for value in values if value.field_ref == "school"], (
         "every file in this corpus is Columbia's, so expecting Columbia "
         "distinguishes this folder from none of them")
+
+
+def test_one_file_agreeing_with_itself_is_not_a_folder_expectation(corpus,
+                                                                  tmp_path):
+    """The fifth appearance of the same mistake, found by running the command
+    over a corpus with a staging folder in it.
+
+    A person had `Scans/` holding one scanned retainer agreement. That single
+    file settled `subject=CV20261234`, the folder "agreed" with it unanimously --
+    a set of one is always unanimous -- and `Scans` became a legal destination
+    expecting that matter. The product then offered to file a deposition
+    transcript INTO A FOLDER CALLED SCANS.
+
+    One file agreeing with itself is evidence about the FILE. It becomes evidence
+    about the FOLDER only when a second file agrees, which is the difference
+    between a folder someone curated and a folder something landed in.
+    `TreeLimits.tiny_folder_max_files` already carries this idea: a folder of one
+    file is the tiny case, and the design has always known it says little.
+    """
+    from tree_design.upstream import settled_values_in_directory
+
+    alone = put_in_folder(corpus, tmp_path, "Scans", ("lab",))
+    together = put_in_folder(corpus, tmp_path, "Business", ("syllabus", "hw3"))
+
+    assert settled_values_in_directory(corpus.conn, directory_path=alone) == ()
+    assert [value.canonical_value for value
+            in settled_values_in_directory(corpus.conn, directory_path=together)
+            ] == ["BUSIB 4300"]

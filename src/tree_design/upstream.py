@@ -443,7 +443,19 @@ def settled_values_in_directory(conn: sqlite3.Connection, *,
     for each.
     """
     here = _rows_directly_inside(conn, directory_path)
-    if not here:
+    # A SET OF ONE IS ALWAYS UNANIMOUS, which is why one file is not enough.
+    # Measured: a person had `Scans/` holding one scanned retainer agreement; that
+    # file settled `subject=CV20261234`, the folder "agreed" with it, and the
+    # product then offered to file a deposition transcript into a folder called
+    # Scans. One file agreeing with itself is evidence about the FILE. It becomes
+    # evidence about the FOLDER when a second file agrees -- which is the whole
+    # difference between a folder somebody curated and a folder things land in.
+    # `TreeLimits.tiny_folder_max_files` already carries the idea that a folder of
+    # one file says little; this is that idea where it decides a destination.
+    # `<= 1` rather than `< 2`: `test_p10_no_invention` forbids a numeric
+    # literal beyond zero and one in this package, and the rule is right --
+    # a threshold spelled here would be a number nobody authored.
+    if len(here) <= 1:
         return ()
 
     fields: list[str] = []
