@@ -28,15 +28,18 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from database_agent.events import append_event
 from evidence_shape.canonical import canonical_json
+from privacy.vocabulary import HANDLING_CLASSES
 from tree_design.records import EXISTING, Node
 
 from mutation.constraints import FilesystemConstraints
 from mutation.names import collation_key, resolve_name
 from mutation.vocabulary import (
     CROSS_FOLDER_NOT_PERMITTED, CROSS_FOLDER_VERDICTS, CROSS_ROOT_PERMITTED,
-    CROSS_ROOT_REFUSED, NODE_NOT_IN_FROZEN_TREE, NODE_PATH_COLLISION, WITHIN_ROOT,
-    check,
+    CROSS_ROOT_REFUSED, NODE_NOT_IN_FROZEN_TREE, NODE_PATH_COLLISION,
+    PROTECTED_WITHOUT_POLICY, REFUSED_MOVE, SUBSYSTEM, WITHIN_ROOT, check,
+    decline_message,
 )
 
 
@@ -58,6 +61,19 @@ class RootAnchorUnresolved(RuntimeError):
     destination in P12's source, which §5.12 and §6.12 forbid.
 
     Raised only when the chain carries no `existing` ancestor either -- `74` §5.1.
+    """
+
+
+class ProtectedClassesRequired(RuntimeError):
+    """The set of handling classes that make a label unusable as a folder name.
+
+    Injected by the composition root with NO default, and refused when empty.
+    P7 is explicit that a neighbour *"should consume the `protected` flag, not
+    infer it from the class"* (`privacy/classification.py:110-113`), and `Node`
+    carries a `handling_class` and no flag -- so P12 cannot derive this set
+    without answering P7's own Open question 1 on its behalf. A7: absent means
+    refuse, never guess. An EMPTY set is refused too, because reading it as
+    "nothing is protected" would silently disable the guard.
     """
 
 
@@ -134,6 +150,43 @@ def _chain(node_id: str, by_id: Mapping[str, Node]) -> list[Node]:
     return walked
 
 
+def _require_protected_classes(value: object) -> frozenset[str]:
+    if not isinstance(value, frozenset) or not value:
+        raise ProtectedClassesRequired(
+            "protected_handling_classes is a non-empty frozenset supplied by the "
+            "composition root; it has no default and an empty set is not one")
+    unknown = sorted(value - set(HANDLING_CLASSES))
+    if unknown:
+        raise ProtectedClassesRequired(
+            f"not §8.4 handling classes: {unknown}. A misspelling here would "
+            "match no node and disable the guard without failing")
+    return value
+
+
+def _refuse_protected_label(item: Node,
+                            protected_handling_classes: frozenset[str]) -> None:
+    """`74` §5.6. A segment is never composed from a protected label.
+
+    `69` §3 blocker 3: a client's passport number reached a group's
+    `display_label` and printed as a proposed folder name. A folder name is the
+    most durable and most visible place protected material can land -- it appears
+    in every listing, every backup and every sync -- so composition refuses, and
+    the refusal names the NODE. Putting the label in the refusal would move the
+    protected material from one record into another.
+
+    Only COMPOSED segments are checked. An `existing` ancestor's path is a folder
+    the person already has; P12 neither minted its name nor may rename it.
+    """
+    if item.handling_class in protected_handling_classes:
+        raise ResolutionRefused(
+            PROTECTED_WITHOUT_POLICY,
+            "a folder name for this level would be composed from protected "
+            "material, so no path was composed",
+            detail={"node_id": item.node_id,
+                    "handling_class": item.handling_class,
+                    "parent_node_id": item.parent_node_id})
+
+
 def _segment_key(label: str, constraints: FilesystemConstraints) -> str:
     """The name one label would occupy on the target volume."""
     return collation_key(
@@ -143,7 +196,8 @@ def _segment_key(label: str, constraints: FilesystemConstraints) -> str:
 
 
 def _refuse_sibling_collision(child: Node, nodes: Sequence[Node],
-                              constraints: FilesystemConstraints) -> None:
+                              constraints: FilesystemConstraints,
+                              protected_handling_classes: frozenset[str]) -> None:
     """Rule 5. Two sibling nodes whose distinct labels normalize to one name.
 
     Merging them would collapse two frozen nodes into one destination the user
@@ -160,6 +214,10 @@ def _refuse_sibling_collision(child: Node, nodes: Sequence[Node],
         if other.display_label == child.display_label:
             continue
         if _segment_key(other.display_label, constraints) == key:
+            # The collision refusal names both labels so the person can rename
+            # one. A protected sibling would put protected material into that
+            # list, so `74` §5.6 wins and the label stays out of the record.
+            _refuse_protected_label(other, protected_handling_classes)
             raise ResolutionRefused(
                 NODE_PATH_COLLISION,
                 "two folders in this plan would become one folder on disk",
@@ -197,7 +255,11 @@ def resolve_destination(*, plan_version: str, node_id: str,
                         constraints: FilesystemConstraints,
                         cross_folder_moves: bool,
                         volume_of: Callable[[Path], str],
-                        mint_resolution_id: Callable[[], str]) -> PathResolution:
+                        mint_resolution_id: Callable[[], str],
+                        protected_handling_classes: frozenset[str],
+                        ) -> PathResolution:
+    protected_handling_classes = _require_protected_classes(
+        protected_handling_classes)
     by_id = {item.node_id: item for item in nodes}
     chain = _chain(node_id, by_id)
 
@@ -242,7 +304,9 @@ def resolve_destination(*, plan_version: str, node_id: str,
     segments: list[Segment] = []
     created: list[str] = []
     for item in below:
-        _refuse_sibling_collision(item, nodes, constraints)
+        _refuse_protected_label(item, protected_handling_classes)
+        _refuse_sibling_collision(item, nodes, constraints,
+                                  protected_handling_classes)
         resolved = resolve_name(
             item.display_label, constraints=constraints,
             directory_byte_length=len(str(directory).encode("utf-8")),
@@ -319,3 +383,36 @@ def resolution_by_id(conn: sqlite3.Connection,
     raw["directories_that_must_be_created"] = tuple(
         raw["directories_that_must_be_created"])
     return PathResolution(**raw)
+
+
+def record_resolution_refusal(conn: sqlite3.Connection,
+                              refusal: ResolutionRefused, *,
+                              observed_at: str,
+                              component_version: str,
+                              file_id: str | None = None,
+                              content_hash: str | None = None,
+                              user_id: str | None = None) -> int:
+    """Append §8.2's `refused move` for one resolution refusal.
+
+    `74` §5.2 closes PLAN F13: the name exists, P12 is its only writer, and every
+    refusal in `74` §3.3 appends one. The `explanation` carries `66` §10's
+    distinct sentence for the class plus the refusal's own detail, so the row a
+    person reads says what occurred and what they can do about it.
+
+    What the row must NOT carry is the protected material itself -- which is why
+    `_refuse_protected_label` builds a detail naming the node and never the
+    label. This function serializes whatever the refusal put in `detail`; the
+    decision about what may be in there belongs to the refusal that raised.
+    """
+    return append_event(
+        conn,
+        event_type=REFUSED_MOVE,
+        subsystem=SUBSYSTEM,
+        component_version=component_version,
+        observed_at=observed_at,
+        file_id=file_id,
+        content_hash=content_hash,
+        user_id=user_id,
+        explanation=(f"{decline_message(refusal.refusal_class)} "
+                     f"{canonical_json(refusal.detail)}"),
+    )

@@ -19,8 +19,9 @@ from tree_design.records import Node
 from mutation import vocabulary as v
 from mutation.constraints import FilesystemConstraints
 from mutation.resolution import (
-    CyclicAncestorChain, MalformedChain, ResolutionRefused, RootAnchorUnresolved,
-    record_resolution, resolution_by_id, resolve_destination,
+    CyclicAncestorChain, MalformedChain, ProtectedClassesRequired,
+    ResolutionRefused, RootAnchorUnresolved, record_resolution,
+    record_resolution_refusal, resolution_by_id, resolve_destination,
 )
 
 CASE_FOLDING_VOLUME = FilesystemConstraints(
@@ -74,13 +75,15 @@ def _volume(path: Path) -> str:
 
 def _resolve(node_id, nodes=FOUR_LEVEL, *, source=DOCUMENTS / "Inbox" / "a.pdf",
              constraints=CASE_KEEPING_VOLUME, cross_folder_moves=True,
-             folders=None):
+             folders=None, protected_classes=None):
     return resolve_destination(
         plan_version="plan_1", node_id=node_id, nodes=nodes, source_path=source,
         high_level_folders=FOLDERS if folders is None else folders,
         constraints=constraints,
         cross_folder_moves=cross_folder_moves, volume_of=_volume,
-        mint_resolution_id=_mint)
+        mint_resolution_id=_mint,
+        protected_handling_classes=(
+            PROTECTED_CLASSES if protected_classes is None else protected_classes))
 
 
 # --------------------------------------------------------------------------
@@ -198,7 +201,8 @@ def test_two_sibling_labels_normalizing_to_one_name_are_refused_never_merged():
             plan_version="plan_1", node_id="n_a", nodes=nodes,
             source_path=DOCUMENTS / "Inbox" / "a.pdf",
             high_level_folders=FOLDERS, constraints=CASE_FOLDING_VOLUME,
-            cross_folder_moves=True, volume_of=_volume, mint_resolution_id=_mint)
+            cross_folder_moves=True, volume_of=_volume, mint_resolution_id=_mint,
+            protected_handling_classes=PROTECTED_CLASSES)
     refusal = excinfo.value
     assert refusal.refusal_class == v.NODE_PATH_COLLISION
     assert set(refusal.detail["labels"]) == {"Offers Q1", "offers q1"}
@@ -214,7 +218,8 @@ def test_the_same_two_siblings_coexist_on_a_case_keeping_volume():
         plan_version="plan_1", node_id="n_b", nodes=nodes,
         source_path=DOCUMENTS / "Inbox" / "a.pdf", high_level_folders=FOLDERS,
         constraints=CASE_KEEPING_VOLUME, cross_folder_moves=True,
-        volume_of=_volume, mint_resolution_id=_mint)
+        volume_of=_volume, mint_resolution_id=_mint,
+        protected_handling_classes=PROTECTED_CLASSES)
     assert got.resolved_destination_directory.endswith("offers q1")
 
 
@@ -302,3 +307,114 @@ def test_a_resolution_round_trips_through_its_table_and_cannot_be_overwritten(p1
     assert back == got
     with pytest.raises(sqlite3.IntegrityError):
         p12_conn.execute("UPDATE path_resolutions SET payload = ?", ("{}",))
+
+
+# --------------------------------------------------------------------------
+# Wave C4 — NEW (`74` §5.6). `69` §3 blocker 3: a client's passport number became
+# a group's `display_label` and, under per-group acceptance, printed as a proposed
+# FOLDER NAME. P13's side is A6; this is P12's -- path composition refuses a
+# segment whose source node carries a protected handling class, and the refusal
+# names the node rather than the label.
+# --------------------------------------------------------------------------
+
+#: The composition root names these. There is no default: P7 states that a
+#: neighbour consumes the `protected` flag and never infers it from the class,
+#: and `Node` carries a class and no flag -- so the set is an injected authority,
+#: and absent means refuse (A7).
+PROTECTED_CLASSES = frozenset({
+    "sensitive_personal", "highly_sensitive_credential_bearing"})
+
+#: The label from `69` §3 blocker 3, in the shape the report printed it.
+PASSPORT_LABEL = "X1234567"
+
+
+def _protected_tree():
+    return (*FOUR_LEVEL,
+            node("n_passport", PASSPORT_LABEL, "n_2026", ordinal=1,
+                 handling_class="highly_sensitive_credential_bearing"))
+
+
+def test_a_path_segment_is_never_composed_from_a_protected_label():
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_passport", _protected_tree())
+    refusal = excinfo.value
+    assert refusal.refusal_class == v.PROTECTED_WITHOUT_POLICY
+    assert refusal.detail["node_id"] == "n_passport"
+    assert refusal.detail["handling_class"] == \
+        "highly_sensitive_credential_bearing"
+    # The label is the protected material. It is what must not travel.
+    assert PASSPORT_LABEL not in str(refusal.detail)
+    assert PASSPORT_LABEL not in str(refusal)
+
+    # An ancestor carrying the class refuses too, even when the requested node
+    # itself is ordinary: the segment would still be composed and written.
+    deeper = (*_protected_tree(),
+              node("n_scans", "Scans", "n_passport", ordinal=0))
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_scans", deeper)
+    assert excinfo.value.detail["node_id"] == "n_passport"
+
+    # And the guard is not a blanket refusal: the ordinary siblings still resolve.
+    assert _resolve("n_offers", _protected_tree()).resolved_destination_directory
+
+
+def test_a_protected_class_set_is_required_and_absent_means_refuse():
+    """A7 — a missing authority raises a named refusal, it never defaults.
+
+    An EMPTY set is refused rather than read as "nothing is protected", which is
+    the reading that would silently disable this guard entirely.
+    """
+    with pytest.raises(TypeError):
+        resolve_destination(
+            plan_version="plan_1", node_id="n_offers", nodes=FOUR_LEVEL,
+            source_path=DOCUMENTS / "Inbox" / "a.pdf",
+            high_level_folders=FOLDERS, constraints=CASE_KEEPING_VOLUME,
+            cross_folder_moves=True, volume_of=_volume,
+            mint_resolution_id=_mint)
+    with pytest.raises(ProtectedClassesRequired):
+        _resolve("n_offers", protected_classes=frozenset())
+    with pytest.raises(ProtectedClassesRequired):
+        _resolve("n_offers", protected_classes=frozenset({"sensitive"}))
+
+
+def test_a_protected_label_never_reaches_a_collision_detail_either():
+    """The collision refusal names both labels so the person can rename one.
+    A protected sibling would put the protected material in that list, so the
+    protected refusal wins and the label stays out of the record."""
+    nodes = (*FOUR_LEVEL,
+             node("n_ordinary", "x1234567", "n_2026", ordinal=1),
+             node("n_passport", PASSPORT_LABEL, "n_2026", ordinal=2,
+                  handling_class="sensitive_personal"))
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_ordinary", nodes, constraints=CASE_FOLDING_VOLUME)
+    assert excinfo.value.refusal_class == v.PROTECTED_WITHOUT_POLICY
+    assert excinfo.value.detail["node_id"] == "n_passport"
+    assert PASSPORT_LABEL not in str(excinfo.value.detail)
+
+
+def test_the_refusal_appends_refused_move_and_names_the_node_not_the_label(p12_conn):
+    """The negative twin. `74` §5.2: every refusal appends `refused move` with
+    `66` §10's distinct language. The whole point of C4 is WHAT the row may
+    contain, so the assertion is over every column of the row, not over the
+    explanation alone -- a guard that only checked `explanation` would pass an
+    implementation that put the passport number in `new_path`.
+    """
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_passport", _protected_tree())
+
+    record_resolution_refusal(
+        p12_conn, excinfo.value, file_id="f1",
+        observed_at="2026-08-29T00:00:00Z", component_version="p12-test")
+
+    rows = p12_conn.execute(
+        "SELECT * FROM events WHERE event_type = ?", (v.REFUSED_MOVE,)).fetchall()
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["subsystem"] == v.SUBSYSTEM
+    assert row["file_id"] == "f1"
+    assert "n_passport" in row["explanation"]
+    assert v.decline_message(v.PROTECTED_WITHOUT_POLICY) in row["explanation"]
+
+    whole_row = " ".join("" if value is None else str(value) for value in row)
+    assert PASSPORT_LABEL not in whole_row
+    assert "n_passport" in whole_row
