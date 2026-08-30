@@ -248,3 +248,46 @@ path" — so the index carries P10's `node_type` and not `existing_path`; and P1
 not import a module that can write facts, so the new read goes through
 `facts.read_surface` rather than `facts.file_facts`. Both were caught by tests that
 existed before this work and knew what they were protecting.
+
+
+---
+
+## 10. Asking during the freeze (2026-08-30)
+
+Joseph asked for proof that the tree, the sorting and the classification work as
+`00` intended, and for the missing half to be built: a person asked questions
+**during** the freeze rather than told afterwards what was decided for them.
+
+**What the proof showed working**, over a two-life corpus (two courses already
+filed under `Uni/`, three loose files in `Downloads/`, a legal matter in two
+places):
+
+| stage | evidence |
+|---|---|
+| classification | P6 settles `subject`, `term`, `school` per file; P9 forms four engine-named groups |
+| existing structure | 5 of the person's folders adopted, nested, marked `[yours already]` |
+| tree proposal | `Coursework/{CHEM1500, CV20261234, PHYS1401}` beside them |
+| per-file destination | all 8 files given a home and a reason; 4 read "nothing to do" |
+| questions | 3 raised from the corpus's own ambiguities, none invented |
+| answering | 5 files waiting → 3 ready to file and 4 already correct |
+
+**What was built.** §13 permits a structural answer five consequences and one was
+wired. The second, `gate a template`, is now wired: `00`:78's own moment — the
+engine builds every shape a branch's facts support, shows what each would create
+with the counts, and the person picks. It was being decided by `options[0]` and
+disclosed. An unanswered offer changes nothing, so asking costs the person
+nothing and the first run is the run they always had.
+
+**A third scope kind, `branch`, was added** under the 2026-08-29 ruling, and is
+flagged for veto. `corpus` would let the shape chosen for someone's coursework
+decide the shape of their legal matters (§13 forbids it by name); `organization`
+promises "an entity the evidence produced" and a branch label is a word the person
+typed.
+
+**Two kinds of question now print apart.** A blocked reading stops something; a
+nesting offer stops nothing. Under one heading a finished run looked stuck.
+
+**Still not true, and the proof shows it plainly.** `CV20261234` is confirmed
+`law_practice` by the person's own answer and still sits under a branch called
+`Coursework`, because the branch label is one `--label` per run. That is §5's
+first entry and this work did not move it.
