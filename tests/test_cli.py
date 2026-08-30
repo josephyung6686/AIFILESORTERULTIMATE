@@ -2154,3 +2154,36 @@ def test_a_rerun_over_an_unchanged_corpus_is_the_same_group_and_not_a_new_one(tm
     conn.close()
     assert len(set(accepted)) == 1, (
         f"two identical runs minted {len(set(accepted))} accepted groups: {accepted}")
+
+
+def test_rejecting_a_conclusion_about_an_ambiguous_filename_is_refused(tmp_path):
+    """Two folders, one filename. `--reject` must not guess which was meant.
+
+    `notes.txt` in two directories is the most ordinary thing on a real disk.
+    The lookup behind `--reject` reads `WHERE filename = ?` and takes the first
+    row, so a person correcting the product about one of them would silently
+    retract a conclusion about the other -- and the screen would say it worked.
+
+    This is the same defect as a bare label naming a split review set, which
+    refuses for the same reason: a gesture that acts on something other than
+    what the person named is worse than one that stops and asks.
+    """
+    corpus = tmp_path / "corpus"
+    (corpus / "PHYS 1401").mkdir(parents=True)
+    (corpus / "CHEM 1500").mkdir(parents=True)
+    (corpus / "PHYS 1401" / "notes.txt").write_text(
+        "PHYS 1401 Lecture Notes\n\nSpring 2026 lecture notes.\n")
+    (corpus / "CHEM 1500" / "notes.txt").write_text(
+        "CHEM 1500 Lecture Notes\n\nSpring 2026 lecture notes.\n")
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    assert cli.main(argv, out=io.StringIO()) == 0
+
+    out = io.StringIO()
+    code = cli.main(argv + ["--reject", "notes.txt:subject=PHYS1401"], out=out)
+    printed = out.getvalue()
+    assert code != 0, printed
+    # And it says which ones it could have meant, so the person can name one.
+    assert "PHYS 1401" in printed and "CHEM 1500" in printed, printed

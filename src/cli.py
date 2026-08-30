@@ -53,6 +53,7 @@ from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.safety import SafetyPolicy
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.discount import MetadataScreen
+from facts.learning import NoSuchClaim, reject_claim
 from facts.resolver import FactResolver
 from facts.usable import record_pass
 from grouping.acceptance import group_state_as_of, record_acceptance
@@ -123,6 +124,7 @@ from tree_design.upstream import (
 from tree_design.schema import create_tree_schema
 from mutation.schema import create_mutation_schema
 from review_surface.schema import create_review_schema
+from review_surface.vocabulary import ACTION_REJECT
 from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
@@ -1687,6 +1689,81 @@ def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
         record_question(conn, question, asked_at=asked_at)
 
 
+class RejectionRefused(NotConfigured):
+    """`--reject` named something this plan has never proposed."""
+
+
+def apply_rejections(conn: sqlite3.Connection, rejections: Sequence[str], *,
+                     user_id: str, observed_at: str) -> None:
+    """Record what the person typed at `--reject`, before the run reads anything.
+
+    §8.7 is the promise this pays: the product must "store negative feedback so the
+    same attractive but incorrect conclusion is not resurfaced". Every other
+    proposing part already asks that question on its live path -- P7's
+    `privacy.learning_seam.suppressed`, P9's `grouping.graph`, P10's
+    `tree_design.provenance`, P11's `placement.learning.suppressed_nodes` -- and P6
+    now asks it too, inside `facts.direct.direct_facts`. Until this flag existed
+    there was no gesture anywhere in this command that could put a fact-level answer
+    INTO the store those guards read, so the guards were reachable and nothing could
+    ever reach them.
+
+    Applied after `--answer` and before the run, for the same reason `--answer` is: a
+    person who has just been shown a wrong conclusion and said so should see the
+    difference on this invocation, not the next one.
+
+    The lookup and the two writes belong to P6 (`facts.learning.reject_claim`), not
+    here. This turns one typed string into three words and hands them over; a SELECT
+    over `file_facts` written in this file would be a second home for P6's schema in
+    the one module that is supposed to hold none.
+
+    A name this plan has not proposed is REFUSED rather than ignored, exactly as an
+    unknown `--answer` is: the person believes they have told the product something,
+    and a silently dropped rejection is the worst of both.
+    """
+    for raw in rejections:
+        target, _, value = raw.partition("=")
+        filename, _, field_key = target.rpartition(":")
+        if not filename or not field_key or not value:
+            raise RejectionRefused(
+                f"{raw!r} is not a rejection. The form is "
+                "`--reject <file>:<field>=<value>`, naming something this plan "
+                "proposed -- for example "
+                "`--reject 'week 3.pdf:subject=PHYS1401'`.")
+        # EVERY row, not the first. `notes.txt` in two course folders is the
+        # most ordinary thing on a real disk, and taking the first match would
+        # retract a conclusion about a file the person did not name while the
+        # screen said it worked. A gesture that acts on something other than
+        # what was named is worse than one that stops and asks -- the same
+        # ruling a bare label for a split review set gets.
+        rows = conn.execute(
+            "SELECT file_id, content_hash, current_path FROM files "
+            "WHERE filename = ? ORDER BY current_path", (filename,)).fetchall()
+        if not rows:
+            raise RejectionRefused(
+                f"{filename!r} is not a file in this plan. Run the command without "
+                "`--reject` first: there is nothing to reject until the product has "
+                "proposed something.")
+        if len(rows) > 1:
+            paths = "\n    ".join(row["current_path"] for row in rows)
+            raise RejectionRefused(
+                f"{filename!r} names {len(rows)} files in this plan, and this "
+                f"rejection would only reach one of them. Name the one you mean "
+                f"by its path:\n    {paths}")
+        row = rows[0]
+        try:
+            reject_claim(conn, file_id=row["file_id"],
+                         content_hash=row["content_hash"], field_key=field_key,
+                         value=value, action=ACTION_REJECT, user_id=user_id,
+                         observed_at=observed_at)
+        except NoSuchClaim as refusal:
+            # P6 names the file by its id, which is the right word inside P6 and
+            # the wrong one on a screen: the person typed a filename and has
+            # never seen a uuid. Re-said in their words, with P6's reason kept.
+            raise RejectionRefused(
+                str(refusal).replace(repr(row["file_id"]), repr(filename))
+            ) from refusal
+
+
 class AnswerRefused(NotConfigured):
     """`--answer` named something this database has never asked about."""
 
@@ -2345,6 +2422,13 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "`=skip` to put it aside. Answers are remembered between runs and "
              "can be given more than once.")
     parser.add_argument(
+        "--reject", action="append", default=[], metavar="FILE:FIELD=VALUE",
+        help="tell the product that something it concluded about one of your "
+             "files is wrong, e.g. --reject 'week 3.pdf:subject=PHYS1401'. The "
+             "claim is retracted and it is not proposed again on later runs. "
+             "Nothing is deleted -- the old conclusion and its evidence stay "
+             "readable. Can be given more than once.")
+    parser.add_argument(
         "--residual", action="append", default=[], metavar="NAME",
         help="enable one of §7.3's residual areas as a destination in this "
              "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
@@ -2430,6 +2514,11 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
             _bootstrap(conn)
             apply_answers(conn, args.answer, user_id=args.user,
                           recorded_at=now())
+        # After the answers and before the run, for the same reason.
+        if args.reject:
+            _bootstrap(conn)
+            apply_rejections(conn, args.reject, user_id=args.user,
+                             observed_at=now())
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      residuals=_validate_residuals(args.residual),
