@@ -23,7 +23,7 @@ from collections.abc import Sequence
 from evidence_shape.canonical import canonical_json
 
 from questions.records import QuestionOption, StructuralAnswer, StructuralQuestion
-from questions.vocabulary import BINDING_STATES, REVOKED
+from questions.vocabulary import BINDING_STATES, REVOKED, SKIPPED
 
 
 class AnswerConflict(ValueError):
@@ -170,6 +170,31 @@ def open_questions(conn: sqlite3.Connection) -> tuple[StructuralQuestion, ...]:
         answer = live_answer(conn, question_id=row["question_id"],
                              scope=row["scope"])
         if answer is None or answer.state == REVOKED:
+            out.append(_question_of(row))
+    return tuple(out)
+
+
+def set_aside_questions(conn: sqlite3.Connection) -> tuple[StructuralQuestion, ...]:
+    """Every question the person skipped and has not since settled or withdrawn.
+
+    `open_questions` deliberately excludes these: §14 makes "skip for now"
+    first-class and §12 forbids re-asking, so a skipped question does not come
+    back. That is right, and this is not a way around it -- nothing here is
+    asked again.
+
+    It exists because the way BACK was unreachable. Revocation reopens a
+    question, but `--answer <id>=revoke` needs the id, and once a question is
+    skipped its id is printed nowhere at all. So a choice the design calls
+    reversible was reversible only by someone who had kept the earlier screen.
+    The caller shows the id and nothing else.
+    """
+    out: list[StructuralQuestion] = []
+    for row in conn.execute(
+            "SELECT * FROM structural_questions ORDER BY first_asked_at, "
+            "question_id"):
+        answer = live_answer(conn, question_id=row["question_id"],
+                             scope=row["scope"])
+        if answer is not None and answer.state == SKIPPED:
             out.append(_question_of(row))
     return tuple(out)
 

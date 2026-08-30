@@ -34,6 +34,7 @@ import argparse
 import getpass
 import json
 import re
+import shlex
 import sqlite3
 import sys
 import uuid
@@ -79,7 +80,7 @@ from questions.schema import create_questions_schema
 from questions.store import (
     activated_schemas, gated_template, live_answer, live_answer_id, open_questions,
     record_answer,
-    record_question,
+    record_question, set_aside_questions,
 )
 from questions.triggers import (
     NestingChoice, question_for_nesting, tied_readings,
@@ -1779,8 +1780,23 @@ def _protected(decision, sets: Sequence) -> bool:
                 or any(item.protected for item in sets))
 
 
+def _typable(question, option_id: str) -> str:
+    """One `QUESTION=OPTION` argument the person can actually paste.
+
+    The scope of a branch question is the person's OWN label -- `--label "Legal
+    Matters"` produces `branch:Legal Matters` -- so the line the report offers
+    contains a space, and a shell splits it into two arguments. The report's one
+    actionable instruction then fails, and it fails looking like the person's
+    mistake rather than ours.
+
+    `shlex.quote` leaves an argument that needs no quoting exactly as it was, so
+    the ordinary line is unchanged and only the one that would break is altered.
+    """
+    return shlex.quote(f"{question.question_id}={option_id}")
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
-           questions: Sequence = ()) -> None:
+           questions: Sequence = (), set_aside: Sequence = ()) -> None:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -1987,9 +2003,9 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             print(f"\n  {question.prompt}", file=out)
             print(_wrapped(question.evidence_context, indent="    "), file=out)
             for option in question.options:
-                print(f"      --answer {question.question_id}={option.option_id}"
+                print(f"      --answer {_typable(question, option.option_id)}"
                       f"   {option.label}", file=out)
-            print(f"      --answer {question.question_id}=skip"
+            print(f"      --answer {_typable(question, 'skip')}"
                   f"   Skip for now", file=out)
             print(_wrapped(question.unlocks, indent="    "), file=out)
             print(_wrapped(question.will_not_do, indent="    "), file=out)
@@ -2003,6 +2019,18 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                   "(it is already decided; this is yours to overrule):", file=out)
             for question in offers:
                 ask(question)
+
+    if set_aside:
+        # NOT the question again. §14 makes "skip for now" first-class and §12
+        # forbids the pressure of re-asking, so the prompt, the evidence and the
+        # options all stay gone -- what comes back is the ID, because that is
+        # what `revoke` needs and it was printed nowhere else. A reversible
+        # decision whose reversal is unreachable is not reversible.
+        print("\nSet aside by you, and still here if you want them back:",
+              file=out)
+        for question in set_aside:
+            print(f"      --answer {_typable(question, 'revoke')}"
+                  f"   Ask me this again", file=out)
 
     print("\nDecisions made for you, because nobody was at the screen to ask:",
           file=out)
@@ -2117,7 +2145,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
     report(result, file_names(conn, directory), out=out,
-           questions=open_questions(conn))
+           questions=open_questions(conn),
+           set_aside=set_aside_questions(conn))
     return 0
 
 

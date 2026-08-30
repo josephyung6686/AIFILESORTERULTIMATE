@@ -9,6 +9,7 @@ whole purpose is to tell you what to pass to `--situation` cannot itself require
 from __future__ import annotations
 
 import io
+import shlex
 import pathlib
 import sys
 from pathlib import Path
@@ -1091,8 +1092,19 @@ def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
     # Named exactly, because the run also OFFERS a nesting for the branch and an
     # offer is not a re-ask: the promise here is that THIS question, once
     # declined, does not come back.
-    assert "reading.organization:CV20261234" not in after.getvalue(), (
-        after.getvalue())
+    #
+    # The promise is about being ASKED, so it is asserted against the prompt and
+    # the options rather than against the bare id. The report also carries a
+    # one-line offer to revoke, which exists because `revoke` needs an id that
+    # was otherwise printed nowhere; that line reproduces nothing of the
+    # question and re-asks nothing. Its own guard is
+    # `test_the_reminder_line_is_not_the_question_asked_again`.
+    printed = after.getvalue()
+    assert "What kind of material is CV20261234?" not in printed, printed
+    offered = [line for line in printed.splitlines()
+               if "--answer reading.organization:CV20261234=" in line]
+    assert all(line.strip().endswith("Ask me this again") for line in offered), (
+        printed)
 
 
 def test_a_file_already_in_a_folder_of_that_name_is_not_announced_as_a_move():
@@ -1657,3 +1669,118 @@ def test_a_stronger_fact_about_another_field_is_not_a_contradiction():
     proposal = SimpleNamespace(field_key="subject", value="PHYS1401")
 
     assert cli.contradicts_stronger(proposal, row) is False
+
+
+def test_a_printed_answer_command_survives_being_pasted_into_a_shell(tmp_path):
+    """The report tells the person exactly what to type. It must be typable.
+
+    `--label` is the person's own words, and it becomes the SCOPE of every
+    branch question: a person who files under "Legal Matters" gets a question
+    whose scope is `branch:Legal Matters`. Printed bare, the line the report
+    offers is `--answer branch:Legal Matters=subject`, which a shell splits at
+    the space into two arguments -- so the one instruction the report gives is
+    an instruction that does not work, and it fails in a way that looks like the
+    person's mistake.
+
+    `shlex.split` is the test rather than an eyeball, because "it looks quoted"
+    is exactly the judgement that has been wrong here before.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    printed = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Legal Matters", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=printed)
+    report = printed.getvalue()
+
+    offered = [line.strip() for line in report.splitlines()
+               if line.strip().startswith("--answer ")]
+    assert offered, report
+    for line in offered:
+        # The report prints the command and then a description after it, so only
+        # the command's own two tokens are under test.
+        tokens = shlex.split(line)
+        assert tokens[0] == "--answer", line
+        assert "=" in tokens[1], (
+            f"{line!r} splits into {tokens[:2]!r}: pasting it would pass "
+            f"{tokens[1]!r} to --answer and leave the rest as stray arguments")
+
+
+def test_a_skipped_question_can_still_be_found_afterwards(tmp_path):
+    """A skip must be reversible by someone who no longer has the question id.
+
+    §14 makes "skip for now" first-class and §12 forbids re-asking, and both are
+    honoured: the question does not come back. But `revoke` -- the way back that
+    `test_a_person_can_change_their_mind` proves works -- needs the question id,
+    and once skipped the id is printed nowhere at all. So the door exists and
+    the person cannot see it, which makes a decision taken in a hurry permanent
+    in practice while the design says it is not.
+
+    This is not a re-ask. It is one quiet line saying what was set aside and how
+    to bring it back.
+
+    The name of this test avoids the words "set aside" on purpose. `set aside`
+    is a legal term, pytest names `tmp_path` after the test function, and an
+    ancestor directory's name currently changes what the recogniser decides --
+    so a test called `..._set_aside_...` silently reclassified its own corpus
+    and never got asked the question it is about. That ancestor defect is real
+    and is being fixed elsewhere; it is not this test's subject, and it should
+    not be this test's outcome.
+    """
+    corpus = _ambiguous_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    cli.main(argv, out=io.StringIO())
+    after = io.StringIO()
+    cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"],
+             out=after)
+    report = after.getvalue()
+
+    assert "reading.organization:CV20261234" in report, (
+        "the id the person needs in order to revoke is nowhere on the "
+        f"screen:\n{report}")
+    assert "revoke" in report, report
+
+
+def test_the_reminder_line_is_not_the_question_asked_again(tmp_path):
+    """The negative twin. §12 forbids the pressure of re-asking.
+
+    A line that reprinted the prompt, the evidence and the options would be the
+    question again wearing a different heading -- which is precisely what
+    `test_skipping_is_an_answer_and_the_question_does_not_come_back` exists to
+    stop. So the guard has to be that the PROMPT stays gone while the ID
+    returns, and asserting only the id's presence would pass against a
+    sabotaged version that simply reprinted everything.
+    """
+    corpus = _ambiguous_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    first = io.StringIO()
+    cli.main(argv, out=first)
+    lines = first.getvalue().splitlines()
+
+    # The prompt belonging to THIS question, derived rather than hard-coded: the
+    # last question line printed before its own options. The run also asks a
+    # branch question that was never skipped, and that one is meant to stay.
+    option = next(i for i, line in enumerate(lines)
+                  if "--answer reading.organization:CV20261234=" in line)
+    prompt = next(lines[i].strip() for i in range(option, -1, -1)
+                  if lines[i].strip().endswith("?"))
+
+    after = io.StringIO()
+    cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"],
+             out=after)
+    report = after.getvalue()
+
+    assert prompt not in report, (
+        f"{prompt!r} is the question being asked again:\n{report}")
+    offered = [line.strip() for line in report.splitlines()
+               if "--answer reading.organization:CV20261234=" in line]
+    assert offered == [
+        "--answer reading.organization:CV20261234=revoke   Ask me this again"], (
+        f"the options are being offered again:\n{report}")
+    # And the branch question, which was NOT skipped, is untouched by any of it.
+    assert "How should Coursework be organised?" in report, report
