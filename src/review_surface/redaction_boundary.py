@@ -24,6 +24,14 @@ class, because a `highly_sensitive_credential_bearing` record with
 `protected=False` is legal while P7's Open question 1 is unsettled. There is no
 sensitive-class set in this module: publishing a second one would answer P7's
 open question in P13's code.
+
+**The question is about the LABEL'S PROVENANCE, not about the folder's contents,**
+which is why the keyword is spelled `derived_from_protected_material` and not
+`protected`. "Passport Scans" is a perfectly good name for a folder full of
+protected documents; `A1234567` is not a good name for anything. A caller that
+handed this the folder's protectedness would strip the name off every protected
+folder a person already has -- their own words, taken away because of what is
+inside. The keyword says which of the two it wants.
 """
 from __future__ import annotations
 
@@ -95,16 +103,17 @@ def carries_no_material(text: str, material: str) -> bool:
     return not any(run in text for run in _fragments(material))
 
 
-def proposed_folder_name(*, display_label: str, protected: bool,
+def proposed_folder_name(*, display_label: str,
+                         derived_from_protected_material: bool,
                          handling_class: str) -> str:
     """The label, if it may become a directory. Otherwise a refusal.
 
-    `protected` is a required keyword with no default. Absent means refuse: P13
-    does not decide whether material is protected, and a default here would be
-    P13 deciding it is not.
+    `derived_from_protected_material` is a required keyword with no default.
+    Absent means refuse: P13 decides nothing about provenance, and a default here
+    would be P13 deciding the label is safe.
     """
     check(handling_class, HANDLING_CLASSES, name="handling class")
-    if not protected:
+    if not derived_from_protected_material:
         return display_label
     raise ProposedNameFromProtectedMaterial(
         "a display label derived from protected material was offered as a "
@@ -119,14 +128,16 @@ def proposed_folder_chain(segments: Sequence[tuple[str, bool]], *,
                           handling_class: str) -> tuple[str, ...]:
     """Every segment of an ancestor chain, or a refusal naming which one failed.
 
-    `69` §3's case was a chain: the group's label became a TOP-LEVEL folder, so a
-    guard that only examined the leaf would have materialised it anyway.
+    Each segment is `(display_label, derived_from_protected_material)`. `69` §3's
+    case was a chain: the group's label became a TOP-LEVEL folder, so a guard
+    that only examined the leaf would have materialised it anyway.
     """
     names: list[str] = []
-    for position, (display_label, protected) in enumerate(segments):
+    for position, (display_label, derived) in enumerate(segments):
         try:
             names.append(proposed_folder_name(
-                display_label=display_label, protected=protected,
+                display_label=display_label,
+                derived_from_protected_material=derived,
                 handling_class=handling_class))
         except ProposedNameFromProtectedMaterial as refusal:
             raise ProposedNameFromProtectedMaterial(

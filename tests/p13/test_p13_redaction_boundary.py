@@ -53,7 +53,8 @@ def test_a_label_derived_from_protected_material_is_never_presented_as_a_folder_
     to whoever catches it.
     """
     with pytest.raises(ProposedNameFromProtectedMaterial) as caught:
-        proposed_folder_name(display_label=PASSPORT, protected=True,
+        proposed_folder_name(display_label=PASSPORT,
+                             derived_from_protected_material=True,
                              handling_class=CREDENTIAL_BEARING)
     assert PASSPORT not in str(caught.value), (
         "the refusal must not print the very material it refused")
@@ -102,18 +103,25 @@ def test_the_aggregate_form_is_not_reachable_by_concatenating_the_redacted_parts
 # --------------------------------------------------------------------------
 
 def test_an_unprotected_label_becomes_its_folder_name_unchanged():
-    assert proposed_folder_name(display_label="Academics", protected=False,
+    assert proposed_folder_name(display_label="Academics",
+                                derived_from_protected_material=False,
                                 handling_class="public_low") == "Academics"
 
 
 def test_the_refusal_does_not_consult_the_redaction_policy():
     """A folder name is not a display. `names = shown` is a decision about a
     screen; the directory outlives the screen."""
-    assert "settings" not in inspect.signature(proposed_folder_name).parameters
+    parameters = inspect.signature(proposed_folder_name).parameters
+    assert "settings" not in parameters
+    # The keyword asks about the LABEL'S PROVENANCE, not the folder's contents.
+    # A caller that handed it the folder's protectedness would strip the name
+    # off every protected folder the person already has.
+    assert "derived_from_protected_material" in parameters
     for settings in (SHOWN, NAMES_REDACTED):
         assert settings.names in ("shown", "redacted")
         with pytest.raises(ProposedNameFromProtectedMaterial):
-            proposed_folder_name(display_label=PASSPORT, protected=True,
+            proposed_folder_name(display_label=PASSPORT,
+                             derived_from_protected_material=True,
                                  handling_class=CREDENTIAL_BEARING)
 
 
@@ -133,7 +141,7 @@ def test_protectedness_is_p7s_flag_and_p13_derives_it_from_no_class():
     import review_surface.redaction_boundary as module
 
     assert proposed_folder_name(display_label="Passport Scans",
-                                protected=False,
+                                derived_from_protected_material=False,
                                 handling_class=CREDENTIAL_BEARING) == (
         "Passport Scans")
 
