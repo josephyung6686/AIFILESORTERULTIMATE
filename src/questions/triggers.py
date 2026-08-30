@@ -33,6 +33,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from questions.records import QuestionOption, StructuralQuestion
+from questions.registry import NESTING_KIND, READING_KIND
 from questions.vocabulary import SCOPE_BRANCH, SCOPE_ORGANIZATION, STRUCTURAL
 
 #: `66` §14 keeps these two answers first-class, so every derived question carries
@@ -76,7 +77,7 @@ def question_for_tied_reading(*, subject_value: str, tied_schema_ids: Iterable[s
             "reading is not an ambiguity and needs no question")
     files = "file mentions" if file_count == 1 else "files mention"
     return StructuralQuestion(
-        question_id=f"reading.{SCOPE_ORGANIZATION}:{subject_value}",
+        question_id=f"{READING_KIND.kind_id}.{SCOPE_ORGANIZATION}:{subject_value}",
         answer_class=STRUCTURAL,
         prompt=f"What kind of material is {subject_value}?",
         evidence_context=(
@@ -187,7 +188,7 @@ def question_for_nesting(*, branch_label: str,
             "could take; one nesting is not a choice and needs no question")
     files = "file" if file_count == 1 else "files"
     return StructuralQuestion(
-        question_id=f"{SCOPE_BRANCH}:{branch_label}",
+        question_id=f"{NESTING_KIND.kind_id}:{branch_label}",
         answer_class=STRUCTURAL,
         prompt=f"How should {branch_label} be organised?",
         evidence_context=(

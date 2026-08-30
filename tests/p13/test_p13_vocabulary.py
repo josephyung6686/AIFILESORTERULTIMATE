@@ -145,8 +145,20 @@ def _schema_columns() -> frozenset[str]:
 
 
 def _column_reference_keys(tree: ast.Module) -> set[int]:
-    """Every string constant used as a subscript key that names one of P13's
-    own columns. Identified by node identity, like the docstring exemption."""
+    """Every string constant used as a COLUMN KEY that names one of P13's columns.
+
+    Two syntactic roles carry that meaning, and both are exempted by node
+    identity rather than by a second regex:
+
+    * a subscript key -- `row["plan_version"]` reads the column off a row;
+    * a dict-literal key -- the `review presentation` event's explanation payload
+      mirrors the row it is written beside, key for key.
+
+    The exemption stays as narrow as it was. `plan_version` is both a SURFACE and
+    a column on all three tables, so the guard must judge by ROLE; a dict key that
+    is NOT one of P13's columns is still a respelling and is still caught, which
+    the twin below asserts in both directions.
+    """
     columns = _schema_columns()
     keys: set[int] = set()
     for node in ast.walk(tree):
@@ -154,6 +166,12 @@ def _column_reference_keys(tree: ast.Module) -> set[int]:
                 and isinstance(node.slice, ast.Constant)
                 and node.slice.value in columns):
             keys.add(id(node.slice))
+        if isinstance(node, ast.Dict):
+            for key in node.keys:
+                if (isinstance(key, ast.Constant)
+                        and isinstance(key.value, str)
+                        and key.value in columns):
+                    keys.add(id(key))
     return keys
 
 
@@ -204,6 +222,11 @@ def test_a_module_binding_a_bare_vocabulary_member_is_rejected():
     # still a respelling and still caught.
     assert not _bare_vocabulary_bindings(_fake('x = row["plan_version"]\n'))
     assert _bare_vocabulary_bindings(_fake('x = table["canvas"]\n'))
+    # The same narrowness for a dict-literal key. An event explanation payload
+    # mirrors the row it is written beside, key for key, so its keys are column
+    # references in the same sense; a key that is not a column is not.
+    assert not _bare_vocabulary_bindings(_fake('x = {"plan_version": v}\n'))
+    assert _bare_vocabulary_bindings(_fake('x = {"canvas": v}\n'))
     assert "plan_version" in _schema_columns()
     assert "canvas" not in _schema_columns()
 
