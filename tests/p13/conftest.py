@@ -13,6 +13,7 @@ from database_agent.budget import all_ceilings
 from database_agent.db import create_schema
 from eval_harness.run import ANALYSIS_TIERS, record_version_tuple, start_run
 from eval_harness.store import create_eval_schema
+from evidence_shape.schema import create_evidence_schema
 from facts.fields import create_fields
 from grouping.schema import create_grouping_schema
 from placement.schema import create_placement_schema
@@ -30,6 +31,10 @@ USER = "jy"
 def p13_conn(conn):
     create_schema(conn)
     create_eval_schema(conn)
+    # P4's tables. M14 makes an `observation_key` the citation handle P13
+    # resolves, and a resolution read against an absent table would prove
+    # nothing about the resolution.
+    create_evidence_schema(conn)
     create_grouping_schema(conn)
     create_fields(conn)
     create_privacy_schema(conn)
