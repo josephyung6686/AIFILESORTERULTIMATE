@@ -23,9 +23,26 @@ FILES_COLUMNS: tuple[str, ...] = (
 #: value P3 may supply: this column is otherwise P3's vocabulary (Contract in).
 SUPERSEDED_CONTENT = "superseded_content"
 
+#: P3 SPEC Q14's other half, answered here: what a `files` row whose path no longer
+#: exists becomes. The row is NOT removed and nothing it recorded is destroyed —
+#: §8.5 has to be able to reconstruct the run that saw the file — so the only thing
+#: that changes is the one column that says whether the file is part of the corpus
+#: a run plans over. A person who deleted a file must not be offered it again.
+#:
+#: A SENTINEL, like `SUPERSEDED_CONTENT` and for the same reason: P3 "invents no
+#: scan state" (`scan_agent/basic_record.py:50`), and a caller supplying this word
+#: would be a second home for one vocabulary. Readers never need to know it. They
+#: ask the positive question — is this row the corpus value this deployment scans
+#: under? — exactly as `grouping/retrieval._corpus` already does, so no reader has
+#: to be taught a new word and none can be broken by misspelling it.
+PATH_NO_LONGER_EXISTS = "path_no_longer_exists"
+
+#: The two values above: P1's, written by P1, refused from a caller.
+_P1_SENTINELS: frozenset[str] = frozenset((SUPERSEDED_CONTENT, PATH_NO_LONGER_EXISTS))
+
 
 class ReservedScanState(Exception):
-    """P3 owns `scan_state` except for P1's R3 sentinel, which P1 writes itself."""
+    """P3 owns `scan_state` except for P1's own sentinels, which P1 writes itself."""
 
 
 # NOTE: P1 deliberately has no timestamp/filename derivation helper. P3 computes
@@ -217,9 +234,10 @@ def _relocated_row(conn: sqlite3.Connection, content_hash: str, observed: str,
 
 
 def _require_caller_scan_state(scan_state: str) -> None:
-    if scan_state == SUPERSEDED_CONTENT:
+    if scan_state in _P1_SENTINELS:
         raise ReservedScanState(
-            f"{SUPERSEDED_CONTENT!r} is P1's R3 sentinel (OQ1); a caller cannot supply it"
+            f"{scan_state!r} is one of P1's own scan-state sentinels; a caller "
+            f"cannot supply it. P1 writes {sorted(_P1_SENTINELS)} itself."
         )
 
 
@@ -302,6 +320,34 @@ def invalidate_extraction_state(conn: sqlite3.Connection, file_id: str, *,
     conn.execute(
         "UPDATE files SET extraction_status_by_tier = '{}' WHERE file_id = ?",
         (file_id,),
+    )
+
+
+def set_path_no_longer_exists(conn: sqlite3.Connection, file_id: str, *,
+                             author: str, component_version: str) -> None:
+    """The row's path is gone from the disk. Retire it from the corpus, keep it all.
+
+    P3 SPEC Q14 asks "what happens to a `files` row whose path no longer exists" and
+    leaves it open. This is the answer, and it is deliberately the smallest one that
+    stops the product describing a world that is not there: the row stays, its path
+    stays, its hash stays, its events stay, and `scan_state` moves to
+    `PATH_NO_LONGER_EXISTS`. Nothing is deleted, because §8.5's replay must be able
+    to reconstruct the run that saw the file, and because a record of what was once
+    known about a file is not the product's to destroy on the strength of one
+    `lstat`.
+
+    `author` is the part that observed the disappearance. As with
+    `invalidate_extraction_state`, P1 appends no event of its own (M8): the acting
+    part authors its `external modification detection` and P1 records the state
+    under it.
+
+    Said once: the caller sweeps the rows still carrying its corpus value, so a row
+    already retired is not offered here again and one disappearance cannot become a
+    disappearance re-announced on every later run.
+    """
+    conn.execute(
+        "UPDATE files SET scan_state = ? WHERE file_id = ?",
+        (PATH_NO_LONGER_EXISTS, file_id),
     )
 
 

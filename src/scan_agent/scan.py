@@ -18,6 +18,7 @@ from scan_agent.stat_cache import (
 from scan_agent.corpus_source import CorpusSource
 from scan_agent.dataless import record_dataless_detection
 from scan_agent.deferrals import record_deferral
+from scan_agent.disappearance import reconcile_disappearances
 from scan_agent.exclusion import APPLIES_TO_SCANNED_SOURCE, ExclusionVerdict, record_exclusion
 from scan_agent.run import finish_scan_run, start_scan_run
 from scan_agent.selection import selection_candidate_roots, selection_sources
@@ -77,6 +78,12 @@ def scan(conn: sqlite3.Connection, selection_id: str, *,
             _record(conn, scan_run_id, item, mime_type_for=mime_type_for,
                     scan_state=scan_state)
             item_recorded()
+    # AFTER the walk, inside the run: the walk is what proves a recorded file was
+    # not found, and a person's disk changing between runs is the normal case
+    # rather than the edge one. Without this the corpus only ever grew, and every
+    # later plan went on offering to file something they had deleted.
+    reconcile_disappearances(conn, scan_run_id, sources=sources,
+                             scan_state=scan_state)
     finish_scan_run(conn, scan_run_id)
     return scan_run_id
 
