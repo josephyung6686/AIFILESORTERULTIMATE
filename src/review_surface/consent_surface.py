@@ -48,11 +48,20 @@ FOUR_OPTIONS: tuple[str, ...] = CONSENT_OPTIONS
 
 #: §8.4's own phrasing of each option. The visual copy is deferred by the SPEC's
 #: Deferred table; the DISTINCTION between the four is contractual.
+#:
+#: Keyed by the option's NAME, not by its position. P7 publishes `CONSENT_OPTIONS`
+#: as a tuple and no named constant per member, so the four names are spelled here
+#: -- which is a second home for P7's vocabulary and is the lesser of two evils.
+#: Indexing the tuple instead would couple these sentences to its ORDER, so a
+#: reordering upstream would silently swap "allow a cloud model" and "use no model
+#: for this" with no test failing. The assertions below are what keep the two in
+#: step; P7 publishing a constant per member would remove the second home
+#: entirely.
 OPTION_SENTENCES: Mapping[str, str] = MappingProxyType({
-    CONSENT_OPTIONS[0]: "Allow a local model to read this text.",
-    CONSENT_OPTIONS[1]: "Allow a cloud model to read this text.",
-    CONSENT_OPTIONS[2]: "Allow a redacted prompt, with identifiers removed.",
-    CONSENT_OPTIONS[3]: "Use no model for this.",
+    "local_model": "Allow a local model to read this text.",
+    "cloud_model": "Allow a cloud model to read this text.",
+    "redacted_prompt": "Allow a redacted prompt, with identifiers removed.",
+    "no_model_use": "Use no model for this.",
 })
 assert set(OPTION_SENTENCES) == set(FOUR_OPTIONS)
 assert len(set(OPTION_SENTENCES.values())) == len(FOUR_OPTIONS)
