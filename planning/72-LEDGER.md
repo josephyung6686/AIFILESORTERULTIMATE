@@ -443,3 +443,49 @@ only fixtures build one — so the composition root owes P7 its first real calle
 and `CallDependencies` has **17** fields, all required, none defaulted, with
 `estimated_cost`/`actual_cost` needing a real `Decimal` (an int or float raises)
 and `allowed_vocabulary=()` failing outright.
+
+### 13a. The rest of the wiring, specified
+
+Traced so the build is a build and not another investigation.
+
+**`pending_fields` is ABSENT and must not be computed from the `unresolved`
+table.** Every caller in `src/` and `tests/` returns a literal `()`. What it owes
+is "every field the barred route would have attempted" (`resolver.py:236-241`),
+and the correct read is `facts.domains.active_field_allowlist` MINUS
+`facts.read_surface.facts_for` (which filters `active=1` and `superseded_by IS
+NULL`). Not `facts_for_file`, which is unfiltered by its own docstring, and not
+the `unresolved` table, which keeps superseded rows on purpose and whose existing
+refusals are a different reason from "pending against the LLM route".
+
+**`model_route_permitted` is a DIFFERENT gate from P7's `Gate`, not a second one.**
+`Gate.release` takes a built `ModelCallRequest` — content already assembled —
+whereas `model_route_permitted` is the pre-check that avoids assembling one, and
+`resolver.py:190-194` says why it must come first: a handling class that forbids
+the route is a PROHIBITION, and reporting it as a deferral "would promise work
+that will never be done". Same facts, different moment; the Gate stays the
+enforcing door. Compose it from `ClassificationStore.current` →
+`classification.resolve_class` → `denial.mode_forbids`.
+
+**An unclassified file answers False** — `classification.py:170-177`: absence
+resolves to `unreadable_unclassified` and never to `public_low`, because a file
+nobody has classified "has not met §8.4's precondition for escalation", and
+"the gate denies it rather than guessing at it downward".
+
+**One conclusion of that trace is already stale, and the staleness is the point.**
+It ended "you do not have to answer OQ5 … this deployment has no local model, so
+False is correct either way." True when written and untrue since `67e73bd`: the
+local transport exists and `qwen2.5:3b` is installed. `mode_forbids` permits a
+LOCAL target under BOTH local modes, so the moment a local model is wired,
+`unclassified_denies` stops being moot and defers to
+`local_calls_on_unclassified` — the flag with no default. **Building the transport
+is what made §13's question live.**
+
+**`activation_signals`** is `ActivationSignals(signals=(ActivationSignal(schema_id,
+activates), ...))`, one per schema, duplicates refused. Nothing in `src/` builds
+one; `ActivationSignals(())` is legal and yields universal fields only.
+
+**And there is no proven example to copy.** No test and no production site wires a
+`FactResolver` `llm` stage to `facts.llm_seam`; the only non-`None` stages in the
+suite are recorders returning fixed ids. Every other seam in this project was
+built against a working example. This one will not be, which is worth saying out
+loud before it is attempted.

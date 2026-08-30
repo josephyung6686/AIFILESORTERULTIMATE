@@ -1315,3 +1315,83 @@ def test_a_person_can_change_their_mind(tmp_path):
     folders = reopened.getvalue().split(
         "Folders in this plan:", 1)[1].split("Files:", 1)[0]
     assert "CHEM1500" in folders, folders
+
+
+# ======================================================================================
+# The two oracles P6 and P8 each said were the other's (C-5)
+# ======================================================================================
+
+
+def test_the_normalizer_canonicalises_the_way_the_direct_slots_already_do():
+    """§3.6 check 3: "the proposed value can be normalized safely".
+
+    `facts/llm_seam.py` records the deadlock this closes: P8's SPEC names
+    `normalize` and `contradicts` as P6's, P8's Deferred table files them back to
+    P6, "so each part hands them to the other and neither builds them... The
+    ruling is owed." Neither part owns them because they belong to the COMPOSITION
+    ROOT -- the one place that chooses a policy -- and a test already forbids
+    `facts` from publishing either.
+
+    Nothing new is authored here. The model's value is canonicalised by the SAME
+    rule the deterministic slot uses for that field, so `PHYS 1401` from a model
+    and `PHYS1401` from a heading cannot become two courses. That failure is on
+    the record: `65` §4.2, four files of one course became four one-file groups
+    because one identity arrived as several spellings.
+    """
+    assert cli.normalize_for_model("subject", "PHYS 1401") == "PHYS1401"
+    assert cli.normalize_for_model("subject", "PHYS1401") == "PHYS1401"
+    assert cli.normalize_for_model("term", "Spring-2026") == "Spring2026"
+
+
+def test_a_value_the_fields_own_predicate_rejects_is_not_normalizable():
+    """The twin that gives check 3 something to reject.
+
+    `DirectSlot.matches` is how this deployment tells a course code from a term
+    over one body of text. A model proposing `Spring 2026` as a SUBJECT is
+    proposing something the field's own rule says is not one, and answering with a
+    canonical form would launder it into a folder name.
+    """
+    assert cli.normalize_for_model("subject", "Spring 2026") is None
+    assert cli.normalize_for_model("term", "PHYS1401") is None
+
+
+def test_a_value_that_canonicalises_to_nothing_is_not_normalizable():
+    """Whitespace is not a value. An empty canonical form would be a folder with
+    no name, and §3.6 would have passed it as normalized."""
+    assert cli.normalize_for_model("subject", "   ") is None
+    assert cli.normalize_for_model("subject", "") is None
+
+
+def test_a_stronger_fact_with_a_different_value_contradicts():
+    """§3.6 check 4: "no stronger direct or rule-validated fact contradicts it".
+
+    `build_request` supplies only facts already STRONGER than an LLM conclusion,
+    so reaching here means the model is disagreeing with something better
+    supported than itself.
+    """
+    row = {"field_key": "subject", "canonical_value": "PHYS1401"}
+    proposal = SimpleNamespace(field_key="subject", value="CHEM1500")
+
+    assert cli.contradicts_stronger(proposal, row) is True
+
+
+def test_two_spellings_of_one_value_do_not_contradict():
+    """The twin that matters most, and the one this project has already been
+    burned by. `PHYS 1401` and `PHYS1401` are one course. Comparing raw strings
+    would make the model's own agreement read as a conflict and reject a correct
+    answer -- with `CONTRADICTED_BY_STRONGER` on the record, which is a
+    particularly misleading thing to be wrong about."""
+    row = {"field_key": "subject", "canonical_value": "PHYS1401"}
+    proposal = SimpleNamespace(field_key="subject", value="PHYS 1401")
+
+    assert cli.contradicts_stronger(proposal, row) is False
+
+
+def test_a_stronger_fact_about_another_field_is_not_a_contradiction():
+    """The other twin. Knowing the term cannot contradict a claim about the
+    subject; treating every stronger fact as a rival would let one settled field
+    veto every proposal about the file."""
+    row = {"field_key": "term", "canonical_value": "Spring2026"}
+    proposal = SimpleNamespace(field_key="subject", value="PHYS1401")
+
+    assert cli.contradicts_stronger(proposal, row) is False

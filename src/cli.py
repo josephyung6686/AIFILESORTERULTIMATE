@@ -462,6 +462,79 @@ def find_structured_strings(text: str) -> tuple[StructuredString, ...]:
     return tuple(sorted(found, key=lambda one: one.start))
 
 
+def normalize_for_model(field_key: str, raw_value: str) -> str | None:
+    """§3.6 check 3: "the proposed value can be normalized safely". `None` = it cannot.
+
+    **This closes the C-5 deadlock, and where it closes it is the point.**
+    `facts/llm_seam.py` records it: P8's SPEC names `normalize` and `contradicts`
+    as P6's, P8's own Deferred table files them back to P6, "so each part hands
+    them to the other and neither builds them... The ruling is owed." Neither part
+    owns them because they are neither part's to own -- they are a DEPLOYMENT's
+    answer, and this file is the only one in `src/` that answers those. A test
+    already forbids any module in `facts` from publishing one, which is the same
+    ruling seen from the other side.
+
+    **Nothing is authored here.** The model's value is canonicalised by the SAME
+    rule the deterministic slot uses for that field, so `PHYS 1401` proposed by a
+    model and `PHYS1401` read from a heading cannot become two courses. That
+    failure is on this project's record: `65` §4.2, four files of one course
+    became four one-file groups because one identity arrived as several spellings.
+    A second normaliser here would have re-created it across two stages instead of
+    two files.
+
+    A field with no slot gets whitespace collapsed and nothing else, because this
+    deployment has authored no rule for it and inventing one at the model's
+    boundary is exactly what §3.5 forbids ("not allowed to invent a new fact
+    schema"). A value the field's own `matches` predicate rejects is NOT
+    normalizable: a model proposing `Spring 2026` as a SUBJECT is proposing
+    something the field's own rule says is not one, and returning a canonical form
+    would launder it into a folder name.
+    """
+    if not isinstance(raw_value, str):
+        return None
+    text = " ".join(raw_value.split())
+    if not text:
+        return None
+    slot = next((one for one in DIRECT_SLOTS.slots
+                 if one.field_key == field_key), None)
+    if slot is None:
+        return text
+    if slot.matches is not None and not slot.matches(raw_value):
+        return None
+    return slot.canonical(raw_value) or None
+
+
+def contradicts_stronger(proposal, existing_fact) -> bool:
+    """§3.6 check 4: does a stronger fact contradict this proposal?
+
+    `build_request` supplies only facts ALREADY STRONGER than an LLM conclusion --
+    `validated`, `direct`, `user_confirmed` -- so reaching here means the model is
+    disagreeing with something better supported than itself, and §3.6 says the
+    better-supported thing wins.
+
+    **Compared after canonicalisation, which is the whole reason this is not a
+    string comparison.** `PHYS 1401` and `PHYS1401` are one course. Comparing raw
+    values would make the model's own AGREEMENT read as a conflict and reject a
+    correct answer with `CONTRADICTED_BY_STRONGER` on the record -- a particularly
+    misleading thing to be wrong about, since it says the evidence disagreed when
+    it agreed in a different spelling.
+
+    A stronger fact about ANOTHER FIELD is not a contradiction. Knowing the term
+    cannot contradict a claim about the subject, and treating every stronger fact
+    as a rival would let one settled field veto every proposal about the file.
+
+    An unnormalizable proposal answers `False` rather than `True`: check 3 runs
+    first and has already rejected it, and claiming a contradiction as well would
+    put a second, wrong reason on a record that §3.6 keeps one reason per refusal.
+    """
+    if existing_fact["field_key"] != proposal.field_key:
+        return False
+    proposed = normalize_for_model(proposal.field_key, proposal.value)
+    if proposed is None:
+        return False
+    return existing_fact["canonical_value"] != proposed
+
+
 def _direct_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
     return direct_facts(conn, file_id=file_id, content_hash=content_hash,
                         slots=DIRECT_SLOTS, screen=METADATA_SCREEN)
