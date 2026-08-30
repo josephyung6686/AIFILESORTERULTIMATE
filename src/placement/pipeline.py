@@ -1496,16 +1496,16 @@ def review_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
         if not (model_calls_permitted(set_decision)
                 or set_decision.choice == SEND_TO_APPROVED_NODE):
             continue
-        # Only now that something is about to HAPPEN to the files: the one gate.
-        # `ProtectedSetNotReadable` is deliberately NOT caught, and it is checked
-        # for the send exactly as for the review. It fires only when a decision
-        # asked to act on a protected set, and answering that by skipping would
-        # record it as understood and found unimportant -- which is exactly what
-        # the set stays on the review screen, counted and explained, to prevent.
-        # A protected set nobody decided never reaches this line.
-        require_set_actionable(conn, plan_version=inputs.plan_version,
-                               residual_set=item)
+        # One gate per branch, and both begin at `require_set_actionable`, so
+        # protection is checked FIRST whichever way the set is being acted on.
+        # `ProtectedSetNotReadable` is deliberately NOT caught: it fires only when
+        # a decision asked to act on a protected set, and answering that by
+        # skipping would record it as understood and found unimportant -- which is
+        # exactly what the set stays on the review screen, counted and explained,
+        # to prevent. A protected set nobody decided never reaches these lines.
         if set_decision.choice == SEND_TO_APPROVED_NODE:
+            require_set_actionable(conn, plan_version=inputs.plan_version,
+                                   residual_set=item)
             written.extend(_send_set_to_approved_node(
                 conn, item=item, decision=set_decision, inputs=inputs,
                 subjects=result.subjects, evidence_for=evidence_for,
