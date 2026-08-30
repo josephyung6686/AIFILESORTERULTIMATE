@@ -158,7 +158,8 @@ def classify(conn, file_id, content_hash, *, handling_class, protected):
 
 def plan_a_move(conn, landscape, ids, *, volume_of,
                 review_policy=None, handling_class="personal_non_sensitive",
-                protected=False, classified=True, name="Syllabus.pdf"):
+                protected=False, classified=True, name="Syllabus.pdf",
+                collision_policy=None):
     """A real file, a real P1 row, and a recorded plan for it.
 
     Returns `(plan, source_path)`. `volume_of` is the caller's oracle and has no
@@ -204,7 +205,7 @@ def plan_a_move(conn, landscape, ids, *, volume_of,
         constraints=CONSTRAINTS, high_level_folders=landscape,
         volume_of=volume_of,
         protected_handling_classes=PROTECTED_CLASSES,
-        collision_policy=PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
+        collision_policy=collision_policy or PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
         expiration_state="no expiry configured",
         now=lambda: FIXED_CLOCK, mint_id=ids)
     assert built is not None

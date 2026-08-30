@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Mapping
+from typing import Protocol
 
 from database_agent.events import append_event
 from evidence_shape.canonical import canonical_json
@@ -30,6 +31,20 @@ from mutation.vocabulary import (
     EXECUTED_MOVE, FAILED_MOVE, FAILURE_CLASSES, REFUSED_MOVE, SUBSYSTEM,
     check, decline_message,
 )
+
+
+class RefusedAtConstruction(Protocol):
+    """What `record_plan_refusal` needs of a refusal raised before execution.
+
+    `plan.PlanRefused` and `resolution.ResolutionRefused` both satisfy it. Stated
+    as a protocol rather than imported so the event writer does not depend on the
+    plan builder -- the dependency runs the other way.
+    """
+
+    refusal_class: str
+    detail: Mapping[str, object]
+
+    def __str__(self) -> str: ...
 
 
 def record_executed_move(conn: sqlite3.Connection, *, file_id: str,
@@ -102,3 +117,37 @@ def record_refused_move(conn: sqlite3.Connection, *, outcome: str,
         explanation=canonical_json({
             "outcome": outcome, "message": decline_message(outcome),
             **dict(detail)}))
+
+
+def record_plan_refusal(conn: sqlite3.Connection, refusal: RefusedAtConstruction,
+                        *, file_id: str, content_hash: str, source_path: str,
+                        destination_path: str | None, observed_at: str,
+                        component_version: str, user_id: str | None) -> int:
+    """The same row, for a refusal that stopped a plan being BUILT at all.
+
+    Four of `74` §3.3's refusals -- a destination outside the frozen tree, a node
+    that refuses placement, two sibling labels that would become one folder, and
+    a cross-folder move the person's own §1.1 setting forbids -- are decided
+    before there is a plan to execute, and `build_plan` reports them by RAISING
+    (`plan.PlanRefused`, `resolution.ResolutionRefused`). An exception is not a
+    record, so somebody has to catch it and say so: `66` §19 wants every movement
+    action visible afterwards, and *"the product declined and never mentioned
+    it"* is the failure that sentence exists to prevent.
+
+    That somebody is the composition root, which is the only caller that has
+    both the decision and the file row. It calls this. P12 does not swallow its
+    own refusals to log them, because a caller that lost the exception would
+    then go on to execute a plan that was never built.
+
+    The two exception types are duck-typed rather than imported: both carry
+    `refusal_class` and `detail`, they are the whole population, and importing
+    `plan` from here would make the event writer depend on the plan builder
+    when the dependency runs the other way.
+    """
+    return record_refused_move(
+        conn, outcome=refusal.refusal_class, file_id=file_id,
+        content_hash=content_hash, source_path=source_path,
+        destination_path=destination_path, observed_at=observed_at,
+        component_version=component_version, user_id=user_id,
+        detail={"refused_at": "plan construction", "reason": str(refusal),
+                **dict(refusal.detail)})
