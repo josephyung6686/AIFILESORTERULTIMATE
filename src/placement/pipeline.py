@@ -47,7 +47,7 @@ from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
 from llm_harness.records import DossierRequest
 from llm_harness.vocabulary import (
-    C_PLACEMENT, D_RESIDUAL, REJECT as P8_REJECT,
+    C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION, D_RESIDUAL, REJECT as P8_REJECT,
     SEVERAL_LEGAL_NODES_PLAUSIBLE, USER_OPTED_RESIDUAL_SET_INTO_AI_REVIEW,
 )
 
@@ -60,7 +60,7 @@ from placement.groups import (
     AcceptedGroup, ExcludedOutlier, GroupPlan, accepted_group_as_of,
     confirm_shared_parent, excluded_outlier_for, resolve_multi_home,
 )
-from placement.index import entry_for, legal_node_ids
+from placement.index import entries_for_plan, entry_for, legal_node_ids
 from placement.learning import basis_key_for, suppressed_nodes
 from placement.p8_seam import (
     call_placement, evidence_snapshot_id_for, placement_authorities,
@@ -75,9 +75,10 @@ from placement.records import (
     ReturnTarget, Subject, TwoCondition,
 )
 from placement.residual import (
-    ACTION_OUTCOME, ResidualSet, SetDecisionRequired, check_return_cycle,
-    link_return, model_calls_permitted, outcome_for_action,
-    require_model_call_permitted, require_set_decision, surface_residual_sets,
+    ACTION_OUTCOME, ResidualSet, ResidualSetDecision, SetDecisionRequired,
+    check_return_cycle, link_return, model_calls_permitted, outcome_for_action,
+    record_set_decision, require_model_call_permitted, require_set_actionable,
+    require_set_decision, surface_residual_sets,
 )
 from placement.retrieval import Retrieval, retrieve
 from placement.scoring import assess, needs_model_call
@@ -88,8 +89,9 @@ from placement.vocabulary import (
     CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, EXISTING, FILE,
     MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
-    PRIVACY_BLOCKED, RESIDUAL,
-    RETURN_TO_PLACEMENT, SHARED_MATERIAL, SHARED_MATERIAL_DECISION, WEAK,
+    PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
+    RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
+    SHARED_MATERIAL_DECISION, WEAK,
 )
 
 #: §6.12's nine, in §6.12's order. Steps 1-2 are P10's and step 8 is P8's; naming
@@ -1217,16 +1219,33 @@ def _residual_decision(conn, *, subject, inputs: PipelineInputs, outcome,
             unique_direct_match=False,
             destination_disposition=entry.disposition if entry else None,
             automatic_move_permitted=automatic_move_permitted),
-        explanation=(
-            f"Residual review of set {residual.set_id} returned {outcome!r}. "
-            "The set-level decision authorised this review and the file has not "
-            "moved."),
+        explanation=_residual_explanation(residual, outcome, entry),
         residual=residual,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="a later decision about the same file version "
                          "supersedes this residual one (§8.2)",
                   component_version=component_version, observed_at=observed_at)
+
+
+def _residual_explanation(residual: ResidualContext, outcome: str, entry) -> str:
+    """What the person is told about a §7 decision, in the words of the choice
+    they made.
+
+    A set sent to an approved node was reviewed by nothing. §7.6 makes
+    `send_to_approved_node` a choice that "is already a decision and needs no
+    interpretation", so the sentence a person reads under it must not describe a
+    residual review returning a verdict -- there was no review, no dossier and no
+    model, and saying otherwise would credit a judgement nobody made.
+    """
+    if residual.set_decision == SEND_TO_APPROVED_NODE and entry is not None:
+        return (
+            f"You sent this whole review set to {entry.display_label}. Your "
+            "answer names the destination, so nothing was read and no model was "
+            "asked about these files. Nothing has moved yet.")
+    return (f"Residual review of set {residual.set_id} returned {outcome!r}. "
+            "The set-level decision authorised this review and the file has not "
+            "moved.")
 
 
 def _residual_action_and_target(inputs: PipelineInputs, verdict) -> tuple[str, object]:
@@ -1454,27 +1473,44 @@ def review_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
     from the review screen after the sets were surfaced -- so a single pass that
     surfaced and reviewed in one breath could only ever be reviewing a decision
     made about some earlier run's sets.
+
+    Two of §7.6's four choices reach a file here, and only one of them costs
+    anything. `review_with_model_against_approved_residual_folders` runs §7.7 per
+    file; `send_to_approved_node` writes the placement the answer already named,
+    with no dossier and no model. The other two produce nothing HERE and that is
+    the whole of their meaning: `leave_in_place` is zero calls and no move by the
+    user's own choice (SPEC:547), and `create_custom_branch` is a tree edit routed
+    to P10 that mints a new plan version, so this version's review of that set is
+    over.
     """
     written: list[PlacementDecision] = []
     for item in result.residual_sets:
-        # Two questions in this order, and the order is the point. FIRST: did the
-        # user's set-level choice ask for a model at all? Surfaced and not yet
-        # decided is the state §7.6's gate exists to make visible, and a set
-        # decided any other way asked for nothing -- both are left alone, which is
-        # the decision the user made, and neither is an error.
+        # Surfaced and not yet decided is the state §7.6's gate exists to make
+        # visible. It is left alone rather than refused: a review screen full of
+        # undecided sets is the ordinary one, not a broken run.
         try:
             set_decision = require_set_decision(
                 conn, plan_version=inputs.plan_version, set_id=item.set_id)
         except SetDecisionRequired:
             continue
-        if not model_calls_permitted(set_decision):
+        if not (model_calls_permitted(set_decision)
+                or set_decision.choice == SEND_TO_APPROVED_NODE):
             continue
-        # SECOND, and only now that a spend is about to happen: the one gate.
-        # `ProtectedSetNotReadable` is deliberately NOT caught. It fires only when
-        # a decision asked to open a protected set, and answering that by skipping
-        # would record it as understood and found unimportant -- which is exactly
-        # what the set stays on the review screen, counted and explained, to
-        # prevent. A protected set nobody decided never reaches this line.
+        # Only now that something is about to HAPPEN to the files: the one gate.
+        # `ProtectedSetNotReadable` is deliberately NOT caught, and it is checked
+        # for the send exactly as for the review. It fires only when a decision
+        # asked to act on a protected set, and answering that by skipping would
+        # record it as understood and found unimportant -- which is exactly what
+        # the set stays on the review screen, counted and explained, to prevent.
+        # A protected set nobody decided never reaches this line.
+        require_set_actionable(conn, plan_version=inputs.plan_version,
+                               residual_set=item)
+        if set_decision.choice == SEND_TO_APPROVED_NODE:
+            written.extend(_send_set_to_approved_node(
+                conn, item=item, decision=set_decision, inputs=inputs,
+                subjects=result.subjects, evidence_for=evidence_for,
+                component_version=component_version, observed_at=observed_at))
+            continue
         require_model_call_permitted(conn, plan_version=inputs.plan_version,
                                      residual_set=item)
         written.extend(_review_set_with_model(
@@ -1482,3 +1518,136 @@ def review_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
             evidence_for=evidence_for, component_version=component_version,
             observed_at=observed_at))
     return tuple(written)
+
+
+class ResidualSendRefused(RuntimeError):
+    """A §7.6 set answer named a review set or a residual area this run has not.
+
+    A misspelling that quietly sent nothing would be the run reporting success
+    for work it did not do, and the person would find out by looking for files
+    that are not there. So it refuses -- and names what this run DID surface,
+    because a refusal that does not say what to type is half a refusal.
+    """
+
+
+def approved_residual_area(conn: sqlite3.Connection, *, plan_version: str,
+                           display_label: str):
+    """One enabled residual area of THIS plan version, by the name a person reads.
+
+    §7.4 makes an approved residual branch an ordinary legal node carrying
+    `node_role = residual`, so the lookup is over the frozen index and is filtered
+    by that role. An ordinary domain branch is a legal destination and is NOT a
+    residual area: §7.6's choice is `send_to_approved_node` among the residual
+    homes the user enabled, and letting it name `Academics` would file every
+    unplaced file into the main tree -- the pollution §7.1 and §7.12 exist to
+    prevent.
+    """
+    areas = tuple(entry for entry in entries_for_plan(conn,
+                                                      plan_version=plan_version)
+                  if entry.node_role == RESIDUAL_ROLE)
+    named = sorted({entry.display_label for entry in areas})
+    matches = tuple(entry for entry in areas
+                    if entry.display_label == display_label)
+    if len(matches) > 1:
+        raise ResidualSendRefused(
+            f"{display_label!r} names {len(matches)} residual areas of "
+            f"{plan_version!r} and §7.6 sends a set to ONE approved node; "
+            "choosing between them here would be P11 picking the destination")
+    if not matches:
+        raise ResidualSendRefused(
+            f"{display_label!r} is not a residual area of this plan. It has "
+            + (", ".join(repr(name) for name in named) if named else
+               "none -- enable one first, and nothing can be sent to an area "
+               "that does not exist"))
+    return matches[0]
+
+
+def _send_set_to_approved_node(conn: sqlite3.Connection, *, item: ResidualSet,
+                               decision: ResidualSetDecision,
+                               inputs: PipelineInputs, subjects: dict,
+                               evidence_for, component_version: str,
+                               observed_at: str) -> list[PlacementDecision]:
+    """§7.6's `send_to_approved_node`, carried out, with ZERO model calls.
+
+    The action recorded is §7.7's third -- "choose one approved residual
+    destination" -- because that is what the record has to say happened, and the
+    residual context on every one of these decisions carries
+    `set_decision = send_to_approved_node`, which is what says WHO chose it. A
+    reader can tell a set the person filed from a set a model interpreted without
+    reading a second table.
+    """
+    return [
+        run_residual_file(
+            conn, subject=subjects[file_id], set_id=item.set_id, inputs=inputs,
+            evidence=evidence_for(file_id), action=CHOOSE_RESIDUAL_DESTINATION,
+            target=decision.node_id, component_version=component_version,
+            observed_at=observed_at)
+        for file_id in item.member_file_ids
+    ]
+
+
+def act_on_residual_sets(conn: sqlite3.Connection, *, result: CorpusResult,
+                         inputs: PipelineInputs, sends, evidence_for,
+                         component_version: str, observed_at: str,
+                         user_id: str) -> CorpusResult:
+    """§7.6's set answers for THIS plan version, recorded and then carried out.
+
+    `sends` maps a surfaced set's LABEL -- the words the person read on the review
+    screen -- to the display label of an enabled residual area, and it is not a
+    remembered preference. SPEC "Plan versioning" puts residual set decisions IN a
+    plan version, *"not [in] the shared evidence database"*, and every run mints a
+    new one. So an answer given about one run's sets is not an answer about
+    another's, and it is asked for again rather than carried forward: the thing it
+    authorises is a destination for files the person has just been shown, and
+    applying it unseen to a set surfaced by a later tree would be this product
+    filing material against a screen nobody read.
+
+    That is why the address is the LABEL and not the `set_id`. §7.5's set carries
+    both; the `set_id` is minted as `plan_version:label` and so is different in
+    every run, while the label is what §7.5 puts on the screen and what a person
+    can type back. P11 invents no third identity, and there is no stable
+    cross-version one to invent.
+
+    Returns the corpus result the report should be written from: the same sets,
+    counted and never dropped, with the decisions these answers replaced.
+    """
+    by_label: dict[str, list[ResidualSet]] = {}
+    for item in result.residual_sets:
+        by_label.setdefault(item.label, []).append(item)
+    for label, area_label in sends.items():
+        if label not in by_label:
+            raise ResidualSendRefused(
+                f"{label!r} is not a review set this run surfaced. It surfaced "
+                + (", ".join(repr(name) for name in sorted(by_label))
+                   if by_label else "none, so there is nothing to send"))
+        area = approved_residual_area(conn, plan_version=inputs.plan_version,
+                                      display_label=area_label)
+        for item in by_label[label]:
+            record_set_decision(
+                conn,
+                ResidualSetDecision(set_id=item.set_id,
+                                    plan_version=inputs.plan_version,
+                                    choice=SEND_TO_APPROVED_NODE,
+                                    node_id=area.node_id,
+                                    decided_at=observed_at),
+                component_version=component_version, observed_at=observed_at,
+                user_id=user_id)
+    written = review_residual_sets(
+        conn, result=result, inputs=inputs, evidence_for=evidence_for,
+        component_version=component_version, observed_at=observed_at)
+    if not written:
+        return result
+    # The §6 decision these replaced is superseded in the table by `_identity`;
+    # the returned result has to agree with the table or the report describes a
+    # run that no longer exists. The SETS are untouched: one was surfaced, counted
+    # and explained, and a screen that deletes a set once it is acted on cannot
+    # show what happened to it.
+    revised = {decision.subject.file_id for decision in written}
+    kept = tuple(decision for decision in result.decisions
+                 if decision.subject.file_id not in revised)
+    decisions = kept + tuple(written)
+    return dataclasses.replace(
+        result, decisions=decisions,
+        unplaced_file_ids=tuple(
+            decision.subject.file_id for decision in decisions
+            if decision.outcome != PLACE and decision.subject.file_id))

@@ -277,25 +277,43 @@ def model_calls_permitted(decision: ResidualSetDecision) -> bool:
     return decision.choice == REVIEW_WITH_MODEL
 
 
-def require_model_call_permitted(conn: sqlite3.Connection, *, plan_version: str,
-                                 residual_set: ResidualSet) -> ResidualSetDecision:
-    """The one gate in front of a per-file residual model call.
+def require_set_actionable(conn: sqlite3.Connection, *, plan_version: str,
+                           residual_set: ResidualSet) -> ResidualSetDecision:
+    """The gate in front of ACTING on a set at all -- with a model or without.
 
-    Three refusals, each named, and the order matters. Protection is checked
-    FIRST and independently of any decision: a protected set that refuses for
-    want of a decision would invite the fix "decide it", and the answer to a
-    protected set is never a decision. It is counted, explained and left closed.
+    Protection is checked FIRST and independently of any decision: a protected
+    set that refuses for want of a decision would invite the fix "decide it", and
+    the answer to a protected set is never a decision. It is counted, explained
+    and left closed.
+
+    It refuses a `send_to_approved_node` too, and that is not an oversight. A send
+    opens no file -- and moving a set of passports, statements and credentials
+    wholesale into a residual area handles the material without anyone having
+    looked at it, which is a different thing from leaving it alone. The set stays
+    on the review screen with its count and its reason.
     """
     if residual_set.protected:
         raise ProtectedSetNotReadable(
             f"set {residual_set.set_id!r} holds protected material "
             f"({residual_set.sensitivity_status!r}) and is marked and counted, "
             "never opened. It stays on the review screen with its count and its "
-            "reason; a model call over it is refused rather than skipped, so no "
-            "caller can record it as understood and found unimportant."
+            "reason; acting on it is refused rather than skipped, so no caller "
+            "can record it as understood and found unimportant."
         )
-    decision = require_set_decision(conn, plan_version=plan_version,
-                                    set_id=residual_set.set_id)
+    return require_set_decision(conn, plan_version=plan_version,
+                                set_id=residual_set.set_id)
+
+
+def require_model_call_permitted(conn: sqlite3.Connection, *, plan_version: str,
+                                 residual_set: ResidualSet) -> ResidualSetDecision:
+    """The one gate in front of a per-file residual model call.
+
+    Three refusals, each named, and the order matters -- the first two are
+    `require_set_actionable`'s and are shared with every other way of acting on a
+    set, so protection cannot be checked second on one path and first on another.
+    """
+    decision = require_set_actionable(conn, plan_version=plan_version,
+                                      residual_set=residual_set)
     if not model_calls_permitted(decision):
         raise ModelCallNotAuthorised(
             f"set {residual_set.set_id!r} was decided {decision.choice!r}, and "
