@@ -1283,3 +1283,35 @@ def test_a_skipped_nesting_offer_does_not_come_back_either(tmp_path):
 
     assert "How should Coursework be organised?" not in after.getvalue(), (
         after.getvalue())
+
+
+def test_a_person_can_change_their_mind(tmp_path):
+    """§12: an answer must be "edited, revoked, or re-run".
+
+    `live_answer` has honoured revocation since P15 shipped -- a revoked answer
+    reopens its question -- and there was no way to say it. `--answer` understood
+    confirm and skip, so a person who chose wrongly could re-confirm a different
+    option but could not withdraw the answer and be asked again.
+
+    That gap matters most for the answer that is hardest to get right the first
+    time: the one taken before the person had seen what it would do.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    cli.main(argv, out=io.StringIO())
+    kept = io.StringIO()
+    cli.main(argv + ["--answer", "branch:Coursework=keep-as-it-is"], out=kept)
+    assert "How should Coursework be organised?" not in kept.getvalue()
+
+    reopened = io.StringIO()
+    cli.main(argv + ["--answer", "branch:Coursework=revoke"], out=reopened)
+
+    # The question comes back, and the tree is the one the engine proposes again.
+    assert "How should Coursework be organised?" in reopened.getvalue(), (
+        reopened.getvalue())
+    folders = reopened.getvalue().split(
+        "Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    assert "CHEM1500" in folders, folders

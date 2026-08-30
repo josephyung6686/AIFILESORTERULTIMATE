@@ -81,7 +81,7 @@ from questions.store import (
 from questions.triggers import (
     NestingChoice, question_for_nesting, tied_readings,
 )
-from questions.vocabulary import CONFIRMED, SCOPE_BRANCH, SKIPPED
+from questions.vocabulary import CONFIRMED, REVOKED, SCOPE_BRANCH, SKIPPED
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, load_shipped_catalogue, read_packaged_library_file,
@@ -1306,7 +1306,8 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
         if not question_id or not option_id:
             raise AnswerRefused(
                 f"{raw!r} is not an answer. The form is "
-                "`--answer <question>=<option>`, and `--answer <question>=skip` "
+                "`--answer <question>=<option>`, `--answer <question>=skip` "
+                "and `--answer <question>=revoke` "
                 "puts it aside without answering it.")
         row = conn.execute(
             "SELECT scope FROM structural_questions WHERE question_id = ?",
@@ -1317,15 +1318,30 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
                 "command without `--answer` first: questions are raised from the "
                 "evidence in your own files, so they exist only once a run has "
                 "found the ambiguity they are about.")
-        skipped = option_id == SKIPPED or option_id == "skip"
+        skipped = option_id in (SKIPPED, "skip")
+        # §12 requires an answer to be "edited, revoked, or re-run". `live_answer`
+        # has honoured revocation since P15 shipped -- a revoked answer reopens
+        # its question -- and there was no way to SAY it: a person who chose
+        # wrongly could re-confirm a different option but could not withdraw the
+        # answer and be asked again. That gap is worst for the answer hardest to
+        # get right first time, which is the one taken before they had seen what
+        # it would do.
+        revoked = option_id in (REVOKED, "revoke")
+        state = REVOKED if revoked else SKIPPED if skipped else CONFIRMED
         previous = live_answer(conn, question_id=question_id, scope=row[0])
+        if revoked and previous is None:
+            raise AnswerRefused(
+                f"{question_id!r} has no answer to revoke. Revoking is how you "
+                "take back something you told the product, so there has to be "
+                "something there to take back.")
         record_answer(conn, StructuralAnswer(
             question_id=question_id,
-            option_id=None if skipped else option_id,
-            state=SKIPPED if skipped else CONFIRMED,
+            option_id=None if (skipped or revoked) else option_id,
+            state=state,
             scope=row[0], user_id=user_id, recorded_at=recorded_at,
             supersedes=None,
-            supersede_reason=("the user answered this again"
+            supersede_reason=("the user withdrew this answer" if revoked else
+                              "the user answered this again"
                               if previous is not None else None)))
 
 
