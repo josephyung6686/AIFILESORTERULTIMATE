@@ -60,6 +60,9 @@ Three conditions come with it, and two of them are this module's:
   before the amendment. This is the one default in this module, and it exists because
   C1 demands one: "a developer who forgets this exception exists gets the safe
   behaviour". There is no environment variable and no config here that can turn it on.
+  The opt-in does not consult P7's operation mode: making it require `cloud_assisted`
+  would force a developer to loosen what may be sent for every OTHER call site in
+  order to obtain the one exception §8.1 scopes to a single item.
 - **C2 -- a run that sends says so, on screen, before it sends.** `announce` is
   invoked with `sending_notice(...)` on the line before `propose` is called, so the
   order is a property of this function rather than of a caller's discipline. If
@@ -95,7 +98,7 @@ from dataclasses import dataclass
 # leaves the device; a second spelling here is how two parts of one product come to
 # disagree about whether a sentence was sent.
 from privacy.defaults import LOCAL_FIRST_MODES
-from privacy.vocabulary import ALWAYS_LOCAL, check_mode
+from privacy.vocabulary import ALWAYS_LOCAL, MODE_SEMANTICS, check_mode
 
 #: Which of §8.4's nine always-local items a typed self-description IS. `80` §2:
 #: "A person's typed description of themselves -- their roles, what they do -- is a
@@ -200,7 +203,7 @@ REVOCATION_SENTENCE: str = (
     "Revocation cannot necessarily retract data already sent to an external provider.")
 
 
-def sending_notice(sending: SelfDescriptionSending) -> str:
+def sending_notice(sending: SelfDescriptionSending, *, mode: str) -> str:
     """The words C2 requires on screen, before a self-description is sent.
 
     NOT PROMPT TEXT. It is never given to a model, never fingerprinted, and reaches
@@ -210,12 +213,28 @@ def sending_notice(sending: SelfDescriptionSending) -> str:
 
     Three things, because C2 names three: what is about to happen, who receives it,
     and that it cannot be taken back. The third is `00`:200 verbatim.
+
+    A fourth under a local-first mode, and it is the one that keeps this honest:
+    `offline` promises that "No content leaves the device", the amendment makes that
+    untrue for one item, and a person reading the mode they chose would otherwise
+    have no way to know. The promise is quoted from P7 rather than paraphrased.
     """
-    return (
+    lines = [
         f"What you typed about yourself is about to be sent to {sending.model_id}, "
         f"an external provider, so it can suggest which of this product's layouts "
-        f"might fit. This is off by default and this run turned it on. "
-        f"{REVOCATION_SENTENCE}")
+        f"might fit. This is off by default and this run turned it on."]
+    if mode in LOCAL_FIRST_MODES:
+        # The exception, said out loud. `MODE_SEMANTICS[mode]` is P7's published
+        # promise for this mode, and the amendment makes it untrue for exactly one
+        # item. Quoting the promise and naming the exception in the same breath is
+        # the only honest way to run this under `offline`; leaving it out would let
+        # a person read the mode they chose as still meaning what it says.
+        lines.append(
+            f"This run's mode is {mode!r} -- \"{MODE_SEMANTICS[mode]}\" -- and what "
+            f"you typed about yourself is the one exception to that, for this "
+            f"development build only. Nothing else about your files is sent.")
+    lines.append(REVOCATION_SENTENCE)
+    return " ".join(lines)
 
 
 @dataclass(frozen=True, slots=True)
@@ -306,13 +325,13 @@ def propose_roles(self_description: str, *, offered: Sequence[str],
             f"this step are {LOCAL_FIRST_MODES}. `80` §8 suspends that enforcement "
             "for development, and only when the person running the command asks for "
             "it: local is what happens by not choosing")
-    if sending is not None and local:
-        raise ProposalRefused(
-            f"mode {mode!r} sends nothing, and a sending record would have the "
-            "product tell the person their words are leaving the device when they "
-            "are not. `80` §8.3 (C2) requires a true notice, and a notice that "
-            "overstates is worse than none: a person who learns it was untrue has "
-            "no reason to believe the next one")
+    # An opt-in does NOT consult the mode, and that is deliberate rather than an
+    # omission. Requiring `cloud_assisted` would make a developer loosen what may be
+    # sent for EVERY call site in order to obtain the one exception `80` §8.1 scopes
+    # to a single item -- "this suspension reaches nothing but the self-description"
+    # -- and `83` §4 forbids the same trade from the routing side. So the mode is
+    # left exactly as the deployment set it, nothing else gains permission, and the
+    # notice below tells the person their mode is being excepted for this one thing.
     closed = frozenset(offered)
     if not closed:
         raise ProposalRefused(
@@ -335,7 +354,7 @@ def propose_roles(self_description: str, *, offered: Sequence[str],
         # send, so nothing between them can fail silently and leave a sentence gone
         # and a person untold. An `announce` that raises stops the send, which is
         # the right direction for this to fail in.
-        sending.announce(sending_notice(sending))
+        sending.announce(sending_notice(sending, mode=mode))
     proposed = frozenset(propose(self_description, closed))
     invented = proposed - closed
     if invented:

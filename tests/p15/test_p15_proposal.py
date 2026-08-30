@@ -26,7 +26,9 @@ import pytest
 from facts.domains import SCHEMA_IDS
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.items import AlwaysLocalRequested, MetadataField
-from privacy.vocabulary import ALWAYS_LOCAL, OPERATION_MODES, OutOfVocabulary
+from privacy.vocabulary import (
+    ALWAYS_LOCAL, MODE_SEMANTICS, OPERATION_MODES, OutOfVocabulary,
+)
 from questions.proposal import (
     ProposalRefused, REASONING_TIER, REVOCATION_SENTENCE, RoleProposal,
     SELF_DESCRIPTION_ITEM, SelfDescriptionSending, propose_roles, sending_notice,
@@ -100,6 +102,8 @@ def test_a_mode_in_which_content_may_leave_the_device_may_not_run_this_step():
         with pytest.raises(ProposalRefused, match="leave the device"):
             propose_roles(SENTENCE, offered=SCHEMA_IDS,
                           propose=_proposes("academic"), mode=mode)
+    # ...and this is the whole of it: the refusal is the NO-OPT-IN path, unchanged
+    # by `80` §8, which adds a second door rather than widening this one.
 
 
 def test_the_two_local_modes_may_run_it():
@@ -450,11 +454,12 @@ def test_the_notice_says_what_is_going_where_and_that_it_cannot_come_back():
     """C2's three content requirements. `00`:200 is quoted rather than paraphrased,
     because the notice must be "in the same breath" as it and a paraphrase of a
     sentence about irreversibility is how the irreversibility gets softened."""
-    notice = sending_notice(_sending(announce=print, model_id="DeepSeek-V4-Pro"))
+    notice = sending_notice(_sending(announce=print, model_id="DeepSeek-V4-Pro"),
+                            mode=SENDING_MODE)
 
     assert "DeepSeek-V4-Pro" in notice
     assert REVOCATION_SENTENCE in notice
-    assert REVOCATION_SENTENCE in (
+    assert REVOCATION_SENTENCE == (
         "Revocation cannot necessarily retract data already sent to an external "
         "provider.")
 
@@ -506,15 +511,53 @@ def test_a_run_that_asked_to_send_and_has_no_model_refuses():
                       sending=_sending(announce=lambda line: None))
 
 
-def test_a_sending_record_under_a_local_mode_is_refused():
-    """A notice that overstates is worse than none. Under `offline` nothing leaves,
-    so announcing that something is leaving is a false statement, and a person who
-    learns one notice was untrue has no reason to believe the next."""
+def test_the_opt_in_does_not_make_a_developer_loosen_every_other_call_site():
+    """The scope `80` §8.1 sets: "this suspension reaches nothing but the
+    self-description".
+
+    So the opt-in does not require `cloud_assisted`. If it did, a developer wanting
+    the one scoped exception would have to change the deployment's operation mode,
+    which loosens what may be sent for EVERY other call site -- `83` §4 forbids that
+    trade from the routing side, and it is the opposite of a scoped suspension. The
+    mode is left exactly as the deployment set it and nothing else gains permission.
+    """
     for mode in LOCAL_FIRST_MODES:
-        with pytest.raises(ProposalRefused, match="sends nothing"):
-            propose_roles(INVENTED, offered=SCHEMA_IDS,
-                          propose=_proposes("academic"), mode=mode,
-                          sending=_sending(announce=lambda line: None))
+        proposal = propose_roles(INVENTED, offered=SCHEMA_IDS,
+                                 propose=_proposes("academic"), mode=mode,
+                                 sending=_sending(announce=lambda line: None))
+        assert proposal.candidates == frozenset({"academic"})
+
+
+def test_under_a_local_mode_the_person_is_told_their_mode_is_being_excepted():
+    """The other half, and the reason the test above is not a hole.
+
+    `offline` promises "No content leaves the device". The amendment makes that
+    untrue for one item. A person who chose that mode and is not told would keep
+    reading it as meaning what it says, so the notice quotes P7's own promise and
+    names the exception in the same breath -- and says nothing else is sent.
+    """
+    told = []
+    propose_roles(INVENTED, offered=SCHEMA_IDS, propose=_proposes("academic"),
+                  mode="offline", sending=_sending(announce=told.append))
+
+    notice, = told
+    assert "offline" in notice
+    assert MODE_SEMANTICS["offline"] in notice
+    assert "Nothing else about your files is sent." in notice
+    assert REVOCATION_SENTENCE in notice
+
+
+def test_a_cloud_mode_notice_claims_no_exception_it_is_not_making():
+    """The negative twin. Under `cloud_assisted` the mode already permits a cloud
+    model, so there is no exception to announce, and announcing one would be the
+    overstatement that teaches a person to stop reading these."""
+    told = []
+    propose_roles(INVENTED, offered=SCHEMA_IDS, propose=_proposes("academic"),
+                  mode=SENDING_MODE, sending=_sending(announce=told.append))
+
+    notice, = told
+    assert "one exception" not in notice
+    assert REVOCATION_SENTENCE in notice
 
 
 # --- `83`: the tier this site was routed to, and no cheaper one ---------------------
