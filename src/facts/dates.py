@@ -24,15 +24,22 @@ Three consequences, and all three are structural rather than advisory:
   **ids** the design names and not one character of regex.
 
 "Parsed without fuzzy matching" is taken at its word: `parse_exact` collapses runs of
-whitespace and returns the matched text. Any further normalization is a per-field
-normalizer, and those are Deferred too (*"Per-field normalizers and alias tables |
-§2.8, §3.6"*).
+whitespace and returns the matched text and nothing else -- no month table, no locale,
+no century expansion. What the CALLER may then do to it is `DatePattern.canonical`,
+which is the same injected shape `DirectSlot.canonical` and `Rule.canonical` carry:
+the per-field normalizer is still Deferred (*"Per-field normalizers and alias tables |
+§2.8, §3.6"*), and this module still authors none. It only stops being unable to be
+told one -- which matters because a term that reaches §3.7 in two spellings reaches it
+as two candidates, and two candidates inside the margin fill nothing.
+
+`facts.date_facts` is the producer that joins this module to §3.7's ranker.
 """
 from __future__ import annotations
 
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Callable
 
 from evidence_shape.observation import Observation
 
@@ -65,6 +72,32 @@ class DatePattern:
 
     pattern_id: str
     pattern: re.Pattern[str]
+    #: How this pattern's matched span becomes the candidate's value. `None` keeps
+    #: `parse_exact`'s output verbatim, which is what every caller got before this
+    #: existed.
+    #:
+    #: IT IS PER PATTERN, AND THAT IS THE WHOLE DESIGN. One term must reach the
+    #: ranker as ONE value however it was written -- `Spring 2026`, `Spring2026` and
+    #: `2026-Spring` are one semester -- and a value that arrives as several
+    #: spellings arrives as several candidates, which tie, which §3.7's margin then
+    #: refuses. Measured on 2026-08-31: `Spring 2025` and `2025-Spring` in one corpus
+    #: proposed the folders `Spring2025` AND `2025Spring`. `65` §4.2 records the same
+    #: failure for course codes: "four files of one course became four one-file
+    #: groups because one identity arrived as several spellings."
+    #:
+    #: A SINGLE canonicaliser for the whole field was rejected. §3.10 requires
+    #: "dedicated patterns rather than generic parsing", and one `str -> str` over
+    #: all three forms is handed no pattern id -- it would have to re-decide which
+    #: of the three it was looking at, which is the generic parsing the design
+    #: forbids, moved one step downstream of the patterns that already decided.
+    #:
+    #: The callable is the CALLER'S, exactly as `DirectSlot.canonical` and
+    #: `Rule.canonical` are, and for the same recorded reason: round 4's C-5 leaves
+    #: `normalize(field, raw_value)` owned by no part, so P6 gains no opinion about
+    #: what a term looks like -- only the ability to be told. One that raises
+    #: propagates; a broken injection must not arrive as a silent absence of facts
+    #: (§8.6).
+    canonical: Callable[[str], str] | None = None
 
     def __post_init__(self) -> None:
         if not self.pattern_id:
@@ -119,6 +152,8 @@ class DateMatch:
 
     pattern_id: str
     raw: str
+    #: `parse_exact`'s output put through the pattern's own `canonical`, so the two
+    #: spellings of one term are ONE value before anything ranks them.
     value: str
     evidence_ref: str
     zone: str
@@ -148,9 +183,11 @@ def date_matches(observation: Observation, *,
     found: list[DateMatch] = []
     for one in patterns.patterns:
         for match in one.pattern.finditer(observation.raw_value):
+            parsed = parse_exact(match.group(0), pattern_id=one.pattern_id)
             found.append(DateMatch(
                 pattern_id=one.pattern_id, raw=match.group(0),
-                value=parse_exact(match.group(0), pattern_id=one.pattern_id),
+                value=(parsed if one.canonical is None
+                       else one.canonical(parsed)),
                 evidence_ref=cite(observation), zone=observation.location.zone,
                 signal_tier=observation.signal_tier,
                 occurrence_count=observation.occurrence_count))

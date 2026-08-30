@@ -78,8 +78,15 @@ UNIVERSAL, ACADEMIC, COLLEGE_APPLICATIONS, RESEARCH, FINANCE, PHOTOS, CODE = \
 #: would arrive as a module-level constant while satisfying the letter of every other
 #: guard in this file, so the module set itself is asserted.
 DECLARED_MODULES = frozenset({
-    "authorship", "budgets", "cache", "dates", "direct", "discount", "domains",
-    "evidence", "facets", "families", "fields", "file_facts", "learning", "llm_seam",
+    # `date_facts` is one module beyond the plan's list, added 2026-08-31 and named
+    # here rather than exempted. Task 12 published `date_candidates` and Task 11
+    # published `rank`/`fill_or_abstain`, and the plan gave the join to "the caller"
+    # -- so no module in `src/` performed it and Done-means 10 was unreachable from
+    # the product. It could not go IN `dates.py`: Task 12's interface list says
+    # `fill_or_abstain` is "applied by the caller and by the tests, not imported into
+    # the producer's own path", and that boundary is still worth keeping.
+    "authorship", "budgets", "cache", "date_facts", "dates", "direct", "discount",
+    "domains", "evidence", "facets", "families", "fields", "file_facts", "learning", "llm_seam",
     "photo_event", "plan_versions", "read_surface", "resolver", "rules", "schema",
     "session", "states", "stage_output", "supersede", "unresolved", "usable", "values",
     "vocabulary",

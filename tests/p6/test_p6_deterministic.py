@@ -62,6 +62,7 @@ PRODUCERS = (
     ("facts.rules", "apply_rules"),
     ("facts.facets", "fill_or_abstain"),
     ("facts.dates", "date_candidates"),
+    ("facts.date_facts", "date_facts"),
     ("facts.domains", "active_domains"),
     ("facts.families", "duplicate_family"),
     ("facts.families", "version_family"),
