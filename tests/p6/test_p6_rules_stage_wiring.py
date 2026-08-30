@@ -182,3 +182,251 @@ def test_p6_authors_the_five_context_terms_and_no_pattern(p6_conn):
     import facts.rules as rules_module
     assert not [value for value in vars(rules_module).values()
                 if isinstance(value, re.Pattern)]
+
+
+# --- WHAT THE CHECK REFUSES THAT IT SHOULD NOT ------------------------------------
+#
+# The defect this stage fixes is visible: a wrong folder, named after an invoice
+# number. The defect it can CAUSE is not. A real course code whose file happens not
+# to say any of §3.5's five words produces no `subject` fact at all, and a fact that
+# never appears is far harder for a person to notice than a wrong folder they can
+# see. So the false negatives are written down here as tests rather than left to be
+# discovered, and each one says whether the answer is right.
+
+
+def test_a_real_course_file_that_says_none_of_the_five_words_is_refused(p6_conn,
+                                                                       tmp_path):
+    """THE FALSE NEGATIVE, and it is a real file rather than a contrived one.
+
+    "Course outline", "Professor", "Assignments", "Grading", "Office hours" -- the
+    vocabulary of an actual syllabus, and not one of §3.5's five. The check refuses
+    it, and `PHYS1401` gets no `subject` fact.
+
+    IS THAT THE RIGHT ANSWER? For the rule in isolation, yes: §3.5's five terms are
+    quoted from the design and a sixth is a design change, not an implementation
+    detail. What makes it SAFE is that the refusal is recorded rather than silent --
+    the `unresolved` row below is what a person can be shown -- and what makes it
+    survivable today is that the direct slot still claims this reading, so binding
+    the rule stage takes nothing away. Both halves matter; see the test below.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="outline.txt",
+                                  body=b"PHYS1401 course outline")
+    _observe(p6_conn, run_id="run-outline", file_id=file_id,
+             content_hash=content_hash, raw="PHYS1401",
+             before="Course outline for ",
+             after=". Professor Ramirez. Assignments, grading, office hours.")
+
+    _resolver_with_the_rule_stage().resolve(
+        p6_conn, file_id=file_id, content_hash=content_hash)
+
+    assert facts_for_file(p6_conn, file_id, content_hash) == []
+    # RECORDED, not silent. §8.5 asks "did it abstain when evidence was absent?" and
+    # this is the row that answers it for a person who wonders where their course
+    # went.
+    rows = unresolved_for_file(p6_conn, file_id, content_hash)
+    assert [(row["field_key"], row["reason"]) for row in rows] == [
+        ("subject", "context_check_failed")]
+
+
+def test_binding_the_rule_stage_takes_no_course_fact_away(p6_conn, tmp_path):
+    """The patch is ADDITIVE, and this is the test that says so.
+
+    `src/cli.py` binds `cli.text.identifier` as a DIRECT slot over the same pattern.
+    With both stages bound, the file above still gets its `subject` -- from the slot,
+    which asks no context question -- and gains an `unresolved` row saying the rule
+    could not confirm it. Nothing a person sees today disappears.
+
+    Which is also the patch's limit, stated honestly: `INV20261` still becomes a
+    `subject` fact, because the slot still claims it. Binding the rule stage alone
+    adds records and changes no proposal. The invoice defect is fixed by NARROWING
+    THE SLOT, which is the second, riskier half of the decision.
+    """
+    from facts.direct import DirectSlot, DirectSlots, direct_facts
+    from facts.states import DIRECT
+
+    slot = DirectSlot(slot_id="cli.text.identifier", field_key="subject",
+                      names=lambda locator: locator.startswith("body#"),
+                      canonical=lambda raw: "".join(raw.split()))
+
+    def direct_stage(conn, file_id, content_hash):
+        return direct_facts(conn, file_id=file_id, content_hash=content_hash,
+                            slots=DirectSlots(slots=(slot,)), screen=NO_CATALOGUE)
+
+    def rule_stage(conn, file_id, content_hash):
+        return apply_rules(conn, file_id=file_id, content_hash=content_hash,
+                           rules=(SUBJECT_RULE,), screen=NO_CATALOGUE)
+
+    resolver = FactResolver(
+        stages={"direct": direct_stage, "rule": rule_stage, "llm": None},
+        pending_fields=lambda conn, file_id, content_hash: (),
+        budget_exhausted=lambda ceiling: False,
+        model_route_permitted=lambda file_id: False,
+        record_pass=lambda conn, file_id, content_hash: record_pass(
+            conn, file_id=file_id, content_hash=content_hash,
+            analysis_tiers=frozenset(("filesystem", "native"))),
+        cache_key_for=lambda file_id, content_hash: f"test-both:{content_hash}",
+        screen_metadata=lambda conn, file_id, content_hash: ())
+
+    file_id, content_hash = _file(p6_conn, tmp_path, name="outline.txt",
+                                  body=b"PHYS1401 course outline")
+    _observe(p6_conn, run_id="run-both", file_id=file_id,
+             content_hash=content_hash, raw="PHYS1401",
+             before="Course outline for ",
+             after=". Professor Ramirez. Assignments, grading, office hours.")
+
+    resolver.resolve(p6_conn, file_id=file_id, content_hash=content_hash)
+
+    # The course fact survives, from the slot.
+    assert [(row["field_key"], row["canonical_value"], row["reliability_state"])
+            for row in facts_for_file(p6_conn, file_id, content_hash)] == [
+                ("subject", "PHYS1401", DIRECT)]
+    # And the rule's disagreement is on the record beside it.
+    assert [row["reason"] for row in
+            unresolved_for_file(p6_conn, file_id, content_hash)] == [
+                "context_check_failed"]
+
+
+def test_a_cut_off_context_is_not_reported_as_a_considered_refusal(p6_conn,
+                                                                   tmp_path):
+    """§8.6 forbids silent truncation, and this is the case that matters most here.
+
+    `src/cli.py` sets `context_window=240` characters. A course code far from the
+    word "syllabus" in a long document has a context P4 flagged as CUT, and the
+    engine cannot say whether the term was there. Reporting `context_check_failed`
+    would claim a refusal it never made; `context_truncated` says what happened.
+
+    This is the honest half of the false-negative story: the fact is still absent,
+    but the record distinguishes "we looked and it was not there" from "we could not
+    see far enough to look".
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="long.txt",
+                                  body=b"PHYS1401 buried in a long document")
+    record_run(p6_conn, ExtractionRun(
+        run_id="run-cut", file_id=file_id, content_hash=content_hash,
+        extractor_name="text.plain", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=CLOCK, finished_at=CLOCK))
+    record_observation(p6_conn, Observation(
+        file_id=file_id, content_hash=content_hash, extractor_name="text.plain",
+        extractor_version="1.0.0", source_type="text_document",
+        raw_value="PHYS1401",
+        location=Location("body", (), TextSpan(0, 8)), occurrence_count=1,
+        observed_at=CLOCK, reliability="direct", run_id="run-cut",
+        context_before="... a great deal of text before ",
+        context_after=" and a great deal after ...",
+        context_truncated=True))
+
+    _resolver_with_the_rule_stage().resolve(
+        p6_conn, file_id=file_id, content_hash=content_hash)
+
+    assert [row["reason"] for row in
+            unresolved_for_file(p6_conn, file_id, content_hash)] == [
+                "context_truncated"]
+
+
+# --- THE BLOCKER, FOUND END TO END AND NOT BY ANY UNIT TEST -----------------------
+#
+# Every test above passed with the rule stage bound, and the real command then got
+# WORSE: the PHYS1401 folder vanished and all four course files went unplaced.
+#
+#   PHYS 1401 homework 3.txt   PHYS1401    direct     deterministic_extractor
+#   PHYS 1401 homework 3.txt   PHYS 1401   validated  rule
+#
+# `DirectSlot` carries a `canonical` callable and `Rule` does not, so `apply_rules`
+# stores `match.group(0)` verbatim. The deployment's slot canonicalises `PHYS 1401`
+# to `PHYS1401`; the rule kept the space. One course arrived as two values, which is
+# `65` §4.2's recorded failure -- "four files of one course became four one-file
+# groups because one identity arrived as several spellings" -- reproduced exactly.
+#
+# The tests above did not catch it because they fed `PHYS1401` with no separator.
+# The corpus has `PHYS 1401`, because that is how people write it.
+
+
+def test_a_rule_can_canonicalise_its_match_the_way_a_slot_can(p6_conn, tmp_path):
+    """The fix, and it is `DirectSlot`'s own shape rather than a new idea.
+
+    `canonical` is the CALLER'S, for the reason `DirectSlot.canonical` already
+    gives: round 4's C-5 records that `normalize(field, raw_value)` is claimed by
+    P8's Contract-in and disowned by P6's Task 17, so no part builds it. P6 gains no
+    opinion about what a course code looks like; it gains only the ability to be
+    told, which is the difference between a rule that can ship and one that cannot.
+    """
+    import re
+
+    separator = re.compile(r"(?<=[A-Z])[ -](?=[0-9])")   # `src/cli.py:_SEPARATOR`
+    rule = Rule(pattern=IDENTIFIER,
+                required_context_terms=ACADEMIC_CONTEXT_TERMS,
+                field_key="subject",
+                canonical=lambda raw: separator.sub("", " ".join(raw.split())))
+
+    file_id, content_hash = _file(p6_conn, tmp_path, name="syllabus.txt",
+                                  body=b"PHYS 1401 syllabus")
+    _observe(p6_conn, run_id="run-spaced", file_id=file_id,
+             content_hash=content_hash, raw="PHYS 1401",
+             before="Syllabus - ", after=" Introductory Physics")
+
+    from facts.rules import apply_rules as run_rules
+    run_rules(p6_conn, file_id=file_id, content_hash=content_hash,
+              rules=(rule,), screen=NO_CATALOGUE)
+
+    assert [row["canonical_value"] for row in
+            facts_for_file(p6_conn, file_id, content_hash)] == ["PHYS1401"]
+
+
+def test_a_rule_with_no_canonicaliser_still_stores_the_match_verbatim(p6_conn,
+                                                                      tmp_path):
+    """The default is today's behaviour exactly, so nothing already written moves.
+
+    `canonical=None` means "the match is the value", which is what `apply_rules` has
+    always done. The parameter adds a capability; it changes no existing caller.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="syllabus.txt",
+                                  body=b"PHYS 1401 syllabus")
+    _observe(p6_conn, run_id="run-plain", file_id=file_id,
+             content_hash=content_hash, raw="PHYS 1401",
+             before="Syllabus - ", after=" Introductory Physics")
+
+    from facts.rules import apply_rules as run_rules
+    run_rules(p6_conn, file_id=file_id, content_hash=content_hash,
+              rules=(SUBJECT_RULE,), screen=NO_CATALOGUE)
+
+    assert [row["canonical_value"] for row in
+            facts_for_file(p6_conn, file_id, content_hash)] == ["PHYS 1401"]
+
+
+def test_the_rule_and_the_slot_reach_one_value_when_both_are_bound(p6_conn,
+                                                                   tmp_path):
+    """THE REGRESSION TEST for the folder that disappeared.
+
+    Both producers bound, a course code written the way people write it, and one
+    value at the end. Without the canonicaliser this is two.
+    """
+    import re
+
+    from facts.direct import DirectSlot, DirectSlots, direct_facts
+    from facts.values import values_in_field
+
+    separator = re.compile(r"(?<=[A-Z])[ -](?=[0-9])")
+    canonical = lambda raw: separator.sub("", " ".join(raw.split()))
+
+    slot = DirectSlot(slot_id="cli.text.identifier", field_key="subject",
+                      names=lambda locator: locator.startswith("body#"),
+                      canonical=canonical)
+    rule = Rule(pattern=IDENTIFIER,
+                required_context_terms=ACADEMIC_CONTEXT_TERMS,
+                field_key="subject", canonical=canonical)
+
+    file_id, content_hash = _file(p6_conn, tmp_path, name="syllabus.txt",
+                                  body=b"PHYS 1401 syllabus")
+    _observe(p6_conn, run_id="run-both-spaced", file_id=file_id,
+             content_hash=content_hash, raw="PHYS 1401",
+             before="Syllabus - ", after=" Introductory Physics")
+
+    direct_facts(p6_conn, file_id=file_id, content_hash=content_hash,
+                 slots=DirectSlots(slots=(slot,)), screen=NO_CATALOGUE)
+    from facts.rules import apply_rules as run_rules
+    run_rules(p6_conn, file_id=file_id, content_hash=content_hash,
+              rules=(rule,), screen=NO_CATALOGUE)
+
+    assert [value["canonical_value"] for value in
+            values_in_field(p6_conn, "subject")] == ["PHYS1401"]

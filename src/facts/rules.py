@@ -34,6 +34,7 @@ import re
 import sqlite3
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from typing import Callable
 
 from evidence_shape.canonical import canonical_json
 from evidence_shape.vocabulary import ANALYSIS_TIERS
@@ -77,6 +78,27 @@ class Rule:
     pattern: re.Pattern[str]
     required_context_terms: tuple[str, ...]
     field_key: str
+    #: How the matched span becomes the fact's value. `None` stores the match
+    #: verbatim, which is what this producer has always done and what every existing
+    #: caller gets.
+    #:
+    #: IT EXISTS BECAUSE WITHOUT IT THIS PRODUCER CANNOT BE BOUND BESIDE A SLOT.
+    #: `DirectSlot` has carried a `canonical` callable from the start; `Rule` did
+    #: not, so `apply_rules` stored `match.group(0)` and a deployment whose slot
+    #: canonicalises `PHYS 1401` to `PHYS1401` got BOTH spellings in one field --
+    #: one course arriving as two values, which is `65` §4.2's recorded failure:
+    #: "four files of one course became four one-file groups because one identity
+    #: arrived as several spellings". Measured end to end on a five-file corpus, the
+    #: whole course folder disappeared and every course file went unplaced. No unit
+    #: test saw it, because a test writes `PHYS1401` and a person writes `PHYS 1401`.
+    #:
+    #: The callable is the CALLER'S for the same reason `DirectSlot.canonical` is:
+    #: round 4's C-5 records that `normalize(field, raw_value)` is claimed by P8's
+    #: Contract-in and disowned by P6's Task 17, so no part builds it. P6 gains no
+    #: opinion about what a course code looks like -- only the ability to be told.
+    #: A canonicaliser that raises propagates: a broken injection must not arrive as
+    #: a silent absence of facts (§8.6).
+    canonical: Callable[[str], str] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.pattern, re.Pattern):
@@ -153,8 +175,10 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                     cache_key=pass_cache_key(conn, file_id=file_id,
                                               content_hash=content_hash))
                 continue
+            matched = match.group(0)
             value_id = ensure_value(conn, field_key=rule.field_key,
-                                    canonical_value=match.group(0),
+                                    canonical_value=(matched if rule.canonical is None
+                                                     else rule.canonical(matched)),
                                     first_evidence_ref=cite(observation),
                                     origin=VALUE_ORIGINS[0])
             written.append(write_fact(
