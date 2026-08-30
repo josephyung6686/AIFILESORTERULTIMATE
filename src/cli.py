@@ -31,6 +31,7 @@ the marking is reachable rather than merely true.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import getpass
 import json
 import re
@@ -71,7 +72,10 @@ from llm_harness.budgets import create_budget_schema
 from llm_harness.schema import create_llm_schema
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
-from placement.pipeline import PipelineInputs
+from placement.pipeline import (
+    PipelineInputs, ResidualSendRefused, act_on_residual_sets,
+)
+from placement.residual import ProtectedSetNotReadable
 from placement.schema import create_placement_schema
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
@@ -453,7 +457,8 @@ class NotConfigured(RuntimeError):
 #: than caught as `Exception`: an unexpected error must still crash loudly.
 REFUSALS: tuple[type[BaseException], ...] = (
     CompositionConflict, FreezeRefused, MaterialisationRefused, NothingToDesign,
-    ReviewActionRefused, UpstreamUnavailable,
+    ProtectedSetNotReadable, ResidualSendRefused, ReviewActionRefused,
+    UpstreamUnavailable,
 )
 
 
@@ -1038,6 +1043,25 @@ def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
     return tuple(name for name in RESIDUAL_TEMPLATE_NAMES if name in set(names))
 
 
+def _parse_sends(raw: Sequence[str]) -> Mapping[str, str]:
+    """`--send-set "SET=AREA"`, split the way `--answer` splits its own pair.
+
+    Only the SHAPE is checked here. Whether that set was surfaced and whether the
+    plan has that area are questions about this run's plan version, which does not
+    exist yet, and `act_on_residual_sets` refuses both by name once it does.
+    """
+    sends: dict[str, str] = {}
+    for item in raw:
+        label, sep, area = item.partition("=")
+        if not sep or not label.strip() or not area.strip():
+            raise NotConfigured(
+                f"{item!r} is not a review set and a destination. Write it as "
+                '--send-set "<the set as the report named it>=<a residual area '
+                'this plan has>".')
+        sends[label.strip()] = area.strip()
+    return sends
+
+
 def _validate_situation(catalogue: TemplateCatalogue, situation: str) -> str:
     """The situation names a row the shipped library actually carries.
 
@@ -1108,7 +1132,8 @@ def _print_protected_areas(areas, out) -> None:
 
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
-        residuals: Sequence[str] = ()) -> ProductionRun:
+        residuals: Sequence[str] = (),
+        sends: Mapping[str, str] = MappingProxyType({})) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
     `out` is here so the protected-container block can be printed the moment the
@@ -1536,6 +1561,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
             design=design_decisions, approve_plan=approve_plan,
             set_privacy_policy=set_privacy_policy))
+    # AFTER the run, because §7.5's sets do not exist until §6 has finished trying,
+    # and IN the same run, because a residual set answer belongs to the plan
+    # version it was given in (P11 SPEC, "Plan versioning") and this run has just
+    # minted a new one. So `--send-set` is applied to the sets it was typed at and
+    # is not remembered between runs: the run that files the files is the run the
+    # person named them in.
+    if sends:
+        result = dataclasses.replace(result, placement=act_on_residual_sets(
+            conn, result=result.placement,
+            inputs=placement_inputs(result.tree), sends=sends,
+            evidence_for=evidence_for, component_version=COMPONENT_VERSION,
+            observed_at=now(), user_id=user_id))
     _raise_blocked_questions(conn, detector=detector, asked_at=clock)
     return result
 
@@ -1917,6 +1954,24 @@ def _typable(question, option_id: str) -> str:
     return shlex.quote(f"{question.question_id}={option_id}")
 
 
+def _review_note(item, areas: Sequence[str]) -> str:
+    """Why a set is being held, and the one thing a person can type about it.
+
+    A hold with no command beside it is the product saying it noticed and will do
+    nothing. With no residual area enabled the sentence says how to make one
+    rather than naming a flag that would refuse.
+    """
+    held = f'Held for review as "{item.label}": {item.reason_not_placed}'
+    if areas:
+        return (f'{held} To file them all at once, name a home for them: '
+                f'--send-set "{item.label}={areas[0]}"'
+                + (f' (this plan also has {", ".join(areas[1:])})'
+                   if areas[1:] else ""))
+    return (f"{held} This plan has nowhere to put them yet: enable an area with "
+            '`--residual "Review Later"` and they can all be sent there in one '
+            "command.")
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = ()) -> None:
     """The run, in the order a person would ask about it.
@@ -1967,6 +2022,13 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     draw(None, 0)
 
+    # The residual areas this plan actually has, so the held-for-review line can
+    # name what to type instead of leaving the person to guess it. `getattr` for
+    # the same reason `existing_path` uses it below: this function takes a
+    # finished run and reads it, and a fixture that models a node with fewer
+    # fields must not turn a report into a traceback.
+    areas = tuple(node.display_label for node in tree.nodes
+                  if getattr(node, "node_role", None) == pv.RESIDUAL_ROLE)
     labels = {node.node_id: node.display_label for node in tree.nodes}
     # Only an `existing` node has one; `Node` refuses the field on every other
     # type, so this is exactly the set of destinations that are already folders.
@@ -2028,8 +2090,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # A placement's folder is its whole answer; every other outcome owes the
         # person the sentence saying why it stopped.
         reason = "" if decision.outcome == pv.PLACE else decision.explanation
-        review = tuple(f'Held for review as "{item.label}": {item.reason_not_placed}'
-                       for item in sets)
+        # A file whose decision CAME OUT of residual review is not still being
+        # held by the set that surfaced it. Printing the hold anyway would tell
+        # someone who has just filed a set that nothing happened to it.
+        review = tuple(_review_note(item, areas)
+                       for item in sets
+                       if getattr(decision, "residual", None) is None)
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
                settled, same_folder)
@@ -2212,6 +2278,13 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "created unless you name it, and it can be given more than once. "
              "`--list-residuals` prints them.")
     parser.add_argument(
+        "--send-set", action="append", default=[], metavar="SET=AREA",
+        help="file a whole review set into one of the residual areas this plan "
+             "has, e.g. --send-set \"Not yet placed=Review Later\". Name the "
+             "set exactly as the report printed it. No model is consulted -- "
+             "the answer names the destination -- and it applies to the run "
+             "that prints it, because a plan version's review sets are its own.")
+    parser.add_argument(
         "--list-residuals", action="store_true",
         help="print the residual areas `--residual` accepts, and stop.")
     args = parser.parse_args(argv)
@@ -2285,7 +2358,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                           recorded_at=now())
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
-                     residuals=_validate_residuals(args.residual))
+                     residuals=_validate_residuals(args.residual),
+                     sends=_parse_sends(args.send_set))
     except (NotConfigured, ConfigurationRequired) as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)
