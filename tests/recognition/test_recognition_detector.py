@@ -93,7 +93,8 @@ def db(conn):
 
 def a_file(db, tmp_path, filename: str, *, body: str | None = None,
            source_type: str = "text_document", extension: str = ".pdf",
-           subdirectory: str = "", identifier: str | None = None):
+           subdirectory: str = "", identifier: str | None = None,
+           abspath: str | None = None):
     """One `files` row and its real P4 observations, through the real writers."""
     directory = tmp_path / subdirectory if subdirectory else tmp_path
     directory.mkdir(parents=True, exist_ok=True)
@@ -115,6 +116,16 @@ def a_file(db, tmp_path, filename: str, *, body: str | None = None,
         source_type="filesystem", raw_value=filename,
         location=location(zone="filename"),
         observed_at=CLOCK, reliability="possible")]
+    if abspath:
+        # P4's `path` locator, which holds the whole ancestor chain. Every file on
+        # a real run carries one; these tests write it only where the directory
+        # chain is the thing under test.
+        observations.append(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="filesystem.record", extractor_version="0.1.0",
+            source_type="filesystem", raw_value=abspath,
+            location=location(zone="path"),
+            observed_at=CLOCK, reliability="possible"))
     if body:
         observations.append(observation(
             file_id=file_id, content_hash=content_hash,
@@ -912,6 +923,66 @@ def test_a_safety_term_in_the_directory_chain_protects_nothing_under_it(db, tmp_
     assert record.protected is False, (
         "a word in a parent directory protected a file that carries no safety "
         "term of its own; every file under a folder called Passport would be held")
+
+
+def test_a_folder_name_alone_never_says_what_the_files_inside_it_are(db, tmp_path):
+    """The same trap as the guard above, one door further in, found by running it.
+
+    That guard stopped the directory chain PROTECTING a file. It did not stop the
+    chain CLASSIFYING one, because `explain` counts every live observation and
+    P4's `path` locator holds every word of every ancestor. Two words in one
+    folder name are two terms, two terms are `never_alone`'s arity, and a schema
+    that reaches arity WINS -- so the handling policy is applied and, for one of
+    `00`'s four safety domains, that handling is `protected=True`.
+
+    Measured against the SHIPPED manifest: `IMG_4471.jpg`, an ordinary holiday
+    photograph carrying no evidence whatever of its own, sitting in a folder
+    called `Passport and Visa Documents`, came back
+    `sensitive_personal, protected=True, basis='safety_domain'`. The same file
+    one folder over came back `None`. Nothing about the photograph decided that;
+    its neighbours' folder did, and every file in that folder got the same
+    answer.
+
+    It runs the other way too, which is the half a person notices sooner: a
+    folder named for one subject drags every unrelated file inside it into that
+    subject's schema. "Every file on a disk sits under some words, and none of
+    them are the file's own."
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    det = detector(rules)
+    file_id, content_hash = a_file(
+        db, tmp_path, "IMG_4471.jpg", extension=".jpg", source_type="image",
+        abspath="/Users/jo/Pictures/Passport and Visa Documents/IMG_4471.jpg")
+
+    outcome = det.explain(db, file_id, content_hash)
+    record = det(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention), (
+        "a folder name classified a photograph that says nothing about itself: "
+        f"{outcome}")
+    assert record is None, (
+        f"a folder name sealed an ordinary photograph as protected: {record}")
+
+
+def test_the_same_words_in_the_files_own_name_still_classify_it(db, tmp_path):
+    """The negative twin. The rule is about WHOSE words they are, not which words.
+
+    SPEC 2.2 ranks "a filename, title, or page-one heading" as meaningful
+    evidence and says nothing about the machine's directory chain, so narrowing
+    the chain must not narrow the name. A guard that simply stopped reading text
+    would pass the test above and take this one down with it.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    det = detector(rules)
+    file_id, content_hash = a_file(
+        db, tmp_path, "Passport and visa documents.pdf",
+        abspath="/Users/jo/Pictures/Italy 2026/Passport and visa documents.pdf")
+
+    record = det(db, file_id, content_hash)
+
+    assert record is not None and record.protected, (
+        "a file whose OWN name says what it is went unprotected; the narrowing "
+        f"reached past the directory chain into the file itself: {record}")
 
 
 def test_a_file_carrying_no_term_at_all_is_never_protected(db, tmp_path):

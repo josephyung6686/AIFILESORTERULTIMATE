@@ -275,16 +275,44 @@ class Detector:
         observation itself. It binds none of P4's text materialisers: a detector
         that pulled whole text units would be a second materialisation locus, which
         `tests/p7/test_p7_no_invention.py` guards repo-wide.
+
+        **The absolute path is not one of the file's own words.** P4's `path`
+        locator holds the whole ancestor chain, so without this every word of
+        every directory above a file is evidence about it -- and two words in one
+        folder name are two terms, which is `never_alone`'s arity. Measured
+        against the shipped manifest: `IMG_4471.jpg`, an ordinary photograph
+        carrying no evidence whatever of its own, sitting in a folder called
+        `Passport and Visa Documents`, was recognised as `identity` and stored
+        `sensitive_personal, protected=True`. Nothing about the photograph
+        decided that, and every file in that folder got the same answer.
+
+        Two narrower forms of this rule were already here and each was found the
+        same way -- by running the product. Corroboration refused a path term
+        because "every file on a disk sits under some words, and none of them are
+        the file's own"; precaution refused one because a corpus under a folder
+        called `Passport` protected a syllabus. Both left the sentence they share
+        stated twice and applied nowhere else, and the door they did not cover is
+        the one where a schema WINS. It is the same rule, so it is now read once,
+        here, where the observations are.
+
+        SPEC 2.2 ranks "a filename, title, or page-one heading" as meaningful
+        evidence and says nothing about the machine's directory chain, so the
+        file's own name is untouched.
         """
         found: list[TermMatch] = []
         source_types: set[str] = set()
         seen: set[tuple[str, str]] = set()
         for row in conn.execute(
-                "SELECT observation_key, raw_value, normalized_value, source_type "
-                "FROM evidence WHERE file_id = ? AND content_hash = ? "
+                "SELECT observation_key, raw_value, normalized_value, source_type, "
+                "location FROM evidence WHERE file_id = ? AND content_hash = ? "
                 "AND superseded_by IS NULL ORDER BY rowid",
                 (file_id, content_hash)):
+            # The file KIND is a property of the file and not of the observation
+            # that named it, so this is read before the refusal below: narrowing
+            # which words count must not narrow `file_kind_plausible` as well.
             source_types.add(row["source_type"])
+            if _json.loads(row["location"]).get("locator") == "path":
+                continue
             key = row["observation_key"]
             for text in (row["raw_value"], row["normalized_value"]):
                 if not text:
@@ -420,24 +448,18 @@ class Detector:
         # itself out of a single signal.
         if best < 2 and len(leaders) == 1 and self._corroborating is not None:
             matched_keys = {match.observation_key for match in matches}
-            # The nominating term must come from the file ITSELF -- its text, its
-            # own name -- and not from the absolute path it happens to sit under.
+            # The nominating term comes from the file ITSELF -- its text, its own
+            # name -- and never from the absolute path it happens to sit under.
             # Found by running it: a corpus in a directory called
             # `.../test_a_placement_the_person_mu0/` matched the authored term
             # 'placement' out of the PATH observation, and an identifier in the
             # body then confirmed it, so four contentless files classified as
-            # `creative`. Every file on a disk sits under some words, and none of
-            # them are the file's own.
-            #
-            # §2.2 ranks "a filename, title, or page-one heading" as meaningful
-            # evidence and says nothing about the machine's directory chain. This
-            # narrows only CORROBORATION: the two-term rule is untouched, because
-            # widening or narrowing that is a different question from this one.
-            nominating = [match for match in by_schema[leaders[0]]
-                          if match.observation_key not in self._path_keys(
-                              conn, file_id, content_hash)]
-            if nominating and any(key not in matched_keys for key in
-                                  self._corroborating(conn, file_id, content_hash)):
+            # `creative`. That refusal is `_matches`'s now, applied to every door
+            # rather than to this one, because the door where a schema WINS had
+            # the same hole and a rule with two homes is this project's own named
+            # defect.
+            if any(key not in matched_keys for key in
+                   self._corroborating(conn, file_id, content_hash)):
                 best = 2
 
         if best < 2:
@@ -606,24 +628,19 @@ class Detector:
         this branch, which runs when another schema WON, has no leaders to lean on
         and must say what it means directly.
 
-        The term must also be the FILE'S OWN, never a word in a directory above it.
-        `_matches` reads every live observation and P4's `path` locator holds the
-        whole ancestor chain, so a corpus under a folder called `Passport` names
-        `identity` for every file inside it -- measured, and it protected a syllabus.
-        `test_a_term_from_the_absolute_path_alone_cannot_be_corroborated` refused the
-        same evidence for corroboration for the same reason; over-protecting a whole
-        folder because of its name would reach this project's known collapse by a
-        new route.
+        The term is also the FILE'S OWN and never a word in a directory above it.
+        A corpus under a folder called `Passport` named `identity` for every file
+        inside it -- measured, and it protected a syllabus. That refusal now lives
+        in `_matches`, which is what these matches come from, because the same
+        hole was open at the door where a schema WINS and one rule wants one home.
         """
         matches, _ = self._matches(conn, file_id, content_hash)
-        path_keys = self._path_keys(conn, file_id, content_hash)
 
         def says_what_the_file_is(match: "TermMatch") -> bool:
             return match.term in self._work_types.get(match.schema_id, frozenset())
 
         return tuple(sorted({match.schema_id for match in matches
                              if match.schema_id in SAFETY_DOMAIN_IDS
-                             and match.observation_key not in path_keys
                              and says_what_the_file_is(match)}))
 
     def _protect_as(self, conn: sqlite3.Connection, readings: Iterable[str], *,
@@ -654,22 +671,6 @@ class Detector:
             handling_class=handling.handling_class, protected=handling.protected,
             basis=handling.basis, evidence_refs=tuple(refs),
             reliability_state=RELIABILITY, observed_at=self._now())
-
-    def _path_keys(self, conn: sqlite3.Connection, file_id: str,
-                   content_hash: str) -> frozenset[str]:
-        """Observations that are the file's absolute PATH rather than the file.
-
-        P4's `path` locator holds the whole ancestor chain, so every word in
-        every directory above a file is evidence about it unless something says
-        otherwise. For a two-term match that is arguable; for a single term about
-        to be confirmed by a code it is not.
-        """
-        return frozenset(
-            row["observation_key"] for row in conn.execute(
-                "SELECT observation_key, location FROM evidence "
-                "WHERE file_id = ? AND content_hash = ? AND superseded_by IS NULL",
-                (file_id, content_hash))
-            if _json.loads(row["location"]).get("locator") == "path")
 
     def _readings(self, schema_id: str) -> tuple[str, ...]:
         schema = self._rules.schemas.get(schema_id)
