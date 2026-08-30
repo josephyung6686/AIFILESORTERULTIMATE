@@ -37,6 +37,7 @@ import sqlite3
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
+from placement.groups import ExcludedOutlier, GroupPlan
 from placement.records import (
     Alternative,
     Ask,
@@ -55,10 +56,12 @@ from placement.vocabulary import (
     EXACT_FACT_MATCH,
     MARK_STATE,
     PLACE,
+    ROUTED_TO_NODE,
     SHARED_MATERIAL_DECISION,
 )
 
 from review_surface.labels import label_chain_for_version
+from review_surface.states import AbsenceNotice
 
 AFFORDANCE_ONE_STEP: str = "one_step_accept"
 AFFORDANCE_REVIEW_REQUIRED: str = "review_each_before_accepting"
@@ -197,3 +200,64 @@ def placement_review_item(conn: sqlite3.Connection, decision: PlacementDecision,
         privacy=decision.privacy,
         review_policy=decision.review_policy,
         explanation=decision.explanation)
+
+
+@dataclass(frozen=True)
+class GroupPlanReviewItem:
+    """§6.8: ONE coherent group plan, not several unrelated file moves.
+
+    The member items are the same `PlacementReviewItem`s any single-file surface
+    would show, so a member accepted inside a group is still individually
+    inspectable and individually correctable (§8.2, §8.7). The group is the
+    framing, never a wrapper that hides its members.
+
+    `absence_notices` is `66` §4 in its first real position. The group plan is
+    where "why is this member not on the list?" first gets asked, and the answer
+    must name the state that actually applies rather than say "could not find".
+    """
+
+    group_plan_id: str
+    plan_version: str
+    group_id: str
+    shared_parent_label_chain: tuple[str, ...]
+    member_items: tuple[PlacementReviewItem, ...]
+    excluded_outliers: tuple[tuple[ExcludedOutlier, tuple[str, ...]], ...]
+    absence_notices: tuple[AbsenceNotice, ...]
+
+
+def group_plan_review_item(conn: sqlite3.Connection, plan: GroupPlan, *,
+                           resolve_citations: CitationResolver,
+                           absences: Sequence[AbsenceNotice] = (),
+                           ) -> GroupPlanReviewItem:
+    """Project a §6.8 group plan and each of its excluded outliers.
+
+    The members are read off `plan.member_decisions`, which carries the decisions
+    themselves. P11 already refuses a plan whose members do not all share its id;
+    taking a second member list as an argument would let a caller present members
+    P11 never put in the plan, which is the one thing §6.8's "one coherent group
+    plan" rules out.
+
+    An outlier routed anywhere but to a node gets an EMPTY label chain rather
+    than an invented one. There is no node to name, and a placeholder chain would
+    read as a destination the user could accept.
+    """
+    outliers: list[tuple[ExcludedOutlier, tuple[str, ...]]] = []
+    for outlier in plan.excluded_outliers:
+        chain: tuple[str, ...] = ()
+        if outlier.routed_to == ROUTED_TO_NODE and outlier.node_id:
+            chain = label_chain_for_version(
+                conn, plan_version=plan.plan_version, node_id=outlier.node_id)
+        outliers.append((outlier, chain))
+    return GroupPlanReviewItem(
+        group_plan_id=plan.group_plan_id,
+        plan_version=plan.plan_version,
+        group_id=plan.group_id,
+        shared_parent_label_chain=label_chain_for_version(
+            conn, plan_version=plan.plan_version,
+            node_id=plan.shared_parent_node_id),
+        member_items=tuple(
+            placement_review_item(conn, decision,
+                                  resolve_citations=resolve_citations)
+            for decision in plan.member_decisions),
+        excluded_outliers=tuple(outliers),
+        absence_notices=tuple(absences))
