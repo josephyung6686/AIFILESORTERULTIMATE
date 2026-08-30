@@ -118,6 +118,21 @@ def _answer_of(row: sqlite3.Row) -> StructuralAnswer:
         supersedes=row["supersedes"], supersede_reason=row["supersede_reason"])
 
 
+def answer_by_id(conn: sqlite3.Connection,
+                 answer_id: str) -> StructuralAnswer | None:
+    """One answer by the id `record_answer` minted for it.
+
+    The store is append-only and an edit writes a new row naming the one it
+    supersedes, so the ONLY way to read what a person said before is by that name.
+    Without this reader `supersedes` was a pointer with nothing to follow it, and
+    §17's diff -- which is entirely about what changed FROM what -- could not be
+    computed at all.
+    """
+    row = conn.execute("SELECT * FROM structural_answers WHERE answer_id = ?",
+                       (answer_id,)).fetchone()
+    return None if row is None else _answer_of(row)
+
+
 def _live_row(conn: sqlite3.Connection, *, question_id: str,
               scope: str) -> sqlite3.Row | None:
     return conn.execute(
