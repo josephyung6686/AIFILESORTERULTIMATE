@@ -1473,21 +1473,69 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             entity_frequency={fact.value: 1 for fact in facts},
             generic_entity_frequency=200)
 
+    def _protected_among(file_ids: Sequence[str]) -> frozenset[str]:
+        """Which of these files carry a live protected classification."""
+        if not file_ids:
+            return frozenset()
+        marks = ",".join("?" * len(file_ids))
+        return frozenset(row[0] for row in conn.execute(
+            "SELECT DISTINCT file_id FROM classifications "
+            f"WHERE file_id IN ({marks}) AND protected = 1 "
+            "  AND superseded_by IS NULL", tuple(file_ids)))
+
     def residual_partition(unplaced: Sequence[str]) -> tuple[dict, ...]:
         """§7.5's review sets. SPEC Open question 10 leaves the taxonomy open, so
-        this deployment surfaces ONE set holding everything §6 could not place --
-        the smallest partition that still shows every file with a reason."""
+        this deployment surfaces the smallest partition that still shows every
+        file with a reason -- and protection is the one line it may not cross.
+
+        This used to be ONE set declaring `protected: False` as a literal,
+        whatever it actually held. P11 builds a real refusal on that flag:
+        `require_set_actionable` reads `residual_set.protected` and raises
+        BEFORE any decision, so protection is decided independently of what the
+        person chose. Declaring every set unprotected made that refusal
+        unreachable -- complete, tested, and never able to fire -- and
+        `--send-set` would have filed a passport in one gesture with no
+        per-file look.
+
+        So the split is by protection and by nothing else. It is not a taxonomy
+        and does not pre-empt Open question 10; it is the one distinction the
+        machinery downstream already acts on.
+        """
         if not unplaced:
             return ()
-        return ({"label": "Not yet placed",
-                 "member_file_ids": tuple(unplaced),
-                 "representative_examples": tuple(unplaced)[:3],
-                 "file_type_distribution": (), "age_range": (),
-                 "evidence_availability": "partial", "sensitivity_status": "none",
-                 "protected": False, "weak_graph_neighbours": (),
-                 "reason_not_placed":
-                     "no destination in this tree matched them well enough to "
-                     "decide without asking you."},)
+        protected = _protected_among(unplaced)
+        ordinary = tuple(f for f in unplaced if f not in protected)
+        shielded = tuple(f for f in unplaced if f in protected)
+
+        def _set(label: str, members: tuple[str, ...], *, is_protected: bool,
+                 reason: str) -> dict:
+            return {"label": label, "member_file_ids": members,
+                    # Named files, so a person can see WHICH of theirs is here.
+                    # Protected files are named and counted like any other: the
+                    # rule is that they are never opened, not that they are
+                    # never mentioned, and a set that hid them would be the
+                    # silent omission the same rule forbids.
+                    "representative_examples": members[:3],
+                    "file_type_distribution": (), "age_range": (),
+                    "evidence_availability": "partial",
+                    "sensitivity_status": "protected" if is_protected else "none",
+                    "protected": is_protected, "weak_graph_neighbours": (),
+                    "reason_not_placed": reason}
+
+        sets: list[dict] = []
+        if ordinary:
+            sets.append(_set(
+                "Not yet placed", ordinary, is_protected=False,
+                reason="no destination in this tree matched them well enough "
+                       "to decide without asking you."))
+        if shielded:
+            sets.append(_set(
+                "Protected, and not filed in bulk", shielded, is_protected=True,
+                reason="these are protected material, so they are counted and "
+                       "named here and nothing was assembled about them. They "
+                       "are not filed in one gesture with everything else; each "
+                       "one is yours to decide."))
+        return tuple(sets)
 
     def placement_inputs(tree) -> PipelineInputs:
         return PipelineInputs(
@@ -1962,6 +2010,14 @@ def _review_note(item, areas: Sequence[str]) -> str:
     rather than naming a flag that would refuse.
     """
     held = f'Held for review as "{item.label}": {item.reason_not_placed}'
+    if item.protected:
+        # No command, because there is no command. `--send-set` files a set in
+        # one gesture with no per-file look, and P11 refuses that over protected
+        # material before it reads any decision. Printing the flag here would
+        # offer an instruction that always fails, and it would contradict the
+        # sentence immediately above it. The set is still shown, named and
+        # counted; what is withheld is a suggestion that was never true.
+        return held
     if areas:
         return (f'{held} To file them all at once, name a home for them: '
                 f'--send-set "{item.label}={areas[0]}"'

@@ -1952,3 +1952,110 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     from readers.deployment import macos_readers
     readers = macos_readers(find_structured_strings=lambda _text: ())
     assert readers.ocr_engine is not None
+
+
+def _mixed_sensitivity_corpus(tmp_path):
+    """Ordinary files and protected ones, none of which any template places."""
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "Passport scan.txt").write_text(
+        "PASSPORT\n\nPassport No X12345678. Date of birth JUN1998.\n")
+    (corpus / "notes.txt").write_text("Remember to buy milk.\n")
+    (corpus / "receipt.txt").write_text("Thank you for your purchase.\n")
+    return corpus
+
+
+def test_a_review_set_says_truthfully_whether_it_holds_protected_material(tmp_path):
+    """`residual_partition` declared every set `protected: False` and
+    `sensitivity_status: "none"`, as literals, whatever it actually held.
+
+    P11 builds a real refusal on that flag -- `require_set_actionable` checks
+    `residual_set.protected` and raises BEFORE it reads any decision, so
+    protection is decided independently of what the person chose. Declaring
+    every set unprotected means that refusal can never fire, and the guard is
+    complete, tested and unreachable.
+
+    The standing rule is that protected material is marked and counted, never
+    opened and never silently omitted. A set that holds a passport and says it
+    holds nothing sensitive breaks the first clause while appearing to keep the
+    third.
+    """
+    corpus = _mixed_sensitivity_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Papers", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    printed = out.getvalue()
+
+    # The protected file is still named -- present, not omitted.
+    assert "Passport scan.txt" in printed, printed
+    # Asserted on the SET NAME and not on how many "Held for review" lines the
+    # report prints. Counting lines passes against the defect: the report groups
+    # DECISIONS by their reason, so a protected file and an unclassified one
+    # already produce two lines while naming one and the same set. The property
+    # is that the two kinds are in two SETS, because the set is what carries the
+    # protected flag and what `--send-set` addresses.
+    labels = {line.split('Held for review as "', 1)[1].split('"', 1)[0]
+              for line in printed.splitlines() if "Held for review" in line}
+    assert len(labels) >= 2, (
+        "protected and ordinary unplaced files are in one undifferentiated "
+        f"set, named {labels}:\n{printed}")
+
+
+def test_a_protected_review_set_refuses_to_be_filed_in_one_gesture(tmp_path):
+    """The negative twin, and the reason the flag above has to be truthful.
+
+    `--send-set` files a whole set with no model call and no per-file look. Over
+    protected material that is precisely the gesture the design refuses: §7.7's
+    gate is checked before any decision is read. If the CLI can never surface a
+    protected set, this refusal is unreachable from anything a person runs, and
+    asserting it only in `tests/p11` would keep passing while the product
+    shipped the opposite.
+    """
+    corpus = _mixed_sensitivity_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Papers", "--user", "jy", "--database", str(database)]
+
+    first = io.StringIO()
+    cli.main(argv + ["--residual", "Review Later"], out=first)
+    label = next(
+        line.split('Held for review as "', 1)[1].split('"', 1)[0]
+        for line in first.getvalue().splitlines()
+        if "Held for review" in line and "Protected" in line)
+
+    out = io.StringIO()
+    code = cli.main(argv + ["--residual", "Review Later",
+                            "--send-set", f"{label}=Review Later"], out=out)
+    printed = out.getvalue()
+    assert code != 0, printed
+    assert "Passport scan.txt" not in printed.split("refused", 1)[-1][:200], printed
+
+
+def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
+    """The report may not print an instruction it will reject.
+
+    `--send-set` files a whole set in one gesture, and a protected set refuses
+    that by design. Offering the flag anyway prints a command that always
+    fails -- and it contradicts the sentence directly above it, which has just
+    said these are not filed in one gesture with everything else.
+
+    This is the same defect as the unpasteable `--answer` line and the
+    unreachable `revoke`: what the screen tells a person to type has to be true.
+    """
+    corpus = _mixed_sensitivity_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Papers", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite"),
+              "--residual", "Review Later"], out=out)
+    printed = out.getvalue()
+
+    protected = next(block for block in printed.split("Held for review as ")
+                     if block.startswith('"Protected'))
+    assert "--send-set" not in protected.split("\n\n", 1)[0], protected
+    # The twin, in the same run: the ordinary set IS still offered it, so this
+    # is a distinction and not the feature quietly being switched off.
+    ordinary = next(block for block in printed.split("Held for review as ")
+                    if block.startswith('"Not yet placed'))
+    assert "--send-set" in ordinary.split("\n\n", 1)[0], ordinary
