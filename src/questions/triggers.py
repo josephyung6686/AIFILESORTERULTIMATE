@@ -32,6 +32,8 @@ import sqlite3
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
+from privacy.vocabulary import check_handling_class
+
 from questions.records import QuestionOption, StructuralQuestion
 from questions.registry import NESTING_KIND, READING_KIND
 from questions.vocabulary import SCOPE_BRANCH, SCOPE_ORGANIZATION, STRUCTURAL
@@ -49,6 +51,21 @@ NOT_ABOUT_ME = QuestionOption("not_mine", "It is not about me")
 WILL_NOT_DO: str = (
     "Answering will not move, rename or delete anything. It changes which "
     "folders this run is allowed to propose, and nothing else.")
+
+#: §21's "data classifications", for the two kinds this deployment ships.
+#:
+#: Both questions quote something the person's own material produced -- a course
+#: code, a matter number, a branch label they typed -- so neither is `public_low`.
+#: Neither collects a person's NAME, a credential, or anything §8.4 puts in the
+#: two classes above this one; a question that did (§15's household question is
+#: the case) declares its own, higher class at its own builder rather than
+#: inheriting this.
+#:
+#: This is a classification of what the QUESTION holds, and it is deliberately not
+#: a classification of the files behind it: P7 has already classified those, and a
+#: second opinion here would be a second spelling of the same fact.
+SUBJECT_DRAWN_FROM_THE_CORPUS: str = check_handling_class(
+    "personal_non_sensitive")
 
 
 def _schema_words(schema_id: str) -> str:
@@ -89,6 +106,7 @@ def question_for_tied_reading(*, subject_value: str, tied_schema_ids: Iterable[s
             "This decides which folder layout is offered for these files. Until "
             "it is answered they stay where they are, unfiled."),
         will_not_do=WILL_NOT_DO,
+        handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
         scope=f"{SCOPE_ORGANIZATION}:{subject_value}",
         options=tuple(
             QuestionOption(schema_id, f"{_schema_words(schema_id)} material",
@@ -199,6 +217,7 @@ def question_for_nesting(*, branch_label: str,
             "answered the first shape that passed every check is used, which may "
             "not be the one you would pick."),
         will_not_do=WILL_NOT_DO,
+        handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
         scope=f"{SCOPE_BRANCH}:{branch_label}",
         options=tuple(
             QuestionOption(choice.key, _nesting_label(choice),

@@ -153,6 +153,7 @@ def test_a_contextual_question_may_not_gate_a_template():
         StructuralQuestion(
             question_id="q", answer_class=CONTEXTUAL, prompt="p",
             evidence_context="e", unlocks="u", will_not_do="w",
-            scope="branch:X", evidence_refs=("ref",),
+            scope="branch:X", handling_class="personal_non_sensitive",
+            evidence_refs=("ref",),
             options=(QuestionOption("a", "A", gates_template="subject"),
                      QuestionOption("b", "B")))

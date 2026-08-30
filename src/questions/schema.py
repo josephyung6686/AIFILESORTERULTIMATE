@@ -44,6 +44,14 @@ CREATE TABLE IF NOT EXISTS structural_questions (
     -- §12: "state what it will not affect".
     will_not_do       TEXT NOT NULL,
     scope             TEXT NOT NULL,
+    -- §21's "data classifications", for the data the QUESTION holds. One of P7's
+    -- five §8.4 classes, minus `unreadable_unclassified`, which is a gate outcome
+    -- and never a statement about what a question collects.
+    handling_class    TEXT NOT NULL
+                      CHECK (handling_class IN ('public_low',
+                                                'personal_non_sensitive',
+                                                'sensitive_personal',
+                                    'highly_sensitive_credential_bearing')),
     -- The options, as canonical JSON. A second table would let a question exist
     -- with no options, which `StructuralQuestion` already refuses to construct.
     options           TEXT NOT NULL,
@@ -78,6 +86,34 @@ CREATE INDEX IF NOT EXISTS structural_answers_live
 """
 
 
+#: (column, type) pairs added to `structural_questions` after its first release.
+#: `CREATE TABLE IF NOT EXISTS` is a no-op on a database that already has the table,
+#: so a column added to QUESTIONS_DDL never reaches an existing database. This is the
+#: same mechanism `database_agent.db` uses on `files`, for the same reason.
+#:
+#: The added column is nullable where the fresh DDL says NOT NULL, and that asymmetry
+#: is deliberate: SQLite requires a non-null DEFAULT on an added NOT NULL column, and
+#: there is no default handling class to give. Absence must refuse rather than guess,
+#: so a row written before this column existed rehydrates through
+#: `StructuralQuestion`, which refuses an empty `handling_class` by name. An old
+#: question becomes visibly unreadable instead of silently reclassified.
+QUESTIONS_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("handling_class", "TEXT"),
+)
+
+
+def _migrate_questions(conn: sqlite3.Connection) -> None:
+    present = {row["name"] for row in
+               conn.execute("PRAGMA table_info(structural_questions)")}
+    if not present:
+        return
+    for column, column_type in QUESTIONS_ADDED_COLUMNS:
+        if column not in present:
+            conn.execute(
+                f"ALTER TABLE structural_questions ADD COLUMN {column} {column_type}")
+
+
 def create_questions_schema(conn: sqlite3.Connection) -> None:
     """Create P15's tables if they are absent. Safe to call on every run."""
+    _migrate_questions(conn)
     conn.executescript(QUESTIONS_DDL)

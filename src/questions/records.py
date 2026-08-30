@@ -26,6 +26,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from facts.domains import SCHEMA_IDS
+# Imported, never respelled. `tree_design/vocabulary.py` states the rule and the
+# reason: a second spelling of a privacy vocabulary is how two parts of one
+# product come to disagree about how sensitive something is.
+from privacy.classification import UNREADABLE_UNCLASSIFIED
+from privacy.vocabulary import HANDLING_CLASSES
 
 from questions.vocabulary import (
     ANSWER_CLASSES, ANSWER_STATES, CONFIRMED, CONTEXTUAL, NOT_APPLICABLE,
@@ -106,19 +111,33 @@ class StructuralQuestion:
     #: The promise: "It will not create or move folders by itself."
     will_not_do: str
     scope: str
+    #: §21's fifth obligation: "data classifications". P7's §8.4 classes, for
+    #: the data the question COLLECTS -- not for the files it arose from. It is
+    #: required because §15:533 promises that names a person supplies "remain
+    #: local, protected, scoped to the approved area, and removable", and a
+    #: record that cannot say a question collects a name can keep none of that.
+    handling_class: str
     options: tuple[QuestionOption, ...]
     #: P4 observation keys behind `evidence_context`.
     evidence_refs: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         for name in ("question_id", "prompt", "evidence_context", "unlocks",
-                     "will_not_do", "scope"):
+                     "will_not_do", "scope", "handling_class"):
             if not getattr(self, name):
                 raise AnswerNotPermitted(
                     f"a structural question needs {name}; §12 requires a question "
                     "to name the decision it unlocks, what it will not affect, "
                     "the evidence it arose from and the scope of the answer")
         check(self.answer_class, ANSWER_CLASSES, name="answer_class")
+        if self.handling_class == UNREADABLE_UNCLASSIFIED:
+            raise AnswerNotPermitted(
+                f"a question may not be classified {UNREADABLE_UNCLASSIFIED!r}. "
+                "That is a gate OUTCOME -- what P7 resolves to when it could not "
+                "read something -- and never a statement about what a question "
+                "collects. Every question this product raises is one it wrote "
+                "itself, from evidence it read")
+        check(self.handling_class, HANDLING_CLASSES, name="handling_class")
         check_scope(self.scope)
         if not self.evidence_refs:
             raise AnswerNotPermitted(

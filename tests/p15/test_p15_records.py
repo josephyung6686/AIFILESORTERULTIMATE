@@ -37,6 +37,7 @@ def a_question(**overrides) -> StructuralQuestion:
         unlocks="This helps distinguish coursework from professional material.",
         will_not_do="It will not create or move folders by itself.",
         scope="organization:columbia",
+        handling_class="personal_non_sensitive",
         options=(
             QuestionOption("study", "I study there", activates_schema="academic"),
             QuestionOption("teach", "I teach or work there",
@@ -184,3 +185,69 @@ def test_a_scope_is_required_and_is_where_the_answer_applies():
         StructuralAnswer(
             question_id="q", option_id="study", state=CONFIRMED, scope="",
             user_id="jy", recorded_at=CLOCK, inferred=False)
+
+
+# --- §21's fifth obligation: a question says what kind of data it collects ---------
+
+
+def test_a_question_that_collects_a_persons_name_is_classified_sensitive_personal():
+    """§21 lists "data classifications" among what the question system owes.
+
+    The class is P7's, imported and never respelled -- `tree_design/vocabulary.py`
+    already states that rule, and a second spelling of a privacy vocabulary is how
+    two parts of one product come to disagree about how sensitive something is.
+
+    §15:533 is the promise this field exists to make keepable: names supplied by
+    the user "remain local, protected, scoped to the approved area, and removable".
+    A record that cannot say a question collects a name cannot keep any of that.
+    """
+    from privacy.vocabulary import HANDLING_CLASSES
+
+    question = a_question(handling_class="sensitive_personal")
+    assert question.handling_class == "sensitive_personal"
+    assert question.handling_class in HANDLING_CLASSES
+
+
+def test_a_question_with_no_data_classification_is_refused():
+    """The negative twin. §21 lists the classification as an obligation, and an
+    optional field is how a question gets asked unclassified."""
+    with pytest.raises(AnswerNotPermitted, match="handling_class"):
+        a_question(handling_class="")
+
+
+def test_a_question_may_not_be_classified_unreadable_unclassified():
+    """`unreadable_unclassified` is a gate OUTCOME, not a classification of a
+    question -- the same distinction `Handling` draws, and the same treatment: the
+    type declines to hold the value that would collapse it.
+
+    Every question P15 raises is one the product wrote, from evidence it read. It
+    is never unreadable, and "unclassified" is exactly the state this field exists
+    to make impossible.
+    """
+    with pytest.raises(AnswerNotPermitted, match="unreadable_unclassified"):
+        a_question(handling_class="unreadable_unclassified")
+
+
+def test_a_classification_outside_p7s_closed_set_is_refused():
+    with pytest.raises(OutOfVocabulary):
+        a_question(handling_class="fairly_private")
+
+
+def test_every_question_this_deployment_raises_carries_a_classification():
+    """The two shipped builders, through the records they actually produce."""
+    from questions.triggers import (
+        NestingChoice, question_for_nesting, question_for_tied_reading,
+    )
+    from privacy.vocabulary import HANDLING_CLASSES
+
+    reading = question_for_tied_reading(
+        subject_value="PHYS1401", tied_schema_ids=("academic", "legal"),
+        file_count=1, evidence_refs=("obs:1",))
+    nesting = question_for_nesting(
+        branch_label="Coursework",
+        choices=(NestingChoice(("subject",), "by subject", (), ()),
+                 NestingChoice(("work_type",), "by work type", (), ())),
+        file_count=1)
+    for question in (reading, nesting):
+        assert question.handling_class in HANDLING_CLASSES
+        assert question.handling_class != "unreadable_unclassified"

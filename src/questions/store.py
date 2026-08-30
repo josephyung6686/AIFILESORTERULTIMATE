@@ -44,12 +44,13 @@ def record_question(conn: sqlite3.Connection, question: StructuralQuestion, *,
     conn.execute(
         "INSERT INTO structural_questions "
         "(question_id, answer_class, prompt, evidence_context, unlocks, "
-        " will_not_do, scope, options, evidence_refs, first_asked_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        " will_not_do, scope, handling_class, options, evidence_refs, "
+        " first_asked_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
         "ON CONFLICT (question_id) DO NOTHING",
         (question.question_id, question.answer_class, question.prompt,
          question.evidence_context, question.unlocks, question.will_not_do,
-         question.scope,
+         question.scope, question.handling_class,
          # `asdict`, not a hand-written field list. The list was here first and
          # dropped `gates_template` silently the day it was added: the question
          # stored fine, rehydrated fine, and simply gated nothing. Any field this
@@ -71,7 +72,7 @@ def _question_of(row: sqlite3.Row) -> StructuralQuestion:
         question_id=row["question_id"], answer_class=row["answer_class"],
         prompt=row["prompt"], evidence_context=row["evidence_context"],
         unlocks=row["unlocks"], will_not_do=row["will_not_do"],
-        scope=row["scope"],
+        scope=row["scope"], handling_class=row["handling_class"] or "",
         options=tuple(QuestionOption(**option)
                       for option in json.loads(row["options"])),
         evidence_refs=tuple(json.loads(row["evidence_refs"])))

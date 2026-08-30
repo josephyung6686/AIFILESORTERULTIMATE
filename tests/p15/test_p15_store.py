@@ -41,7 +41,7 @@ def a_question(question_id="relationship.organization:columbia",
         evidence_context="We found files connected to Columbia.",
         unlocks="This helps distinguish coursework from professional material.",
         will_not_do="It will not create or move folders by itself.",
-        scope=scope,
+        scope=scope, handling_class="personal_non_sensitive",
         options=(
             QuestionOption("study", "I study there", activates_schema="academic"),
             QuestionOption("not_mine", "It is not about me"),
