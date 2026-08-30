@@ -113,6 +113,17 @@ def _answer_of(row: sqlite3.Row) -> StructuralAnswer:
         supersedes=row["supersedes"], supersede_reason=row["supersede_reason"])
 
 
+def _live_row(conn: sqlite3.Connection, *, question_id: str,
+              scope: str) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT a.* FROM structural_answers AS a "
+        "WHERE a.question_id = ? AND a.scope = ? AND NOT EXISTS ("
+        "  SELECT 1 FROM structural_answers AS later "
+        "  WHERE later.supersedes = a.answer_id) "
+        "ORDER BY a.recorded_at DESC, a.answer_id DESC LIMIT 1",
+        (question_id, scope)).fetchone()
+
+
 def live_answer(conn: sqlite3.Connection, *, question_id: str,
                 scope: str) -> StructuralAnswer | None:
     """The answer that governs this question in this scope, or None.
@@ -121,14 +132,27 @@ def live_answer(conn: sqlite3.Connection, *, question_id: str,
     tie-break so a database written by two processes in one clock tick still has a
     deterministic answer rather than an arbitrary one.
     """
-    row = conn.execute(
-        "SELECT a.* FROM structural_answers AS a "
-        "WHERE a.question_id = ? AND a.scope = ? AND NOT EXISTS ("
-        "  SELECT 1 FROM structural_answers AS later "
-        "  WHERE later.supersedes = a.answer_id) "
-        "ORDER BY a.recorded_at DESC, a.answer_id DESC LIMIT 1",
-        (question_id, scope)).fetchone()
+    row = _live_row(conn, question_id=question_id, scope=scope)
     return None if row is None else _answer_of(row)
+
+
+def live_answer_id(conn: sqlite3.Connection, *, question_id: str,
+                   scope: str) -> str | None:
+    """The id of the answer `live_answer` returns, so an edit can supersede it.
+
+    `StructuralAnswer` carries no `answer_id` -- the id is minted at write time by
+    `record_answer`, which returns it "so a later edit can supersede it". A caller
+    holding only the record therefore has the answer and not its name, and a caller
+    that wants to supersede needs the name. This is that reader, over the SAME row
+    `live_answer` selects, so the two can never disagree about which answer is live.
+
+    Without it the tie-break above is doing work it was never meant to do. It exists
+    so two processes in one clock tick still resolve deterministically; it is not a
+    way to choose between two answers ONE person gave, and it decides at random
+    which correction the product obeys when it is asked to.
+    """
+    row = _live_row(conn, question_id=question_id, scope=scope)
+    return None if row is None else row["answer_id"]
 
 
 def open_questions(conn: sqlite3.Connection) -> tuple[StructuralQuestion, ...]:

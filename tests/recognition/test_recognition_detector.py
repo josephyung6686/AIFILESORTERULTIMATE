@@ -685,6 +685,118 @@ def test_a_tie_with_no_safety_domain_in_it_is_still_simply_unclassified(
         "over-protection collapse, not a precaution")
 
 
+def test_a_safety_domain_is_protected_even_when_another_schema_wins_outright(
+        db, tmp_path):
+    """The same passport, one branch over -- and the branch precaution never reached.
+
+    `_precaution` fixed this for the TIE. `__call__` consults it only when `explain`
+    returns an `Abstention`, so a file whose evidence names a safety domain is
+    protected when no schema wins and unprotected when one does. Winning is a fact
+    about what we CLAIM; the docstring above says in terms that precaution governs
+    what we EXPOSE, and gating it on the outcome of the claim is the confusion that
+    sentence exists to forbid.
+
+    Measured through the shipped CLI before this test existed: a file reading
+    "Passport number A1234567 -- scanned copy for records." matched `photos` on
+    'scan', won outright, and was stored `personal_non_sensitive, protected=0,
+    review_policy='auto_eligible'` -- then the report offered to file it into a
+    folder named `A1234567`. `00`:52 requires these four domains "detected and
+    protected BEFORE any cloud or automated placement decision is allowed", and
+    `00`:185 says such material "should enter a protected state immediately".
+    Neither sentence has an exception for a file some other schema also describes.
+
+    `explain` is deliberately unchanged: the file really is coursework, and saying
+    so is honest. Only the classification moves.
+    """
+    rules = rule_set(
+        schema_entry("academic", context=("syllabus", "lecture")),
+        schema_entry("identity", context=("passport",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Passport Scan.pdf",
+        body="Passport number X12345678. syllabus and lecture handout.")
+    det = detector(rules)
+
+    # The CLAIM is untouched: academic wins outright on two terms against one.
+    outcome = det.explain(db, file_id, content_hash)
+    assert isinstance(outcome, Recognition) and outcome.schema_id == "academic", outcome
+
+    record = det(db, file_id, content_hash)
+    assert record is not None
+    assert record.protected is True, (
+        "a passport was stored unprotected because another schema described the "
+        "file better; its number is now free to become a folder name")
+    assert record.basis == "safety_domain"
+    assert record.evidence_refs, "a protection with no evidence behind it"
+
+
+def test_a_winning_schema_with_no_safety_domain_present_is_left_alone(db, tmp_path):
+    """The negative twin, guarding the collapse this project already made once.
+
+    `cli.py`'s `classifier` records what happened when an abstention was answered
+    with protection: it "made an unreadable scan and a passport identical in P7's
+    store". The rule above must fire ONLY where a safety-domain term is actually in
+    the file's own evidence -- never on every recognition -- or that collapse
+    returns through the door the tie fix left open.
+    """
+    rules = rule_set(schema_entry("academic", context=("syllabus", "lecture")))
+    file_id, content_hash = a_file(db, tmp_path, "Week 1.pdf",
+                                   body="syllabus and lecture handout.")
+    det = detector(rules)
+
+    record = det(db, file_id, content_hash)
+    assert record is not None
+    assert record.protected is False, (
+        "an ordinary coursework file was marked protected; that is the "
+        "over-protection collapse, not a precaution")
+    assert record.basis == "detector"
+
+
+def test_a_safety_term_in_the_directory_chain_protects_nothing_under_it(db, tmp_path):
+    """The trap the guard above walks straight into, found by running the product.
+
+    `_matches` reads every live observation, and P4's `path` locator holds the whole
+    ancestor chain -- so a corpus under a folder called `Passport` names `identity`
+    for every file inside it. Measured: a two-file corpus in a scratch directory
+    named `passport/` came back with BOTH files "protected material (§8.4)",
+    including a syllabus, and the same run under a neutrally-named directory
+    protected only the passport.
+
+    This is the defect `test_a_term_from_the_absolute_path_alone_cannot_be_
+    corroborated` already fixed for corroboration, arriving on the protection path:
+    "Every file on a disk sits under some words, and none of them are its own."
+    Over-protection is the collapse this project made once already, and a rule that
+    protects a whole folder because of its name would reach it by a new route.
+    """
+    rules = rule_set(
+        schema_entry("academic", context=("syllabus", "lecture")),
+        schema_entry("identity", context=("passport",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Week 1.pdf", body="syllabus and lecture handout.")
+    # `a_file` writes filename and body zones only; P4's `path` observation is what
+    # carries the ancestor chain on a real run, and it is the whole point here. Its
+    # locator serializes to bare "path", which is what `_path_keys` selects on.
+    RunWriter(db, author="P5").write(ExtractionResult(
+        run=run(file_id=file_id, content_hash=content_hash,
+                extractor_name="filesystem.record", extractor_version="0.1.0",
+                source_type="filesystem", analysis_tier="filesystem", config={},
+                completeness="complete", coverage=coverage("files", 1, 1),
+                observation_count=1, started_at=CLOCK, finished_at=CLOCK),
+        observations=(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="filesystem.record", extractor_version="0.1.0",
+            source_type="filesystem",
+            raw_value="/Users/jo/Documents/Passport Scans/Week 1.pdf",
+            location=location(zone="path"), observed_at=CLOCK,
+            reliability="possible"),)))
+
+    record = detector(rules)(db, file_id, content_hash)
+
+    assert record is not None
+    assert record.protected is False, (
+        "a word in a parent directory protected a file that carries no safety "
+        "term of its own; every file under a folder called Passport would be held")
+
+
 def test_a_file_carrying_no_term_at_all_is_never_protected(db, tmp_path):
     """The other twin. Precaution keys on EVIDENCE PRESENT, never on absence --
     "we deliberately did not look" and "we could not tell" are different answers

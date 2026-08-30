@@ -550,6 +550,41 @@ class Detector:
             return None
         # `SCHEMA_IDS` order, so two safety readings resolve the same way twice
         # rather than by whichever the abstention happened to name first.
+        return self._protect_as(conn, readings, file_id=file_id,
+                                content_hash=content_hash)
+
+    def _safety_readings_in_evidence(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> tuple[str, ...]:
+        """Safety domains whose OWN terms are in this file's evidence.
+
+        Not the leaders, and not the winner: any safety domain the file's words
+        actually name. `_precaution` asks the same question of an `Abstention`'s
+        tied readings, which is the right set THERE because an abstention has no
+        winner. Where a schema does win, the safety domain that lost is exactly the
+        one at stake, so reading the leaders would ask a question whose answer is
+        already known to be empty.
+
+        The term must be the FILE'S OWN, never a word in a directory above it.
+        `_matches` reads every live observation and P4's `path` locator holds the
+        whole ancestor chain, so a corpus under a folder called `Passport` names
+        `identity` for every file inside it -- measured, and it protected a syllabus.
+        `test_a_term_from_the_absolute_path_alone_cannot_be_corroborated` refused the
+        same evidence for corroboration for the same reason; over-protecting a whole
+        folder because of its name would reach this project's known collapse by a
+        new route.
+        """
+        matches, _ = self._matches(conn, file_id, content_hash)
+        path_keys = self._path_keys(conn, file_id, content_hash)
+        return tuple(sorted({match.schema_id for match in matches
+                             if match.schema_id in SAFETY_DOMAIN_IDS
+                             and match.observation_key not in path_keys}))
+
+    def _protect_as(self, conn: sqlite3.Connection, readings: Iterable[str], *,
+                    file_id: str, content_hash: str) -> ClassificationRecord | None:
+        """The safety domain's own handling, cited to the terms that raised it."""
+        if not readings:
+            return None
         schema_id = min(readings, key=SCHEMA_IDS.index)
         handling = self._handling.get(schema_id)
         if handling is None:
@@ -603,6 +638,23 @@ class Detector:
         if isinstance(outcome, Abstention):
             return self._precaution(conn, outcome, file_id=file_id,
                                     content_hash=content_hash)
+        # A SCHEMA WON, AND THAT SETTLES ONLY WHAT WE CLAIM. Precaution was reached
+        # through the abstention branch alone, so a file naming a safety domain was
+        # protected when nothing described it and unprotected when something did --
+        # and "another schema described this better" is not one of the exceptions
+        # `00`:52 and `00`:185 allow. Measured before this guard existed: a passport
+        # whose text said "scanned copy" matched `photos`, won outright, and was
+        # stored `protected=0, auto_eligible` with its number offered as a folder.
+        #
+        # A safety domain that WON needs nothing here -- its own handling is already
+        # the one below -- so this asks only about the domains that lost.
+        if outcome.schema_id not in SAFETY_DOMAIN_IDS:
+            protection = self._protect_as(
+                conn,
+                self._safety_readings_in_evidence(conn, file_id, content_hash),
+                file_id=file_id, content_hash=content_hash)
+            if protection is not None:
+                return protection
         handling = self._handling[outcome.schema_id]
         return ClassificationRecord(
             file_id=file_id, content_hash=content_hash,

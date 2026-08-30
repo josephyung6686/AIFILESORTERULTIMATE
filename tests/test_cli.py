@@ -1317,6 +1317,46 @@ def test_a_person_can_change_their_mind(tmp_path):
     assert "CHEM1500" in folders, folders
 
 
+def test_answering_again_supersedes_the_earlier_answer_instead_of_racing_it(tmp_path):
+    """§12's "edited, revoked, or re-run", and the link that makes an edit an edit.
+
+    `apply_answers` reads the answer it is about to replace and writes
+    `supersede_reason="the user answered this again"` -- and then passes
+    `supersedes=None`, discarding the id `record_answer` returns for exactly this
+    purpose ("so a later edit can supersede it"). `live_answer` defines the live
+    answer as the one NOTHING supersedes, so with the link never written, every
+    answer stays live and the winner falls to
+    `ORDER BY recorded_at DESC, answer_id DESC`. `main` computes `now()` once, so
+    the timestamps tie and a uuid4 breaks the tie.
+
+    The person's own correction is therefore decided at random. This asserts the
+    invariant that makes that impossible: one question, one scope, ONE live answer.
+    """
+    from database_agent.db import open_database
+
+    corpus = _two_shape_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+    answered = argv + ["--answer", "branch:Coursework=keep-as-it-is"]
+
+    cli.main(argv, out=io.StringIO())
+    cli.main(answered, out=io.StringIO())
+    cli.main(answered, out=io.StringIO())
+
+    conn = open_database(database)
+    rows = conn.execute(
+        "SELECT answer_id, supersedes FROM structural_answers "
+        "WHERE question_id = ?", ("branch:Coursework",)).fetchall()
+    superseded = {row["supersedes"] for row in rows} - {None}
+    live = [row["answer_id"] for row in rows if row["answer_id"] not in superseded]
+
+    assert len(rows) > 1, "the second answer must be recorded, not overwrite the first"
+    assert len(live) == 1, (
+        f"{len(rows)} answers to one question, {len(live)} of them live. A person "
+        "who answers twice must not leave two answers governing at once")
+
+
 # ======================================================================================
 # The two oracles P6 and P8 each said were the other's (C-5)
 # ======================================================================================

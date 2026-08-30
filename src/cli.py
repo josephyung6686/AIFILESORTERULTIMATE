@@ -66,6 +66,8 @@ from grouping.store import (
 from grouping.vocabulary import (
     ACCEPTED, COHERENT, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES, USER_EDITED,
 )
+from llm_harness.budgets import create_budget_schema
+from llm_harness.schema import create_llm_schema
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
 from placement.pipeline import PipelineInputs
@@ -75,7 +77,8 @@ from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from questions.records import StructuralAnswer
 from questions.schema import create_questions_schema
 from questions.store import (
-    activated_schemas, gated_template, live_answer, open_questions, record_answer,
+    activated_schemas, gated_template, live_answer, live_answer_id, open_questions,
+    record_answer,
     record_question,
 )
 from questions.triggers import (
@@ -893,11 +896,26 @@ def refinement_for(node) -> tuple[str, str]:
 
 
 def _bootstrap(conn: sqlite3.Connection) -> None:
+    """Install every part's tables. `bootstrap_p1_p7` stops at P7; the rest are here.
+
+    P8's eleven tables are created even though this deployment wires no model
+    (`_resolver`'s `"llm": None`). That is not speculative: it is the same posture
+    `bootstrap_p1_p7` already takes for P2, whose `create_eval_schema` it calls while
+    the composition root passes `evaluation=None` a few hundred lines below. A part's
+    durable surface belongs to the part, not to whether today's run reaches it.
+
+    The alternative -- install P8's tables on the day a model is wired -- puts the
+    install inside a branch, and a schema that exists only on some runs is the thing
+    `record_dossier`'s ABORT triggers exist to make impossible. `create_budget_schema`
+    follows `create_llm_schema` because its own docstring requires that order.
+    """
     bootstrap_p1_p7(conn)
     create_grouping_schema(conn)
     create_tree_schema(conn)
     create_placement_schema(conn)
     create_questions_schema(conn)
+    create_llm_schema(conn)
+    create_budget_schema(conn)
     for key in CEILINGS.values():
         set_ceiling(conn, key, CEILING_VALUE)
 
@@ -1401,8 +1419,15 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
         # it would do.
         revoked = option_id in (REVOKED, "revoke")
         state = REVOKED if revoked else SKIPPED if skipped else CONFIRMED
-        previous = live_answer(conn, question_id=question_id, scope=row[0])
-        if revoked and previous is None:
+        # The ID, not the record: `supersedes` names the row this answer replaces,
+        # and `live_answer` returns a `StructuralAnswer`, which carries no id. Passing
+        # `None` here left every answer live at once -- `live_answer` defines the live
+        # one as the one NOTHING supersedes -- so a person who answered twice had the
+        # winner chosen by `ORDER BY recorded_at DESC, answer_id DESC`. `main` computes
+        # `now()` once, so the timestamps tie and a uuid4 breaks the tie: the person's
+        # own correction was decided at random.
+        previous_id = live_answer_id(conn, question_id=question_id, scope=row[0])
+        if revoked and previous_id is None:
             raise AnswerRefused(
                 f"{question_id!r} has no answer to revoke. Revoking is how you "
                 "take back something you told the product, so there has to be "
@@ -1412,10 +1437,10 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
             option_id=None if (skipped or revoked) else option_id,
             state=state,
             scope=row[0], user_id=user_id, recorded_at=recorded_at,
-            supersedes=None,
+            supersedes=previous_id,
             supersede_reason=("the user withdrew this answer" if revoked else
                               "the user answered this again"
-                              if previous is not None else None)))
+                              if previous_id is not None else None)))
 
 
 # ======================================================================================
