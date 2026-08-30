@@ -317,3 +317,45 @@ def test_a_set_nobody_answered_is_left_alone(skeleton):
     result = _corpus(skeleton)
     after = _act(skeleton, result, {})
     assert after is result
+
+
+def test_a_sent_set_never_makes_a_file_movable_without_a_look(p11_conn):
+    """A set answer names a destination; it does not approve the moves.
+
+    §7.6 lets the person say where a whole set goes before anything has looked at
+    the individual files, so nothing in that answer may clear §6.11's review
+    policy: every one of these decisions is a proposal a person still confirms.
+    A send that produced `auto_eligible` records would turn one sentence typed at
+    a summary screen into files moving on disk unseen.
+
+    The destination here is a residual area whose disposition DOES move files, so
+    the assertion is not merely re-measuring the review-only node in the shared
+    fixture, which would refuse anything. What remains is defended twice over --
+    `_flat_two_condition`'s `requires_review` and §6.6's rule that only a unique
+    direct match passes unreviewed -- and sabotaging EITHER one alone leaves this
+    passing. Both had to be turned off together to make it fail, which is the
+    property being asserted: no single line here is the whole guard.
+    """
+    from dataclasses import replace
+
+    from p11.p10_fixtures import FREEZE_RECORD, NODES
+
+    physical = tuple(
+        replace(node, disposition=v.PHYSICAL_DESTINATION)
+        if node.node_id == REVIEW_LATER_ID else node for node in NODES)
+    tree = replace(FROZEN_TREE, nodes=physical, freeze_record=FREEZE_RECORD)
+
+    create_llm_schema(p11_conn)
+    create_budget_schema(p11_conn)
+    for key in CEILINGS.values():
+        set_ceiling(p11_conn, key, 8)
+    _classify(p11_conn)
+    _policy(p11_conn)
+    build_destination_index(p11_conn, tree, component_version="P11-test",
+                            observed_at=FIXED_CLOCK)
+    result = _corpus(p11_conn, inputs=_inputs(p11_conn, tree=tree))
+    after = _act(p11_conn, result, {"Not yet placed": REVIEW_LATER_LABEL},
+                 inputs=_inputs(p11_conn, tree=tree))
+    placed = [d for d in after.decisions if d.outcome == v.PLACE]
+    assert placed
+    assert all(d.review_policy != v.AUTO_ELIGIBLE for d in placed)
