@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from review_surface.records import ReviewAction
+from review_surface.records import ReviewAction, ReviewApproval
 
 
 def presentation_exists(conn: sqlite3.Connection, presented_state_ref: str) -> bool:
@@ -85,3 +85,55 @@ def actions_naming_member(conn: sqlite3.Connection, *, member_ref: str,
         "SELECT * FROM review_actions ORDER BY acted_at, action_id").fetchall()
     return tuple(record for record in map(_from_row, rows)
                  if member_ref in record.bulk_member_refs)
+
+
+def record_approval(conn: sqlite3.Connection, approval: ReviewApproval) -> None:
+    """Store one §8.3 approval. No update path exists here either.
+
+    A person who changes their mind gives a LATER approval; the earlier one stays
+    inspectable, which is what makes "you approved this on Tuesday and withdrew it
+    on Thursday" a thing the product can say rather than a thing it has forgotten.
+    """
+    conn.execute(
+        "INSERT INTO review_approvals "
+        "(approval_id, plan_id, placement_decision_ref, plan_version, "
+        " required_review_policy, verdict, presented_state_ref, user_id, "
+        " decided_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (approval.approval_id, approval.plan_id,
+         approval.placement_decision_ref, approval.plan_version,
+         approval.required_review_policy, approval.verdict,
+         approval.presented_state_ref, approval.user_id, approval.decided_at))
+    conn.commit()
+
+
+def approvals_for(conn: sqlite3.Connection, *, plan_id: str,
+                  plan_version: str | None = None,
+                  ) -> tuple[ReviewApproval, ...]:
+    """Every approval on one plan, oldest first. Deterministic order.
+
+    `plan_version` is OPTIONAL and defaults to every version on purpose. The
+    composition root hands P12 an unfiltered lookup, because P12's gate is what
+    decides whether an approval authorizes this plan: a reader that quietly
+    dropped an approval stamped with another version would leave that gate
+    untested, and would leave the person told "this is waiting for your approval"
+    about a plan they have already answered under a version that has since moved.
+    """
+    if plan_version is None:
+        rows = conn.execute(
+            "SELECT * FROM review_approvals WHERE plan_id = ? "
+            "ORDER BY decided_at, approval_id", (plan_id,)).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM review_approvals WHERE plan_id = ? AND "
+            "plan_version = ? ORDER BY decided_at, approval_id",
+            (plan_id, plan_version)).fetchall()
+    return tuple(
+        ReviewApproval(
+            approval_id=row["approval_id"], plan_id=row["plan_id"],
+            placement_decision_ref=row["placement_decision_ref"],
+            plan_version=row["plan_version"],
+            required_review_policy=row["required_review_policy"],
+            verdict=row["verdict"],
+            presented_state_ref=row["presented_state_ref"],
+            user_id=row["user_id"], decided_at=row["decided_at"])
+        for row in rows)

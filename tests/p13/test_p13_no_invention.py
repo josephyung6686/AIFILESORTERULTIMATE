@@ -191,7 +191,8 @@ def test_the_guard_rejects_a_sabotage_module_that_calls_os_rename():
 def test_the_package_is_the_modules_this_wave_has_built():
     """A new module is a deliberate act, so it updates this list on the way in."""
     assert set(MODULE_NAMES) == {
-        "bulk", "citations", "collect", "consent_surface", "evaluation",
+        "approvals", "bulk", "citations", "collect", "consent_surface",
+        "evaluation",
         "items", "labels", "learning_view", "locations", "move_permission",
         "presentation", "progress", "records", "redaction_boundary",
         "replay",

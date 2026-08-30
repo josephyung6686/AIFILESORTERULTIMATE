@@ -92,3 +92,40 @@ class ProgressLine:
             if entry.label != INDEXED:
                 accounted |= set(entry.file_ids)
         return len(accounted)
+
+
+@dataclass(frozen=True)
+class ReviewApproval:
+    """§8.3's gate, as the record that satisfies it. P13 produces; P12 enforces.
+
+    S4 assigns the PRESENTATION of §8.3's `Required review policy` to P13 and
+    leaves ENFORCEMENT with P12, which refuses any plan whose required review is
+    unsatisfied. So this record is a statement of what a person decided about one
+    plan at one version, and it is not a permission: a missing approval is a
+    refusal by P12, never a decision by P13, and a stored `approved` verdict
+    still does not move a file that is also stale or also protected.
+
+    `plan_version` is not decoration. §8.8: approvals do not carry across plan
+    versions, so an approval stamped with a superseded version satisfies nothing.
+    The field is on the record rather than inferred at the gate because the
+    question a person can be asked later -- *what did you approve, and when?* --
+    is unanswerable from a permission that carried no version.
+
+    **A flagged gap, not an answered one.** The P13 SPEC's routing table gives P12
+    both a `review_action` (with `action = refresh_plan | approve_for_apply`) and
+    a `review_approval` in full. Whether the four verdicts correspond one-to-one
+    with four of P13's eighteen actions -- and therefore whether recording an
+    approval should also collect a gesture -- is not stated anywhere, and minting
+    that correspondence would be answering it. So the two records are collected
+    independently and this is named here rather than settled.
+    """
+
+    approval_id: str
+    plan_id: str
+    placement_decision_ref: str
+    plan_version: str
+    required_review_policy: str
+    verdict: str
+    presented_state_ref: str
+    user_id: str
+    decided_at: str
