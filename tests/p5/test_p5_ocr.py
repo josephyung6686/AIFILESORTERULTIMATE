@@ -283,3 +283,65 @@ def test_the_pinned_spelling_is_the_one_p4s_fixtures_carry():
 def test_two_genuinely_different_engines_stay_two_names():
     from extractors.ocr import extractor_name_for
     assert extractor_name_for("apple-vision") != extractor_name_for("tesseract")
+
+
+# --- two regions on one page -------------------------------------------------------
+
+
+def test_each_region_on_a_page_is_separately_addressable():
+    """P4 D3 makes the container path an ADDRESS, and every region of a paged
+    document was given the same one.
+
+    `extract_ocr` built `container_path` from `recognized.page` alone, so three
+    regions on page 1 produced three `text_units` all addressed `page[1]`. The
+    observations' spans index into "the unit their container path names" -- this
+    module's own words -- and that name resolved to whichever unit was stored
+    last.
+
+    Every fixture in this file used `region=1`, one region per page, which is the
+    one shape that cannot expose it. A REAL scanned page is always several
+    regions: Apple Vision returns one per line of text.
+
+    Found by running the command over a genuine image-only PDF. The run did not
+    misfile anything -- it crashed, `NonConforming: raw_value 'PHYS1401' is not
+    the substring at 0-8, which is 'Due Frid'`, and took the whole corpus with it.
+    """
+    output = an_output(regions=(
+        OcrRegion(page=1, region=1, text="Homework 5 for BUSIB 4300, due 2026-07-17.",
+                  box={"x": 0.1, "y": 0.8, "w": 0.8, "h": 0.05, "unit": "norm"},
+                  confidence=0.9),
+        OcrRegion(page=1, region=2, text="Columbia University, Spring 2026",
+                  box={"x": 0.1, "y": 0.6, "w": 0.8, "h": 0.05, "unit": "norm"},
+                  confidence=0.9),
+    ))
+    result, _ = run_it(output)
+
+    paths = [unit["container_path"] for unit in result.text_units]
+    assert len(paths) == len(set(map(str, paths))), (
+        f"two regions of one page share an address: {paths}")
+
+
+def test_an_observations_span_indexes_into_its_own_region():
+    """The property the conformance rule actually checks, and the one that broke.
+
+    Rule 5: `raw_value` must be the substring of the addressed unit at the stored
+    span. With two regions sharing an address, the course code found at 15-25 of
+    the FIRST region was checked against the SECOND -- which is shorter than the
+    span, so it failed twice over.
+    """
+    output = an_output(regions=(
+        OcrRegion(page=1, region=1, text="Homework 5 for BUSIB 4300, due 2026-07-17.",
+                  box={"x": 0.1, "y": 0.8, "w": 0.8, "h": 0.05, "unit": "norm"},
+                  confidence=0.9),
+        OcrRegion(page=1, region=2, text="Short line",
+                  box={"x": 0.1, "y": 0.6, "w": 0.8, "h": 0.05, "unit": "norm"},
+                  confidence=0.9),
+    ))
+    result, _ = run_it(output)
+
+    units = {str(unit["container_path"]): unit["text"]
+             for unit in result.text_units}
+    for observed in result.observations:
+        text = units[str(observed["location"]["container_path"])]
+        span = observed["location"]["text_span"]
+        assert text[span["start"]:span["end"]] == observed["raw_value"]

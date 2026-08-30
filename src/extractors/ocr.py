@@ -157,7 +157,25 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
     units: list[Mapping[str, Any]] = []
 
     for recognized in output.regions:
-        container = ((segment("page", index=recognized.page),)
+        # PAGE AND REGION, because a page is not an address on its own. Apple
+        # Vision returns one region per line of text, so every region of page 1
+        # was addressed `page[1]`, three text units were stored under one name,
+        # and each observation's span -- which indexes into "the unit their
+        # container path names", this function's own promise -- resolved against
+        # whichever unit happened to be stored last.
+        #
+        # It did not misfile anything. `validate_run` caught it and raised
+        # `NonConforming`, so ONE scanned page failed the entire corpus run. It
+        # went unseen because every fixture used `region=1`: one region per page
+        # is the single shape that cannot expose it, and no real scan has it.
+        #
+        # `SEGMENT_KINDS` has carried `region` all along and D3's own example is a
+        # multi-segment address (`sheet=2/row=7/column=3`), so this is the shape
+        # the design already describes. A loose image keeps its bare `region`: it
+        # has no page, and inventing `page[1]` for a screenshot would make it
+        # indistinguishable from a one-page scan.
+        container = ((segment("page", index=recognized.page),
+                      segment("region", index=recognized.region))
                      if recognized.page is not None
                      else (segment("region", index=recognized.region),))
         units.append(text_unit(text=recognized.text, container_path=container))
