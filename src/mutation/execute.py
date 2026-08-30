@@ -47,6 +47,9 @@ from scan_agent.basic_record import parent_folder_context
 
 from mutation.collision import find_collision, record_collision, resolve_collision
 from mutation.constraints import FilesystemConstraints
+from mutation.cross_volume import (
+    UnverifiedCopyDispositionRequired, copy_and_confirm,
+)
 from mutation.events import record_executed_move, record_failed_move
 from mutation.plan import MovePlan
 from mutation.preconditions import evaluate_preconditions
@@ -57,7 +60,7 @@ from mutation.vocabulary import (
     CROSS_VOLUME_COPY_AND_DELETE, ENTRY_APPLIED, EXECUTION_MODES, FAILED,
     FAILURE_CLASSES, JOURNAL_ENTRY_KINDS, PAUSE_REASONS, PAUSED, PRE_APPLY,
     PREPARE, REFUSAL_CLASSES, REFUSED, RESULT_KINDS, STALE, STALENESS_TRIGGERS,
-    SUBSYSTEM, V3_HASH_MISMATCH, check,
+    SUBSYSTEM, V3_HASH_MISMATCH, V4_DESTINATION_UNCONFIRMED, check,
 )
 
 #: Which vocabulary a `<kind>:<detail>` result's detail half belongs to. `applied`
@@ -291,6 +294,7 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
                suffix_for: Callable[[str, int], str],
                max_suffix_attempts: int,
                normalize_filename: Callable[[str], str],
+               unverified_copy_disposition: str | None,
                scan_state: str,
                materialized: bool,
                component_version: str,
@@ -308,14 +312,28 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
     source = Path(plan.expected_source_path)
     destination = Path(plan.resolved_destination_path)
     created: tuple[str, ...] = ()
+    # Decided from the plan's own two volume fields, so it is known before
+    # anything is touched: `74` §8 Q7's disposition is demanded up front, and a
+    # cross-volume plan with no answer to it stops with the disk untouched
+    # rather than part-way through a copy nobody can account for.
+    mode = (ATOMIC_RENAME
+            if plan.expected_source_volume == plan.expected_destination_volume
+            else CROSS_VOLUME_COPY_AND_DELETE)
+    if mode == CROSS_VOLUME_COPY_AND_DELETE and (
+            unverified_copy_disposition is None):
+        raise UnverifiedCopyDispositionRequired(
+            "`74` §8 Q7 is open: this plan crosses volumes, so it may leave an "
+            "unconfirmed copy, and P12 does not create one until the "
+            "composition root has said what the person is told about it")
 
     def stopped(result: str, *, mode: str | None = None,
                 v1: str | None = None, v2: str | None = None,
+                v4: bool | None = None,
                 final: str | None = None) -> ExecutionRecord:
         record = ExecutionRecord(
             plan_id=plan.plan_id, mode=mode, hash_at_preparation=v1,
             hash_immediately_before_move=v2, hash_after_completion=None,
-            destination_confirmed_pre_removal=None, result=result,
+            destination_confirmed_pre_removal=v4, result=result,
             final_destination_path=final,
             directories_created_by_this_action=created, started_at=started,
             finished_at=now())
@@ -372,14 +390,39 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
 
     created = _create_directories(final.parent)
 
-    mode = (ATOMIC_RENAME
-            if plan.expected_source_volume == plan.expected_destination_volume
-            else CROSS_VOLUME_COPY_AND_DELETE)
-    if mode != ATOMIC_RENAME:
-        raise NotImplementedError(
-            "the cross-volume copy-and-delete branch lands in Wave E2; a "
-            "plan whose two volumes differ is not executed here")
-    _atomic_rename(source, final, constraints=constraints)
+    confirmed: bool | None = None
+    if mode == ATOMIC_RENAME:
+        _atomic_rename(source, final, constraints=constraints)
+    else:
+        outcome = copy_and_confirm(
+            conn, source=source, destination=final,
+            expected_hash=plan.expected_content_hash, constraints=constraints,
+            unverified_copy_disposition=unverified_copy_disposition,
+            component_version=component_version, materialized=materialized)
+        confirmed = outcome.destination_confirmed
+        if not confirmed:
+            # Nothing moved. The source is where it was, the copy P12 made is
+            # where it landed, and NEITHER is removed -- §8.2 forbids the first
+            # and §7.11 the second. Both paths and the composition root's
+            # sentence about the copy go on the record and on the event, so the
+            # state is reported rather than merely survived (`74` §8 Q7).
+            stop = stopped(result_of(FAILED, V4_DESTINATION_UNCONFIRMED),
+                           mode=mode, v1=prepare.checkpoint_hash,
+                           v2=pre_apply.checkpoint_hash, v4=False,
+                           final=outcome.unverified_copy_path)
+            record_failed_move(
+                conn, failure_class=V4_DESTINATION_UNCONFIRMED,
+                file_id=plan.file_id,
+                content_hash=plan.expected_content_hash,
+                source_path=str(source), destination_path=str(final),
+                observed_at=stop.finished_at,
+                component_version=component_version, user_id=user_id,
+                detail={"plan_id": plan.plan_id, "mode": mode,
+                        "source_path_retained": str(source),
+                        "unverified_copy_path": outcome.unverified_copy_path,
+                        "unverified_copy_disposition": outcome.disposition,
+                        "directories_created_by_this_action": list(created)})
+            return stop
 
     _observe_at(conn, plan, final, normalize_filename=normalize_filename,
                 scan_state=scan_state, materialized=materialized,
@@ -395,7 +438,7 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
         plan_id=plan.plan_id, mode=mode,
         hash_at_preparation=prepare.checkpoint_hash,
         hash_immediately_before_move=pre_apply.checkpoint_hash,
-        hash_after_completion=after, destination_confirmed_pre_removal=None,
+        hash_after_completion=after, destination_confirmed_pre_removal=confirmed,
         result=(APPLIED if applied
                 else result_of(FAILED, V3_HASH_MISMATCH)),
         final_destination_path=str(final),
