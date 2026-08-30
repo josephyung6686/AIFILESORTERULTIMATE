@@ -146,8 +146,6 @@ def compile_rules(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         context |= set(_terms(recognition.get("proposed_context_terms")))
         work_types = set(_terms(raw.get("work_types")))
         schema["context_terms"] |= context
-        # One home per term. The arity rule counts DISTINCT terms, so a term in both
-        # roles would score a single match twice.
         schema["work_type_terms"] |= work_types
 
         source_types, extensions, never_alone = _file_kinds(raw.get("file_kinds"))
@@ -181,11 +179,30 @@ def compile_rules(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     }
     for schema_id in sorted(schemas):
         schema = schemas[schema_id]
-        context_terms = schema["context_terms"]
+        work_type_terms = schema["work_type_terms"]
+        # ONE HOME PER TERM, AND THE HOME IS `work_types`. The arity rule counts
+        # distinct terms, so a term filed twice would be one match wearing two
+        # roles -- but WHICH role it keeps is not arbitrary, because the roles are
+        # not symmetrical. `detector.says_what_the_file_is` reads work types and
+        # nothing else, and it is the whole of the guard that decides whether one
+        # of `00`'s four safety domains may protect a file.
+        #
+        # Subtracting the other way round is what shipped, and it meant any row
+        # proposing a word as CONTEXT erased that word's work-type role for the
+        # entire schema -- including when the schema's OWN row had authored it as
+        # a work type. Measured over the 358 shipped rows: 171 authored work types
+        # lost their role, 21 of them in the four safety domains. `finance` lost
+        # `statement`, `invoice` and `receipt`; `legal` lost `power of attorney`;
+        # `medical` lost `discharge summary`. Run against the shipped manifest, a
+        # power of attorney and a discharge summary both came back UNPROTECTED --
+        # the guard could not see the terms that say what those files are.
+        #
+        # So a term the research authored as a work type stays one, and a sibling
+        # row's context proposal for the same word no longer disarms it.
         compiled["schemas"][schema_id] = {
             "schema_id": schema_id,
-            "context_terms": sorted(context_terms),
-            "work_type_terms": sorted(schema["work_type_terms"] - context_terms),
+            "context_terms": sorted(schema["context_terms"] - work_type_terms),
+            "work_type_terms": sorted(work_type_terms),
             "source_types": sorted(schema["source_types"]),
             "extensions": sorted(schema["extensions"]),
             "file_kind_never_alone": schema["file_kind_never_alone"],

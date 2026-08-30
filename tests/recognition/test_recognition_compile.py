@@ -73,13 +73,50 @@ def test_context_terms_inside_recognition_merge_with_the_top_level_ones():
 
 
 def test_a_term_authored_in_both_roles_lands_in_exactly_one():
-    # Two homes for one term would score it twice, and the arity rule counts
-    # DISTINCT terms. The context role wins and the work-type copy is dropped.
+    # Still exactly one home, so the arity rule cannot count one match twice.
     compiled = compile_rules([row(proposed_context_terms=["lecture"],
                                   work_types=["lecture", "essay"])])
     schema = compiled["schemas"]["academic"]
-    assert schema["context_terms"] == ["lecture"]
-    assert schema["work_type_terms"] == ["essay"]
+    assert sorted(set(schema["context_terms"]) & set(schema["work_type_terms"])) == []
+    assert sorted(schema["context_terms"] + schema["work_type_terms"]) == [
+        "essay", "lecture"]
+
+
+def test_the_role_a_term_keeps_is_the_one_that_says_what_a_file_is():
+    """WHICH home it keeps, and why it is not arbitrary.
+
+    The two roles are not symmetrical. `detector.says_what_the_file_is` reads
+    work types and nothing else, and it is the whole of the guard deciding
+    whether one of `00`'s four safety domains may protect a file -- authored
+    after the over-protection incident in which `finance`'s context term `credit`,
+    out of "credit hours", marked two university syllabi `sensitive_personal`.
+
+    Dropping the work-type copy meant any row proposing a word as CONTEXT
+    disarmed that word's work-type role for the WHOLE SCHEMA -- including where
+    the schema's own row had authored it as a work type. Measured over the 358
+    shipped rows: 171 authored work types lost their role, 21 of them in the four
+    safety domains. `finance` lost `statement`, `invoice` and `receipt`; `legal`
+    lost `power of attorney`; `medical` lost `discharge summary`. Against the
+    shipped manifest a power of attorney and a discharge summary both came back
+    UNPROTECTED, because the guard could not see the terms that say what those
+    files are.
+
+    The stated reason for preferring context was that two homes "would score it
+    twice" -- and that risk is real, which is why the invariant above still
+    holds. It was never a reason to keep the half that decides protection.
+    """
+    compiled = compile_rules([
+        row(id="finance", schema_id="finance", work_types=["statement"]),
+        row(id="finance.receipts", schema_id="finance",
+            proposed_context_terms=["statement"]),
+    ])
+    schema = compiled["schemas"]["finance"]
+
+    assert schema["work_type_terms"] == ["statement"], (
+        "a word the research authored as a work type lost that role because a "
+        "sibling row also proposed it as context; the safety guard reads work "
+        "types and can no longer see it")
+    assert schema["context_terms"] == []
 
 
 def test_a_refused_row_contributes_no_terms_and_is_counted_never_omitted():

@@ -630,6 +630,41 @@ def test_the_packaged_manifest_abstains_on_a_file_that_says_nothing(db, tmp_path
     assert isinstance(detector(rules).explain(db, file_id, content_hash), Abstention)
 
 
+def test_the_packaged_manifest_protects_a_power_of_attorney_and_a_discharge_summary(
+        db, tmp_path):
+    """Two safety documents that came back unprotected, and one line of the
+    compiler is why.
+
+    `says_what_the_file_is` reads work types, and the compiler filed a term under
+    `context_terms` whenever ANY row proposed it there -- erasing the work-type
+    role the schema's own row had authored. `legal` lost `power of attorney`;
+    `medical` lost `discharge summary`; `finance` lost `statement`, `invoice` and
+    `receipt`. 171 authored work types across the 358 shipped rows, 21 of them in
+    the four domains `00`:52 says must be "detected and protected before any
+    cloud or automated placement decision is allowed".
+
+    So this asserts the OUTCOME on the shipped library rather than the compiler's
+    intermediate shape: on both files another schema wins outright -- a power of
+    attorney reads as `construction_property`, a discharge summary as
+    `business_operations` -- and the safety domain that lost is the one at stake.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    det = detector(rules)
+    unprotected = []
+    for filename, body in (
+            ("POA.pdf", "This power of attorney is granted to my daughter."),
+            ("Discharge Summary.pdf",
+             "discharge summary; follow up with your gp.")):
+        file_id, content_hash = a_file(db, tmp_path, filename, body=body)
+        record = det(db, file_id, content_hash)
+        if record is None or not record.protected:
+            unprotected.append((filename, record))
+
+    assert not unprotected, (
+        "a safety document went unprotected because the term that says what it "
+        f"is lost its work-type role in the compiler: {unprotected}")
+
+
 def test_the_packaged_rule_set_names_only_schemas_the_product_recognises():
     rules = load_rules(MANIFEST_PATH.read_text)
     assert set(rules.schemas) <= set(SCHEMA_IDS)
