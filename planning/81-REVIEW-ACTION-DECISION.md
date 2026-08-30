@@ -597,3 +597,182 @@ builds the canvas routing before this is ruled, that is the moment.
 - It did not enumerate P10's `RESIDUAL_LIBRARY_ACTIONS` (6) or `DIMENSION_ACTIONS` (6) as part of the reconciliation. Both are P10-internal — a library edit before freeze and a catalogue-level rename — and neither claims to be a `review_action`. If Q3 answers that the canvas is a `review_action` surface, they should be re-checked; I did not.
 - It did not investigate P7's or P12's ends of the routing table. The SPEC's N-1 rows for both (SPEC:296-297) name only actions P13 already has, so neither is part of this disagreement, but I did not verify their receivers the way I verified P9's, P10's and P11's.
 - It did not answer any of §8's questions.
+
+---
+
+# Second pass — 2026-08-31, after P13 Wave B landed
+
+Sections 1-10 were written and committed (`fdb8b3a`) before Wave B completed its fourteen tasks and
+before `build-p12-waveG` began the P12↔P13 seam. Two things now exist that did not, and both bear
+directly on §4 and on the fourth option §6 was asked to look for. **Nothing in §1-§10 is retracted;
+§11 and §12 add to it and §13 replaces §9.**
+
+---
+
+## 11. The rule this project already has, and never applied to an action name
+
+This is the finding that most changes the question, and it is the same move `80` §2 made: the answer
+is implied by the rest of the design, and the project has been treating a **scope gap in an existing
+rule** as though it were a new rule needing invention.
+
+### 11.1 MINOR 6 and MINOR 7 are ratified, and they answer a four-way disagreement by construction
+
+**MINOR 7 — *"one vocabulary for one concept"*** (quoted at
+`planning/parts/P11-placement-residual/SPEC.md:410-411`).
+
+**MINOR 6 — the owning part names it; everyone else carries it verbatim.**
+`planning/parts/P10-tree-design-freeze/SPEC.md:263-265`:
+
+> *"`node_role` is the single vocabulary for a node's kind (MINOR 6). P10 owns the tree, so P10 names
+> its node kinds; P11 carries `node_role` verbatim on the destination it names and publishes no
+> parallel vocabulary of its own."*
+
+`74` §8 Q2 asks which of four vocabularies for one record should win. **MINOR 7 already forbids the
+question from having four answers, and MINOR 6 already supplies the tie-breaker: ownership, not
+seniority and not majority.** Neither is cited anywhere in `74` §8, in the P13 SPEC's `review_action`
+block, or in any of the three fixtures.
+
+### 11.2 The rule has already been applied to this exact pair of parts, through this exact lifecycle
+
+`src/placement/vocabulary.py:124-141` is the same problem, already solved, and it records its own
+history:
+
+> *"P10's vocabulary, carried verbatim on the node (SPEC:322-323, MINOR 6) … **This block spelled the
+> values from P10's SPEC while P10 was unbuilt, and said in this comment that it would become a
+> re-export the day P10 published them. P10 has, so it is one.***
+>
+> *The three closed sets are P10's OBJECTS, not tuples that agree with P10's. A tuple that merely
+> agrees is one P10 edit away from disagreeing … A distinct name bound to P10's object is carrying; a
+> distinct name bound to a fresh string is the parallel vocabulary MINOR 6 forbids."*
+
+That is a five-step lifecycle the project has already run to completion:
+
+1. Part B needs Part A's vocabulary before Part A exists.
+2. Part B spells it locally, **with a comment saying it will become a re-export**.
+3. Part A ships and publishes.
+4. Part B's local spelling becomes a re-export of Part A's objects.
+5. A distinct *name* bound to the owner's *object* is legitimate; a distinct name bound to a fresh
+   string is not.
+
+**The three `p13_fixtures.py` files are step 2, frozen past step 3.** P13 published on 2026-08-30
+(`95d0ee5`). Nothing has taken step 4.
+
+### 11.3 And one part is now at step 3 with a fresh-string copy still in place — verified today
+
+`src/placement/review.py:46-49` says:
+
+> *"P13 SPEC:294 — the surfaces whose actions route to P11. Imported, not re-spelled:
+> `placement/vocabulary.py` is the one home for a value P13 owns and **has not yet published**, and
+> two copies of one vocabulary is how a surface P13 renames becomes a surface P11 silently refuses."*
+
+The clause "has not yet published" was true when written and is false now. `src/placement/vocabulary.py:305-328`
+still defines eleven `ACTION_*` constants as **fresh strings** and assembles them into `REVIEW_ACTIONS`,
+and `src/placement/review.py:37-45` imports them from there rather than from `review_surface.vocabulary`.
+Verified: no module under `src/placement/`, `src/grouping/` or `src/tree_design/` imports
+`review_surface` at all.
+
+The values still agree (checked: P11's eleven actions and four surfaces are both proper subsets of
+P13's eighteen and twelve). **They agree the way `scan_state` agreed until it did not** — and
+`src/placement/vocabulary.py:130-133` makes the argument against itself, two hundred lines above the
+offending block: *"A tuple that merely agrees is one P10 edit away from disagreeing."*
+
+This is a live instance of the defect, in `src/`, on the one part everybody agrees got it right. It
+was not in §1-§10 because it did not exist in the same form before Wave B; it is reported here rather
+than fixed, because P11's eleven are a closed vocabulary and this document changes none.
+
+### 11.4 What MINOR 6 implies here — and the one thing it does not settle
+
+Applying MINOR 6 to actions requires knowing who owns the concept *an action name*, and **the design
+supports two readings.** Both are stated; neither is adopted.
+
+**Reading (i): P13 owns every action name, because `review_action` is P13's record.** P9, P10 and P11
+carry verbatim. This makes §5's Option B mechanical for P11 (already a subset) and forces §6's Option
+D for P9 and P10, because P13's eighteen cannot express `rename` or `exclude-from-packet` (§4.4).
+
+**Reading (ii): the part that APPLIES the gesture owns its name, and P13 carries verbatim.** The SPEC
+says so in its own words at `planning/parts/P13-review-approval-surface/SPEC.md:282-283`: *"P13 hands
+the action to the owning part and **that part decides what it means**."* Under (ii) a `rename` is
+P10's word because P10 is the part that renames, and P13's `ACTIONS` becomes an assembly of imports:
+P11's eleven, P10's canvas names, P9's group names — **each imported from its owner, none invented by
+anybody.**
+
+Reading (ii) is mechanically available today. P13 already imports `placement.vocabulary`,
+`tree_design.records`, `tree_design.store`, `tree_design.diff` and `tree_design.user_edits`
+(verified by grep over `src/review_surface/`), and no part imports `review_surface` back, so the
+carry direction is the established one and creates no cycle. I confirmed all four vocabulary modules
+import together in one interpreter.
+
+**What decides between (i) and (ii) is not in any document I read.** MINOR 6 says the owner of the
+concept names it; it does not say whether the concept behind `rename` is *"a gesture collected on a
+review surface"* (P13's) or *"an edit to the tree"* (P10's). That is the owner's, and it is now Q1'
+in §13.
+
+---
+
+## 12. The fourth option, and it is already shipped and green
+
+`74` Wave G1 says *"Re-point P13's `apply_seam` at the real P12 records and delete
+`tests/p13/p12_fixtures.py`"* (`74`:393). The reasoning generalises, and it generalises further than
+expected, because of one fact:
+
+**`tests/p13/p12_fixtures.py` never existed.** `git log --all -- tests/p13/p12_fixtures.py` returns
+nothing, and `tests/p13/` contains no fixture module. It was not deleted; **it was never needed.**
+
+### 12.1 What P12 and P13 did instead, and it worked
+
+Two dataclasses, one per part, each declaring the SPEC's field list in the SPEC's spelling:
+
+- `src/review_surface/records.py:98` — P13's `ReviewApproval`, the record it produces.
+- `src/mutation/approval.py:77-95` — P12's `ReviewApproval`, whose docstring reads: *"P13's record, as
+  P12 reads it (SPEC, Contract in -> From P13). P12 never constructs one in production … The
+  dataclass exists here because P12 must be able to state what it requires of the record."*
+
+**Their field lists are identical — nine fields, same names, same order — and I verified it by
+reflection, not by eye.** Neither module imports the other (verified). They match because both were
+derived from the same SPEC block, independently.
+
+And the seam is proven by running the real chain, not by a fixture.
+`tests/integration/test_p12_p13_seam.py:285-315`,
+`test_an_approval_p13_recorded_is_what_p12s_gate_reads`, says so in its own docstring: *"Not a fixture
+and not a hand-built `ReviewApproval`: the record is collected through P13's own writer, stored in
+P13's own table, read back through P13's own reader, and handed to P12's gate."*
+
+### 12.2 Stated as an option
+
+**Option G — the receiver declares what it requires; the producer produces the SPEC's record; an
+integration test running the real chain is what holds them together.** No fixture, no shim, no
+translation table, and no central vocabulary merge. The three `p13_fixtures.py` files are deleted when
+the seam is built, exactly as `74` Wave G1 intends for a file that turned out never to be necessary.
+
+**What moves.** For P11: nothing but the deletion (§2.4 — its fixture is already the SPEC's shape, and
+§11.3's fresh-string copy would become a re-export). For P9 and P10: the receivers keep their own
+typed declaration of what they require, and it is written **from the SPEC** rather than from the
+frozen fixture — which is the whole of the work, because P9's declaration currently contradicts P9's
+own SPEC (§3.2).
+
+**What has to be re-tested.** One new integration test per seam, of the kind
+`test_p12_p13_seam.py:285` already is. The ~130 unit tests in §5's Option B still move, because they
+construct fixtures.
+
+**What it does NOT solve, and this is the honest limit.** Option G is a mechanism for making two
+parts agree about a record *whose field list the SPEC states*. It settles every field-name
+disagreement in §2 at a stroke — P9's `plan_version_id`/`decided_at`/`basis` lose, because the SPEC
+and P9's own SPEC both say otherwise. **It settles nothing about the action names**, because P12 and
+P13 converged only where the SPEC spoke, and for the canvas the SPEC does not speak (§3.3). Option G
+plus a silent SPEC reproduces exactly today's situation one layer down.
+
+### 12.3 What the P12 seam proves about the cause of the disagreement
+
+Three independent derivations, three outcomes, and the pattern is clean:
+
+| | derived from | outcome |
+|---|---|---|
+| P12's `ReviewApproval` | the SPEC | matches P13 exactly, nine of nine fields |
+| P11's `p13_fixtures.py` | the SPEC, cited by line | matches P13 exactly |
+| P9's `p13_fixtures.py` | neither SPEC; frozen at Task 3 | eleven fields, four of them in no SPEC |
+| P10's `p13_fixtures.py` | `01` §5.1/§5.2/§5.10, faithfully | matches nothing, because the SPEC is silent there |
+
+**Where the SPEC speaks, independent derivation converges — twice, with no coordination.** So this is
+not a four-way disagreement with four defensible sides. It is **two defects with two different
+causes**: one part invented (P9), and one part had nothing to read (P10). They need different repairs,
+and §5's three options all apply one repair to both.
