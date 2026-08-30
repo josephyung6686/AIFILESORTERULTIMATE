@@ -1,0 +1,500 @@
+"""The transaction. `00`:153-156's four verification points around one move.
+
+*"Treat every filesystem mutation as a transaction with preconditions, execution
+steps, verification, and a reversible journal entry"* (`00`:155). This module is
+that sentence: it evaluates the precondition twice, creates only the directories
+the frozen node needs, performs one move, tells P1 where the file went, verifies
+it there, and appends a journal entry that makes the move reversible. It decides
+nothing about where a file belongs.
+
+**The one ordering that is not interchangeable, and the reason this module has a
+suite of its own.** P1's `verify_content(conn, file_id, expected_hash)` hashes
+`files.current_path` (`database_agent/verify.py:45-49`). It takes no path,
+because P1 owns identity and a caller passing a path could ask P1 to certify a
+file P1 does not know. So V3 -- *"after completing the action"* -- can only be
+asked AFTER `observe_path` has moved `current_path` to the destination. Asked a
+moment earlier it hashes the source path the rename just emptied, `hash_file`
+raises `OSError`, `verify_content` turns that into `"mismatch"`, and a move that
+completed perfectly is recorded as `failed:v3_hash_mismatch`. The move is
+therefore: rename -> `observe_path` -> V3, and never any other order.
+
+**Nothing here overwrites.** `collision.py` guarantees the executor never
+receives an occupied destination and this module re-checks it immediately before
+the rename anyway. The one residual is the window between that check and the
+rename itself: closing it needs `renameat2(RENAME_NOREPLACE)`, which CPython does
+not publish, and the alternatives -- reserve with `O_EXCL` then rename over the
+reservation, or hard-link then unlink the source -- both add an `unlink` to a
+part whose only permitted `unlink` is the cross-volume source removal (§7.11).
+The window is named rather than closed, and it is named here rather than left for
+a reader to find.
+
+**No numeric literal beyond 0 and 1 appears in this file.** Every bound, clock,
+name and policy arrives injected; absent means refuse (A7).
+"""
+from __future__ import annotations
+
+import json
+import os
+import sqlite3
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+from database_agent.files_table import get_file, observe_path
+from database_agent.verify import VerificationPoint, verify_content
+from evidence_shape.canonical import canonical_json
+from scan_agent.basic_record import parent_folder_context
+
+from mutation.collision import find_collision, record_collision, resolve_collision
+from mutation.constraints import FilesystemConstraints
+from mutation.events import record_executed_move, record_failed_move
+from mutation.plan import MovePlan
+from mutation.preconditions import evaluate_preconditions
+from mutation.resolution import resolution_by_id
+from mutation.special import inspect_objects
+from mutation.vocabulary import (
+    APPLIED, ATOMIC_RENAME, AWAITING_COLLISION_DECISION,
+    CROSS_VOLUME_COPY_AND_DELETE, ENTRY_APPLIED, EXECUTION_MODES, FAILED,
+    FAILURE_CLASSES, JOURNAL_ENTRY_KINDS, PAUSE_REASONS, PAUSED, PRE_APPLY,
+    PREPARE, REFUSAL_CLASSES, REFUSED, RESULT_KINDS, STALE, STALENESS_TRIGGERS,
+    SUBSYSTEM, V3_HASH_MISMATCH, check,
+)
+
+#: Which vocabulary a `<kind>:<detail>` result's detail half belongs to. `applied`
+#: is absent because it has no detail half -- there is one way for a move to have
+#: worked and four families of ways for it not to have.
+_RESULT_DETAILS: Mapping[str, tuple[str, ...]] = {
+    REFUSED: REFUSAL_CLASSES,
+    STALE: STALENESS_TRIGGERS,
+    PAUSED: PAUSE_REASONS,
+    FAILED: FAILURE_CLASSES,
+}
+
+
+class BatchPolicyRequired(RuntimeError):
+    """`74` §8 Q6's bound or halt rule is absent, or the batch exceeds the bound.
+
+    NOT a refusal class. A refusal describes a plan that could not execute and
+    carries a sentence for the person; this is the composition root having failed
+    to state a policy that is its own to state, and dressing it as a refusal would
+    put a message about the person's files in front of a wiring mistake.
+    """
+
+
+def result_of(kind: str, detail: str | None = None) -> str:
+    """Contract out §5's `Result`, as one checked string."""
+    check(kind, RESULT_KINDS, name="result kind")
+    if kind == APPLIED:
+        if detail is not None:
+            raise ValueError("`applied` carries no detail; a move either worked "
+                             "or it is one of the other four kinds")
+        return APPLIED
+    check(detail, _RESULT_DETAILS[kind], name=f"{kind} detail")
+    return f"{kind}:{detail}"
+
+
+@dataclass(frozen=True)
+class ExecutionRecord:
+    """Contract out §5. The transaction result, carrying P1's four points."""
+
+    plan_id: str
+    #: `None` when the run stopped before a move was ever attempted -- there was
+    #: no rename and no copy, so there is no mode it was performed in.
+    mode: str | None
+    hash_at_preparation: str | None
+    hash_immediately_before_move: str | None
+    #: P1's `"match"` / `"mismatch"` at V3, or `None` when nothing was moved.
+    hash_after_completion: str | None
+    #: Cross-volume only. `None` on every same-volume action, which is not a
+    #: failure to confirm but a question that was never asked.
+    destination_confirmed_pre_removal: bool | None
+    result: str
+    final_destination_path: str | None
+    directories_created_by_this_action: tuple[str, ...]
+    started_at: str
+    finished_at: str
+
+    def __post_init__(self) -> None:
+        kind, _, detail = self.result.partition(":")
+        result_of(kind, detail or None)
+        if self.mode is not None:
+            check(self.mode, EXECUTION_MODES, name="execution mode")
+
+    @property
+    def applied(self) -> bool:
+        return self.result == APPLIED
+
+
+@dataclass(frozen=True)
+class JournalEntry:
+    """Contract out §6 -- §8.3's five, plus what reversal needs.
+
+    Append-only: an undo appends a reversal entry and this one stays exactly as
+    written (§8.2). That is why there is no `superseded` notion here and no
+    `one_current` index on `move_journal` (`schema.py`).
+    """
+
+    entry_id: str
+    entry_kind: str
+    reverses_entry_id: str | None
+    plan_id: str
+    plan_version: str
+    file_id: str
+    hash_algorithm: str
+    original_source_path: str
+    destination_path: str
+    content_hash_at_movement: str
+    collision_behaviour: str
+    post_move_verification_result: str
+    source_volume: str
+    destination_volume: str
+    execution_mode: str
+    directories_created_by_this_action: tuple[str, ...]
+    intended_display_name: str
+    filesystem_safe_name: str
+    time_of_execution: str
+
+    def __post_init__(self) -> None:
+        check(self.entry_kind, JOURNAL_ENTRY_KINDS, name="journal entry kind")
+        check(self.execution_mode, EXECUTION_MODES, name="execution mode")
+
+    @classmethod
+    def for_plan(cls, conn: sqlite3.Connection,
+                 plan_id: str) -> "JournalEntry | None":
+        row = conn.execute(
+            "SELECT payload FROM move_journal WHERE plan_id = ? "
+            "AND entry_kind = ? ORDER BY record_id LIMIT 1",
+            (plan_id, ENTRY_APPLIED)).fetchone()
+        return None if row is None else cls._from_payload(row[0])
+
+    @classmethod
+    def _from_payload(cls, payload: str) -> "JournalEntry":
+        raw = json.loads(payload)
+        raw["directories_created_by_this_action"] = tuple(
+            raw["directories_created_by_this_action"])
+        return cls(**raw)
+
+
+def record_execution(conn: sqlite3.Connection, record: ExecutionRecord, *,
+                     plan_version: str, record_id: str) -> str:
+    conn.execute(
+        "INSERT INTO execution_records (record_id, plan_id, plan_version, "
+        "result, mode, final_destination_path, finished_at, payload) "
+        "VALUES (?,?,?,?,?,?,?,?)",
+        (record_id, record.plan_id, plan_version, record.result, record.mode,
+         record.final_destination_path, record.finished_at,
+         canonical_json(asdict(record))))
+    return record_id
+
+
+def record_journal_entry(conn: sqlite3.Connection, entry: JournalEntry, *,
+                         record_id: str) -> str:
+    conn.execute(
+        "INSERT INTO move_journal (record_id, entry_id, entry_kind, "
+        "reverses_entry_id, plan_id, plan_version, file_id, "
+        "original_source_path, destination_path, content_hash, "
+        "time_of_execution, payload) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (record_id, entry.entry_id, entry.entry_kind, entry.reverses_entry_id,
+         entry.plan_id, entry.plan_version, entry.file_id,
+         entry.original_source_path, entry.destination_path,
+         entry.content_hash_at_movement, entry.time_of_execution,
+         canonical_json(asdict(entry))))
+    return record_id
+
+
+def directories_to_create(directory: Path) -> tuple[Path, ...]:
+    """The ancestors of `directory` that do not exist, shallowest first.
+
+    Shallowest first is what a reversal needs: F2 removes them deepest-first, so
+    the order recorded here is the order to walk backwards.
+    """
+    missing: list[Path] = []
+    current = directory
+    while not current.exists() and current != current.parent:
+        missing.append(current)
+        current = current.parent
+    return tuple(reversed(missing))
+
+
+def _create_directories(directory: Path) -> tuple[str, ...]:
+    """Create them, and return exactly the ones THIS call created.
+
+    `mkdir()` without `exist_ok`: a directory that appeared between the check and
+    the call was not created here, and recording it as though it were would make
+    a reversal a candidate to remove somebody else's folder.
+    """
+    created: list[str] = []
+    for path in directories_to_create(directory):
+        path.mkdir()
+        created.append(str(path))
+    return tuple(created)
+
+
+def _observe_at(conn: sqlite3.Connection, plan: MovePlan, destination: Path, *,
+                normalize_filename: Callable[[str], str], scan_state: str,
+                materialized: bool, component_version: str) -> None:
+    """Tell P1 the file is at `destination`. This is what makes V3 answerable.
+
+    `observe_path` resolves the same bytes at a new path whose old path is gone
+    to the SAME file version and updates `current_path`
+    (`files_table.py:426-443`); on that branch the descriptive arguments are not
+    read at all. They are supplied truthfully anyway, from P1's own current row,
+    because a caller must not depend on which branch it will take:
+
+    * `observed_size` and `observed_timestamps` are carried forward unchanged.
+      A rename preserves both, and P3's timestamp REPRESENTATION is its open
+      Q2 -- re-encoding a stat here would author a format P3 declined to.
+    * `normalize_filename` is injected with no default for the same reason. P3
+      SPEC Q1 is open on Unicode form, case folding and separator collapse, so
+      P3 passes the name through unchanged and P12 may not choose differently.
+      The composition root supplies P3's answer, whatever it becomes.
+    * `parent_folder_context` is imported from P3 rather than recomputed. A
+      second derivation of a published field is the drift P3's own Task 10 test
+      exists to catch.
+    """
+    row = get_file(conn, plan.file_id)
+    observe_path(
+        conn, destination, author=SUBSYSTEM, component_version=component_version,
+        filename=destination.name,
+        normalized_filename=normalize_filename(destination.name),
+        extension=row["extension"], observed_size=row["observed_size"],
+        observed_timestamps=row["observed_timestamps"],
+        parent_folder_context=parent_folder_context(destination),
+        mime_type=row["mime_type"], detected_format=row["detected_format"],
+        scan_state=scan_state, materialized=materialized)
+
+
+def _atomic_rename(source: Path, destination: Path, *,
+                   constraints: FilesystemConstraints) -> None:
+    """One same-volume move that never lands on an occupied path.
+
+    The free-check is by `find_collision`, not `Path.exists()`: on a
+    case-insensitive volume `exists()` misses an NFC/NFD twin, and it is exactly
+    the twin a person cannot tell apart that must not be written over.
+    """
+    if find_collision(destination.parent, destination.name,
+                      constraints=constraints) is not None:
+        raise FileExistsError(
+            f"{destination} is occupied; the executor is never handed an "
+            "occupied path (§8.3, `00`:172)")
+    os.rename(source, destination)
+
+
+def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
+               legal_destination_ids: frozenset[str],
+               source_root: Path,
+               destination_root: Path,
+               extra_protected: Callable[[Path], bool] | None,
+               conflict_copies: Callable[[Path], tuple[str, ...]],
+               dataless_of: Callable[[Path], bool],
+               constraints: FilesystemConstraints,
+               suffix_for: Callable[[str, int], str],
+               max_suffix_attempts: int,
+               normalize_filename: Callable[[str], str],
+               scan_state: str,
+               materialized: bool,
+               component_version: str,
+               user_id: str | None,
+               now: Callable[[], str],
+               mint_id: Callable[[], str]) -> ExecutionRecord:
+    """One transaction for one plan. Returns its record; writes it and its events.
+
+    The order is `00`:153-156's and is not rearrangeable: special objects, then
+    the precondition at V1, then the collision, then the precondition again at
+    V2, then the directories, then the move, then P1's observation, then V3, then
+    the journal. Every stop before the move leaves the disk exactly as it was.
+    """
+    started = now()
+    source = Path(plan.expected_source_path)
+    destination = Path(plan.resolved_destination_path)
+    created: tuple[str, ...] = ()
+
+    def stopped(result: str, *, mode: str | None = None,
+                v1: str | None = None, v2: str | None = None,
+                final: str | None = None) -> ExecutionRecord:
+        record = ExecutionRecord(
+            plan_id=plan.plan_id, mode=mode, hash_at_preparation=v1,
+            hash_immediately_before_move=v2, hash_after_completion=None,
+            destination_confirmed_pre_removal=None, result=result,
+            final_destination_path=final,
+            directories_created_by_this_action=created, started_at=started,
+            finished_at=now())
+        record_execution(conn, record, plan_version=plan.organization_plan_version,
+                         record_id=mint_id())
+        return record
+
+    objects = inspect_objects(
+        source=source, destination_directory=destination.parent,
+        source_root=source_root, destination_root=destination_root,
+        extra_protected=extra_protected, conflict_copies=conflict_copies,
+        dataless_of=dataless_of)
+    if objects.refusal_class is not None:
+        return stopped(result_of(REFUSED, objects.refusal_class))
+    if objects.pause_reason is not None:
+        return stopped(result_of(PAUSED, objects.pause_reason))
+
+    prepare = evaluate_preconditions(
+        conn, plan, checkpoint=PREPARE,
+        legal_destination_ids=legal_destination_ids, occupant_at_prepare=None,
+        component_version=component_version, materialized=materialized, now=now)
+    if not prepare.is_fresh:
+        return stopped(result_of(STALE, prepare.trigger))
+
+    final = destination
+    incumbent = find_collision(destination.parent, destination.name,
+                               constraints=constraints)
+    if incumbent is not None:
+        collision = resolve_collision(
+            plan, incumbent=incumbent, incoming_path=source,
+            incoming_hash=plan.expected_content_hash,
+            behaviour=plan.collision_policy, constraints=constraints,
+            suffix_for=suffix_for, max_suffix_attempts=max_suffix_attempts,
+            materialized=materialized, mint_id=mint_id)
+        record_collision(conn, collision, file_id=plan.file_id,
+                         created_at=now(), component_version=component_version,
+                         record_id=mint_id())
+        if collision.final_destination_path is None:
+            # Every behaviour that writes nothing means the same thing to the
+            # person -- this collision needs your decision -- and WHICH of the
+            # three it was is on the collision record, its one home.
+            return stopped(result_of(PAUSED, AWAITING_COLLISION_DECISION),
+                           v1=prepare.checkpoint_hash)
+        final = Path(collision.final_destination_path)
+
+    pre_apply = evaluate_preconditions(
+        conn, plan, checkpoint=PRE_APPLY,
+        legal_destination_ids=legal_destination_ids,
+        occupant_at_prepare=prepare.destination_occupant_hash,
+        component_version=component_version, materialized=materialized, now=now)
+    if not pre_apply.is_fresh:
+        return stopped(result_of(STALE, pre_apply.trigger),
+                       v1=prepare.checkpoint_hash)
+
+    created = _create_directories(final.parent)
+
+    mode = (ATOMIC_RENAME
+            if plan.expected_source_volume == plan.expected_destination_volume
+            else CROSS_VOLUME_COPY_AND_DELETE)
+    if mode != ATOMIC_RENAME:
+        raise NotImplementedError(
+            "the cross-volume copy-and-delete branch lands in Wave E2; a "
+            "plan whose two volumes differ is not executed here")
+    _atomic_rename(source, final, constraints=constraints)
+
+    _observe_at(conn, plan, final, normalize_filename=normalize_filename,
+                scan_state=scan_state, materialized=materialized,
+                component_version=component_version)
+    after = verify_content(
+        conn, plan.file_id, plan.expected_content_hash,
+        point=VerificationPoint.V3, author=SUBSYSTEM,
+        component_version=component_version, materialized=materialized)
+
+    applied = after == "match"
+    finished = now()
+    record = ExecutionRecord(
+        plan_id=plan.plan_id, mode=mode,
+        hash_at_preparation=prepare.checkpoint_hash,
+        hash_immediately_before_move=pre_apply.checkpoint_hash,
+        hash_after_completion=after, destination_confirmed_pre_removal=None,
+        result=(APPLIED if applied
+                else result_of(FAILED, V3_HASH_MISMATCH)),
+        final_destination_path=str(final),
+        directories_created_by_this_action=created, started_at=started,
+        finished_at=finished)
+    record_execution(conn, record, plan_version=plan.organization_plan_version,
+                     record_id=mint_id())
+
+    # The journal entry is appended whichever way V3 answered, because the file
+    # DID move: a mismatch means somebody changed it at the destination, not
+    # that it is still at the source. Undo needs the entry either way, and
+    # `post_move_verification_result` is where the mismatch is recorded (§8.3).
+    entry = JournalEntry(
+        entry_id=mint_id(), entry_kind=ENTRY_APPLIED, reverses_entry_id=None,
+        plan_id=plan.plan_id, plan_version=plan.organization_plan_version,
+        file_id=plan.file_id,
+        hash_algorithm=get_file(conn, plan.file_id)["hash_algorithm"],
+        original_source_path=str(source), destination_path=str(final),
+        content_hash_at_movement=plan.expected_content_hash,
+        collision_behaviour=plan.collision_policy,
+        post_move_verification_result=after,
+        source_volume=plan.expected_source_volume,
+        destination_volume=plan.expected_destination_volume,
+        execution_mode=mode, directories_created_by_this_action=created,
+        intended_display_name=plan.intended_display_name,
+        filesystem_safe_name=plan.filesystem_safe_name,
+        time_of_execution=finished)
+    record_journal_entry(conn, entry, record_id=mint_id())
+
+    detail = {"plan_id": plan.plan_id, "mode": mode,
+              "journal_entry_id": entry.entry_id,
+              "plan_version": plan.organization_plan_version,
+              "directories_created_by_this_action": list(created)}
+    if applied:
+        record_executed_move(
+            conn, file_id=plan.file_id, content_hash=plan.expected_content_hash,
+            source_path=str(source), destination_path=str(final),
+            observed_at=finished, component_version=component_version,
+            user_id=user_id, detail=detail)
+    else:
+        record_failed_move(
+            conn, failure_class=V3_HASH_MISMATCH, file_id=plan.file_id,
+            content_hash=plan.expected_content_hash, source_path=str(source),
+            destination_path=str(final), observed_at=finished,
+            component_version=component_version, user_id=user_id, detail=detail)
+    return record
+
+
+def apply_batch(conn: sqlite3.Connection, plans: Sequence[MovePlan], *,
+                batch_bound: int | None,
+                halts_run: Callable[[ExecutionRecord], bool] | None,
+                **applying: object) -> tuple[ExecutionRecord, ...]:
+    """§8.3's *"one action at a time or in a safely bounded batch"*.
+
+    **`74` §8 Q6 is the owner's and is open.** §8.3 permits a bounded batch and
+    bounds it nowhere; `00`:155 names only a sync conflict as pause-worthy. So
+    `batch_bound` and `halts_run` are injected with NO default and no module
+    constant stands in for either -- *"a number a person feels"* is not P12's to
+    feel. Absent means refuse, and a batch larger than the stated bound is
+    refused rather than silently truncated, because truncating would apply some
+    of the person's moves and drop the rest without saying which.
+
+    A batch is a bounded SEQUENCE of transactions, never one atomic unit: an
+    all-or-nothing rollback would contradict undo being conditional and per-entry
+    (SPEC §10). The one halt the design DOES settle is not injected -- a paused
+    run stops, because *"pause when sync conflicts appear"* is `00`:174's own.
+    """
+    if batch_bound is None or halts_run is None:
+        raise BatchPolicyRequired(
+            "`74` §8 Q6 is open: the batch bound and the halt rule are the "
+            "composition root's to state and P12 has no default for either")
+    if (not isinstance(batch_bound, int) or isinstance(batch_bound, bool)
+            or batch_bound <= 0):
+        raise BatchPolicyRequired("the batch bound is a positive count of moves")
+    ordered = tuple(plans)
+    if len(ordered) > batch_bound:
+        raise BatchPolicyRequired(
+            f"{len(ordered)} moves were handed to a run bounded at "
+            f"{batch_bound}; P12 refuses rather than applying some of them and "
+            "dropping the rest")
+
+    records: list[ExecutionRecord] = []
+    for plan in ordered:
+        record = apply_plan(conn, plan, **applying)  # type: ignore[arg-type]
+        records.append(record)
+        if record.result.startswith(f"{PAUSED}:") or halts_run(record):
+            break
+    return tuple(records)
+
+
+def executions_for(conn: sqlite3.Connection,
+                   plan_id: str) -> tuple[ExecutionRecord, ...]:
+    rows = conn.execute(
+        "SELECT payload FROM execution_records WHERE plan_id = ? "
+        "ORDER BY record_id", (plan_id,)).fetchall()
+    out: list[ExecutionRecord] = []
+    for row in rows:
+        raw = json.loads(row[0])
+        raw["directories_created_by_this_action"] = tuple(
+            raw["directories_created_by_this_action"])
+        out.append(ExecutionRecord(**raw))
+    return tuple(out)
