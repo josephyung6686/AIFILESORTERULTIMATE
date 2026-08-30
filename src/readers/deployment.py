@@ -28,7 +28,6 @@ from extractors.structured_text import TextDocument
 
 from readers.archive_zipfile import zipfile_reader
 from readers.docx_python_docx import python_docx_reader
-from readers.ocr_vision import vision_ocr
 from readers.pdf_pdfminer import pdfminer_reader
 
 #: §2.7's three explicit Vision settings, as a `config` mapping. It is passed through
@@ -66,6 +65,15 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
     `macos_readers(find_structured_strings=..., read_pdf=other_reader())` -- which is
     the seam the injected-reader design exists to provide.
     """
+    # Imported HERE and not at module scope. `readers.ocr_vision` pulls in
+    # Apple's Vision and Quartz frameworks, which cost 4.6s of `import cli`'s
+    # 7.3s warm and about 75 of 77 seconds cold -- before one character of
+    # output. A person typing `--list-situations`, or any run over a corpus with
+    # no image in it, waited all of that for a framework their run never used.
+    # The module still imports it eagerly relative to THIS call, so nothing about
+    # when OCR is available changes; only the moment the cost is paid does.
+    from readers.ocr_vision import vision_ocr
+
     wired: dict[str, Any] = {
         "read_pdf": pdfminer_reader(),
         "read_text_document": read_text_file,

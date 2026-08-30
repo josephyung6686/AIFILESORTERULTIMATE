@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import shlex
 import pathlib
+import subprocess
 import sys
 from pathlib import Path
 
@@ -1900,3 +1901,40 @@ def test_an_enabled_residual_home_is_never_put_inside_a_folder_the_person_made(t
     shallowest_adopted = min(len(line) - len(line.lstrip()) for line in adopted)
     assert (len(home) - len(home.lstrip())) <= shallowest_adopted, (
         f"the residual home is nested inside a folder the person made:\n{folders}")
+
+
+def test_importing_the_product_does_not_load_apples_vision_framework():
+    """The first thing a person experiences is how long nothing happens.
+
+    `readers/deployment.py` imported `readers.ocr_vision` at module scope, which
+    pulls in Vision and Quartz. `python3 -X importtime` attributed 4.6s of
+    `import cli`'s 7.3s warm to it, and about 75 of 77 seconds cold -- paid
+    before one character reaches the screen, by every run, including
+    `--list-situations` and every corpus with no image in it.
+
+    A subprocess, because this process may already have imported it for some
+    other reason, and then the assertion would pass for a reason that has
+    nothing to do with the code under test.
+    """
+    source = ("import sys; import cli; "
+              "print('Vision' in sys.modules or 'Quartz' in sys.modules)")
+    result = subprocess.run(
+        [sys.executable, "-c", source],
+        cwd=str(Path(__file__).resolve().parents[1] / "src"),
+        capture_output=True, text=True, timeout=300)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "False", (
+        "importing cli loads Apple's Vision framework again; the cost is paid "
+        "by every run, including the ones with no image in them")
+
+
+def test_the_ocr_engine_is_still_wired_after_being_imported_late():
+    """The negative twin. Making the import lazy must not make OCR absent.
+
+    An import moved into a function is a change nobody sees until the feature it
+    hid stops working, so the wiring is asserted rather than assumed: the engine
+    is present, and it is not `None`.
+    """
+    from readers.deployment import macos_readers
+    readers = macos_readers(find_structured_strings=lambda _text: ())
+    assert readers.ocr_engine is not None

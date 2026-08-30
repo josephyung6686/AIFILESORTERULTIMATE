@@ -89,6 +89,7 @@ from questions.vocabulary import CONFIRMED, REVOKED, SCOPE_BRANCH, SKIPPED
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, load_shipped_catalogue, read_packaged_library_file,
+    schema_for_situation,
     run_production_corpus,
 )
 from readers.deployment import macos_readers
@@ -101,7 +102,7 @@ from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.exclusion import is_protected_container
 from scan_agent.selection import record_selection
 from tree_design.catalogue import TemplateCatalogue
-from tree_design.config import TreeLimits
+from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
 from tree_design.materialise import MaterialisationRefused
 from tree_design.pipeline import (
@@ -769,7 +770,8 @@ def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
 
 def review_and_accept(conn: sqlite3.Connection,
                       results: Sequence[GroupingResult], *,
-                      situation: str, label: str, created_at: str) -> tuple[str, ...]:
+                      group_category: str, label: str,
+                      created_at: str) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named group.
 
     **The justification this docstring used to give was false, and correcting it
@@ -804,8 +806,11 @@ def review_and_accept(conn: sqlite3.Connection,
     if not grouped:
         return ()
     first = grouped[0].group
-    merged_id = f"{PLAN_VERSION}:{label}"
-    schema = situation.split(".", 1)[0]
+    # The category is part of the address, not only the label. Two situations
+    # filed under one `--label` are two groups of two different kinds, and an
+    # id built from the label alone asks them to be one record -- which P9
+    # refuses, correctly, as a revision that supersedes nothing.
+    merged_id = f"{PLAN_VERSION}:{group_category}:{label}"
     reviewed = Group(
         group_id=merged_id, seed_ref=first.seed_ref, seed_kind=first.seed_kind,
         # RULES, not USER. `--label` and `--situation` really are the person's
@@ -825,7 +830,8 @@ def review_and_accept(conn: sqlite3.Connection,
         coherence_citations=tuple(
             fact.observation_key for result in grouped
             for fact in result.group.anchor_facts),
-        group_category=schema, display_label=label, label_source=USER_EDITED,
+        group_category=group_category, display_label=label,
+        label_source=USER_EDITED,
         conflicts=(), stop_rule_hits=(), state=first.state,
         sensitivity_state=first.sensitivity_state, dossier_id=None,
         llm_response_ref=None, validation_verdict_ref=None, created_by=RULES,
@@ -849,8 +855,13 @@ def _carried(membership, group_id: str):
 
     return dataclasses.replace(
         membership, membership_id=f"{membership.membership_id}:{group_id}",
-        group_id=group_id, supersedes=membership.membership_id,
-        supersede_reason="carried onto the group the rules merged these into")
+        # NOT a supersession. A file's membership of the group P9 proposed and
+        # its membership of the group those were merged into are two records
+        # about two groups, not two versions of one. Superseding P9's row made
+        # it invisible to `memberships_for_group`, so a second run over the
+        # same database re-proposed the group, carried nothing, and handed P11
+        # an empty branch.
+        group_id=group_id, supersedes=None, supersede_reason=None)
 
 
 def choose_option(candidate, options) -> str:
@@ -1099,7 +1110,11 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     """
     catalogue = load_shipped_catalogue(read_packaged_library_file)
     signal = _validate_situation(catalogue, situation)
-    schema = situation.split(".", 1)[0]
+    # ASKED of the library, not split off the name. The dotted prefix is the
+    # template library's word; the 23 domains are `facts.domains.SCHEMA_IDS`.
+    # They agree for 201 of 208 situations and disagree for seven, and every
+    # applicability row has carried the true answer in `uses_schema` all along.
+    schema = schema_for_situation(catalogue, situation)
     clock = now()
     _bootstrap(conn)
     selection_id = record_selection(
@@ -1325,7 +1340,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def accept_groups(db: sqlite3.Connection,
                       results: Sequence[GroupingResult]) -> tuple[str, ...]:
-        return review_and_accept(db, results, situation=situation, label=label,
+        return review_and_accept(db, results, group_category=schema, label=label,
                                  created_at=clock)
 
     def approve_plan(db: sqlite3.Connection, accepted: Sequence[str],
@@ -2248,7 +2263,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      residuals=_validate_residuals(args.residual))
-    except NotConfigured as refusal:
+    except (NotConfigured, ConfigurationRequired) as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)
         return 2

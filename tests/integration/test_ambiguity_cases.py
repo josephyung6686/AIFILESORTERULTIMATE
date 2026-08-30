@@ -372,7 +372,13 @@ def test_the_six_nine_rule_is_reached_and_its_decision_has_somewhere_to_go():
     homes = {name for name, body in text.items()
              if "SHARED_MATERIAL_DECISION" in body}
     assert homes == {"src/placement/pipeline.py",
-                     "src/placement/vocabulary.py"}
+                     "src/placement/vocabulary.py",
+                     # P13 RENDERS the label. Its SPEC's Done-means 4 requires a
+                     # shared-material decision to reach a surface rather than be
+                     # auto-resolved or hidden, and `render_state_for` is that
+                     # surface. It imports P11's named constant and spells no
+                     # literal, which is what this assertion is really guarding.
+                     "src/review_surface/items.py"}
 
     ask_builders = {name for name, body in text.items()
                     if re.search(r"(?<![A-Za-z_])Ask\(", body)}
