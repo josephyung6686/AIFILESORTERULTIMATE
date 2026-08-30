@@ -136,3 +136,52 @@ def ids():
     """A monotonic id minter. P12 mints no id itself; every one is injected."""
     counter = itertools.count()
     return lambda: f"id-{next(counter)}"
+
+
+@pytest.fixture()
+def planned(p12_conn, landscape, ids):
+    """A real file, a real P1 row, and a recorded plan for it.
+
+    Returns `(plan, source_path)`. Every suite from Wave D2 onward starts here,
+    so that what a test exercises is the transaction and not the setup.
+    """
+    from database_agent.files_table import record_file
+    from placement.fixtures import GOLDEN_DECISIONS
+    from placement.records import Destination, Subject
+    from placement.vocabulary import PLACE
+
+    from mutation.plan import build_plan, record_plan
+    from mutation.vocabulary import PRESERVE_BOTH_DETERMINISTIC_SUFFIX
+
+    source = landscape["root_documents"] / "Inbox" / "Syllabus.pdf"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"PHYS1401 syllabus")
+    stat = source.stat()
+    file_id = record_file(
+        p12_conn, source, filename="Syllabus.pdf",
+        normalized_filename="syllabus.pdf", extension=".pdf",
+        observed_size=stat.st_size, observed_timestamps=str(stat.st_mtime),
+        parent_folder_context="Inbox", mime_type="application/pdf",
+        detected_format="pdf", scan_state="included", materialized=True)
+    content_hash = p12_conn.execute(
+        "SELECT content_hash FROM files WHERE file_id = ?",
+        (file_id,)).fetchone()[0]
+    decision = dataclasses.replace(
+        next(item for item in GOLDEN_DECISIONS if item.outcome == PLACE),
+        destination=Destination(node_id="n-phys", node_role="ordinary"),
+        subject=Subject(kind="file", file_id=file_id, content_hash=content_hash,
+                        group_id=None, member_file_ids=()))
+    built = build_plan(
+        p12_conn, decision, nodes=FIXTURE_NODES,
+        legal_destination_ids=LEGAL_DESTINATIONS, cross_folder_moves=True,
+        constraints=CONSTRAINTS, high_level_folders=landscape,
+        volume_of=lambda path: "vol-main",
+        protected_handling_classes=PROTECTED_CLASSES,
+        collision_policy=PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
+        expiration_state="no expiry configured",
+        now=lambda: FIXED_CLOCK, mint_id=ids)
+    assert built is not None
+    plan, resolution = built
+    record_plan(p12_conn, plan, resolution, created_at=FIXED_CLOCK,
+                component_version="p12-test")
+    return plan, source
