@@ -110,3 +110,29 @@ def check_scope(scope: str) -> str:
             "entity applies everywhere, which is the one thing a scope exists to "
             "prevent")
     return scope
+
+
+#: §16:553's four outcomes, and no fifth. APPENDED rather than inserted, so the
+#: line numbers everything above this point is cited by do not move.
+#:
+#: > The matcher should produce one of four outcomes: an exact confirmed schema
+#: > activation; a confirmed multiple-role activation; an unmatched answer
+#: > preserved without activating a schema; or a skipped answer that leaves the
+#: > related organizational decisions unresolved.
+#:
+#: These are the design's own four, spelled in snake_case and named nowhere else.
+#: Closed for the reason §16:547 gives in the same breath: "'I'm a sound engineer'
+#: must not silently activate an engineering or software-project schema merely
+#: because the words are superficially similar." A fifth outcome -- `probable`,
+#: `likely`, `assumed` -- is that snap arriving as a status value rather than as a
+#: mapping, and it would be just as invisible to the person it was wrong about.
+#:
+#: MULTIPLE_ROLE_ACTIVATION is a property of the SET of live declarations and never
+#: of one row: §16:543 requires that being more than one thing is normal, and a row
+#: that claimed to be "the multiple one" would be a first among equals.
+EXACT_ACTIVATION: str = "exact_activation"
+MULTIPLE_ROLE_ACTIVATION: str = "multiple_role_activation"
+UNMATCHED: str = "unmatched"
+SKIPPED_ROLE: str = "skipped_role"
+ROLE_OUTCOMES: tuple[str, ...] = (
+    EXACT_ACTIVATION, MULTIPLE_ROLE_ACTIVATION, UNMATCHED, SKIPPED_ROLE)

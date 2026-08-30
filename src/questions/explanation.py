@@ -94,7 +94,16 @@ def consequences_of(option: QuestionOption) -> tuple[str, ...]:
     registry stays the single place that knows what a consequence is.
     """
     out: list[str] = []
+    seen: set[str] = set()
     for kind in QUESTION_KINDS:
+        # BY FIELD, not by kind. Two kinds may share one consequence -- a reading
+        # question and a role declaration both activate a schema, deliberately, so
+        # that `activated_schemas` stays the one place a schema is turned on. A
+        # walk over kinds told the person twice that their answer turned on
+        # `academic`, which reads as two separate things having happened.
+        if kind.consequence_field in seen:
+            continue
+        seen.add(kind.consequence_field)
         value = getattr(option, kind.consequence_field, None)
         if not value:
             continue

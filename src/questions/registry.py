@@ -34,7 +34,7 @@ from questions.store import (
     activated_schemas, gated_template, selected_situation,
 )
 from questions.vocabulary import (
-    SCOPE_BRANCH, SCOPE_ORGANIZATION, SCOPES, check,
+    SCOPE_BRANCH, SCOPE_CORPUS, SCOPE_ORGANIZATION, SCOPES, check,
 )
 
 
@@ -119,10 +119,22 @@ SITUATION_KIND = QuestionKind(
     consequence_field="selects_situation",
     reader=selected_situation)
 
+#: `roles.question_for_role_declaration`. The person says what a scope is FOR
+#: them, and a confirmed declaration turns on a schema. It shares
+#: `activates_schema` and `activated_schemas` with READING_KIND deliberately:
+#: `store.activated_schemas` promises "a reader can see every schema the user
+#: turned on and where it came from", and a second activation path would falsify
+#: that sentence. Two kinds, one surface, is what keeps the promise true.
+ROLE_KIND = QuestionKind(
+    kind_id="role",
+    scope_kind=SCOPE_CORPUS,
+    consequence_field="activates_schema",
+    reader=activated_schemas)
+
 #: Every kind this deployment ships, and the tests assert that every
 #: consequence `QuestionOption` can carry is claimed by one of them.
 QUESTION_KINDS: tuple[QuestionKind, ...] = (
-    READING_KIND, NESTING_KIND, SITUATION_KIND)
+    READING_KIND, NESTING_KIND, SITUATION_KIND, ROLE_KIND)
 
 
 def kind_of(question_id: str) -> QuestionKind | None:
