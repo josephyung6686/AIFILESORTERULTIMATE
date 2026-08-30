@@ -17,6 +17,7 @@ implementation and watching it go red, not by reading it.
 from __future__ import annotations
 
 import ast
+import inspect
 import pathlib
 import sqlite3
 
@@ -27,7 +28,8 @@ from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.items import AlwaysLocalRequested, MetadataField
 from privacy.vocabulary import ALWAYS_LOCAL, OPERATION_MODES, OutOfVocabulary
 from questions.proposal import (
-    ProposalRefused, RoleProposal, SELF_DESCRIPTION_ITEM, propose_roles,
+    ProposalRefused, REASONING_TIER, REVOCATION_SENTENCE, RoleProposal,
+    SELF_DESCRIPTION_ITEM, SelfDescriptionSending, propose_roles, sending_notice,
     shortlist_for_question,
 )
 from questions.roles import declare_role
@@ -350,3 +352,277 @@ def test_an_order_that_only_arranges_is_accepted():
     shown = shortlist_for_question(proposal, order=lambda given: sorted(given,
                                                                        reverse=True))
     assert shown == ("research", "finance", "academic")
+
+
+# ======================================================================================
+# `80` §8 -- the amendment, and the three conditions that scope it
+# ======================================================================================
+#
+# Joseph overruled §2's ENFORCEMENT for development on the day it was recorded. The
+# classification is not withdrawn: a self-description is still a `user_edits` item,
+# and the other eight always-local kinds are untouched. `80` §8.2 states the cost in
+# terms that cannot be undone -- "There is no temporary about a sent sentence" -- so
+# every fixture below is an INVENTED sentence. Nothing here is lifted from a corpus,
+# and `68`'s Mara corpus in particular contains a client's passport.
+
+#: A cloud deployment. `check_mode` is P7's and these are two of its four.
+SENDING_MODE = "cloud_assisted"
+
+INVENTED = ("I look after my father's paperwork, I'm halfway through a part-time "
+            "diploma, and I do the accounts for a five-a-side league")
+
+
+def _sending(*, announce, tier=REASONING_TIER, model_id="a-named-model"):
+    return SelfDescriptionSending(model_tier=tier, model_id=model_id,
+                                  announce=announce)
+
+
+# --- C1: local is what happens by not choosing --------------------------------------
+
+
+def test_the_amendment_is_off_unless_a_caller_asks_for_it():
+    """C1, on the signature rather than on a call.
+
+    "A developer who forgets this exception exists gets the safe behaviour." The
+    only way that is true is if not-passing-anything is the safe path, so `sending`
+    is the one default in this module and it defaults to nothing.
+    """
+    parameter = inspect.signature(propose_roles).parameters["sending"]
+    assert parameter.default is None
+
+
+def test_without_the_opt_in_a_cloud_mode_still_refuses():
+    """C1's behavioural half. The pre-amendment refusal is not softened; it is left
+    exactly where it was and a second, explicit door is added beside it."""
+    with pytest.raises(ProposalRefused, match="local is what happens by not choosing"):
+        propose_roles(INVENTED, offered=SCHEMA_IDS, propose=_proposes("academic"),
+                      mode=SENDING_MODE)
+
+
+def test_nothing_in_this_module_can_turn_sending_on_by_itself():
+    """C1: "there is no environment variable or config default that quietly turns it
+    on". Checked over the parsed AST, because the failure this prevents is a
+    convenience somebody adds later and nobody reviews."""
+    tree = ast.parse(pathlib.Path("src/questions/proposal.py").read_text())
+
+    modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.add(node.module)
+    assert modules & {"os", "os.path", "pathlib", "configparser", "json",
+                      "tomllib", "dotenv"} == set()
+
+    named = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            named.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            named.add(node.attr)
+    assert named & {"environ", "getenv", "getenvb", "open", "read_text"} == set()
+
+
+# --- C2: a run that sends says so, on screen, before it sends -----------------------
+
+
+def test_the_person_is_told_before_the_sentence_goes():
+    """C2, and the ORDER is the whole requirement.
+
+    A notice after the send is a receipt, not a warning, and `00`:200's point is
+    precisely that afterwards is too late. The order is a property of
+    `propose_roles` rather than of a caller's discipline, so it is observed on one
+    timeline covering both events.
+    """
+    happened = []
+    proposal = propose_roles(
+        INVENTED, offered=SCHEMA_IDS,
+        propose=lambda sentence, offered: happened.append("sent") or ("academic",),
+        mode=SENDING_MODE,
+        sending=_sending(announce=lambda line: happened.append(("told", line))))
+
+    assert [event[0] if isinstance(event, tuple) else event
+            for event in happened] == ["told", "sent"]
+    assert proposal.from_model is True
+
+
+def test_the_notice_says_what_is_going_where_and_that_it_cannot_come_back():
+    """C2's three content requirements. `00`:200 is quoted rather than paraphrased,
+    because the notice must be "in the same breath" as it and a paraphrase of a
+    sentence about irreversibility is how the irreversibility gets softened."""
+    notice = sending_notice(_sending(announce=print, model_id="DeepSeek-V4-Pro"))
+
+    assert "DeepSeek-V4-Pro" in notice
+    assert REVOCATION_SENTENCE in notice
+    assert REVOCATION_SENTENCE in (
+        "Revocation cannot necessarily retract data already sent to an external "
+        "provider.")
+
+
+def test_a_record_that_cannot_tell_the_person_cannot_be_built():
+    """C2 at construction, which is earlier than the send and cannot be skipped by a
+    branch. `80` §8.3 rules out the two easy substitutes by name: "Not in a log, not
+    in a docstring: on the screen."""
+    with pytest.raises(ProposalRefused, match="no way to tell the person"):
+        SelfDescriptionSending(model_tier=REASONING_TIER, model_id="a-named-model",
+                               announce=None)
+
+
+def test_a_notice_that_fails_stops_the_send():
+    """The failure direction that matters. If the product cannot tell the person, it
+    does not send and then apologise -- it does not send."""
+    sent = []
+
+    def refuses(line):
+        raise RuntimeError("no screen")
+
+    with pytest.raises(RuntimeError):
+        propose_roles(INVENTED, offered=SCHEMA_IDS,
+                      propose=lambda sentence, offered: sent.append(sentence) or (),
+                      mode=SENDING_MODE, sending=_sending(announce=refuses))
+
+    assert sent == []
+
+
+def test_the_notice_is_never_shown_to_the_model():
+    """The notice is on-screen copy, not prompt text -- `80` §6 and §8.4 reserve
+    prompt bytes to the owner. The model is handed the sentence and the closed list,
+    exactly as it is on the local path, and nothing else."""
+    seen = []
+    propose_roles(INVENTED, offered=SCHEMA_IDS,
+                  propose=lambda sentence, offered: seen.append(
+                      (sentence, offered)) or ("academic",),
+                  mode=SENDING_MODE, sending=_sending(announce=lambda line: None))
+
+    assert seen == [(INVENTED, frozenset(SCHEMA_IDS))]
+
+
+def test_a_run_that_asked_to_send_and_has_no_model_refuses():
+    """Falling back to the local list here would reach the safer OUTCOME by the worse
+    ROUTE: the person asked where their words were going and would be told nothing.
+    Absent means refuse."""
+    with pytest.raises(ProposalRefused, match="Absent means refuse"):
+        propose_roles(INVENTED, offered=SCHEMA_IDS, propose=None, mode=SENDING_MODE,
+                      sending=_sending(announce=lambda line: None))
+
+
+def test_a_sending_record_under_a_local_mode_is_refused():
+    """A notice that overstates is worse than none. Under `offline` nothing leaves,
+    so announcing that something is leaving is a false statement, and a person who
+    learns one notice was untrue has no reason to believe the next."""
+    for mode in LOCAL_FIRST_MODES:
+        with pytest.raises(ProposalRefused, match="sends nothing"):
+            propose_roles(INVENTED, offered=SCHEMA_IDS,
+                          propose=_proposes("academic"), mode=mode,
+                          sending=_sending(announce=lambda line: None))
+
+
+# --- `83`: the tier this site was routed to, and no cheaper one ---------------------
+
+
+def test_a_cheaper_tier_is_refused_rather_than_answered():
+    """`83` §4: "No silent downgrade." R4 -- the shortlist must read as having heard
+    the WHOLE sentence -- is the judgement being bought, and it is exactly what a
+    cheap model flattens to one keyword. A wrong answer from the wrong tier looks
+    identical to a right one, which is why this refuses instead of preferring."""
+    for cheaper in ("logic", "fast", "", "Reasoning"):
+        with pytest.raises(ProposalRefused, match="tier"):
+            SelfDescriptionSending(model_tier=cheaper, model_id="a-named-model",
+                                   announce=print)
+
+
+def test_the_sending_record_names_the_model_that_receives_it():
+    """`00`:200's distinction is about a NAMED external provider. A person told only
+    that their words went "to the cloud" has been told less than nothing they can
+    act on."""
+    with pytest.raises(ProposalRefused, match="names no model"):
+        SelfDescriptionSending(model_tier=REASONING_TIER, model_id="",
+                               announce=print)
+
+
+# --- what the amendment did NOT change ----------------------------------------------
+
+
+def test_the_classification_still_stands():
+    """`80` §8.1: the ruling that a self-description is a `user_edits` item "is not
+    withdrawn -- the classification stands, and the enforcement is suspended". So the
+    member is still where it was and a transport still cannot name it."""
+    assert SELF_DESCRIPTION_ITEM in ALWAYS_LOCAL
+    with pytest.raises(AlwaysLocalRequested):
+        MetadataField(name=SELF_DESCRIPTION_ITEM)
+
+
+def test_the_amendment_reaches_nothing_but_the_self_description():
+    """`80` §8.1: "The other eight always-local kinds are untouched." Nothing in this
+    package can name one, and the opt-in does not widen what may be sent -- `83` §4
+    says the same thing from the routing side: "No tier changes what may be SENT."
+    """
+    for item in ALWAYS_LOCAL:
+        with pytest.raises(AlwaysLocalRequested):
+            MetadataField(name=item)
+
+
+def test_no_model_output_activates_anything_even_when_the_model_was_a_cloud_one(qconn):
+    """The invariant that matters most, restated with the amendment on.
+
+    A cloud provider does not weaken the ruling's argument for Option 2: the
+    shortlist is still a proposal, the person still confirms, and nothing activates
+    without them. What changed is only where the sentence goes.
+    """
+    proposal = propose_roles(INVENTED, offered=SCHEMA_IDS,
+                             propose=_proposes("academic", "finance"),
+                             mode=SENDING_MODE,
+                             sending=_sending(announce=lambda line: None))
+    assert activated_schemas(qconn) == frozenset()
+
+    declare_role(qconn, declaration_id="diploma", scope="corpus",
+                 schemas=shortlist_for_question(proposal, order=sorted),
+                 chosen_schema="academic", user_id="jy", recorded_at=T0)
+
+    assert activated_schemas(qconn) == frozenset({"academic"})
+
+
+def test_the_shortlist_still_carries_no_order_when_it_came_from_the_cloud():
+    """R7 is unchanged by the amendment -- `80` §8.4: "R1-R7 all still bind"."""
+    forward = propose_roles(INVENTED, offered=SCHEMA_IDS,
+                            propose=_proposes("academic", "finance", "legal"),
+                            mode=SENDING_MODE,
+                            sending=_sending(announce=lambda line: None))
+    backward = propose_roles(INVENTED, offered=SCHEMA_IDS,
+                             propose=_proposes("legal", "finance", "academic"),
+                             mode=SENDING_MODE,
+                             sending=_sending(announce=lambda line: None))
+
+    assert forward.candidates == backward.candidates
+
+
+# --- C3: designed for the revert ----------------------------------------------------
+
+
+def test_the_local_path_needs_no_part_of_the_amendment():
+    """C3: "when C3 fires, deleting the flag must leave a working product, not a
+    hole".
+
+    The local path is called with no `sending` argument at all, reaches no branch
+    that mentions one, and is the same call it was before `80` §8. Deleting
+    `SelfDescriptionSending`, `sending_notice` and the `sending` parameter leaves
+    every local behaviour standing -- which is why the amendment is a parameter with
+    a safe default rather than a mode the module is now in.
+    """
+    local = propose_roles(INVENTED, offered=SCHEMA_IDS,
+                          propose=_proposes("academic", "finance"),
+                          mode="local_model")
+    assert local.candidates == frozenset({"academic", "finance"})
+    assert local.from_model is True
+
+    fallback = propose_roles(INVENTED, offered=SCHEMA_IDS, propose=None,
+                             mode="offline")
+    assert fallback.candidates == frozenset(SCHEMA_IDS)
+    assert fallback.from_model is False
+
+
+def test_the_amendment_added_exactly_one_parameter():
+    """The surface a revert has to remove. One parameter, defaulting to the safe
+    value, is the smallest shape this could take and the easiest to delete."""
+    parameters = list(inspect.signature(propose_roles).parameters)
+    assert parameters == ["self_description", "offered", "propose", "mode", "sending"]
