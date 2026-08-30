@@ -17,6 +17,7 @@ the caller built it.
 """
 from __future__ import annotations
 
+import difflib
 import hashlib
 import json
 import sqlite3
@@ -271,6 +272,65 @@ def schema_for_situation(catalogue: TemplateCatalogue, situation: str) -> str:
             "material these files are is the person's answer to give rather than "
             "this module's to pick")
     return schemas[0]
+
+
+@dataclass(frozen=True)
+class ShippedSituation:
+    """One situation, as much of it as a person choosing between 208 can use.
+
+    `folder_levels` is the row's own `role_bindings` labels, in the order the
+    library declares them -- "My school / Semester / Course / Kind of work". They
+    are not a description of the situation and are better than one: they are the
+    folder levels this situation would actually build, written for a person by
+    whoever ratified the row, and already reviewed as shipped data.
+    """
+
+    name: str
+    schema: str
+    folder_levels: tuple[str, ...]
+
+
+def shipped_situations(
+        catalogue: TemplateCatalogue) -> tuple[ShippedSituation, ...]:
+    """Every situation the release carries, in the order a person would read them.
+
+    Sorted by DOMAIN first and name second, because the domain is the thing a
+    person is actually choosing between -- "these are my school files" -- and 208
+    names in one flat alphabetical column asks them to already know the answer in
+    order to find it. It also puts the seven whose name and domain disagree under
+    the domain that owns them, so `travel.trip-photos` appearing beneath `photos`
+    reads as information rather than as the bug it used to be.
+
+    A situation carried by rows in two domains is listed under each: this reports
+    the library and resolves nothing. `schema_for_situation` is the one that has
+    to refuse such a row, because a RUN has to pick exactly one and this does not.
+    """
+    seen: dict[tuple[str, str], ShippedSituation] = {}
+    for row in catalogue.applicabilities.values():
+        for signal in row.detection_signal_refs:
+            name = signal.removeprefix("recognition:")
+            seen.setdefault((row.uses_schema, name), ShippedSituation(
+                name=name, schema=row.uses_schema,
+                folder_levels=tuple(binding.label
+                                    for binding in row.role_bindings)))
+    return tuple(seen[key] for key in sorted(seen))
+
+
+def nearest_situations(catalogue: TemplateCatalogue, situation: str, *,
+                       limit: int = 5) -> tuple[str, ...]:
+    """The names closest to one the library does not carry. Possibly none.
+
+    For the refusal, which currently says how many situations exist and not one
+    of them -- so a person who typed `academic.courswork` is told the library
+    carries 208 and left to find the missing `e` themselves.
+
+    `difflib` over the names the release actually carries: this suggests nothing
+    that is not already a situation, and returns an empty tuple rather than a bad
+    guess when nothing is close. A wrong suggestion is worse than none, because a
+    person will paste it.
+    """
+    names = sorted({row.name for row in shipped_situations(catalogue)})
+    return tuple(difflib.get_close_matches(situation, names, n=limit))
 
 
 def bootstrap_p1_p7(conn: sqlite3.Connection) -> None:

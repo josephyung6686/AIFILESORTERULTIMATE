@@ -35,7 +35,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 import cli  # noqa: E402
 from facts.domains import SCHEMA_IDS  # noqa: E402
 from production import (  # noqa: E402
-    load_shipped_catalogue, read_packaged_library_file, schema_for_situation,
+    load_shipped_catalogue, nearest_situations, read_packaged_library_file,
+    schema_for_situation, shipped_situations,
 )
 
 
@@ -214,3 +215,95 @@ def test_two_situations_sharing_one_label_are_two_groups_and_not_a_collision(
     assert categories == ["academic", "finance"], (
         f"the two runs left {categories} under the label 'Records'; one of them "
         "was written over the other rather than kept beside it")
+
+
+# ======================================================================================
+# Finding a situation in the first place
+# ======================================================================================
+
+
+def test_the_listing_offers_every_situation_a_run_can_actually_be_given():
+    """The list a person picks from and the names a run accepts are one set.
+
+    A listing that omitted a situation would hide a working answer; one that
+    offered a name `_validate_situation` refuses would send a person to a
+    refusal. Both are the same defect -- two enumerations of one thing -- so this
+    checks them against each other rather than against a number.
+    """
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+    offered = [row.name for row in shipped_situations(catalogue)]
+    accepted = _shipped_situations(catalogue)
+
+    assert sorted(offered) == accepted, (
+        "the listing and the names a run accepts have drifted apart: "
+        f"only listed {sorted(set(offered) - set(accepted))}, "
+        f"only accepted {sorted(set(accepted) - set(offered))}")
+    assert len(offered) == len(set(offered)), (
+        "a situation is printed twice, so the same line asks to be read as two "
+        "different answers")
+
+
+def test_every_situation_is_filed_under_the_domain_a_run_would_give_it():
+    """The heading a person reads it under is the category their group gets.
+
+    This is what makes the listing worth grouping at all: `travel.trip-photos`
+    printed beneath `photos` is not a curiosity, it is the group category the run
+    will write. If the two came from different rules, the listing would be
+    teaching a person something the command then contradicts.
+    """
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+    disagreeing = {row.name: (row.schema, schema_for_situation(catalogue, row.name))
+                   for row in shipped_situations(catalogue)
+                   if row.schema != schema_for_situation(catalogue, row.name)}
+    assert not disagreeing, (
+        f"{len(disagreeing)} situations are listed under one domain and run "
+        f"under another: {disagreeing}")
+
+
+def test_no_situation_is_offered_as_a_bare_name_with_nothing_to_judge_it_by():
+    """208 names with nothing beside them is a list nobody can choose from.
+
+    The folder levels are the library's own `role_bindings` labels, so this
+    asserts against shipped data and invents no description. A row that carried
+    none would print as a bare name and put the person back where they started.
+    """
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+    bare = [row.name for row in shipped_situations(catalogue)
+            if not row.folder_levels]
+    assert not bare, (
+        f"{len(bare)} situations would print with nothing beside them: {bare}")
+    assert all(label.strip() for row in shipped_situations(catalogue)
+               for label in row.folder_levels), (
+        "a folder level is blank, which prints as a gap rather than as a level")
+
+
+def test_a_near_miss_is_told_which_name_it_nearly_typed():
+    """The typo case, which is most of them.
+
+    `--list-situations` prints 208 names; a person who has already chosen one and
+    mistyped it does not need the list again, they need the letter they dropped.
+    """
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+    assert "academic.coursework" in nearest_situations(
+        catalogue, "academic.courswork")
+    assert "applications.undergraduate-packet" in nearest_situations(
+        catalogue, "applications.undergrad")
+
+
+def test_a_name_nothing_resembles_is_answered_with_no_suggestion_at_all():
+    """The negative twin, and the reason this is `difflib` and not a substring.
+
+    A person pastes what the refusal prints. A confident wrong suggestion sends
+    them to a situation that files their files under the wrong domain, which is
+    worse than the flat list they would otherwise fall back to -- so nothing
+    close means nothing offered.
+    """
+    catalogue = load_shipped_catalogue(read_packaged_library_file)
+    for nonsense in ("qqqqqqqq", "zzzz.wwww", ""):
+        assert nearest_situations(catalogue, nonsense) == (), (
+            f"{nonsense!r} was answered with a suggestion a person would paste")
+
+    assert all(name in _shipped_situations(catalogue)
+               for name in nearest_situations(catalogue, "academic.courswork")), (
+        "a suggestion names something that is not a situation, so taking it "
+        "would produce the same refusal again")
