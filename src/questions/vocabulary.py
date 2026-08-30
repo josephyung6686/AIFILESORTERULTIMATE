@@ -47,6 +47,24 @@ ANSWER_STATES: tuple[str, ...] = (CONFIRMED, SKIPPED, NOT_APPLICABLE, REVOKED)
 #: but it decides nothing.
 BINDING_STATES: tuple[str, ...] = (CONFIRMED,)
 
+#: What SHAPE an answer takes. `66` §21 lists "allowed answer types" among the nine
+#: obligations, and until 2026-08-30 there was exactly one shape: a pick-one from a
+#: list the product authored. Two of §16's requirements cannot be said in that shape
+#: -- §16:555's "store the raw user wording" and §16:543's role with "a scope and
+#: possibly a time period".
+#:
+#: Closed at two, and the second is deliberately weak. A FREE_TEXT answer selects no
+#: option, so `answered_options` never returns anything for it, so it activates no
+#: schema and gates no template. That is §16:547 -- "An unmatched answer must remain
+#: unmatched" -- enforced by the data model rather than by a downstream policy
+#: somebody has to remember. Turning wording INTO a candidate schema is a separate
+#: mechanism the owner has not yet ruled on (`62` §D), and nothing here anticipates it.
+#:
+#: CHOICE is the default because it is what every row P15 has ever written is.
+CHOICE: str = "choice"
+FREE_TEXT: str = "free_text"
+ANSWER_TYPES: tuple[str, ...] = (CHOICE, FREE_TEXT)
+
 #: Where an answer applies. `66` §12 requires the scope to be RECORDED and §13
 #: forbids an answer being "reused outside its stated scope", so this is a prefix
 #: vocabulary rather than a fixed list: `corpus` is the whole run, and

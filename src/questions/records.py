@@ -33,8 +33,8 @@ from privacy.classification import UNREADABLE_UNCLASSIFIED
 from privacy.vocabulary import HANDLING_CLASSES
 
 from questions.vocabulary import (
-    ANSWER_CLASSES, ANSWER_STATES, CONFIRMED, CONTEXTUAL, NOT_APPLICABLE,
-    SKIPPED, check, check_scope,
+    ANSWER_CLASSES, ANSWER_STATES, ANSWER_TYPES, CHOICE, CONFIRMED, CONTEXTUAL,
+    FREE_TEXT, NOT_APPLICABLE, SKIPPED, check, check_scope,
 )
 
 
@@ -186,6 +186,19 @@ class StructuralAnswer:
     scope: str
     user_id: str
     recorded_at: str
+    #: §21's "allowed answer types". `CHOICE` is what every row written before
+    #: 2026-08-30 is, so the default leaves them all unchanged.
+    answer_type: str = CHOICE
+    #: §16:555: the matcher "should store the raw user wording". Their words,
+    #: byte for byte -- not normalised, not nearest-matched. Set on FREE_TEXT and
+    #: refused on CHOICE, because an answer carrying both a chosen option and a
+    #: sentence has two answers in it that need never agree.
+    raw_wording: str | None = None
+    #: §16:543: a role carries "a scope and possibly a time period, rather than
+    #: forcing one permanent profession". A person stops teaching; the answer
+    #: that says they taught stays true of the period it names.
+    applies_from: str | None = None
+    applies_until: str | None = None
     inferred: bool = False
     #: Set when this answer supersedes an earlier one for the same question and
     #: scope. §12 requires answers to be "edited, revoked, or re-run"; an edit that
@@ -206,7 +219,32 @@ class StructuralAnswer:
                 "a structural answer may not be inferred. §12: it must never 'be "
                 "inferred silently from weak evidence'. The field is here so the "
                 "record can SAY it was confirmed, not so it can say it was not")
-        if self.state == CONFIRMED and not self.option_id:
+        check(self.answer_type, ANSWER_TYPES, name="answer_type")
+        if self.answer_type == FREE_TEXT:
+            if self.option_id:
+                raise AnswerNotPermitted(
+                    f"a free text answer names the option {self.option_id!r}. §16 "
+                    "requires that 'an unmatched answer must remain unmatched', and "
+                    "the whole of that guarantee here is that free text selects "
+                    "nothing: an answer that selected something would reach "
+                    "`answered_options`, and from there a schema activation nobody "
+                    "confirmed")
+            if self.state == CONFIRMED and not self.raw_wording:
+                raise AnswerNotPermitted(
+                    "a confirmed free text answer with no raw_wording says nothing, "
+                    "and would sit in the store looking like a settled decision")
+        elif self.raw_wording is not None:
+            raise AnswerNotPermitted(
+                "a choice answer carries raw_wording as well as an option. The two "
+                "types are alternatives: a reader could take either as the answer "
+                "and they need never agree")
+        if (self.applies_from and self.applies_until
+                and self.applies_until < self.applies_from):
+            raise AnswerNotPermitted(
+                f"the period {self.applies_from}..{self.applies_until} ends before "
+                "it starts. Nothing can be inside it, so it would silently disable "
+                "an answer the person believes they gave")
+        if self.state == CONFIRMED and self.answer_type == CHOICE and not self.option_id:
             raise AnswerNotPermitted(
                 "a confirmed answer names the option the person chose")
         if self.state in (SKIPPED, NOT_APPLICABLE) and self.option_id:

@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS structural_answers (
     state            TEXT NOT NULL
                      CHECK (state IN ('confirmed','skipped','not_applicable',
                                       'revoked')),
+    -- §21's "allowed answer types". `choice` is every row written before
+    -- 2026-08-30; `free_text` selects no option and therefore reaches no
+    -- consequence, which is §16's "an unmatched answer must remain unmatched".
+    answer_type      TEXT NOT NULL DEFAULT 'choice'
+                     CHECK (answer_type IN ('choice','free_text')),
+    -- §16:555: "store the raw user wording". NULL on every `choice` row.
+    raw_wording      TEXT,
+    -- §16:543: a role has "a scope and possibly a time period".
+    applies_from     TEXT,
+    applies_until    TEXT,
     -- §13: an answer must not be "reused outside its stated scope".
     scope            TEXT NOT NULL,
     user_id          TEXT NOT NULL,
@@ -101,19 +111,30 @@ QUESTIONS_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
     ("handling_class", "TEXT"),
 )
 
+#: The same, for `structural_answers`. `answer_type` carries a DEFAULT where
+#: `handling_class` deliberately does not, and the difference is the whole reason
+#: one is safe and the other is not: every answer written before this column existed
+#: IS a choice, so the default states a fact rather than guessing one.
+ANSWERS_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("answer_type", "TEXT NOT NULL DEFAULT 'choice'"),
+    ("raw_wording", "TEXT"),
+    ("applies_from", "TEXT"),
+    ("applies_until", "TEXT"),
+)
 
-def _migrate_questions(conn: sqlite3.Connection) -> None:
-    present = {row["name"] for row in
-               conn.execute("PRAGMA table_info(structural_questions)")}
+
+def _migrate(conn: sqlite3.Connection, table: str,
+             columns: tuple[tuple[str, str], ...]) -> None:
+    present = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
     if not present:
         return
-    for column, column_type in QUESTIONS_ADDED_COLUMNS:
+    for column, column_type in columns:
         if column not in present:
-            conn.execute(
-                f"ALTER TABLE structural_questions ADD COLUMN {column} {column_type}")
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
 
 
 def create_questions_schema(conn: sqlite3.Connection) -> None:
     """Create P15's tables if they are absent. Safe to call on every run."""
-    _migrate_questions(conn)
+    _migrate(conn, "structural_questions", QUESTIONS_ADDED_COLUMNS)
+    _migrate(conn, "structural_answers", ANSWERS_ADDED_COLUMNS)
     conn.executescript(QUESTIONS_DDL)

@@ -97,11 +97,13 @@ def record_answer(conn: sqlite3.Connection, answer: StructuralAnswer) -> str:
     answer_id = str(uuid.uuid4())
     conn.execute(
         "INSERT INTO structural_answers "
-        "(answer_id, question_id, option_id, state, scope, user_id, "
+        "(answer_id, question_id, option_id, answer_type, raw_wording, "
+        " applies_from, applies_until, state, scope, user_id, "
         " recorded_at, inferred, supersedes, supersede_reason) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (answer_id, answer.question_id, answer.option_id, answer.state,
-         answer.scope, answer.user_id, answer.recorded_at,
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (answer_id, answer.question_id, answer.option_id, answer.answer_type,
+         answer.raw_wording, answer.applies_from, answer.applies_until,
+         answer.state, answer.scope, answer.user_id, answer.recorded_at,
          1 if answer.inferred else 0, answer.supersedes, answer.supersede_reason))
     return answer_id
 
@@ -109,6 +111,8 @@ def record_answer(conn: sqlite3.Connection, answer: StructuralAnswer) -> str:
 def _answer_of(row: sqlite3.Row) -> StructuralAnswer:
     return StructuralAnswer(
         question_id=row["question_id"], option_id=row["option_id"],
+        answer_type=row["answer_type"], raw_wording=row["raw_wording"],
+        applies_from=row["applies_from"], applies_until=row["applies_until"],
         state=row["state"], scope=row["scope"], user_id=row["user_id"],
         recorded_at=row["recorded_at"], inferred=bool(row["inferred"]),
         supersedes=row["supersedes"], supersede_reason=row["supersede_reason"])
