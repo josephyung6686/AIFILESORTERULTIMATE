@@ -27,8 +27,21 @@ from extractors.dispatch import Readers
 from extractors.structured_text import TextDocument
 
 from readers.archive_zipfile import zipfile_reader
+from readers.capture import make_dimension_signal, make_filename_pattern
 from readers.docx_python_docx import python_docx_reader
+from readers.image_headers import header_image_reader
 from readers.pdf_pdfminer import pdfminer_reader
+
+#: Catalogue 03's proposed tolerance, and the only number this module chooses beyond
+#: Vision's. It is a **proposal**, recorded as one in the catalogue's own
+#: `unc-tolerance-value`: 0.5 % relative clears the widest real sensor deviation found
+#: (the Pixel-class 4080x3072, 0.39 % off nominal 4:3) with margin, while staying far
+#: inside the 6.7 % gap between 4:3 and 5:4 -- and it has never been measured against
+#: a real corpus. It lives here rather than in `src/readers/library/` because the
+#: catalogue says of it "it is a number, so it must not live inside `src/extractors/`
+#: either", and rather than being defaulted inside `make_dimension_signal` because a
+#: number with a default is a number nobody reviewed. NEEDS JOSEPH.
+SENSOR_RATIO_TOLERANCE: float = 0.005
 
 #: §2.7's three explicit Vision settings, as a `config` mapping. It is passed through
 #: to `extract_ocr`, stored on the run, and folded into §3.4's cache key -- so
@@ -84,9 +97,14 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # are worth listing is a deployment budget, and this deployment would
         # rather carry a long manifest than a truncated one it has to explain.
         "read_manifest": zipfile_reader(),
-        # No library shipped for these yet -- `None` is §2.4's `unsupported`.
+        # No library shipped for this yet -- `None` is §2.4's `unsupported`.
         "read_long_tail": _no_reader,
-        "read_image": _no_reader,
+        # §2.6's container header, from the standard library. Wired 2026-08-31: it
+        # was `_no_reader`, so `extract_image` returned `unsupported` on its second
+        # line and the two catalogue-fed keywords below were never called at all.
+        # This reader carries no EXIF, so §2.6's tier-1 band stays unavailable --
+        # `readers/image_headers.py` says why that is a stated limit and not a trap.
+        "read_image": header_image_reader(),
         # REACHED NOW, and still empty -- for a reason that has changed. It used to
         # be unreachable because `read_manifest` was unwired. It is now reached on
         # every archive and answers `()` because §2.5's marker set is DEFERRED in
@@ -96,9 +114,17 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # somebody else's section. The member paths themselves are already recorded
         # by `extract_archive`, so nothing is lost but the labelling.
         "recognize_markers": lambda names: (),
-        # Still unreachable: both belong to `read_image`, which ships no library.
-        "dimension_signal": lambda width, height: None,
-        "filename_pattern": lambda name: None,
+        # REACHED NOW. Both are catalogues 02, 03 and 04, finished on 2026-08-20 in
+        # `planning/deferred-catalogues/` and read by nothing until 2026-08-31:
+        # `grep -rn "deferred-catalogues" src` returned nothing at all, so a macOS
+        # screenshot was not recognised as a screen capture on any path, including
+        # under the situation literally named `photos.screenshot-captures`. The rows
+        # now ship in `readers/library/` and `readers/capture.py` compiles them; the
+        # catalogues' own `injection` fields are why they live here and never under
+        # `src/extractors/`, where Task 20 fails the build by runtime introspection.
+        "dimension_signal": make_dimension_signal(
+            tolerance=SENSOR_RATIO_TOLERANCE),
+        "filename_pattern": make_filename_pattern(),
         "find_structured_strings": find_structured_strings,
     }
     wired.update(overrides)

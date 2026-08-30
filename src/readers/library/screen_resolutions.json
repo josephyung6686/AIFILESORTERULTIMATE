@@ -1,0 +1,425 @@
+{
+  "_": "Lifted from planning/deferred-catalogues/02-screen-resolutions.json with its provenance wrappers removed and its provenance kept. SS2.6's \"exact display resolutions\", tier 3. Every `match` is the conventional landscape form; the matcher compares the UNORDERED pair, so the portrait form of one panel is the same row and `also_written` is not carried. Exact only -- no tolerance, because SS2.6's word is \"exact\". Rows are in the catalogue's own evaluation order; `provenance` is `design` only where the design quote in `design_cite` contains the row's own literal value, and `proposal` everywhere else.",
+  "entries": [
+    {
+      "id": "res-480x320",
+      "match": "480x320",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-640x480",
+      "match": "640x480",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-800x600",
+      "match": "800x600",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1024x600",
+      "match": "1024x600",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-960x640",
+      "match": "960x640",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1136x640",
+      "match": "1136x640",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1280x720",
+      "match": "1280x720",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1334x750",
+      "match": "1334x750",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1024x768",
+      "match": "1024x768",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1360x768",
+      "match": "1360x768",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1366x768",
+      "match": "1366x768",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1280x800",
+      "match": "1280x800",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1792x828",
+      "match": "1792x828",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1152x864",
+      "match": "1152x864",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1440x900",
+      "match": "1440x900",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1600x900",
+      "match": "1600x900",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1280x1024",
+      "match": "1280x1024",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1680x1050",
+      "match": "1680x1050",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1920x1080",
+      "match": "1920x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2160x1080",
+      "match": "2160x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2220x1080",
+      "match": "2220x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2280x1080",
+      "match": "2280x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2340x1080",
+      "match": "2340x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2400x1080",
+      "match": "2400x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2412x1080",
+      "match": "2412x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2560x1080",
+      "match": "2560x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3840x1080",
+      "match": "3840x1080",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2436x1125",
+      "match": "2436x1125",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2048x1152",
+      "match": "2048x1152",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2532x1170",
+      "match": "2532x1170",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2556x1179",
+      "match": "2556x1179",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1600x1200",
+      "match": "1600x1200",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-1920x1200",
+      "match": "1920x1200",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2622x1206",
+      "match": "2622x1206",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2688x1242",
+      "match": "2688x1242",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2778x1284",
+      "match": "2778x1284",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2796x1290",
+      "match": "2796x1290",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2868x1320",
+      "match": "2868x1320",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2992x1344",
+      "match": "2992x1344",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2304x1440",
+      "match": "2304x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2560x1440",
+      "match": "2560x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2960x1440",
+      "match": "2960x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3040x1440",
+      "match": "3040x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3120x1440",
+      "match": "3120x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3200x1440",
+      "match": "3200x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3440x1440",
+      "match": "3440x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-5120x1440",
+      "match": "5120x1440",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2266x1488",
+      "match": "2266x1488",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2048x1536",
+      "match": "2048x1536",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2560x1600",
+      "match": "2560x1600",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3840x1600",
+      "match": "3840x1600",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2160x1620",
+      "match": "2160x1620",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2880x1620",
+      "match": "2880x1620",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2360x1640",
+      "match": "2360x1640",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2560x1664",
+      "match": "2560x1664",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2224x1668",
+      "match": "2224x1668",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2388x1668",
+      "match": "2388x1668",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2880x1800",
+      "match": "2880x1800",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2880x1864",
+      "match": "2880x1864",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3024x1964",
+      "match": "3024x1964",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2732x2048",
+      "match": "2732x2048",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-2752x2064",
+      "match": "2752x2064",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3840x2160",
+      "match": "3840x2160",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-4096x2160",
+      "match": "4096x2160",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-3456x2234",
+      "match": "3456x2234",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-4096x2304",
+      "match": "4096x2304",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-4480x2520",
+      "match": "4480x2520",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-5120x2880",
+      "match": "5120x2880",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-6016x3384",
+      "match": "6016x3384",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    },
+    {
+      "id": "res-7680x4320",
+      "match": "7680x4320",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"exact display resolutions, PNG format, and software metadata may support a screenshot hypothesis\""
+    }
+  ]
+}

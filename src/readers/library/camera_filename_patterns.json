@@ -1,0 +1,375 @@
+{
+  "_": "Lifted from planning/deferred-catalogues/04-camera-filename-patterns.json with its provenance wrappers removed and its provenance kept. Matched against the STEM -- the filename with its final extension removed -- and evaluated in this order, first match wins. A pattern names a naming CONVENTION and never a media type: whether the file is a photograph or a screenshot is `media_type`, a Photos-domain fact, and P6's alone. `class` is carried for the reader of this file and is not returned to anything. Rows are in the catalogue's own evaluation order; `provenance` is `design` only where the design quote in `design_cite` contains the row's own literal value, and `proposal` everywhere else.",
+  "entries": [
+    {
+      "id": "fnp-android-img-timestamp",
+      "pattern": "^(IMG_\\d{8}_\\d{6})(?:_\\d+)?$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Android camera timestamp sequence (IMG_YYYYMMDD_HHMMSS)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-android-mvimg",
+      "pattern": "^(MVIMG_\\d{8}_\\d{6})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Google motion-photo sequence (MVIMG_YYYYMMDD_HHMMSS)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-android-pano",
+      "pattern": "^(PANO_\\d{8}_\\d{6})(?:_\\d+)?$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Android panorama sequence (PANO_YYYYMMDD_HHMMSS)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\"; catalogue 03 `unc-panorama`"
+    },
+    {
+      "id": "fnp-android-vid",
+      "pattern": "^(VID_\\d{8}_\\d{6})(?:_\\d+)?$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Android video timestamp sequence (VID_YYYYMMDD_HHMMSS)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\"; §2.9 audio and video"
+    },
+    {
+      "id": "fnp-samsung-timestamp",
+      "pattern": "^(\\d{8}_\\d{6})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Samsung Galaxy camera timestamp (YYYYMMDD_HHMMSS)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-pixel-pxl",
+      "pattern": "^(PXL_\\d{8}_\\d{9})(?:\\.[A-Z]+)?$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Google Pixel camera sequence (PXL_YYYYMMDD_HHMMSSsss)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-apple-img-edited",
+      "pattern": "^(IMG_E\\d{4,5})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Apple camera-roll edited copy (IMG_E####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\"; §2.9 \"duplicate and version-family signals\""
+    },
+    {
+      "id": "fnp-apple-dcf-img",
+      "pattern": "^(IMG_\\d{4,5})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Apple/DCF camera-roll sequence (IMG_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§1.2 \"`IMG_4821.png` may be a screenshot of a receipt, application portal, conversation, code error, or research figure\"; P5 SPEC Deferred \"`IMG_4821.png` is the design's example\""
+    },
+    {
+      "id": "fnp-dcf-mov",
+      "pattern": "^(MOV_\\d{4,5})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Apple/DCF camera-roll video sequence (MOV_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\"; §2.9 audio and video"
+    },
+    {
+      "id": "fnp-canon-dir-prefixed",
+      "pattern": "^(1\\d{2}_\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Canon directory-prefixed sequence (1NN_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-canon-adobergb",
+      "pattern": "^(_MG_\\d{4})$",
+      "case_sensitive": true,
+      "capture": 1,
+      "pattern_label": "Canon Adobe RGB sequence (_MG_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-canon-crw",
+      "pattern": "^(_?CRW_\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Canon RAW sequence (CRW_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-nikon-dsc",
+      "pattern": "^(_?DSC_\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Nikon DCF sequence (DSC_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-nikon-adobergb",
+      "pattern": "^(_DSC\\d{4})$",
+      "case_sensitive": true,
+      "capture": 1,
+      "pattern_label": "Nikon Adobe RGB sequence (_DSC####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-nikon-coolpix",
+      "pattern": "^(DSCN\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Nikon Coolpix sequence (DSCN####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-sony-dsc",
+      "pattern": "^(DSC\\d{5})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Sony DCF sequence (DSC#####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-fuji-dscf",
+      "pattern": "^(DSCF\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Fujifilm DCF sequence (DSCF####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-pentax-imgp",
+      "pattern": "^(IMGP\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Pentax DCF sequence (IMGP####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-panasonic-p",
+      "pattern": "^(P\\d{7})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Panasonic/Olympus DCF sequence (P#######)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-ricoh-r",
+      "pattern": "^(R\\d{7})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Ricoh DCF sequence (R#######)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-htc-imag",
+      "pattern": "^(IMAG\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "HTC camera sequence (IMAG####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-samsung-sam",
+      "pattern": "^(SAM_\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Samsung compact-camera sequence (SAM_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-gopro-gopr",
+      "pattern": "^(GOPR\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "GoPro single-capture sequence (GOPR####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-gopro-chaptered",
+      "pattern": "^(G[HXLP]\\d{6})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "GoPro chaptered sequence (GH/GX/GL/GP######)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-dji",
+      "pattern": "^(DJI_\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "DJI sequence (DJI_####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-dji-timestamp",
+      "pattern": "^(DJI_\\d{14}_\\d{4}_[A-Z])$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "DJI timestamped sequence (DJI_YYYYMMDDHHMMSS_####_X)",
+      "class": "camera_timestamp",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-pict",
+      "pattern": "^(PICT\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Legacy DCF sequence (PICT####)",
+      "class": "camera_file_system",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-whatsapp-img",
+      "pattern": "^(IMG-\\d{8}-WA\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "WhatsApp received image (IMG-YYYYMMDD-WA####)",
+      "class": "messaging",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"Messaging platforms and downloaded web images often strip metadata from real photographs\""
+    },
+    {
+      "id": "fnp-whatsapp-vid",
+      "pattern": "^(VID-\\d{8}-WA\\d{4})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "WhatsApp received video (VID-YYYYMMDD-WA####)",
+      "class": "messaging",
+      "provenance": "proposal",
+      "design_cite": "§2.6; §2.9 audio and video"
+    },
+    {
+      "id": "fnp-signal",
+      "pattern": "^(signal-\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}(?:-\\d{3})?)$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Signal exported attachment (signal-YYYY-MM-DD-HH-MM-SS)",
+      "class": "messaging",
+      "provenance": "proposal",
+      "design_cite": "§2.6"
+    },
+    {
+      "id": "fnp-macos-screenshot",
+      "pattern": "^(Screenshot \\d{4}-\\d{2}-\\d{2} at \\d{1,2}\\.\\d{2}\\.\\d{2}(?:[\\s\\u202f](?:AM|PM))?)$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "macOS screen-capture default filename (Ventura and later)",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-macos-screenshot-legacy",
+      "pattern": "^(Screen Shot \\d{4}-\\d{2}-\\d{2} at \\d{1,2}\\.\\d{2}\\.\\d{2}(?:[\\s\\u202f](?:AM|PM))?)$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "macOS screen-capture default filename (pre-Ventura, two words)",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-macos-screen-recording",
+      "pattern": "^(Screen Recording \\d{4}-\\d{2}-\\d{2} at \\d{1,2}\\.\\d{2}\\.\\d{2}(?:[\\s\\u202f](?:AM|PM))?)$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "macOS screen-recording default filename",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6; §2.9 audio and video"
+    },
+    {
+      "id": "fnp-windows-screenshot-numbered",
+      "pattern": "^(Screenshot \\(\\d+\\))$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Windows Win+PrtScn capture (Screenshot (N))",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-windows-snipping",
+      "pattern": "^(Screenshot \\d{4}-\\d{2}-\\d{2} \\d{6})$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Windows 11 Snipping Tool default filename",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-android-screenshot",
+      "pattern": "^(Screenshot_\\d{8}[-_]\\d{6})(?:_.*)?$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "Android screen-capture default filename (Screenshot_YYYYMMDD-HHMMSS)",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\""
+    },
+    {
+      "id": "fnp-cleanshot",
+      "pattern": "^(CleanShot \\d{4}-\\d{2}-\\d{2} at \\d{1,2}\\.\\d{2}\\.\\d{2}(?:@2x)?)$",
+      "case_sensitive": false,
+      "capture": 1,
+      "pattern_label": "CleanShot X default filename",
+      "class": "screen_capture",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"filename pattern\" and \"software metadata\""
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "_": "Lifted from planning/deferred-catalogues/03-sensor-aspect-ratios.json with its provenance wrappers removed and its provenance kept. SS2.6's \"sensor-shaped dimensions\", tier 2. `tolerance` is ABSENT on purpose -- catalogue 03's own unc-tolerance-value says \"it is a number, so it must not live inside src/extractors/ either\", and it has not been measured against a real corpus. It is injected at the place that decides numbers. `decimal` is absent too: it is the quotient of the two halves of `match` and a second copy could disagree with the first. Rows are in the catalogue's own evaluation order; `provenance` is `design` only where the design quote in `design_cite` contains the row's own literal value, and `proposal` everywhere else.",
+  "entries": [
+    {
+      "id": "ratio-4-3",
+      "match": "4:3",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"capture time, GPS, and sensor-shaped dimensions reinforce it\""
+    },
+    {
+      "id": "ratio-3-2",
+      "match": "3:2",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"sensor-shaped dimensions reinforce it\""
+    },
+    {
+      "id": "ratio-16-9",
+      "match": "16:9",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"sensor-shaped dimensions reinforce it\" vs \"exact display resolutions … may support a screenshot hypothesis\""
+    },
+    {
+      "id": "ratio-1-1",
+      "match": "1:1",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"sensor-shaped dimensions reinforce it\""
+    },
+    {
+      "id": "ratio-5-4",
+      "match": "5:4",
+      "provenance": "proposal",
+      "design_cite": "§2.6 \"sensor-shaped dimensions reinforce it\""
+    }
+  ]
+}
