@@ -15,12 +15,14 @@ from __future__ import annotations
 
 import ast
 import pathlib
+import re
 
 import pytest
 
 from database_agent.events import CORRECTION_SCOPES as P1_SCOPES
 
 from review_surface import vocabulary as v
+from review_surface.schema import _DDL
 
 
 def test_the_twelve_surfaces_are_the_spec_s_twelve():
@@ -129,6 +131,32 @@ def _documentation_strings(tree: ast.Module) -> set[int]:
     return documentation
 
 
+def _schema_columns() -> frozenset[str]:
+    """Every column P13's own DDL declares.
+
+    A vocabulary member and a column name can be the same string and mean two
+    different things: `plan_version` is both a SURFACE and a column on all three
+    tables. `row["plan_version"]` is a column reference, so the guard must judge
+    by ROLE, not by spelling -- narrowing it any other way would make the two
+    drift apart, which is the thing the guard exists to stop.
+    """
+    return frozenset(re.findall(r"^\s{4}(\w+)\s+(?:TEXT|INTEGER)", _DDL,
+                                re.MULTILINE))
+
+
+def _column_reference_keys(tree: ast.Module) -> set[int]:
+    """Every string constant used as a subscript key that names one of P13's
+    own columns. Identified by node identity, like the docstring exemption."""
+    columns = _schema_columns()
+    keys: set[int] = set()
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Subscript)
+                and isinstance(node.slice, ast.Constant)
+                and node.slice.value in columns):
+            keys.add(id(node.slice))
+    return keys
+
+
 def _bare_vocabulary_bindings(trees, *, home="vocabulary.py"):
     """Modules spelling a vocabulary member as a bare string.
 
@@ -141,11 +169,13 @@ def _bare_vocabulary_bindings(trees, *, home="vocabulary.py"):
         if path.name == home:
             continue
         documentation = _documentation_strings(tree)
+        columns = _column_reference_keys(tree)
         for node in ast.walk(tree):
             if (isinstance(node, ast.Constant)
                     and isinstance(node.value, str)
                     and node.value in members
-                    and id(node) not in documentation):
+                    and id(node) not in documentation
+                    and id(node) not in columns):
                 offenders.append(f"{path.name}:{node.lineno} {node.value!r}")
     return offenders
 
@@ -169,6 +199,13 @@ def test_a_module_binding_a_bare_vocabulary_member_is_rejected():
                for entry in _bare_vocabulary_bindings(_package_modules(), home=None)}
     assert without == {"vocabulary.py"}, (
         f"the vocabulary's one home is meant to be vocabulary.py; got {without}")
+    # The column exemption is real too, and narrow. A subscript key that is one
+    # of P13's columns is a column reference; a subscript key that is NOT is
+    # still a respelling and still caught.
+    assert not _bare_vocabulary_bindings(_fake('x = row["plan_version"]\n'))
+    assert _bare_vocabulary_bindings(_fake('x = table["canvas"]\n'))
+    assert "plan_version" in _schema_columns()
+    assert "canvas" not in _schema_columns()
 
 
 def test_the_three_event_names_are_the_registered_ones():
