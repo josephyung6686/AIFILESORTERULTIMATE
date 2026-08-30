@@ -425,7 +425,8 @@ def _call_dependencies(live: LiveRun) -> CallDependencies:
         split_shard_fits=(), split_shards=(),
         scan_budget=ScanBudget(
             scan_id=live.run.scan_run_id, corpus_file_count=1000,
-            max_calls_per_1000_files=5, max_estimated_cost=Decimal("10")),
+            max_calls_per_1000_files=5, max_estimated_cost=Decimal("10"),
+            min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
         allowed_vocabulary=("coherent",),
         policy_version=live.policy.policy_version)

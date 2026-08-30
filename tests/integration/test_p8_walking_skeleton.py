@@ -161,6 +161,7 @@ def walk(skeleton_conn, monkeypatch):
         scan_budget=ScanBudget(
             scan_id="scan-skeleton", corpus_file_count=1000,
             max_calls_per_1000_files=1, max_estimated_cost=Decimal("10"),
+            min_calls_per_scan=0,
         ),
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),

@@ -489,3 +489,42 @@ one; `ActivationSignals(())` is legal and yields universal fields only.
 suite are recorders returning fixed ids. Every other seam in this project was
 built against a working example. This one will not be, which is worth saying out
 loud before it is attempted.
+
+
+---
+
+## 14. Two owner rulings, 2026-08-30
+
+**Ruling 1 — a local model MAY read a file nothing has classified yet.**
+P7 SPEC open question 5 (`unclassified_permits_local`) is answered: **yes, for a
+LOCAL target only.** This is what breaks §13's chicken and egg — the scanned page
+has no facts so it is unclassified, it is unclassified so the gate refused it, and
+the model is what would have given it facts.
+
+What the ruling does NOT relax, and every one of these still denies a local call:
+`mode_forbids` still refuses every CLOUD target for every file in a local mode
+(`denial.py:151-157`); §7.3's protected-records carve-out "binds local calls too"
+(`denial.py:191`); a revoked policy, an always-local item and a whole-document
+request all still deny (`gate.py:157,171,252`); and a protected file whose scope
+has no consent grant still returns `NeedsConsent`. The ruling opens one door, for
+one locality, for files nobody has classified — and `classification.py:170-177`'s
+reasoning that absence "never resolves to `public_low`" is untouched, because an
+unclassified file is still not treated as public; it is treated as readable BY A
+MODEL THAT CANNOT SPEAK.
+
+Recorded here and applied at the Gate when the composition root builds P7's first
+real caller — which, per §13, does not exist yet anywhere in `src/`.
+
+**Ruling 2 — the call ceiling gains a floor.** `ScanBudget.min_calls_per_scan`,
+injected with no default like the rate beside it, and `allowed_calls` returns the
+GREATER of the rate's answer and the floor. `max` rather than a replacement: a
+floor must raise a small answer and never cap a large one, or a number meant to
+keep small corpora working would override the actual budget control.
+
+`0` is a real answer meaning "the rate alone decides", which is exactly the
+behaviour before the field existed. All eight pre-existing constructions pass it,
+so nothing changed for any test that was written before the question was asked.
+
+**Ruling 3 — the prompt is NOT approved yet**, and is to be researched deeply and
+stress-tested first, as detailed tasks. `76` is the requirements half. Nothing in
+`src/` contains prompt text and nothing calls a model.

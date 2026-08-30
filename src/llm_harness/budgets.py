@@ -104,6 +104,20 @@ class ScanBudget:
     corpus_file_count: int
     max_calls_per_1000_files: int
     max_estimated_cost: Decimal
+    #: The fewest calls this scan may make, whatever the rate works out to.
+    #:
+    #: A rate per thousand files cannot express "at least a few calls on a small
+    #: corpus", and without this every corpus smaller than `1000 / rate` files got
+    #: ZERO: `allowed_calls` floors to 0 and the reserve requires at least one, so
+    #: every call returned `BudgetExhausted` and every file abstained. A wired
+    #: model that abstains on everything is indistinguishable from a model nobody
+    #: wired.
+    #:
+    #: Injected like the rate beside it, and `0` is a real answer meaning "the rate
+    #: alone decides" -- which is exactly the behaviour before this field existed,
+    #: so a deployment that wants it can still have it and the floor cannot be
+    #: blamed for a corpus that was always going to get nothing.
+    min_calls_per_scan: int
 
     def __post_init__(self) -> None:
         if not self.scan_id:
@@ -113,6 +127,11 @@ class ScanBudget:
         if self.max_calls_per_1000_files < 0:
             raise ValueError(
                 f"{MAX_CALLS_PER_1000_FILES} is injected; a negative ceiling is not an echo"
+            )
+        if self.min_calls_per_scan < 0:
+            raise ValueError(
+                "min_calls_per_scan is injected; a negative floor is not an echo "
+                "either, and there is no number of calls below none"
             )
         _require_finite_non_negative_decimal(
             self.max_estimated_cost, name=MAX_ESTIMATED_COST_PER_SCAN,
@@ -145,8 +164,18 @@ def create_budget_schema(conn: sqlite3.Connection) -> None:
 
 
 def allowed_calls(budget: ScanBudget) -> int:
-    return math.floor(
-        budget.corpus_file_count * budget.max_calls_per_1000_files / 1000
+    """The ceiling, never below the scan's floor.
+
+    `max` and not a replacement: the floor RAISES a small answer and must never
+    cap a large one, or the per-thousand rate -- which is the actual budget
+    control -- would be overridden by a number meant only to keep small corpora
+    working at all.
+    """
+    return max(
+        math.floor(
+            budget.corpus_file_count * budget.max_calls_per_1000_files / 1000
+        ),
+        budget.min_calls_per_scan,
     )
 
 

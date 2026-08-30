@@ -285,6 +285,7 @@ def _budget(*, files: int = 1000, rate: int = 1, cost: str = "10") -> ScanBudget
         corpus_file_count=files,
         max_calls_per_1000_files=rate,
         max_estimated_cost=Decimal(cost),
+        min_calls_per_scan=0,
     )
 
 

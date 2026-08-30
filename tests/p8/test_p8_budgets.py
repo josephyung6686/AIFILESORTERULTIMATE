@@ -51,12 +51,13 @@ def budget_conn(p8_conn):
 
 
 def _budget(*, scan_id: str = "scan-1", files: int = 1000,
-            rate: int = 1, cost: str = "10") -> ScanBudget:
+            rate: int = 1, cost: str = "10", floor: int = 0) -> ScanBudget:
     return ScanBudget(
         scan_id=scan_id,
         corpus_file_count=files,
         max_calls_per_1000_files=rate,
         max_estimated_cost=Decimal(cost),
+        min_calls_per_scan=floor,
     )
 
 
@@ -475,3 +476,44 @@ def test_budgets_contain_no_client_prompt_or_default_ceiling():
     assert "def normalize(" not in source
     assert "def contradicts(" not in source
     assert "4000" not in source
+
+
+# --- the floor a small corpus needs ------------------------------------------------
+
+
+def test_a_small_corpus_still_gets_the_calls_its_floor_allows():
+    """`allowed_calls` is `floor(files * rate / 1000)` and the reserve requires at
+    least one, so EVERY corpus smaller than `1000 / rate` files gets zero.
+
+    The rate is right for the disk §8.6 was written about -- twenty thousand files
+    -- and silently forbids all model work on a small one. Measured: an eight-file
+    corpus at any sane rate floors to 0, every call returns `BudgetExhausted`, and
+    every file abstains. A wired model that abstains on everything is
+    indistinguishable from a model nobody wired, which is the failure this floor
+    exists to stop.
+
+    A rate alone cannot express "at least a few calls on a small corpus"; it is a
+    second quantity and it is injected like the first.
+    """
+    from llm_harness.budgets import allowed_calls
+
+    assert allowed_calls(_budget(files=8, rate=4, floor=2)) == 2
+
+
+def test_the_floor_never_lowers_a_large_corpuss_ceiling():
+    """The twin. A floor raises a small answer and must never cap a big one --
+    otherwise the per-thousand rate, which is the actual budget control, would be
+    overridden by a number meant only to keep small corpora working."""
+    from llm_harness.budgets import allowed_calls
+
+    assert allowed_calls(_budget(files=20_000, rate=4, floor=2)) == 80
+
+
+def test_a_floor_of_zero_is_the_old_behaviour_exactly():
+    """The other twin, and the one that makes the floor honest: a deployment that
+    wants the rate alone says so with zero, and gets precisely what it got before
+    this existed. The floor cannot be blamed for a corpus that was always going to
+    get nothing."""
+    from llm_harness.budgets import allowed_calls
+
+    assert allowed_calls(_budget(files=8, rate=4, floor=0)) == 0

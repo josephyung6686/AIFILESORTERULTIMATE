@@ -542,7 +542,8 @@ def _live_dependencies(policy_version, key):
         split_shards=(),
         scan_budget=ScanBudget(
             scan_id="scan-p9", corpus_file_count=1000,
-            max_calls_per_1000_files=4, max_estimated_cost=Decimal("10")),
+            max_calls_per_1000_files=4, max_estimated_cost=Decimal("10"),
+            min_calls_per_scan=0),
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),
         allowed_vocabulary=("coherent",),
