@@ -1069,6 +1069,72 @@ def test_a_structured_identifier_corroborates_the_one_term_that_named_a_schema(
     assert outcome.schema_id == "academic"
 
 
+def test_an_identifier_cannot_seal_a_file_on_a_word_that_only_surrounds_it(
+        db, tmp_path):
+    """The last door out of the over-protection incident, and the same evidence.
+
+    `never_alone` read literally says one signal never activates a schema, and
+    `_precaution` says a safety domain that is merely MENTIONED is not a safety
+    domain -- a rule adopted after `finance`'s context term `credit`, out of
+    "credit hours", marked two university syllabi `sensitive_personal`. The
+    identifier branch walks around both: it turns ONE term into `00`'s arity, the
+    schema wins outright, and a schema that wins has its handling applied with no
+    guard in between.
+
+    Measured against the SHIPPED manifest: `IMG_4471.pdf`, whose whole text is
+    "Rome, the balance of light", carrying a reference code, came back
+    `sensitive_personal, protected=True`. One word that SURROUNDS a financial
+    document, plus a code that says nothing about which schema it belongs to.
+
+    The identifier a deployment ships is schema-agnostic -- `PHYS1401` and
+    `INV-20240117` are the same shape to it -- so it cannot be the second signal
+    that seals a file. `00`'s own worked example is untouched: a course code
+    still seconds academic CONTEXT such as 'syllabus' or 'credits', because what
+    that produces is a course fact and not a locked door. The narrowing is the
+    shape of the OUTCOME, and it is the same test the other two doors already
+    apply.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "IMG_4471.pdf", body="Rome, the balance of light.",
+        identifier="ABC 4471002")
+    det = detector(rules,
+                   corroborating_observations=_identifier_keys(db, "ABC 4471002"))
+
+    outcome = det.explain(db, file_id, content_hash)
+    record = det(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention), (
+        f"one word and a reference code activated a safety domain: {outcome}")
+    assert record is None, (
+        f"a holiday photograph was sealed as financial material: {record}")
+
+
+def test_an_identifier_still_seconds_a_term_that_says_what_the_file_is(db, tmp_path):
+    """The negative twin. The narrowing is about WHICH term, never about safety
+    domains being uncorroborable.
+
+    A passport whose text names a passport and carries its own number is exactly
+    the pattern-plus-term shape `00` describes, and it must still reach a
+    recognition rather than an abstention -- otherwise the fix above has bought
+    an over-protection cure by making the safety domains unrecognisable, which is
+    the trade this project must never make.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "IMG_0087.pdf", body="Passport. X12345678.",
+        identifier="X12345678")
+    det = detector(rules,
+                   corroborating_observations=_identifier_keys(db, "X12345678"))
+
+    outcome = det.explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Recognition), (
+        f"a passport naming itself and carrying its own number abstained: "
+        f"{outcome}")
+    assert outcome.schema_id == "identity", outcome
+
+
 def test_a_structured_identifier_cannot_break_a_tie_between_two_schemas(
         db, tmp_path):
     """The negative twin that matters most, and the reason this is not the

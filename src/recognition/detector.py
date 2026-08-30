@@ -458,8 +458,34 @@ class Detector:
             # rather than to this one, because the door where a schema WINS had
             # the same hole and a rule with two homes is this project's own named
             # defect.
-            if any(key not in matched_keys for key in
-                   self._corroborating(conn, file_id, content_hash)):
+            # AND IT MAY NOT SECOND A WORD THAT ONLY SURROUNDS A SAFETY DOMAIN.
+            # `00`'s worked example is a course code together with academic
+            # context -- 'syllabus', 'lecture', 'credits' -- and what it produces
+            # is a course fact. For one of `00`'s four safety domains the same
+            # arithmetic produces `protected=True`: a locked door, the heaviest
+            # outcome this detector can reach. `_precaution` and the
+            # winning-schema guard both already refuse that outcome on a term
+            # that merely accompanies such a document -- the rule adopted after
+            # `finance`'s context term `credit`, out of "credit hours", marked
+            # two university syllabi `sensitive_personal`. This branch was the
+            # one door left where that same evidence still got through, because
+            # a corroborated term reaches arity and a schema at arity WINS.
+            #
+            # Measured against the shipped manifest: `IMG_4471.pdf`, whose whole
+            # text is "Rome, the balance of light", carrying a reference code,
+            # came back `sensitive_personal, protected=True`. One word that
+            # surrounds a financial document, plus a code that says nothing about
+            # which schema it belongs to.
+            #
+            # Only the safety domains are narrowed, and the narrowing is the
+            # shape of the OUTCOME rather than a doubt about the evidence:
+            # `00`'s example still executes unchanged for every ordinary schema.
+            leader = leaders[0]
+            corroborable = leader not in SAFETY_DOMAIN_IDS or leader in (
+                self._safety_readings_in_evidence(conn, file_id, content_hash))
+            if corroborable and any(
+                    key not in matched_keys for key in
+                    self._corroborating(conn, file_id, content_hash)):
                 best = 2
 
         if best < 2:
