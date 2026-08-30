@@ -999,6 +999,79 @@ def test_a_folder_name_alone_never_says_what_the_files_inside_it_are(db, tmp_pat
         f"a folder name sealed an ordinary photograph as protected: {record}")
 
 
+def test_a_directory_ABOVE_THE_SCANNED_ROOT_carries_no_file_into_a_domain(
+        db, tmp_path):
+    """The real scope of the rule above, and it is not "a folder in the corpus".
+
+    P4's `path` locator holds the file's ABSOLUTE path, so the ancestors it names
+    run past the directory the person actually asked about and up to the root of
+    the disk. A reader who assumes the defect is a badly named folder INSIDE the
+    corpus will leave this door open, and it is the one that matters: someone who
+    keeps their files in `~/Documents/legal/` has nowhere to put a folder that
+    escapes it, because the words are above everything they can move.
+
+    The minimal case, hand-verified through `src/cli.py`. `set aside` is a
+    `law_practice` term -- setting aside a judgment -- and a holding directory
+    called `set_aside`, never scanned, never named on the command line, no part
+    of the tree the person asked about, decided the reading of the files two
+    levels below it. Neither `set` nor `aside` alone is a term: the match is on
+    the two-word phrase, joined across the `_` by `_tokens`, which "separates on
+    everything that is not a letter or digit" and is applied identically to the
+    rule side and the evidence side.
+
+    So the fix is about the WEIGHT a path observation carries and never about the
+    spelling it is compared under -- the twin below is what holds that line, and
+    the tokenisation is the same one that made the work-type repair work.
+
+    Measured, three files and one question: the run under a `plain` holder asked
+    "What kind of material is CV20261234?" and the run under `set_aside` did not
+    ask it at all. What the directory suppressed was not a label but a QUESTION,
+    which is the design's whole abstention posture defeated without a word to the
+    person.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    det = detector(rules)
+    file_id, content_hash = a_file(
+        db, tmp_path, "IMG_0001.jpg", extension=".jpg", source_type="image",
+        # `corpus` is the directory the person scanned. Both loaded words are
+        # ABOVE it, and the file's own name says nothing at all.
+        abspath="/Users/jo/set_aside/witness statements/corpus/IMG_0001.jpg")
+
+    outcome = det.explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention) and outcome.reason == "no_evidence", (
+        "two words in directories ABOVE the scanned root carried a file that "
+        f"says nothing about itself into a domain: {outcome}")
+    assert det(db, file_id, content_hash) is None
+
+
+def test_the_same_underscored_phrase_in_the_files_own_name_still_matches(
+        db, tmp_path):
+    """The twin the ancestor rule needs, and it guards the TOKENISER.
+
+    The tempting wrong fix is to stop `set_aside` matching `set aside` at all --
+    to change the spelling terms are compared under rather than the weight a path
+    observation carries. It would pass the test above and quietly disarm every
+    multi-word term against every real filename, which is the repair that made
+    the safety work types reachable in the first place.
+
+    So: the same two words, the same underscore, in the file's OWN name, still
+    reach `law_practice`. Asserted on `explain`'s named reading rather than on a
+    handling class, because `00` states one for no ordinary schema and this test
+    is about recognition.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "set_aside order.txt", extension=".txt",
+        abspath="/Users/jo/Documents/plain/corpus/set_aside order.txt")
+
+    outcome = detector(rules).explain(db, file_id, content_hash)
+
+    assert outcome.schema_id == "law_practice", (
+        "an underscored two-word term in the file's own name stopped matching; "
+        f"the narrowing reached the tokeniser instead of the path: {outcome}")
+
+
 def test_the_same_words_in_the_files_own_name_still_classify_it(db, tmp_path):
     """The negative twin. The rule is about WHOSE words they are, not which words.
 
