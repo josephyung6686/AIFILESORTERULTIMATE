@@ -58,6 +58,7 @@ def _apply(conn, plan, fixture_root, clock, ids, **overrides):
         conflict_copies=lambda path: (), dataless_of=lambda path: False,
         normalize_filename=lambda name: name, scan_state="included",
         materialized=True, component_version="p12-test", user_id=None,
+        approval_for=lambda plan_id: None,
         unverified_copy_disposition=DISPOSITION, now=clock, mint_id=ids)
     kwargs.update(overrides)
     return apply_plan(conn, plan, **kwargs)

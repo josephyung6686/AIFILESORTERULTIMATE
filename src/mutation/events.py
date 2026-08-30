@@ -27,8 +27,8 @@ from database_agent.events import append_event
 from evidence_shape.canonical import canonical_json
 
 from mutation.vocabulary import (
-    EXECUTED_MOVE, FAILED_MOVE, FAILURE_CLASSES, SUBSYSTEM, check,
-    decline_message,
+    EXECUTED_MOVE, FAILED_MOVE, FAILURE_CLASSES, REFUSED_MOVE, SUBSYSTEM,
+    check, decline_message,
 )
 
 
@@ -68,4 +68,37 @@ def record_failed_move(conn: sqlite3.Connection, *, failure_class: str,
         explanation=canonical_json({
             "failure_class": failure_class,
             "message": decline_message(f"failed:{failure_class}"),
+            **dict(detail)}))
+
+
+def record_refused_move(conn: sqlite3.Connection, *, outcome: str,
+                        file_id: str, content_hash: str,
+                        source_path: str, destination_path: str | None,
+                        observed_at: str, component_version: str,
+                        user_id: str | None,
+                        detail: Mapping[str, object]) -> int:
+    """`refused move`: nothing was attempted, and a rule is why.
+
+    `outcome` is a member of `DECLINABLE_OUTCOMES` -- one of Contract out §5's
+    ten refusal classes, one of §8.3's five staleness triggers spelled
+    `stale:<trigger>`, or one of the two pause reasons spelled
+    `paused:<reason>`. `74` §3.3 makes all three families refusals of the same
+    kind to the person: the move did not run, nothing was touched, and here is
+    what you can do. `decline_message` supplies `66` §10's distinct sentence and
+    RAISES on anything outside the table, so a refusal with no sentence for the
+    person cannot be written at all.
+
+    A FAILURE class handed here is rejected by that same lookup, because the
+    failure table is keyed `failed:<class>` and a bare class is not in it. That
+    is the guard in the other direction from `record_failed_move`'s: neither
+    writer can be talked into the other's event.
+    """
+    return append_event(
+        conn, event_type=REFUSED_MOVE, file_id=file_id,
+        content_hash=content_hash, old_path=source_path,
+        new_path=destination_path, subsystem=SUBSYSTEM,
+        component_version=component_version, observed_at=observed_at,
+        user_id=user_id,
+        explanation=canonical_json({
+            "outcome": outcome, "message": decline_message(outcome),
             **dict(detail)}))

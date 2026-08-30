@@ -138,7 +138,27 @@ def ids():
     return lambda: f"id-{next(counter)}"
 
 
-def plan_a_move(conn, landscape, ids, *, volume_of):
+def classify(conn, file_id, content_hash, *, handling_class, protected):
+    """One P7 classification row for one file version.
+
+    Every suite from Wave E3 onward needs this and not because of a fixture
+    convenience: `privacy.moves.may_move_automatically` checks ABSENCE first, so
+    a file nothing has classified is refused, which is the correct posture on a
+    corpus with no detector (`74` §5.3) and not the state a suite about the
+    transaction wants to be in.
+    """
+    from privacy.classification_store import (
+        ClassificationRecord, ClassificationStore,
+    )
+    return ClassificationStore(conn).write(ClassificationRecord(
+        file_id=file_id, content_hash=content_hash,
+        handling_class=handling_class, protected=protected, basis="user",
+        evidence_refs=(), reliability_state="direct", observed_at=FIXED_CLOCK))
+
+
+def plan_a_move(conn, landscape, ids, *, volume_of,
+                review_policy=None, handling_class="personal_non_sensitive",
+                protected=False, classified=True, name="Syllabus.pdf"):
     """A real file, a real P1 row, and a recorded plan for it.
 
     Returns `(plan, source_path)`. `volume_of` is the caller's oracle and has no
@@ -155,22 +175,27 @@ def plan_a_move(conn, landscape, ids, *, volume_of):
     from mutation.plan import build_plan, record_plan
     from mutation.vocabulary import PRESERVE_BOTH_DETERMINISTIC_SUFFIX
 
-    source = landscape["root_documents"] / "Inbox" / "Syllabus.pdf"
-    source.parent.mkdir(parents=True)
+    source = landscape["root_documents"] / "Inbox" / name
+    source.parent.mkdir(parents=True, exist_ok=True)
     source.write_bytes(b"PHYS1401 syllabus")
     stat = source.stat()
     file_id = record_file(
-        conn, source, filename="Syllabus.pdf",
-        normalized_filename="syllabus.pdf", extension=".pdf",
+        conn, source, filename=name,
+        normalized_filename=name.casefold(), extension=source.suffix,
         observed_size=stat.st_size, observed_timestamps=str(stat.st_mtime),
         parent_folder_context="Inbox", mime_type="application/pdf",
         detected_format="pdf", scan_state="included", materialized=True)
     content_hash = conn.execute(
         "SELECT content_hash FROM files WHERE file_id = ?",
         (file_id,)).fetchone()[0]
+    if classified:
+        classify(conn, file_id, content_hash, handling_class=handling_class,
+                 protected=protected)
+    golden = next(item for item in GOLDEN_DECISIONS if item.outcome == PLACE)
     decision = dataclasses.replace(
-        next(item for item in GOLDEN_DECISIONS if item.outcome == PLACE),
+        golden,
         destination=Destination(node_id="n-phys", node_role="ordinary"),
+        review_policy=review_policy or golden.review_policy,
         subject=Subject(kind="file", file_id=file_id, content_hash=content_hash,
                         group_id=None, member_file_ids=()))
     built = build_plan(

@@ -39,6 +39,10 @@ def _apply(conn, plan, **overrides):
         conflict_copies=lambda path: (),
         dataless_of=lambda path: False,
         normalize_filename=lambda name: name,
+        # `auto_eligible` needs no approval; the lookup is still required and
+        # still returns `None`, which is what E3 proves refuses a plan that
+        # DOES demand one.
+        approval_for=lambda plan_id: None,
         # A same-volume plan can never leave an unconfirmed copy, so `74` §8
         # Q7's disposition is genuinely not needed here -- and `None` proves it
         # is not silently required of every caller.
@@ -226,7 +230,7 @@ def test_a_run_is_bounded_and_the_bound_has_no_default(
         max_suffix_attempts=8, extra_protected=None,
         conflict_copies=lambda path: (), dataless_of=lambda path: False,
         normalize_filename=lambda name: name, scan_state="included",
-        unverified_copy_disposition=None,
+        unverified_copy_disposition=None, approval_for=lambda plan_id: None,
         materialized=True, component_version="p12-test", user_id=None,
         source_root=fixture_root, destination_root=fixture_root,
         now=clock, mint_id=ids)

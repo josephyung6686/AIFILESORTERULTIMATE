@@ -39,6 +39,7 @@ import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 from database_agent.files_table import get_file, observe_path
 from database_agent.verify import VerificationPoint, verify_content
@@ -46,11 +47,14 @@ from evidence_shape.canonical import canonical_json
 from scan_agent.basic_record import parent_folder_context
 
 from mutation.collision import find_collision, record_collision, resolve_collision
+from mutation.approval import ReviewApproval, approval_verdict, protection_verdict
 from mutation.constraints import FilesystemConstraints
 from mutation.cross_volume import (
     UnverifiedCopyDispositionRequired, copy_and_confirm,
 )
-from mutation.events import record_executed_move, record_failed_move
+from mutation.events import (
+    record_executed_move, record_failed_move, record_refused_move,
+)
 from mutation.plan import MovePlan
 from mutation.preconditions import evaluate_preconditions
 from mutation.resolution import resolution_by_id
@@ -72,6 +76,11 @@ _RESULT_DETAILS: Mapping[str, tuple[str, ...]] = {
     PAUSED: PAUSE_REASONS,
     FAILED: FAILURE_CLASSES,
 }
+
+
+#: An empty, immutable detail. A default argument that is a fresh `{}` would be
+#: a mutable default; a module-level `{}` would be one any caller could fill.
+_NO_DETAIL: Mapping[str, object] = MappingProxyType({})
 
 
 class BatchPolicyRequired(RuntimeError):
@@ -290,6 +299,7 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
                extra_protected: Callable[[Path], bool] | None,
                conflict_copies: Callable[[Path], tuple[str, ...]],
                dataless_of: Callable[[Path], bool],
+               approval_for: Callable[[str], ReviewApproval | None],
                constraints: FilesystemConstraints,
                suffix_for: Callable[[str, int], str],
                max_suffix_attempts: int,
@@ -304,9 +314,20 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
     """One transaction for one plan. Returns its record; writes it and its events.
 
     The order is `00`:153-156's and is not rearrangeable: special objects, then
-    the precondition at V1, then the collision, then the precondition again at
-    V2, then the directories, then the move, then P1's observation, then V3, then
+    §8.4's permission to move this file at all, then the precondition at V1,
+    then the collision, then the precondition again at V2, then P13's approval,
+    then the directories, then the move, then P1's observation, then V3, then
     the journal. Every stop before the move leaves the disk exactly as it was.
+
+    **Where the approval gate sits is load-bearing.** Contract out §5:
+    `review_policy_unsatisfied` is evaluated at the pre-apply recheck ONLY,
+    because §8.3 requires the plan to be built so it can be shown. Putting it
+    after V2 is also what makes SPEC rule 3 true by construction -- a plan that
+    is also stale never reaches the approval question at all, so an approval
+    cannot lift a staleness refusal even if someone wanted it to.
+
+    `approval_for` is injected and returns `None` when nobody has answered. That
+    `None` is the refusal: absence is never a default (SPEC, From P13).
     """
     started = now()
     source = Path(plan.expected_source_path)
@@ -329,7 +350,16 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
     def stopped(result: str, *, mode: str | None = None,
                 v1: str | None = None, v2: str | None = None,
                 v4: bool | None = None,
-                final: str | None = None) -> ExecutionRecord:
+                final: str | None = None,
+                detail: Mapping[str, object] = _NO_DETAIL,
+                announce: bool = True) -> ExecutionRecord:
+        """Record one stop, and tell the person about it.
+
+        `announce` is False only where a `failed move` has already been
+        appended: `66` §19 wants every movement action visible afterwards, and
+        two rows for one stop would make the activity list say it happened
+        twice.
+        """
         record = ExecutionRecord(
             plan_id=plan.plan_id, mode=mode, hash_at_preparation=v1,
             hash_immediately_before_move=v2, hash_after_completion=None,
@@ -339,6 +369,18 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
             finished_at=now())
         record_execution(conn, record, plan_version=plan.organization_plan_version,
                          record_id=mint_id())
+        if announce:
+            kind, _, tail = result.partition(":")
+            record_refused_move(
+                conn, outcome=(tail if kind == REFUSED else result),
+                file_id=plan.file_id, content_hash=plan.expected_content_hash,
+                source_path=plan.expected_source_path,
+                destination_path=plan.resolved_destination_path,
+                observed_at=record.finished_at,
+                component_version=component_version, user_id=user_id,
+                detail={"plan_id": plan.plan_id,
+                        "plan_version": plan.organization_plan_version,
+                        "result": result, **dict(detail)})
         return record
 
     objects = inspect_objects(
@@ -347,9 +389,18 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
         extra_protected=extra_protected, conflict_copies=conflict_copies,
         dataless_of=dataless_of)
     if objects.refusal_class is not None:
-        return stopped(result_of(REFUSED, objects.refusal_class))
+        return stopped(result_of(REFUSED, objects.refusal_class),
+                       detail=objects.detail)
     if objects.pause_reason is not None:
-        return stopped(result_of(PAUSED, objects.pause_reason))
+        return stopped(result_of(PAUSED, objects.pause_reason),
+                       detail=objects.detail)
+
+    # §8.4, before anything is hashed: may this file be moved automatically at
+    # all? P7 decides; P12 reports and picks no winner (`74` §5.3, §5.4).
+    protection = protection_verdict(conn, plan)
+    if not protection.satisfied:
+        return stopped(result_of(REFUSED, protection.refusal_class),
+                       detail=protection.detail)
 
     prepare = evaluate_preconditions(
         conn, plan, checkpoint=PREPARE,
@@ -388,6 +439,12 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
         return stopped(result_of(STALE, pre_apply.trigger),
                        v1=prepare.checkpoint_hash)
 
+    approval = approval_verdict(plan, approval_for(plan.plan_id))
+    if not approval.satisfied:
+        return stopped(result_of(REFUSED, approval.refusal_class),
+                       v1=prepare.checkpoint_hash,
+                       v2=pre_apply.checkpoint_hash, detail=approval.detail)
+
     created = _create_directories(final.parent)
 
     confirmed: bool | None = None
@@ -409,7 +466,7 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
             stop = stopped(result_of(FAILED, V4_DESTINATION_UNCONFIRMED),
                            mode=mode, v1=prepare.checkpoint_hash,
                            v2=pre_apply.checkpoint_hash, v4=False,
-                           final=outcome.unverified_copy_path)
+                           final=outcome.unverified_copy_path, announce=False)
             record_failed_move(
                 conn, failure_class=V4_DESTINATION_UNCONFIRMED,
                 file_id=plan.file_id,
