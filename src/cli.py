@@ -88,8 +88,8 @@ from questions.triggers import (
 from questions.vocabulary import CONFIRMED, REVOKED, SCOPE_BRANCH, SKIPPED
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
-    bootstrap_p1_p7, load_shipped_catalogue, read_packaged_library_file,
-    schema_for_situation,
+    bootstrap_p1_p7, load_shipped_catalogue, nearest_situations,
+    read_packaged_library_file, schema_for_situation, shipped_situations,
     run_production_corpus,
 )
 from readers.deployment import macos_readers
@@ -1049,10 +1049,17 @@ def _validate_situation(catalogue: TemplateCatalogue, situation: str) -> str:
     known = {signal for row in catalogue.applicabilities.values()
              for signal in row.detection_signal_refs}
     if ref not in known:
+        # The names this one nearly is, when there are any. A refusal saying
+        # only how many situations exist leaves somebody who dropped a letter to
+        # find it again in a list of 208, and `nearest_situations` offers
+        # nothing at all rather than a wrong name -- a person pastes what this
+        # prints, so a confident bad suggestion is worse than none.
+        nearby = nearest_situations(catalogue, situation, limit=3)
         raise NotConfigured(
             f"{situation!r} names no situation the shipped template library "
-            f"recognises. It carries {len(known)}; "
-            f"`--list-situations` prints them.")
+            f"recognises. It carries {len(known)}, and `--list-situations` "
+            f"prints them with what each one files."
+            + (f"\n  Did you mean: {', '.join(nearby)}" if nearby else ""))
     return ref
 
 
@@ -2216,9 +2223,25 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
 
     catalogue = load_shipped_catalogue(read_packaged_library_file)
     if args.list_situations:
-        for signal in sorted({s for row in catalogue.applicabilities.values()
-                              for s in row.detection_signal_refs}):
-            print(signal.removeprefix("recognition:"), file=out)
+        # Under the domain each one is FILED under, with the folder levels it
+        # would build beside it. The flat alphabetical column this replaced
+        # printed 208 bare names, which asks a person to already know which one
+        # they want in order to find it -- the closed door this flag exists to
+        # open. Nothing here is written for the listing: the domain and the
+        # labels are both the library's own.
+        situations = shipped_situations(catalogue)
+        for schema in dict.fromkeys(row.schema for row in situations):
+            rows = [row for row in situations if row.schema == schema]
+            # Per domain and not across all of them: one 47-character name in
+            # `business_operations` would otherwise indent every other line in
+            # the listing to clear it.
+            width = max(len(row.name) for row in rows)
+            print(f"\n{schema}", file=out)
+            for row in rows:
+                print(f"  {row.name:<{width}}   {' / '.join(row.folder_levels)}",
+                      file=out)
+        print(f"\n{len(situations)} situations. Pass one to --situation. The "
+              "words beside each are the folders it would build.", file=out)
         return 0
 
     # The requirement argparse could not express. Same message and same exit code

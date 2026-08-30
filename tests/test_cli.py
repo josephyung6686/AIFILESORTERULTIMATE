@@ -41,9 +41,23 @@ def test_listing_the_situations_needs_nothing_else():
     assert code == 0, printed
     lines = [line for line in printed.splitlines() if line.strip()]
     assert lines, "the shipped library carries situations and none were printed"
-    assert "academic.coursework" in lines, lines[:20]
+    # Each situation is now indented under the domain it is filed under, with
+    # the folder levels it would build beside it, so the name is the first token
+    # of an indented line rather than the whole line.
+    names = [line.split()[0] for line in lines if line.startswith("  ")]
+    assert "academic.coursework" in names, names[:20]
     # Printed for a human to copy into `--situation`, so no internal prefix.
-    assert not [line for line in lines if line.startswith("recognition:")]
+    assert not [name for name in names if name.startswith("recognition:")]
+    # And the thing the listing exists to say. A bare column of 208 names asks a
+    # person to already know which one they want in order to find it, which is
+    # the closed door this flag was invented to open -- so a name printed with
+    # nothing beside it is the regression to catch.
+    coursework = next(line for line in lines
+                      if line.strip().startswith("academic.coursework"))
+    assert coursework.split(maxsplit=1)[1].strip(), coursework
+    assert not [line for line in lines
+                if line.startswith("  ") and len(line.split()) < 2], (
+        "a situation was printed with no indication of what it files")
 
 
 def test_a_real_run_still_refuses_to_guess_the_situation():
