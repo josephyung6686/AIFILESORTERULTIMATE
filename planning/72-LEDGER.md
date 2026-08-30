@@ -352,3 +352,42 @@ time a real scan had ever gone through the live path -- crashed the whole corpus
 were stored under one name and each span resolved against the wrong one. Fixed
 (`d6ffee7`). Invisible for the life of the project because every OCR fixture used
 `region=1`, the one shape a real scan never has.
+
+
+---
+
+## 12. How `74` and `75` connect (checked 2026-08-30)
+
+The two plans were written in parallel and neither read the other. Both are sound
+alone; two things bind them, and both would bite whoever picks up the second plan
+first.
+
+**1. `75` B3's guard is `74`'s to delete, and only `74` can.**
+`75` B3 ships `test_no_question_option_requires_review_while_nothing_reads_it` —
+a test that FAILS the day `requires_review` gains a producer, on the discipline
+that a consequence with no reader is how a question comes to be asked for no
+reason. It says the guard "is deleted in the same commit that adds P13's reader".
+P13's review queue is `74` Wave A/B. **So a correct `74` change turns the suite
+red until that guard goes with it**, and `74` does not mention the guard because
+it did not know it existed. Whoever lands P13's queue deletes `75` B3 in the same
+commit; the guard is doing its job when it fires.
+
+**2. `74` A5 and `75` B2 are one fix from two ends and must be SEQUENCED.**
+Both are the answer to §5's first entry — a legal matter filed under "Coursework".
+
+* `74` A5: per-group acceptance. The CLI collects one decision per P9 group
+  instead of merging them under `--label`, so four accepted groups produce four
+  branches.
+* `75` B2: per-branch situation. `run(..., situation=...)` stops being one value
+  for a whole disk.
+
+They edit the same call path in `cli.py` (`review_and_accept` and the situation
+argument beside it), so done independently they collide. **A5 first, then B2**,
+and the reason is not merely mechanical: a per-branch situation decides nothing
+while every group is still merged into ONE branch. A5 creates the branches that
+B2 then gives situations to. Reversed, B2 is a consequence with nothing to
+consume it — the very thing `75` refuses to ship in B3.
+
+**Nothing else conflicts.** `74`'s six findings touch P10/P11/P12 records; `75`'s
+nineteen tasks touch `src/questions/` and the composition root. The only shared
+file is `src/cli.py`, and only at the two points above.
