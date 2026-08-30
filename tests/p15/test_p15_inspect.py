@@ -212,3 +212,18 @@ def test_a_consequence_with_no_sentence_refuses_rather_than_being_left_out():
     finally:
         CONSEQUENCE_WORDS.clear()
         CONSEQUENCE_WORDS.update(monkey)
+
+
+def test_a_person_who_has_only_the_question_id_gets_the_explanation(qconn):
+    """`--explain-answer <id>` is what a person can actually type: the id is the
+    one thing the report prints. The scope is read from the question, where
+    `apply_answers` already reads it."""
+    from questions.explanation import explain_question
+
+    question = a_question()
+    _answered(qconn, question, "study")
+
+    seen = explain_question(qconn, question.question_id)
+    assert seen.applies_to == question.scope
+    assert seen.controls == ("It turns on the `academic` schema.",)
+    assert explain_question(qconn, "reading.organization:nowhere") is None

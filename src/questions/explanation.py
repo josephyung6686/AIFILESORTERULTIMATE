@@ -156,6 +156,23 @@ def explain_answer(conn: sqlite3.Connection, *, question_id: str,
         how_to_change=_how_to_change(question))
 
 
+def explain_question(conn: sqlite3.Connection,
+                     question_id: str) -> AnswerExplanation | None:
+    """`explain_answer` for a caller that has only the question id.
+
+    The scope is READ from the question rather than asked for, because that is
+    where `apply_answers` already gets it: every answer P15 writes carries the
+    scope of the question it answers. A command-line flag that made the person
+    supply the scope as well would be asking them to repeat something the product
+    already knows, and to get it exactly right or be told their question does not
+    exist.
+    """
+    asked = questions_for(conn, (question_id,))
+    if not asked:
+        return None
+    return explain_answer(conn, question_id=question_id, scope=asked[0].scope)
+
+
 def render_explanation(explanation: AnswerExplanation) -> str:
     """The five things as lines a person reads, in §13's own order."""
     lines = [explanation.prompt]
