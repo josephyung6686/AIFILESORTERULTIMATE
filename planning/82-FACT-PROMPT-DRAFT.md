@@ -1,7 +1,8 @@
 # 82 — The A_fact prompt, drafted for ratification
 
 Date: 2026-08-31. Companion to [`76-PROMPT-RESEARCH.md`](76-PROMPT-RESEARCH.md), which is the
-requirements half. This is the text half.
+requirements half. This is the text half. Revised the same day for
+[`83-MODEL-ROUTING.md`](83-MODEL-ROUTING.md) §3 — see §8.
 
 ---
 
@@ -26,6 +27,14 @@ So this text is closer to a schema migration than to a copy edit. It is drafted 
 something concrete to reason about, and every line of it is traceable to a requirement in `76` (§3
 below), so what is being ratified is reasoned text rather than an agent's taste.
 
+**The model that will read this is now known, and it changed the draft.** `83` §3 routes A_fact to
+the **Reasoning** tier, on the ground that *"the model most able to decline is the one worth paying
+for"*. That is the same argument as this draft's hardest job, and knowing it sharpened the text
+rather than relaxing it: a capable model does not fail the way a 3B model fails. It rarely wraps its
+answer in a code fence; it reasons its way to a plausible value on thin evidence and then writes a
+fluent justification for it. Three lines were added to address that specifically (§8), and none of
+them names a model, a tier or a provider — §5.6 says why not.
+
 **One thing this draft decides that `76` left open, and says so loudly.** `76` §10.1 records a
 glossary decision as owed and names three options, only one of which a prompt can implement. This
 draft implements that one (rule 2). See §5.1 and §7.1 — it is the single item most worth the owner's
@@ -43,7 +52,7 @@ You are a fact extractor. A JSON dossier about one file follows this instruction
 
 OUTPUT
 
-Your entire reply is one JSON object. No code fence. No backticks. No words before it and no words after it. The first character you write is { and the last character you write is }.
+Think for as long as you need to before you answer. What you send is one JSON object and nothing else. No code fence. No backticks. No words before it and no words after it. The first character you send is { and the last character you send is }.
 
 WHAT YOU ARE DOING
 
@@ -77,6 +86,8 @@ Decline it: name the field and say in one sentence what was missing.
 
 There is no third move. There is no "probably", no confidence score, no partial answer, no hedge, no note explaining yourself. If you cannot cite evidence that already exists in "released_evidence", you must decline.
 
+A value you worked out is not a value you found. If the characters you want to propose are not sitting inside a released value, then no amount of reasoning about the file makes them citable. Reason as much as you need to; propose only what you can point at.
+
 Declining is a correct answer and it is recorded as one. It costs nothing. It is not a failure and it is not counted as one. A field you decline stays open and can be settled later by other means. A field you get wrong becomes a permanent property of someone's file. When the two are close, decline.
 
 THE SHAPE
@@ -107,7 +118,7 @@ THE RULES
    "cited_span" must appear inside that item's "value" exactly as it is written there. Copy it across; do not retype it from memory.
    "metadata_field_name" must equal that item's "address" exactly, character for character. Use this form when the evidence is a metadata field rather than text.
 
-7. "why_it_supports" is required and must not be empty. One short sentence.
+7. "why_it_supports" is required and must not be empty. One short sentence saying how that evidence carries that value. It is not a place to argue for a value the evidence does not carry: if the sentence has to do work the evidence does not do, decline the field instead.
 
 8. At most one claim per field. If two pieces of evidence point at two different values for one field, either choose the one the evidence supports better and cite that one, or decline the field and say in the statement that the evidence pointed two ways. Never send two claims about the same field: that destroys your whole answer.
 
@@ -124,7 +135,7 @@ Your entire reply is one JSON object. No fence. No preamble. No trailing note.
 The dossier follows.
 ~~~~
 
-6,239 bytes / 1,028 words, measured on the block above.
+6,757 bytes / 1,130 words, measured on the block above.
 
 ---
 
@@ -137,7 +148,7 @@ All 21 from `76` §6. "Draft line" quotes the governing text.
 | R1 | Template supplies its own terminator; the dossier's `{` follows with no separator. | Final line `The dossier follows.` plus a trailing newline. | Yes |
 | R2 | Describe the dossier as the exact key set of `_body`, sorted, compact JSON. | `WHAT THE DOSSIER CONTAINS` names all thirteen keys in sorted order, then narrows to the four that matter. No "document", "context" or "page" is described anywhere; the draft says those do not exist. | Yes — but see §5.6, `76` R2 says "twelve" and `_body` has thirteen. |
 | R3 | The only quotable text is `released_evidence[].value`. | *"The `value` strings are the only text you have been given… Text that is not inside one of those `value` strings does not exist for you."* | Yes |
-| R4 | Exactly one of `cited_span` / `metadata_field_name`, plus non-empty `why_it_supports`. | Rule 6 first sentence; rule 7. Both citation forms shown. | Yes |
+| R4 | Exactly one of `cited_span` / `metadata_field_name`, plus non-empty `why_it_supports`. | Rule 6 first sentence; rule 7, which now also bounds what the sentence may do: *"It is not a place to argue for a value the evidence does not carry."* Both citation forms shown. | Yes |
 | R5 | `cited_span` a substring of `value`; `metadata_field_name` equal to `address`. | Rule 6 bullets — *"must appear inside that item's `value` exactly as it is written there. Copy it across; do not retype it from memory"* / *"must equal that item's `address` exactly, character for character."* | Yes |
 | R6 | `evidence_ref` must be a `released_evidence[].observation_key` **and** a P6 citable observation. | *"Cite only keys that appear in `released_evidence`."* | **Half.** The first clause is stated. The second (`fact_validation.py:217`, the coarse check against P6's observations for this file version) is **invisible to the model** — nothing in the dossier lists P6's observation set, so no wording can direct the model at it. In a correctly built dossier it is implied by the first; if it is not, the rejection is unforeseeable. Not a wording gap — a dossier-construction obligation, related to §9.3 of `76`. |
 | R7 | `payload.field` a verbatim member of `allowed_vocabulary`. | Rule 1. | Yes |
@@ -148,11 +159,11 @@ All 21 from `76` §6. "Draft line" quotes the governing text.
 | R12 | The value's spelling becomes the stored value identity. | Rule 5. | **Mitigated, not fixed.** `apply_verdict` stores `proposal.value` raw (`facts/llm_seam.py:272-274`), so two spellings still make two value rows. `76` §9.2. Wording cannot close it. |
 | R13 | An `unknown` claim names its field, carries `insufficiency_statement`, carries no value and no citations. | The decline shape, plus rule 10's last sentence. | Yes |
 | R14 | `"unknown"` present or absent; `"unknown": false` destroys the response. | Rule 10, explicitly, including `null`. | Yes |
-| R15 | JSON and nothing else — no fence, no preamble, no trailing note. | `OUTPUT` is the first section; the last two lines repeat it. "No backticks" is stated rather than shown, so the template itself contains no fence characters. | Yes |
+| R15 | JSON and nothing else — no fence, no preamble, no trailing note. | `OUTPUT` is the first section; the last two lines repeat it. "No backticks" is stated rather than shown, so the template itself contains no fence characters. *"Think for as long as you need to before you answer"* licenses the reasoning and separates it from what is sent, at the point where that distinction matters. | Yes |
 | R16 | One malformed claim rejects every claim. | Rule 11, with *"Fewer claims is safer than more."* | Yes |
 | R17 | No timestamps, dates, run ids, paths, corpus names, or anything that varies between runs. | Nothing in the draft varies. There is no date, no path, no machine name, no corpus name, no "today". | Yes |
 | R18 | No worked example drawn from one domain. | The only structural example is `"A B C"` → `"A"`, which names no domain. No field key from any of the 23 schemas appears in the draft. The shapes use descriptive placeholders, not real keys or values. | Yes — see §7.2, this is the cost. |
-| R19 | Declining is a success and costs nothing. | *"Declining is a correct answer and it is recorded as one. It costs nothing. It is not a failure and it is not counted as one."* Then the asymmetry: a declined field stays open, a wrong field becomes permanent. | Yes |
+| R19 | Declining is a success and costs nothing. | *"Declining is a correct answer and it is recorded as one. It costs nothing. It is not a failure and it is not counted as one."* Then the asymmetry: a declined field stays open, a wrong field becomes permanent. Preceded by the line that makes declining reachable for a reasoning model: *"A value you worked out is not a value you found."* | Yes |
 | R20 | No hedge, confidence score, or "possible" tier. | *"There is no third move. There is no 'probably', no confidence score, no partial answer, no hedge."* | Yes |
 | R21 | One file. No folder, path, filing decision or grouping. | *"You are not choosing a folder, a path, a category, a group or a name for anything."* | Yes |
 
@@ -181,7 +192,7 @@ From `76` §7. What this draft produces, and whether that is correct.
 
 | # | Input | What the draft directs | Correct? |
 |---|---|---|---|
-| S1 | Released value `"PHYS1401 Problem Set 4"`; the wanted value is `PHYS1401`. The observed `qwen2.5:3b` failure. | Rule 4: the smallest run of characters that identifies the thing. Value `"PHYS1401"`, span `"PHYS1401"`. | Correct — **and unverifiable.** Nothing downstream checks it. If the model ignores rule 4, the answer is `ACCEPT_DIRECT` and becomes a folder name. This case is the reason the draft exists and it remains the draft's weakest point. |
+| S1 | Released value `"PHYS1401 Problem Set 4"`; the wanted value is `PHYS1401`. The observed `qwen2.5:3b` failure. | Rule 4: the smallest run of characters that identifies the thing. Value `"PHYS1401"`, span `"PHYS1401"`. | Correct — **and unverifiable.** Nothing downstream checks it. If the model ignores rule 4, the answer is `ACCEPT_DIRECT` and becomes a folder name. This case is the reason the draft exists and it remains the draft's weakest point, and at the routed tier it is now the **first**-ranked risk rather than the second (§5.7). *"A value you worked out is not a value you found"* was added for it. |
 | S2 | Prose supporting nothing in `allowed_vocabulary`. | Rules 2 and 9 and the two-moves section: one declining claim per field considered, each with a statement. | Correct |
 | S3 | Two released items support two different values for one field. | Rule 8: pick the better-supported one and cite it, or decline naming the ambiguity. Never two claims. | Correct |
 | S4 | The wanted value is in the store but not inside any released `value`. | *"Text that is not inside one of those `value` strings does not exist for you"* plus *"If you cannot cite evidence that already exists in `released_evidence`, you must decline."* | Correct |
@@ -257,7 +268,47 @@ Repeated plainly because hiding them behind wording is the specific failure mode
    equality. If they diverge, the model is shown one list, judged against another, and every correct
    answer to the list it was shown is rejected — and no wording in the prompt can detect that.
 
-### 5.6 A correction to `76`
+### 5.6 No provider, no model name, no tier
+
+The draft contains no occurrence of a provider name, a model name, a tier name, a context-window
+size, a token budget or any other deployment fact — checked mechanically, not by eye. `83` §3 routes
+this site to the Reasoning tier today; `83` §1 already warns that the names in it *"are not verified
+against the provider's catalogue by anyone in this project"*, and `83`'s own status line calls the
+whole document deployment policy that lives in `src/cli.py` and `.env`.
+
+Routing is a line in a composition root and changes when the owner changes it. **The prompt bytes are
+near-permanent.** A prompt that said "you are a DeepSeek model" would be wrong the first day the tier
+moved, and the fingerprint would carry that wrongness into every record already written under it —
+unfixable, because fixing it is a new prompt. So the draft addresses whatever model reads it, and the
+three lines added for the Reasoning tier (§8) are written as properties of careful answering rather
+than as accommodations for one vendor.
+
+### 5.7 Which of `76`'s 21 requirements assume a particular model
+
+Asked directly, because a requirement written against one model's quirks ages badly inside text that
+cannot be revised.
+
+**None of the 21 do.** Every one of them cites a code line — a parser branch, a check, a dataclass
+invariant — and holds for any model that produces bytes. R14 is the closest call, since its *"a model
+taught JSON will reach for the boolean"* is an observation about models rather than about code; but
+the requirement itself is `sites.py:150-157`, which rejects `"unknown": false` no matter who sends it.
+
+**`76`'s ranking does, and it is now stale.** §7's closing paragraph names *"the three most likely to
+break a 3B model"* — S12, then S1, then S11/S13 — and ranks them for `qwen2.5:3b`, the model observed
+failing on this machine. That is a rationale ordering, not a requirement, and at the Reasoning tier it
+inverts:
+
+| | `76`'s 3B ranking | at the routed tier |
+|---|---|---|
+| **S12** — fence or preamble | most likely | unlikely; still catastrophic when it happens, so the bookends stay |
+| **S11 / S13** — declining in a malformed shape | joint second | unlikely; the shapes are shown, which is cheap |
+| **S1** — the containing phrase as the value | second | **first, and by a distance.** It is a judgement about scope, not about formatting, and capability does not help — a better model produces a *more convincing* over-quotation with a *better-written* `why_it_supports`. Nothing downstream checks it (§5.5). |
+
+The practical consequence: the draft's defences against formatting failure are now cheap insurance,
+and its defences against confident over-reach are the ones carrying the weight. That is why the three
+lines in §8 are all aimed at the second group.
+
+### 5.8 A correction to `76`
 
 `76` R2 says "the twelve keys". `_body` (`dossier.py:118-136`) serialises **thirteen**:
 `allowed_vocabulary`, `call_site`, `conflicts`, `eligibility_reason`, `evidence_items`,
@@ -292,6 +343,11 @@ Stated plainly, because these are one-way doors.
 6. **R11 stays unenforced.** Ratifying rule 4 does not make anything check rule 4. If check 3 is
    later given teeth (`76` §10.2), that is a code change, not a prompt change, and this prompt
    survives it unchanged.
+7. **It does NOT commit the tier, and the tier does not commit it.** `83` §3's routing lives in
+   `src/cli.py` and `.env` and can be changed in an afternoon; these bytes cannot. The draft names no
+   model, so re-routing A_fact tomorrow leaves it correct and leaves every record under its
+   fingerprint still resolvable. The reverse also holds: ratifying this does not endorse
+   `DeepSeek-V4-Pro`, whose name `83` §1 records as unverified against the provider's catalogue.
 
 ---
 
@@ -311,16 +367,26 @@ before ratification is free.**
 
 **7.2 — Rule 4's abstract example.** `"A B C"` → `"A"` is schema-neutral, which R18 requires, and it
 is also the least vivid way to teach the one failure that no check catches. A concrete example
-(`"PHYS1401 Problem Set 4"` → `"PHYS1401"`) would land harder on a 3B model and would bias every
-household, contractor and clinic corpus toward reading its evidence as coursework, permanently, in 23
-schemas. The draft chose neutrality. **This is a genuine trade and the owner may reasonably take the
-other side** — for instance with three examples from three unrelated schemas instead of one.
+(`"PHYS1401 Problem Set 4"` → `"PHYS1401"`) would land harder, and would bias every household,
+contractor and clinic corpus toward reading its evidence as coursework, permanently, across 23
+schemas.
 
-**7.3 — Length in front of a 3B model.** 1,028 words, 6,239 bytes. The most likely failure is S12 (a code
-fence), which is an attention failure rather than a reasoning one, and every added word competes with
-the first and last lines. Candidates for cutting if the owner wants it shorter: the thirteen-key list
-(R2 could be satisfied by the negative statements alone), the *"You may be judged against facts you
-were never shown"* line, and the closing paragraph about not gaming the rules.
+**The routed tier moves this argument, and in the draft's favour.** Vividness is a crutch for a small
+model; abstraction is the cheaper half of the trade for a model chosen for reasoning. The R18 cost of
+a concrete example is unchanged and permanent, while its benefit shrinks. The draft keeps the abstract
+form, and the owner should ratify or reject that on those grounds rather than on how the sentence
+reads to a person — a person is not the reader.
+
+**7.3 — Length, re-argued for the routed tier.** 1,130 words, 6,757 bytes. **v1 of this document
+recommended candidates for cutting; that advice was written for a 3B model and is withdrawn.** When
+the likeliest failure was an attention failure, every word competed with the first and last lines. At
+the Reasoning tier the likeliest failure is S1 — confident over-reach — and the words that guard
+against it are the ones a shorter prompt would lose first. The draft got longer rather than shorter
+(§8), deliberately.
+
+What remains true: length is not free forever. Each call sends these bytes, and A_fact is both the
+expensive tier and the highest-volume site (`83` §5). 6,757 bytes is small against any real dossier,
+but it is the owner's call whether it is small against the bill.
 
 **7.4 — Rule 9's unbounded volume.** *"one declining claim for each field you considered"* is `76`
 R9's own wording, and "considered" is doing quiet work. A model that reads it as "every field in
@@ -344,3 +410,28 @@ response bytes plus an expected `(outcome, reasons)` pair and run with no model 
 this document was validated against a live model, because doing so would require constructing a
 `PromptDefinition` — the line this draft does not cross. **The honest reading of §4 above is "what
 the draft directs", not "what a model was observed to do."**
+
+---
+
+## 8. Change log
+
+The draft has no fingerprint yet, so it has no versions in the system's sense. It has been written
+twice, and the difference is worth seeing because the second pass was caused by learning which model
+would read it.
+
+**v1** — commit `665cddd`. Written against `76` alone, with `76` §7's ranking of 3B failure modes
+carrying most of the weight.
+
+**v2** — this document. `83` §3 routes A_fact to the Reasoning tier, *"because the model most able to
+decline is the one worth paying for."* A capable model fails differently: it does not garble the
+envelope, it reasons to a plausible value on thin evidence and then justifies it well. Three lines
+were added, all aimed at that, and none naming a model:
+
+| Where | Added | Why, and to what it traces |
+|---|---|---|
+| `OUTPUT` | *"Think for as long as you need to before you answer. What you send is one JSON object and nothing else."* | R15 unchanged in substance. It separates thinking from sending at the moment that distinction matters, rather than forbidding the reasoning a Reasoning-tier model was chosen for. `json.loads` is given the whole byte string (`sites.py:120-123`), so what is *sent* is the only thing that has ever been constrained. |
+| `THE TWO MOVES` | *"A value you worked out is not a value you found. If the characters you want to propose are not sitting inside a released value, then no amount of reasoning about the file makes them citable. Reason as much as you need to; propose only what you can point at."* | §3.5's *"must cite exact supporting evidence already extracted"* and §3.6's *"a model that cannot cite sufficient evidence must return unknown"*, aimed at the one failure a better model makes **more** convincingly, not less. Hardens S1, S2 and S8 at the point where reasoning turns into a claim. |
+| Rule 7 | *"…saying how that evidence carries that value. It is not a place to argue for a value the evidence does not carry: if the sentence has to do work the evidence does not do, decline the field instead."* | `why_it_supports` is required and never checked for content (`records.py:287` checks only that it is non-empty). A fluent justification for a thin citation is the capable model's version of guessing, and this is the only place in the response where that fluency has room to live. |
+
+Net: +102 words, +518 bytes. Nothing was removed. Every requirement row in §3 still holds and three
+were re-quoted to reflect the new lines; §4's fifteen verdicts are unchanged.
