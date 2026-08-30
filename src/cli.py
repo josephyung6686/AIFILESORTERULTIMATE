@@ -296,7 +296,18 @@ _SEPARATOR = re.compile(r"(?<=[A-Z])[ -](?=[0-9])")
 #: Zones whose readings are the document's own words. `title`, `filename`, `path`
 #: and `metadata:*` are deliberately outside it: §3.5's slot names a LOCATION, and
 #: these four are things said ABOUT a file rather than in it.
-_TEXT_ZONES: tuple[str, ...] = ("body", "heading", "ocr")
+#:
+#: **`ocr` IS DELIBERATELY NOT HERE, and adding it is the tempting fix that must
+#: stay refused.** `direct_facts` writes `reliability_state=DIRECT_STATE`
+#: unconditionally -- §3.5's slot names a location and applies no test to the
+#: reading's reliability -- so an OCR region reaching a slot would turn a `possible`
+#: RECOGNITION into a `direct` FACT, which §3.6's `PROPOSAL_ELIGIBLE_STATES` exists
+#: to stop and which would put a scanner's guess straight onto a folder. A PDF text
+#: layer is a different thing: `body:page=1#62-72` is extracted text, not a
+#: recognition, and it is what this filter was always meant to admit. What promotes
+#: an OCR reading is a validation stage, a model, or the person -- never the zone
+#: list.
+_TEXT_ZONES: tuple[str, ...] = ("body", "heading")
 
 
 def reads_a_structured_string(locator: str) -> bool:
@@ -1000,9 +1011,26 @@ def _identifier_observations(conn: sqlite3.Connection, file_id: str,
         if json.loads(row[1]).get("text_span") is not None)
 
 
+def _print_protected_areas(areas, out) -> None:
+    """§1.1's containers: marked, counted, named, and never opened."""
+    out = out if out is not None else sys.stdout
+    print(f"\nProtected containers: {len(areas)} marked, none opened", file=out)
+    for area in areas:
+        print(f"  {area.display_label}  ({area.label})", file=out)
+        print(f"    {area.path}", file=out)
+    if areas:
+        print("  Nothing inside these was read, indexed, classified or moved, and "
+              "none of them is a place anything can be filed.", file=out)
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
-        user_id: str, now) -> ProductionRun:
-    """One corpus, end to end. Assembles the authorities and calls the composition."""
+        user_id: str, now, out=None) -> ProductionRun:
+    """One corpus, end to end. Assembles the authorities and calls the composition.
+
+    `out` is here so the protected-container block can be printed the moment the
+    scan knows it, ahead of every stage that may refuse. It follows `report`'s own
+    convention -- `None` means `sys.stdout` -- rather than taking a policy default.
+    """
     catalogue = load_shipped_catalogue(read_packaged_library_file)
     signal = _validate_situation(catalogue, situation)
     schema = situation.split(".", 1)[0]
@@ -1335,6 +1363,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def downstream(p1_p7) -> CorpusAuthorities:
         scan_run_id[0] = p1_p7.scan_run_id
+        # HERE, and not in `report`. The scan has finished and every design stage
+        # after this point can refuse by name -- and `main` reaches `report` only
+        # when none of them does. Printed at the end, the count of what was marked
+        # and left unopened was dropped from every refused run: the verdict sat in
+        # `exclusion_verdicts` and the person was told nothing. "Marked, counted,
+        # never silently omitted" has no success-path exception, so it is said as
+        # soon as it is known.
+        _print_protected_areas(
+            protected_areas(conn, scan_run_id=p1_p7.scan_run_id), out)
         return CorpusAuthorities(
             catalogue=catalogue, design_authorities=design_authorities,
             grouping_limits=GROUPING_LIMITS,
@@ -1747,15 +1784,6 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     would make the report a place where new facts are discovered.
     """
     out = out if out is not None else sys.stdout
-    areas = result.protected_areas
-    print(f"\nProtected containers: {len(areas)} marked, none opened", file=out)
-    for area in areas:
-        print(f"  {area.display_label}  ({area.label})", file=out)
-        print(f"    {area.path}", file=out)
-    if areas:
-        print("  Nothing inside these was read, indexed, classified or moved, and "
-              "none of them is a place anything can be filed.", file=out)
-
     tree = result.tree.tree
     places = len(result.destinations)
     # `00`:100 -- "the canvas should make the difference between existing
@@ -2058,7 +2086,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
             apply_answers(conn, args.answer, user_id=args.user,
                           recorded_at=now())
         result = run(conn, directory, situation=args.situation, label=args.label,
-                     user_id=args.user, now=now)
+                     user_id=args.user, now=now, out=out)
     except NotConfigured as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)

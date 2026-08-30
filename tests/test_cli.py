@@ -286,17 +286,23 @@ def test_the_protected_containers_block_survives_the_regrouping():
 
     This is the standing rule made visible. Every other part of the report may be
     grouped, renamed or shortened; this one is what the grouping must not reach.
-    """
-    run, names = _coursework()
-    run.protected_areas = (_area("Notes.app", "/tmp/demo/Notes.app"),)
-    printed = _printed(run, names)
 
-    assert "Protected containers: 1 marked, none opened" in printed
-    assert "Notes.app  (untouched_protected)" in printed
-    assert "/tmp/demo/Notes.app" in printed
-    assert UNTOUCHED in printed
-    # And it is the first thing, not a line at the bottom of a long report.
-    assert printed.index("Protected containers") < printed.index("Coursework")
+    The block now prints from `_print_protected_areas`, called the moment the scan
+    knows the answer, because `report` runs only when the design SUCCEEDS and a
+    refused run was dropping the count entirely. All four elements are asserted
+    here, where they are produced; that it comes before the rest of the report is
+    asserted by `test_a_refused_run_still_says_what_was_marked_and_counted` and by
+    ordering in `main`.
+    """
+    printed = io.StringIO()
+    cli._print_protected_areas(
+        (_area("Notes.app", "/tmp/demo/Notes.app"),), printed)
+    block = printed.getvalue()
+
+    assert "Protected containers: 1 marked, none opened" in block
+    assert "Notes.app  (untouched_protected)" in block
+    assert "/tmp/demo/Notes.app" in block
+    assert UNTOUCHED in block
 
 
 def test_the_folder_list_is_not_headed_by_the_internal_plan_version():
@@ -1326,6 +1332,36 @@ def test_a_person_can_change_their_mind(tmp_path):
     assert "CHEM1500" in folders, folders
 
 
+def test_a_refused_run_still_says_what_was_marked_and_counted(tmp_path):
+    """The standing rule has no success-path exception.
+
+    Protected containers are marked, counted, never opened AND NEVER SILENTLY
+    OMITTED. The count was printed only by `report`, which `main` reaches only when
+    the run succeeds; both refusal paths return before it. So a run that marked a
+    protected container and then refused told the person nothing about it -- the
+    verdict was in the database and absent from the screen, which is the omission
+    the rule names.
+
+    A corpus of one `.app` bundle and one contentless file refuses with
+    `NothingToDesign`, and is the smallest case that has something to omit.
+    """
+    corpus = tmp_path / "corpus"
+    (corpus / "Notes.app").mkdir(parents=True)
+    (corpus / "Notes.app" / "index.txt").write_text("hello\n", encoding="utf-8")
+    (corpus / "plain.txt").write_text("nothing here\n", encoding="utf-8")
+
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework", "--label",
+                     "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")], out=out)
+    printed = out.getvalue()
+
+    assert code != 0 and "No plan was made" in printed, printed
+    assert "Protected containers: 1 marked, none opened" in printed, (
+        "the run marked a protected container and refused without ever saying so")
+    assert "Notes.app" in printed, printed
+
+
 def test_a_slot_reads_a_span_in_a_text_zone_and_never_a_whole_zone():
     """§3.5's slot names a LOCATION, and the location it named excluded every PDF.
 
@@ -1346,7 +1382,16 @@ def test_a_slot_reads_a_span_in_a_text_zone_and_never_a_whole_zone():
     assert reads("body#0-8"), "the plain-text reading that already worked"
     assert reads("heading#0-11"), "the docx heading that already worked"
     assert reads("body:page=1#62-72"), "§2.2's page reference -- every PDF"
-    assert reads("ocr:page=4/region=2#0-24"), "§2.8's OCR region -- every scan"
+
+    # Refused, and not by oversight. `direct_facts` writes `direct` unconditionally,
+    # so an OCR region reaching a slot would promote a `possible` RECOGNITION to a
+    # `direct` FACT and put a scanner's guess on a folder -- the laundering §3.6's
+    # `PROPOSAL_ELIGIBLE_STATES` exists to stop. A PDF text layer is extracted text
+    # and is admitted above; a recognition is promoted by a validation stage, a
+    # model or the person, never by widening this list.
+    assert not reads("ocr:page=4/region=2#0-24"), (
+        "an OCR recognition reached a direct slot; §3.5 applies no reliability "
+        "test, so this makes every scanner guess a `direct` fact")
 
     # Bounded: a whole zone is not a reading a slot may take.
     assert not reads("body"), "the whole body of a document"

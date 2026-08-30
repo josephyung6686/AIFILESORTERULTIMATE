@@ -543,9 +543,16 @@ class Detector:
         """
         if outcome.reason == "protected_container":
             return None
+        # A tied LEADER, and a term that says what the file IS. The leader test was
+        # always here; the second half arrived with the outright-win branch and
+        # belongs to both, because a tie is not evidence about which KIND of term
+        # matched. Without it `finance`'s context term `statement` tied on a college
+        # personal statement and marked it `sensitive_personal, protected=1`.
+        says_what_it_is = set(self._safety_readings_in_evidence(
+            conn, file_id, content_hash))
         readings = [schema_id for schema_id
                     in (outcome.schema_id, *outcome.tied_schema_ids)
-                    if schema_id in SAFETY_DOMAIN_IDS]
+                    if schema_id in SAFETY_DOMAIN_IDS and schema_id in says_what_it_is]
         if not readings:
             return None
         # `SCHEMA_IDS` order, so two safety readings resolve the same way twice
@@ -565,7 +572,28 @@ class Detector:
         one at stake, so reading the leaders would ask a question whose answer is
         already known to be empty.
 
-        The term must be the FILE'S OWN, never a word in a directory above it.
+        **The term must say what the file IS, not merely surround it.** The library
+        separates `work_type_terms` (a passport, a discharge summary) from
+        `context_terms` (words that accompany such a document). `identity` ships
+        `passport` as a WORK TYPE and carries no context terms at all, while
+        `finance` carries 216 context terms including `credit`, `statement`, `total`
+        and `receipt`.
+
+        Without this the guard fired on one incidental word. Measured on a corpus of
+        two course syllabi and nothing else: `academic` won ten terms to one and
+        `credit` -- out of "credit hours" -- marked both files `sensitive_personal,
+        protected=1`, removed the course folders and withheld every file from
+        placement. A college personal statement was protected because it contains
+        the word "statement". `cli.py:210` names that outcome in the file this guard
+        lives beside: it "made an unreadable scan and a passport identical in P7's
+        store". A safety domain that is merely MENTIONED is not a safety domain.
+
+        This is `never_alone`'s discipline arriving in the form precaution can use.
+        `_precaution` gets it for free by reading only an abstention's tied leaders;
+        this branch, which runs when another schema WON, has no leaders to lean on
+        and must say what it means directly.
+
+        The term must also be the FILE'S OWN, never a word in a directory above it.
         `_matches` reads every live observation and P4's `path` locator holds the
         whole ancestor chain, so a corpus under a folder called `Passport` names
         `identity` for every file inside it -- measured, and it protected a syllabus.
@@ -576,9 +604,15 @@ class Detector:
         """
         matches, _ = self._matches(conn, file_id, content_hash)
         path_keys = self._path_keys(conn, file_id, content_hash)
+
+        def says_what_the_file_is(match: "TermMatch") -> bool:
+            schema = self._rules.schemas.get(match.schema_id)
+            return schema is not None and match.term in schema.work_type_terms
+
         return tuple(sorted({match.schema_id for match in matches
                              if match.schema_id in SAFETY_DOMAIN_IDS
-                             and match.observation_key not in path_keys}))
+                             and match.observation_key not in path_keys
+                             and says_what_the_file_is(match)}))
 
     def _protect_as(self, conn: sqlite3.Connection, readings: Iterable[str], *,
                     file_id: str, content_hash: str) -> ClassificationRecord | None:

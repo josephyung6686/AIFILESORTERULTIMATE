@@ -586,7 +586,7 @@ def test_a_no_corroboration_abstention_names_every_reading_it_could_not_choose(
     """
     rules = rule_set(
         schema_entry("creative", context=("client",)),
-        schema_entry("identity", context=("passport",)))
+        schema_entry("identity", work_types=("passport",)))
     file_id, content_hash = a_file(
         db, tmp_path, "Client Passport.pdf",
         body="Passport number X12345678. Client identity document.")
@@ -608,7 +608,7 @@ def test_a_single_unambiguous_reading_still_records_no_tie(db, tmp_path):
     reading it exists to preserve."""
     rules = rule_set(
         schema_entry("creative", context=("client",)),
-        schema_entry("identity", context=("passport",)))
+        schema_entry("identity", work_types=("passport",)))
     file_id, content_hash = a_file(db, tmp_path, "Passport.pdf",
                                    body="Passport number X12345678.")
 
@@ -643,7 +643,7 @@ def test_a_tie_that_includes_a_safety_domain_still_protects_the_file(db, tmp_pat
     """
     rules = rule_set(
         schema_entry("creative", context=("client",)),
-        schema_entry("identity", context=("passport",)))
+        schema_entry("identity", work_types=("passport",)))
     file_id, content_hash = a_file(
         db, tmp_path, "Client Passport.pdf",
         body="Passport number X12345678. Client identity document.")
@@ -708,9 +708,12 @@ def test_a_safety_domain_is_protected_even_when_another_schema_wins_outright(
     `explain` is deliberately unchanged: the file really is coursework, and saying
     so is honest. Only the classification moves.
     """
+    # `passport` is a WORK TYPE, matching the shipped library, where `identity`
+    # carries no context terms at all. Spelling it as a context term here would
+    # assert the broader rule and reject the narrowing the next test requires.
     rules = rule_set(
         schema_entry("academic", context=("syllabus", "lecture")),
-        schema_entry("identity", context=("passport",)))
+        schema_entry("identity", work_types=("passport",)))
     file_id, content_hash = a_file(
         db, tmp_path, "Passport Scan.pdf",
         body="Passport number X12345678. syllabus and lecture handout.")
@@ -737,10 +740,18 @@ def test_a_winning_schema_with_no_safety_domain_present_is_left_alone(db, tmp_pa
     store". The rule above must fire ONLY where a safety-domain term is actually in
     the file's own evidence -- never on every recognition -- or that collapse
     returns through the door the tie fix left open.
+
+    **The safety schema must be IN the rule set for this to falsify anything.** A
+    corpus where no safety domain exists cannot show one failing to fire, and an
+    earlier version of this test built a rule set of `academic` alone -- so it
+    passed under every possible implementation and guarded nothing. `finance` is
+    here, with a context term the file genuinely contains, and must stay silent.
     """
-    rules = rule_set(schema_entry("academic", context=("syllabus", "lecture")))
-    file_id, content_hash = a_file(db, tmp_path, "Week 1.pdf",
-                                   body="syllabus and lecture handout.")
+    rules = rule_set(schema_entry("academic", context=("syllabus", "lecture")),
+                     schema_entry("finance", context=("credit",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Week 1.pdf",
+        body="syllabus and lecture handout. Four credit hours.")
     det = detector(rules)
 
     record = det(db, file_id, content_hash)
@@ -769,7 +780,7 @@ def test_a_safety_term_in_the_directory_chain_protects_nothing_under_it(db, tmp_
     """
     rules = rule_set(
         schema_entry("academic", context=("syllabus", "lecture")),
-        schema_entry("identity", context=("passport",)))
+        schema_entry("identity", work_types=("passport",)))
     file_id, content_hash = a_file(
         db, tmp_path, "Week 1.pdf", body="syllabus and lecture handout.")
     # `a_file` writes filename and body zones only; P4's `path` observation is what
@@ -801,7 +812,7 @@ def test_a_file_carrying_no_term_at_all_is_never_protected(db, tmp_path):
     """The other twin. Precaution keys on EVIDENCE PRESENT, never on absence --
     "we deliberately did not look" and "we could not tell" are different answers
     and must not become the same one."""
-    rules = rule_set(schema_entry("identity", context=("passport",)))
+    rules = rule_set(schema_entry("identity", work_types=("passport",)))
     file_id, content_hash = a_file(db, tmp_path, "Notes.pdf",
                                    body="nothing any schema authored")
     det = detector(rules)
