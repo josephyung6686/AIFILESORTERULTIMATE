@@ -395,6 +395,21 @@ def apply_declarations(conn: sqlite3.Connection, declarations: Sequence[str], *,
     return tuple(recorded)
 
 
+def described_sentences(descriptions: Sequence[str]) -> tuple[tuple[str, str], ...]:
+    """`<name>=<sentence>` pairs, parsed once and in one place.
+
+    The composition root needs the same sentences this module records -- it hands
+    them to the proposal step, which takes a sentence and not a database. Parsing
+    them there as well would put a second `partition("=")` in the one module that is
+    supposed to hold no logic, and the two would eventually disagree about a sentence
+    containing an equals sign, which is the case `_split` exists for.
+
+    A PARSER and nothing else: it takes no connection, records nothing, and proposes
+    nothing. `apply_descriptions` is what writes.
+    """
+    return tuple(_split(raw, flag="--describe-role") for raw in descriptions)
+
+
 def apply_descriptions(conn: sqlite3.Connection, descriptions: Sequence[str], *,
                        schemas: Sequence[str], user_id: str,
                        recorded_at: str) -> tuple[str, ...]:
@@ -417,8 +432,7 @@ def apply_descriptions(conn: sqlite3.Connection, descriptions: Sequence[str], *,
     """
     offered = tuple(dict.fromkeys(schemas))
     recorded: list[str] = []
-    for raw in descriptions:
-        declaration_id, wording = _split(raw, flag="--describe-role")
+    for declaration_id, wording in described_sentences(descriptions):
         recorded.append(declare_role(
             conn, declaration_id=declaration_id, scope=SCOPE_CORPUS,
             schemas=offered, raw_wording=wording, user_id=user_id,

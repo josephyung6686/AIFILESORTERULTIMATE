@@ -207,3 +207,35 @@ def test_describing_then_confirming_supersedes_and_activates(qconn):
     assert activated_schemas(qconn) == frozenset({"academic"})
     assert len(live_roles(qconn)) == 1
     assert live_roles(qconn)[0].raw_wording is None
+
+
+def test_the_sentences_are_parsed_in_one_place(qconn):
+    """`described_sentences` is the same parser `apply_descriptions` uses, exposed
+    because the composition root needs the sentences too -- the proposal step takes
+    a sentence and not a database.
+
+    One home, because a second `partition("=")` in `cli.py` would eventually disagree
+    with this one about a sentence containing an equals sign, and the person whose
+    words got truncated would have no way to see why.
+    """
+    from questions.roles import described_sentences
+
+    raw = ("studying=I do a part-time diploma", "logic=I teach A=B logic")
+    assert described_sentences(raw) == (
+        ("studying", "I do a part-time diploma"), ("logic", "I teach A=B logic"))
+
+    _describe(qconn, *raw)
+    assert {role.raw_wording for role in live_roles(qconn)} == {
+        wording for _, wording in described_sentences(raw)}
+
+
+def test_the_parser_writes_nothing(qconn):
+    """A parser that took a connection would be a second writer, and the invariant
+    that matters most is that only the person's confirmation writes."""
+    import inspect
+
+    from questions.roles import described_sentences
+
+    assert list(inspect.signature(described_sentences).parameters) == ["descriptions"]
+    described_sentences(("studying=anything at all",))
+    assert live_roles(qconn) == ()
