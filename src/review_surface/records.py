@@ -12,6 +12,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+#: The label of the entry that names the whole population rather than a bucket.
+#: Spelled once, because two spellings of it would let a line account for itself.
+INDEXED: str = "indexed"
+
 
 @dataclass(frozen=True)
 class ReviewAction:
@@ -45,3 +49,46 @@ class ReviewAction:
     payload: Mapping[str, object]
     user_id: str
     acted_at: str
+
+
+@dataclass(frozen=True)
+class ProgressEntry:
+    """One line of §8.6's progress statement, with the files it accounts for.
+
+    `file_ids` is not in the SPEC's field list and is added deliberately. §8.6's
+    rule that "no indexed file may be absent from every entry" is not assertable
+    from counts alone -- two entries of four and five over nine files could both
+    have missed the same file and double-counted another, and the arithmetic
+    would still look right. The ids make the rule checkable, which is what turns
+    it from a promise into a property.
+    """
+
+    label: str
+    count: int
+    state: str
+    source: str
+    cause: str | None
+    file_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ProgressLine:
+    """§8.6's line. Nothing here sums two states together."""
+
+    scan_ref: str
+    entries: tuple[ProgressEntry, ...]
+    rendered_at: str
+    plan_version: str
+
+    def total_accounted(self) -> int:
+        """Distinct files named by any entry other than `indexed`.
+
+        `indexed` is the POPULATION rather than a bucket, so counting it here
+        would make every line account for everything and the §8.6 rule would
+        never be able to fail.
+        """
+        accounted: set[str] = set()
+        for entry in self.entries:
+            if entry.label != INDEXED:
+                accounted |= set(entry.file_ids)
+        return len(accounted)
