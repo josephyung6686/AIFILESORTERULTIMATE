@@ -895,3 +895,54 @@ frozen fixtures is more call sites to move. Q2′ is repairable now and independ
 - It did not re-run the probes of §4.2 against the post-Wave-B tree. The receivers' signatures are unchanged in `git log`, but the probe output in §4.2 is from before Wave B and is labelled as such.
 - It did not check whether P7's or P12's `review_action` ends acquired vocabularies during Wave B. §10's caveat stands.
 - It did not answer Q1′, Q3′ or Q5′.
+
+---
+
+## 14. RULING, 2026-08-31 — P13 owns the name of a gesture
+
+**Joseph ruled Q1′ as reading (i): the part that COLLECTS a gesture owns its name.** `74` §8 Q2 is
+closed. Everything §13.1 lists as a consequence of (i) follows mechanically and is no longer a
+separate decision.
+
+### 14.1 What is now settled
+
+- **`review_action` is P13's record, so P13 names the gestures.** P9's and P10's sets become
+  re-exports of P13's, by MINOR 6's own mechanism: the owning part names it, everyone else carries
+  it verbatim, and a distinct name bound to P13's object is carrying while a distinct name bound to
+  a fresh string is the parallel vocabulary MINOR 6 forbids.
+- **P13's eighteen must grow** to cover §8.7's six unhomed gestures and §5's canvas — §6's Option D
+  — because a vocabulary that owns every name must have a name for everything a person can do.
+  **Each addition is a closed-vocabulary member and needs the owner's approval recorded at the
+  member.** They are not minted by whoever notices the gap.
+- **§8 Q1** ("is the eighteen complete?") is answered: no, and completing it is the work above.
+- **§8 Q2** ("may a person rename a branch, and what is it called") is answered by whatever the
+  derivation produces once the six are homed.
+- **§8 Q4** (`leave-untouched` vs `leave_untouched`) resolves to P13's `leave_untouched`.
+- **§8 Q5** (`restore`, `reset-suggestion`) is answered **no** under both readings, so the ruling
+  does not change it: P9 owns group gestures and neither name is in P9's SPEC.
+
+### 14.2 Why this reading, in one sentence
+
+§13.1 called it the strongest argument and it is the deciding one: under the alternative, **P13's
+closed vocabulary would grow silently whenever P10 edited a tuple**, which collides head-on with the
+standing rule that adding a member to a closed vocabulary requires the owner's approval recorded at
+the member. Reading (i) keeps the approval gate in one module. A vocabulary that can grow without
+anyone approving it is not closed.
+
+### 14.3 Q2′ proceeds now and does not wait
+
+`src/placement/vocabulary.py:305-328` duplicates a now-published P13 vocabulary, and its own
+neighbouring comment forbids it. Repairing it into a re-export is **housekeeping, not a decision**:
+it removes a second home rather than adding a member, which is `80` §2's shape exactly, and a
+restriction is recordable without a fresh ratification round.
+
+### 14.4 What did NOT change
+
+- **Option G stands** (§12) and is now the ruling's implementation strategy for the *record*, as
+  distinct from the *vocabulary*: the receiver declares what it requires, the producer produces the
+  SPEC's record, and an integration test running the real chain holds them together. `74` Wave G1's
+  instruction to delete `tests/p13/p12_fixtures.py` is moot — **that file never existed**, and P12
+  and P13 independently derived matching nine-field records from one SPEC block.
+- The `review_action` delivery seam still does not exist, and the disagreement still costs nothing
+  at run time (§13's re-check of §4.1). This ruling makes the vocabulary correct **before** the seam
+  is built, which is the cheap moment to do it.
