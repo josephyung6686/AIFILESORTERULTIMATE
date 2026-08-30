@@ -85,6 +85,14 @@ class AnswerExplanation:
     how_it_was_settled: str
     #: 5. How to change it.
     how_to_change: str
+    #: The person's own words, where the answer was theirs rather than a pick from
+    #: a list. NOT one of §13:453's five: it is `80` §4 (R5), which requires that
+    #: "the raw sentence stays recorded and visible rather than discarded". Recorded
+    #: it already was -- `StructuralAnswer.raw_wording` since A3 -- and visible it
+    #: was not, anywhere, which made "we kept your words" a claim with no surface
+    #: behind it. `None` on every answer that chose an option, because the two answer
+    #: types are alternatives and a record may not hold both.
+    your_words: str | None = None
 
 
 def consequences_of(option: QuestionOption) -> tuple[str, ...]:
@@ -162,7 +170,8 @@ def explain_answer(conn: sqlite3.Connection, *, question_id: str,
         how_it_was_settled=(
             UNANSWERED if answer is None
             else SETTLEMENT_WORDS[answer.state]),
-        how_to_change=_how_to_change(question))
+        how_to_change=_how_to_change(question),
+        your_words=answer.raw_wording if answer is not None else None)
 
 
 def explain_question(conn: sqlite3.Connection,
@@ -187,6 +196,11 @@ def render_explanation(explanation: AnswerExplanation) -> str:
     lines = [explanation.prompt]
     if explanation.chosen:
         lines.append(f"  You answered: {explanation.chosen}")
+    # Before the consequences, not after, because there are none: a free-text answer
+    # activates nothing, and a person reading "What it controls: nothing" without
+    # first seeing their own sentence would read it as their words having been lost.
+    if explanation.your_words:
+        lines.append(f"  You answered, in your own words: {explanation.your_words}")
     if explanation.controls:
         lines.append("  What it controls:")
         lines.extend(f"    - {sentence}" for sentence in explanation.controls)

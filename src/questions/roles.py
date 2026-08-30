@@ -52,7 +52,8 @@ from questions.store import (
 )
 from questions.vocabulary import (
     CHOICE, CONFIRMED, EXACT_ACTIVATION, FREE_TEXT, MULTIPLE_ROLE_ACTIVATION,
-    ROLE_OUTCOMES, SKIPPED, SKIPPED_ROLE, UNMATCHED, check, check_scope,
+    ROLE_OUTCOMES, SCOPE_CORPUS, SKIPPED, SKIPPED_ROLE, UNMATCHED, check,
+    check_scope,
 )
 
 #: §16:551 requires "an explicit 'Other,' 'Not listed,' and 'Skip for now' path".
@@ -326,3 +327,100 @@ def outcome_of_roles(declarations: Iterable[RoleDeclaration]) -> str:
     if any(role.outcome == UNMATCHED for role in live):
         return UNMATCHED
     return SKIPPED_ROLE
+
+
+def _split(raw: str, *, flag: str) -> tuple[str, str]:
+    """`<declaration_id>=<value>`, split at the FIRST `=` and no other.
+
+    The first only, because `--describe-role` carries a person's own sentence and a
+    sentence may contain an equals sign. Splitting on the last, or refusing more than
+    one, would silently truncate somebody's words -- and §16:555 requires them stored
+    "byte for byte", which a parser is as able to break as a normaliser is.
+    """
+    declaration_id, separator, value = raw.partition("=")
+    if not declaration_id or not separator or not value:
+        raise AnswerNotPermitted(
+            f"{raw!r} is not a role. The form is `{flag} <name>=<what>`, where the "
+            "name is yours to choose and is how you change or withdraw this one "
+            "later. Holding two roles at once means giving two names.")
+    return declaration_id, value
+
+
+def apply_declarations(conn: sqlite3.Connection, declarations: Sequence[str], *,
+                       schemas: Sequence[str], user_id: str,
+                       recorded_at: str) -> tuple[str, ...]:
+    """The person's own confirmations, one gesture per role they hold.
+
+    `80` §7's second forbidden thing is what this exists to keep true: activation
+    requires the person's confirmation. Every string here was typed by the person;
+    nothing a model proposed reaches this function, and there is no argument through
+    which it could.
+
+    Several, and additive: each name is its own declaration, so two in one invocation
+    are two roles and not a role and a correction. §16:543. Re-using a name is the
+    correction, and `_record` supersedes on it.
+
+    A value outside the offered list is refused HERE rather than by `record_answer`,
+    which would refuse it too. The difference is the message: this one can say the
+    flag and the closed list, where the store can only say the option ids of one
+    question. Listing the whole vocabulary is not the suggestion `privacy` forbids --
+    a suggestion names the NEAREST member, and this names all of them.
+    """
+    offered = tuple(dict.fromkeys(schemas))
+    recorded: list[str] = []
+    for raw in declarations:
+        declaration_id, value = _split(raw, flag="--declare-role")
+        if value in (SKIPPED, "skip"):
+            recorded.append(skip_role(
+                conn, declaration_id=declaration_id, scope=SCOPE_CORPUS,
+                schemas=offered, user_id=user_id, recorded_at=recorded_at))
+            continue
+        if value == NOT_LISTED:
+            recorded.append(declare_role(
+                conn, declaration_id=declaration_id, scope=SCOPE_CORPUS,
+                schemas=offered, not_listed=True, user_id=user_id,
+                recorded_at=recorded_at))
+            continue
+        if value not in offered:
+            raise AnswerNotPermitted(
+                f"{value!r} is not one of the layouts this product knows, so there "
+                f"is nothing for it to turn on. They are: {', '.join(offered)}. "
+                f"`{NOT_LISTED}` says none of them fits, which is a real answer and "
+                "turns nothing on; `skip` puts the question aside. If you would "
+                "rather say it in your own words, `--describe-role` keeps them.")
+        recorded.append(declare_role(
+            conn, declaration_id=declaration_id, scope=SCOPE_CORPUS,
+            schemas=offered, chosen_schema=value, user_id=user_id,
+            recorded_at=recorded_at))
+    return tuple(recorded)
+
+
+def apply_descriptions(conn: sqlite3.Connection, descriptions: Sequence[str], *,
+                       schemas: Sequence[str], user_id: str,
+                       recorded_at: str) -> tuple[str, ...]:
+    """The person's own words, kept whole and turned into nothing.
+
+    §16:555 requires the raw wording stored, and `80` §1.3 requires that nothing
+    discards the sentence. This is where a sentence enters the product, and it is
+    the ONLY place: `proposal.propose_roles` reads one and writes nothing, and a
+    local model that narrowed the list would still leave the choosing to the person
+    through `apply_declarations` above.
+
+    It activates nothing, and not by policy: the answer is `FREE_TEXT`, `FREE_TEXT`
+    selects no option, and an answer that selects no option reaches
+    `store.activated_schemas` never. §16:547's "an unmatched answer must remain
+    unmatched", enforced by the data model.
+
+    `80` §2 rules the sentence a `user_edits` item -- always local, no exception,
+    consent does not unlock it -- and `proposal.SELF_DESCRIPTION_ITEM` is where this
+    package names the same member P7 refuses on.
+    """
+    offered = tuple(dict.fromkeys(schemas))
+    recorded: list[str] = []
+    for raw in descriptions:
+        declaration_id, wording = _split(raw, flag="--describe-role")
+        recorded.append(declare_role(
+            conn, declaration_id=declaration_id, scope=SCOPE_CORPUS,
+            schemas=offered, raw_wording=wording, user_id=user_id,
+            recorded_at=recorded_at))
+    return tuple(recorded)
