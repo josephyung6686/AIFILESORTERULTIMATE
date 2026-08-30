@@ -61,6 +61,7 @@ from scan_agent.basic_record import parent_folder_context
 from mutation.collision import find_collision
 from mutation.constraints import FilesystemConstraints
 from mutation.cross_volume import copy_and_confirm
+from mutation.directories import reverse_directories
 from mutation.events import record_failed_move
 from mutation.execute import JournalEntry, record_journal_entry
 from mutation.vocabulary import (
@@ -335,11 +336,12 @@ def undo(conn: sqlite3.Connection, entry_id: str, *,
         point=VerificationPoint.V3, author=SUBSYSTEM,
         component_version=component_version, materialized=materialized)
 
-    # F2 fills this in. The file reversal and the directory reversal are two
-    # separable questions with two separable failure modes, and §8.3 is explicit
-    # that a retained directory "is never a conflict, because the file reversal
-    # itself succeeded" -- so they are built apart.
-    outcomes: tuple[tuple[str, str], ...] = ()
+    # The file is out of the directories this action created, so they can now be
+    # asked Contract out §7's three conditions. This runs on the successful path
+    # only: a conflict reverses no directory, because a conflict mutates nothing.
+    outcomes = reverse_directories(
+        entry,
+        other_destinations=applied_destinations(conn, excluding=entry.entry_id))
 
     reversal_id = mint_id()
     record_journal_entry(conn, JournalEntry(
