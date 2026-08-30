@@ -528,3 +528,61 @@ so nothing changed for any test that was written before the question was asked.
 **Ruling 3 — the prompt is NOT approved yet**, and is to be researched deeply and
 stress-tested first, as detailed tasks. `76` is the requirements half. Nothing in
 `src/` contains prompt text and nothing calls a model.
+
+
+---
+
+## 15. Three things a prompt cannot fix (from `76`'s research)
+
+The prompt research was asked for requirements and returned three CODE findings
+as well. They are recorded here because none of them is a prompt's to solve, and
+two of them would silently undo work the prompt does.
+
+**15.1 — The stored value is the model's spelling, not the normal form. STRICT
+XFAIL, and the fix is P8's.**
+
+`apply_verdict` writes `ensure_value(..., canonical_value=proposal.value, ...)` --
+the raw model string. `ensure_value` derives the value id from what it is handed,
+so `PHYS 1401` and `PHYS1401` become two rows, two ids and two folders for one
+course. That is `65` §4.2's identity-splitting defect, which already cost this
+project four one-file groups from one course, arriving a second time through a
+different door. §3.6's check 3 asks whether the value "can be normalized safely",
+so a passing verdict means a normal form EXISTS -- and it is discarded.
+
+**The obvious local fix is the one the design forbids.**
+`tests/integration/test_p8_p6_fact_seam.py:97` deliberately plants a THROWING
+normalizer in `request.normalizers` to assert that P6 never calls it:
+`FactRequest.normalizers` is DATA carried to P8, and
+`FactValidationDependencies.normalize` is Site A's callback. Attempted, reverted.
+
+The boundary-respecting fix is P8's: `fact_validation.py:233` already computes
+`dependencies.normalize(proposal.field_key, raw_value)` for check 3 and throws the
+result away one line before calling `apply_verdict` at `:322`. Passing it through
+changes a published signature between two parts, which is why it is recorded
+rather than done. A strict xfail states the case in
+`tests/p6/test_p6_llm_seam.py` and goes green the day it is fixed.
+
+**15.2 — Check 3 does not bound a value, and for 54 of 56 fields does nothing.**
+`normalize_for_model` finds a `DirectSlot` for the field; this deployment ships
+two, `subject` and `term`. Every other field gets whitespace collapsed and
+returned, so check 3 rejects only the empty string and the non-string. Measured
+against the live function, the exact failure that started this -- the whole line
+`PHYS1401 Problem Set 4` proposed for `subject` -- **passes check 3**. It is
+caught only by check 4, and only if a stronger `subject` fact already exists, in
+which case the record reads `CONTRADICTED_BY_STRONGER`: the evidence disagreed,
+when in truth the model agreed and over-quoted. With no stronger fact it is
+`ACCEPT_DIRECT`. **The prompt is the only thing standing between a 3B model and a
+folder named `PHYS1401 Problem Set 4`**, which is precisely why the owner was
+right to refuse to approve one unresearched.
+
+**15.3 — `allowed_vocabulary` and `FactRequest.allowlist` must be the same tuple
+and nothing enforces it.** No caller in `src/` builds a Site A `DossierRequest`.
+When one is written, the model READS `Dossier.allowed_vocabulary` and check 1
+JUDGES against `request.allowlist`. `domains.active_field_allowlist` already
+anticipates this -- "Task 17 hands this exact tuple to P8, so the allowlist is one
+computation and not two" -- but the equality is documented, not asserted. Two
+lists means the model is measured against one and validated against another, and
+every correct answer to the list it was shown is rejected.
+
+**And one stale row corrected.** §1's R7 records `normalize`/`contradicts` as
+OPEN. They exist as of `db5845b` at `src/cli.py`. R7 is FIXED.

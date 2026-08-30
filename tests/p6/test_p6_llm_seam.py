@@ -509,3 +509,65 @@ def test_the_whole_module_runs_with_p8_absent():
     for banned in ("http", "openai", "anthropic", "urllib", "socket", "api_key"):
         assert [one for one in _code_strings(llm_seam)
                 if banned in one.lower()] == [], banned
+
+
+# --- the value that gets stored ---------------------------------------------------
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "The stored value is the model's spelling, not the normalized form. The fix "
+    "is P8's, not P6's: `fact_validation` computes `normalize(field, raw)` for "
+    "check 3 and DISCARDS it one line before calling `apply_verdict`. Passing it "
+    "through changes a published signature between two parts, and "
+    "`tests/integration/test_p8_p6_fact_seam.py:97` deliberately plants a "
+    "throwing normalizer to assert P6 never calls `request.normalizers` itself -- "
+    "so the obvious local fix is the one the design forbids. Owner-visible; "
+    "recorded in `72` §15."))
+def test_the_stored_value_is_the_normalized_one_not_the_models_spelling(
+        subject_file, p6_conn):
+    """§3.6 check 3 asks whether "the proposed value can be normalized safely".
+    A pass therefore means a normal form EXISTS -- and the store recorded the
+    model's spelling instead of it.
+
+    `FactRequest.normalizers` was carried and never called. The consequence is the
+    identity-splitting defect `65` §4.2 already cost this project four one-file
+    groups from one course: `PHYS 1401` and `PHYS1401` become two `values` rows,
+    two value ids, and two folders, because `ensure_value` derives the id from the
+    string it is handed.
+
+    The check and the write must agree about what the value IS. Validating one
+    form and storing another is the same class of defect as measuring a model
+    against one field list and judging it against a second.
+    """
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(field_key="subject", value="  PHYS1401  ",
+                        citations=(subject_file[2],), unknown=False)
+
+    fact_id = _apply(p6_conn, request, proposal, Verdict(passed=True))
+
+    stored = p6_conn.execute(
+        'SELECT v.canonical_value FROM file_facts f JOIN "values" v '
+        "ON v.value_id = f.value_id WHERE f.fact_id = ?", (fact_id,)).fetchone()
+    assert stored["canonical_value"] == "PHYS1401"
+
+
+def test_a_field_with_no_normalizer_keeps_the_value_it_was_given(
+        subject_file, p6_conn):
+    """The twin, and the reason this is not P6 inventing a rule.
+
+    `NORMALIZERS` is injected and P6 authors none of its contents -- per-field
+    normalizers are a Deferred row, "one worked example, not a table". A field the
+    deployment supplied no normalizer for is stored exactly as proposed, because
+    the alternative is this module deciding what a normal form looks like for a
+    field nobody has ruled on, which is what §3.5 forbids at the model's boundary.
+    """
+    request = _request(p6_conn, subject_file)
+    proposal = Proposal(field_key="work_type", value="  Homework  ",
+                        citations=(subject_file[2],), unknown=False)
+
+    fact_id = _apply(p6_conn, request, proposal, Verdict(passed=True))
+
+    stored = p6_conn.execute(
+        'SELECT v.canonical_value FROM file_facts f JOIN "values" v '
+        "ON v.value_id = f.value_id WHERE f.fact_id = ?", (fact_id,)).fetchone()
+    assert stored["canonical_value"] == "  Homework  "
