@@ -317,6 +317,30 @@ def memberships_for_group(
     )
 
 
+def live_memberships_of_file(
+    conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+) -> tuple[Membership, ...]:
+    """Every membership still standing for ONE file version, in any group.
+
+    `memberships_for_group` asks the other question -- who is in this group --
+    and there was no reader for this one, which is why nothing could notice that
+    a file's membership had outlived the fact that put it there.
+
+    Keyed on `content_hash` as well as `file_id`, which is the SPEC's own rule
+    for these records: "Group and membership records key on `content_hash`
+    alongside `file_id`, so a content change makes a membership's evidence stale
+    rather than silently re-pointing it at new bytes." A caller re-deriving one
+    file version is asking about that version's memberships and no other's.
+    """
+    return tuple(
+        _membership_from(row) for row in conn.execute(
+            "SELECT * FROM memberships WHERE file_id = ? AND content_hash = ? "
+            "AND superseded_by IS NULL ORDER BY rowid",
+            (file_id, content_hash),
+        )
+    )
+
+
 def record_edges(
     conn: sqlite3.Connection, group_id: str, edges: Sequence[TypedEdge], *,
     created_at: str,

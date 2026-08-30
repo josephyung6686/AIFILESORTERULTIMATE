@@ -31,6 +31,7 @@ anchor facts state no value.
 """
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
@@ -67,6 +68,7 @@ from grouping.seeds import Seed, UserSeed, seeds_for_file
 from grouping.store import (
     RecordAbsent,
     current_group,
+    live_memberships_of_file,
     record_edges,
     record_group,
     record_membership,
@@ -74,6 +76,7 @@ from grouping.store import (
 from grouping.vocabulary import (
     CANDIDATE,
     DIRECT_ANCHOR,
+    EXCLUDED,
     INCLUDED,
     NO_SENSITIVITY,
     NOT_FLAGGED,
@@ -368,6 +371,87 @@ def _self_membership(group: Group, seed: Seed, *,
     )
 
 
+#: Said on the superseded row, so a later reader has the account §8.2 keeps
+#: history for. Plain words, because P13 and the audit log both show it to a
+#: person: what changed is the evidence, not P9's opinion of the file.
+RETRACTED_ANCHOR_REASON: str = (
+    "the fact this membership was built on is no longer one of the file's "
+    "anchors -- it was retracted or superseded, and a membership may not "
+    "outlive the evidence that produced it"
+)
+
+
+def _retract_unsupported_memberships(
+    conn: sqlite3.Connection, *, file_id: str, content_hash: str,
+    seeds: Sequence[Seed], created_at: str,
+) -> tuple[str, ...]:
+    """Retire the memberships this file's CURRENT facts no longer support.
+
+    §8.7 lets a person say a conclusion about their file is wrong. P6 records it
+    and `read_surface.proposal_eligible` stops returning the claim, so
+    `seeds_for_file` above genuinely does not propose the group again -- and the
+    membership written on the earlier run went on standing, because
+    `memberships_for_group` reads by `group_id` and asks nothing about the
+    evidence underneath. The person was shown their file in the folder they had
+    just objected to. P11 SPEC states the rule they were owed: "a rejected fact
+    cannot support a placement, so a record resting on one would be a
+    contradiction rather than a low-confidence decision."
+
+    **Evidence, not addresses.** The tempting version compares the group ids this
+    file's seeds address now against the groups it is in, and sweeps the
+    difference. That misses the copy: a review step that carries a membership
+    onto the group it merged into writes a SECOND row, under a group no seed ever
+    addresses, citing the same withdrawn observation. Reading the citation
+    catches both, and it is the thing that actually went stale.
+
+    **`direct-anchor` only.** That basis asserts one thing -- this file's own
+    validated fact puts it here -- and it is the only claim a retracted fact can
+    falsify by itself. A `context-supported` member is one a model placed for
+    other reasons and a `user-attached` one is a decision a person made; unmaking
+    either because a fact moved would be P9 overruling a judgement it did not
+    make. Those belong to §4.9's review, not here.
+
+    **All of its fact supports, not any.** A membership with a second anchoring
+    fact still standing keeps it. Only one that has lost every fact it cited has
+    nothing left to say why the file belongs.
+
+    Superseded, never deleted, and the successor keeps the original `support`:
+    §8.7 requires a rejected membership be stored WITH the evidence that produced
+    it, or the system "will repeatedly resurface the same attractive but
+    incorrect grouping".
+    """
+    anchors = {seed.observation_key for seed in seeds if seed.observation_key}
+    retired: list[str] = []
+    for membership in live_memberships_of_file(
+            conn, file_id=file_id, content_hash=content_hash):
+        if membership.basis != DIRECT_ANCHOR or membership.decision != INCLUDED:
+            continue
+        cited = {support.observation_key for support in membership.support
+                 if support.support_kind == SHARED_VALIDATED_FACT
+                 and support.observation_key}
+        if not cited or cited & anchors:
+            continue
+        retracted = dataclasses.replace(
+            membership,
+            membership_id=f"{membership.membership_id}:retracted",
+            decision=EXCLUDED,
+            # RULES, and not USER. A person's rejection is the usual cause and it
+            # is recorded as theirs where they made it, on P6's fact. What P9
+            # observed is narrower and is all it may claim: re-reading this
+            # file's facts, the anchor this row cites is not among them. An
+            # improved extractor withdrawing a value reaches this line by the
+            # same route, and writing USER there would put a person's name on a
+            # decision they did not make.
+            decision_source=RULES,
+            created_at=created_at,
+            supersedes=membership.membership_id,
+            superseded_by=None,
+            supersede_reason=RETRACTED_ANCHOR_REASON)
+        record_membership(conn, retracted)
+        retired.append(retracted.membership_id)
+    return tuple(retired)
+
+
 def group_subject(
     conn: sqlite3.Connection,
     *,
@@ -396,6 +480,13 @@ def group_subject(
     seeds = seeds_for_file(
         conn, file_id=file_id, content_hash=content_hash,
         user_seed_for=user_seed_for)
+    # BEFORE the empty-seed return, and not after it. A file whose only fact was
+    # the one the person retracted has no seeds at all, which is exactly the case
+    # where every membership it has is built on evidence that is gone -- and the
+    # early return below would have carried all of them into the next plan.
+    _retract_unsupported_memberships(
+        conn, file_id=file_id, content_hash=content_hash, seeds=seeds,
+        created_at=created_at)
     if not seeds:
         # A filename is not a fact. A file P6 holds nothing direct about has no
         # legal starting point, and inventing one is where a group with no

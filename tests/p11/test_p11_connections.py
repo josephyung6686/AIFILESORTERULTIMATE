@@ -213,6 +213,14 @@ def test_p9_is_reached_only_through_its_two_reads_and_its_vocabulary():
         "grouping.acceptance", "grouping.acceptance.group_state_as_of",
         "grouping.store", "grouping.store.memberships_for_group",
         "grouping.vocabulary", "grouping.vocabulary.ACCEPTED",
+        # P9's word for a membership it has withdrawn. `memberships_for_group`
+        # returns every live row and `Membership.decision` says which of them are
+        # members; P11 read the rows and never asked, so a file P9 had excluded
+        # was handed to `place_group` and given a destination. Reading the field
+        # means naming its value, and naming it out of P9's own vocabulary is the
+        # thing this test is for -- a literal `"excluded"` in `groups.py` would
+        # be P11 keeping its own spelling of a word P9 owns.
+        "grouping.vocabulary.EXCLUDED",
         "grouping.vocabulary.NOT_FLAGGED",
     }
     # `pipeline.py` and `records.py` carry a P9 VALUE and call nothing.

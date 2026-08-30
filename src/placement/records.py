@@ -181,6 +181,21 @@ class MatchingFact:
     def __post_init__(self) -> None:
         for name in ("file_fact_id", "field", "value", "reliability", "evidence_ref"):
             _require(getattr(self, name), name=name)
+        # Against the CLOSED set, and not just for emptiness. `EVIDENCE_TYPES` is
+        # five of P6's reliability states plus P9's membership basis, and the one
+        # P6 state it leaves out is `rejected` -- named in the vocabulary as
+        # `DROPPED_RELIABILITY_STATE` so that the exclusion reads as a decision.
+        # The SPEC's reason: "a rejected fact cannot support a placement, so a
+        # record resting on one would be a contradiction rather than a
+        # low-confidence decision -- the correct expression is `outcome =
+        # abstain`."
+        #
+        # Nothing enforced it. This field took any non-empty string, so a caller
+        # that read a retracted row out of `file_facts` and passed it here got a
+        # placement scored on a claim the person had already rejected, with
+        # `exact fact match` printed beside it on their screen. Two asserts in
+        # the vocabulary described a rule P11 could not apply.
+        check(self.reliability, EVIDENCE_TYPES, name="reliability")
 
 
 @dataclass(frozen=True)

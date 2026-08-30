@@ -35,7 +35,7 @@ from dataclasses import dataclass
 
 from grouping.acceptance import group_state_as_of
 from grouping.store import memberships_for_group
-from grouping.vocabulary import ACCEPTED, NOT_FLAGGED
+from grouping.vocabulary import ACCEPTED, EXCLUDED, NOT_FLAGGED
 
 from tree_design.vocabulary import (
     BRANCH_BEARING_SHARED_POLICIES, MANDATORY_REVIEW, PRIMARY_HOME,
@@ -121,7 +121,28 @@ def accepted_group_as_of(conn: sqlite3.Connection, *, group_id: str,
         )
     return AcceptedGroup(
         group_id=group_id, plan_version=plan_version, state=state,
-        memberships=tuple(memberships_for_group(conn, group_id)),
+        # Not every live row. `Membership.decision` has three values and
+        # `memberships_for_group` returns all of them, because an `excluded` row
+        # is a record P9 keeps on purpose -- §8.7 stores a withdrawn membership
+        # WITH the evidence that produced it, and `tree_design.upstream` reads
+        # exactly this field to publish `excluded_members`. P11 read the same
+        # rows and asked nothing, so a file P9 had excluded went to
+        # `place_group`, which gives every membership it is handed a
+        # destination. That is P11's own rule about a retracted fact ("a record
+        # resting on one would be a contradiction rather than a low-confidence
+        # decision") broken one record further out: the person had said the
+        # conclusion was wrong, the conclusion was withdrawn, and the file was
+        # filed under it anyway.
+        #
+        # `excluded` ONLY, and not "keep the included ones". The third value is
+        # `uncertain` -- what the P8 seam writes for a context-supported member a
+        # model was not sure about, alongside the `pending-review` acceptance
+        # that makes it safe -- and §6.11's `context-supported group match` is a
+        # confidence class P11 is meant to place and show. Dropping it here would
+        # answer a question §4.8 deliberately leaves open, under cover of a fix
+        # about something else.
+        memberships=tuple(m for m in memberships_for_group(conn, group_id)
+                          if m.decision != EXCLUDED),
     )
 
 
