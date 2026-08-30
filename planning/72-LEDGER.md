@@ -391,3 +391,55 @@ consume it — the very thing `75` refuses to ship in B3.
 **Nothing else conflicts.** `74`'s six findings touch P10/P11/P12 records; `75`'s
 nineteen tasks touch `src/questions/` and the composition root. The only shared
 file is `src/cli.py`, and only at the two points above.
+
+
+---
+
+## 13. Two things that would have stopped the model silently (2026-08-30)
+
+Traced before wiring rather than after. Both are live, both are verified in the
+code, and either alone would have made a wired model look connected and do
+nothing.
+
+**1. An UNCLASSIFIED file is denied to a local model, and the scanned page is
+exactly that file.**
+
+`gate.py:181-188` denies `unclassified` when `unclassified_denies(locality,
+local_calls_on_unclassified)` fires, and `denial.py:177-188` is explicit that
+`local_calls_on_unclassified` **has no default** — it is SPEC open question 5 and
+"the caller answers it and P7 names no winner".
+
+This is a chicken and egg, and it is precisely the OCR case. The scanned page has
+no facts, so it is unclassified. It is unclassified, so the gate refuses to show
+it to the model. The model is what would have given it facts. **`00`'s own report
+line for that file already says it: "This file has not been classified — nothing
+has yet said what kind of material it is — so it was not shown to a model."** The
+sentence was accurate before the model existed and stays accurate after.
+
+Only the owner can break it, and the question is narrow: **may a LOCAL model read
+a file nothing has classified yet?** Note what is NOT at stake — no content leaves
+the device under `local_model`, and `mode_forbids` (`denial.py:151-157`) already
+refuses every CLOUD target in this mode for every file. Note also what stays
+denied either way, because it binds local calls too: §7.3's protected-records
+carve-out (`denial.py:191`), a revoked policy, an always-local item, and a
+whole-document request.
+
+**2. The call ceiling is zero for every corpus this project tests with.**
+
+`budgets.py:147-150`: `allowed_calls = floor(corpus_file_count *
+max_calls_per_1000_files / 1000)`, and the reserve SQL requires `1 <= allowed`.
+At any sane per-thousand rate an 8-file corpus floors to **0**, so every call
+returns `BudgetExhausted` and every file abstains. The formula is right for a
+20,000-file disk and silently forbids all work on a small one.
+
+This one is not an owner ruling so much as a ceiling that needs a floor: a rate
+alone cannot express "at least a few calls on a small corpus". Recorded here
+because a wired model that abstains on every file of an 8-file corpus looks
+exactly like a model that is not wired at all, and that is a day of debugging
+nobody should repeat.
+
+**Also established:** no production `Gate` is constructed anywhere in `src/` —
+only fixtures build one — so the composition root owes P7 its first real caller,
+and `CallDependencies` has **17** fields, all required, none defaulted, with
+`estimated_cost`/`actual_cost` needing a real `Decimal` (an int or float raises)
+and `allowed_vocabulary=()` failing outright.
