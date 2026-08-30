@@ -26,6 +26,7 @@ from __future__ import annotations
 import dataclasses
 import inspect
 import itertools
+import pathlib
 from pathlib import Path
 
 import pytest
@@ -43,15 +44,29 @@ from privacy.classification_store import ClassificationRecord, ClassificationSto
 from privacy.display import RedactionSettings
 from privacy.schema import create_privacy_schema
 from tree_design.fixtures import store_fixture_tree
-from tree_design.records import Node
+from tree_design.records import Node, PlanVersion
+from tree_design.schema import create_tree_schema
+from tree_design.store import write_node, write_plan_version
 
 from mutation import vocabulary as v
 from mutation.approval import ReviewApproval
+from mutation.plan import PLAN_PRECONDITION_FIELDS
 from mutation.constraints import FilesystemConstraints
 from mutation.execute import apply_plan
 from mutation.plan import build_plan, record_plan
 from mutation.schema import create_mutation_schema
 
+from review_surface.apply_seam import (
+    ApplyReviewItem,
+    StalePlanItem,
+    UndoConflictItem,
+    apply_review_item,
+    controls_offered_on_an_undo_conflict,
+    controls_that_would_apply_a_stale_plan,
+    fixture_imports,
+    stale_plan_item,
+    undo_conflict_item,
+)
 from review_surface.activity import (
     ACTIVITY_ATTRIBUTES,
     AUTHORIZING_POLICY_HAS_NO_PRODUCER,
@@ -72,6 +87,10 @@ from review_surface.presentation import record_presentation
 from review_surface.schema import create_review_schema
 from review_surface.store import approvals_for, record_approval
 from review_surface.vocabulary import (
+    ACTION_ACCEPT,
+    ACTION_ACCEPT_BULK,
+    ACTION_APPROVE_FOR_APPLY,
+    ACTION_REFRESH_PLAN,
     SURFACE_APPLY,
     SURFACE_PLACEMENT,
     VERDICT_APPROVED,
@@ -109,6 +128,26 @@ class _Faked:
     authorizing_policy: object
 
 
+@dataclasses.dataclass(frozen=True)
+class _Offering:
+    """An item that DOES offer a control. What the two §8.3 guards are driven at."""
+
+    plan_id: str
+    offered_actions: tuple[str, ...]
+
+
+def _package_sources():
+    """Every module in `src/review_surface/`, as (name, source) pairs.
+
+    Read off the installed package rather than off a path this file guesses, so
+    a module added anywhere in the package is covered the day it lands.
+    """
+    import review_surface
+
+    root = pathlib.Path(review_surface.__file__).resolve().parent
+    return [(path.name, path.read_text()) for path in sorted(root.glob("*.py"))]
+
+
 def _node(node_id, label, parent, **kwargs):
     base = dict(
         node_id=node_id, plan_version_id="plan-1", node_type="proposed",
@@ -139,6 +178,13 @@ def seam_conn(conn):
     create_mutation_schema(conn)
     create_review_schema(conn)
     store_fixture_tree(conn)
+    # The same two nodes the plans are built against, in P10's own store, so
+    # P13's ancestor label chain is read out of the tree rather than handed in.
+    write_plan_version(conn, PlanVersion(
+        plan_version_id="plan-1", predecessor_id=None, state="draft",
+        created_at=FIXED, cross_folder_moves=True, selection_id="sel-1"))
+    for node in NODES:
+        write_node(conn, node)
     return conn
 
 
@@ -586,3 +632,184 @@ def test_the_activity_list_is_ordered_by_when_the_move_happened(
     assert [entry.plan_id for entry in entries] == [first.plan_id,
                                                     second.plan_id]
     assert entries[0].move_time <= entries[1].move_time
+
+
+# ---------------------------------------------------------------------------
+# G1 -- P13's apply seam, against P12's real records.
+#
+# `74` §6 G1 reads "re-point P13's `apply_seam` at the real P12 records and
+# delete `tests/p13/p12_fixtures.py`". Neither existed: P13 Task 11 was never
+# built, and the fixture module has never been in this repository's history. What
+# `src/review_surface/` carried was the vocabulary and the routing for two
+# surfaces nothing could construct -- `SURFACE_APPLY` and `SURFACE_UNDO_CONFLICT`
+# both routing to P12, and no builder for either. So G1 builds the seam rather
+# than re-pointing it, and there is no fixture to delete.
+# ---------------------------------------------------------------------------
+
+
+def test_p13_renders_p12s_real_apply_item_stale_triggers_and_undo_conflict(
+        seam_conn, landscape, root, clock, ids):
+    """`74` §6 G1's named test. Three items, three real P12 records, no fixture."""
+    from mutation.preconditions import evaluate_preconditions, refresh_prompt
+    from mutation.undo import undo
+
+    # --- 1. The apply review item, off a real move plan -------------------
+    plan, source = _plan(seam_conn, landscape, ids)
+    item = apply_review_item(seam_conn, plan)
+
+    # §8.3's thirteen precondition fields, each carrying the plan's own value.
+    # Compared field by field against P12's published list rather than against a
+    # list respelled here, so a field P12 adds is a failure and not a silence.
+    assert len(PLAN_PRECONDITION_FIELDS) == 13
+    for field in PLAN_PRECONDITION_FIELDS:
+        assert getattr(item, field) == getattr(plan, field), field
+    # Plus the five §8.3 asks for beside them.
+    assert item.intended_display_name == plan.intended_display_name
+    assert item.filesystem_safe_name == plan.filesystem_safe_name
+    assert item.placement_decision_reference == plan.placement_decision_reference
+    assert item.plan_version == plan.organization_plan_version
+    # And B3's chain, read out of P10's store rather than handed in.
+    assert item.destination_label_chain == ("Coursework", "PHYS1401")
+
+    # --- 2. The stale plan item, off a real precondition verdict -----------
+    source.write_bytes(b"somebody else edited this after the preview")
+    verdict = evaluate_preconditions(
+        seam_conn, plan, checkpoint="prepare", legal_destination_ids=LEGAL,
+        occupant_at_prepare=None, component_version=COMPONENT,
+        materialized=True, now=clock)
+    assert verdict.trigger == v.CONTENT_HASH_DIFFERS
+
+    stale = stale_plan_item(verdict, plan, sentence=refresh_prompt(verdict))
+    assert stale.trigger == v.CONTENT_HASH_DIFFERS
+    assert stale.sentence == "This file changed after the preview."
+    # Expected against observed, both shown. A stale item that showed only one
+    # of them says "something changed" and not "this changed".
+    assert stale.expected_content_hash == plan.expected_content_hash
+    assert stale.observed_hash_result == verdict.hash_result
+    assert stale.expected_source_path == plan.expected_source_path
+    assert stale.observed_source_path == verdict.observed_source_path
+    # A refresh, and nothing that applies it.
+    assert stale.offered_actions == (ACTION_REFRESH_PLAN,)
+    assert controls_that_would_apply_a_stale_plan([stale]) == []
+
+    # --- 3. The undo conflict item, off a real undo verdict ----------------
+    fresh, _, executed = _applied(seam_conn, landscape, root, clock, ids,
+                                  name="Undoable.pdf")
+    entry = _completed(seam_conn, fresh).journal_entry
+    # Somebody edits the file after it was filed. This is §8.3's own case.
+    Path(executed.final_destination_path).write_bytes(b"edited at the destination")
+    answered = undo(
+        seam_conn, entry.entry_id, constraints=CONSTRAINTS,
+        unverified_copy_disposition=None, normalize_filename=lambda name: name,
+        scan_state="included", materialized=True, component_version=COMPONENT,
+        user_id=USER, now=clock, mint_id=ids)
+    assert answered.verdict == v.CONFLICT_DESTINATION_CONTENT_CHANGED
+
+    conflict = undo_conflict_item(answered)
+    assert conflict.sentence == (
+        "This action cannot be undone automatically because the file changed "
+        "after it was moved.")
+    assert conflict.original_source_path == entry.original_source_path
+    assert conflict.destination_path == entry.destination_path
+    assert conflict.expected_content_hash == entry.content_hash_at_movement
+    assert conflict.observed_content_hash == answered.observed_destination_hash
+    assert conflict.observed_content_hash != conflict.expected_content_hash
+    # §8.3: undo must not force a rollback, so nothing here offers to.
+    assert conflict.offered_actions == ()
+    assert controls_offered_on_an_undo_conflict([conflict]) == []
+    # And the file is still where P12 put it: rendering a conflict moved nothing.
+    assert Path(executed.final_destination_path).read_bytes() == (
+        b"edited at the destination")
+
+
+def test_review_surface_imports_no_test_fixture_module():
+    """`74` §6 G1's negative twin, proven against a module that really does it.
+
+    The task said to delete `tests/p13/p12_fixtures.py`. It has never existed --
+    `git log --all` over that path is empty -- so the assertion worth keeping is
+    not that it was removed but that no such thing can come back: nothing in
+    `src/review_surface/` may import a tests-only stand-in, under either import
+    form or any alias.
+    """
+    assert not (pathlib.Path("tests") / "p13" / "p12_fixtures.py").exists()
+    assert fixture_imports(_package_sources()) == []
+    # The twin half. A guard whose only evidence is "it found nothing" is worth
+    # nothing, so it is driven against sources that genuinely import one.
+    assert fixture_imports(
+        [("offender.py", "from tests.p13.p12_fixtures import APPLY_ITEM\n")])
+    assert fixture_imports([("offender.py", "import tests.p13.p12_fixtures\n")])
+    assert fixture_imports(
+        [("offender.py", "from placement.fixtures import GOLDEN_DECISIONS\n")])
+    assert fixture_imports(
+        [("offender.py", "import placement.fixtures as f\n")])
+    # A clean module is clean, so the guard is about fixtures and not about
+    # having imports at all.
+    assert fixture_imports([("clean.py", "import json\nimport sqlite3\n")]) == []
+
+
+def test_no_item_offers_to_apply_a_stale_plan_or_force_an_undo(
+        seam_conn, landscape, root, clock, ids):
+    """The two controls §8.3 forbids, and the guards that would find them.
+
+    Both guards take their items as an argument so they can be pointed at
+    sabotaged ones. Four guards on this project had quietly stopped being able
+    to fail, and a guard only ever run over items that cannot carry the thing it
+    looks for is in exactly that state.
+    """
+    from mutation.preconditions import evaluate_preconditions, refresh_prompt
+
+    plan, source = _plan(seam_conn, landscape, ids)
+    source.write_bytes(b"changed")
+    verdict = evaluate_preconditions(
+        seam_conn, plan, checkpoint="prepare", legal_destination_ids=LEGAL,
+        occupant_at_prepare=None, component_version=COMPONENT,
+        materialized=True, now=clock)
+    stale = stale_plan_item(verdict, plan, sentence=refresh_prompt(verdict))
+
+    assert controls_that_would_apply_a_stale_plan([stale]) == []
+    # The sabotage: a stale item that offers the person a way to run it anyway.
+    # Every applying action is tried, because a guard that caught only `accept`
+    # would leave `approve_for_apply` -- the one that reaches P12 -- wide open.
+    for applying in (ACTION_ACCEPT, ACTION_ACCEPT_BULK, ACTION_APPROVE_FOR_APPLY):
+        assert controls_that_would_apply_a_stale_plan(
+            [_Offering(plan_id="sabotage", offered_actions=(applying,))]), applying
+    # A refresh is not an applying control, so the guard is about applying and
+    # not about offering anything at all.
+    assert controls_that_would_apply_a_stale_plan(
+        [_Offering(plan_id="ok", offered_actions=(ACTION_REFRESH_PLAN,))]) == []
+
+    assert controls_offered_on_an_undo_conflict([]) == []
+    assert controls_offered_on_an_undo_conflict(
+        [_Offering(plan_id="sabotage", offered_actions=(ACTION_ACCEPT,))])
+
+    # And no field on any of the three items could carry a force flag. A field
+    # that does not exist cannot be populated by a later caller in a hurry.
+    forced = {"force", "force_undo", "forced", "apply_anyway", "override",
+              "ignore_conflict", "ignore_staleness"}
+    for record in (ApplyReviewItem, StalePlanItem, UndoConflictItem):
+        assert not {f.name for f in dataclasses.fields(record)} & forced
+    # The name check would notice one, so it is a check and not a formality.
+    assert {f.name for f in dataclasses.fields(_Offering)} | {"force"} & forced
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "`src/mutation/retention.py:272` fills `66` §9's `authorizing_policy` with "
+    "the plan's `required_review_policy` -- the policy that DEMANDED REVIEW, "
+    "which is the opposite claim to the policy that AUTHORIZED THE MOVE. `74` "
+    "§6 G3's twin rules that the gap is carried and never filled, and `74` §10 "
+    "records that no filing-policy record exists in any part's Contract-out. "
+    "The file is P12 Wave F3's; this reports the disagreement rather than "
+    "editing another wave's module, and it turns from xfail into a failure the "
+    "day the field is reconciled with `review_surface.activity`."))
+def test_p12s_own_activity_row_carries_no_authorizing_policy_either(
+        seam_conn, landscape, root, clock, ids):
+    from mutation.retention import UndoRetention, activity
+
+    _applied(seam_conn, landscape, root, clock, ids)
+    rows = activity(
+        seam_conn,
+        retention=UndoRetention(choice="until_cleared", period=None,
+                                set_at=FIXED, set_by=USER),
+        at="2026-08-29T01:00:00Z")
+    assert rows
+    assert faked_authorizations(rows) == []
