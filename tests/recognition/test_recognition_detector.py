@@ -541,6 +541,78 @@ def test_the_packaged_manifest_recognises_a_real_safety_domain_file(db, tmp_path
     assert outcome.schema_id == "finance"
 
 
+def test_the_packaged_manifest_protects_the_credential_files_a_person_owns(
+        db, tmp_path):
+    """The other half of the tokeniser bug, and the half spelling did not reach.
+
+    That fix made `'password-manager export'` MATCHABLE. It did not make it
+    MATCH: no password vault contains the phrase "password-manager export", and
+    no private key contains "private authentication key". Every credential work
+    type `identity` shipped was a LABEL FOR A KIND OF FILE rather than a word
+    such a file carries, so the whole `identity.credentials-passwords` row --
+    ratified, compiled, 10 work types -- could never fire on anything.
+
+    Measured through `src/cli.py` on a folder holding an SSH private key, a
+    password-vault export and a two-factor recovery sheet: all three ended the
+    run with NO CLASSIFICATION ROW AT ALL, printed as "waiting for you to say
+    what it is, NOT MARKED SENSITIVE". `00`:185 says the opposite in as many
+    words -- an "authentication key ... should enter a protected state
+    immediately".
+
+    What each file is matched ON is the evidence a real run actually has. P5
+    routes an extension-less file and a `.pem` to `format.unrouted`, so the only
+    observation they carry is the file's own name, and §2.2 ranks "a filename,
+    title, or page-one heading" as meaningful evidence. The armor marker is
+    here too, because a key pasted into a text file IS read, and it is the
+    evidence the row's own deterministic prose names: "a private-key armor
+    marker and its matching encoded body".
+
+    One term is enough here and that is deliberate: `_precaution` protects a
+    safety domain the file's own words say it IS, while `explain` still
+    abstains. We do not claim to know what the file is; we decline to expose it.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    det = detector(rules)
+    unprotected = []
+    for filename, body, extension in (
+            ("id_ed25519", None, ""),
+            ("id_rsa", None, ""),
+            ("vault-export.csv", None, ".csv"),
+            ("recovery-codes.txt", "Backup codes 4821-9930 1102-5567", ".txt"),
+            ("server key.txt",
+             "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1r\n", ".txt")):
+        file_id, content_hash = a_file(db, tmp_path, filename, body=body,
+                                       extension=extension)
+        record = det(db, file_id, content_hash)
+        if record is None or not record.protected:
+            unprotected.append((filename, record))
+
+    assert not unprotected, (
+        "credential material ended a run unprotected -- the worse direction, "
+        "because a person does not see a password vault that was never marked: "
+        f"{unprotected}")
+
+
+def test_a_file_that_merely_discusses_keys_is_not_credential_material(db, tmp_path):
+    """The negative twin, and the one that keeps the terms above honest.
+
+    Over-protection is the collapse this project made once. A cryptography
+    lecture handout is ABOUT keys and is not a key, so the terms added for the
+    test above are the armor marker and the canonical key FILENAMES -- never
+    the bare words "private key", which a student's own coursework carries.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "Lecture 4 - public key cryptography.pdf",
+        body="We compare a public key against a certificate, and discuss why a "
+             "private key is never shared. Problem set 4 follows.")
+    record = detector(rules)(db, file_id, content_hash)
+
+    assert record is None or not record.protected, (
+        "a lecture handout about cryptography was sealed as credential "
+        f"material: {record}")
+
+
 def test_the_packaged_manifest_abstains_on_a_file_that_says_nothing(db, tmp_path):
     rules = load_rules(MANIFEST_PATH.read_text)
     file_id, content_hash = a_file(db, tmp_path, "IMG_5512.pdf", body="")
