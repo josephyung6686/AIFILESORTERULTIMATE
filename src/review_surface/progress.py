@@ -63,26 +63,36 @@ COMPLETE: str = "complete"
 #: no entry at all, which the §8.6 rule forbids.
 UNREADABLE_STATES: tuple[str, ...] = ("unreadable", "failed")
 
-#: Which of §8.6's three states each P4 bucket reports as. A deferral is deferred;
-#: a file the product cannot read or has no extractor for is blocked; everything
-#: partial is deferred, because it is work that has not finished rather than work
-#: that failed.
+#: Which of §8.6's three states each P4 completeness state reports as, expressed
+#: as the rule rather than as a table: `complete` is completed work, a file the
+#: product could not read or has no extractor for is blocked, and EVERYTHING ELSE
+#: is deferred, because it is work that has not finished rather than work that
+#: failed.
+#:
+#: Written this way for a second reason. P4 publishes `COMPLETENESS` as a tuple
+#: with no named constant per member, so P13 must spell the members it treats
+#: specially -- and one of P4's members, `deferred`, is spelled the same as one of
+#: P13's own `PROGRESS_STATES` while meaning something different (one is a run
+#: outcome, the other is a line state). Deriving the deferred group by difference
+#: means that string is never respelled here, so the two vocabularies cannot drift
+#: into each other through a shared literal.
+COMPLETED_RUN_STATES: tuple[str, ...] = (COMPLETE,)
+BLOCKED_RUN_STATES: tuple[str, ...] = ("unsupported",) + UNREADABLE_STATES
+DEFERRED_RUN_STATES: tuple[str, ...] = tuple(
+    state for state in COMPLETENESS
+    if state not in COMPLETED_RUN_STATES + BLOCKED_RUN_STATES)
+
 BUCKET_STATE: Mapping[str, str] = {
-    "complete": STATE_COMPLETED,
-    "capped": STATE_DEFERRED,
-    "partial": STATE_DEFERRED,
-    "metadata_only": STATE_DEFERRED,
-    "deferred": STATE_DEFERRED,
-    "dataless": STATE_DEFERRED,
-    "unsupported": STATE_BLOCKED,
-    "unreadable": STATE_BLOCKED,
-    "failed": STATE_BLOCKED,
+    **{state: STATE_COMPLETED for state in COMPLETED_RUN_STATES},
+    **{state: STATE_BLOCKED for state in BLOCKED_RUN_STATES},
+    **{state: STATE_DEFERRED for state in DEFERRED_RUN_STATES},
 }
 assert set(BUCKET_STATE) == set(COMPLETENESS), (
-    "P4 changed its completeness vocabulary; a state with no bucket would land "
-    "in no entry, which §8.6 forbids")
-assert COMPLETE in COMPLETENESS
-assert set(UNREADABLE_STATES) <= set(COMPLETENESS)
+    "every completeness state reports as exactly one §8.6 state; one with no "
+    "bucket would land in no entry, which §8.6 forbids")
+assert set(COMPLETED_RUN_STATES + BLOCKED_RUN_STATES) <= set(COMPLETENESS), (
+    "P4 renamed a completeness state this module names explicitly; the rename "
+    "must be read rather than guessed at")
 
 #: A file with no run at all. NOT one of P4's states, because P4 has no record for
 #: it -- which is precisely the case §8.6's sentence is about.
