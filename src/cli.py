@@ -115,8 +115,14 @@ from tree_design.upstream import (
     UpstreamUnavailable, existing_folders, handling_class_for, protected_areas,
 )
 from tree_design.schema import create_tree_schema
+from mutation.schema import create_mutation_schema
+from review_surface.schema import create_review_schema
+from tree_design.residuals import (
+    ResidualChoice, ResidualTemplate, build_library,
+)
 from tree_design.vocabulary import (
-    MANDATORY_REVIEW, REFINED, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
+    ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION, REFINED,
+    RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
 # ======================================================================================
@@ -395,11 +401,43 @@ METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
                                  metadata_property_names=())
 
 #: §7.3 fixes nine residual template names and leaves their eight attribute slots
-#: deferred. This deployment enables NONE rather than inventing slot values: an
-#: unplaced file still reaches §7.5's review set with its reason, so it is counted
-#: and explained -- which is the property that matters -- and it does so without a
-#: folder nobody designed.
-RESIDUAL_LIBRARY: dict = {}
+#: deferred. Until now this deployment shipped NONE rather than inventing slot
+#: values, which was right while the values did not exist. They exist: the nine
+#: are authored in full at `planning/deferred-catalogues/09-residual-library/
+#: 01-nine-templates.json`, every value provenance-tagged, and `library/
+#: residuals.json` is that file with its wrappers removed and its provenance
+#: kept. Nothing is invented here and nothing is enabled here.
+_RESIDUAL_SLOTS_FILE = (
+    Path(__file__).resolve().parent / "tree_design" / "library" / "residuals.json")
+
+#: The one slot the catalogue deliberately leaves unvalued: "`00` defines the
+#: slot and states no number; every threshold in this product is injected." This
+#: is the injection site, and the number is `RESEARCH.md` §4's recommendation --
+#: zero for eight of the nine, and zero for Reference Clips too because its
+#: optional clip-kind subfolders did not ship (NJ-R3-2: "if they are dropped, 0
+#: there too"), which `residuals.json` confirms by carrying none.
+#:
+#: Zero means the home is flat. §7.3's homes are "safe, intentionally broad
+#: destinations" and `00` holds that "an isolated file should normally remain
+#: high in the tree because there is no evidence that it deserves a deep
+#: project-specific path" -- so any depth inside a residual home would be
+#: structure built without evidence, which is the second filing system this
+#: design exists to avoid.
+RESIDUAL_MAX_DEPTH: int = 0
+
+
+def _residual_library() -> Mapping[str, ResidualTemplate]:
+    """The nine, with this deployment's one injected number.
+
+    Built, not enabled. §7.4: "These templates are not automatically created."
+    Enabling one is `--residual`, and a run that names none gets none.
+    """
+    raw = json.loads(_RESIDUAL_SLOTS_FILE.read_text(encoding="utf-8"))
+    slot_values = {
+        name: dict(values, max_permitted_depth=RESIDUAL_MAX_DEPTH)
+        for name, values in raw.items() if name in RESIDUAL_TEMPLATE_NAMES
+    }
+    return build_library(slot_values)
 
 _RECOGNITION_MANIFEST = (
     Path(__file__).resolve().parent / "recognition" / "library" / "recognition.json")
@@ -959,8 +997,34 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     create_questions_schema(conn)
     create_llm_schema(conn)
     create_budget_schema(conn)
+    # P12's six and P13's three, on the same terms and for the same reason. The
+    # census (`tests/integration/test_composition_root.py`) exists to catch a
+    # part whose tables the run never creates, and it caught these: declared in
+    # `src/` and created by nothing a person runs. A part's durable surface
+    # belongs to the part, not to whether today's run reaches it.
+    create_mutation_schema(conn)
+    create_review_schema(conn)
     for key in CEILINGS.values():
         set_ceiling(conn, key, CEILING_VALUE)
+
+
+def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
+    """Each name is one of §7.3's nine, spelled as §7.3 spells it.
+
+    A misspelling that quietly enabled nothing would be the run reporting
+    success for work it did not do, and the person would find out by looking for
+    a folder that is not there. So it refuses, and it prints the nine -- a
+    refusal that does not say what to type is half a refusal.
+    """
+    unknown = [name for name in names if name not in RESIDUAL_TEMPLATE_NAMES]
+    if unknown:
+        raise NotConfigured(
+            f"{unknown[0]!r} names no residual area. §7.3 fixes nine and this "
+            f"product invents none: {', '.join(RESIDUAL_TEMPLATE_NAMES)}. "
+            f"`--list-residuals` prints them.")
+    # Order is §7.3's, not the order they were typed, so two runs that enable
+    # the same areas produce the same plan.
+    return tuple(name for name in RESIDUAL_TEMPLATE_NAMES if name in set(names))
 
 
 def _validate_situation(catalogue: TemplateCatalogue, situation: str) -> str:
@@ -1025,7 +1089,8 @@ def _print_protected_areas(areas, out) -> None:
 
 
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
-        user_id: str, now, out=None) -> ProductionRun:
+        user_id: str, now, out=None,
+        residuals: Sequence[str] = ()) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
     `out` is here so the protected-container block can be printed the moment the
@@ -1186,15 +1251,50 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             if folder.parent_directory is not None
             and not inside_a_protected_area(folder.directory_path))
 
+    # §7.4's enablement, and only what the person named. `00`: "These templates
+    # are not automatically created", so a run that names none passes an empty
+    # library and the tree is exactly the tree it was. The disposition is a
+    # physical destination because that is what `--residual` asks for -- a place
+    # for these files to go; the other two dispositions (review-only, leave in
+    # place) are real §7.4 choices with no flag yet, and inventing a way to say
+    # them here would be guessing at a gesture nobody designed.
+    #
+    # The anchor is this run's own root anchor -- §7.3 leaves five of the
+    # nine default parents unstated and P10 refuses to invent one, and the
+    # top of the tree the plan is written against is the one place that is
+    # not an invention. `_enable_residual_library` then puts a branch that
+    # named no parent inside this run's top-level branch rather than at the
+    # root, which is `00`:99's rule that a catch-all must not become the
+    # product's default answer to ambiguity.
+    residual_library = _residual_library() if residuals else {}
+    residual_choices = tuple(
+        ResidualChoice(template_name=name, action=ENABLE,
+                       disposition=PHYSICAL_DESTINATION, display_label=None,
+                       parent_node_id=None, root_anchor=ROOT_ANCHOR,
+                       merge_into=None,
+                       replaces_node_id=None)
+        for name in residuals)
+    residual_configuration = {name: ENABLE for name in residuals}
+
     def design_decisions(accepted: Sequence[str]) -> TreeDesignDecisions:
         return TreeDesignDecisions(
             from_plan_version=PLAN_VERSION,
             branch_group_ids=tuple(accepted) + adopted_folders(),
             choose_option=nesting_chooser(conn, asked_at=clock), refinement_for=refinement_for,
-            residual_library=RESIDUAL_LIBRARY, residual_choices=(),
-            residual_configuration={},
+            residual_library=residual_library,
+            residual_choices=residual_choices,
+            residual_configuration=residual_configuration,
             residual_handling_class=lambda name: ORDINARY_CLASS,
-            residual_refinement=None,
+            # §5.8, for a residual home. `shallow-by-choice` is the truthful
+            # answer and not a convenience: `RESIDUAL_MAX_DEPTH` is zero, so
+            # the home is flat DELIBERATELY, and `refine-later` would say the
+            # opposite -- that it is unfinished and something should still
+            # split it. P11 reads this rather than re-deriving it.
+            residual_refinement=(
+                SHALLOW_BY_CHOICE,
+                "This is a home for files that do not belong to any one "
+                "folder. It is meant to stay flat, so nothing here will be "
+                "split into deeper folders."),
             # §6.9's policy. NOT optional -- `validate_for_freeze` refuses a plan
             # version without one, because a file that belongs to two homes leaves
             # P11 having to pick an institution. `mandatory-review` is the answer
@@ -2082,7 +2182,22 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "--answer reading.organization:CV20261234=law_practice. Use "
              "`=skip` to put it aside. Answers are remembered between runs and "
              "can be given more than once.")
+    parser.add_argument(
+        "--residual", action="append", default=[], metavar="NAME",
+        help="enable one of §7.3's residual areas as a destination in this "
+             "plan, e.g. --residual \"Reading Inbox\". These are the homes for "
+             "material that belongs to no folder in particular. None is "
+             "created unless you name it, and it can be given more than once. "
+             "`--list-residuals` prints them.")
+    parser.add_argument(
+        "--list-residuals", action="store_true",
+        help="print the residual areas `--residual` accepts, and stop.")
     args = parser.parse_args(argv)
+
+    if args.list_residuals:
+        for name in RESIDUAL_TEMPLATE_NAMES:
+            print(name, file=out)
+        return 0
 
     catalogue = load_shipped_catalogue(read_packaged_library_file)
     if args.list_situations:
@@ -2131,7 +2246,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
             apply_answers(conn, args.answer, user_id=args.user,
                           recorded_at=now())
         result = run(conn, directory, situation=args.situation, label=args.label,
-                     user_id=args.user, now=now, out=out)
+                     user_id=args.user, now=now, out=out,
+                     residuals=_validate_residuals(args.residual))
     except NotConfigured as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)

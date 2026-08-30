@@ -19,6 +19,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
+from tree_design.vocabulary import RESIDUAL_TEMPLATE_NAMES  # noqa: E402
 
 
 def _run(argv):
@@ -1784,3 +1785,118 @@ def test_the_reminder_line_is_not_the_question_asked_again(tmp_path):
         f"the options are being offered again:\n{report}")
     # And the branch question, which was NOT skipped, is untouched by any of it.
     assert "How should Coursework be organised?" in report, report
+
+
+def _everyday_corpus(tmp_path):
+    """The material a person's disk is actually full of, and no template claims.
+
+    `00`:120 names Memes among its residual areas by name. None of these files
+    belongs to a domain, which is the point: the residual library is the
+    design's answer to them, and until it is enabled the answer is unreachable.
+    """
+    corpus = tmp_path / "corpus"
+    (corpus / "Screenshots").mkdir(parents=True)
+    (corpus / "Memes").mkdir()
+    (corpus / "Screenshots" / "Screenshot 2026-08-14 at 11.03.47.png").write_bytes(
+        b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+    (corpus / "Memes" / "drake-format.jpg").write_bytes(b"\xff\xd8\xff" + b"\x00" * 64)
+    (corpus / "note-to-self.txt").write_text("Remember to renew the parking permit.\n")
+    return corpus
+
+
+def test_a_residual_area_the_person_enables_becomes_a_real_destination(tmp_path):
+    """`00` §7.3's nine names exist in the code and have never once been offered.
+
+    The library is built (`tree_design/residuals.py`), the enablement path is
+    built (`tree_design/pipeline.py::_enable_residual_library`), the surfacing
+    is built, and `cli.py` passed `{}` and `()` -- so every one of them is
+    complete, tested and unreachable, which is this codebase's dominant defect.
+
+    `--residual` is how a person says yes to one. §7.4 makes enablement the
+    user's decision, so the flag names a template and nothing is enabled without
+    it.
+    """
+    corpus = _everyday_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "photos.screenshot-captures",
+              "--label", "Pictures", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite"),
+              "--residual", "Temporary Screenshots"], out=out)
+    printed = out.getvalue()
+
+    folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    assert "Temporary Screenshots" in folders, printed
+
+
+def test_no_residual_area_is_created_unless_the_person_asks_for_it(tmp_path):
+    """The negative twin, and it is `00` §7.4's own sentence.
+
+    "These templates are not automatically created." A run that enabled the nine
+    because they exist would be the product inventing nine folders nobody chose
+    -- and `00`:99 separately forbids a catch-all becoming "the product's default
+    answer to ambiguity". So the same corpus, without the flag, must produce
+    none of the nine.
+    """
+    corpus = _everyday_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "photos.screenshot-captures",
+              "--label", "Pictures", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    printed = out.getvalue()
+
+    folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    for name in RESIDUAL_TEMPLATE_NAMES:
+        assert name not in folders, f"{name} was created without being asked for"
+
+
+def test_a_residual_name_the_library_does_not_carry_is_refused_not_ignored(tmp_path):
+    """A typo must not silently produce a run with nothing enabled.
+
+    The whole point of the flag is that the person asked for something; a
+    misspelling that quietly does nothing is the run reporting success for work
+    it did not do.
+    """
+    corpus = _everyday_corpus(tmp_path)
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "photos.screenshot-captures",
+                     "--label", "Pictures", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     "--residual", "Temporary Screenshot"], out=out)
+    printed = out.getvalue()
+
+    assert code != 0, printed
+    assert "Temporary Screenshots" in printed, (
+        f"the refusal must name what the person could have meant:\n{printed}")
+
+
+def test_an_enabled_residual_home_is_never_put_inside_a_folder_the_person_made(tmp_path):
+    """`00`:100: existing folders "must not be automatically flattened, renamed,
+    or reorganized simply because a template would produce a different
+    structure."
+
+    A residual home belongs inside a meaningful parent -- `00`:99 says a
+    catch-all must not become "the product's default answer to ambiguity" -- and
+    the parent it belongs inside is a branch THIS RUN proposed. The person's own
+    `Memes` folder is not that. Nesting a product-created home inside it
+    reorganises a folder the person made, on no evidence, as a side effect of
+    enabling something else entirely.
+
+    This corpus has no proposed top-level branch at all, so the honest answer is
+    the root: no invented parent, and nobody's folder rearranged.
+    """
+    corpus = _everyday_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "photos.screenshot-captures",
+              "--label", "Pictures", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite"),
+              "--residual", "Temporary Screenshots"], out=out)
+    printed = out.getvalue()
+
+    folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    lines = [line for line in folders.splitlines() if line.strip()]
+    home = next(line for line in lines if "Temporary Screenshots" in line)
+    adopted = [line for line in lines if "[yours already]" in line]
+    assert adopted, folders
+    shallowest_adopted = min(len(line) - len(line.lstrip()) for line in adopted)
+    assert (len(home) - len(home.lstrip())) <= shallowest_adopted, (
+        f"the residual home is nested inside a folder the person made:\n{folders}")

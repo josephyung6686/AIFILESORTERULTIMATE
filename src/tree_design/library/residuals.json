@@ -1,0 +1,246 @@
+{
+  "_": "The eight slots of 00 SS7.2, for the nine names of SS7.3, lifted from planning/deferred-catalogues/09-residual-library/01-nine-templates.json with its provenance wrappers removed and its provenance kept. `max_permitted_depth` is ABSENT on purpose: 00 defines the slot and states no number, and every threshold in this product is injected at the composition root. Nothing here enables anything -- 00 SS7.4: \"These templates are not automatically created.\"",
+  "Temporary Screenshots": {
+    "display_name": "Temporary Screenshots",
+    "accepted_evidence_patterns": [
+      "screenshot-hypothesis",
+      "time-sensitive-or-reminder content",
+      "required-absence",
+      "conflict-abstention"
+    ],
+    "expected_file_types": [
+      "image",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".heic",
+      ".tiff"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "reviewed",
+    "default_parent_location": [
+      "Photos",
+      "Temporary Screenshots"
+    ],
+    "default_parent_location_provenance": "design"
+  },
+  "One-Off Images": {
+    "display_name": "One-Off Images",
+    "accepted_evidence_patterns": [
+      "required-absence",
+      "unclustered-photo",
+      "stripped-metadata-photo",
+      "no-evidence-image"
+    ],
+    "expected_file_types": [
+      "image",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".heic",
+      ".gif",
+      ".webp"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "merely kept searchable",
+    "default_parent_location": [
+      "Photos",
+      "One-Off Images"
+    ],
+    "default_parent_location_provenance": "design"
+  },
+  "Reference Clips": {
+    "display_name": "Reference Clips",
+    "accepted_evidence_patterns": [
+      "reference-content-class",
+      "required-absence",
+      "learned-preference"
+    ],
+    "expected_file_types": [
+      "image",
+      "text_document",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".heic",
+      ".pdf",
+      ".md",
+      ".txt"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [
+      "Recipes",
+      "Products",
+      "Quotes",
+      "Inspiration",
+      "Articles",
+      "Code Snippets"
+    ],
+    "treatment": "merely kept searchable",
+    "default_parent_location": [
+      "Personal",
+      "Reference Clips"
+    ],
+    "default_parent_location_provenance": "design"
+  },
+  "Independent Records": {
+    "display_name": "Independent Records",
+    "accepted_evidence_patterns": [
+      "standalone-durable-document",
+      "required-absence",
+      "non-transactional"
+    ],
+    "expected_file_types": [
+      "text_document",
+      "image",
+      ".pdf",
+      ".docx",
+      ".rtf",
+      ".jpg",
+      ".png"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "retained",
+    "default_parent_location": [
+      "Personal",
+      "Independent Records"
+    ],
+    "default_parent_location_provenance": "design"
+  },
+  "Receipts and Confirmations": {
+    "display_name": "Receipts and Confirmations",
+    "accepted_evidence_patterns": [
+      "transactional-document",
+      "required-isolation",
+      "negative-example-routing"
+    ],
+    "expected_file_types": [
+      "text_document",
+      "image",
+      "email",
+      ".pdf",
+      ".png",
+      ".jpg",
+      ".heic",
+      ".eml"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "reviewed",
+    "default_parent_location": [
+      "Personal",
+      "Receipts and Confirmations"
+    ],
+    "default_parent_location_provenance": "proposal"
+  },
+  "Reading Inbox": {
+    "display_name": "Reading Inbox",
+    "accepted_evidence_patterns": [
+      "reading-material-recognition",
+      "required-absence",
+      "browser-pdf-pile"
+    ],
+    "expected_file_types": [
+      "text_document",
+      ".pdf",
+      ".epub",
+      ".html",
+      ".md"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "reviewed",
+    "default_parent_location": [
+      "Personal",
+      "Reading Inbox"
+    ],
+    "default_parent_location_provenance": "proposal"
+  },
+  "Review Later": {
+    "display_name": "Review Later",
+    "accepted_evidence_patterns": [
+      "partial-understanding",
+      "multiple-plausible-destinations",
+      "model-declared-uncertainty",
+      "unclear-purpose-spreadsheets-and-presentations"
+    ],
+    "expected_file_types": [
+      "text_document",
+      "spreadsheet",
+      "presentation",
+      "image",
+      "email",
+      "code_structured",
+      "audio_video",
+      "design_creative",
+      ".xlsx",
+      ".csv",
+      ".pptx",
+      ".key",
+      ".numbers"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "reviewed",
+    "default_parent_location": [
+      "Personal",
+      "Review Later"
+    ],
+    "default_parent_location_provenance": "proposal"
+  },
+  "Unsupported or Encrypted": {
+    "display_name": "Unsupported or Encrypted",
+    "accepted_evidence_patterns": [
+      "extraction-outcome",
+      "opaque-binary-default",
+      "filename-is-never-purpose"
+    ],
+    "expected_file_types": [
+      "archive",
+      "opaque_binary",
+      "text_document",
+      ".zip",
+      ".7z",
+      ".rar",
+      ".dmg",
+      ".dat"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "retained",
+    "default_parent_location": [
+      "Personal",
+      "Unsupported or Encrypted"
+    ],
+    "default_parent_location_provenance": "proposal"
+  },
+  "Protected Records": {
+    "display_name": "Protected Records",
+    "accepted_evidence_patterns": [
+      "p7-protected-state",
+      "required-isolation",
+      "deterministic-only"
+    ],
+    "expected_file_types": [
+      "image",
+      "text_document",
+      "archive",
+      ".pdf",
+      ".jpg",
+      ".png",
+      ".heic",
+      ".docx"
+    ],
+    "sensitivity_restrictions": [],
+    "optional_shallow_subfolders": [],
+    "treatment": "retained",
+    "default_parent_location": [
+      "Personal",
+      "Protected Records"
+    ],
+    "default_parent_location_provenance": "proposal"
+  }
+}

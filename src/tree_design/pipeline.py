@@ -929,8 +929,18 @@ def _enable_residual_library(conn, authorities, decisions, *, version: str) -> N
     if not decisions.residual_choices:
         return
     existing = {node.node_id: node for node in nodes_for_version(conn, version)}
+    # The parent must be a branch THIS RUN proposed, and never a folder the
+    # person already had. `00`:100 forbids reorganising an existing folder
+    # "simply because a template would produce a different structure", and
+    # nesting a product-created residual home inside somebody's own `Memes`
+    # folder is that, done as a side effect of enabling something else.
+    # `existing_path` is what tells the two apart: it is set only on an adopted
+    # folder. When this run proposed no top-level branch there is no meaningful
+    # parent to use, and the honest answer is none -- the node sits at the root
+    # rather than inside a folder chosen because it happened to be first.
     default_parent = next(
-        (node for node in existing.values() if node.parent_node_id is None), None)
+        (node for node in existing.values()
+         if node.parent_node_id is None and node.existing_path is None), None)
     nodes = project_residual_nodes(
         decisions.residual_library, decisions.residual_choices,
         plan_version_id=version,
