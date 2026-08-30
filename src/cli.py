@@ -293,6 +293,37 @@ def _is_term(raw: str) -> bool:
 #: proposed and left empty.
 _SEPARATOR = re.compile(r"(?<=[A-Z])[ -](?=[0-9])")
 
+#: Zones whose readings are the document's own words. `title`, `filename`, `path`
+#: and `metadata:*` are deliberately outside it: §3.5's slot names a LOCATION, and
+#: these four are things said ABOUT a file rather than in it.
+_TEXT_ZONES: tuple[str, ...] = ("body", "heading", "ocr")
+
+
+def reads_a_structured_string(locator: str) -> bool:
+    """Whether a direct slot may take this reading: A SPAN, INSIDE A TEXT ZONE.
+
+    **This replaced `locator.startswith(("body#", "heading"))`, which starved the
+    whole fact layer.** A locator is `zone[":" container][# span]`
+    (`evidence_shape/locator.py:134`), so a span inside a container reads
+    `body:page=1#62-72` and does NOT start with `body#`. Every PDF page and every
+    OCR region is addressed that way -- they are P4's own two worked examples at
+    `tests/p4/test_p4_locator.py:34-35`, §2.2's page-eighteen reference and §2.8's
+    OCR region. Measured on a 26-file corpus: 229 observations, 2 reached the slots,
+    and both were `.docx` headings. A person's PDFs and scans were read, stored, and
+    never seen by the fact layer.
+
+    **The span requirement is the bound, and it is why widening is safe.** Widening
+    by zone prefix alone also admits `body:page=1` -- the WHOLE PAGE -- and `title`,
+    the whole document title. That is measured too: it produced a proposed folder
+    named `Fudan application checklist [x] transcript [x] personal statement [ ]
+    recommendation [ ] HSK certificate`. A structured string always carries a span
+    because it is a substring the pass located; a whole zone never does. So the same
+    predicate that lets a scan reach `subject` forbids a page from becoming one, and
+    §3.6's check 3 is not asked to do a job §3.5 can do at the slot.
+    """
+    zone = locator.split(":", 1)[0].split("#", 1)[0]
+    return zone in _TEXT_ZONES and "#" in locator
+
 #: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
 #: no default because the slot is the caller's; this deployment reads ONE -- the
 #: identifier the structured-string pass found in the document's text -- into
@@ -305,7 +336,7 @@ _SEPARATOR = re.compile(r"(?<=[A-Z])[ -](?=[0-9])")
 DIRECT_SLOTS = DirectSlots(slots=(
     DirectSlot(
         slot_id="cli.text.identifier", field_key="subject",
-        names=lambda locator: locator.startswith(("body#", "heading")),
+        names=reads_a_structured_string,
         # Everything the term slot does not claim. Without this the two slots
         # would each take the other's readings -- they share every locator there
         # is -- which is why only one of them could ship before `DirectSlot`
@@ -316,7 +347,7 @@ DIRECT_SLOTS = DirectSlots(slots=(
         canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),
     DirectSlot(
         slot_id="cli.text.term", field_key="term",
-        names=lambda locator: locator.startswith(("body#", "heading")),
+        names=reads_a_structured_string,
         matches=lambda raw: _is_term(raw),
         # ONE spelling for `Spring 2026`, `Spring-2026` and `SPRING2026`. The
         # course codes taught this lesson already: `65` §4.2 records four files
@@ -1824,8 +1855,17 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     rank = {outcome: index for index, outcome in enumerate(OUTCOME_WORDS)}
     ordered = sorted(members, key=lambda key: (
-        # Protected first, exactly as `tree_design.health` ranks its warnings.
-        not shielded[key], rank.get(key[0], len(rank)), key[1] or "", key[2]))
+        # Protected LAST. `00`:201 -- "a summary such as '11 protected identity
+        # records' may be safe to show, while a visible list of passport filenames
+        # on a shared screen may not be". Ranking them first opened every report
+        # over a real disk with the person's passport, tax return and medical
+        # records by name, above their homework.
+        #
+        # This is NOT the rule below it. `shielded` still lists a protected group
+        # IN FULL and elides nothing -- that is the standing "marked, counted,
+        # never silently omitted" rule and it is untouched. Being last and being
+        # summarised away are different things, and only the first is changed here.
+        shielded[key], rank.get(key[0], len(rank)), key[1] or "", key[2]))
 
     print(f"\nFiles: {len(decisions)} decided, {placed} ready to file", file=out)
     for key in ordered:

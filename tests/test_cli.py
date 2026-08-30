@@ -247,7 +247,14 @@ def test_a_protected_group_is_never_the_one_summarised_away():
 
     Shortening the list is fine. Shortening the part that says what was marked
     protected and left alone is the exact harm the rule forbids -- so a protected
-    group is listed in full however long it is, and sorts first.
+    group is listed in full however long it is.
+
+    It sorts LAST, and that is a different rule from this one. `00`:201 warns that
+    "a visible list of passport filenames on a shared screen may not be" safe to
+    show, and ranking protected groups first opened every report over a real disk
+    with the person's passport above their homework. Completeness and position are
+    independent: nothing here is elided, and the assertion below now guards the
+    order the owner chose rather than the one this test was first written against.
     """
     names = {f"ord-{n}": f"note-{n:02d}.txt" for n in range(40)}
     names.update({f"prot-{n}": f"secret-{n:02d}.key" for n in range(40)})
@@ -269,7 +276,9 @@ def test_a_protected_group_is_never_the_one_summarised_away():
     ordinary = [name for name in names.values()
                 if name.startswith("note-") and name in printed]
     assert len(ordinary) < 40, "the ordinary list should still be shortened"
-    assert printed.index("secret-00.key") < printed.index("note-00.txt")
+    assert printed.index("note-00.txt") < printed.index("secret-00.key"), (
+        "the report leads with protected material; ordinary work comes first so a "
+        "shared screen does not open with a passport (`00`:201)")
 
 
 def test_the_protected_containers_block_survives_the_regrouping():
@@ -1315,6 +1324,68 @@ def test_a_person_can_change_their_mind(tmp_path):
     folders = reopened.getvalue().split(
         "Folders in this plan:", 1)[1].split("Files:", 1)[0]
     assert "CHEM1500" in folders, folders
+
+
+def test_a_slot_reads_a_span_in_a_text_zone_and_never_a_whole_zone():
+    """§3.5's slot names a LOCATION, and the location it named excluded every PDF.
+
+    A locator is `zone[":" container][# span]`. `locator.startswith("body#")` --
+    what both slots used -- therefore matched a span at the top of a document and
+    missed one inside a page or an OCR region, which is how every PDF and every
+    scan is addressed. They are P4's own worked examples
+    (`tests/p4/test_p4_locator.py:34-35`). Measured over a 26-file corpus: 229
+    observations, 2 reached the fact layer.
+
+    The second half of this test is the reason the first half is safe. Admitting a
+    zone wholesale also admits a whole PAGE and a whole TITLE, and a slot fed a
+    page proposes a folder named after a paragraph.
+    """
+    reads = cli.reads_a_structured_string
+
+    # Widened: a structured string is a structured string wherever it was found.
+    assert reads("body#0-8"), "the plain-text reading that already worked"
+    assert reads("heading#0-11"), "the docx heading that already worked"
+    assert reads("body:page=1#62-72"), "§2.2's page reference -- every PDF"
+    assert reads("ocr:page=4/region=2#0-24"), "§2.8's OCR region -- every scan"
+
+    # Bounded: a whole zone is not a reading a slot may take.
+    assert not reads("body"), "the whole body of a document"
+    assert not reads("body:page=1"), "a whole page -- the folder-name-is-a-paragraph case"
+    assert not reads("ocr:page=4/region=2"), "a whole OCR region"
+    assert not reads("title"), "a title is said ABOUT a file, not in it"
+    assert not reads("path"), "every file sits under some words; none are its own"
+    assert not reads("filename#0-12"), "unchanged by this: still outside the slots"
+    assert not reads("metadata:field=mime_type"), "machine metadata is not text"
+
+
+def test_protected_material_is_not_the_first_thing_on_the_screen(tmp_path):
+    """`00`:201 -- a summary of protected records may be safe on a shared screen,
+    "a visible list of passport filenames" may not.
+
+    The report sorted protected groups FIRST (`not shielded[key]`), so a run over a
+    disk holding a passport opened with its filename. The rationale beside it is
+    about not SUMMARISING a protected area away, which is a different rule and is
+    untouched here: the names are still listed in full and nothing is elided. Only
+    the order changes, so the first thing on screen is ordinary work.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "Passport Scan.txt").write_text(
+        "Passport number X12345678 - scanned copy for records.\n", encoding="utf-8")
+    (corpus / "Syllabus.txt").write_text(
+        "PHYS1401 syllabus. Lecture notes for the semester.\n", encoding="utf-8")
+
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework", "--label",
+              "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    report = out.getvalue()
+
+    assert "protected material" in report, report
+    assert "Ready to file into" in report, report
+    assert report.index("Ready to file into") < report.index("protected material"), (
+        "the report opens with the person's protected material; ordinary work "
+        "should come first so a shared screen does not lead with a passport")
 
 
 def test_answering_again_supersedes_the_earlier_answer_instead_of_racing_it(tmp_path):
