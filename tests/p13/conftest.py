@@ -17,6 +17,7 @@ from facts.fields import create_fields
 from grouping.schema import create_grouping_schema
 from placement.schema import create_placement_schema
 from privacy.schema import create_privacy_schema
+from tree_design.schema import create_tree_schema
 
 from review_surface.schema import create_review_schema
 
@@ -32,6 +33,10 @@ def p13_conn(conn):
     create_grouping_schema(conn)
     create_fields(conn)
     create_privacy_schema(conn)
+    # P10's tables, for the same reason as the rest: P13's whole destination
+    # rendering is a read of `tree_nodes` through the ancestor chain, and a
+    # chain read against an absent table would prove nothing about the chain.
+    create_tree_schema(conn)
     create_placement_schema(conn)
     create_review_schema(conn)
     return conn
