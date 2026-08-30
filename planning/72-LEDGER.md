@@ -291,3 +291,64 @@ nesting offer stops nothing. Under one heading a finished run looked stuck.
 `law_practice` by the person's own answer and still sits under a branch called
 `Coursework`, because the branch label is one `--label` per run. That is §5's
 first entry and this work did not move it.
+
+
+---
+
+## 11. What is PROVEN, what is ABSENT (2026-08-30)
+
+Joseph asked three questions this section answers with evidence rather than
+prose: is OCR working, is the whole pipeline working, and is the LLM involved in
+sorting. Every row was measured by running the command, not by reading the code.
+
+### Proven working, with the evidence
+
+| stage | proof |
+|---|---|
+| **Scan (P3)** | 8 files, 5 directories read; protected containers counted, none opened |
+| **Extraction — text, PDF, DOCX, ZIP (P4/P5)** | `text.structured`, `pdf.text`, `archive.manifest` runs, tier `native`, `complete` |
+| **Extraction — OCR (P5 §2.7)** | **image-only PDF**, pdfminer text layer `''`, then `ocr.apple_vision` tier `ocr` `complete`; Vision's reading stored as three units: `PHYS1401 Problem Set 4`, `Columbia University, Spring 2026`, `Due Friday at noon.` |
+| **Facts (P6)** | `subject`, `term`, `school` settled per file, cited to observations |
+| **Grouping (P9)** | four groups, engine-named and `coherent`, no user input |
+| **Tree (P10)** | nested proposal beside 5 adopted folders of the person's own |
+| **Placement (P11)** | all 8 files given a destination and a reason; 4 read "nothing to do" |
+| **Questions (P15)** | 3 raised from the corpus's own ambiguities; answering moved 5 files from "waiting" to 3 filed + 4 already correct; answering the nesting changed the tree from 3 children to none; revoking put it back |
+
+### Absent, and named
+
+| | state |
+|---|---|
+| **LLM / model, anywhere** | **ABSENT.** `model_client=None`, `p8_run_call=None`, `prompt=None`, and `group_dossiers` holds **0 rows** after real runs. Nothing is sent anywhere and nothing is judged by a model. Every placement above is deterministic. |
+| **Find (`66` §1–§6, §18)** | **ABSENT — and §22 says it ships FIRST.** There is no search module in `src/`. |
+| **Apply / undo (P12)** | **ABSENT.** Nothing moves. Every run ends "Nothing was moved." |
+| **Review surface (P13)** | **ABSENT.** The CLI report and `--answer` are standing in for it. |
+| **Profession/role matcher (§16)** | **ABSENT.** The only hits are template-library DATA, not a matcher. |
+| **Household / person-shaped folders (§15)** | **ABSENT.** No relationship-category workflow. |
+| **Image and long-tail readers** | **ABSENT.** Still §2.4 `unsupported`. |
+
+### The finding that matters most about OCR
+
+OCR reads the page and **its reading still cannot file the page**, and that is the
+design working rather than failing. P4 marks OCR output `possible`; §3.6's
+`PROPOSAL_ELIGIBLE_STATES` excludes `possible` by construction, because a weak
+reading "must not quietly become a folder proposal". So a scanned page is read,
+its words are stored, and the file waits for someone to say what it is.
+
+**The tempting fix is wrong and was refused.** `DirectSlots` applies no test to an
+observation's reliability -- §3.5 names a LOCATION, and `direct describes the slot,
+not the value's usefulness` -- so adding `ocr:` to the two shipped slots would
+turn every recognition into a `direct` fact and launder exactly what §3.6 exists
+to stop. What legitimately promotes a `possible` reading is a validation stage
+(R7's oracles) or a model (R1) or the person. Two are unbuilt; the third is P15.
+
+**So: OCR is proven to READ, and is not yet proven to be USEFUL**, and the single
+thing standing between those two sentences is R1/R7.
+
+### One crash found by asking for this proof
+
+Generating a genuine image-only PDF and running the command over it -- the first
+time a real scan had ever gone through the live path -- crashed the whole corpus:
+`extract_ocr` addressed every region of a page as `page[N]`, so three text units
+were stored under one name and each span resolved against the wrong one. Fixed
+(`d6ffee7`). Invisible for the life of the project because every OCR fixture used
+`region=1`, the one shape a real scan never has.
