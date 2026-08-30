@@ -139,6 +139,25 @@ def check_mode(value: object) -> str:
 #: edits, group memberships, and raw sensitive values should remain local." Nine, in
 #: the design's order. Nothing here can be named as a releasable item kind, and Task 7
 #: turns an attempt into the `always_local_item` denial.
+#:
+#: RULING 2026-08-31 (`80` §2), recorded here because a closed vocabulary carries its
+#: own approval at the member. **A person's typed description of themselves -- their
+#: roles, what they do -- is a `user_edits` item.** It was not anticipated when these
+#: nine were written, and that absence was read for a while as an open question about
+#: whether it fell inside them. It is not open. Free text, typed by the person, about
+#: themselves, with no schema bounding what is in it, is the same risk class by
+#: construction: it may carry a name, a diagnosis, a legal status, an employer under
+#: NDA. Sensitive-until-proven-otherwise and fail closed is the test this design
+#: already applies everywhere else.
+#:
+#: NO TENTH MEMBER IS ADDED. This is a scope gap in an existing rule rather than a new
+#: rule, which is the whole reason it can be settled by reading rather than by
+#: ratifying. It is also a RESTRICTION: it closes a path rather than opening one.
+#:
+#: Consent does not unlock it -- consent is the wrong instrument for content whose
+#: sensitivity the person cannot preview or bound in advance. So a self-description
+#: never leaves the device, and any future proposal to send one is a change to
+#: `00`:186 and is refused until `00`:186 changes.
 ALWAYS_LOCAL: tuple[str, ...] = (
     "paths", "complete_extracted_text", "ocr_output", "file_hashes", "image_exif",
     "gps", "user_edits", "group_memberships", "raw_sensitive_values",
