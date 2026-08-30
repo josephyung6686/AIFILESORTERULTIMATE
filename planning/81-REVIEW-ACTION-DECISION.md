@@ -776,3 +776,117 @@ Three independent derivations, three outcomes, and the pattern is clean:
 not a four-way disagreement with four defensible sides. It is **two defects with two different
 causes**: one part invented (P9), and one part had nothing to read (P10). They need different repairs,
 and §5's three options all apply one repair to both.
+
+---
+
+## 13. Revised questions and judgement
+
+§11 and §12 change what the owner has to decide. **§13.1 replaces §8 and §13.3 replaces §9.** §8's
+Q4-Q7 survive as consequences and are marked below where they stop being separate decisions.
+
+First, one claim from §4 re-checked against the current tree, because Wave B landed after it was
+written: **§4.1 still holds.** P13 now imports P10's and P11's *readers and records* in eleven modules
+(`labels.py`, `items.py`, `versions_view.py`, `residual.py`, `citations.py`, `approvals.py` and
+others), all in the read direction. Nothing under `src/review_surface/` calls any receiver's
+`apply_review_action`. The `review_action` delivery seam still does not exist, and the disagreement
+still costs nothing at run time. What Wave B added is the *`review_approval`* seam (§12), which is a
+different record.
+
+### 13.1 The questions, reduced to one and its consequences
+
+**Q1′ — the ruling. Who owns the name of a gesture: the part that COLLECTS it, or the part that
+APPLIES it?**
+
+This is `74` §8 Q2 restated as the question MINOR 6 is actually waiting on, and it is the only thing
+here that requires judgement rather than bookkeeping. Reading (i) — P13 owns it, because
+`review_action` is P13's record. Reading (ii) — the applying part owns it, because
+`P13 SPEC:282-283` says *"that part decides what it means."* Everything below follows from the answer.
+
+**Consequences of (i), which are then not separate decisions:**
+- P13's eighteen must grow to cover §8.7's six unhomed gestures and §5's canvas (§4.4) — i.e. §6's Option D — because a vocabulary that owns every name must have a name for everything a person can do.
+- P9's and P10's sets become re-exports of P13's. §8 Q2 ("may a person rename a branch, and what is it called") is answered by whatever the derivation produces.
+- The owner-approval gate stays in one module, which is this reading's real strength.
+
+**Consequences of (ii), which are then not separate decisions:**
+- P13's `ACTIONS` becomes an assembly of imports from P9, P10 and P11. Nobody invents a name; the ~40-member union already exists in `src/` and is already traceable to design sentences (§3.3).
+- §8 Q1 ("is the eighteen complete?") dissolves — it was never meant to be complete, it is the collection vocabulary for the surfaces P13 itself owns.
+- §8 Q2 is answered `rename`, because P10 renames.
+- §8 Q5 ("are `restore` and `reset-suggestion` real?") is answered no under *both* readings: P9 owns group gestures, and neither is in P9's SPEC either (§3.2).
+
+**Q2′ — does P11's fresh-string copy get repaired as housekeeping, or does it wait for Q1′?**
+`src/placement/vocabulary.py:305-328` duplicates a now-published P13 vocabulary and its own
+neighbouring comment forbids it (§11.3). This is `80` §2's shape exactly: not a new rule, a list that
+needs a housekeeping update after something shipped. It is also a *restriction* — it removes a second
+home rather than adding a member — which by `80` §2's own reasoning is recordable without a fresh
+ratification round. It can be done before Q1′ and does not depend on it.
+
+**Q3′ — the one thing MINOR 6 makes worse, and it needs an explicit answer.**
+Under reading (ii), P13's closed vocabulary grows whenever P10 edits a tuple in
+`src/tree_design/vocabulary.py`. That collides head-on with the standing rule that *"adding a member
+to a closed vocabulary requires owner approval recorded at the member"*
+(`src/review_surface/move_permission.py:33-34`). Either the approval gate moves to the owning part —
+so P10's tuple is where a canvas gesture gets approved — or reading (ii) is refused on that ground.
+**This is the strongest argument for reading (i) and it is not answered anywhere.**
+
+**Q4′ — `leave-untouched` or `leave_untouched`?**
+§8 Q4 stands, but it stops being a coin-flip: under either reading of Q1′ the answer is mechanical.
+Under (i) P13's `leave_untouched` wins; under (ii) P10's `leave-untouched` wins, because leaving an
+existing folder alone is a tree outcome (`01`:1037-1039). Pick Q1′ and this is decided.
+
+**Q5′ — is the canvas a `review_action` surface at all?**
+§8 Q3 and `74` §8 Q4, unchanged and still open. §12's Option G does not touch it. It remains the
+question I am least able to answer from evidence.
+
+### 13.2 What is now settled by evidence rather than by choice
+
+Recorded here so the owner does not re-decide them:
+
+- **The field-name disagreement needs no ruling.** §12 shows two parts deriving the SPEC's record independently and matching nine of nine. P9's `plan_version_id`, `decided_at`, `basis` and `group_id` lose to P9's own SPEC (`planning/parts/P9-grouping/SPEC.md:125-129`), not to P13's.
+- **No fixture is needed for any of the three seams.** `tests/p13/p12_fixtures.py` never existed and the seam it was planned for is green.
+- **A translation table (§5's Option C) is refused twice over**, now: by `74`:490 and by MINOR 7.
+- **This is two defects, not a four-way tie** (§12.3).
+
+### 13.3 My judgement, kept separate
+
+Nothing below is a ruling and nothing below was applied to any file.
+
+**§9 recommended Option D. I am revising that.** D was the right answer to the question as `74` §8 Q2
+framed it, and §11 shows the framing was wrong: the project already has the rule, and what is missing
+is one ownership ruling, not a derivation exercise. **What I would now put to the owner is Q1′ alone,
+with Option G (§12) as the mechanism regardless of how Q1′ goes** — because G is already shipped,
+already green, and settles the entire field-name half without anybody choosing anything.
+
+On Q1′ itself I lean to **reading (ii)**, for three reasons, and I hold the strongest objection to it
+in the same breath.
+
+First, it is the only reading under which nobody invents a name. Every member of the ~40-name union
+already traces to a design sentence (§3.3's table); P13's eighteen does not cover them (§4.4); so
+reading (i) requires someone to author names for six gestures the design describes but never spells.
+This project's standing position is that authoring is where defects come from.
+
+Second, it matches what the SPEC says out loud — *"that part decides what it means"* — and it matches
+what MINOR 6 already did for node kinds between the same two parts (§11.2). Reading (i) would make
+`review_action` the one record in the system where the collector, rather than the owner, names the
+vocabulary.
+
+Third, it makes §4.4's six unhomed gestures stop being unhomed without a SPEC amendment, which is the
+only outcome under which a person can rename a branch *and* the rename is recorded truthfully — which
+is the question this brief was asked.
+
+**And the objection I cannot answer: Q3′.** Reading (ii) disperses the owner-approval gate across four
+parts. The rule that a closed vocabulary's membership carries its own approval is one of the few this
+project enforces at four separate sites, and reading (ii) makes it four times harder to hold. If the
+owner values that gate above the invention-avoidance argument, reading (i) is correct and Option D
+comes back with it. **I do not think that trade is mine to make**, and it is the substance of Q1′.
+
+**Urgency, revised.** §9 said low and rising at the first receiver call. That is still true, and the
+horizon is now nearer: `build-p12-waveG` is working the seam next door, `src/placement/vocabulary.py`
+is holding a duplicate of a published vocabulary today (§11.3), and each further wave built on the
+frozen fixtures is more call sites to move. Q2′ is repairable now and independent of the ruling.
+
+### 13.4 What this second pass did not do
+
+- It changed no vocabulary, and specifically did not repair §11.3, which is a closed vocabulary and not this document's to edit.
+- It did not re-run the probes of §4.2 against the post-Wave-B tree. The receivers' signatures are unchanged in `git log`, but the probe output in §4.2 is from before Wave B and is labelled as such.
+- It did not check whether P7's or P12's `review_action` ends acquired vocabularies during Wave B. §10's caveat stands.
+- It did not answer Q1′, Q3′ or Q5′.
