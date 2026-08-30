@@ -339,13 +339,26 @@ def test_an_unmatched_declaration_is_stored_as_free_text_and_a_choice_as_choice(
     assert types == {FREE_TEXT, CHOICE}
 
 
-def test_no_run_over_files_can_raise_a_role_declaration():
-    """§12 permits a question only when a decision is blocked, and no evidence
-    blocks on what somebody's profession is. A role declaration is raised by the
-    PERSON: `declaration_id` is minted by the caller, and nothing in `triggers.py`
-    -- which is what a run consults -- mints one or calls this builder."""
+def test_a_run_over_files_never_reaches_the_role_module():
+    """WHO raises a role declaration, which `80` did not move.
+
+    `80` §3 (R1) moved WHEN the self-description question may be introduced -- to
+    the first genuinely ambiguous file, from a finished run, through the mechanism
+    that already raises every other question here. It did not move who introduces
+    it. `triggers.py` is what a run consults, and it imports nothing from this
+    module: it may say the moment has arrived (`role_declaration_is_due`, a bool),
+    and only the person's own gesture mints a `declaration_id` and an answer.
+
+    The other half -- that `triggers.py` calls neither builder -- is pinned beside
+    the trigger, in `test_p15_role_trigger.py`.
+    """
     triggers = pathlib.Path("src/questions/triggers.py").read_text()
-    called = {node.func.id for node in ast.walk(ast.parse(triggers))
-              if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)}
-    assert "question_for_role_declaration" not in called
-    assert "declare_role" not in called
+    imported = set()
+    for node in ast.walk(ast.parse(triggers)):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module)
+        elif isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+
+    assert "questions.roles" not in imported
+    assert "questions.proposal" not in imported

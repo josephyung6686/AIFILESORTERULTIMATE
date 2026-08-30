@@ -35,7 +35,9 @@ from dataclasses import dataclass
 from privacy.vocabulary import check_handling_class
 
 from questions.records import QuestionOption, StructuralQuestion
-from questions.registry import NESTING_KIND, READING_KIND, SITUATION_KIND
+from questions.registry import (
+    NESTING_KIND, READING_KIND, ROLE_KIND, SITUATION_KIND, kind_of,
+)
 from questions.vocabulary import SCOPE_BRANCH, SCOPE_ORGANIZATION, STRUCTURAL
 
 #: `66` §14 keeps these two answers first-class, so every derived question carries
@@ -289,3 +291,56 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
                                      selects_situation=situation)
                       for situation in offered),
         evidence_refs=(f"{SCOPE_BRANCH}:{branch_label}",))
+
+
+def role_declaration_is_due(*, blocked: Iterable[StructuralQuestion],
+                            already_declared: Iterable[object]) -> bool:
+    """`80` §3 (R1): WHEN the self-description question may be introduced.
+
+    The brief this ruling answers assumed onboarding. The ruling rejects that:
+
+    > A brand-new user doesn't yet trust the product enough to answer an identity
+    > question about themselves. Seamless would mean: let the person run the tool
+    > once, see it do something correct and small first, and ask the
+    > self-description question only once there's evidence the product needs it --
+    > i.e. precisely when it hits its first genuinely ambiguous file.
+
+    So this is a moment, not a question. It returns a BOOL and mints nothing: no
+    `declaration_id`, no `StructuralQuestion`, no answer. That is deliberate and it
+    is the whole reason R1 can be satisfied without breaking §12. A run may now say
+    *this is the moment*; only the person's own gesture may say *and here is who I
+    am*, and `roles.py` is still reached from nowhere in this module.
+
+    **The two conditions, and the second one is R2.**
+
+    Due when at least one decision this run could not settle is open -- the first
+    genuinely ambiguous file, in the same sense every other question in this module
+    means it: raised from a finished run, never up front, and a run with nothing
+    blocked asks nothing.
+
+    NEVER due once the person has declared anything at all. `80` §4 (R2): "the
+    friction budget is spent ONCE. Confirmation happens at the moment the roles are
+    established. It does not recur per file."
+
+    > If the design implies confirming every time the context gets used later ...
+    > that becomes death by a thousand tiny interruptions, and a user will start
+    > clicking through without reading, which defeats the entire safety rationale.
+
+    A confirmed role therefore operates SILENTLY afterwards, and so does a skipped
+    one -- `live_roles` returns a skipped declaration too, and §14 makes "skip for
+    now" a first-class answer that §12 forbids re-asking. Changing a role later is
+    R6's small localised edit through `roles.declare_role`, not this moment coming
+    back around.
+
+    `already_declared` is `roles.live_roles(conn)` and arrives injected, so nothing
+    a run consults imports the role module. It is read as a presence and never
+    counted, because one role and six roles are the same fact here: the person has
+    been asked.
+
+    A blocked ROLE question does not make itself due. It is already open; treating
+    it as the ambiguity would be the moment triggering on its own consequence.
+    """
+    if tuple(already_declared):
+        return False
+    return any(kind_of(question.question_id) is not ROLE_KIND
+               for question in blocked)
