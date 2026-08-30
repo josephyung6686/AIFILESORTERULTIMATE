@@ -1332,6 +1332,112 @@ def test_a_person_can_change_their_mind(tmp_path):
     assert "CHEM1500" in folders, folders
 
 
+def test_a_protected_files_own_words_are_never_printed_back_to_the_person(tmp_path):
+    """§8.4 and `00`:201 -- the whole point of marking a file protected.
+
+    Found by running the product over a passport: its number, its date of birth and
+    its expiry became `subject` values, and the date of birth was printed on the
+    terminal as a question the person was invited to answer --
+
+        What kind of material is JUN1998?
+          --answer reading.organization:JUN1998=identity
+
+    -- which also offers to make it a folder dimension. The file WAS correctly
+    classified protected; nothing consulted that before asking.
+
+    `_raise_questions` builds `subject_of` from every active `subject` fact with no
+    reference to `classifications`, and by the time it runs the classification is
+    already settled, so the guard costs nothing and needs no reordering. The tree
+    side was already covered -- `materialise_branch` isolates protected files -- but
+    isolation stops a value becoming a FOLDER, not a value being read aloud.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "Passport.txt").write_text(
+        "Passport number X12345678. Date of birth JUN1998.\n", encoding="utf-8")
+    (corpus / "Syllabus.txt").write_text(
+        "PHYS1401 syllabus. Lecture notes for the semester.\n", encoding="utf-8")
+
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework", "--label",
+              "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    report = out.getvalue()
+
+    assert "X12345678" not in report, (
+        "a passport number was printed to the screen; it is protected material")
+    assert "JUN1998" not in report, (
+        "a date of birth read out of a protected file was printed to the screen "
+        "and offered as a folder dimension")
+    # MARKED AND COUNTED, NEVER SILENTLY OMITTED -- the other half of the rule, and
+    # the one a careless version of this guard would break. The file is still named,
+    # still decided, and still carries its own reason; only its CONTENTS are absent.
+    assert "Passport.txt" in report, (
+        "the protected file vanished from the report; it must be marked and "
+        "counted, not hidden")
+    assert "protected material" in report, report
+    assert "Syllabus.txt" in report, "the ordinary file stopped being reported"
+
+
+def test_groups_of_different_categories_get_different_top_level_branches(tmp_path):
+    """§5's first entry: a legal matter filed under "Coursework".
+
+    `74` A5 states this task as "four accepted groups produce four branches under
+    the named top level" -- and that is ALREADY TRUE, so shipping it as written
+    would close the task and fix nothing. Measured on this corpus: `Coursework/`
+    already holds `CV20261234`, `PHYS1401` and `Q3 2025` as three branches. The
+    vertical pass rebuilds them from the subject dimension, exactly as
+    `review_and_accept`'s docstring says.
+
+    The defect is one level up. `review_and_accept` merges every group P9 produced
+    into ONE accepted group stamped with the single `--situation`, so four
+    CATEGORIES become one branch. P9 named them correctly and unaided; the merge
+    discards the naming. The function says so itself:
+
+        "What `--label` and `--situation` also do, and should not, is flatten four
+        categories into one -- a legal matter number filed under 'Coursework'."
+
+    So the unit is the CATEGORY, not the group. Accepting each GROUP separately is
+    a different change and a worse one -- the same docstring records that it "would
+    put four course codes at the ROOT and destroy the nesting".
+
+    `xfail(strict=True)`: it states the gap today and turns the suite RED the day a
+    second top-level branch appears, which forces the marker off.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "Syllabus.txt").write_text(
+        "PHYS1401 syllabus. Lecture notes for the semester.\n", encoding="utf-8")
+    (corpus / "Claim.txt").write_text(
+        "CV20261234 claim form. Particulars of claim and defence bundle.\n",
+        encoding="utf-8")
+    (corpus / "Review.txt").write_text(
+        "Q3 2025 performance review. Objectives and appraisal for the quarter.\n",
+        encoding="utf-8")
+
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework", "--label",
+              "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    folders = out.getvalue().split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    roots = [line for line in folders.splitlines()
+             if line.startswith("  ") and not line.startswith("    ")]
+
+    assert len(roots) > 1, (
+        "every category was filed under one top-level branch; the person's legal "
+        f"matter is inside a folder called Coursework. Roots: {roots}")
+
+
+test_groups_of_different_categories_get_different_top_level_branches = (
+    pytest.mark.xfail(
+        strict=True,
+        reason="`review_and_accept` merges every P9 group into one accepted group "
+               "under a single `--label`/`--situation`, so a legal matter, a course "
+               "and a performance review share one branch. XPASSes and fails the "
+               "suite the moment per-category acceptance lands.",
+    )(test_groups_of_different_categories_get_different_top_level_branches))
+
+
 def test_a_refused_run_still_says_what_was_marked_and_counted(tmp_path):
     """The standing rule has no success-path exception.
 

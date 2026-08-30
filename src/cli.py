@@ -1430,12 +1430,29 @@ def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
     re-derives the same questions from the same evidence and adds nothing: it is
     one question asked twice, not two.
     """
+    # A PROTECTED FILE'S OWN WORDS ARE NOT A QUESTION. Measured on a passport: its
+    # number, its date of birth and its expiry became `subject` values, and the date
+    # of birth was printed on the terminal -- "What kind of material is JUN1998?" --
+    # with an option that would have made it a folder dimension. §8.4 marks such a
+    # file so it is NOT assembled for anything, and `00`:201 says a visible list of
+    # protected specifics "may not be" safe to show.
+    #
+    # The classification is already settled here: `_raise_questions` runs after
+    # P1-P7, so this needs no reordering of the pipeline and costs nothing. The tree
+    # side was already covered -- `materialise_branch` isolates protected files -- but
+    # isolation stops a value becoming a FOLDER; it does not stop it being read out.
+    #
+    # The fact itself is left standing. It is evidence-backed and §8.2 does not
+    # delete; what changes is that nothing offers it to the person.
     subject_of: dict[str, str] = {}
     for row in conn.execute(
             'SELECT f.file_id, v.canonical_value FROM file_facts AS f '
             'JOIN "values" AS v ON v.value_id = f.value_id '
             "WHERE f.field_key = 'subject' AND f.active = 1 "
-            "AND f.superseded_by IS NULL"):
+            "AND f.superseded_by IS NULL "
+            "AND NOT EXISTS (SELECT 1 FROM classifications AS c "
+            "                WHERE c.file_id = f.file_id AND c.protected = 1 "
+            "                  AND c.superseded_by IS NULL)"):
         subject_of.setdefault(row[0], row[1])
     files = [(row[0], row[1]) for row in conn.execute(
         "SELECT DISTINCT file_id, content_hash FROM evidence")]

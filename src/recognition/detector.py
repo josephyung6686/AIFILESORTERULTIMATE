@@ -249,6 +249,19 @@ class Detector:
                     continue
                 index.setdefault(tokens, []).append(schema_id)
         self._index = {tokens: tuple(owners) for tokens, owners in index.items()}
+        #: Authored work-type terms IN THE TOKENISER'S OWN SPELLING, per schema.
+        #: `_tokens` "separates on everything that is not a letter or digit", and a
+        #: `TermMatch.term` is already tokenised -- so comparing one against the raw
+        #: authored strings tests `'after visit summary'` for membership of a list
+        #: holding `'after-visit summary'` and answers no. Measured over the shipped
+        #: library, 159 of 470 safety work-type spellings could never match, and a
+        #: plaintext password-manager export ('password-manager export') reached the
+        #: end of a run with no classification row at all. Built once here rather
+        #: than per match, which also stops a 270-entry linear scan per term.
+        self._work_types = {
+            schema_id: frozenset(" ".join(_tokens(term))
+                                 for term in schema.work_type_terms)
+            for schema_id, schema in rules.schemas.items()}
         self._prefixes = {tokens[:length] for tokens in self._index
                           for length in range(1, len(tokens))}
 
@@ -606,8 +619,7 @@ class Detector:
         path_keys = self._path_keys(conn, file_id, content_hash)
 
         def says_what_the_file_is(match: "TermMatch") -> bool:
-            schema = self._rules.schemas.get(match.schema_id)
-            return schema is not None and match.term in schema.work_type_terms
+            return match.term in self._work_types.get(match.schema_id, frozenset())
 
         return tuple(sorted({match.schema_id for match in matches
                              if match.schema_id in SAFETY_DOMAIN_IDS

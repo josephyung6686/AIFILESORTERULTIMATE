@@ -31,7 +31,8 @@ from extractors.sink import ExtractionResult
 from facts.domains import SCHEMA_IDS, UnknownSchema
 from privacy.classification import ClassificationRecord, UnbackedClassification
 from privacy.vocabulary import OutOfVocabulary
-from recognition.detector import (
+from recognition.detector import (  # noqa: F401
+    SAFETY_DOMAIN_IDS, _tokens,
     Abstention, Detector, Handling, Recognition, SAFETY_DOMAIN_HANDLING,
 )
 from recognition.rules import load_rules
@@ -496,6 +497,39 @@ def test_every_abstention_reason_this_package_names_is_reachable(db, tmp_path):
 
 
 # --- the packaged rule set on real evidence ------------------------------------------
+
+def test_every_authored_safety_work_type_is_reachable_through_the_tokeniser():
+    """The check that makes a spelling mismatch impossible to ship twice.
+
+    A `TermMatch.term` is TOKENISED -- `_tokens` "separates on everything that is
+    not a letter or digit" -- while `work_type_terms` holds the RAW authored
+    strings. Comparing one to the other tests `'after visit summary'` for
+    membership of a list containing `'after-visit summary'` and answers no.
+
+    Shipped, that silently disarmed 159 of 470 safety work-type spellings, and a
+    plaintext password-manager export (authored `'password-manager export'`)
+    reached the end of a run with NO CLASSIFICATION ROW AT ALL. It is the worse
+    direction: a person sees a syllabus wrongly marked sensitive, and does not see
+    a password vault that was never marked.
+
+    This asserts the property directly against the SHIPPED library rather than a
+    hand-built rule set, because a hand-built one would be written in whatever
+    spelling the test author happened to choose -- which is how the bug survived a
+    green suite.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    det = detector(rules)
+
+    unreachable = {
+        schema_id: [term for term in rules.schemas[schema_id].work_type_terms
+                    if " ".join(_tokens(term)) not in det._work_types[schema_id]]
+        for schema_id in SAFETY_DOMAIN_IDS if schema_id in rules.schemas}
+    named = {schema: terms for schema, terms in unreachable.items() if terms}
+
+    assert not named, (
+        "authored safety work-type terms that no evidence can ever match, because "
+        f"the comparison uses a different spelling from the tokeniser: {named}")
+
 
 def test_the_packaged_manifest_recognises_a_real_safety_domain_file(db, tmp_path):
     rules = load_rules(MANIFEST_PATH.read_text)
