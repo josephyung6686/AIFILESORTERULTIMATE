@@ -46,8 +46,8 @@ from database_agent.verify import VerificationPoint, verify_content
 from evidence_shape.canonical import canonical_json
 from scan_agent.basic_record import parent_folder_context
 
-from mutation.collision import find_collision, record_collision, resolve_collision
 from mutation.approval import ReviewApproval, approval_verdict, protection_verdict
+from mutation.collision import find_collision, record_collision, resolve_collision
 from mutation.constraints import FilesystemConstraints
 from mutation.cross_volume import (
     UnverifiedCopyDispositionRequired, copy_and_confirm,
@@ -57,7 +57,6 @@ from mutation.events import (
 )
 from mutation.plan import MovePlan
 from mutation.preconditions import evaluate_preconditions
-from mutation.resolution import resolution_by_id
 from mutation.special import inspect_objects
 from mutation.vocabulary import (
     APPLIED, ATOMIC_RENAME, AWAITING_COLLISION_DECISION,
