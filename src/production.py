@@ -233,6 +233,46 @@ def load_shipped_catalogue(
     return load_catalogue(lambda: shipped_catalogue_manifest(read_library_file))
 
 
+def schema_for_situation(catalogue: TemplateCatalogue, situation: str) -> str:
+    """Which of P6's twenty-three domains a situation belongs to, ASKED of the library.
+
+    A situation name looks like a dotted path -- `academic.coursework`,
+    `travel.trip-photos` -- and the segment before the dot looks like a domain.
+    It is not one. The names are the template library's, the domains are
+    `facts.domains.SCHEMA_IDS`, and nothing holds the two spellings together:
+    `applications.*` belongs to `college_applications`, and `travel.*` splits
+    between `finance` and `photos` depending on the row. Reading the domain off
+    the name agrees with the library for 201 of its 208 situations and is a crash
+    for the other seven -- `MalformedGroupRecord: group_category='applications' is
+    not one of the 23 domains`, raised where nothing catches it, on the first
+    command a person typed.
+
+    So the answer is READ, off the same applicability rows that make the situation
+    a situation at all. `uses_schema` is that answer, each row carries exactly
+    one, and a library that gains a situation therefore brings its domain with it
+    instead of bringing a spelling this module would have to guess at.
+
+    Refused rather than resolved when the release carries no row for the
+    situation, and when two rows that carry it disagree: picking between them here
+    would be this module deciding what kind of material somebody's files are,
+    which is the one question `--situation` exists to ask them.
+    """
+    ref = f"recognition:{situation}"
+    schemas = sorted({row.uses_schema
+                      for row in catalogue.applicabilities.values()
+                      if ref in row.detection_signal_refs})
+    if not schemas:
+        raise ConfigurationRequired(
+            f"{situation!r} names no situation in template release "
+            f"{catalogue.release_id}, so there is no row to read a domain from")
+    if len(schemas) > 1:
+        raise ConfigurationRequired(
+            f"{situation!r} is carried by rows in {schemas}, and which kind of "
+            "material these files are is the person's answer to give rather than "
+            "this module's to pick")
+    return schemas[0]
+
+
 def bootstrap_p1_p7(conn: sqlite3.Connection) -> None:
     """Create implemented schemas in dependency order: P1, P3, P4, P5, P6, P7, P2."""
     create_schema(conn)
