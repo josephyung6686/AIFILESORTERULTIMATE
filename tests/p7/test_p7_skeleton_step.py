@@ -712,17 +712,46 @@ def test_no_model_use_is_one_of_the_four_and_is_not_a_denial_reason():
     assert fields == {"consent_request_id", "requirement", "options"}
 
 
+def _reaches_review_surface(source: str) -> bool:
+    """Does this source import P13's surface? Parsed, never imported."""
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ImportFrom):
+            if (node.module or "").startswith("review_surface"):
+                return True
+        elif isinstance(node, ast.Import):
+            if any(a.name.startswith("review_surface") for a in node.names):
+                return True
+    return False
+
+
 def test_clause_four_is_p8s_and_clause_three_is_p13s():
     # 11 §9: "choosing no_model_use does not become abstain inside P8." INSIDE P8 --
     # so the assertion belongs to P8's suite, as its Done-means 13, and to P13's as its
     # Done-means 16. P7's obligation is to make the absorption UNREPRESENTABLE, which
     # the test above does at the type level; policing it is not P7's and cannot be.
     #
-    # P8 may be present, but P7 does not execute its harness. Review surface remains
-    # a later dependency and is still intentionally absent.
-    for absent in ("review_surface",):
-        with pytest.raises(ModuleNotFoundError):
-            importlib.import_module(absent)
+    # P8 may be present, but P7 does not execute its harness, and the same holds
+    # for P13's review surface.
+    #
+    # This used to assert that `review_surface` could not be imported at all. That
+    # was a proxy for the real property and it worked only while P13 did not
+    # exist; P13 has now shipped, so the proxy fails while the property it stood
+    # for is untouched. The property is that P7 does not REACH the surface, and
+    # that is what is asserted now -- parsed rather than imported, so it stays
+    # true whatever else the suite has already loaded into `sys.modules`.
+    privacy = pathlib.Path(__file__).resolve().parents[2] / "src" / "privacy"
+    reaching = sorted(
+        path.name for path in privacy.rglob("*.py")
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8")))
+        if (isinstance(node, ast.ImportFrom)
+            and (node.module or "").startswith("review_surface"))
+        or (isinstance(node, ast.Import)
+            and any(a.name.startswith("review_surface") for a in node.names)))
+    assert reaching == [], reaching
+    # And the guard can still fail, which the absence assertion could no longer
+    # demonstrate: a module that DID reach the surface is detected.
+    assert _reaches_review_surface("from review_surface.items import x")
+    assert not _reaches_review_surface("from placement.items import x")
     assert by_number(SKELETON_FIXTURE).downstream_obligation == (
         "so P8 can prove it returns the branch to its caller intact")
 
