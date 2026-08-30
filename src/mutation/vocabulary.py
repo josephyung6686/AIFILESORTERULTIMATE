@@ -146,6 +146,27 @@ DIRECTORY_REVERSAL_OUTCOMES: tuple[str, ...] = (
     DIR_RETAINED_NOT_CREATED,
 )
 
+# --- `66` §11's four undo-retention choices ----------------------------------
+#: *"The user should be able to select 30 days, 90 days, one year, or retention
+#: until manually cleared"* (`66` §11). The four CHOICES are `66`'s and so are
+#: closed here. What each one MEANS in elapsed time is not: `66` recommends 90
+#: days as a default, that recommendation is a product decision belonging to the
+#: composition root, and A7 admits no numeric literal here anyway. So
+#: `retention.py` takes the duration injected and refuses when it is absent.
+RETENTION_THIRTY_DAYS: str = "thirty_days"
+RETENTION_NINETY_DAYS: str = "ninety_days"
+RETENTION_ONE_YEAR: str = "one_year"
+RETENTION_UNTIL_MANUALLY_CLEARED: str = "until_manually_cleared"
+UNDO_RETENTION_CHOICES: tuple[str, ...] = (
+    RETENTION_THIRTY_DAYS, RETENTION_NINETY_DAYS, RETENTION_ONE_YEAR,
+    RETENTION_UNTIL_MANUALLY_CLEARED,
+)
+
+#: The one choice that carries no period. Named rather than compared by string
+#: at each site, and named as a single member rather than as a set, because
+#: there is exactly one unbounded choice and a set would invite a second.
+UNBOUNDED_RETENTION: str = RETENTION_UNTIL_MANUALLY_CLEARED
+
 # --- Contract out §3's cross-folder verdict ----------------------------------
 WITHIN_ROOT: str = "within_root"
 CROSS_ROOT_PERMITTED: str = "cross_root_permitted"
