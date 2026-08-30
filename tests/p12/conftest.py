@@ -71,3 +71,68 @@ def case_insensitive_root(fixture_root: Path) -> bool:
     folded = (fixture_root / "caseprobe").exists()
     os.rmdir(probe)
     return folded
+
+
+# ---------------------------------------------------------------------------
+# Wave D. The shared build blocks: a §1.1 folder landscape, a two-node tree, an
+# id minter, and the two constraint tables. They live here rather than in each
+# suite because Waves D, E and F all start from the same plan, and a fixture
+# copied into five files is five things to keep in step.
+# ---------------------------------------------------------------------------
+
+import dataclasses
+import itertools
+
+from tree_design.records import Node
+
+from mutation.constraints import FilesystemConstraints
+
+#: A case-KEEPING volume. The default for every suite that is not about case.
+CONSTRAINTS = FilesystemConstraints(
+    unicode_form="NFC", case_sensitive=True, max_component_bytes=255,
+    max_path_bytes=4096, prohibited_characters=frozenset(),
+    reserved_names=frozenset(), replacement_character="_")
+
+#: The same volume with case folding on. `Resume.pdf` and `resume.pdf` are one
+#: path here and two above, which is Done-means 7's whole content.
+FOLDING_CONSTRAINTS = dataclasses.replace(CONSTRAINTS, case_sensitive=False)
+
+#: The composition root names these; `src/mutation/` has no default (A7). P7 is
+#: explicit that a neighbour consumes the `protected` flag rather than inferring
+#: it from the class, and `Node` carries a class and no flag.
+PROTECTED_CLASSES = frozenset({
+    "sensitive_personal", "highly_sensitive_credential_bearing"})
+
+
+def fixture_node(node_id, label, parent, **kwargs):
+    base = dict(
+        node_id=node_id, plan_version_id="plan-1", node_type="proposed",
+        display_label=label, parent_node_id=parent, root_anchor="root_documents",
+        ordinal=0, associated_group_ids=(), explanation="fixture node",
+        node_role="ordinary", accepts_placement=True,
+        handling_class="personal_non_sensitive", origin_node_id=node_id)
+    base.update(kwargs)
+    return Node(**base)
+
+
+FIXTURE_NODES = (fixture_node("n-course", "Coursework", None),
+                 fixture_node("n-phys", "PHYS1401", "n-course"))
+
+LEGAL_DESTINATIONS = frozenset({"n-course", "n-phys"})
+
+
+@pytest.fixture()
+def landscape(fixture_root: Path):
+    """§1.1's high-level folder landscape, as two real directories."""
+    folders = {"root_documents": fixture_root / "Documents",
+               "root_downloads": fixture_root / "Downloads"}
+    for folder in folders.values():
+        folder.mkdir()
+    return folders
+
+
+@pytest.fixture()
+def ids():
+    """A monotonic id minter. P12 mints no id itself; every one is injected."""
+    counter = itertools.count()
+    return lambda: f"id-{next(counter)}"
