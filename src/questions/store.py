@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import asdict
 import uuid
 from collections.abc import Sequence
 
@@ -49,9 +50,12 @@ def record_question(conn: sqlite3.Connection, question: StructuralQuestion, *,
         (question.question_id, question.answer_class, question.prompt,
          question.evidence_context, question.unlocks, question.will_not_do,
          question.scope,
-         canonical_json([{"option_id": option.option_id, "label": option.label,
-                          "activates_schema": option.activates_schema}
-                         for option in question.options]),
+         # `asdict`, not a hand-written field list. The list was here first and
+         # dropped `gates_template` silently the day it was added: the question
+         # stored fine, rehydrated fine, and simply gated nothing. Any field this
+         # record gains now round-trips, and `_question_of` already reconstructs
+         # with `QuestionOption(**option)`, so the two halves cannot drift apart.
+         canonical_json([asdict(option) for option in question.options]),
          canonical_json(list(question.evidence_refs)), asked_at))
     return question.question_id
 
@@ -182,6 +186,29 @@ def activated_schemas(conn: sqlite3.Connection, *,
         option.activates_schema
         for option in answered_options(conn, scope=scope)
         if option.activates_schema)
+
+
+def gated_template(conn: sqlite3.Connection, *, scope: str) -> str | None:
+    """The nesting the person chose for ONE branch, or `None` if they have not.
+
+    `66` §13: a structural answer "may ... GATE A TEMPLATE". This is the whole of
+    that consequence, in one place, for the same reason `activated_schemas` is.
+
+    Scoped, and required to be -- `scope` has no default here where it does on
+    `activated_schemas`, because a nesting answer is about one branch and §13
+    forbids reusing an answer "outside its stated scope". A corpus-wide read would
+    let the shape somebody chose for their coursework decide the shape of their
+    legal matters.
+
+    `None` for unanswered AND for skipped, which are different facts about the
+    person and the same fact about the tree: neither chose a nesting, so the
+    caller keeps whatever default it would have used. That is what makes asking
+    free -- the run still produces the tree it produced before.
+    """
+    chosen = [option.gates_template
+              for option in answered_options(conn, scope=scope)
+              if option.gates_template]
+    return chosen[0] if chosen else None
 
 
 def questions_for(conn: sqlite3.Connection,

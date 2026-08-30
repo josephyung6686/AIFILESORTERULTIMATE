@@ -983,7 +983,17 @@ def test_the_run_asks_a_question_when_a_decision_is_actually_blocked(tmp_path):
 
 def test_a_run_with_nothing_blocked_asks_nothing(tmp_path):
     """The twin that keeps §12's promise. A product that always finds something to
-    ask is the questionnaire, whatever it calls itself."""
+    ask is the questionnaire, whatever it calls itself.
+
+    Scoped to the BLOCKING section since the nesting offer shipped, and the
+    distinction is the point rather than a concession. A blocked reading stops
+    something: until it is answered those files are classified as nothing and go
+    nowhere. A nesting offer stops nothing -- the branch has a shape either way,
+    and the question is `00`:78's "which of these shapes do you want", which the
+    design assigns to the user and not to the engine. What §12 forbids is
+    manufacturing questions ABOUT THE PERSON; offering a choice the design already
+    says is theirs is the opposite of that, and is why the two print apart.
+    """
     corpus = tmp_path / "corpus"
     corpus.mkdir()
     (corpus / "a.txt").write_text("Lecture Notes\n\nLecture notes for PHYS1401.\n")
@@ -993,7 +1003,7 @@ def test_a_run_with_nothing_blocked_asks_nothing(tmp_path):
               "--label", "Coursework", "--user", "jy",
               "--database", str(tmp_path / "plan.sqlite")], out=out)
 
-    assert "--answer" not in out.getvalue(), out.getvalue()
+    assert "Questions only you can answer" not in out.getvalue(), out.getvalue()
 
 
 def test_an_answer_is_remembered_and_changes_the_next_run(tmp_path):
@@ -1033,7 +1043,8 @@ def test_an_answer_is_remembered_and_changes_the_next_run(tmp_path):
         "the person said what these files are and nothing was classified; the "
         "answer was stored and never consumed")
     # And the question does not come back.
-    assert "--answer" not in answered.getvalue(), answered.getvalue()
+    assert ("Questions only you can answer" not in answered.getvalue()), (
+        answered.getvalue())
 
 
 def test_an_answer_naming_an_unknown_question_is_refused_rather_than_ignored(tmp_path):
@@ -1062,7 +1073,11 @@ def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
     after = io.StringIO()
     cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"], out=after)
 
-    assert "--answer" not in after.getvalue(), after.getvalue()
+    # Named exactly, because the run also OFFERS a nesting for the branch and an
+    # offer is not a re-ask: the promise here is that THIS question, once
+    # declined, does not come back.
+    assert "reading.organization:CV20261234" not in after.getvalue(), (
+        after.getvalue())
 
 
 def test_a_file_already_in_a_folder_of_that_name_is_not_announced_as_a_move():
@@ -1166,3 +1181,105 @@ def test_a_file_whose_deterministic_pass_settled_nothing_gets_the_second_look():
     # An attempted field that ended in a recorded refusal is evidence too: the
     # pass ran and reached a conclusion, so it is not the empty case.
     assert cli._usable((), ({"field_key": "subject"},)) is True
+
+
+def _two_shape_corpus(tmp_path):
+    """A branch whose facts support more than one nesting -- which is the only
+    condition under which §12 permits the question to be asked at all."""
+    corpus = tmp_path / "corpus"
+    for course, names in (("CHEM1500", ("Lab Report.txt", "Syllabus.txt")),
+                          ("PHYS1401", ("Problem Set 2.txt", "Lecture Notes.txt"))):
+        (corpus / "Uni" / course).mkdir(parents=True)
+        for name in names:
+            (corpus / "Uni" / course / name).write_text(
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+    return corpus
+
+
+def test_the_run_asks_how_the_branch_should_be_organised(tmp_path):
+    """`00`:78 and :99 -- the engine proposes shapes, shows what each would
+    create, and THE PERSON PICKS. §5.5 built those options all along and the
+    command took `options[0]`, disclosing that it had: "a person looking at the
+    counts and warnings would reasonably pick another."
+
+    That disclosure was honest and is not the same as asking. This asks, during
+    the freeze, with the counts in the option so the person is not choosing blind.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    out = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    printed = " ".join(out.getvalue().split())
+
+    assert "How should Coursework be organised?" in printed, printed
+    assert "--answer branch:Coursework=" in printed, printed
+    # The counts are IN the option, which is what makes the question better than
+    # the default it replaced rather than merely different from it.
+    assert "CHEM1500 (2)" in printed, printed
+
+
+def test_answering_it_changes_the_tree_on_the_same_run(tmp_path):
+    """The half that makes it a mechanism rather than a questionnaire.
+
+    `keep-as-it-is` is `00`:99's "keep this branch as it is", which §5.5 offers
+    beside every composition and calls an answer rather than a fallback. Taking it
+    must actually leave the branch unsplit -- and `apply_answers` runs before the
+    run reads anything, so it takes effect immediately rather than next time.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database)], out=io.StringIO())
+
+    after = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(database),
+              "--answer", "branch:Coursework=keep-as-it-is"], out=after)
+    printed = after.getvalue()
+
+    folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    assert "Coursework" in folders
+    # The branch is not split, so neither course is a child of it. Both still
+    # exist as the person's OWN folders, which is a different thing.
+    proposed = [line for line in folders.splitlines()
+                if line.strip() and "[yours already]" not in line]
+    assert not any("CHEM1500" in line for line in proposed), folders
+
+
+def test_an_unanswered_question_leaves_the_tree_exactly_as_it_was(tmp_path):
+    """The twin, and the reason asking is safe to do here at all.
+
+    If being asked changed the outcome, every first run would get a worse tree
+    until somebody answered. The default is taken exactly as before, so the
+    question costs the person nothing and the run they already had is the run
+    they still get.
+    """
+    corpus = _two_shape_corpus(tmp_path)
+    asked = io.StringIO()
+    cli.main([str(corpus), "--situation", "academic.coursework",
+              "--label", "Coursework", "--user", "jy",
+              "--database", str(tmp_path / "a.sqlite")], out=asked)
+
+    folders = asked.getvalue().split(
+        "Folders in this plan:", 1)[1].split("Files:", 1)[0]
+    assert "CHEM1500" in folders and "PHYS1401" in folders, folders
+
+
+def test_a_skipped_nesting_offer_does_not_come_back_either(tmp_path):
+    """§14's "skip for now" is first-class for every question, not only the ones
+    that block. An offer that reappeared each run after being declined would be
+    the pressure §12 forbids, and would be worse than not offering at all."""
+    corpus = _two_shape_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    argv = [str(corpus), "--situation", "academic.coursework",
+            "--label", "Coursework", "--user", "jy", "--database", str(database)]
+
+    cli.main(argv, out=io.StringIO())
+    after = io.StringIO()
+    cli.main(argv + ["--answer", "branch:Coursework=skip"], out=after)
+
+    assert "How should Coursework be organised?" not in after.getvalue(), (
+        after.getvalue())

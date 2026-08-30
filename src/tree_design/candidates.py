@@ -357,8 +357,16 @@ def horizontal_candidates(
 
 
 def _summarise(counts: Mapping[str, int]) -> str:
-    """§5.5's whole-option sentence: "three schools, five terms, twelve courses"."""
-    parts = [f"{count} {role}" for role, count in counts.items()]
+    """§5.5's whole-option sentence: "three schools, five terms, twelve courses".
+
+    A level producing NO folders is left out, not reported as zero. It read "0
+    school, 1 term, 3 subject, and 0 work_type" on a real run: `_project` skips a
+    level with no values and V2 skips one that does not divide, so the sentence
+    named four levels where the tree has two. This is the sentence a person reads
+    before choosing a shape, and it must not offer folders the shape will not
+    build.
+    """
+    parts = [f"{count} {role}" for role, count in counts.items() if count]
     if not parts:
         return "no child branches"
     if len(parts) == 1:

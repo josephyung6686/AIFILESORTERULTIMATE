@@ -75,11 +75,13 @@ from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from questions.records import StructuralAnswer
 from questions.schema import create_questions_schema
 from questions.store import (
-    activated_schemas, live_answer, open_questions, record_answer,
+    activated_schemas, gated_template, live_answer, open_questions, record_answer,
     record_question,
 )
-from questions.triggers import tied_readings
-from questions.vocabulary import CONFIRMED, SKIPPED
+from questions.triggers import (
+    NestingChoice, question_for_nesting, tied_readings,
+)
+from questions.vocabulary import CONFIRMED, SCOPE_BRANCH, SKIPPED
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
     bootstrap_p1_p7, load_shipped_catalogue, read_packaged_library_file,
@@ -710,6 +712,92 @@ def choose_option(candidate, options) -> str:
     return options[-1].option_id
 
 
+#: `opt_no_split`'s key. `00`:99 offers "keep this branch as it is" beside every
+#: composition and §5.5 makes it an answer rather than a fallback, so it needs a
+#: name a person can choose by. Its `resulting_child_counts` is empty, which would
+#: otherwise give it the same empty chain as any other unbuilt option.
+NO_SPLIT_KEY: str = "keep-as-it-is"
+
+
+def _nesting_key(option) -> str:
+    """The stable identity of the shape one option would build.
+
+    `resulting_child_counts` is keyed `field_ref or dimension_role`, one entry per
+    level, built by iterating the levels IN ORDER -- so its keys are the chain,
+    and a dict preserves that order. This is the value an answer records, and it
+    has to outlive the run: `opt_2` names a different shape the moment the corpus
+    changes, so a person would get a tree they never picked from an answer they
+    really gave.
+    """
+    chain = tuple(option.resulting_child_counts)
+    return ">".join(chain) if chain else NO_SPLIT_KEY
+
+
+def _nesting_choices(options) -> tuple[NestingChoice, ...]:
+    """`00`:99's cards, as P15 sees them.
+
+    Every option the engine built, including the ones its own checks rejected --
+    with the rejection IN the warnings. §5.5 shows the user what each option would
+    create and why; hiding the failures would leave a person choosing between two
+    shapes without being told the product thinks a third is wrong.
+    """
+    choices = []
+    for option in options:
+        warnings = list(option.warnings)
+        report = option.validation
+        if report is not None and report.failures:
+            warnings.extend(f"{failure.check}: {failure.reason}"
+                            for failure in report.failures)
+        choices.append(NestingChoice(
+            chain=tuple(option.resulting_child_counts) or (NO_SPLIT_KEY,),
+            summary=option.summary,
+            # The whole `label_chain`, joined -- two children of one name under
+            # different parents are different folders, and `00`:99 puts "the
+            # number of files under each child" in front of the person, which is
+            # only readable if they can tell the children apart.
+            child_counts=tuple(("/".join(child.label_chain), child.file_count)
+                               for child in option.children),
+            warnings=tuple(warnings)))
+    return tuple(choices)
+
+
+def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
+    """§5.5's choice, asked instead of taken -- `66` §12 inside the freeze.
+
+    This is the moment `00`:78 describes: the engine has routed a branch, built
+    every shape its facts support, and can say what each would create. The command
+    took `options[0]` and disclosed that it had. The disclosure was honest and is
+    not the same as asking.
+
+    **Asking costs the person nothing, which is what makes it safe to ask here.**
+    An unanswered question does not stop the run: the default is taken exactly as
+    before, the tree is the tree they would have got, and the question is printed
+    beside it. So the first run is no worse than it was, and the second run --
+    `--answer branch:Coursework=subject` -- is theirs.
+
+    One question per BRANCH, scoped to it, because §13 forbids reusing an answer
+    "outside its stated scope" and how somebody wants their coursework shaped says
+    nothing about how they want their legal matters shaped.
+    """
+
+    def choose(candidate, options) -> str:
+        scope = f"{SCOPE_BRANCH}:{candidate.display_label}"
+        by_key = {_nesting_key(option): option for option in options}
+        answered = gated_template(conn, scope=scope)
+        if answered is not None and answered in by_key:
+            return by_key[answered].option_id
+        # Two shapes or more is a decision; one is not, and §12 permits a question
+        # only where "a specific decision is blocked".
+        if len(by_key) > 1:
+            record_question(conn, question_for_nesting(
+                branch_label=candidate.display_label,
+                choices=_nesting_choices(options),
+                file_count=candidate.supporting_file_count), asked_at=asked_at)
+        return choose_option(candidate, options)
+
+    return choose
+
+
 def refinement_for(node) -> tuple[str, str]:
     """§5.8, per node. Every legal destination needs an answer or freeze refuses.
 
@@ -951,7 +1039,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return TreeDesignDecisions(
             from_plan_version=PLAN_VERSION,
             branch_group_ids=tuple(accepted) + adopted_folders(),
-            choose_option=choose_option, refinement_for=refinement_for,
+            choose_option=nesting_chooser(conn, asked_at=clock), refinement_for=refinement_for,
             residual_library=RESIDUAL_LIBRARY, residual_choices=(),
             residual_configuration={},
             residual_handling_class=lambda name: ORDINARY_CLASS,
@@ -1678,8 +1766,25 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # exact decision it unlocks" and "state what it will not affect", and §14
         # requires the person to see "why the question arose" -- so all three are
         # printed, every time, rather than being available somewhere else.
-        print("\nQuestions only you can answer:", file=out)
-        for question in questions:
+        # TWO SECTIONS, because these are two different things to a person and
+        # printing them together made one look like the other.
+        #
+        # A blocked reading STOPS something: until it is answered those files are
+        # not classified and go nowhere. A nesting offer stops nothing -- the
+        # branch has a shape either way, and the question is `00`:78's "which of
+        # these shapes do you want", which the design assigns to the user rather
+        # than to the engine. Under one heading, "Questions only you can answer",
+        # the offer read as a blockage and the run looked stuck when it was not.
+        #
+        # Discriminated on SCOPE KIND, which already carries the distinction:
+        # a `branch:` question is about the shape of one branch and always has a
+        # default; every other kind is about what something MEANS, and meaning is
+        # what placement is blocked on.
+        blocking = [q for q in questions
+                    if not q.scope.startswith(f"{SCOPE_BRANCH}:")]
+        offers = [q for q in questions if q.scope.startswith(f"{SCOPE_BRANCH}:")]
+
+        def ask(question) -> None:
             print(f"\n  {question.prompt}", file=out)
             print(_wrapped(question.evidence_context, indent="    "), file=out)
             for option in question.options:
@@ -1689,6 +1794,16 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                   f"   Skip for now", file=out)
             print(_wrapped(question.unlocks, indent="    "), file=out)
             print(_wrapped(question.will_not_do, indent="    "), file=out)
+
+        if blocking:
+            print("\nQuestions only you can answer:", file=out)
+            for question in blocking:
+                ask(question)
+        if offers:
+            print("\nYou can change how this is organised "
+                  "(it is already decided; this is yours to overrule):", file=out)
+            for question in offers:
+                ask(question)
 
     print("\nDecisions made for you, because nobody was at the screen to ask:",
           file=out)

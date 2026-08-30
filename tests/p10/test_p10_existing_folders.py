@@ -346,3 +346,20 @@ def test_one_file_agreeing_with_itself_is_not_a_folder_expectation(corpus,
     assert [value.canonical_value for value
             in settled_values_in_directory(corpus.conn, directory_path=together)
             ] == ["BUSIB 4300"]
+
+
+def test_a_level_that_makes_no_folder_is_not_counted_in_the_summary():
+    """§5.5's sentence is what a person reads before choosing a shape, so it must
+    not name folders the shape would not build.
+
+    It read "This option would create 0 school, 1 term, 3 subject, and 0
+    work_type" on a real run. Two of those levels produce nothing -- `_project`
+    skips a level with no values, and V2 skips one that does not divide -- so the
+    sentence offered four levels where the tree has two, and a person choosing
+    between shapes was reading about folders neither shape contains.
+    """
+    from tree_design.candidates import _summarise
+
+    assert _summarise({"school": 0, "term": 1, "subject": 3, "work_type": 0}) == (
+        "1 term, and 3 subject")
+    assert _summarise({"school": 0}) == "no child branches"

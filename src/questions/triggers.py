@@ -30,9 +30,10 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 
 from questions.records import QuestionOption, StructuralQuestion
-from questions.vocabulary import SCOPE_ORGANIZATION, STRUCTURAL
+from questions.vocabulary import SCOPE_BRANCH, SCOPE_ORGANIZATION, STRUCTURAL
 
 #: `66` §14 keeps these two answers first-class, so every derived question carries
 #: them and no caller may drop them. "Not about me" is a real answer about whose
@@ -138,3 +139,86 @@ def tied_readings(conn: sqlite3.Connection, *, explain,
             # why the question arose.
             evidence_refs=tuple(refs) or (f"subject:{subject}",)))
     return tuple(out)
+
+
+@dataclass(frozen=True)
+class NestingChoice:
+    """One shape a branch could take, as the person would see it.
+
+    A projection of P10's `VerticalOption`, not that record: this module must not
+    import P10, and what a question needs is the four things `00`:99 says the
+    canvas shows -- what it would build, how many files land under each child, and
+    what is wrong with it. `chain` is the composition's identity, ordered.
+    """
+
+    chain: tuple[str, ...]
+    summary: str
+    child_counts: tuple[tuple[str, int], ...]
+    warnings: tuple[str, ...]
+
+    @property
+    def key(self) -> str:
+        """The stable id, and the value an answer records.
+
+        The CHAIN and never a position: `00`:99's options are built per run, so
+        `opt_2` names a different shape the moment the corpus changes, and a
+        person would get a tree they did not pick from an answer they did give.
+        """
+        return ">".join(self.chain)
+
+
+def question_for_nesting(*, branch_label: str,
+                         choices: Iterable[NestingChoice],
+                         file_count: int) -> StructuralQuestion:
+    """`00`:78's own moment: the engine proposes shapes and the person picks one.
+
+    §5.5 already builds these options and shows what each would create. The
+    command then took `options[0]` and disclosed that it had -- "a person looking
+    at the counts and warnings would reasonably pick another" -- which is honest
+    and is not the same as asking. This asks.
+
+    Structural, not contextual, and the records enforce it: the answer decides
+    which folders the branch has, which §13 forbids a contextual answer to touch.
+    """
+    offered = tuple(choices)
+    if len(offered) < 2:
+        raise ValueError(
+            "a question is asked where the engine found TWO shapes the branch "
+            "could take; one nesting is not a choice and needs no question")
+    files = "file" if file_count == 1 else "files"
+    return StructuralQuestion(
+        question_id=f"{SCOPE_BRANCH}:{branch_label}",
+        answer_class=STRUCTURAL,
+        prompt=f"How should {branch_label} be organised?",
+        evidence_context=(
+            f"{file_count} {files} sit under {branch_label}, and their own facts "
+            f"support {len(offered)} different shapes."),
+        unlocks=(
+            f"This decides the folders inside {branch_label}. Until it is "
+            "answered the first shape that passed every check is used, which may "
+            "not be the one you would pick."),
+        will_not_do=WILL_NOT_DO,
+        scope=f"{SCOPE_BRANCH}:{branch_label}",
+        options=tuple(
+            QuestionOption(choice.key, _nesting_label(choice),
+                           gates_template=choice.key)
+            for choice in offered),
+        evidence_refs=(f"branch:{branch_label}",))
+
+
+def _nesting_label(choice: NestingChoice) -> str:
+    """What this shape would build, in the words `00`:99 asks for.
+
+    The counts and the warnings are not decoration. The disclosure this question
+    replaces said in as many words that "a person looking at the counts and
+    warnings would reasonably pick another" -- so a question offering the shapes
+    WITHOUT them would be strictly worse than the default it replaced, because it
+    would move the decision to the person and keep the information here.
+    """
+    parts = [choice.summary]
+    if choice.child_counts:
+        inside = ", ".join(f"{name} ({count})" for name, count in choice.child_counts)
+        parts.append(f"builds {inside}")
+    for warning in choice.warnings:
+        parts.append(f"warning: {warning}")
+    return " -- ".join(parts)

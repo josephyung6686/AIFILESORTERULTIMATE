@@ -55,7 +55,21 @@ BINDING_STATES: tuple[str, ...] = (CONFIRMED,)
 #: half comes from the user's own files and P15 does not hold a list of the world.
 SCOPE_CORPUS: str = "corpus"
 SCOPE_ORGANIZATION: str = "organization"
-SCOPES: tuple[str, ...] = (SCOPE_CORPUS, SCOPE_ORGANIZATION)
+
+#: THE THIRD KIND, added 2026-08-30 under the ruling Joseph gave on 2026-08-29:
+#: a closed vocabulary that cannot express what happened is a design gap rather
+#: than a discipline, and may gain a member with the approval recorded at it.
+#:
+#: Why neither existing kind will do. A nesting answer is about ONE BRANCH of the
+#: proposed tree -- `00`:78's "how should this branch be organised". `corpus` is
+#: the whole run, so recording it there would let the shape somebody chose for
+#: their coursework decide the shape of their legal matters, which is exactly what
+#: §13's "not reused outside its stated scope" forbids. `organization` is "one
+#: named entity THE EVIDENCE ACTUALLY PRODUCED", and a branch label is not that:
+#: `Coursework` is a word the person typed on the command line, and calling it an
+#: organisation would put a user's label where the vocabulary promises a fact.
+SCOPE_BRANCH: str = "branch"
+SCOPES: tuple[str, ...] = (SCOPE_CORPUS, SCOPE_ORGANIZATION, SCOPE_BRANCH)
 
 
 def check(value: str, allowed: tuple[str, ...], *, name: str) -> str:
@@ -74,7 +88,7 @@ def check_scope(scope: str) -> str:
             f"scope {scope!r} names {kind!r}, which is not one of {SCOPES}")
     if kind != SCOPE_CORPUS and ":" not in scope:
         raise OutOfVocabulary(
-            f"scope {scope!r} names a kind and no entity; an organization scope "
-            "that names no organization applies everywhere, which is the one "
-            "thing a scope exists to prevent")
+            f"scope {scope!r} names a kind and no entity; a scope that names no "
+            "entity applies everywhere, which is the one thing a scope exists to "
+            "prevent")
     return scope

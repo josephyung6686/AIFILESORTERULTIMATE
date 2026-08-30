@@ -41,17 +41,29 @@ class AnswerNotPermitted(ValueError):
 class QuestionOption:
     """One answer a person may give, and what taking it would do.
 
-    `activates_schema` is the only CONSEQUENCE an option carries, and it is
-    deliberately the only one for now: §13's list of what a structural answer may
-    do has five entries, and shipping one of them wired is honest where shipping
-    five stubbed would not be. An option that does nothing is still a real option
-    -- "It is not about me" changes no schema and is the answer §14 insists stays
-    first-class.
+    §13 permits a structural answer five consequences -- "activate a schema, gate
+    a template, resolve role ambiguity, allow or prohibit a category of folder
+    label, or require review". TWO of them are wired, and the rest are still
+    absent rather than stubbed, because shipping a consequence that does nothing
+    is how a question comes to be asked for no reason.
+
+    `activates_schema` is the first. `gates_template` is the second: it names the
+    NESTING a person chose for one branch -- `00`:99 shows them what each option
+    would create, with the counts and the warnings, and :78 has them pick one.
+
+    An option that does neither is still a real option -- "It is not about me"
+    changes nothing and is the answer §14 insists stays first-class.
     """
 
     option_id: str
     label: str
     activates_schema: str | None = None
+    #: The composition this option would build, as the ordered chain of the fields
+    #: its levels resolve to (`subject>work_type`). The CHAIN and not a positional
+    #: `opt_2`: an answer has to outlive the run that asked, and a position shifts
+    #: the moment the corpus does, so a person would silently get a different tree
+    #: from the same recorded answer.
+    gates_template: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("option_id", "label"):
@@ -127,6 +139,14 @@ class StructuralQuestion:
                     "hide, or rename folders' or 'silently become a structural "
                     "rule', and activating a schema changes which templates exist, "
                     "so it changes which folders exist")
+            gating = [option.option_id for option in self.options
+                      if option.gates_template]
+            if gating:
+                raise AnswerNotPermitted(
+                    f"a contextual question's options {gating} would gate a "
+                    "template. §13 forbids a contextual answer to 'create, remove, "
+                    "hide, or rename folders', and a nesting IS which folders the "
+                    "branch has -- the same reason activation is refused above")
 
 
 @dataclass(frozen=True, slots=True)
