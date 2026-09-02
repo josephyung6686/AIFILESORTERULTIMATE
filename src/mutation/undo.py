@@ -18,7 +18,12 @@ answer:
 4. **Would restoring it write over something?** `conflict:source_path_occupied`.
    Asked with `find_collision` rather than `Path.exists()`, because on a folding
    volume `Resume.pdf` and `resume.pdf` are one path, and it is exactly the twin
-   a person cannot tell apart that must not be overwritten.
+   a person cannot tell apart that must not be overwritten. **And asked a second
+   time by the move itself** -- `move_onto_free_path` fails rather than replacing
+   -- because between question 4 and the reversal this module runs two full file
+   hashes, and on a large file that is a wide window. The forward path always
+   re-checked at its move; that this one did not was the asymmetry, and it lost
+   whatever the person had written in the meantime while reporting `reversed`.
 
 **A conflict performs no mutation.** Not "no net mutation" -- none at all. That
 is why every question above is asked before the first `rename`, and why the
@@ -60,6 +65,7 @@ from scan_agent.basic_record import parent_folder_context
 
 from mutation.collision import find_collision
 from mutation.constraints import FilesystemConstraints
+from mutation.movement import move_onto_free_path
 from mutation.cross_volume import copy_and_confirm
 from mutation.directories import reverse_directories
 from mutation.events import record_failed_move
@@ -300,7 +306,26 @@ def undo(conn: sqlite3.Connection, entry_id: str, *,
             if entry.source_volume == entry.destination_volume
             else CROSS_VOLUME_COPY_AND_DELETE)
     if mode == ATOMIC_RENAME:
-        os.rename(destination, source)
+        try:
+            move_onto_free_path(destination, source)
+        except FileExistsError:
+            # Question 4 was asked before two full file hashes ran, and on a
+            # large file that is a wide window for a sync client, an editor
+            # autosave or the person themselves to put something back at the
+            # source path. `move_onto_free_path` asks it again as the move, so
+            # the answer cannot go stale between the question and the act.
+            #
+            # This is the asymmetry that was the bug: the forward path
+            # re-checked at its move and this one did not, so `undo` reported
+            # `reversed` while the person's new work was gone with nothing
+            # recording it had been there. A conflict performs no mutation, so
+            # the filed file is still exactly where it was.
+            return answered(_verdict(
+                entry, CONFLICT_SOURCE_PATH_OCCUPIED, observed=observed,
+                occupant=_hash_or_none(source, materialized=materialized),
+                detail={"occupying_path": str(source),
+                        "detected": "at the move, between the check and the "
+                                    "reversal"}))
     else:
         outcome = copy_and_confirm(
             conn, source=destination, destination=source,

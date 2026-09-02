@@ -84,6 +84,19 @@ def resolve_name(intended_display_name: str, *,
     applied: list[str] = []
     if not intended_display_name or not intended_display_name.strip():
         raise NameUnresolvable("an empty or blank name is not a name")
+    # A component made only of dots is a path traversal component, not a name.
+    # This is structural in the same sense as `ALWAYS_PROHIBITED` -- there is no
+    # filesystem on which `..` names a file -- so it is refused here rather than
+    # left to an injected table. Under the CLI's own table nothing had an
+    # opinion about it: `prohibited_characters` is {'/', '\0', ':'} and
+    # `reserved_names` is empty, so `..`, `.` and `...` came back unchanged and
+    # became directory components in the composed destination path
+    # (`resolution.py`:311-319 puts every ancestor's `display_label` through
+    # this function). `--label` is a free string the person types.
+    if set(intended_display_name.strip()) == {"."}:
+        raise NameUnresolvable(
+            "a name made only of dots is a path traversal component, not a "
+            "name; it cannot be a folder or a file")
 
     name = unicodedata.normalize(constraints.unicode_form, intended_display_name)
     if name != intended_display_name:

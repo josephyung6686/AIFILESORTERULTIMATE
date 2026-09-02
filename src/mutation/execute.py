@@ -18,15 +18,28 @@ raises `OSError`, `verify_content` turns that into `"mismatch"`, and a move that
 completed perfectly is recorded as `failed:v3_hash_mismatch`. The move is
 therefore: rename -> `observe_path` -> V3, and never any other order.
 
-**Nothing here overwrites.** `collision.py` guarantees the executor never
-receives an occupied destination and this module re-checks it immediately before
-the rename anyway. The one residual is the window between that check and the
-rename itself: closing it needs `renameat2(RENAME_NOREPLACE)`, which CPython does
-not publish, and the alternatives -- reserve with `O_EXCL` then rename over the
-reservation, or hard-link then unlink the source -- both add an `unlink` to a
-part whose only permitted `unlink` is the cross-volume source removal (§7.11).
-The window is named rather than closed, and it is named here rather than left for
-a reader to find.
+**Nothing here overwrites, and that is now the system call's guarantee rather
+than a check's.** `collision.py` guarantees the executor never receives an
+occupied destination and this module re-checks it immediately before the move
+anyway -- but both checks read a `FilesystemConstraints` table that describes one
+process, not one disk, and under `os.rename` a table that is wrong about the
+volume is a destroyed file rather than a wrong answer. The move is therefore
+`mutation.movement.move_onto_free_path`, which fails atomically on an occupied
+destination under the VOLUME's own folding rules. That closes the window this
+docstring used to name.
+
+The earlier text ruled the fix out on §7.11 -- that hard-linking adds an `unlink`
+to a part whose only permitted `unlink` is the cross-volume source removal. The
+plan had already answered that (F14, `2026-08-29-p12-apply-undo.md`:5316): after
+a successful `os.link` the two paths are the same inode, so unlinking one removes
+a NAME and not a file, and §7.11 forbids deleting a file. `os.link` + `os.unlink`
+is what the plan specified for this branch; the implementation drifted to
+`os.rename` and this is the drift undone.
+
+**A destination that is taken is `stale:destination_changed`** -- §8.3's own name
+for it, and the plan's. It is a recorded stop with a sentence, never a traceback:
+`_create_directories` has already run by then, so a `FileExistsError` escaping
+`apply_plan` would leave folders behind with no execution record explaining them.
 
 **No numeric literal beyond 0 and 1 appears in this file.** Every bound, clock,
 name and policy arrives injected; absent means refuse (A7).
@@ -55,14 +68,16 @@ from mutation.cross_volume import (
 from mutation.events import (
     record_executed_move, record_failed_move, record_refused_move,
 )
+from mutation.movement import move_onto_free_path
 from mutation.plan import MovePlan
 from mutation.preconditions import evaluate_preconditions
 from mutation.special import inspect_objects
 from mutation.vocabulary import (
     APPLIED, ATOMIC_RENAME, AWAITING_COLLISION_DECISION,
-    CROSS_VOLUME_COPY_AND_DELETE, ENTRY_APPLIED, EXECUTION_MODES, FAILED,
-    FAILURE_CLASSES, JOURNAL_ENTRY_KINDS, PAUSE_REASONS, PAUSED, PRE_APPLY,
-    PREPARE, REFUSAL_CLASSES, REFUSED, RESULT_KINDS, STALE, STALENESS_TRIGGERS,
+    CROSS_VOLUME_COPY_AND_DELETE, DESTINATION_CHANGED, ENTRY_APPLIED,
+    EXECUTION_MODES, FAILED, FAILURE_CLASSES, JOURNAL_ENTRY_KINDS,
+    NODE_REFUSES_PLACEMENT, PAUSE_REASONS, PAUSED, PRE_APPLY, PREPARE,
+    REFUSAL_CLASSES, REFUSED, RESULT_KINDS, STALE, STALENESS_TRIGGERS,
     SUBSYSTEM, V3_HASH_MISMATCH, V4_DESTINATION_UNCONFIRMED, check,
 )
 
@@ -275,20 +290,44 @@ def _observe_at(conn: sqlite3.Connection, plan: MovePlan, destination: Path, *,
         scan_state=scan_state, materialized=materialized)
 
 
+def _inside(candidate: Path, root: Path) -> bool:
+    """Whether `candidate` really lands under `root`, `..` collapsed.
+
+    `strict=False` throughout: neither path need exist yet -- the destination
+    directory is created later and the root may be a folder the person has not
+    made -- and a non-existent path still resolves its `..` components. A root
+    that cannot be resolved at all is not a root this move may land in, so the
+    `OSError` is False rather than an exception: a person with a broken symlink
+    on the path gets a refusal with a sentence, not a traceback.
+    """
+    try:
+        return candidate.resolve(strict=False).is_relative_to(
+            root.resolve(strict=False))
+    except OSError:
+        return False
+
+
 def _atomic_rename(source: Path, destination: Path, *,
                    constraints: FilesystemConstraints) -> None:
     """One same-volume move that never lands on an occupied path.
 
-    The free-check is by `find_collision`, not `Path.exists()`: on a
-    case-insensitive volume `exists()` misses an NFC/NFD twin, and it is exactly
-    the twin a person cannot tell apart that must not be written over.
+    Two answers to the same question, deliberately. The first is by
+    `find_collision`, not `Path.exists()`: on a case-insensitive volume
+    `exists()` misses an NFC/NFD twin, and it is exactly the twin a person
+    cannot tell apart that must not be written over -- and it names WHICH entry
+    collided, which `move_onto_free_path` cannot. The second is the move itself,
+    which refuses an occupied destination under the volume's rules rather than
+    the declared ones. The first is the better diagnosis; the second is the one
+    that holds when the declaration is wrong.
+
+    Both raise `FileExistsError`, so `apply_plan` has one branch to catch.
     """
     if find_collision(destination.parent, destination.name,
                       constraints=constraints) is not None:
         raise FileExistsError(
             f"{destination} is occupied; the executor is never handed an "
             "occupied path (§8.3, `00`:172)")
-    os.rename(source, destination)
+    move_onto_free_path(source, destination)
 
 
 def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
@@ -394,6 +433,30 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
         return stopped(result_of(PAUSED, objects.pause_reason),
                        detail=objects.detail)
 
+    # **The destination is inside the destination root.** Nothing checked this:
+    # `destination_root` reached `inspect_objects` and was used there for
+    # `if not root.exists()` and nothing else, so no code anywhere asserted that
+    # `plan.resolved_destination_path` was under the root the run was pointed at.
+    #
+    # **Both sides are resolved, and that is the whole check.**
+    # `Path.is_relative_to` is LEXICAL: it does not collapse `..`, so
+    # `<root>/Documents/Coursework/../../../OUTSIDE/x` IS `is_relative_to(root)`
+    # and the move lands outside anyway. Written the obvious way this check would
+    # pass a traversal while looking like the property had been verified, which
+    # is worse than not checking at all. `.resolve()` on both sides catches it.
+    #
+    # **Why here and not first.** Everything above only reads, and nothing in
+    # this function writes to the disk until `_create_directories` far below, so
+    # the boundary is established long before a `mkdir` could act on an escaping
+    # path. It sits AFTER §8.1's object inspection because that step answers
+    # whether the drive is even mounted, and a person whose external drive is
+    # unplugged should be told to reconnect it rather than told their folder plan
+    # is wrong. `00`:153-156's order keeps its first step.
+    if not _inside(destination, destination_root):
+        return stopped(result_of(REFUSED, NODE_REFUSES_PLACEMENT),
+                       detail={"escaped": str(destination),
+                               "destination_root": str(destination_root)})
+
     # §8.4, before anything is hashed: may this file be moved automatically at
     # all? P7 decides; P12 reports and picks no winner (`74` §5.3, §5.4).
     protection = protection_verdict(conn, plan)
@@ -428,6 +491,13 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
             return stopped(result_of(PAUSED, AWAITING_COLLISION_DECISION),
                            v1=prepare.checkpoint_hash)
         final = Path(collision.final_destination_path)
+        # The containment answer above was about `destination`. A collision
+        # behaviour may only rename WITHIN the directory, so `final` inherits
+        # it -- asserted rather than re-checked, because two containment checks
+        # are two things that can disagree.
+        assert final.parent == destination.parent, (
+            "a collision behaviour changed the destination DIRECTORY; the "
+            "containment check above no longer covers where this would land")
 
     pre_apply = evaluate_preconditions(
         conn, plan, checkpoint=PRE_APPLY,
@@ -448,7 +518,21 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
 
     confirmed: bool | None = None
     if mode == ATOMIC_RENAME:
-        _atomic_rename(source, final, constraints=constraints)
+        try:
+            _atomic_rename(source, final, constraints=constraints)
+        except FileExistsError:
+            # Something is at the destination that neither `find_collision` at
+            # plan time nor `find_collision` a line ago could see -- because it
+            # arrived in between, or because the declared table does not
+            # describe this volume. §8.3 already has the name for that and the
+            # disk is exactly as it was: the move did not happen.
+            return stopped(result_of(STALE, DESTINATION_CHANGED), mode=mode,
+                           v1=prepare.checkpoint_hash,
+                           v2=pre_apply.checkpoint_hash,
+                           detail={"trigger": DESTINATION_CHANGED,
+                                   "target": str(final),
+                                   "detected": "at the move, between the "
+                                               "recheck and the move itself"})
     else:
         outcome = copy_and_confirm(
             conn, source=source, destination=final,

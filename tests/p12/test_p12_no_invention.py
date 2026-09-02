@@ -26,6 +26,8 @@ import importlib
 import os
 import pkgutil
 import types
+
+import pytest
 from pathlib import Path
 
 import mutation
@@ -112,15 +114,34 @@ def _sabotage(source: str):
 #: make the report look complete when it was not.
 REMOVERS = frozenset({"unlink", "remove", "rmtree", "removedirs", "rmdir"})
 
-#: The only two places in P12 that remove anything, and what each removes.
+#: The only three places in P12 that remove anything, and what each removes.
 #: `cross_volume.copy_and_confirm` is §8.2's cross-volume source removal, the
 #: single exception §7.11 authorizes, unreachable until V4 returned True.
 #: `directories.reverse_directories` removes an EMPTY DIRECTORY, which contains
 #: no user file, and uses `rmdir` precisely because the kernel refuses a
 #: non-empty one.
+#:
+#: **`movement.move_onto_free_path` was ruled by the plan and is recorded here
+#: at the member.** It is F14 of `docs/superpowers/plans/2026-08-29-p12-apply-undo.md`,
+#: whose resolution (that plan, line 5316) is quoted rather than paraphrased:
+#: *"after a successful `os.link` the source and destination are the same inode,
+#: so unlinking one path removes a name and not a file. §7.11's actual sentence
+#: is 'must not delete files, mark them disposable, or move them out of a
+#: protected area without explicit user action', and neither branch does. Task
+#: 14's guard therefore asserts the property §7.11 states -- no call site
+#: removes a path unless the same bytes are already confirmed present at another
+#: path -- rather than Done-means 14's literal sentence, which the atomic branch
+#: cannot satisfy and should not have to."*
+#:
+#: That property is not taken on trust here: `test_the_only_removal_in_the_move_
+#: is_of_a_name_whose_bytes_are_already_elsewhere` runs the two removals and
+#: asserts the bytes survive each. Its second removal is the failed
+#: reservation -- an empty file this package created microseconds earlier that no
+#: person has seen, holding none of anybody's bytes.
 PERMITTED_REMOVALS = {
     "cross_volume.py:copy_and_confirm": ["unlink"],
     "directories.py:reverse_directories": ["rmdir"],
+    "movement.py:move_onto_free_path": ["unlink"],
 }
 
 
@@ -145,6 +166,56 @@ def test_the_only_unlink_in_mutation_is_the_cross_volume_source_removal():
     package fails here, including one added to a module that already has one.
     """
     assert removal_sites(_package_codes()) == PERMITTED_REMOVALS
+
+
+def test_the_only_removal_in_the_move_is_of_a_name_whose_bytes_are_already_elsewhere():
+    """The property §7.11 states, asserted rather than asserted-by-listing.
+
+    `PERMITTED_REMOVALS` is a list, and a list can be extended by anyone who
+    finds it inconvenient. This runs the two removals `move_onto_free_path`
+    performs and shows that neither loses a byte: the first unlinks a NAME whose
+    inode is already reachable at the destination, and the second unlinks an
+    empty reservation this package made and nobody else has seen.
+    """
+    import errno
+    import tempfile
+    from pathlib import Path
+
+    from mutation import movement
+
+    workspace = Path(tempfile.mkdtemp())
+
+    # 1. The hard-link branch. The source NAME goes; the person's bytes stay.
+    source = workspace / "essay.txt"
+    source.write_bytes(b"THE PERSON'S ONLY COPY")
+    movement.move_onto_free_path(source, workspace / "filed.txt")
+    assert not source.exists(), "the name was removed"
+    assert (workspace / "filed.txt").read_bytes() == b"THE PERSON'S ONLY COPY"
+
+    # 2. The fallback branch, on a filesystem that cannot hard-link. The
+    #    reservation is created and then removed because the rename failed --
+    #    and the person's file is untouched at the source throughout.
+    kept = workspace / "kept.txt"
+    kept.write_bytes(b"THE PERSON'S ONLY COPY")
+    real_link, real_rename = movement.os.link, movement.os.rename
+
+    def no_hard_links(*args, **kwargs):
+        raise OSError(errno.EOPNOTSUPP, "this volume has no hard links")
+
+    def rename_fails(*args, **kwargs):
+        raise OSError(errno.EXDEV, "not the same volume after all")
+
+    movement.os.link, movement.os.rename = no_hard_links, rename_fails
+    try:
+        with pytest.raises(OSError):
+            movement.move_onto_free_path(kept, workspace / "reserved.txt")
+    finally:
+        movement.os.link, movement.os.rename = real_link, real_rename
+
+    assert kept.read_bytes() == b"THE PERSON'S ONLY COPY", (
+        "the fallback's failure path removed the reservation, never the file")
+    assert not (workspace / "reserved.txt").exists(), (
+        "and it did not leave an empty file behind for a retry to trip on")
 
 
 def test_the_removal_guard_finds_a_removal_reached_through_shutil():
