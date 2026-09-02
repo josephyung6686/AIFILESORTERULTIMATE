@@ -49,10 +49,12 @@ E_TEMPLATE: str = "E_template"
 #: shortlist to read as having heard the WHOLE sentence and that is the judgement
 #: a cheaper model flattens to one keyword. `83` §4 forbids the silent downgrade.
 #:
-#: NO PROMPT IS INSTALLED FOR IT. A `PromptDefinition` naming this site still
-#: needs `template_bytes`, which are the owner's to ratify and which no agent may
-#: author or adopt. The draft is `planning/87-ROLE-PROMPT-DRAFT.md` and it is
-#: inert until he acts.
+#: NO PROMPT IS INSTALLED FOR IT, and this member does not install one. A
+#: `PromptDefinition` naming this site still needs `template_bytes`, which are the
+#: owner's to ratify and which no agent may author or adopt. A draft is held for
+#: him and is inert until he acts on it. No path is named here on purpose: the
+#: draft lives outside the repo until it is ratified, and a source comment
+#: pointing at a file that may not exist is worse than one that does not point.
 F_ROLE_SHORTLIST: str = "F_role_shortlist"
 
 CALL_SITES: tuple[str, ...] = (
