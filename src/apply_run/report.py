@@ -114,11 +114,30 @@ def freeze_lines(proposal: FrozenProposal, *,
         lines.append("")
         lines.append(f"Not frozen, and still exactly where they are "
                      f"-- {len(proposal.held)} file(s):")
+        # One sentence per REASON, not per file, and every name printed under
+        # it. The reason was one fact the first time it was printed and stayed
+        # one fact for the other fourteen -- which is the rule `cli.report`
+        # already follows for decisions, and the one that took a real corpus
+        # from 9,460 lines to 472. It matters more here than it used to: before
+        # the owner ruled that a freeze is an approval, a hold was the unusual
+        # case, and now the files a person must still deal with all arrive here.
+        #
+        # `refused_at_construction` keys on its detail as well, because there
+        # the detail IS the reason -- two files refused by different rules have
+        # not stopped for the same thing.
+        grouped: dict[tuple[str, str], list[str]] = {}
         for item in proposal.held:
-            lines.append(f"    {_name(names, item.file_id)} -- "
-                         f"{_HOLD_SENTENCES[item.reason]}")
-            if item.reason == REFUSED_AT_CONSTRUCTION:
-                lines.append(_wrap(item.detail, indent="      "))
+            key = (item.reason,
+                   item.detail if item.reason == REFUSED_AT_CONSTRUCTION else "")
+            grouped.setdefault(key, []).append(_name(names, item.file_id))
+        for (reason, detail), held_names in grouped.items():
+            for name in sorted(held_names):
+                lines.append(f"    {name}")
+            lines.append(_wrap(
+                f"{'This one is' if len(held_names) == 1 else 'Each of these is'}"
+                f" {_HOLD_SENTENCES[reason]}", indent="      "))
+            if detail:
+                lines.append(_wrap(detail, indent="      "))
 
     if total:
         lines.append("")

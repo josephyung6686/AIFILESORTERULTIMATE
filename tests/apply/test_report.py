@@ -6,6 +6,7 @@ summarised away.
 """
 from __future__ import annotations
 
+import dataclasses
 import re
 
 from mutation import vocabulary as v
@@ -68,6 +69,36 @@ def test_every_held_file_is_named_with_its_reason(world, review_required,
     assert proposal.held[0].reason == NOT_SHOWN
     assert "saved article.pdf" in text
     assert "not named on the screen you froze" in text
+
+
+def test_one_reason_is_printed_once_however_many_files_stopped_for_it(
+        world, review_required, ids, clock):
+    """The 9,460-line report, arriving in the freeze screen instead.
+
+    Before the owner ruled that a freeze is an approval, a hold was the unusual
+    case. Now every file a person still has to deal with arrives here, and one
+    sentence per file would repeat the same paragraph until the names were
+    unreadable. Every name is still printed; the reason is printed once.
+    """
+    proposal = _freeze(world, review_required, ids=ids, clock=clock,
+                       shown=frozenset())
+    text = "\n".join(freeze_lines(
+        proposal, names=_names(world), nodes=NODES,
+        apply_command=lambda branch: "cmd", apply_everything_command="all"))
+
+    assert len(proposal.held) == 1
+    # Widened to a world where several files stop for the same reason, which is
+    # what a real corpus is.
+    many = dataclasses.replace(
+        proposal, held=tuple(
+            dataclasses.replace(proposal.held[0], file_id=file_id)
+            for file_id in world.sources))
+    text = "\n".join(freeze_lines(
+        many, names=_names(world), nodes=NODES,
+        apply_command=lambda branch: "cmd", apply_everything_command="all"))
+    for name in _names(world).values():
+        assert name in text
+    assert text.count("not named on the screen you froze") == 1
 
 
 def test_a_protected_file_is_named_in_the_apply_report_with_its_sentence(
