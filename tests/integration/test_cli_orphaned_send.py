@@ -263,3 +263,90 @@ def test_today_that_stale_command_destroys_the_whole_run(tmp_path):
     assert "Not yet placed (1 of 3)" in stale, stale
     # And there is no plan anywhere on the screen.
     assert "Folders in this plan" not in stale, stale
+
+
+#: The exact sentence `main` used to print for every refusal, and that HUNK 4
+#: moves into `run` and makes conditional. Matched as a phrase because the
+#: wording is the composition root's to settle; what may not vary is WHEN it
+#: appears.
+AREA_ADVICE = "`--residual` enables an area for the run it is typed in"
+
+
+def _first_run(corpus: Path) -> None:
+    """One run with the area enabled, so review sets exist to be named."""
+    _run(corpus)
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
+    "`src/cli.py` -- the `except ResidualSendRefused` in `main` prints the "
+    "`--residual` sentence for EVERY refusal, and the exception has three raise "
+    "sites in `placement/pipeline`: an unknown SET, an unenabled AREA, and an "
+    "ambiguous one. Only the second is about enabling an area. So a person who "
+    "mistypes a SET name is told to add a `--residual` flag that is already in "
+    "the command they just typed -- wrong advice, confidently given, and `84` "
+    "§6 says what the screen tells a person to type has to be true. Fixed by "
+    "the merged HUNK 4 in `scratchpad/learning/CLI-PATCH.txt`, which asks a "
+    "question this command can answer from its own inputs -- did it enable the "
+    "area it is sending to? -- rather than guessing the raise site."))
+def test_a_mistyped_set_name_is_not_told_to_enable_an_area_it_already_has(
+        tmp_path):
+    """Case B. The area IS enabled, in this very command; only the set is wrong.
+
+    The advice would tell them to add a flag that is already there, which is the
+    most visible possible way for a screen to be wrong.
+    """
+    corpus = _corpus(tmp_path)
+    _first_run(corpus)
+
+    _, printed = _run(corpus, "--send-set", "Nonsense set=Review Later")
+
+    assert "is not a review set this run surfaced" in printed, printed
+    assert AREA_ADVICE not in printed, printed
+
+
+def test_today_a_mistyped_set_name_gets_advice_about_an_area_it_already_has(
+        tmp_path):
+    """The measurement behind the xfail above, recorded as it is rather than as
+    it should be. Passes today; goes red when the hunk lands, beside the xfail
+    turning into an XPASS. Two signals for one change.
+    """
+    corpus = _corpus(tmp_path)
+    _first_run(corpus)
+
+    _, printed = _run(corpus, "--send-set", "Nonsense set=Review Later")
+
+    assert AREA_ADVICE in printed, printed
+    assert "--residual 'Review Later'" in printed, printed
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
+    "Same hunk, from the other side: the paste-able `--residual` command must "
+    "SURVIVE for the refusal it is actually about. `main`'s handler prints it "
+    "but kills the run; catching in `run` keeps the plan, so the sentence has "
+    "to be carried across rather than dropped. This is the assertion that fails "
+    "if HUNK 4 is applied without moving it."))
+def test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan(
+        tmp_path):
+    """Case A. `--residual` was NOT typed in this command, so the advice is
+    true and is the one thing that explains the refusal: an area is enabled for
+    the run it is named in.
+
+    Both halves are asserted together on purpose. Keeping the plan and losing
+    the sentence would be trading one real improvement for one real regression,
+    which is exactly what the lead caught in the first version of this hunk.
+    """
+    corpus = _corpus(tmp_path)
+    _first_run(corpus)
+
+    out = io.StringIO()
+    code = cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(corpus.parent / "plan.sqlite"),
+                     "--send-set", FIRST_SET], out=out)
+    printed = "\n".join(line for line in out.getvalue().splitlines()
+                        if not line.startswith("Plan database:"))
+
+    assert code == 0, printed
+    assert "Folders in this plan" in printed, printed
+    assert AREA_ADVICE in printed, printed
+    assert "--residual 'Review Later'" in printed, printed
