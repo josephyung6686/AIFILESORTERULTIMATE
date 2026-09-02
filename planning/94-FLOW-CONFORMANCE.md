@@ -795,3 +795,44 @@ one that settles it:
 Whoever wants EXIF later: change `image_ocr_decision` so EXIF does not count as the "usable
 metadata" that suppresses OCR, prove OCR still runs on an EXIF-bearing photograph, and only then
 write the reader.
+
+---
+
+## F22 — a file can vanish from the freeze block entirely, and F16 fixed only one way in
+
+Measured 2026-09-03 on the tree at `40c6816`, four files in one folder:
+
+```
+files in the folder : 4
+Frozen              : 2
+Not frozen          : 1
+ACCOUNTED FOR       : 3
+```
+
+`noextension` — a plain text file with no extension — appears in **neither** list and is named
+nowhere in the freeze block. F16 closed this for protected material by holding a protected subject
+whatever its outcome; the same silent omission remains open for at least one other outcome.
+
+**This is the standing rule's own case**: never silently omitted. A person counting their files
+against that block finds one missing and has nothing to search for. It is worse than an unhelpful
+reason, because there is no reason at all — the file is simply not there.
+
+Note the interaction with `95`: `readers/signatures.py` now detects an extensionless file by its
+magic number, but that detection is not wired into `cli._detect_format`, so this file is still
+unrouted at the composition root. **Whether the freeze block's omission survives the wiring is not
+established** — fix the omission on its own terms rather than assuming the routing fix covers it,
+because a file can be unplaceable for reasons that have nothing to do with its format.
+
+## F23 — a reason string is interpolated into a sentence that then reads as nonsense
+
+Same run, verbatim:
+
+> `problem set 3.docx`
+> **This one is nothing has looked inside it yet**, so there is nothing here for you to approve.
+> Freezing says where a file goes; it cannot say what a file is. It stays where it is.
+
+"This one is {reason}" is being filled with a reason phrased as a clause rather than a noun. The
+sentence is unreadable, and it is on the screen a person reads to find out what happened to their
+files. Cheap to fix and worth doing before anyone runs this on a real folder: the surrounding
+sentences are careful and well-judged, which makes the broken one read as a bug in the product
+rather than a bug in one string.
