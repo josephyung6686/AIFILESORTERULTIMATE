@@ -1977,6 +1977,84 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     assert readers.ocr_engine is not None
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "`--reject` succeeds in silence. The run prints its ordinary report and "
+    "not one word about the correction -- no confirmation, no 'that claim is "
+    "retracted', nothing. The two REFUSAL paths are excellent and one of them "
+    "states the principle this breaks: naming a value the file never carried "
+    "answers 'refusing is the only answer that does not leave you believing "
+    "you were heard'. A silent success leaves the person believing they were "
+    "heard on exactly the same evidence -- an exit code of 0 and a report that "
+    "still says what they just corrected. Measured on the real corpus: after "
+    "rejecting `subject=BS7671` on an electrical certificate, the very next "
+    "screen still proposes moving it into `Downloads` for that reason, and "
+    "nothing on it acknowledges the rejection. Strict, so the suite turns red "
+    "the day it is fixed."))
+def test_rejecting_a_conclusion_says_so_on_screen(tmp_path):
+    """A correction the person cannot see land is a correction they will retype.
+
+    The rejection IS recorded -- the database gets a user-originated fact
+    carrying the retraction -- so this is not about the mechanism. It is about
+    the person, who typed a command that changes what the product believes and
+    got back a screen identical to the one before it.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "EIC certificate.txt").write_text(
+        "ELECTRICAL INSTALLATION CERTIFICATE\n"
+        "BS 7671 Requirements for Electrical Installations\n"
+        "Certificate number: EIC-2026-0341\n"
+        "Installation address: 14 Ashgrove Terrace\n")
+    argv = [str(corpus), "--situation", "construction_property.construction-project",
+            "--label", "Jobs", "--user", "m",
+            "--database", str(tmp_path / "plan.sqlite")]
+    assert cli.main(argv, out=io.StringIO()) == 0
+
+    out = io.StringIO()
+    assert cli.main(argv + ["--reject", "EIC certificate.txt:subject=BS7671"],
+                    out=out) == 0
+    # The `Plan database:` line carries the tmp_path, which pytest names after
+    # this function -- so searching the raw output for "reject" finds the TEST'S
+    # OWN NAME and the guard passes against the defect. That is the trap
+    # `84` §4 records: a test's name changing what the run appears to say.
+    printed = "\n".join(line for line in out.getvalue().splitlines()
+                        if not line.startswith("Plan database:"))
+
+    assert any(word in printed.lower() for word in
+               ("reject", "retract", "no longer", "took that back")), (
+        "the run accepted the rejection and said nothing about it:\n" + printed)
+
+
+def test_rejecting_something_the_file_never_said_is_still_refused(tmp_path):
+    """The twin, and the behaviour that must survive any fix to the one above.
+
+    Making the success path speak must not make the refusal paths stop
+    refusing. Both messages are the product at its best and they are pinned
+    here so a change to the reporting cannot quietly turn either into a
+    reassuring sentence about nothing.
+    """
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "EIC certificate.txt").write_text(
+        "ELECTRICAL INSTALLATION CERTIFICATE\n"
+        "BS 7671 Requirements for Electrical Installations\n"
+        "Certificate number: EIC-2026-0341\n")
+    argv = [str(corpus), "--situation", "construction_property.construction-project",
+            "--label", "Jobs", "--user", "m",
+            "--database", str(tmp_path / "plan.sqlite")]
+    assert cli.main(argv, out=io.StringIO()) == 0
+
+    out = io.StringIO()
+    code = cli.main(argv + ["--reject", "EIC certificate.txt:subject=BANANA"], out=out)
+    assert code != 0, out.getvalue()
+    assert "carries no subject of 'BANANA'" in out.getvalue(), out.getvalue()
+
+    absent = io.StringIO()
+    code = cli.main(argv + ["--reject", "nosuchfile.pdf:subject=BS7671"], out=absent)
+    assert code != 0, absent.getvalue()
+    assert "is not a file in this plan" in absent.getvalue(), absent.getvalue()
+
+
 #: The words are a real court filing's, so the recognition vocabulary has
 #: something to fire on. They are shared by both files in the corpus below,
 #: because the whole question is whether the FORMAT changes the answer.
