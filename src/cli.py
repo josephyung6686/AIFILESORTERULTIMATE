@@ -293,6 +293,25 @@ OPERATION_MODE: str = "offline"
 CLOUD_ENABLED_MODE: str = "hybrid"
 
 
+def _weakest_consent(consents) -> "CloudConsent | None":
+    """The least permissive decision across the folders one run reads.
+
+    `00`:20 lets a person name several folders and §8.4 keys consent to a
+    folder, so a multi-source run holds several answers to one question. They
+    are not averaged and the first is not preferred: one dossier is built from
+    all of them, so a single folder that nobody cleared is enough to keep the
+    whole run off the cloud. A `None` among them -- nobody decided -- is
+    returned as `None`, which is what `operation_mode_for` already reads as the
+    local-first floor.
+    """
+    settled = None
+    for consent in consents:
+        if consent is None or not consent.permits_sending:
+            return consent
+        settled = settled if settled is not None else consent
+    return settled
+
+
 def operation_mode_for(consent: CloudConsent | None) -> str:
     """Which of §8.4's modes this run operates under. THE policy, in one place.
 
@@ -527,17 +546,31 @@ def model_route(*, out) -> TierRouting | None:
     return routing
 
 
-def _turn_off_line(corpus_root: Path) -> str:
+def _turn_off_line(corpus_root: Path, *other_sources: Path) -> str:
     """The command that revokes, pasteable. `84` §6: what the screen tells a person
     to type has to be true, which is why the path is quoted rather than
     interpolated bare -- the folders this product is for have spaces in their
-    names."""
-    return f"    database-agent {shlex.quote(str(corpus_root))} --disable-cloud"
+    names.
+
+    **EVERY source, or the sentence is a trap.** `00`:20 lets a run read several
+    folders and `--enable-cloud` clears each of them separately, so a turn-off
+    line naming only the first is an instruction that leaves the rest sending.
+    A person pastes it, reads that sending is off, and a later run over the
+    second folder sends -- the exact footgun `--disable-cloud` was widened to
+    close, reintroduced by the line the product tells them to type. "What the
+    screen tells a person to type has to be true" is the whole rule.
+    """
+    return ("    database-agent " + shlex.quote(str(corpus_root))
+            + "".join(f" --also-read {shlex.quote(str(source))}"
+                      for source in other_sources)
+            + " --disable-cloud")
 
 
 def announce_cloud_posture(routing: TierRouting | None,
                            consent: CloudConsent | None, *,
-                           corpus_root: Path, out) -> None:
+                           corpus_root: Path,
+                           other_sources: Sequence[Path] = (),
+                           out) -> None:
     """Say, BEFORE the scan, whether this run may send and why.
 
     **Before, and not after.** `80` §8's second condition and `88` §3 both say it in
@@ -567,9 +600,15 @@ def announce_cloud_posture(routing: TierRouting | None,
         # breaks a long unbroken token across lines, and half a path on each of two
         # lines is a path a person cannot read and must not copy. The folders this
         # product is for have spaces and long names; that is the ordinary case.
+        # EVERY folder the run reads, one per line. The consent record this
+        # sentence quotes belongs to one of them -- `_weakest_consent` returns a
+        # single decision -- but the SENDING is this run's, over every source it
+        # was given. Naming one of several would tell a person the scope of a
+        # permission is smaller than what is about to leave their device.
         print(f"  Turned on by {consent.user_id} on {consent.decided_at}, for:",
               file=out)
-        print(f"    {corpus_root}", file=out)
+        for folder in (corpus_root, *other_sources):
+            print(f"    {folder}", file=out)
         if routing is None:
             print(_wrapped(
                 "Nothing was sent and nothing could have been: no model is "
@@ -595,7 +634,7 @@ def announce_cloud_posture(routing: TierRouting | None,
                 f"{routing.model_id_for(D_RESIDUAL)} (review sets). Protected "
                 f"material and §8.4's always-local kinds are refused by P7 and "
                 f"are not among them. Turn it off with:", indent="  "), file=out)
-        print(_turn_off_line(corpus_root), file=out)
+        print(_turn_off_line(corpus_root, *other_sources), file=out)
         return
     if routing is None:
         # `model_route` has already said no model is configured. A second sentence
@@ -1761,8 +1800,46 @@ def _print_set_aside(summary: Mapping[str, object], aside, out) -> None:
           f"Deferred: {summary['files_deferred']}.", file=out)
 
 
+def _print_candidate_roots(candidate_roots: Sequence[Path],
+                           folders: Sequence[object], out) -> None:
+    """`00`:21 said out loud: what a root IS, and what naming one did not do.
+
+    "At this stage, roots are context for the proposal canvas, not permission to
+    move files… to show where a proposed branch could eventually live." A flag
+    that recorded the answer into a database and put nothing on screen would be
+    the same defect as the literal it replaced, one layer further in: the person
+    would have told the product something and have no way to see that it heard.
+
+    So the root is named, the folders already standing in it are named under it,
+    and the sentence that separates a root from a destination is printed every
+    time. The folders are P3's own inventory of that root -- observed, never
+    walked into for content -- which is exactly the "current folder landscape"
+    §21 asks the engine to understand. The immediate children only: a root's
+    whole subtree is a file browser, and the question a person is answering here
+    is which high-level place a branch could sit in.
+    """
+    out = out if out is not None else sys.stdout
+    if not candidate_roots:
+        return
+    print("\nCould eventually live in:", file=out)
+    for root in candidate_roots:
+        print(f"  {root}", file=out)
+        children = sorted(
+            Path(folder.directory_path).name for folder in folders
+            if folder.parent_directory is not None
+            and Path(folder.parent_directory) == Path(root))
+        if children:
+            print(f"    already there: {', '.join(children)}", file=out)
+    print("  Nothing is filed there by this plan. These are the places a branch "
+          "could eventually live, and naming one moves nothing and approves "
+          "nothing.", file=out)
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
+        also_read: Sequence[Path] = (),
+        candidate_roots: Sequence[Path] = (),
+        cross_folder_moves: bool = False,
         residuals: Sequence[str] = (),
         sends: Mapping[str, str] = MappingProxyType({}),
         operation_mode: str = OPERATION_MODE) -> ProductionRun:
@@ -1781,9 +1858,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     schema = schema_for_situation(catalogue, situation)
     clock = now()
     _bootstrap(conn)
+    # `00`:20's THREE choices, as the person answered them. These were three
+    # literals -- one source, no roots, crossing off -- and every reader of R1
+    # has been reading an answer nobody was asked for. `scan.py` walks every
+    # source and every root from this row and has since it was written.
+    sources = [directory, *also_read]
     selection_id = record_selection(
-        conn, sources=[directory], candidate_roots=[], cross_folder_moves=False,
-        selected_by=user_id)
+        conn, sources=sources, candidate_roots=list(candidate_roots),
+        cross_folder_moves=cross_folder_moves, selected_by=user_id)
     detector = Detector(load_rules(_RECOGNITION_MANIFEST.read_text),
                         handling_for=HANDLING_POLICY, now=now,
                         is_protected=is_protected_container,
@@ -1902,6 +1984,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         look like a working feature. The card itself says which signal it carries,
         which is §8.6's "leave it in review rather than guess".
 
+        **A candidate root's folders are excluded, and this is §21 enforced
+        rather than restated.** P3 records the directories under a candidate root
+        -- that is the landscape §21 asks it to understand -- and this function
+        offers every directory in the inventory to the design as a branch. Left
+        alone, `Academic/Semester One` would become an `existing` node, an
+        `existing` ancestor short-circuits `resolve_destination` to its own path,
+        and `resolve_destination` decides crossing by looking at where the file
+        comes FROM and never at where it lands. A root named as context would
+        have become a legal destination with crossing switched off. "Roots are
+        context for the proposal canvas, not permission to move files" is a rule
+        about what may be built, so it is enforced where branches are chosen.
+
         **Protected containers are excluded by path, and that is not belt and
         braces.** `represent_protected_areas` already puts them in the tree as
         `protected` nodes that accept no placement; adopting the same directory a
@@ -1913,10 +2007,15 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         sealed = tuple(area.path for area in protected_areas(
             conn, scan_run_id=scan_run_id[0]))
 
+        def _within(path: str, holders: Sequence[str]) -> bool:
+            return any(path == holder or path.startswith(holder.rstrip("/\\") + "/")
+                       or path.startswith(holder.rstrip("/\\") + "\\")
+                       for holder in holders)
+
         def inside_a_protected_area(path: str) -> bool:
-            return any(path == area or path.startswith(area.rstrip("/\\") + "/")
-                       or path.startswith(area.rstrip("/\\") + "\\")
-                       for area in sealed)
+            return _within(path, sealed)
+
+        context_only = tuple(str(root) for root in candidate_roots)
 
         return tuple(
             folder.directory_path
@@ -1928,7 +2027,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # proposal -- a node called `organised` holding `Uni` and `Inbox`,
             # which is the whole corpus wearing a folder's clothes.
             if folder.parent_directory is not None
-            and not inside_a_protected_area(folder.directory_path))
+            and not inside_a_protected_area(folder.directory_path)
+            and not _within(folder.directory_path, context_only))
 
     # §7.4's enablement, and only what the person named. `00`: "These templates
     # are not automatically created", so a run that names none passes an empty
@@ -2226,6 +2326,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         _print_set_aside(
             scan_run_summary(conn, p1_p7.scan_run_id),
             set_aside_paths(conn, scan_run_id=p1_p7.scan_run_id), out)
+        # HERE for the same reason as the two above: the landscape is known as
+        # soon as the walk is, and a stage after this may refuse. A person who
+        # named a root and then hit a refusal was told nothing about the one
+        # answer of the three that has no other way to show itself.
+        _print_candidate_roots(
+            candidate_roots,
+            existing_folders(conn, scan_run_id=p1_p7.scan_run_id), out)
         return CorpusAuthorities(
 
 
@@ -2813,7 +2920,7 @@ PROTECTED_SUMMARY: tuple[str, ...] = (
 )
 
 
-def file_names(conn: sqlite3.Connection, root: Path) -> dict[str, str]:
+def file_names(conn: sqlite3.Connection, *roots: Path) -> dict[str, str]:
     """Every indexed file, by the name its owner calls it.
 
     `files.current_path` is P1's own column and has always been there, so a
@@ -2823,18 +2930,29 @@ def file_names(conn: sqlite3.Connection, root: Path) -> dict[str, str]:
 
     Shown relative to the folder that was scanned, because that is the name the
     person typed and the part that tells two `notes.txt` apart. A file outside
-    that folder keeps its full path rather than being guessed at.
+    every folder that was scanned keeps its full path rather than being guessed
+    at.
+
+    Several roots, because `00`:20 lets a person name several folders to read and
+    a report that showed the second one's files as absolute paths and the first
+    one's as bare names would be saying two different things in one column. The
+    DEEPEST matching root wins, so a name is relative to the folder the person
+    actually typed rather than to whichever one happened to be checked first.
 
     Nothing inside a protected container appears here, and not by omission: P3
     never walks into one, so no `files` row for its interior exists to read.
     """
+    ordered = sorted(roots, key=lambda root: len(Path(root).parts), reverse=True)
     names: dict[str, str] = {}
     for row in conn.execute("SELECT file_id, current_path FROM files"):
         path = Path(row["current_path"])
-        try:
-            names[row["file_id"]] = str(path.relative_to(root))
-        except ValueError:
-            names[row["file_id"]] = str(path)
+        names[row["file_id"]] = str(path)
+        for root in ordered:
+            try:
+                names[row["file_id"]] = str(path.relative_to(root))
+            except ValueError:
+                continue
+            break
     return names
 
 
@@ -3415,21 +3533,33 @@ def _record_cloud_decision(args, decision: str, *, out) -> int:
     from datetime import datetime, timezone
 
     directory = args.directory.expanduser().resolve()
+    # EVERY folder named, not only the first. Consent is recorded per folder,
+    # and `--enable-cloud` on a run with `--also-read` records one per source --
+    # so a withdrawal that reached only the first would leave the second still
+    # sending, which is the worst possible outcome for a person who typed the
+    # word "disable" and read a sentence saying it was off. No `is_dir` check
+    # here either, for the reason above: a deleted folder's consent is still
+    # withdrawable.
+    folders = list(dict.fromkeys(
+        [directory, *(Path(raw).expanduser().resolve()
+                      for raw in args.also_read)]))
     database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
     try:
-        conn = open_database(database, scan_roots=[directory])
+        conn = open_database(database, scan_roots=folders)
     except DatabaseInsideCorpus as refusal:
         print(f"\n{refusal}", file=out)
         return 2
     try:
-        record_cloud_consent(
-            conn, corpus_root=str(directory), decision=decision,
-            user_id=args.user,
-            decided_at=datetime.now(timezone.utc).isoformat())
+        for folder in folders:
+            record_cloud_consent(
+                conn, corpus_root=str(folder), decision=decision,
+                user_id=args.user,
+                decided_at=datetime.now(timezone.utc).isoformat())
         conn.commit()
     finally:
         conn.close()
-    print(f"\nCloud sending is off for {directory}.", file=out)
+    for folder in folders:
+        print(f"\nCloud sending is off for {folder}.", file=out)
     print(_wrapped(
         "Nothing further from this folder will be sent to a model. What earlier "
         "runs already sent cannot be recalled, and the record of when it was "
@@ -3451,6 +3581,60 @@ def _volume_of(path: Path) -> str:
     while not cursor.exists() and cursor != cursor.parent:
         cursor = cursor.parent
     return str(os.stat(cursor).st_dev)
+
+
+ROLE_READ = "a folder to read"
+ROLE_ROOT = "a place a branch could live in"
+
+
+def _folder_landscape(directory: Path, also_read: Sequence[Path],
+                      could_live_in: Sequence[Path], *, out
+                      ) -> tuple[list[Path], list[Path]] | None:
+    """`00`:20's other two answers, resolved and checked. `None` means refused.
+
+    Two rules, and neither is a style choice.
+
+    **A folder that is not there is a sentence, not a traceback.** The positional
+    argument has had that sentence since the first day; a person who mistypes the
+    second folder is making the same mistake and deserves the same answer.
+
+    **A path may not be both.** §21 spends a paragraph insisting that a root is
+    context and not permission, so a folder named as both the material and the
+    landscape is a person asking for two incompatible things at once -- and which
+    one they meant cannot be read off the command. Guessing would resolve it
+    silently in whichever direction the code happened to be written, which is
+    exactly the way a root turns into permission. It is refused, with both paths
+    named, so the person can say which they meant. The same check catches a
+    folder nested inside another folder to read, where the cost is quieter but
+    real: it would be walked twice and every file in it counted twice.
+
+    Duplicates are dropped rather than refused: naming the same folder twice is
+    not two answers in conflict, it is one answer typed twice.
+    """
+    out = out if out is not None else sys.stdout
+    named: list[tuple[Path, str]] = [(directory, ROLE_READ)]
+    for group, role in ((also_read, ROLE_READ), (could_live_in, ROLE_ROOT)):
+        for raw in group:
+            path = Path(raw).expanduser().resolve()
+            if not path.is_dir():
+                print(f"{path} is not a folder", file=out)
+                return None
+            if any(path == seen for seen, _ in named):
+                continue
+            named.append((path, role))
+    for path, role in named:
+        for other, other_role in named:
+            if other == path or path not in other.parents:
+                continue
+            print(f"\n{path} is inside {other}, and this run was given them as "
+                  f"two different things: {other} as {other_role} and {path} as "
+                  f"{role}. One folder cannot be both the material being "
+                  f"organised and a place a branch could eventually live in, "
+                  f"and which of the two you meant is not something this "
+                  f"command will guess. Name one or the other.", file=out)
+            return None
+    return ([path for path, role in named[1:] if role == ROLE_READ],
+            [path for path, role in named if role == ROLE_ROOT])
 
 
 def _typed(directory: Path, database: Path | None, tail: str) -> str:
@@ -3642,6 +3826,35 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         "--label",
         help="what to call the top-level folder, e.g. 'Coursework'. Required for "
              "the same reason.")
+    parser.add_argument(
+        "--also-read", action="append", default=[], metavar="FOLDER", type=Path,
+        help="another folder to read in the same run, e.g. --also-read "
+             "~/Desktop. `00`:20's own example is several at once -- Downloads "
+             "AND Desktop AND the loose files at the top of Documents -- and "
+             "material split across two folders is the ordinary case. Can be "
+             "given more than once. Every folder named here is read the same "
+             "way the first one is, and the same exclusions apply to all of "
+             "them.")
+    parser.add_argument(
+        "--could-live-in", action="append", default=[], metavar="FOLDER",
+        type=Path,
+        help="a high-level place a proposed branch could eventually live, e.g. "
+             "--could-live-in ~/Documents/Academic. THIS IS NOT PERMISSION TO "
+             "PUT ANYTHING THERE. Nothing inside it is read, indexed or "
+             "organised, and this plan files nothing into it; what naming it "
+             "does is let the proposal show the folders you already have, so a "
+             "branch can be judged against the landscape it would join. "
+             "Whether files may actually move between high-level folders is "
+             "--may-cross-folders, which is a separate answer. Can be given "
+             "more than once.")
+    parser.add_argument(
+        "--may-cross-folders", action="store_true",
+        help="allow a file to be filed under a different high-level folder "
+             "from the one it is in now -- a file in Downloads going to a "
+             "Personal Projects folder on Desktop, rather than staying in "
+             "Downloads organised in place. Off unless you say it: an "
+             "unanswered permission is not a granted one. It still moves "
+             "nothing by itself; --freeze and --apply are what move files.")
     parser.add_argument("--user", default=getpass.getuser(),
                         help="who this plan belongs to (recorded, never sent)")
     parser.add_argument(
@@ -3836,6 +4049,16 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"{directory} is not a folder", file=out)
         return 2
 
+    # `00`:20's other two answers, checked before anything is opened. A folder
+    # that is not there gets the same sentence the first one gets, because a
+    # traceback is what this command prints when a person makes a typo and
+    # nothing else.
+    landscape = _folder_landscape(directory, args.also_read, args.could_live_in,
+                                  out=out)
+    if landscape is None:
+        return 2
+    also_read, candidate_roots = landscape
+
     from datetime import datetime, timezone
 
     def now() -> str:
@@ -3848,7 +4071,13 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # inside the folder being scanned, which is why the roots are passed in.
     database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
     try:
-        conn = open_database(database, scan_roots=[directory])
+        # Every folder this run touches, not only the first: the database may
+        # not be created inside a folder being read, and `00`:20 lets a person
+        # name several. A root counts too -- P3 walks it for its landscape, and
+        # a database file appearing inside it would be a file this product made
+        # in a place it promised to leave alone.
+        conn = open_database(database,
+                             scan_roots=[directory, *also_read, *candidate_roots])
     except DatabaseInsideCorpus as refusal:
         print(f"\n{refusal}", file=out)
         return 2
@@ -3862,10 +4091,23 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         # Applied on the invocation that supplies it, exactly as `--answer` and
         # `--reject` are: a person who has just said yes should not have to run the
         # command again to see what it did.
-        record_cloud_consent(conn, corpus_root=str(directory), decision=ENABLED,
-                             user_id=args.user, decided_at=now())
-    consent = cloud_consent_for(conn, str(directory))
-    announce_cloud_posture(routing, consent, corpus_root=directory, out=out)
+        #
+        # One record per SOURCE. `--enable-cloud` says it is "Recorded against
+        # THIS FOLDER … another folder is another decision", and with several
+        # folders in one run that promise is only kept by writing several
+        # records. A single record against the first would let the second
+        # folder's files leave under a permission that never named it.
+        for source in (directory, *also_read):
+            record_cloud_consent(conn, corpus_root=str(source), decision=ENABLED,
+                                 user_id=args.user, decided_at=now())
+    # The WEAKEST answer across the sources, not the first one's. A run reads
+    # every source into one corpus and one dossier, so a folder that has not
+    # been cleared cannot be protected by a mode chosen for a folder that has.
+    # Absent is refusal, and refusal wins.
+    consent = _weakest_consent(
+        cloud_consent_for(conn, str(source)) for source in (directory, *also_read))
+    announce_cloud_posture(routing, consent, corpus_root=directory,
+                           other_sources=also_read, out=out)
     try:
         # BEFORE the run, so an answer takes effect on the very invocation that
         # supplies it. A person who has just been asked something and answers it
@@ -3918,6 +4160,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                     print(render_explanation(explanation), file=out)
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
+                     also_read=also_read, candidate_roots=candidate_roots,
+                     cross_folder_moves=args.may_cross_folders,
                      residuals=_validate_residuals(args.residual),
                      sends=_parse_sends(args.send_set),
                      operation_mode=operation_mode_for(consent))
@@ -3944,7 +4188,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # it one so it could ask a second part a question would make the report a
     # place where new facts are discovered.
     held = live_roles(conn)
-    shown = report(result, file_names(conn, directory), out=out,
+    shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
                    role_moment=role_moment_lines(blocked=open_now,
@@ -3991,13 +4235,24 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         legal_destination_ids=frozenset(
             node.node_id for node in result.tree.tree.nodes
             if node.accepts_placement),
-        # §1.1's setting, as `record_selection` above already states it: this
-        # build organises WITHIN the folder the person named and moves nothing
-        # out of it. `00`:20 makes that one of the two things a person may
-        # choose, and it is the one nothing here can ask them about yet.
-        cross_folder_moves=False,
+        # `00`:20's third choice, as the person answered it -- and the SAME
+        # answer R1 holds, because two places that each decide whether a file
+        # may cross a high-level folder is one place too many. Off unless
+        # `--may-cross-folders` was typed: `review_surface/move_permission.py`
+        # already rules that no policy at all is no permission, and a movement
+        # permission is the last thing to infer from silence.
+        cross_folder_moves=args.may_cross_folders,
         constraints=_FILESYSTEM_CONSTRAINTS,
-        high_level_folders={ROOT_ANCHOR: directory},
+        # §1.1's folder landscape, which is what P12 means by this argument.
+        # With one entry, a file from a second source was under NO high-level
+        # folder, `_source_folder` returned None, and P12's refusal named
+        # nothing a person could act on. The candidate roots are in it for the
+        # same reason -- they are part of the landscape -- and being in it makes
+        # nothing a destination: a destination needs a NODE whose `root_anchor`
+        # names it, and `adopted_folders` refuses to build one over a root.
+        high_level_folders={ROOT_ANCHOR: directory,
+                            **{str(folder): folder
+                               for folder in (*also_read, *candidate_roots)}},
         volume_of=_volume_of,
         protected_handling_classes=PROTECTED_CLASSES,
         # `74` §8 Q3 is open, so the only behaviour that can be frozen is the
@@ -4032,7 +4287,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         component_version=COMPONENT_VERSION, now=now, mint_id=mint_plan_id)
     conn.commit()
     for line in freeze_lines(
-            proposal, names=file_names(conn, directory),
+            proposal, names=file_names(conn, directory, *also_read),
             nodes=result.tree.tree.nodes,
             apply_command=lambda branch: _typed(
                 directory, args.database, f"--apply {shlex.quote(branch)}"),

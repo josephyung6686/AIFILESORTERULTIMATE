@@ -17,16 +17,15 @@ root is landscape and never corpus. Nothing below builds any of that. What was
 missing was the person's answer reaching it.
 
 **`src/cli.py` is the composition root and belongs to the lead**, so this file
-names the gestures rather than editing them in. The hunks are written out in
-`scratchpad/onboarding/cli.diff` — apply with `git apply -p1`; `CLI-PATCH.txt`
-is its cover note and carries the base and patched sha256s. No commit is named
-here on purpose: `src/cli.py` moved three times while this was being written, so
-a blob id in a docstring would be stale within the hour and would send a reader
-to check the wrong file. Strict xfail, for the reason this repo already uses
-strict: a dozen sessions share this suite, so red tests here would be a dozen
-false alarms, while an XPASS the moment the hunks land is the signal to strip
-these markers. **Applying the patch means deleting every `PENDING_SELECTION`
-marker in this file.**
+names the gestures rather than editing them in.
+
+**The hunks landed on 2026-09-02 and every test below now runs for real.** They
+were written as strict xfails while `src/cli.py` belonged to the lead, on the
+reasoning this repo already uses: a dozen sessions share this suite, so red tests
+here would have been a dozen false alarms, and an XPASS the moment the hunks
+landed was the signal to strip the markers. All seventeen went XPASS on the first
+run after the patch and the markers came off with it, rather than in a later
+tidying pass.
 
 The three gestures proposed to the owner, whose names are the owner's under
 `84` §1:
@@ -57,13 +56,6 @@ from database_agent.cloud_consent import DISABLED  # noqa: E402
 from scan_agent.selection import (  # noqa: E402
     selection_candidate_roots,
     selection_sources,
-)
-
-PENDING_SELECTION = pytest.mark.xfail(
-    strict=True,
-    reason="awaiting scratchpad/onboarding/cli.diff on src/cli.py; "
-           "`00`:20-21's three choices are the three literals passed to "
-           "`record_selection` in `cli.run`",
 )
 
 DOWNLOADS = {
@@ -128,7 +120,6 @@ def _selection(database: Path) -> tuple[sqlite3.Connection, str]:
 
 # --- the first choice: which folders should be analysed -----------------------
 
-@PENDING_SELECTION
 def test_a_person_can_name_more_than_one_folder_to_read(tmp_path):
     """`00`:20's own example is three at once, and one folder per run is not it.
 
@@ -156,7 +147,6 @@ def test_a_person_can_name_more_than_one_folder_to_read(tmp_path):
     assert str(desktop) not in printed, printed
 
 
-@PENDING_SELECTION
 def test_every_folder_the_person_named_is_in_the_record_that_drives_the_scan(
         tmp_path):
     """R1 is what `scan.py` reads. If the answer is not in the row, it never ran.
@@ -175,7 +165,6 @@ def test_every_folder_the_person_named_is_in_the_record_that_drives_the_scan(
 
 # --- the second choice: which locations may serve as roots --------------------
 
-@PENDING_SELECTION
 def test_a_candidate_root_is_recorded_as_context(tmp_path):
     downloads, _, root = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
@@ -188,7 +177,6 @@ def test_a_candidate_root_is_recorded_as_context(tmp_path):
     assert selection_sources(conn, selection_id) == [downloads]
 
 
-@PENDING_SELECTION
 def test_a_file_inside_a_candidate_root_is_not_taken_into_the_corpus(tmp_path):
     """§21: roots are context for the canvas, not material to organise.
 
@@ -204,7 +192,6 @@ def test_a_file_inside_a_candidate_root_is_not_taken_into_the_corpus(tmp_path):
     assert "an earlier essay.txt" not in printed, printed
 
 
-@PENDING_SELECTION
 def test_a_candidate_root_is_not_a_place_this_plan_may_file_anything_into(
         tmp_path):
     """The §21 trap, and the one thing in this build that could do real harm.
@@ -244,7 +231,6 @@ def test_a_candidate_root_is_not_a_place_this_plan_may_file_anything_into(
     assert "0 yours already" in printed, printed
 
 
-@PENDING_SELECTION
 def test_the_report_says_the_roots_are_context_and_that_nothing_moved_there(
         tmp_path):
     """§21's other half: the engine uses roots "to show where a proposed branch
@@ -259,7 +245,6 @@ def test_the_report_says_the_roots_are_context_and_that_nothing_moved_there(
     assert "Nothing is filed there by this plan" in printed, printed
 
 
-@PENDING_SELECTION
 def test_the_exclusion_rules_reach_a_candidate_root_too(tmp_path):
     """§22 says so in one sentence: "The exclusion must apply both to scanned
     sources and to candidate roots." A `node_modules` under a root is set aside
@@ -278,7 +263,6 @@ def test_the_exclusion_rules_reach_a_candidate_root_too(tmp_path):
 
 # --- the third choice: whether files may cross high-level folders -------------
 
-@PENDING_SELECTION
 def test_crossing_high_level_folders_is_off_until_the_person_says_otherwise(
         tmp_path):
     """The design's own example, in its own words: a Downloads file "can go to a
@@ -296,7 +280,6 @@ def test_crossing_high_level_folders_is_off_until_the_person_says_otherwise(
         (selection_id,)).fetchone()["cross_folder_moves"] == 0
 
 
-@PENDING_SELECTION
 def test_the_person_can_say_that_files_may_cross_high_level_folders(tmp_path):
     downloads, desktop, _ = _corpus(tmp_path)
     database = tmp_path / "holder" / "plan.sqlite"
@@ -309,7 +292,6 @@ def test_the_person_can_say_that_files_may_cross_high_level_folders(tmp_path):
         (selection_id,)).fetchone()["cross_folder_moves"] == 1
 
 
-@PENDING_SELECTION
 def test_a_freeze_reads_the_persons_answer_and_not_a_literal(tmp_path):
     """The second half of the third choice, and the half that decides a move.
 
@@ -347,7 +329,6 @@ def test_a_freeze_reads_the_persons_answer_and_not_a_literal(tmp_path):
         (selection_id,)).fetchone()["cross_folder_moves"] == 1
 
 
-@PENDING_SELECTION
 def test_the_landscape_p12_is_given_holds_every_folder_the_person_named(
         tmp_path):
     """`high_level_folders` IS §1.1's folder landscape, and it held one entry.
@@ -382,7 +363,6 @@ def test_the_landscape_p12_is_given_holds_every_folder_the_person_named(
 
 # --- refusals: a named folder that cannot mean what it says -------------------
 
-@PENDING_SELECTION
 def test_a_second_source_that_is_not_a_folder_is_refused_in_a_sentence(tmp_path):
     """The same sentence the positional argument already gets. A traceback here
     would be the product answering a typo with a stack."""
@@ -399,7 +379,6 @@ def test_a_second_source_that_is_not_a_folder_is_refused_in_a_sentence(tmp_path)
     assert f"{missing} is not a folder" in out.getvalue(), out.getvalue()
 
 
-@PENDING_SELECTION
 def test_a_root_inside_a_folder_being_read_is_refused_rather_than_guessed(
         tmp_path):
     """One path cannot be both the material and the landscape it might move
@@ -423,7 +402,6 @@ def test_a_root_inside_a_folder_being_read_is_refused_rather_than_guessed(
 
 # --- what a second source does to a permission keyed by folder ---------------
 
-@PENDING_SELECTION
 def test_a_second_source_does_not_send_under_the_first_ones_consent(tmp_path):
     """A hole this feature would otherwise have opened, not one it found.
 
@@ -449,7 +427,6 @@ def test_a_second_source_does_not_send_under_the_first_ones_consent(tmp_path):
     assert "Cloud sending is ON" not in printed, printed
 
 
-@PENDING_SELECTION
 def test_enabling_the_cloud_for_a_multi_source_run_names_every_folder(tmp_path):
     """The other half: having cleared them together, the run may send."""
     downloads, desktop, _ = _corpus(tmp_path)
@@ -464,7 +441,6 @@ def test_enabling_the_cloud_for_a_multi_source_run_names_every_folder(tmp_path):
     assert cleared == {str(downloads), str(desktop)}, cleared
 
 
-@PENDING_SELECTION
 def test_turning_the_cloud_off_reaches_every_folder_it_was_turned_on_for(
         tmp_path):
     """`--disable-cloud` printing "off" while one of two folders was still
@@ -488,7 +464,6 @@ def test_turning_the_cloud_off_reaches_every_folder_it_was_turned_on_for(
         assert row is not None and row["decision"] == DISABLED, (folder, row)
 
 
-@PENDING_SELECTION
 def test_the_turn_off_line_the_screen_prints_turns_every_source_off(tmp_path):
     """`84` §6: what the screen tells a person to type has to be true.
 
