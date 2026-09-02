@@ -15,7 +15,10 @@ Everything about this module is narrow deliberately:
   (§2.3's table/row/cell, §2.8's EXIF field) materialises `Observation.raw_value`,
   because `unit_for_observation` returns None for one and there is nothing to take a
   substring of. Anything else raises. A fallback to the whole unit is how "send the
-  cell" becomes "send the sheet".
+  cell" becomes "send the sheet". The span-less branch ASKS whether that is the
+  shape it has rather than assuming it (CR-07): a whole text document is emitted
+  span-less too, at the empty path where its own text unit stands, and the unit
+  lookup is the one thing that tells a cell from a document.
 - **A failure is a refusal, never a repair.** P4's checker "raises; never returns a
   repair", and P4 does not validate the anchor at write time, so this is the only
   thing between a stale span and released text.
@@ -127,6 +130,14 @@ class Materialised:
     §8.4's "It should not send full documents where a short heading or OCR excerpt is
     enough to resolve the question" -- needs it, and this module is the only one that
     may ask P4 for it.
+
+    Beside a SPAN-LESS address it is the same measurement and carries one more fact:
+    it is the length of the unit standing at the observation's own container path,
+    and it is set only when the resolved value covers the whole of that unit. A
+    non-None `unit_length` next to a span-less item therefore states "this value is
+    a whole text unit", which is how `items.is_whole_document` reads it (CR-07).
+    §2.3's cell, §2.8's field and a `title` field have no unit at their own path and
+    keep the `None` that has always meant "there is nothing here to be the whole of".
     """
 
     observation_key: str
@@ -194,7 +205,25 @@ def materialise(conn: sqlite3.Connection, item) -> Materialised:
             "claim; a claim that disagrees with the record is refused, not honoured "
             "and not silently replaced")
     if text_span is None:
-        value, unit_length = observation.raw_value, None
+        # CR-07. The absence of a span does not make a value a bounded one. §2.3's
+        # cell and §2.8's EXIF field have no unit for a span to cover -- but
+        # `extractors/structured_text.py` emits a whole text document as a span-less
+        # `body` observation at the EMPTY container path, which is precisely where
+        # that run's one `text_units` row stands, and its `raw_value` is every
+        # character of the document. Which of the two shapes this is cannot be read
+        # off the missing span; it is read off the unit at the observation's OWN
+        # path, and this module is the only one that may ask P4 for it.
+        #
+        # `>=` rather than `==`, mirroring `items.is_whole_document`'s span rule: a
+        # stored unit may be truncated (`TextUnit.truncated`) while the observation
+        # carries the untruncated value, and a value at least as long as its unit is
+        # not a short excerpt of that unit under either reading. A SHORTER value is
+        # a bounded one and keeps `unit_length = None` -- so a span-less field that
+        # happens to sit at a path a unit also occupies is still released.
+        value = observation.raw_value
+        unit = unit_for_observation(conn, observation)
+        unit_length = (unit.length
+                       if unit is not None and len(value) >= unit.length else None)
     else:
         unit = unit_for_observation(conn, observation)
         if unit is None:

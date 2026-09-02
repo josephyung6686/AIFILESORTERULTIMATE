@@ -147,7 +147,13 @@ class Excerpt:
 
     `span` is `TextSpan | None`: `None` is §2.3's cell and §2.8's EXIF field, where
     `unit_for_observation` returns `None` and the address is the whole citation
-    (Task 9's pin). It is never "unbounded".
+    (Task 9's pin). It is never "unbounded" -- and CR-07 is the reason that sentence
+    needs the next one. `None` is ALSO the address of a whole text document, which
+    `extractors/structured_text.py` emits span-less at the empty container path
+    where its own text unit stands. That one IS unbounded, and it is refused rather
+    than admitted: `is_whole_document` reads the unit length `resolve.materialise`
+    reports beside a span-less value, and what tells the two apart is whether a unit
+    stands at the observation's own path for the value to be the whole of.
     """
 
     observation_key: str
@@ -362,12 +368,23 @@ def is_whole_document(item: object, *, unit_length: int | None) -> bool:
     `unit_length is None` is the container-path form -- §2.3's cell, §2.8's EXIF
     field -- where `unit_for_observation` returns `None` and there is no unit for a
     span to cover. Reading it as length zero would make every cell a whole document.
+
+    A span-less item that DOES carry a unit length is the other span-less shape, and
+    it is a whole document (CR-07). `resolve.materialise` reports a length beside a
+    span-less address only when the value it resolved covers the whole of the text
+    unit standing at the observation's own container path -- which is exactly what
+    `extractors/structured_text.py` emits for a whole text document, and what
+    `complete_extracted_text`, member 2 of `ALWAYS_LOCAL`, names. The cell and the
+    field reach here with `None` and are refused nothing, because there is still no
+    unit at their path for the value to be the whole of.
     """
     if "span" not in ITEM_FIELDS[kind_of(item)]:
         return False
     span = item.span
-    if span is None or unit_length is None:
+    if unit_length is None:
         return False
+    if span is None:
+        return True
     return span.start <= 0 and span.end >= unit_length
 
 
@@ -477,8 +494,15 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
     # draws.
 
     if is_whole_document(item, unit_length=unit_length):
+        # The span-less arm has no `item.span.start` to name, and reading one would
+        # raise `AttributeError` out of `Gate.release` -- an uncaught crash where
+        # `_postcheck_items` is watching for `WholeDocumentRequested` and would
+        # otherwise return `Denied(whole_document_requested)`. A refusal that
+        # crashes is not a refusal.
+        covered = ("a span-less address resolves to" if item.span is None else
+                   f"span {item.span.start}-{item.span.end} covers")
         raise WholeDocumentRequested(
-            f"span {item.span.start}-{item.span.end} covers the whole of a "
+            f"{covered} the whole of a "
             f"{unit_length}-character text unit. §8.4: the engine 'should not send "
             f"full documents where a short heading or OCR excerpt is enough to "
             f"resolve the question.'"
