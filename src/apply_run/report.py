@@ -112,10 +112,12 @@ _HOLD_SENTENCES: Mapping[str, _Explanation] = {
         one="No filename safe for this filesystem could be made from its name.",
         many="No filename safe for this filesystem could be made from their "
              "names."),
-    # `not_a_move` never reaches this table: its explanation is keyed on the
-    # OUTCOME below, because that is what the detail carries. The entry is here
-    # so the table still covers `HOLD_REASONS` in full, and it is the sentence a
-    # hold under this reason with an empty detail would get.
+    # `not_a_move` is keyed on the OUTCOME below, because that is what its
+    # detail carries. This entry is what a hold under it gets when the outcome
+    # is one that table has no sentence for -- and it is TRUE of any outcome
+    # that is not `place`, including one P11 has not invented yet, which is why
+    # the fallback is this rather than `_UNEXPLAINED`. A file whose outcome is
+    # new deserves the sentence that is still true of it, not a shrug.
     NOT_A_MOVE: _Explanation(
         one="Nothing about this one became a move, so there was nothing to "
             "freeze. It stays where it is.",
@@ -169,12 +171,14 @@ _NOT_A_MOVE_SENTENCES: Mapping[str, _Explanation] = {
              "nothing here to approve. They stay where they are."),
 }
 
-#: The last sentence before silence. Nothing reaches it today -- the two tables
-#: above are pinned against `HOLD_REASONS` and `OUTCOMES` by test -- and it
-#: exists because the alternative to an unlisted reason is a `KeyError` in the
-#: middle of the freeze block, which is `94` F22 again with a traceback on top.
-#: `cli.report` keeps an unknown outcome's own name for the same reason: a gap in
-#: this deployment's vocabulary must never become a file that vanished.
+#: The last sentence before silence, and it is reached only by an unknown
+#: REASON -- an unknown outcome has a truer sentence waiting for it above.
+#: Nothing reaches it today, because `_HOLD_SENTENCES` is pinned against
+#: `HOLD_REASONS` by test. It exists because the alternative to an unlisted
+#: reason is a `KeyError` in the middle of the freeze block, which is `94` F22
+#: again with a traceback on top. `cli.report` keeps an unknown outcome's own
+#: name for the same reason: a gap in this deployment's vocabulary must never
+#: become a file that vanished.
 _UNEXPLAINED: _Explanation = _Explanation(
     one="This one was not frozen, and this build has no sentence for why. It "
         "is named here rather than left off the list, and it stays where it is.",
@@ -194,7 +198,8 @@ _KEYED_ON_DETAIL: frozenset[str] = frozenset(
 def _explain(reason: str, detail: str, *, count: int) -> str:
     """The whole sentence for one group of holds. Never a fragment to glue."""
     if reason == NOT_A_MOVE:
-        explanation = _NOT_A_MOVE_SENTENCES.get(detail, _UNEXPLAINED)
+        explanation = _NOT_A_MOVE_SENTENCES.get(detail,
+                                                _HOLD_SENTENCES[NOT_A_MOVE])
     else:
         explanation = _HOLD_SENTENCES.get(reason, _UNEXPLAINED)
     return explanation.one if count == 1 else explanation.many

@@ -113,6 +113,19 @@ def test_the_two_sentence_tables_cover_every_reason_and_every_outcome():
     assert set(_NOT_A_MOVE_SENTENCES) == set(OUTCOMES) - {PLACE}
 
 
+def test_an_outcome_with_no_sentence_of_its_own_still_gets_a_true_one():
+    """The fallback for an outcome P11 adds after this was written.
+
+    "Nothing about this one became a move" is true of every outcome that is not
+    `place`, including one nobody has invented yet, so that is what it gets --
+    not `_UNEXPLAINED`, which says this build has no sentence for why and is a
+    shrug where a true sentence was available. `_UNEXPLAINED` is for an unknown
+    REASON, which is the case where nothing true is known.
+    """
+    lines = _held_block(NOT_A_MOVE, "an_outcome_from_the_future", 1)
+    assert _wrap(_HOLD_SENTENCES[NOT_A_MOVE].one, indent="      ") in lines
+
+
 def test_two_outcomes_that_are_not_moves_do_not_share_one_sentence():
     """Grouping keys on the detail, so `abstain` and `leave_in_place` part.
 
