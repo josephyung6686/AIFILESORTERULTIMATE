@@ -54,7 +54,9 @@ from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import MORE_REDACTING
 from privacy.gate import Gate
-from privacy.items import Excerpt, RedactedIdentifier
+from privacy.items import (
+    CandidateLabel, EvidenceReference, Excerpt, RedactedIdentifier,
+)
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
 from privacy.schema import create_privacy_schema
@@ -304,6 +306,44 @@ def test_nothing_was_materialised_before_the_refusal(zone_conn):
     assert isinstance(decision, Denied)
     assert read == [], (
         "the gate resolved the path's raw_value before refusing to release it")
+
+
+def test_a_reference_to_a_path_observation_is_refused_too(zone_conn):
+    """BROADER THAN THE FINDING, and recorded at the branch in `check_item`.
+
+    `Gate._precheck_items` reads the zone for every item carrying an
+    `observation_key`, so an `EvidenceReference` -- which §4 calls "an id only, no
+    content" -- is refused as well. It blocks no demonstrated leak: the id leaves
+    keyed. It is kept because "an excerpt may not address a path, a reference may"
+    is a rule needing its own justification and §8.4's sentence gives none. The rule
+    is about the ZONE, so it holds whoever asks.
+
+    SABOTAGE: scope `_located_zone` to `TEXT_BEARING` and this goes red alone.
+    """
+    file_id, key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    decision = _gate(zone_conn).release(_request(
+        items=(EvidenceReference(observation_key=key),), file_id=file_id))
+    assert isinstance(decision, Denied)
+    assert decision.reason == "always_local_item"
+
+
+def test_a_reference_to_an_ordinary_zone_is_untouched(zone_conn):
+    """The refusal is about the zone and not about the kind. Without this the test
+    above is also satisfied by a gate that refuses every reference."""
+    file_id, key = _seed(zone_conn, zone="body", raw_value="a bounded value")
+    decision = _gate(zone_conn).release(_request(
+        items=(EvidenceReference(observation_key=key),), file_id=file_id))
+    assert isinstance(decision, Released)
+
+
+def test_a_candidate_label_addresses_no_observation_and_is_unaffected(zone_conn):
+    """§4 already draws this line: a label "carries no observation and no value, so
+    a label reading 'GPS' releases the word and nothing else." It has no
+    `observation_key`, so `_located_zone` returns None and the branch never runs."""
+    file_id, _key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    decision = _gate(zone_conn).release(_request(
+        items=(CandidateLabel(label="Legal"),), file_id=file_id))
+    assert isinstance(decision, Released)
 
 
 # ================================================================================

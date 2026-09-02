@@ -444,6 +444,19 @@ def check_item(item: object, *, unit_length: int | None, zone: str | None,
             f"route the way a sensitive value does: a redacted directory is still "
             f"the shape of a person's private machine."
         )
+    # EVERY KIND THAT ADDRESSES AN OBSERVATION, not only the two that resolve to
+    # text. `Gate._precheck_items` reads the zone for any item carrying an
+    # `observation_key`, so an `EvidenceReference` to a path-zone observation is
+    # refused here as well -- broader than the finding, and deliberately.
+    #
+    # §4 calls an evidence reference "an id only -- no content", and today that id
+    # leaves keyed (`llm_harness.wire_handles`), so the refusal blocks no leak that
+    # has been demonstrated. It is kept because the alternative is worse to state
+    # than to have: a rule reading "an excerpt may not address a path, a reference
+    # may" needs its own justification, and §8.4's sentence supplies none. The rule
+    # is about the ZONE, so it is about the zone whoever asks. `CandidateLabel`
+    # carries no observation and is untouched, which is the same line §4 already
+    # draws.
 
     if is_whole_document(item, unit_length=unit_length):
         raise WholeDocumentRequested(
