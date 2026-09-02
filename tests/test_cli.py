@@ -2084,6 +2084,64 @@ def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
     assert "--send-set" in ordinary.split("\n\n", 1)[0], ordinary
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "The printed `--send-set` command is wrapped mid-quote and cannot be "
+    "pasted. `_review_note` builds the command into a sentence and `report` "
+    "runs that sentence through `_wrapped`, so where the line break falls "
+    "depends on how long the set label and the area name happen to be. With "
+    "`Receipts and Confirmations` -- one of the nine shipped names -- the "
+    "report prints `--send-set \"Not yet placed=Receipts and` and puts "
+    "`Confirmations\"` on the next line. `--answer` was fixed by printing its "
+    "command on a line of its own; `--send-set` was left inside the prose. "
+    "Strict, so the suite turns red the day it is fixed."))
+def test_a_printed_send_set_command_survives_being_pasted_into_a_shell(tmp_path):
+    """The same rule as `--answer`, applied to the other flag the report offers.
+
+    What the screen tells a person to type has to be true. A command split
+    across two lines by a text wrapper is not a command: the quote never
+    closes, so pasting it either hangs the shell waiting for the rest of the
+    string or -- inside a quoted argument -- passes an area name the plan does
+    not have and earns a refusal that looks like the person's mistake.
+
+    Every shipped residual area is exercised rather than one, because the
+    defect is a width accident: `Review Later` happens to fit and
+    `Receipts and Confirmations` happens not to, and testing only the short one
+    is how this survived the fix that repaired the identical defect in
+    `--answer`.
+    """
+    argv = ["--situation", "academic.coursework", "--label", "Papers",
+            "--user", "jy"]
+    for index, area in enumerate(RESIDUAL_TEMPLATE_NAMES):
+        holder = tmp_path / f"area{index}"
+        holder.mkdir()
+        corpus = _mixed_sensitivity_corpus(holder)
+        out = io.StringIO()
+        cli.main([str(corpus)] + argv
+                 + ["--database", str(holder / "plan.sqlite"),
+                    "--residual", area], out=out)
+        printed = out.getvalue()
+        offered = [line for line in printed.splitlines() if "--send-set" in line]
+        assert offered, f"no --send-set was offered for {area!r}:\n{printed}"
+        for line in offered:
+            command = line[line.index("--send-set"):]
+            try:
+                tokens = shlex.split(command)
+            except ValueError as unbalanced:
+                raise AssertionError(
+                    f"the report offers {command!r}, which a shell cannot "
+                    f"parse ({unbalanced}). The command is wrapped onto the "
+                    f"next line of:\n{printed}") from None
+            assert tokens[0] == "--send-set", line
+            assert len(tokens) == 2, (
+                f"{command!r} splits into {tokens!r}: pasting it would pass "
+                f"{tokens[1]!r} to --send-set and leave the rest as stray "
+                f"arguments")
+            assert tokens[1].endswith(f"={area}"), (
+                f"the report offers {tokens[1]!r}, which does not name the "
+                f"area {area!r} this plan actually has, so the command it "
+                f"prints would be refused")
+
+
 def _course_corpus(tmp_path):
     corpus = tmp_path / "corpus"
     corpus.mkdir()
