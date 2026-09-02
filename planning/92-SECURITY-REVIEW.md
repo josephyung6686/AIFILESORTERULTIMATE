@@ -647,3 +647,43 @@ at all, so a deployment must supply one or explicitly accept the risk.
 _Reviewed: 2026-09-02_
 _Reviewer: Claude (gsd-code-reviewer), adversarial pass_
 _Depth: deep — four Critical and two Warning findings reproduced by execution_
+
+---
+
+## CR-06 — the one end-to-end proof of the model path proved it with a fabrication
+
+Added 2026-09-02 by the lead, found by `value-evidence-check` while wiring
+`VALUE_NOT_IN_CITED_TEXT`. **Not found by the review above**, and worth recording for
+that reason as much as for the defect.
+
+`tests/p8/test_p8_walking_skeleton::test_one_run_call_walks_p7_to_p8_to_p6_to_p2` is
+the product's ONLY end-to-end P7 → P8 → P6 → P2 proof. It seeded a classified file,
+the gate redacted it, the model was shown `"[redacted]"` — and the fixture then had the
+model propose `subject = "Columbia University"`, **the very text the redaction removed**,
+citing the span `[redacted]`.
+
+That was `accept_direct`, and it became an **active `llm_supported` fact on the person's
+file**. Nothing in the dossier carried those characters: the model either invented them
+or knew them from elsewhere, and the product wrote a model's guess about redacted
+content onto the person's record as a fact.
+
+**Three things make this worse than an ordinary bad fixture.**
+
+1. **It is the test that certifies the whole model path.** Every claim that "the LLM
+   seam works end to end" rested on a walk whose accept step was a fabrication.
+2. **It could not be fixed by changing the proposed value.** `apply_redaction` redacts
+   whole values, so under that fixture's policy *every* released value is `[redacted]`
+   and the only correct model behaviour over that world is `unknown`. The world was
+   wrong, not the answer.
+3. **The value-grounding check refuses it** — which is how it surfaced. A defect that
+   sat in the certifying test until an unrelated guard was pointed at it.
+
+The fixture now carries a second reading the gate releases in the clear, binds the
+accepting claim to that, still proves R4 with the redacted reading beside it, and pins
+the old claim as `test_the_walk_refuses_a_value_the_gate_removed` so it cannot drift
+back. Both twins fail in opposite directions under sabotage.
+
+**The transferable lesson, and it belongs beside `84` §5.3.** A guard that has never
+failed is not a guard; **a proof whose premise is impossible is not a proof.** This one
+passed for as long as it existed, and what it demonstrated was that the pipeline will
+carry an invented value from a model to a person's file without objecting.
