@@ -165,12 +165,25 @@ def test_the_seventh_member_records_its_own_approval():
             / "src" / "privacy" / "vocabulary.py").read_text()
     # From the approval's own heading to the value it is about, so the window is
     # the record rather than a character count that silently stops covering it.
-    member = text[text.index("THE SEVENTH"):
-                  text.index("ITEM_KINDS: tuple[str, ...]")].lower()
+    # Whitespace and comment markers normalised away, so a phrase the record
+    # states is found whether or not the wrapping happens to put it on one line.
+    # Without this the guard passes on a record that says nothing, purely because
+    # the sentence it checks for got rewrapped -- the same shape as a prefix a
+    # truncation survives.
+    member = " ".join(
+        text[text.index("THE SEVENTH"):
+             text.index("ITEM_KINDS: tuple[str, ...]")].replace("#:", " ").split()
+    ).lower()
 
     assert "2026-09-02" in member, "the approval is undated"
     assert "self_description" in member
-    for owed in ("narrow", "local model", "deferring", "no tenth member"):
+    for owed in ("narrow", "local model", "deferring", "no tenth member",
+                 # The distinctive clause, not the bare word "reference": that
+                 # word appears several times in the record, so a guard on it
+                 # passes even if the SCOPE sentence is deleted -- a prefix that
+                 # a truncation survives, which is `85` §13.8's own lesson.
+                 "not an approval for self-description content",
+                 "deliberately and not", "stays at nine"):
         assert owed in member, (
             f"the record does not mention {owed!r}. An approval that omits what was "
             "rejected, or which neighbouring vocabulary was NOT changed, is a note "

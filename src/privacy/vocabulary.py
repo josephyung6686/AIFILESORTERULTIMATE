@@ -187,30 +187,46 @@ ALWAYS_LOCAL: tuple[str, ...] = (
 #: THE SEVENTH, `self_description`, ADDED 2026-09-02 WITH THE OWNER'S APPROVAL,
 #: RECORDED HERE BECAUSE THAT IS WHERE AN APPROVAL BELONGS.
 #:
-#: What he chose, and what he chose it OVER, because a record that omits the
-#: rejected options is a note rather than a record. `80` §8 suspended the
-#: enforcement of §2's always-local ruling for development, which left the
-#: question of HOW a self-description could reach a model. Three routes were put
-#: to him: a narrow P7 release path; a genuinely LOCAL model, which `80` §1
-#: actually specifies and which `readers/model_ollama.py` could already serve
-#: with no change to P7 at all; and deferring until a local version existed to
-#: compare against. He chose the narrow release path, with the irreversibility
-#: named -- `00`:200, "revocation cannot necessarily retract data already sent to
-#: an external provider" -- and with the observation, in his own words, that THE
-#: SCOPING IS THE HARD PART.
+#: WHAT IT COVERS, and it is narrower than its name: a REFERENCE to a person's
+#: typed self-description -- `privacy.items.SelfDescription` carries the role
+#: declaration's `question_id` and the gate resolves the wording -- released so a
+#: model can propose the role shortlist `80` §1 specifies. It is not an approval
+#: for self-description CONTENT to travel in a request, and it admits no second
+#: question about the person.
 #:
-#: So this member is the scoping. It is a releasable KIND, and the eight
-#: always-local kinds it sits beside gain nothing from it: they have no type in
-#: `items.py`, so nothing can name one, and `80` §8.1's "this suspension reaches
-#: nothing but the self-description" is a property of the type table rather than
-#: a rule anybody keeps. `check_item` admits this kind only under its own
-#: `allow_self_description`, which has no default and which the filename's
-#: `allow_unratified` does not imply.
+#: `ALWAYS_LOCAL` STAYS AT NINE AND IS UNTOUCHED. `80` §2's "NO TENTH MEMBER IS
+#: ADDED" is unaffected by this and remains true. The classification of a typed
+#: self-description as a `user_edits` item STANDS; what this member opens is one
+#: narrow way for that item to be released, not a reclassification of it. The two
+#: vocabularies sit near each other and are easy to confuse from inside only one:
+#: this is the releasable-kinds set, that one is the set that never leaves.
 #:
-#: NOT A TENTH ALWAYS-LOCAL MEMBER. `80` §2 says "NO TENTH MEMBER IS ADDED" and
-#: none is: the classification of a typed self-description as a `user_edits` item
-#: STANDS, `ALWAYS_LOCAL` is untouched, and what this opens is one narrow way for
-#: that one item to be released, not a reclassification of it.
+#: WHAT HE CHOSE, AND WHAT HE CHOSE IT OVER, because an approval that omits the
+#: rejected options is a note rather than a record. Three routes were put to him:
+#: this narrow P7 release path; a genuinely LOCAL model, which `readers/model_
+#: ollama.py` could already serve with no change to P7 at all; and deferring until
+#: a local version existed to compare against. He chose the release path with the
+#: irreversibility named -- `00`:200, "revocation cannot necessarily retract data
+#: already sent to an external provider" -- and observed that THE SCOPING IS THE
+#: HARD PART. This member is the scoping.
+#:
+#: HE CHOSE IT TWICE, AND THE SECOND TIME KNOWINGLY, which is the part a later
+#: reader needs most. `80` §1 rules for a LOCAL model -- once as the mechanism,
+#: once as the reason, since §1.1 closes the cloud option because "revocation
+#: cannot retract what has already left the device" -- and §2 adds that consent
+#: does not unlock it. `80` §8 suspends §2's ENFORCEMENT without replacing §1's
+#: mechanism. That conflict was put to the owner explicitly on 2026-09-02, with
+#: the local model named as available and the cost recorded as unrecoverable, and
+#: he reaffirmed the cloud route. **So `80` §1 was overturned deliberately and not
+#: by oversight.** Anybody who finds §1 later and reads this as a mistake should
+#: read `88` §5 before acting on it.
+#:
+#: THE SCOPING IS STRUCTURAL, NOT PROMISED. `items.py` holds one frozen dataclass
+#: per releasable kind and takes no kind parameter, so the eight always-local kinds
+#: have no type to be named by and never did (`88` §7). `check_item` admits this
+#: kind only under `suspension_permits_self_description`, which has no default and
+#: which the filename's `allow_unratified` does not imply -- `80` §8.1: "this
+#: suspension reaches nothing but the self-description."
 #:
 #: `80` §8.3's three conditions still bind and are not modified by the ruling:
 #: local is the DEFAULT, a run that sends says so on screen BEFORE sending, and it

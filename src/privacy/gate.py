@@ -123,6 +123,22 @@ class Gate:
         #: self-description. It is not an override of the policy: a run without the
         #: suspension refuses exactly as it did before the amendment existed.
         #:
+        #: PER-INVOCATION, AND DELIBERATELY NOT THE `--enable-cloud` CONSENT. The
+        #: two look alike and have different cadences, so a later reader may be
+        #: tempted to harmonise them. `--enable-cloud` is the operation mode for
+        #: FILE facts: it recurs on every run and every file, which is why the
+        #: owner's ruling on it is "once, recorded". A self-description is sent on
+        #: the ONE run where the person types their sentence, because that is the
+        #: run where the shortlist is computed; after they confirm a role the moment
+        #: is over (`80` §4, R2) and nothing sends again.
+        #:
+        #: So this opt-in is never stored, and that is the whole design. R2 says a
+        #: confirmation a person learns to click through is not a safety mechanism
+        #: -- and there is nothing here to learn, because nothing repeats. A STORED
+        #: opt-in would force the choice between a notice on every run (the
+        #: click-through R2 forbids) and no notice at all (the silent send C2
+        #: forbids), and both are worse than asking on the one run that sends.
+        #:
         #: `80` §8.3's condition C1, at the composition surface. DEFAULTED, where
         #: `check_item` refuses to default, and the two are the same requirement
         #: read from its two ends: "a developer who forgets this exception exists
