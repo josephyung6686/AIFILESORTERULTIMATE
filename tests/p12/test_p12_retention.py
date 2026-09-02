@@ -15,6 +15,7 @@ and fails on any 30, 90 or 365 hiding in one.
 """
 from __future__ import annotations
 
+import dataclasses
 import importlib
 import pkgutil
 import sqlite3
@@ -366,7 +367,7 @@ def test_every_completed_action_carries_66_9s_eight_attributes(
     assert row.source_path == str(source)
     assert row.destination_path == record.final_destination_path
     assert row.reason_and_evidence_summary == plan.reason_and_evidence_summary
-    assert row.authorizing_policy == plan.required_review_policy
+    assert row.required_review_policy == plan.required_review_policy
     assert row.collision_behaviour == plan.collision_policy
     assert row.moved_at == record.finished_at
     assert row.status == v.APPLIED
@@ -378,14 +379,36 @@ def test_the_activity_list_says_no_filing_policy_authorized_it_rather_than_fakin
         p12_conn, planned, fixture_root, clock, ids):
     """`66` §8 makes the authorizing policy a FILING policy, and the filing-policy
     layer is item 5 of `66` §22's release order -- after P12. The gap is carried,
-    not filled."""
+    not filled.
+
+    **This test used to assert a constant.** It read `filing_policy_present is
+    False` against a field assigned the literal `False` two lines from the row
+    that was filling `authorizing_policy` with the plan's `required_review_policy`
+    -- so the test whose NAME is "rather than faking one" passed while the row
+    faked one. `84` §5.3: a guard that has never been able to fail is not a guard.
+
+    What the row may say is now the thing being asserted. `required_review_policy`
+    stays, under its own name, because it is true: that policy DID demand review.
+    It is not what `66` §9 asks for, and `74` §6 G3 and §10 rule that the gap is
+    carried and never filled, so `authorizing_policy` is `None` and there is no
+    parameter through which anything could make it otherwise.
+    """
     plan, _ = planned
     _apply(p12_conn, plan, fixture_root, clock, ids)
     retention = UndoRetention(choice=v.RETENTION_NINETY_DAYS,
                               period=PERIODS[v.RETENTION_NINETY_DAYS])
     row = activity(p12_conn, retention=retention,
                    at="2026-08-29T02:00:00Z")[0]
-    assert row.filing_policy_present is False
+
+    assert row.authorizing_policy is None
+    # A field could be set. A property that always returns `None` cannot, so the
+    # absence is structural rather than a value somebody remembered to leave out.
+    fields = {field.name for field in dataclasses.fields(ActivityRow)}
+    assert "authorizing_policy" not in fields
+    assert "filing_policy_present" not in fields
+    # And the honest fact the old field was reaching for is still on the row,
+    # named for what it actually is.
+    assert row.required_review_policy == plan.required_review_policy
 
 
 def test_an_undone_action_is_still_in_the_list_and_no_longer_offers_undo(

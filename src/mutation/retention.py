@@ -32,9 +32,19 @@ a way that makes a recent move impossible to understand or review"* (`66` §11).
 
 `66` §9 wants *"the policy that authorized it"* and **no filing policy exists** --
 the filing-policy layer is item 5 of `66` §22's release order, after P12. So
-`ActivityRow.authorizing_policy` reports the plan's `Required review policy` and
-`filing_policy_present` says the filing policy is absent. The gap is carried, not
-filled, and never rendered as a blank column.
+`ActivityRow.authorizing_policy` is `None`, and the plan's `Required review
+policy` sits on the row under its own name. The gap is carried, not filled.
+
+**Why it is not filled with the review policy, which is one attribute away.**
+P12's PLAN F17 said to report `required_review_policy` in that column with a flag
+beside it saying the filing policy was absent. `74` §6 G3 and `74` §10, written a
+day later against both parts at once, rule the other way and this file follows
+them: the policy that DEMANDED REVIEW is the opposite claim to the policy that
+AUTHORIZED THE MOVE -- a plan under review was set going by a person, not by a
+policy -- and a wrong answer ends a person's enquiry where a named absence
+continues it. F17's substance survives: both facts are still on the row, one of
+them now under a name that is true of it. `review_surface.activity` reaches the
+same answer independently, and the two no longer disagree.
 
 **No numeric literal beyond 0 and 1 appears in this file.**
 """
@@ -266,11 +276,10 @@ class ActivityRow:
     source_path: str
     destination_path: str
     reason_and_evidence_summary: str
-    #: The plan's `Required review policy`. `66` §8 makes the authorizing policy
-    #: a FILING policy and no such record exists yet, which is what the flag
-    #: below says out loud.
-    authorizing_policy: str
-    filing_policy_present: bool
+    #: The plan's `Required review policy`, under its own name. It is a true
+    #: fact about this move and it is NOT `66` §9's authorizing policy; see the
+    #: property below and the module preamble for why the two are not the same.
+    required_review_policy: str
     collision_behaviour: str
     moved_at: str
     status: str
@@ -279,6 +288,17 @@ class ActivityRow:
     #: already undone this"* from *"the period has passed"*, which are two
     #: different things to tell a person about the same unavailable button.
     reversed_at: str | None
+
+    @property
+    def authorizing_policy(self) -> None:
+        """Always `None`. `66` §9's attribute, with no producer in the product.
+
+        A property and not a field, which is the whole of the guard: a field
+        could be set by a caller in a hurry with `required_review_policy` one
+        line away, and this cannot. There is no parameter on this record or on
+        `activity()` through which a policy could arrive.
+        """
+        return None
 
 
 def activity(conn: sqlite3.Connection, *, retention: UndoRetention | None,
@@ -325,8 +345,7 @@ def activity(conn: sqlite3.Connection, *, retention: UndoRetention | None,
             source_path=entry.original_source_path,
             destination_path=entry.destination_path,
             reason_and_evidence_summary=planned["reason_and_evidence_summary"],
-            authorizing_policy=planned["required_review_policy"],
-            filing_policy_present=False,
+            required_review_policy=planned["required_review_policy"],
             collision_behaviour=entry.collision_behaviour,
             moved_at=(entry.time_of_execution if outcome is None
                       else outcome["finished_at"]),

@@ -792,24 +792,32 @@ def test_no_item_offers_to_apply_a_stale_plan_or_force_an_undo(
     assert {f.name for f in dataclasses.fields(_Offering)} | {"force"} & forced
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`src/mutation/retention.py:272` fills `66` §9's `authorizing_policy` with "
-    "the plan's `required_review_policy` -- the policy that DEMANDED REVIEW, "
-    "which is the opposite claim to the policy that AUTHORIZED THE MOVE. `74` "
-    "§6 G3's twin rules that the gap is carried and never filled, and `74` §10 "
-    "records that no filing-policy record exists in any part's Contract-out. "
-    "The file is P12 Wave F3's; this reports the disagreement rather than "
-    "editing another wave's module, and it turns from xfail into a failure the "
-    "day the field is reconciled with `review_surface.activity`."))
 def test_p12s_own_activity_row_carries_no_authorizing_policy_either(
         seam_conn, landscape, root, clock, ids):
+    """The same guard, run over P12's own row rather than P13's.
+
+    P13 refusing to fake an authorizing policy is worth little if the record it
+    renders from carries one, because the next renderer to be written will read
+    the field that is there. So `faked_authorizations` -- P13's guard, taking its
+    rows as an argument for exactly this reason -- is pointed at P12's rows too.
+
+    This test spent one commit as a `strict=True` xfail reporting the
+    disagreement, because the module it indicts belongs to another wave. It was
+    xfailing on a `TypeError` rather than on the disagreement: the body named an
+    `UndoRetention(set_at=..., set_by=...)` and a `"until_cleared"` choice that
+    do not exist, and an xfail cannot tell one failure from another. Both are
+    corrected here, so the assertion below is now the reason it passes.
+    """
     from mutation.retention import UndoRetention, activity
+    from mutation.vocabulary import RETENTION_UNTIL_MANUALLY_CLEARED
 
     _applied(seam_conn, landscape, root, clock, ids)
     rows = activity(
         seam_conn,
-        retention=UndoRetention(choice="until_cleared", period=None,
-                                set_at=FIXED, set_by=USER),
+        retention=UndoRetention(choice=RETENTION_UNTIL_MANUALLY_CLEARED,
+                                period=None),
         at="2026-08-29T01:00:00Z")
     assert rows
     assert faked_authorizations(rows) == []
+    # And the true fact the faked field was standing in for is still readable.
+    assert all(row.required_review_policy for row in rows)
