@@ -158,15 +158,22 @@ def test_the_run_invites_the_declaration_at_the_moment_r1_names(tmp_path: Path):
     the parser would accept it -- so this is a separate failure from the two
     above and stays a separate test.
 
-    The invitation must name the flags, because R1's own reason for putting the
+    The invitation must name a flag, because R1's own reason for putting the
     moment after a real run rather than in onboarding is that the person now has
     evidence the product needs the answer. Evidence with no way to act on it is
     the same dead end one step later.
+
+    `--describe-role` and NOT both flags. `role_report.role_moment_lines` offers
+    the one gesture at this moment on purpose -- `80` §1 has the person say it in
+    their own words first and pick from a shortlist after, so an invitation
+    offering the pick as well would put the second step in front of the first.
+    `--declare-role` is named where it becomes usable: on the shortlist, and on
+    R6's panel beside each role it would change.
     """
     corpus, database = _corpus(tmp_path)
     code, printed = _run(corpus, database)
     assert code == 0
-    assert "--declare-role" in printed and "--describe-role" in printed
+    assert "--describe-role" in printed
 
 
 test_the_run_invites_the_declaration_at_the_moment_r1_names = pytest.mark.xfail(
@@ -188,7 +195,7 @@ def test_the_invitation_is_spent_once_and_does_not_come_back(tmp_path: Path):
     _run(corpus, database, "--declare-role", "teaching=academic")
     code, printed = _run(corpus, database)
     assert code == 0
-    assert "--declare-role" not in printed, (
+    assert "--describe-role" not in printed, (
         "the invitation came back after the person had already answered it")
 
 
