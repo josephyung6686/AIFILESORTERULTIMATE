@@ -73,6 +73,36 @@ ACTION_ADOPT_VERSION: str = "adopt_version"
 ACTION_RESTORE_VERSION: str = "restore_version"
 ACTION_RESET_LEARNING: str = "reset_learning"
 
+#: RULING 2026-08-31 (`81` §14), recorded here because a closed vocabulary carries
+#: its own approval at the member. **P13 owns the name of a gesture.** `74` §8 Q2 --
+#: four rival `review_action` vocabularies for one record -- is closed as reading
+#: (i): the part that COLLECTS a gesture names it, and P9, P10 and P11 carry those
+#: names verbatim (MINOR 6/7). The alternative was refused on one ground: under it
+#: this tuple would grow whenever P10 edited a tuple of its own, and a vocabulary
+#: that can grow without anyone approving it is not closed.
+#:
+#: **AND THIS TUPLE IS THEREFORE INCOMPLETE. SIX GESTURES THE DESIGN NAMES IN ITS
+#: OWN WORDS HAVE NO MEMBER HERE TO BE RECORDED AS.** §8.7 (`01`:1842-1845) lists
+#: eleven things a person does that *"should become local learning records with
+#: scope"*, and the eighteen below cover five of them. Missing: excluding one
+#: member from a packet; renaming a branch; merging or splitting groups; changing
+#: template order; creating a custom template; choosing a shallow fallback. The
+#: eighteen are §7.10's residual-review sentence plus the §8.3/§8.4/§8.8 machinery
+#: actions -- a faithful reading of one paragraph, and the design has three others.
+#:
+#: **OWNER APPROVAL FOR THE SIX IS OWED AND HAS NOT BEEN GIVEN.** Adding a member
+#: to a closed vocabulary requires it recorded at the member
+#: (`move_permission.py:33-34`), and `81` §14.1 says the six *"are not minted by
+#: whoever notices the gap"*. So no member is added and no constant is declared:
+#: a constant this file's own `check` refuses would be a second home for a name
+#: nobody approved. What is owed is the SPELLING of each of the six and the
+#: approval line to sit beside it, in the form the ruling above takes.
+#:
+#: APPROVED BY: ____________________  ON: ____________
+#:
+#: `tests/p13/test_p13_unhomed_gestures.py` reports the gap as a strict xfail and
+#: turns the suite RED the day the six are added, so they cannot land without this
+#: block being filled in.
 ACTIONS: tuple[str, ...] = (
     ACTION_ACCEPT, ACTION_ACCEPT_BULK, ACTION_CHANGE_DESTINATION,
     ACTION_RETURN_TO_ACCEPTED_GROUP, ACTION_CREATE_CUSTOM_FOLDER,
