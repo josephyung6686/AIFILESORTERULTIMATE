@@ -294,6 +294,9 @@ def _revalidation_inputs(pair, conn, *, verdict_id, plan_version):
         "prompt_fingerprint": "fp-canonical",
         "dossier_builder": "p11-integration",
         "release_audit_id": 17,
+        # The key the dossier's bytes were built with: a re-validation reads the
+        # model's references and needs the way back from what the model saw.
+        "handle_key": FIXTURE_HANDLE_KEY,
         "observed_at": FIXED_CLOCK,
     }
 
