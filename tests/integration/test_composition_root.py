@@ -461,6 +461,30 @@ def _census_report(unexplained: list[str]) -> str:
 #: becomes the whitelist it exists to prevent -- the gap it reports is tracked by the
 #: strict xfail below instead, which turns red the day the gap closes.
 EXEMPT: dict[str, str] = {
+    # --- the Wave-2 walking skeleton, kept by `02-segmentation-map.md` -------------
+    # Not "legacy to be deleted". `src/orchestrator.py`'s own docstring cites the
+    # segmentation map: the walking skeleton "stays in the repository as the
+    # integration test every later part must keep green". It is not INTENDED to be
+    # reachable from `cli.main`; `production.py` composes `run_p1_p7` for shipped
+    # runs. `facts/usable.py:16`'s capitals say do not WIRE new work into it, which
+    # is the opposite of an argument for removing it.
+    "orchestrator.run_wave2":
+        "the Wave-2 walking skeleton. `02-segmentation-map.md` keeps it as the "
+        "integration test every later part must keep green; three test files run "
+        "it. A shipped run composes `run_p1_p7` instead, so a caller here would "
+        "mean the product ran the skeleton rather than the product.",
+    "orchestrator.TARGETED_OCR_UNAVAILABLE":
+        "the skeleton's injected `no_usable_facts`, which answers False always. "
+        "`facts/usable.py:16-23` states why the real verdict must NOT be passed to "
+        "`run_wave2`: it would END THE SCAN on the first PDF. It is reachable only "
+        "from the skeleton, and only ever as its stand-in.",
+    "extractors.dispatch.extract":
+        "its own docstring: 'the backward-compatible composition' of "
+        "`extract_initial` and `extract_targeted_ocr`. `run_p1_p7` composes those "
+        "two directly, because the orchestrator owns ORDER; this is the single-call "
+        "form the skeleton uses. Deleting it would leave the skeleton composing the "
+        "two halves by hand, which is a second copy of the order rule.",
+
     # --- the SPECs' published worked examples ---------------------------------------
     # Fixtures live in `src/` rather than a test tree on purpose, and each module says
     # why: a downstream part builds against them BEFORE the part upstream exists, and
