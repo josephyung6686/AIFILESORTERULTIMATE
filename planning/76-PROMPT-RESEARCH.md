@@ -1,6 +1,7 @@
 # 76 — What the A_fact prompt must contain, and what it must never contain
 
-Date: 2026-08-30. **Research only. No prompt text is drafted here.**
+Date: 2026-08-30. **Revised 2026-09-02 — R22 and S16 added; see §6.1 and §7's last row.**
+**Research only. No prompt text is drafted here.**
 
 `PromptDefinition.template_bytes` (`src/llm_harness/records.py:77`) is fingerprinted into every
 audit record it produces (`src/llm_harness/fingerprint.py:32-47`), written onto every fact row and
@@ -13,8 +14,17 @@ what does the machine on the other side actually accept, and which wrong answers
 catch — and, more usefully, **which wrong answers it does not catch, where the prompt is the only
 defence left.**
 
-There are **21 requirements** and **15 stress cases**. §9 is the part to read if only one section
+There are **22 requirements** and **16 stress cases**. §9 is the part to read if only one section
 is read: three defects the prompt cannot fix, found while establishing what it must say.
+
+**What 2026-09-02 changed.** R1–R21 and S1–S15 are as written on 2026-08-30 and none of them moved.
+Added: **R22**, the rule that the value's characters must come from a released value the claim
+cites, and **S16**, a value lifted out of `field_glossary` prose. Both were found after this
+document was written — `86` §4 found the hole, `90` §2 measured it, and
+`src/llm_harness/value_grounding.py` closed the part of it that a comparison of characters can
+close. **R22 states a rule the code already enforces; it adds no policy.** §6.1 says exactly what it
+does and does not close, because a requirement that hides its blind spot is worse than one that
+names it.
 
 ---
 
@@ -67,12 +77,21 @@ mapping to the P6 `unresolved` reason each failure is written down as:
 | # | `FOUR_CHECKS` | P6 reason on failure | P8 reason code | Runs at |
 |---|---|---|---|---|
 | 1 | `field_in_active_schema` | `field_not_in_active_schema` | `FIELD_NOT_IN_ACTIVE_SCHEMA` | `fact_validation.py:204` |
-| 2 | `citation_present_in_evidence` | `citation_absent_from_evidence` | `CITATION_NOT_FOUND` / `CITATION_NOT_IN_DOSSIER` / `CITATION_SPAN_MISMATCH` | `fact_validation.py:217-230`, `validation.py:143-175` |
+| 2 | `citation_present_in_evidence` | `citation_absent_from_evidence` | `CITATION_NOT_FOUND` / `CITATION_NOT_IN_DOSSIER` / `CITATION_SPAN_MISMATCH` / **`VALUE_NOT_IN_CITED_TEXT`** | `fact_validation.py:217-230`, `validation.py:143-175`, **`fact_validation.py:244-252`** |
 | 3 | `value_normalizes_safely` | `normalization_failed` | `VALUE_NOT_NORMALIZABLE` | `fact_validation.py:231-239` |
 | 4 | `no_stronger_fact_contradicts` | `contradicted_by_stronger_fact` | `CONTRADICTED_BY_STRONGER` | `fact_validation.py:240-250` |
 
 The fifth outcome is not a check — `UNKNOWN_REASON = "model_returned_unknown"`
 (`llm_seam.py:92-95`): *"the model declining before anything could be validated."*
+
+**`VALUE_NOT_IN_CITED_TEXT` was added to check 2's row on 2026-09-02** and is R22's enforcement. It
+is not a fifth check: `FOUR_CHECKS` still has four members and this refusal maps to
+`FOUR_CHECKS[1]`, so P6 records it as `citation_absent_from_evidence`. **That mapping has a cost the
+owner took knowingly** (recorded at the member, `vocabulary.py:274-280`): an `unresolved` row will
+say the model mis-cited when what it did was mis-value. The alternative was a fifth member of P6's
+`CHECK_REASONS` — a second closed vocabulary in another part — and one approval was taken over two.
+It also runs *after* check 3, not inside check 2, so a value that does not normalize is refused as
+`VALUE_NOT_NORMALIZABLE` and never reaches this comparison.
 
 **What a correct answer must do, per check:**
 
@@ -275,6 +294,73 @@ default, explicitly-approved move, and must say what it costs — which is nothi
 | R19 | The prompt must state that declining is a success and costs nothing. | `SPEC.md:321-323`, `llm_seam.py:262-264` | Say so in those terms, not as a fallback. |
 | R20 | The prompt must not offer a hedge, confidence score, or "possible" tier — Site A cannot express one. | `fact_validation.py:251-255` | Two moves only: claim with citation, or `unknown`. |
 | R21 | One file, named by `subject_ref`. No folder, no path, no filing decision, no grouping. | `dossier.py:135`, §3.5 | "You are not deciding where anything goes." |
+| **R22** | **The value's characters must come from a released value THE CLAIM CITES.** `field_glossary` is not one. | `value_grounding.py`, called at `fact_validation.py:244-252`; refuses with `VALUE_NOT_IN_CITED_TEXT` | "If the characters you want to propose are not sitting inside a released value, then no amount of reasoning about the file makes them citable." |
+
+### 6.1 R22, added 2026-09-02: what it says, and what it does not close
+
+**Why it is a requirement of its own and not a clause of R3 or R11.** R3 governs what text is
+*quotable*; R5 the *span*; R10 the value's *JSON type*; R11 the value's *length*. `86` §4 checked
+all four against the running validator and found that **none of them says the value's characters
+must come from a released value at all** — a real span copied exactly will carry any value, and
+`90` §2 measured 22 glossary words accepted that way. R22 is that missing sentence, written down so
+a future revision cannot drop it as redundant prose.
+
+**Exactly what the shipped check enforces**, so the requirement and the code cannot drift apart:
+
+> A value is grounded when its characters — casefolded, with every non-alphanumeric character
+> dropped — occur as a **contiguous whole-token run** of at least one `released_evidence[].value`
+> whose `observation_key` appears in **this claim's own citations**. Either the raw proposed value
+> or `cli.normalize_for_model`'s canonical form may ground it. A claim citing nothing that was
+> released, and a value with no alphanumeric characters, are **not** grounded — absent means refuse.
+
+Three details in that sentence are load-bearing and each is there for a reason recorded at the code:
+
+- **The claim's own citations, not the whole dossier.** A dossier can release several items. A value
+  grounded in one the model did not cite is a value the model did not say where it got, and the
+  citation is the only place it says.
+- **A token RUN, not a substring.** `form` is inside `information`, `formal` and `performed`;
+  `field` is inside `fields`. A substring test over folded text accepts every one of those — a check
+  that passes the defect it was written for.
+- **Separators dropped rather than matched.** `PHYS 1401`, `PHYS-1401` and `PHYS1401` are one course
+  code. `65` §4.2 is this project's record of what happens when one identity arrives as several
+  spellings; a comparison that did not fold them would reject a correct answer over the spelling of
+  a space.
+
+**A correction to `90` §5, which is where this requirement was first sketched.** That sketch said
+*"the value's characters must come from a released value"* and it was loose in two ways the shipped
+check is not: it did not bound grounding to the **cited** items, and "characters" read literally
+would forbid the separator folding the code performs on purpose. The wording above is the code's,
+not the sketch's. **Neither difference is a disagreement between the rule and the check** — the
+sketch was one line in a recommendation and the code is more careful than it was.
+
+**What R22 does NOT close, stated here rather than left to be discovered:**
+
+1. **S16 is narrowed, not closed.** Where an enumerated glossary word *also appears in the cited
+   released text*, a lift and a find are byte-identical and both are accepted.
+   `test_a_lift_and_a_find_stay_indiscriminable_when_the_word_IS_in_the_evidence` pins that variant.
+   Several of the 22 enumerated words — *form*, *field*, *store*, *scan* — are ordinary English and
+   will appear in real evidence. **R22 removes the lift that has no cover; it cannot remove the one
+   that does.**
+2. **S2 is not closed, and no rule built on characters can close it.** `the committee` IS in the
+   cited prose. What is wrong with proposing it for `instructor` is that a committee is not an
+   instructor — a judgement about *meaning*. R22 is a comparison of *characters* and says so in as
+   many words, so that nobody later reads a passing value as a grounded one.
+   `test_s2_the_value_is_never_compared_to_the_evidence_it_cites` now asserts both halves: the value
+   from nowhere is refused, and S2 itself is still accepted.
+3. **S1 is narrowed to the over-quotation case**, which is R11's business and not R22's. The whole
+   released line contains the right characters, so it is grounded and always will be. R11 remains
+   prompt-only.
+4. **Three classes of correct answer are refused**, and a prompt cannot talk a model out of two of
+   them: a morphological variant of a word that is on the page, a value proposed only in this
+   deployment's canonical spelling when the raw one was never written, and any script that does not
+   separate words with a character (Han, Kana, Thai) — where the whole run is one token. All three
+   are asserted in `tests/p8/test_p8_value_grounding.py` rather than left as a caveat.
+
+**The known gap, in the terms `90` §7 stated it.** Nothing detects a glossary entry that *starts*
+enumerating. `tests/p8/test_p8_glossary_as_value_source.py` re-reads the shipped glossary and fails
+if a listed word leaves an entry, so the recorded hazard cannot rot — but a sixth entry that begins
+listing its own candidate values tomorrow enters silently, and R22 will narrow it exactly as far as
+it narrows the other five and no further.
 
 ---
 
@@ -299,6 +385,8 @@ Each row: the input the model faces → what a correct answer is → which check
 | S13 | The model emits `"unknown": false` alongside a real claim. | Omit the key entirely. | **Whole response** `SCHEMA_INVALID` (`sites.py:150-157`). The code comment records that this used to be worse: the old guard read every falsey value as an abstention and threw the payload away. |
 | S14 | The evidence is an EXIF/metadata observation, not body text. | `metadata_field_name` **equal to** that item's `address`, `cited_span` null. | `CITATION_SPAN_MISMATCH` if the model retypes the address or invents a field name (`validation.py:167`). Exact equality, not substring. |
 | S15 | `value` is emitted as a number or a list — `{"field":"creation_date","value":2026}`. | A string. | `VALUE_NOT_NORMALIZABLE` (`fact_validation.py:232`). |
+
+| **S16** | A value lifted out of `field_glossary` prose: the model cites a real span and proposes a word that appears only in the glossary's own enumeration of what a field contains — `media_type` is *"photo, screenshot, scan, video"*. **Added 2026-09-02**; `86`'s fifteen are unchanged. | `unknown`, or a value that is in the cited released text. | `VALUE_NOT_IN_CITED_TEXT` (R22), **where the word is not also in the cited text**. Where it is, nothing catches it and nothing can — §6.1. Measured in `90` §2: 22 enumerated words across five entries, 7 of 23 schemas exposing at least one. |
 
 **The three most likely to break a 3B model**, in order: **S12** (prose or a code fence around the
 JSON — a formatting failure, not a reasoning one, and it costs the entire response), **S1** (the
@@ -384,6 +472,14 @@ and both now exist at `src/cli.py:465` and `src/cli.py:507`. That row is stale.
 ---
 
 ## 10. What is still owed before a prompt can be approved
+
+**Status as of 2026-09-02**, because a list that says "still owed" about settled things misleads the
+decision it exists to serve. **Item 1 is settled** — the owner ruled for the second option and
+`src/llm_harness/library/field_glossary.json` shipped (`eec74a1`); the cost of that ruling is S16
+and §6.1. **Item 3 is done** — `86` ran all fifteen against the real validator with no model, and
+`90` added the sixteenth. **Item 2 is still open**: R11 remains prompt-only. R22 narrowed the
+neighbouring hole but did not touch R11, because the over-quoted value contains the right characters
+and is grounded. The list below is the original text and is not rewritten.
 
 1. **A glossary decision.** 56 field keys reach the model as bare strings. Either the template
    carries meanings (and cannot, at 20 schemas), the dossier carries them per file (a `_body`
