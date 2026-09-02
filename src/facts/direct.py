@@ -64,6 +64,12 @@ from facts.learning import is_suppressed as _is_suppressed
 from facts.states import DIRECT
 from facts.values import VALUE_ORIGINS as _VALUE_ORIGINS
 from facts.values import ensure_value as _ensure_value
+# NOT aliased, deliberately. `85` §13.5: the reachability census matches READ NAMES,
+# so `from x import f as _f` makes `f` look unreachable -- which is how
+# `facts.learning.is_suppressed` spent a week on the backlog while being called on
+# every run. This call is the only thing standing between §2.8 and an empty column;
+# it does not get to be invisible.
+from facts.values import add_raw_variant
 
 #: Task 1 owns the spelling. Never an index into STATES.
 DIRECT_STATE: str = DIRECT
@@ -166,6 +172,22 @@ def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                                  canonical_value=canonical_value,
                                  first_evidence_ref=refs[0],
                                  origin=_VALUE_ORIGINS[0])
+        # §2.8's FIRST rendering: "the raw observation remains exactly that wording".
+        #
+        # `ensure_value` writes `raw_variants` as an empty list and never appends, and
+        # `add_raw_variant` -- the column's only writer -- had no caller in `src/`, so
+        # no shipped run kept the wording of any document. The canonicaliser above is
+        # exactly what makes that a loss rather than a redundancy: `cli.py:716-721`
+        # collapses `PHYS 1401`, `PHYS-1401` and `PHYS1401` into one value ON PURPOSE,
+        # and once it has, the canonical form is the only surviving evidence of what
+        # any of the three documents actually printed.
+        #
+        # Every reading in this group, not just the one that created the row: the
+        # variants are per-VALUE, and the second file's spelling is the one a
+        # first-sighting-only rule would drop. `_store_list` sorts and de-duplicates,
+        # so the column does not inherit P4's insertion order (§8.5's replay).
+        for raw in sorted({one.raw_value for one in cited}):
+            add_raw_variant(conn, value_id, raw)
         # I4's QUERY BEFORE PROPOSE, at the last moment before the row exists.
         #
         # §8.7's failure mode is literal: without this the product "will repeatedly
