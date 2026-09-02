@@ -115,21 +115,55 @@ class _SeamRecorder:
 
 
 def _corpus(root: Path) -> Path:
-    """Two files a course code groups, and one that names nothing.
+    """Files a course code groups, a file that names nothing, and a real tie.
 
-    Both halves are needed: the identified pair is what reaches P9's grouping and
-    P11's placement, and the anonymous file is what reaches P7 with no
+    Three halves, and each is here because a seam below has no other way to be
+    reached. The identified files are what reach P9's grouping and P11's
+    placement. `notes about nothing.txt` is what reaches P7 with no
     classification, which is the branch `privacy/denial.py` says the audit log
     will be full of.
+
+    THE TIE IS THE THIRD, and it is here because of `9e7152e`. This used to be
+    two PHYS files and the anonymous one, and the two PHYS files were the corpus's
+    only unplaceable CLASSIFIED material -- unplaceable because their branch
+    stated nothing, so the fact naming it had nothing to match. That is fixed,
+    they file, and two assertions here lost their subject: `_a_blocked_classified
+    _file` had no §8.4 refusal to compare the gate against, and `--send-set` had
+    nothing but an UNCLASSIFIED file to send, which P7 marks
+    `blocked_pending_user` rather than `review_required`.
+
+    A premise that only holds while a defect does is not a premise. So the
+    unplaceable file is now unplaceable for a reason nothing in this repo is
+    trying to remove: `Uni/` and `Saved/` BOTH hold `PHYS1401` material, so both
+    settle `subject = PHYS1401` (`upstream.settled_values_in_directory`), and
+    `Other/`'s different course makes that value divide the corpus so both are
+    allowed to claim it. A PHYS file then has two homes its own evidence supports
+    equally, the margin between them is zero, and §6.10 abstains -- which is
+    §6.6's "bounded ambiguity", the one case the design keeps a model FOR. `87`
+    §2.4 measured this exact shape on a real corpus: `Work/Hendricks matter` and
+    `Downloads` both claimed `CV20264417`, and four good files stopped.
     """
     corpus = root / "corpus"
     corpus.mkdir(parents=True)
-    (corpus / "PHYS 1401 syllabus.txt").write_text(
-        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor.\n")
-    (corpus / "PHYS 1401 problem set 3.txt").write_text(
-        "PHYS 1401 Problem Set 3\n\nDue 2026-03-14. Spring 2026.\n")
     (corpus / "notes about nothing.txt").write_text(
         "Some free text with no identifiers at all.\n")
+    for folder, files in (
+        ("Uni", (("PHYS 1401 syllabus.txt",
+                  "PHYS 1401 Syllabus\n\nSpring 2026. Instructor.\n"),
+                 ("PHYS 1401 problem set 3.txt",
+                  "PHYS 1401 Problem Set 3\n\nDue 2026-03-14. Spring 2026.\n"))),
+        ("Saved", (("PHYS 1401 syllabus (1).txt",
+                    "PHYS 1401 Syllabus\n\nSpring 2026. Saved copy.\n"),
+                   ("PHYS 1401 lecture 08.txt",
+                    "PHYS 1401 Lecture 08\n\nSpring 2026. Work and energy.\n"))),
+        ("Other", (("ECON 2105 syllabus.txt",
+                    "ECON 2105 Syllabus\n\nSpring 2026. Instructor.\n"),
+                   ("ECON 2105 notes.txt",
+                    "ECON 2105 lecture notes\n\nSpring 2026. Aggregate demand.\n"))),
+    ):
+        (corpus / folder).mkdir()
+        for name, body in files:
+            (corpus / folder / name).write_text(body)
     return corpus
 
 
