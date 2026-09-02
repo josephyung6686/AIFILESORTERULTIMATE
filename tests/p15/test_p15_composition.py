@@ -48,6 +48,7 @@ from pathlib import Path
 import pytest
 
 from database_agent.db import open_database
+from questions import role_report
 from questions.roles import apply_declarations, live_roles
 from questions.store import open_questions
 from questions.triggers import role_declaration_is_due
@@ -163,12 +164,13 @@ def test_the_run_invites_the_declaration_at_the_moment_r1_names(tmp_path: Path):
     evidence the product needs the answer. Evidence with no way to act on it is
     the same dead end one step later.
 
-    `--describe-role` and NOT both flags. `role_report.role_moment_lines` offers
-    the one gesture at this moment on purpose -- `80` §1 has the person say it in
-    their own words first and pick from a shortlist after, so an invitation
-    offering the pick as well would put the second step in front of the first.
-    `--declare-role` is named where it becomes usable: on the shortlist, and on
-    R6's panel beside each role it would change.
+    `--describe-role` and NOT both flags. `80` §3 (R3) is "one box, not a form",
+    and `--declare-role me=<layout>` is not one box either way it could be
+    printed: without the layouts beside it, it is a line a person cannot type;
+    with them, it is the visible list of 23 that R3 forbids. The sentence path
+    reaches the same list anyway, one step later and narrowed. `--declare-role`
+    is therefore named where it becomes usable -- on the shortlist a sentence
+    produces, and on R6's panel beside each role it would change.
     """
     corpus, database = _corpus(tmp_path)
     code, printed = _run(corpus, database)
@@ -195,6 +197,13 @@ def test_the_invitation_is_spent_once_and_does_not_come_back(tmp_path: Path):
     _run(corpus, database, "--declare-role", "teaching=academic")
     code, printed = _run(corpus, database)
     assert code == 0
+    # `--describe-role` and NOT `--declare-role`, which was this assertion's first
+    # proxy and is wrong. R6's panel prints `--declare-role <name>=<layout>
+    # change it` beside every role the person holds, on every run, forever -- that
+    # is R6 working, not R2 failing, and a test that read it as the invitation
+    # returning would punish the panel for existing. `--describe-role` is rendered
+    # at exactly one place in `role_report`, which the twin below pins so this
+    # proxy cannot rot quietly.
     assert "--describe-role" not in printed, (
         "the invitation came back after the person had already answered it")
 
@@ -266,6 +275,22 @@ def test_this_file_is_really_driving_the_command_and_the_moment_is_really_due(
                        recorded_at="2026-09-02T10:00:00+00:00")
     assert [role.declaration_id for role in live_roles(conn)] == ["teaching"], (
         "the writer the xfails are waiting on does not write")
+
+    # The "spent once" test reads `--describe-role`'s ABSENCE as the invitation
+    # not returning. That proxy holds only while the flag is rendered at exactly
+    # one place, and the flag `--declare-role` already fails the same test --
+    # R6's panel prints it beside every role, forever. So pin the proxy here
+    # rather than leave it to be discovered by whoever adds a line to the panel.
+    moment = "\n".join(role_report.role_moment_lines(
+        blocked=blocked, already_declared=()))
+    panel = "\n".join(role_report.role_panel_lines(live_roles(conn)))
+    assert role_report.DESCRIBE_FLAG in moment, (
+        "the moment no longer names `--describe-role`, so its absence from a "
+        "report says nothing about whether the invitation came back")
+    assert role_report.DESCRIBE_FLAG not in panel, (
+        "R6's panel now prints `--describe-role` too, so the 'spent once' test "
+        "is reading a flag that appears on every run whatever R2 does. Pick a "
+        "marker rendered only at the moment, or assert on `role_moment_lines`")
     assert not role_declaration_is_due(blocked=blocked,
                                        already_declared=live_roles(conn)), (
         "R2's 'spent once' is not enforced by the predicate, so the fourth xfail "

@@ -412,7 +412,17 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
 6. **A test on the live path is not the live path.** `extraction_stage_output` is
    exercised by `tests/integration/test_live_path.py`, whose name says the opposite
    of what it proves about reachability. Read the CALL, not the test's name.
-7. **The three verdicts do not cover "the owner has not chosen a number yet."**
+7. **The instrument that underwrites "no model transport is wired" can be
+   evaded, and nothing checks.** §3's first cause and §9's sixth are both the claim
+   that nothing in `src/` transports. That claim rests on a scan for modules
+   DECLARING `IS_MODEL_TRANSPORT`; a module that calls a client's `invoke` without
+   setting the flag is invisible to it. Raised by the role-matcher agent, whose
+   `tests/p15/test_p15_no_second_egress.py` closes it for `src/questions/` and for
+   nothing else. So the cause is sound today and is not GUARDED today, and every
+   "transport-gated" verdict in §10 inherits that. **A repo-wide version of that
+   test is the cheapest thing on this page.**
+
+8. **The three verdicts do not cover "the owner has not chosen a number yet."**
    `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
    producers exist, the tests pass, and the only thing missing is three numbers a
    person has to decide. Calling that "correctly dormant" files an owner decision as
@@ -442,6 +452,9 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
   blocks now read the same table through two readers (`upstream.protected_areas` and
   `summary.set_aside_paths`), filtered on complementary halves of one column. That is
   fine and it is also exactly the shape that drifts. Worth a look when P3 next moves.
+- **Generalise `test_p15_no_second_egress.py` to all of `src/`.** It is the only
+  thing standing between §3's first cause and a module that transports without
+  saying so. `src/questions/` is covered; twenty-odd other packages are not.
 - **`questions.triggers.question_for_situation` is waiting on a detector nobody has
   started.** It is `68` F6's measured defect — the graduate student who also teaches,
   filing her teaching as coursework — and it is the one entry in §10 whose fix is a
