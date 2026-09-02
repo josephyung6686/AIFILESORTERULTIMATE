@@ -32,7 +32,7 @@ from llm_harness.transport import (
 )
 from evidence_shape.canonical import canonical_json
 from llm_harness.vocabulary import (
-    A_FACT, B_GROUP, REDUCTION_NONE, REMAINS_AMBIGUOUS,
+    A_FACT, B_GROUP, ELIGIBILITY_BY_SITE, REDUCTION_NONE,
 )
 from llm_harness.released_content import DOSSIER_BODY_KEYS
 from privacy.binding import (
@@ -121,7 +121,8 @@ def _forged(**over) -> Released:
     return Released(**values)
 
 
-def _body(released: Released, *, call_site: str = A_FACT) -> bytes:
+def _body(released: Released, *, call_site: str = A_FACT,
+          prompt: PromptDefinition | None = None) -> bytes:
     """A minimal, WELL-FORMED dossier body for a release that materialised nothing.
 
     It used to be `b"DOSSIER"`. `issue` now folds the payload's own bytes into P7's
@@ -135,7 +136,11 @@ def _body(released: Released, *, call_site: str = A_FACT) -> bytes:
         "allowed_vocabulary": [],
         "call_site": call_site,
         "conflicts": [],
-        "eligibility_reason": REMAINS_AMBIGUOUS,
+        # Read from the site's own vocabulary rather than fixed: the door checks
+        # `eligibility_reason` against `ELIGIBILITY_BY_SITE[call_site]`, and this
+        # fixture used to pair A_fact's reason with a B_group body -- a combination
+        # `DossierRequest.__post_init__` would also have refused.
+        "eligibility_reason": ELIGIBILITY_BY_SITE[call_site][0],
         "evidence_items": [],
         "field_glossary": {},
         "max_dossier_tokens": 0,
@@ -146,8 +151,12 @@ def _body(released: Released, *, call_site: str = A_FACT) -> bytes:
             dict(item.content_mapping(), observation_key="handle:fixture")
             for item in released.materialised_items
         ],
-        "response_schema": "{}",
-        "shaping_policy": "{}",
+        # The two authored authorities are bound BY EQUALITY at the door against
+        # the `PromptDefinition` the payload carries, so a fixture cannot invent
+        # them -- which is the point: a caller who could rewrite the response schema
+        # could hand the model any instructions it liked.
+        "response_schema": (prompt or _prompt()).response_schema_bytes.decode(),
+        "shaping_policy": (prompt or _prompt()).shaping_policy_bytes.decode(),
         "subject_ref": "handle:fixture-subject",
     }
     assert set(body) == DOSSIER_BODY_KEYS, "this fixture is not a dossier body"
@@ -160,7 +169,7 @@ def _payload(released: Released, *, dossier: bytes | None = None,
     definition = prompt or _prompt()
     return build_call_payload(
         definition,
-        _body(released) if dossier is None else dossier,
+        _body(released, prompt=definition) if dossier is None else dossier,
         model_target=model_target or released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
@@ -310,7 +319,7 @@ def test_client_receives_only_model_visible_bytes(transport_conn):
     recorder = Recorder()
     prompt = _prompt()
     released = _mint(transport_conn, prompt=prompt, audit_id=17)
-    visible = _body(released, call_site=B_GROUP)
+    visible = _body(released, call_site=B_GROUP, prompt=prompt)
     payload = _payload(released, prompt=prompt, dossier=visible)
     issue(transport_conn, released, payload, model_client=_client(CLOUD, recorder))
     assert recorder.calls == [payload.model_visible_bytes]
@@ -409,7 +418,10 @@ def test_empty_client_exception_returns_call_failed(transport_conn):
     )
     assert isinstance(result, CallFailed)
     assert result.explanation
-    assert "RuntimeError" in result.explanation
+    # The TYPE, and no free text. §8.4's property 4 is the one a review could not
+    # clear, because an SDK's exception message is an unbounded channel into a
+    # durable record; `_client_exception_explanation` closes it by not carrying one.
+    assert json.loads(result.explanation) == {"type": "RuntimeError", "status": None}
     assert result.release_id == released.release_id
     assert result.audit_id == 17
     assert _spent(transport_conn, released.release_id) is not None
@@ -434,7 +446,11 @@ def test_client_raise_records_failure_and_returns_call_failed(transport_conn):
     assert result.release_id == released.release_id
     assert result.audit_id == 17
     assert result.request_identity
-    assert "provider down" in result.explanation
+    # The SDK's own words are GONE, which is the property. Whatever a provider puts
+    # in a message -- a request echo, a URL with a query parameter, a header dump --
+    # cannot reach the durable failure row or the user-visible CallFailed.
+    assert "provider down" not in result.explanation
+    assert json.loads(result.explanation) == {"type": "RuntimeError", "status": None}
     assert _spent(transport_conn, released.release_id) is not None
     assert len(_events(transport_conn, "model_call_issued")) == 1
     assert _events(transport_conn, "model_response_received") == []

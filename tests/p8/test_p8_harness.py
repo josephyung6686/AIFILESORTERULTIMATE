@@ -690,7 +690,11 @@ def test_model_error_persists_failure_report_and_invents_neither_response_nor_ve
     assert isinstance(result, CallFailed)
     assert result.release_id == gate.released[0].release_id
     assert result.audit_id == gate.released[0].audit_id
-    assert "provider down" in result.explanation
+    # The SDK's own message no longer travels: `_client_exception_explanation`
+    # records the exception TYPE and an HTTP status, which is what the failure
+    # taxonomy reads, and nothing a third-party library chose to write.
+    assert "provider down" not in result.explanation
+    assert json.loads(result.explanation)["type"] == "RuntimeError"
     assert len(recorder.calls) == 1
     assert _count(harness_conn, "llm_call_failure") == 1
     assert _count(harness_conn, "llm_response") == 0

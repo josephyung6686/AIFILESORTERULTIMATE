@@ -199,8 +199,8 @@ def _payload_from(released: Released, prompt: PromptDefinition):
             dict(item.content_mapping(), observation_key="handle:fixture")
             for item in released.materialised_items
         ],
-        "response_schema": "{}",
-        "shaping_policy": "{}",
+        "response_schema": prompt.response_schema_bytes.decode(),
+        "shaping_policy": prompt.shaping_policy_bytes.decode(),
         "subject_ref": "handle:fixture-subject",
     }).encode("utf-8")
     assert set(json.loads(dossier)) == DOSSIER_BODY_KEYS

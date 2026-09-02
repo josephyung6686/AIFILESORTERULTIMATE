@@ -177,7 +177,32 @@ def _reject_open_transaction(conn: sqlite3.Connection) -> None:
 
 
 def _client_exception_explanation(exc: BaseException) -> str:
-    return str(exc) or type(exc).__name__
+    """A THIRD-PARTY exception, reduced to the two things anything here reads.
+
+    This returned `str(exc)`, and the `try` around the client call is `except
+    Exception` -- as wide as it gets. Whatever an SDK chooses to put in a message
+    went from there into a durable `llm_call_failure` row and into a user-visible
+    `CallFailed`, which `records.py` says `emit_stage_output` serialises "verbatim
+    into P2's `error` row". A request echo, a URL with a query parameter, a header
+    dump: §8.4 requires that record to be consent-aware, and nothing was checking
+    what a library put in it.
+
+    §8.4's property 4 -- no credential reaches the screen, a log, an audit record or
+    an exception message -- was the one a security review could not clear, because
+    there is no way to enumerate every string an SDK may produce. This removes the
+    channel instead of arguing about it: the type and an HTTP status are what the
+    failure taxonomy actually reads, and neither can carry a secret.
+
+    No developer flag for the full text, deliberately. Nothing in `src/` read the
+    free string -- `store.record_call_failure` writes it and no code path branches on
+    it -- so a flag would be a second, dimmer copy of this channel maintained for a
+    reader who does not exist. Add one when somebody needs it, and put the reason at
+    the flag.
+    """
+    return canonical_json({
+        "type": type(exc).__qualname__,
+        "status": getattr(exc, "status_code", None),
+    })
 
 
 def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
@@ -194,7 +219,11 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
     _require_binding(released, payload, model_client)
     # Folded from the bytes about to be sent, and compared against the gate's ledger
     # row inside `consume_release` -- before the spend, before the socket.
-    content = released_content_digest(payload.canonical_dossier_bytes)
+    content = released_content_digest(
+        payload.canonical_dossier_bytes,
+        prompt_definition=payload.prompt_definition,
+        policy_version=payload.policy_version,
+    )
     issued_at = _now()
     with transaction(conn):
         consume_release(

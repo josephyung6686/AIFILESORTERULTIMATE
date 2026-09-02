@@ -414,6 +414,176 @@ def test_the_dossier_the_builder_produced_is_accepted_and_sent_once(egress_conn)
 
 
 # ================================================================================
+# The residual: the slots that were bound in SHAPE and not in CONTENT
+# ================================================================================
+#
+# The first pass bound `released_evidence` and stated, at
+# `llm_harness/released_content.py`, that the builder-authored slots were bound in
+# shape only. The re-verification took that statement and ran it: a body with exactly
+# `DOSSIER_BODY_KEYS`, a faithful `released_evidence` list folding to the ledger's
+# digest, and the corpus in the other slots -- and `issue` returned `ModelResponse`
+# with `current_path` in the bytes handed to the client.
+#
+# Each test below is one of those slots. What is bound is bound against something the
+# TRANSPORT legitimately holds -- the `PromptDefinition` in its own payload, the
+# closed vocabularies P8 already publishes, the keying `_body` applies to every
+# identifier it writes -- and never against a guess.
+
+
+def _poison(released, prompt, request, mutate) -> bytes:
+    body = json.loads(_honest_bytes(released, prompt, request))
+    mutate(body)
+    return canonical_json(body).encode("utf-8")
+
+
+def _refused(conn, released, prompt, body: bytes, recorder) -> None:
+    payload = _payload(released, prompt, body)
+    with pytest.raises((BindingMismatch, ValueError)):
+        issue(conn, released, payload,
+              model_client=ModelClient(model_target=CLOUD, invoke=recorder))
+    _nothing_left(conn, released, recorder)
+
+
+def test_the_reverifications_well_shaped_forgery(egress_conn):
+    """The re-verification's probe, whole: every key correct, the corpus in the
+    slots that were bound in shape only. It returned `ModelResponse`."""
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+
+    def mutate(body):
+        body["subject_ref"] = PRIVATE_PATH
+        body["evidence_items"] = [{"anything": PRIVATE_PATH, "at_all": PRE_REDACTION}]
+        body["conflicts"] = [{"conflict_id": PRIVATE_PATH, "kind": PRE_REDACTION}]
+        body["field_glossary"] = {"x": PRIVATE_PATH}
+        body["response_schema"] = PRIVATE_PATH
+        body["shaping_policy"] = PRE_REDACTION
+
+    _refused(egress_conn, released, prompt,
+             _poison(released, prompt, request, mutate), recorder)
+
+
+def test_an_evidence_item_entry_gets_the_same_key_set_check(egress_conn):
+    """The omission the reviewer said to fix first: `released_evidence` entries were
+    key-set checked and `evidence_items` entries, one function away, were not. Keys
+    `anything` and `at_all` passed."""
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+    _refused(egress_conn, released, prompt, _poison(
+        released, prompt, request,
+        lambda b: b.__setitem__("evidence_items",
+                                [{"anything": PRIVATE_PATH, "at_all": "x"}])),
+        recorder)
+
+
+def test_a_smuggled_field_beside_an_honest_evidence_item(egress_conn):
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+
+    def mutate(body):
+        body["evidence_items"][0]["context_before"] = TEXT[:SPAN.start]
+
+    _refused(egress_conn, released, prompt,
+             _poison(released, prompt, request, mutate), recorder)
+
+
+def test_the_two_authored_documents_must_be_the_ones_the_prompt_carries(egress_conn):
+    """`response_schema` and `shaping_policy` are the injected authorities `_as_text`
+    decodes out of the `PromptDefinition`. The transport holds that definition, so
+    these are bound by EQUALITY and not by shape."""
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+    for slot in ("response_schema", "shaping_policy"):
+        _refused(egress_conn, released, prompt, _poison(
+            released, prompt, request,
+            lambda b, s=slot: b.__setitem__(s, PRIVATE_PATH)), recorder)
+
+
+def test_the_glossary_must_be_the_one_the_vocabulary_produces(egress_conn):
+    """`field_glossary` is built from `allowed_vocabulary` and nothing else -- its own
+    comment calls it "the one key here whose content is the same on every file in
+    every corpus". So the door recomputes it rather than trusting it."""
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+    _refused(egress_conn, released, prompt, _poison(
+        released, prompt, request,
+        lambda b: b.__setitem__("field_glossary", {"subject": PRIVATE_PATH})),
+        recorder)
+
+
+def test_every_identifier_the_builder_keys_must_arrive_keyed(egress_conn):
+    """`_body` runs `wire_handle` over `subject_ref` and every `conflict_id`, so an
+    unkeyed string in either is a value that did not come through the builder."""
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+    _refused(egress_conn, released, prompt, _poison(
+        released, prompt, request,
+        lambda b: b.__setitem__("subject_ref", PRIVATE_PATH)), recorder)
+    _refused(egress_conn, released, prompt, _poison(
+        released, prompt, request,
+        lambda b: b.__setitem__(
+            "conflicts", [{"conflict_id": PRIVATE_PATH, "kind": "duplicate"}])),
+        recorder)
+
+
+def test_the_closed_vocabularies_are_checked_at_the_door_too(egress_conn):
+    """`call_site`, `eligibility_reason`, `reduction_rung`, and an evidence item's
+    `basis` and `reliability_state` are all closed vocabularies P8 already publishes.
+    A door that let a free string sit in one of them would be trusting the builder to
+    have validated what the builder is the thing being checked."""
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+    for slot in ("call_site", "eligibility_reason", "reduction_rung"):
+        _refused(egress_conn, released, prompt, _poison(
+            released, prompt, request,
+            lambda b, s=slot: b.__setitem__(s, PRIVATE_PATH)), recorder)
+
+    def basis(body):
+        body["evidence_items"][0]["basis"] = PRIVATE_PATH
+
+    _refused(egress_conn, released, prompt,
+             _poison(released, prompt, request, basis), recorder)
+
+
+def test_what_is_still_not_bound_is_named_and_nothing_else_is(egress_conn):
+    """The residual, asserted rather than promised.
+
+    These three slots reach the model as free caller-chosen text and this test says
+    so out loud. `location` and both `kind`s are free strings with no vocabulary in
+    `records.py` to check them against; `allowed_vocabulary` is the caller's declared
+    answer vocabulary and is legitimately arbitrary -- P9's is group labels, P10's is
+    node ids, P11's is residual actions, none of them field names.
+
+    If a later change binds one, this test goes red and must be narrowed. That is the
+    point: the residual is a list somebody maintains, not a sentence somebody wrote.
+    """
+    recorder = Recorder()
+    released, prompt, request = _released(egress_conn)
+    still_free = []
+    for mutate, name in (
+        (lambda b: b["evidence_items"][0].__setitem__("location", PRIVATE_PATH),
+         "evidence_items[].location"),
+        (lambda b: b["evidence_items"][0].__setitem__("kind", PRIVATE_PATH),
+         "evidence_items[].kind"),
+        (lambda b: b.__setitem__("allowed_vocabulary", [PRIVATE_PATH]),
+         "allowed_vocabulary"),
+    ):
+        payload = _payload(released, prompt,
+                           _poison(released, prompt, request, mutate))
+        try:
+            issue(egress_conn, released, payload,
+                  model_client=ModelClient(model_target=CLOUD, invoke=recorder))
+        except Exception:
+            continue
+        still_free.append(name)
+        break   # the release is spent; one probe per release
+
+    assert still_free == ["evidence_items[].location"], (
+        f"the residual changed: {still_free}. Update this test AND the module "
+        "docstring at `llm_harness/released_content.py` together, or one of them "
+        "starts lying to the next reviewer")
+
+
+# ================================================================================
 # The drift guards. The door reads a shape two other modules write.
 # ================================================================================
 
@@ -445,7 +615,10 @@ def test_the_door_folds_exactly_the_fields_the_release_binds(egress_conn):
     assert set(CONTENT_BOUND_FIELDS) == set(entry) - {"observation_key"}
     assert entry["observation_key"].startswith("handle:"), (
         "the identifier reaches the model keyed, which is why it is not folded")
-    assert released_content_digest(_honest_bytes(released, prompt, request)) == \
-        content_digest_of(released.materialised_items), (
+    assert released_content_digest(
+        _honest_bytes(released, prompt, request),
+        prompt_definition=prompt,
+        policy_version=released.policy_version,
+    ) == content_digest_of(released.materialised_items), (
             "the gate's fold and the door's fold are the same value or the term "
             "binds nothing")
