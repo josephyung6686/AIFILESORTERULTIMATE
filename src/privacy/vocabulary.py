@@ -183,9 +183,41 @@ ALWAYS_LOCAL: tuple[str, ...] = (
 #: for Protected Records, which is vacuous under any reading that forbade them
 #: everywhere. Adopted because P8 and P11 cannot build without an answer; held open as
 #: Open question 2 rather than treated as settled.
+#:
+#: THE SEVENTH, `self_description`, ADDED 2026-09-02 WITH THE OWNER'S APPROVAL,
+#: RECORDED HERE BECAUSE THAT IS WHERE AN APPROVAL BELONGS.
+#:
+#: What he chose, and what he chose it OVER, because a record that omits the
+#: rejected options is a note rather than a record. `80` §8 suspended the
+#: enforcement of §2's always-local ruling for development, which left the
+#: question of HOW a self-description could reach a model. Three routes were put
+#: to him: a narrow P7 release path; a genuinely LOCAL model, which `80` §1
+#: actually specifies and which `readers/model_ollama.py` could already serve
+#: with no change to P7 at all; and deferring until a local version existed to
+#: compare against. He chose the narrow release path, with the irreversibility
+#: named -- `00`:200, "revocation cannot necessarily retract data already sent to
+#: an external provider" -- and with the observation, in his own words, that THE
+#: SCOPING IS THE HARD PART.
+#:
+#: So this member is the scoping. It is a releasable KIND, and the eight
+#: always-local kinds it sits beside gain nothing from it: they have no type in
+#: `items.py`, so nothing can name one, and `80` §8.1's "this suspension reaches
+#: nothing but the self-description" is a property of the type table rather than
+#: a rule anybody keeps. `check_item` admits this kind only under its own
+#: `allow_self_description`, which has no default and which the filename's
+#: `allow_unratified` does not imply.
+#:
+#: NOT A TENTH ALWAYS-LOCAL MEMBER. `80` §2 says "NO TENTH MEMBER IS ADDED" and
+#: none is: the classification of a typed self-description as a `user_edits` item
+#: STANDS, `ALWAYS_LOCAL` is untouched, and what this opens is one narrow way for
+#: that one item to be released, not a reclassification of it.
+#:
+#: `80` §8.3's three conditions still bind and are not modified by the ruling:
+#: local is the DEFAULT, a run that sends says so on screen BEFORE sending, and it
+#: reverts before anyone who is not Joseph uses this.
 ITEM_KINDS: tuple[str, ...] = (
     "excerpt", "redacted_identifier", "candidate_label", "metadata_field",
-    "evidence_reference", "filename",
+    "evidence_reference", "filename", "self_description",
 )
 
 

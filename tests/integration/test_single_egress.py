@@ -37,6 +37,13 @@ is where a socket legitimately lives, and each of those modules keeps its networ
 one function so a test can replace it. Everywhere else in `src/`, a network import is
 a part that has grown its own way out.
 
+**E. `SelfDescription` is constructed in one place.** The owner's narrow release
+path of 2026-09-02. Its type seals which kind may be released and which row it may
+address; nothing in Python seals who may construct one, so this does. It is a CHECK
+and not a type, and it is here rather than in `privacy/` because that is what was
+available -- said plainly at the type in `items.py` too, because a seal whose
+weakness is undocumented is trusted past it.
+
 **D. `src/questions/` does not even NAME a client.** Stricter than the rest of the
 tree on purpose, because a self-description is a `user_edits` item under `80` §2 and
 the amendment in §8.1 scopes its suspension to that one item: "this suspension
@@ -89,6 +96,20 @@ NETWORK_MODULES: frozenset[str] = frozenset({
     "anthropic", "openai", "ollama", "urllib", "urllib.request", "http",
     "http.client", "httpx", "requests", "socket", "aiohttp",
 })
+
+#: Rule E's type, and where the one construction of it may live. The owner opened a
+#: narrow P7 release path on 2026-09-02 and `privacy.items.SelfDescription` is the
+#: door; its type seals WHICH KIND and WHICH ROW, and no type can seal WHO
+#: CONSTRUCTS one. This does.
+#:
+#: `src/privacy/items.py` defines it, and the composition root is where the person's
+#: own gesture is turned into a request -- so those two, and nothing else. A third
+#: module constructing one would be a second place a self-description enters the
+#: release path, which is the shape `80` §8.1 forbids: "this suspension reaches
+#: nothing but the self-description", and a suspension with two doors is two
+#: suspensions.
+SELF_DESCRIPTION_TYPE: str = "SelfDescription"
+SELF_DESCRIPTION_HOMES: frozenset[str] = frozenset({"privacy/items.py", "cli.py"})
 
 #: Rule D's package, and what it may not say. `ModelClient` by name, because an
 #: annotation is how the helper `80` §6 leaves open would most naturally be written.
@@ -164,6 +185,11 @@ def findings(relative: str, source: str) -> tuple[str, ...]:
     if not relative.startswith(PROVIDER_PREFIX):
         for name in sorted(imported & NETWORK_MODULES):
             found.append(f"imports {name} outside a provider module")
+    if (any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == SELF_DESCRIPTION_TYPE for node in ast.walk(tree))
+            and relative not in SELF_DESCRIPTION_HOMES):
+        found.append(f"constructs {SELF_DESCRIPTION_TYPE} outside "
+                     f"{sorted(SELF_DESCRIPTION_HOMES)}")
     if relative.startswith(QUESTIONS_PACKAGE):
         if any(isinstance(node, ast.Name) and node.id == CLIENT_TYPE
                for node in ast.walk(tree)):

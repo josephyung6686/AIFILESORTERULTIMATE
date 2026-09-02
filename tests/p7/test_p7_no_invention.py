@@ -422,8 +422,11 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     # 2, NEEDS-JOSEPH B5d / C9a). It is Joseph's call and nothing here decides it.
     from privacy.items import Filename
     from privacy.vocabulary import ITEM_KINDS, USER, USER_CONFIRMED
-    assert ITEM_KINDS[-1] == "filename"
-    assert len(ITEM_KINDS) == 6
+    # Positional, not last: the owner's `self_description` was appended after it on
+    # 2026-09-02, which does not settle Open question 2 and must not be read as
+    # having. The filename's status is exactly what it was.
+    assert ITEM_KINDS[5] == "filename"
+    assert len(ITEM_KINDS) == 7
     assert "filename" in OPEN_QUESTIONS[2].lower() or "Filename" in OPEN_QUESTIONS[2]
     assert {f.name for f in __import__("dataclasses").fields(Filename)} == {"file_id"}
     for path in modules():
@@ -457,7 +460,8 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     for protected in (True, False):
         with pytest.raises(UnratifiedItemKind) as caught:
             check_item(item, unit_length=None, protected=protected,
-                       sensitive_keys=(), allow_unratified=False)
+                       sensitive_keys=(), allow_unratified=False,
+                       suspension_permits_self_description=False)
         assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
 
     # With the opt-in, §7.3's narrow settled part holds: denied for a protected file,
@@ -466,8 +470,10 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     # rather than believed.
     with pytest.raises(ProtectedItemRequested):
         check_item(item, unit_length=None, protected=True, sensitive_keys=(),
+                   suspension_permits_self_description=False,
                    allow_unratified=True)
     assert check_item(item, unit_length=None, protected=False, sensitive_keys=(),
+                      suspension_permits_self_description=False,
                       allow_unratified=True) is None
 
 

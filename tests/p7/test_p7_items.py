@@ -39,7 +39,7 @@ import privacy.items as items
 from privacy.items import (
     FILENAME_OPEN_QUESTION,
     ITEM_FIELDS,
-    RATIFIED_ITEM_KINDS,
+    RATIFIED_ITEM_KINDS, SelfDescription, SUSPENDED_ITEM_KINDS,
     UNRATIFIED_ITEM_KINDS,
     AlwaysLocalRequested,
     CandidateLabel,
@@ -75,23 +75,38 @@ ONE_OF_EACH: tuple[RequestedItem, ...] = (
     MetadataField(name="page_count"),
     EvidenceReference(observation_key=KEY),
     Filename(file_id="file-1"),
+    SelfDescription(question_id="role:me"),
 )
 
 #: A permissive default for the three keywords a given test is not about. Every one
 #: of them is REQUIRED on `check_item` (A11); this helper spells them so a test that
 #: IS about one of them can override exactly that one and nothing else.
 def admit(item, *, unit_length=None, protected=False, sensitive_keys=frozenset(),
-          allow_unratified=True) -> None:
+          allow_unratified=True, suspension_permits_self_description=False) -> None:
+    # `suspension_permits_self_description=False` by default HERE, where the existing tests are
+    # all about the other six kinds: the seventh is `80` §8's suspension and it has
+    # its own file, `test_p7_self_description_item.py`. A helper that opened it for
+    # every test in this one would be the scope creep `80` §8.1 forbids.
     check_item(item, unit_length=unit_length, protected=protected,
-               sensitive_keys=sensitive_keys, allow_unratified=allow_unratified)
+               sensitive_keys=sensitive_keys, allow_unratified=allow_unratified,
+               suspension_permits_self_description=suspension_permits_self_description)
 
 
 # --- the six kinds, and the five that §8.4 actually names ----------------------
 
-def test_the_six_kinds_are_task_twos_six_and_split_five_plus_one():
-    assert RATIFIED_ITEM_KINDS + UNRATIFIED_ITEM_KINDS == ITEM_KINDS
+def test_the_seven_kinds_split_five_plus_one_plus_one():
+    """Three tiers, and the third is the whole of the owner's 2026-09-02 scoping.
+
+    Five §8.4 names. One the SPEC adopted on a flagged reading, admitted by
+    `allow_unratified`. And one `80` §8 suspended the always-local enforcement for,
+    admitted by `suspension_permits_self_description` and by nothing else -- because the two
+    flags not implying each other is what keeps the suspension scoped to "nothing
+    but the self-description"."""
+    assert (RATIFIED_ITEM_KINDS + UNRATIFIED_ITEM_KINDS
+            + SUSPENDED_ITEM_KINDS) == ITEM_KINDS
     assert len(RATIFIED_ITEM_KINDS) == 5
     assert UNRATIFIED_ITEM_KINDS == ("filename",)
+    assert SUSPENDED_ITEM_KINDS == ("self_description",)
 
 
 def test_every_kind_has_a_dataclass_and_every_dataclass_has_a_kind():
@@ -343,9 +358,11 @@ def test_check_item_requires_every_one_of_its_four_keywords():
     # never a release. `sensitive_keys` in particular: a default of `frozenset()`
     # would mean "nothing is sensitive" for a caller who never wired P5.
     item = Excerpt(observation_key=KEY, span=TextSpan(16, 27), reason="it")
-    for omit in ("unit_length", "protected", "sensitive_keys", "allow_unratified"):
+    for omit in ("unit_length", "protected", "sensitive_keys", "allow_unratified",
+                 "suspension_permits_self_description"):
         kwargs = dict(unit_length=BODY_LENGTH, protected=False,
-                      sensitive_keys=frozenset(), allow_unratified=False)
+                      sensitive_keys=frozenset(), allow_unratified=False,
+                      suspension_permits_self_description=False)
         del kwargs[omit]
         with pytest.raises(TypeError):
             check_item(item, **kwargs)
@@ -411,17 +428,23 @@ def test_filename_is_the_unratified_sixth_kind_needs_joseph_b5d_c9a():
 def test_a_filename_cannot_be_admitted_without_the_explicit_opt_in():
     with pytest.raises(UnratifiedItemKind) as caught:
         check_item(Filename(file_id="file-1"), unit_length=None, protected=False,
-                   sensitive_keys=frozenset(), allow_unratified=False)
+                   sensitive_keys=frozenset(), allow_unratified=False,
+                   suspension_permits_self_description=False)
     assert "filename" in str(caught.value)
     assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
 
 
 def test_the_five_ratified_kinds_need_no_opt_in():
     for item in ONE_OF_EACH:
-        if kind_of(item) in UNRATIFIED_ITEM_KINDS:
+        # Both opt-in tiers skipped, and by their tier rather than by name: each
+        # exists precisely so its kind is NOT admitted without being asked for, and
+        # a test that walked them here would be asserting the opposite of what
+        # `allow_unratified` and `suspension_permits_self_description` are for.
+        if kind_of(item) in UNRATIFIED_ITEM_KINDS + SUSPENDED_ITEM_KINDS:
             continue
         check_item(item, unit_length=None, protected=False,
-                   sensitive_keys=frozenset(), allow_unratified=False)
+                   sensitive_keys=frozenset(), allow_unratified=False,
+                   suspension_permits_self_description=False)
 
 
 def test_a_filename_is_permitted_for_a_non_protected_file():
@@ -446,7 +469,7 @@ def test_protected_does_not_refuse_the_other_five_kinds_here():
     # Task 13 builds and `release.DECISION_ORDER` sequences. A second copy here would
     # be a rule with two homes.
     for item in ONE_OF_EACH:
-        if kind_of(item) in UNRATIFIED_ITEM_KINDS:
+        if kind_of(item) in UNRATIFIED_ITEM_KINDS + SUSPENDED_ITEM_KINDS:
             continue
         admit(item, unit_length=None, protected=True)
 

@@ -99,7 +99,8 @@ class Gate:
                  component_version: str, now: Callable[[], str],
                  user_id: str | None,
                  measure_tokens: Callable[..., int] | None = None,
-                 template_for: Callable[[str], str | None] | None = None) -> None:
+                 template_for: Callable[[str], str | None] | None = None,
+                 suspension_permits_self_description: bool = False) -> None:
         self._conn = conn
         self._store = store
         self._plan_version = plan_version
@@ -114,6 +115,23 @@ class Gate:
         self._user_id = user_id
         self._measure_tokens = measure_tokens
         self._template_for = template_for
+        #: NAMED FOR THE RULING, not for the permission, and the difference is what
+        #: `test_no_signature_and_no_branch_field_names_an_override` is protecting:
+        #: P7's published names may not read as a back door. `unclassified_permits_
+        #: local` is the precedent -- a legitimate permission says what CONDITION
+        #: permits what, and this one says the `80` §8 suspension is what permits a
+        #: self-description. It is not an override of the policy: a run without the
+        #: suspension refuses exactly as it did before the amendment existed.
+        #:
+        #: `80` §8.3's condition C1, at the composition surface. DEFAULTED, where
+        #: `check_item` refuses to default, and the two are the same requirement
+        #: read from its two ends: "a developer who forgets this exception exists
+        #: gets the safe behaviour". Forgetting it HERE gives you `False`, which is
+        #: the safe behaviour; forgetting it at `check_item` gives you a TypeError,
+        #: because that is the layer where every caller must have chosen. A default
+        #: in both places would be a caller who never chose; a default in neither
+        #: would put a required argument on Task 20's pinned constructor.
+        self._suspension_permits_self_description = suspension_permits_self_description
 
     # -- §8.4's only door ---------------------------------------------------
 
@@ -423,7 +441,8 @@ class Gate:
         for item in request.requested_items:
             try:
                 check_item(item, unit_length=None, protected=protected,
-                           sensitive_keys=sensitive_keys, allow_unratified=True)
+                           sensitive_keys=sensitive_keys, allow_unratified=True,
+                           suspension_permits_self_description=self._suspension_permits_self_description)
             except (AlwaysLocalRequested, ProtectedItemRequested) as caught:
                 return caught
         return None
@@ -439,7 +458,8 @@ class Gate:
             try:
                 check_item(item, unit_length=lengths.get(item.observation_key),
                            protected=protected, sensitive_keys=sensitive_keys,
-                           allow_unratified=True)
+                           allow_unratified=True,
+                           suspension_permits_self_description=self._suspension_permits_self_description)
             except WholeDocumentRequested as caught:
                 return caught
         return None

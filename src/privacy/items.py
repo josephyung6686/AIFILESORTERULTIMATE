@@ -75,6 +75,28 @@ class UnratifiedItemKind(ValueError):
     """
 
 
+class SelfDescriptionNotAdmitted(AlwaysLocalRequested):
+    """`80` §8.3's condition C1, as a refusal rather than as a default.
+
+    A SUBCLASS of `AlwaysLocalRequested`, and that is the accurate relation rather
+    than a convenience. A self-description IS an always-local item -- `80` §2 rules
+    it a `user_edits` item and §8 does not withdraw the classification, only suspends
+    its enforcement. So a run that has not asked to send one is refusing it for
+    exactly the reason the other eight are refused, and it denies through the same
+    `deny_always_local_item` path rather than needing a tenth denial reason.
+
+    "Local is still the DEFAULT. Sending a self-description requires an explicit,
+    deliberate act by whoever runs the command. It is never what happens by not
+    choosing. A developer who forgets this exception exists gets the safe behaviour."
+
+    A SEPARATE refusal from `UnratifiedItemKind`, and the separation is the scoping
+    the owner named as the hard part. `gate.py` passes `allow_unratified=True` at
+    both of its call sites, so sharing the filename's flag would have admitted a
+    self-description everywhere a filename is admitted -- a path that happens to be
+    called with the right thing today, which is the failure the ruling refused.
+    """
+
+
 class ProtectedItemRequested(ValueError):
     """§7.3: `Protected Records` "must not cause filenames or content to be exposed
     in model prompts." Scoped here to the filename; the content half is Task 13's
@@ -105,6 +127,15 @@ def _refuse_always_local_name(field: str, value: str) -> None:
             f"identifiers, candidate labels, non-sensitive metadata, and evidence "
             f"references."
         )
+
+
+#: How P15 names a role declaration's question. SPELLED here rather than imported,
+#: because P7 importing P15 is a layering inversion -- P15 is downstream of the gate
+#: and `readers/model_deepseek.py` gives the same reason for spelling `locality`
+#: instead of importing it. Spelling it means a test has to assert the two are one
+#: value, and `tests/p7/test_p7_self_description_item.py` does: without that, this
+#: seal quietly stops matching the ids P15 actually writes.
+ROLE_QUESTION_PREFIX: str = "role:"
 
 
 @dataclass(frozen=True)
@@ -193,8 +224,62 @@ class Filename:
             )
 
 
+@dataclass(frozen=True)
+class SelfDescription:
+    """The seventh kind, and the narrow door the owner opened on 2026-09-02.
+
+    A person's typed description of themselves, released so a model can propose the
+    role shortlist `80` §1 specifies. The approval and what it was chosen over are
+    recorded at the member in `vocabulary.ITEM_KINDS`; this is the type that makes
+    the scoping structural rather than promised.
+
+    **A REFERENCE, and never the sentence.** SPEC §6: "references only, never
+    materialised content", which every other item here obeys. This one carries the
+    `question_id` of the role declaration and `resolve.py` looks the wording up --
+    so the words exist in exactly one place, the gate is what reads them, and an
+    item sitting in a request or a fixture carries nothing a person typed.
+
+    **It can address a role declaration and nothing else.** A `question_id` is a key
+    into P15's whole answer store, which holds readings taken from the person's own
+    files. Without the prefix check this type could name one of those, and the door
+    would be narrow in name only: the caller would still be releasing a
+    `self_description`, but the words behind it would have come from a document. The
+    check is on the TYPE rather than on the gate, so a request naming another row is
+    unconstructible rather than denied -- the same shape `MetadataField` uses for
+    §8.4's nine.
+
+    **What this type CANNOT seal, said plainly.** It seals which kind and which row.
+    It cannot seal WHO CONSTRUCTS one: nothing in Python stops any module writing
+    `SelfDescription("role:me")`, and a type can constrain what a value is but not
+    where it was made. That seal is an AST scan over `src/` in
+    `tests/integration/test_single_egress.py`, beside the one that catches undeclared
+    model egress, and it is a check because no type was available -- not because a
+    check was easier.
+    """
+
+    question_id: str
+
+    def __post_init__(self) -> None:
+        if not self.question_id.startswith(ROLE_QUESTION_PREFIX):
+            raise AlwaysLocalRequested(
+                f"question_id={self.question_id!r} does not name a role declaration, "
+                f"and only a role declaration holds a person's typed description of "
+                f"themselves. P15's answer store also holds readings taken FROM the "
+                f"person's files, and §8.4 puts their complete extracted text in the "
+                f"always-local set: a self-description addressing one of those would "
+                f"release a document under the one kind the owner opened a door for. "
+                f"The form is {ROLE_QUESTION_PREFIX}<the name the person chose>."
+            )
+        if self.question_id == ROLE_QUESTION_PREFIX:
+            raise AlwaysLocalRequested(
+                f"question_id={self.question_id!r} names the prefix and no "
+                f"declaration. A role declaration carries an id the person's own "
+                f"gesture minted; absent means refuse, never guess."
+            )
+
+
 RequestedItem = (Excerpt | RedactedIdentifier | CandidateLabel | MetadataField
-                 | EvidenceReference | Filename)
+                 | EvidenceReference | Filename | SelfDescription)
 
 #: Every branch in this module keys off `kind_of`, so `ITEM_KINDS` is the one place a
 #: seventh kind would have to be added. Validated through Task 2's checker at import,
@@ -206,6 +291,7 @@ _KIND_BY_TYPE: Mapping[type, str] = MappingProxyType({
     MetadataField: check_item_kind("metadata_field"),
     EvidenceReference: check_item_kind("evidence_reference"),
     Filename: check_item_kind("filename"),
+    SelfDescription: check_item_kind("self_description"),
 })
 
 #: §8.4's own five, in the design's order.
@@ -217,6 +303,13 @@ RATIFIED_ITEM_KINDS: tuple[str, ...] = (
 
 #: The sixth. Built, named, and unadmittable without `allow_unratified=True`.
 UNRATIFIED_ITEM_KINDS: tuple[str, ...] = (_KIND_BY_TYPE[Filename],)
+
+#: The seventh, and its own tier because it is admitted on its own authority. It is
+#: not `RATIFIED` -- §8.4's sentence does not name it -- and it is not the filename's
+#: `UNRATIFIED`, because those two are admitted by one flag and `80` §8.1 scopes this
+#: suspension to "nothing but the self-description". Two tiers, two flags, neither
+#: implying the other.
+SUSPENDED_ITEM_KINDS: tuple[str, ...] = (_KIND_BY_TYPE[SelfDescription],)
 
 #: SPEC Open question 2, quoted from `vocabulary.OPEN_QUESTIONS` rather than retyped,
 #: so the module and the SPEC's list cannot drift apart. NEEDS-JOSEPH B5d and C9a.
@@ -260,12 +353,16 @@ def is_whole_document(item: object, *, unit_length: int | None) -> bool:
 
 
 def check_item(item: object, *, unit_length: int | None, protected: bool,
-               sensitive_keys: Container[str], allow_unratified: bool) -> None:
+               sensitive_keys: Container[str], allow_unratified: bool,
+               suspension_permits_self_description: bool) -> None:
     """The release-time half of §8.4's item rules. Returns None or raises (A11).
 
-    Four required keywords, no defaults. `sensitive_keys` in particular: a default of
+    FIVE required keywords, no defaults. `sensitive_keys` in particular: a default of
     the empty set would mean "nothing is sensitive" for a caller who never wired P5,
-    which is the same shape of failure as a column with no writer.
+    which is the same shape of failure as a column with no writer. And
+    `suspension_permits_self_description` in particular: a default of False would be SAFE, and it
+    would still be a caller who never made the choice -- `80` §8.3's C1 wants the
+    developer who forgets this exception to be stopped, not defaulted.
 
     The order matches `release.DECISION_ORDER`: always-local before whole-document,
     so an item that fails both is reported as the stronger refusal.
@@ -277,6 +374,20 @@ def check_item(item: object, *, unit_length: int | None, protected: bool,
         `protected_records_template` and `protected_cloud_target`.
     """
     kind = kind_of(item)
+
+    if kind in SUSPENDED_ITEM_KINDS and not suspension_permits_self_description:
+        raise SelfDescriptionNotAdmitted(
+            f"{kind!r} is admitted only when the person running the command asked "
+            f"for it. `80` §2 rules a typed self-description a `user_edits` item "
+            f"under `00`:186 -- always local -- and `80` §8 suspends the enforcement "
+            f"of that for development, on three conditions of which the first is "
+            f"that local stays the DEFAULT: sending is an explicit act and never "
+            f"what happens by not choosing. Pass suspension_permits_self_description=True to "
+            f"admit it deliberately; there is no default, and `allow_unratified` "
+            f"does not imply it -- `80` §8.1 scopes this suspension to nothing but "
+            f"the self-description. `00`:200: revocation cannot necessarily retract "
+            f"data already sent to an external provider."
+        )
 
     if kind in UNRATIFIED_ITEM_KINDS and not allow_unratified:
         raise UnratifiedItemKind(

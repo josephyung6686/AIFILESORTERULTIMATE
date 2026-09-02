@@ -171,14 +171,18 @@ def test_paths_are_always_local_and_filename_is_a_separate_string():
 
 # --- the six releasable item kinds -------------------------------------------
 
-def test_the_six_item_kinds_are_the_specs_six_in_order():
+def test_the_seven_item_kinds_are_the_specs_six_plus_the_owners_seventh():
+    """The seventh was added 2026-09-02 with the owner's approval recorded at the
+    member. `80` §2's "NO TENTH MEMBER IS ADDED" is about `ALWAYS_LOCAL` and still
+    holds; this is the releasable-kinds set beside it, and the classification of a
+    self-description as a `user_edits` item is unchanged."""
     assert ITEM_KINDS == (
         "excerpt", "redacted_identifier", "candidate_label", "metadata_field",
-        "evidence_reference", "filename",
+        "evidence_reference", "filename", "self_description",
     )
 
 
-def test_filename_is_the_only_kind_the_designs_own_sentence_does_not_list():
+def test_two_kinds_are_outside_the_designs_own_sentence_for_two_reasons():
     # §8.4 permits five. P7 singularises each and spells "non-sensitive metadata" as
     # `metadata_field`, because the item carries ONE named field. The sixth kind
     # corresponds to no phrase in that sentence: it is the SPEC's flagged reading of
@@ -191,10 +195,17 @@ def test_filename_is_the_only_kind_the_designs_own_sentence_does_not_list():
         "metadata_field": "non-sensitive metadata",
         "evidence_reference": "evidence references",
     }
-    assert [k for k in ITEM_KINDS if k not in from_design] == ["filename"]
+    # TWO now correspond to no phrase in that sentence, for different reasons, and
+    # keeping them distinct is the point: `filename` is the SPEC's flagged reading of
+    # §7.3 versus §7.7, held open as Open question 2; `self_description` is an owner
+    # ruling of 2026-09-02 under `80` §8, recorded at the member. Neither is in §8.4's
+    # own sentence, and neither may be admitted without being asked for by name.
+    assert [k for k in ITEM_KINDS if k not in from_design] == [
+        "filename", "self_description"]
     for phrase in from_design.values():
         assert phrase in DOSSIER_SENTENCE, phrase
     assert "filename" not in DOSSIER_SENTENCE
+    assert "self_description" not in DOSSIER_SENTENCE
     assert 2 in OPEN_QUESTIONS
 
 

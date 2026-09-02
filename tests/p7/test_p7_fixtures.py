@@ -274,7 +274,7 @@ def test_the_gate_fixture_publishes_fourteen_named_fields():
 
 # --- the pin on `Gate.__init__`, which this task owns ------------------------
 
-def test_gate_arguments_are_the_twelve_keywords_the_gate_actually_takes():
+def test_gate_arguments_are_the_thirteen_keywords_the_gate_actually_takes():
     # Task 11 said Task 20 pinned this and Task 20 said it reported a pin on Task 11,
     # so the signature had no owner and an equality test against a hard-coded pair
     # passed while ten keywords went unfilled. Asserted as an EQUALITY against the
@@ -283,21 +283,30 @@ def test_gate_arguments_are_the_twelve_keywords_the_gate_actually_takes():
     keywords = [name for name, p in parameters.items()
                 if p.kind is inspect.Parameter.KEYWORD_ONLY]
     assert tuple(keywords) == GATE_ARGUMENTS
-    assert len(GATE_ARGUMENTS) == 12
+    assert len(GATE_ARGUMENTS) == 13
     assert list(parameters)[:2] == ["self", "conn"]
 
 
-def test_the_ten_required_keywords_have_no_default_and_the_two_optional_ones_do():
+def test_the_ten_required_keywords_have_no_default_and_the_three_optional_ones_do():
     parameters = inspect.signature(Gate.__init__).parameters
     required = [name for name in GATE_ARGUMENTS
                 if parameters[name].default is inspect.Parameter.empty]
     assert required == list(GATE_ARGUMENTS[:10])
-    assert GATE_ARGUMENTS[10:] == ("measure_tokens", "template_for")
-    for optional in GATE_ARGUMENTS[10:]:
-        assert parameters[optional].default is None
+    # THREE optional now. `suspension_permits_self_description` defaults to False,
+    # which is `80` §8.3's condition C1 at the composition surface: local is what
+    # happens by not choosing, so a caller who has never heard of the amendment
+    # constructs a gate that refuses a self-description exactly as it did before.
+    assert GATE_ARGUMENTS[10:] == ("measure_tokens", "template_for",
+                                   "suspension_permits_self_description")
+    # `None` for the two capabilities, because absent means "no tokenizer" and "no
+    # template library" -- there is nothing to be safe or unsafe about. `False` for
+    # the suspension, because absent there is a POSTURE and C1 fixes which one it is.
+    for capability in ("measure_tokens", "template_for"):
+        assert parameters[capability].default is None
+    assert parameters["suspension_permits_self_description"].default is False
 
 
-def test_gate_arguments_fills_every_one_of_the_twelve_for_every_fixture():
+def test_gate_arguments_fills_every_one_of_the_thirteen_for_every_fixture():
     # The `None` defaults are the trap: `template_for=None` makes
     # `protected_records_template` unreachable on an excerpt and `measure_tokens=None`
     # makes `dossier_over_budget` unreachable, so two of the eighteen fixtures would
