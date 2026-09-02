@@ -40,8 +40,6 @@ import sqlite3
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
@@ -194,12 +192,31 @@ def test_a_corpus_that_agrees_on_everything_is_filed_from_its_own_facts(tmp_path
     # The last three, because the first run's decisions are still here and are
     # not superseded: two runs against one database is two assessments per file.
     # Only the last three are asserted, and deliberately: what the FIRST run's
-    # three say depends on `cli.choose_option`, which the xfail below is about,
-    # so pinning them here would make this test fail on the hunk landing rather
-    # than on anything being wrong.
+    # three say depends on `cli.choose_option`, which the cold-run test below is
+    # about, so pinning them here would tie this test to that one's answer.
     assert verdicts[-3:] == ["accept_direct"] * 3, verdicts
     # Nothing was even prepared for a model: no dossier, no pre-call abstention.
     assert "Nothing about it left this device" not in second, second
+
+
+def test_the_plan_then_freezes_and_says_how_many_files_it_will_move(tmp_path):
+    """The lead's own instrument, and the last stage a person passes through.
+
+    `Files: N ready to file` is a count in a report; `Frozen: N file(s) are ready
+    to move` is the thing they can act on. Measured against the tree at
+    9e7152e~1, all three shapes of this corpus answered "Nothing was frozen: no
+    placement in this run is ready to move" -- so the report count and the freeze
+    were failing together, and pinning only the report count would leave the
+    stage the person actually uses untested.
+    """
+    corpus = _corpus(tmp_path, AGREEING)
+    first = _run(corpus, "PHYS 1401")
+
+    frozen = _run(corpus, "PHYS 1401", "--answer", _nesting_answer(first),
+                  "--freeze")
+
+    assert "Frozen: 3 file(s) are ready to move" in frozen, frozen
+    assert "Nothing was frozen" not in frozen, frozen
 
 
 def test_the_option_that_files_them_does_not_promise_folders_it_will_not_build(
@@ -244,23 +261,19 @@ def test_two_folders_that_both_claim_the_value_still_have_to_ask(tmp_path):
     assert "needed a model" in printed, printed
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`cli.choose_option` takes the first option that passes its checks AND has "
-    "CHILDREN, so the option that populates the branch itself -- no children, "
-    "one rewritten node -- is skipped and `keep-as-it-is` is taken instead. "
-    "`src/cli.py` is the composition root and belongs to the lead; the hunk is "
-    "written out in scratchpad/q1/CLI-PATCH.txt. Measured under it: this XPASSes "
-    "and EIGHT other tests turn red, seven of them because their corpora were "
-    "built to leave a file unplaced and it no longer is -- the fixtures need "
-    "re-cutting, not the hunk reverting. The eighth is a message: a protected "
-    "file contradicted off the branch's new expectation is told "
-    "`conflicting_facts` where it used to be told `protected material`, which is "
-    "`66` §4's collapse and is the lead's to rule on. UNMARK when it lands, do "
-    "not delete."))
 def test_the_first_run_files_them_without_being_answered(tmp_path):
     """`80` R2: the friction budget is spent once. A person whose files agree on
     everything should not have to answer a question to be told what the product
-    already measured -- the first run is the one they judge it by."""
+    already measured -- the first run is the one they judge it by.
+
+    A strict xfail until the `cli.choose_option` hunk landed. `choose_option`
+    took the first option that passed its checks AND HAD CHILDREN, so the option
+    that populates the branch itself -- no children, one rewritten node -- was
+    skipped and `keep-as-it-is` taken instead: the package could file these files
+    and the composition root never asked it to. Unmarked, not deleted; it is the
+    only test that covers the cold run, which is the run a person judges the
+    product by.
+    """
     corpus = _corpus(tmp_path, AGREEING)
 
     printed = _run(corpus, "PHYS 1401")

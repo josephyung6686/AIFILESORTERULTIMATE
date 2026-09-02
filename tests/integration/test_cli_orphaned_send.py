@@ -56,13 +56,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
 
-#: Twenty-four photographs and two coursework files. The photographs are what a
+#: Twenty-six photographs and two coursework files. The photographs are what a
 #: person actually has a lot of and cannot classify; the two coursework files
 #: exist so a tree gets built at all, because a corpus that designs no tree
 #: refuses before it can surface a review set. At the deployment ceiling of
-#: eight this chunks into four sets, which is the smallest corpus that can
-#: renumber.
-PHOTOS = 24
+#: eight the photographs chunk into four sets, which is the smallest corpus that
+#: can renumber.
+#:
+#: TWENTY-SIX AND NOT TWENTY-FOUR since `9e7152e`. The two coursework files used
+#: to land in the review sets as well -- their branch stated nothing, so nothing
+#: could be filed into it -- and twenty-four photographs plus those two made the
+#: twenty-six this chunking wants. They are filed now, which is the whole point
+#: of that commit, so the photographs have to supply the whole population on
+#: their own. The count is the only thing that changed here: a review set is
+#: about a file NOTHING can place, and a photograph carrying no fact is that
+#: file, where a syllabus whose subject named its own branch never was.
+PHOTOS = 26
 DELETED = 8
 
 #: What the screen prints, and therefore what the person types.
