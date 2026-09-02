@@ -65,6 +65,49 @@ HOSTILE = StructuralQuestion(
              QuestionOption("keep-as-it-is", "Keep this branch as it is")),
     evidence_refs=("declared:branch:Legal Matters",))
 
+#: The redirect ALONE, with nothing else wrong with the line. `HOSTILE` carries
+#: both hazards at once and the space is the louder of the two -- an unquoted
+#: `branch:Legal Matters=...` splits at the space and every assertion below fails
+#: on THAT, which is how a guard comes to be named for a hazard it never tested.
+#: Every question id that is not branch-scoped has no space in it, so this is the
+#: ordinary case and the one the redirect would actually reach.
+REDIRECTING = StructuralQuestion(
+    question_id="branch:Coursework", answer_class=STRUCTURAL,
+    prompt="How should Coursework be organised?",
+    evidence_context="Four files sit under Coursework.",
+    unlocks="This decides the folders inside this branch.",
+    will_not_do="It will not move, rename or delete anything.",
+    scope="branch:Coursework",
+    handling_class="personal_non_sensitive",
+    options=(QuestionOption("school>term>subject>work_type",
+                            "school / term / subject / work type"),),
+    evidence_refs=("declared:branch:Coursework",))
+
+
+def _shell_tokens(line: str) -> list[str]:
+    """What a SHELL makes of the line, which is not what `shlex.split` makes of it.
+
+    **This function is the finding.** `shlex.split` has no opinion about `>`:
+    `shlex.split("--answer q=a>b")` returns `['--answer', 'q=a>b']`, one happy
+    token, so every assertion in this file passed on a line a real shell would
+    treat as a redirect. The guard was named for a hazard it could not detect,
+    and caught the unquoted case at all only because `HOSTILE`'s scope also
+    contains a space -- the louder of the two, masking the other.
+
+    `punctuation_chars=True` is what models the shell's own reading: it makes `>`
+    a token in its own right. `whitespace_split=True` keeps the rest of the line
+    splitting the way a command line does rather than on `shlex`'s default word
+    characters.
+
+    Raised by the role-matcher agent, who hit the identical hole in
+    `role_report`'s three renders and proved it by sabotage. Measured here the
+    same way: with the quoting removed, reverting this function to `shlex.split`
+    turns the redirect test GREEN on the live defect.
+    """
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    return list(lexer)
+
 
 @pytest.fixture()
 def qconn():
@@ -106,7 +149,7 @@ def test_every_command_the_explanation_offers_survives_a_shell(qconn):
     seen = _explained(qconn)
     offered = {option.option_id for option in HOSTILE.options} | {"skip", "revoke"}
     for command in _commands(seen.how_to_change):
-        parts = shlex.split(command)
+        parts = _shell_tokens(command)
         assert parts[:1] == ["--answer"], (
             f"{command!r} does not begin with the flag it claims to use")
         assert len(parts) >= 2, f"{command!r} names the flag and nothing else"
@@ -117,6 +160,30 @@ def test_every_command_the_explanation_offers_survives_a_shell(qconn):
         assert option_id in offered, (
             f"{option_id!r} is not one of this question's answers; the shell "
             f"took the line apart somewhere the screen did not say it would")
+
+
+def test_a_redirect_alone_is_caught_when_nothing_else_is_wrong(qconn):
+    """The `>` on a question id with no space in it -- the ordinary case.
+
+    Separate from the test above and on a separate fixture, because the two
+    hazards mask each other. `HOSTILE` splits at its space whether or not the
+    redirect is handled, so it cannot tell a line that survives a shell from one
+    that merely survives `shlex.split`. Every question id that is not
+    branch-scoped has no space, so this is the case the redirect actually reaches.
+
+    What a person loses if this is wrong is not an error message. Pasting
+    `--answer branch:Coursework=school>term>subject>work_type` creates empty files
+    called `term`, `subject` and `work_type` in whatever directory they are
+    standing in, and prints nothing at all.
+    """
+    seen = _explained(qconn, question=REDIRECTING,
+                      option_id="school>term>subject>work_type")
+    for command in _commands(seen.how_to_change):
+        tokens = _shell_tokens(command)
+        assert ">" not in tokens, (
+            f"a shell reads {command!r} as {tokens} -- the `>` is a redirect it "
+            f"will act on, silently, and the option is truncated before it "
+            f"reaches `--answer`")
 
 
 def test_the_explanation_offers_the_options_the_way_the_report_does(qconn):
@@ -149,7 +216,7 @@ def test_the_rendered_lines_are_still_one_command_each(qconn):
     assert len(typable) == len(HOSTILE.options) + 2, (
         f"the renderer offers {len(typable)} typable lines:\n{rendered}")
     for line in typable:
-        parts = shlex.split(line)
+        parts = _shell_tokens(line)
         assert parts[1].startswith(f"{HOSTILE.question_id}="), (
             f"a shell reads {line!r} as {parts}, whose argument is not this "
             f"question's")

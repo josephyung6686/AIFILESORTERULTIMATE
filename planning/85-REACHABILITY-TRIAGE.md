@@ -412,17 +412,39 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
 6. **A test on the live path is not the live path.** `extraction_stage_output` is
    exercised by `tests/integration/test_live_path.py`, whose name says the opposite
    of what it proves about reachability. Read the CALL, not the test's name.
-7. **The instrument that underwrites "no model transport is wired" can be
-   evaded, and nothing checks.** §3's first cause and §9's sixth are both the claim
-   that nothing in `src/` transports. That claim rests on a scan for modules
-   DECLARING `IS_MODEL_TRANSPORT`; a module that calls a client's `invoke` without
-   setting the flag is invisible to it. Raised by the role-matcher agent, whose
-   `tests/p15/test_p15_no_second_egress.py` closes it for `src/questions/` and for
-   nothing else. So the cause is sound today and is not GUARDED today, and every
-   "transport-gated" verdict in §10 inherits that. **A repo-wide version of that
-   test is the cheapest thing on this page.**
+7. **CLOSED, `5e0f835`. The instrument that underwrites "no model transport is
+   wired" could be evaded and nothing checked.** §3's first cause and §9's sixth
+   are both the claim that nothing in `src/` transports, and that rested on a scan
+   for modules DECLARING `IS_MODEL_TRANSPORT` — a module calling a client's
+   `invoke` without setting the flag was invisible to it. The role-matcher agent
+   raised it and closed it repo-wide: `tests/integration/test_single_egress.py`,
+   four rules over every module in `src/` (exactly one declarer; `.invoke(...)`
+   only where the flag is declared; a network reaches `src/` only through
+   `readers/model_*.py`; `src/questions/` may not even name a client), each proven
+   by sabotage. Every transport-gated verdict in §10 may now cite it.
+   **One limit to carry:** its network rule is a NAMED list of client modules, so
+   an SDK nobody has used yet is not on it; the `.invoke` rule is what covers the
+   gap meanwhile.
 
-8. **The three verdicts do not cover "the owner has not chosen a number yet."**
+8. **A guard can be written in a lexer that cannot see the hazard it names.**
+   `c17c76a` fixed a `--answer` line that a shell would act on as a redirect, and
+   `tests/p15/test_p15_typable.py` read that line back with `shlex.split` — which
+   has no opinion about `>` at all: `shlex.split("--answer q=a>b")` returns one
+   happy token. The test called itself "survives a shell" and could not detect a
+   redirect. It went red on the unquoted case only because its fixture ALSO had a
+   space in the question id, and the space is the louder of the two hazards, so
+   the quieter one was never tested. Modelling a shell takes
+   `shlex.shlex(line, posix=True, punctuation_chars=True)` with
+   `whitespace_split=True`. Raised by the role-matcher agent, who hit the identical
+   hole in `role_report`'s three renders (`061cfff`); measured here by sabotage —
+   with the quoting removed, reverting the lexer turns the redirect test GREEN on
+   the live defect. **Fixed in this file's own guard; `tests/test_cli.py:1740` and
+   `:2553` still read the REPORT's `--answer` and `--send-set` lines with
+   `shlex.split`, masked the same way by a deliberate `--label "Legal Matters"`.
+   The code they guard is correct today, so this is a weak guard rather than a
+   live defect — for that file's owner.**
+
+9. **The three verdicts do not cover "the owner has not chosen a number yet."**
    `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
    producers exist, the tests pass, and the only thing missing is three numbers a
    person has to decide. Calling that "correctly dormant" files an owner decision as
@@ -452,9 +474,11 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
   blocks now read the same table through two readers (`upstream.protected_areas` and
   `summary.set_aside_paths`), filtered on complementary halves of one column. That is
   fine and it is also exactly the shape that drifts. Worth a look when P3 next moves.
-- **Generalise `test_p15_no_second_egress.py` to all of `src/`.** It is the only
-  thing standing between §3's first cause and a module that transports without
-  saying so. `src/questions/` is covered; twenty-odd other packages are not.
+- ~~Generalise `test_p15_no_second_egress.py` to all of `src/`.~~ **Done,
+  `5e0f835`** — see §13.7, including the one limit its network rule carries.
+- **Two guards in `tests/test_cli.py` cannot fail for the hazard they name**
+  (§13.8), at `:1740` and `:2553`. Not edited here: that file had another agent's
+  traffic on it, and the code it guards is correct, so nothing is broken today.
 - **`questions.triggers.question_for_situation` is waiting on a detector nobody has
   started.** It is `68` F6's measured defect — the graduate student who also teaches,
   filing her teaching as coursework — and it is the one entry in §10 whose fix is a
