@@ -52,7 +52,7 @@ from questions.store import (
 )
 from questions.vocabulary import (
     CHOICE, CONFIRMED, EXACT_ACTIVATION, FREE_TEXT, MULTIPLE_ROLE_ACTIVATION,
-    ROLE_OUTCOMES, SCOPE_CORPUS, SKIPPED, SKIPPED_ROLE, UNMATCHED, check,
+    REVOKED, ROLE_OUTCOMES, SCOPE_CORPUS, SKIPPED, SKIPPED_ROLE, UNMATCHED, check,
     check_scope,
 )
 
@@ -281,6 +281,20 @@ def live_roles(conn: sqlite3.Connection, *,
     SEVERAL, always -- the return type is a tuple and never an Optional, because
     the shape of the answer is the whole of §16:543. A reader that had to ask for
     "the role" would be asking a question the design says has no answer.
+
+    **A WITHDRAWN role is not one you hold**, and that was wrong here until the
+    panel printed its own withdrawal command and a test ran it. `live_answer`
+    returns a revoked answer -- deliberately, so `open_questions` can see that the
+    question was reopened -- and reading it as live made `--answer role:x=revoke`
+    look like it had done nothing: the role stayed on the panel, and a revoked
+    CHOICE reappeared as UNMATCHED, which says the person typed words they never
+    typed. `answered_options` has excluded revoked answers since P15 shipped, so
+    the schema really was off; only this reader disagreed, which is the worst
+    shape for a disagreement to have.
+
+    SKIPPED stays. §14 makes "skip for now" first-class and it is a different fact
+    from a withdrawal: the person put the question aside rather than taking back an
+    answer, and R2 counts it as spent because they were asked and responded.
     """
     out: list[RoleDeclaration] = []
     for row in conn.execute(
@@ -291,7 +305,7 @@ def live_roles(conn: sqlite3.Connection, *,
             continue
         answer = live_answer(conn, question_id=row["question_id"],
                              scope=row["scope"])
-        if answer is None:
+        if answer is None or answer.state == REVOKED:
             continue
         question = questions_for(conn, (row["question_id"],))[0]
         option = next((candidate for candidate in question.options
