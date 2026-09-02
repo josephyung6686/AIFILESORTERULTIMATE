@@ -140,9 +140,34 @@ fixture**; copy `src/` into a scratchpad instead.
   not exist on the API. Corrected in `.env`; all three tiers now return a live probe. Three tiers
   map onto TWO models, so `logic` shares `deepseek-v4-pro` with `reasoning` — §4's no-silent-
   downgrade forbids sending grouping and placement to `flash`. `83` §6 has it.
-- **THE MODEL PATH IS PROVEN LIVE**, 2026-09-02, for the first time. Client, routing, three tiers,
-  cloud opt-in and the wire handle key are all wired and measured against the real API with
-  synthetic content. **The only remaining gate is the owner's prompt ratification.**
+- **THE MODEL TRANSPORT IS PROVEN LIVE**, 2026-09-02 — all three DeepSeek tiers answer a real
+  probe with synthetic content. **But the lead's claim that "everything is wired except the prompt"
+  was WRONG, and it is corrected here rather than quietly dropped.**
+
+  `install-ratified-prompt` checked the premise instead of building on it and found the situation
+  **inverted**: `grep -rn "DossierRequest(" src/` returns three builders covering FOUR sites —
+  B_group (`grouping/p8_seam.py:198`), C_placement and D_residual (`placement/pipeline.py:896`),
+  E_template (`tree_design/template_schema.py:316`). **A_fact has none.** `facts.llm_seam.build_request`,
+  the function that would produce A_fact's request, has ZERO callers in `src/`; its only other
+  mention in the tree is a docstring at `cli.py:1149`. Verified independently by the lead.
+
+  **So the one site with a ratified prompt has no call path, and the four sites with call paths have
+  no ratified prompt.** `76` §9.3 and `82` §5.5 item 3 both already said "nothing in `src/` builds a
+  Site A dossier"; it had never been placed next to the wiring task. Building one is a new P6 stage
+  after `_direct_stage`/`_rule_stage` plus an eligibility policy — `85` §2's "inventing a call site",
+  not a `cli.py` hunk.
+
+  **Second blocker, independent of the first:** `PromptDefinition` (`llm_harness/records.py:89-98`)
+  refuses empty `response_schema_bytes` and `shaping_policy_bytes` as well as empty template bytes.
+  Both are MODEL-VISIBLE (`dossier.py:218-221`), `response_schema_bytes` is folded into
+  `dossier_content_address` so it is inside every `dossier_id`, and `released_content.py:201-208`
+  checks both by equality at egress as "an authored authority meant to CONSTRAIN the answer".
+  Nothing in `src/` authors either, for any site — every occurrence is a test placeholder
+  (`b'{"type":"object"}'`). **They are the owner's text on the same grounds as the template**
+  (`82` §6.5), and shipping the placeholders would put a schema constraining nothing in front of a
+  model under a fingerprint saying otherwise.
+
+  **`MODEL_CALL_SITES_WIRED` stays FALSE and the on-screen sentence stays true.**
 - **`81` §14.1's six unhomed gestures — APPROVED, 2026-09-02**, spellings shown verbatim before
   approval: `exclude_from_packet`, `rename`, `merge`, `split`, `reorder`,
   `set_refinement_disposition`. The lead first tried to approve these by delegation and
