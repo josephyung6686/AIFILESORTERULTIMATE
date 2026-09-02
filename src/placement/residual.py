@@ -234,6 +234,87 @@ def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
     return tuple(surfaced)
 
 
+@dataclass(frozen=True)
+class PriorSetDecision:
+    """One §7.6 answer an earlier run recorded, in the words it was given in.
+
+    `label` and not `set_id` is the field a caller prints. A `set_id` is
+    `plan_version:label-index` and the plan version is a string the person has
+    never seen; putting it on a screen would be an internal id in a sentence
+    about their own decision.
+    """
+    set_id: str
+    plan_version: str
+    label: str
+    choice: str
+    node_id: str | None
+    decided_at: str
+
+
+def prior_set_decisions(conn: sqlite3.Connection, *,
+                        plan_version: str) -> tuple[PriorSetDecision, ...]:
+    """The set answers this run is NOT honouring, so a caller can say so.
+
+    §7.6's decisions are scoped to a plan version and every run mints a new one,
+    so `require_set_decision` -- which reads `(plan_version, set_id)` -- can never
+    match an earlier run's row. That is deliberate and `act_on_residual_sets`
+    gives the reason: a later run's set may hold different files, and applying an
+    old answer to it unseen "would be this product filing material against a
+    screen nobody read."
+
+    THE SCOPE IS RIGHT AND THE SILENCE IS NOT. The rows stay in the table
+    forever and, until this function existed, nothing ever read one again. A
+    person who filed eight photos into a residual area yesterday and re-runs
+    today is shown a plan with no trace of that answer and no sentence saying it
+    was not carried forward -- measured on a real corpus, where the whole "Would
+    go into" block simply vanishes. `84` §6: a decision that no longer applies is
+    named out loud, never silently omitted. This is the read that makes saying it
+    possible; it decides nothing and applies nothing.
+
+    THE LAST RUN THAT DECIDED ANYTHING, NOT EVERY RUN EVER. A month of use puts a
+    month of answers in this table and naming all of them would be a wall of text
+    that says less than one line. `plan_versions.predecessor_id` is not the way
+    to bound it: each run of the command starts a fresh lineage root, so there is
+    no chain from this run back to yesterday's. `decided_at` is the ordering that
+    exists, so the rule is the single most recent OTHER plan version carrying any
+    decision, and then every decision that version holds -- because a person who
+    sent three sets somewhere yesterday told the product three things, and
+    reporting one of them would be a new silence in place of the old one.
+
+    Read-only. It writes nothing and raises nothing on a database that has never
+    recorded an answer, which is the first run every person makes.
+    """
+    latest = conn.execute(
+        "SELECT plan_version FROM residual_set_decisions "
+        "WHERE plan_version != ? AND superseded_by IS NULL "
+        "ORDER BY decided_at DESC, record_id DESC LIMIT 1",
+        (plan_version,),
+    ).fetchone()
+    if latest is None:
+        return ()
+    # LEFT JOIN, and that is not defensiveness. The label lives in
+    # `residual_sets`, a different table written in a different transaction; a
+    # decision whose set row is missing is still a decision the person made, and
+    # dropping it here would reintroduce the exact silence this function exists
+    # to end. It falls back to the set_id, which is ugly and present.
+    rows = conn.execute(
+        "SELECT d.set_id, d.plan_version, d.choice, d.node_id, d.decided_at, "
+        "       s.label "
+        "FROM residual_set_decisions d "
+        "LEFT JOIN residual_sets s "
+        "  ON s.record_id = d.set_id AND s.superseded_by IS NULL "
+        "WHERE d.plan_version = ? AND d.superseded_by IS NULL "
+        "ORDER BY s.label, d.set_id",
+        (latest["plan_version"],),
+    ).fetchall()
+    return tuple(
+        PriorSetDecision(
+            set_id=row["set_id"], plan_version=row["plan_version"],
+            label=row["label"] or row["set_id"], choice=row["choice"],
+            node_id=row["node_id"], decided_at=row["decided_at"])
+        for row in rows)
+
+
 def set_decision_id(decision: ResidualSetDecision) -> str:
     """One row address for one set answer, at the moment it was given."""
     return f"{decision.plan_version}:{decision.set_id}:{decision.decided_at}"
