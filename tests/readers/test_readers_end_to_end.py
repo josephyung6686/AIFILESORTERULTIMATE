@@ -352,3 +352,141 @@ def test_a_real_vision_box_survives_to_a_parsed_p4_region(db, tmp_path):
         assert region.unit == "norm"
         assert all(0.0 <= v <= 1.0 for v in (region.x, region.y, region.w, region.h))
 
+
+
+# --------------------------------------------------------------------------- #
+# §2.9's long tail, and §2.9's own sensitivity rule, over the same live path
+# --------------------------------------------------------------------------- #
+
+def test_a_real_csv_becomes_cell_evidence_addressed_by_row_and_column(db, tmp_path):
+    """`read_long_tail` was `_no_reader`, so a spreadsheet recorded `unsupported` --
+    "no reader exists and the bytes were never looked at" -- and every count
+    downstream agreed the file carried nothing. §2.9 asks a spreadsheet for "column
+    headers, visible cell values", and each value has to be ADDRESSED: P4's locator
+    is what lets a fact cite the cell it came from rather than the file.
+    """
+    import json
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "grades.csv").write_text("student_id,course,grade\nS1001,BUSIB 4300,A\n")
+
+    go(db, root)
+    rows = [dict(row) for row in db.execute(
+        "SELECT raw_value, location FROM evidence "
+        "WHERE source_type = 'spreadsheet' ORDER BY observation_key")]
+    assert rows, "a real .csv produced no evidence at all"
+
+    located = {row["raw_value"]: json.loads(row["location"]) for row in rows}
+    assert "BUSIB 4300" in located, sorted(located)
+    address = located["BUSIB 4300"]["container_path"]
+    # `.get`, because the stored locator omits a null rather than spelling it: the
+    # round trip through `evidence_shape.locator` is part of what is asserted here.
+    assert [(segment["kind"], segment.get("index"), segment.get("label"))
+            for segment in address] == [
+        ("sheet", 1, None), ("row", 2, None), ("column", 2, "course")]
+
+
+def test_a_spreadsheet_run_reports_the_sheets_it_processed(db, tmp_path):
+    """§8.6 needs the difference between completed and deferred work legible, and
+    `coverage` is where a run says it. This one used to read `{"processed": 0,
+    "total": 1}` on every spreadsheet in every corpus."""
+    import json
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "grades.csv").write_text("course\nBUSIB 4300\n")
+
+    go(db, root)
+    row = db.execute("SELECT completeness, coverage FROM extraction_runs "
+                     "WHERE source_type = 'spreadsheet'").fetchone()
+    assert row["completeness"] == "complete"
+    assert json.loads(row["coverage"]) == {"units": "entries", "processed": 1,
+                                           "total": 1}
+
+
+def test_every_value_of_a_contact_card_is_marked_potentially_sensitive(db, tmp_path):
+    """§2.9, Contacts: address-book output "should normally be privacy-protected
+    rather than used to create folder proposals."
+
+    Reading `.vcf` files is new, and a new reader that made a person's address book
+    readable WITHOUT its values arriving marked would be a privacy regression bought
+    with an extraction win. The marking is `extract_long_tail`'s, the recording is
+    the orchestrator's, and this asserts the whole chain over real bytes.
+    """
+    from extractors.long_tail import POTENTIALLY_SENSITIVE
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "adviser.vcf").write_text(
+        "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Amara Chen\r\n"
+        "ORG:Example University\r\nEMAIL:achen@example.edu\r\n"
+        "TEL:+1-555-0142\r\nEND:VCARD\r\n")
+
+    go(db, root)
+    marked = {row["observation_key"] for row in db.execute(
+        "SELECT observation_key FROM extraction_sensitivity_signal "
+        "WHERE signal = ?", (POTENTIALLY_SENSITIVE,))}
+    contact_keys = {row["observation_key"]: row["raw_value"] for row in db.execute(
+        "SELECT observation_key, raw_value FROM evidence "
+        "WHERE source_type = 'contacts'")}
+
+    assert contact_keys, "a real .vcf produced no evidence at all"
+    assert set(contact_keys) == marked, (
+        "these contact values reached the evidence table unmarked: "
+        f"{sorted(contact_keys[k] for k in set(contact_keys) - marked)}")
+
+
+def test_a_contact_value_cannot_leave_as_an_excerpt(db, tmp_path):
+    """The other end of the same chain: P7 refuses to release what P5 marked.
+
+    `privacy.items.check_item` is the release-time gate, and this asserts the
+    refusal on a key that a REAL `.vcf` produced through the shipped path -- not on
+    a fixture key chosen to make the point.
+    """
+    from privacy.items import (
+        AlwaysLocalRequested, Excerpt, check_item, sensitive_observation_keys,
+    )
+
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "adviser.vcf").write_text(
+        "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Amara Chen\r\n"
+        "TEL:+1-555-0142\r\nEND:VCARD\r\n")
+
+    go(db, root)
+    row = db.execute("SELECT file_id, observation_key FROM evidence "
+                     "WHERE raw_value = '+1-555-0142'").fetchone()
+    assert row is not None, "the telephone number did not reach the evidence table"
+
+    sensitive = sensitive_observation_keys(db, row["file_id"])
+    with pytest.raises(AlwaysLocalRequested):
+        check_item(
+            Excerpt(observation_key=row["observation_key"], span=None,
+                    reason="a folder proposal"),
+            unit_length=None, zone="metadata", protected=False,
+            sensitive_keys=sensitive, allow_unratified=False,
+            suspension_permits_self_description=False)
+
+
+def test_an_html_pages_script_body_never_reaches_the_evidence_table(db, tmp_path):
+    """`read_text_document` decoded any text format as UTF-8 and returned the bytes,
+    so a page's `<script>` contents were stored as the document's prose and read by
+    the recogniser as if the author had written them. This is that defect, asserted
+    where it would actually have shown: in the database, after a live run.
+    """
+    root = tmp_path / "Documents"
+    root.mkdir()
+    (root / "registration.html").write_text(
+        "<html><head><style>body { font-family: BUSIB; }</style>"
+        '<script>var tracking = "BUSIB 9999";</script></head>'
+        "<body><h1>BUSIB 4300</h1><p>You are enrolled.</p></body></html>")
+
+    go(db, root)
+    stored = "\n".join(row["text"] for row in db.execute("SELECT text FROM text_units"))
+    values = {row["raw_value"] for row in db.execute("SELECT raw_value FROM evidence")}
+
+    assert "tracking" not in stored
+    assert "font-family" not in stored
+    assert "BUSIB 9999" not in values, "a script literal was read as a course code"
+    assert "BUSIB 4300" in values
