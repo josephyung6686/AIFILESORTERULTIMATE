@@ -33,7 +33,11 @@ from mutation.plan import build_plan  # noqa: E402
 from mutation.vocabulary import PRESERVE_BOTH_DETERMINISTIC_SUFFIX  # noqa: E402
 from placement.store import decisions_for_plan  # noqa: E402
 from privacy.vocabulary import HANDLING_CLASSES  # noqa: E402
-from placement.vocabulary import PLACE  # noqa: E402
+from placement.vocabulary import (  # noqa: E402
+    PLACE, PRIVACY_BLOCKED, REVIEW_REQUIRED,
+)
+from privacy.classification import UNREADABLE_UNCLASSIFIED  # noqa: E402
+from privacy.vocabulary import DENIAL_REASONS  # noqa: E402
 from tree_design.store import nodes_for_version  # noqa: E402
 
 #: The top-level package under `src/` that owns each part. `02`'s thirteen, plus
@@ -127,6 +131,19 @@ def _corpus(root: Path) -> Path:
     (corpus / "notes about nothing.txt").write_text(
         "Some free text with no identifiers at all.\n")
     return corpus
+
+
+#: The residual area `--send-set` files into. Named once, because the ONLY way
+#: an assertion below can mention it is by the run having been told it here --
+#: a bare literal on the far side would be a string the test wrote matching a
+#: string the test wrote.
+RESIDUAL_AREA: str = "Reading Inbox"
+
+#: §8.4's refusal `cli.py`'s offline mode produces, spelled from P7's own closed
+#: vocabulary so a rename in `privacy/` is a red test rather than an assertion
+#: that quietly stops matching anything.
+MODE_FORBIDS_TARGET: str = "mode_forbids_target"
+assert MODE_FORBIDS_TARGET in DENIAL_REASONS
 
 
 def _argv(corpus: Path, database: Path) -> list[str]:
@@ -317,11 +334,10 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
     assert cli.main(_argv(corpus, database), out=first) == 0, first.getvalue()
     second = io.StringIO()
     assert cli.main(_argv(corpus, database)
-                    + ["--residual", "Reading Inbox",
-                       "--send-set", "Not yet placed=Reading Inbox"],
+                    + ["--residual", RESIDUAL_AREA,
+                       "--send-set", f"Not yet placed={RESIDUAL_AREA}"],
                     out=second) == 0, second.getvalue()
-    report = second.getvalue()
-    assert "then file into Reading Inbox" in report, report
+    report = _unwrapped(second.getvalue())
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -339,7 +355,39 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
         "is describing something that did not happen")
 
     nodes = nodes_for_version(conn, plan_version)
+    by_id = {node.node_id: node for node in nodes}
     legal = frozenset(node.node_id for node in nodes if node.accepts_placement)
+
+    # WHAT P11 RECORDED, before anything about what was printed. A `place` into
+    # the area the person named, under the review policy that says a human must
+    # approve it first. These are three values P11 wrote; no amount of prose
+    # anywhere can satisfy them.
+    into_the_area = [
+        decision for decision in placed
+        if by_id[decision.destination.node_id].display_label == RESIDUAL_AREA
+        and decision.review_policy == REVIEW_REQUIRED]
+    assert into_the_area, (
+        "`--send-set` produced no `place` decision into the named area under "
+        "`review_required`, so the headline the person read is describing "
+        "something the record does not say: "
+        + repr([(d.outcome, d.review_policy) for d in placed]))
+
+    # Nothing is asserted about the report's WORDING here, and that is a
+    # decision rather than an omission. Two versions were tried and both were
+    # guards that could not fail. Quoting a fragment ("then file into Reading
+    # Inbox") is satisfied by any prose containing those words -- the failure
+    # mode that took the remedy xfail below to XPASS on an unrelated header line
+    # an hour after it was written. Reading the sentence from
+    # `cli.PLACEMENT_WORDS` instead is self-satisfying: the expectation and the
+    # output come from one table, so re-pointing the table moves both sides
+    # together, and a sabotage that gave `review_required` the
+    # `blocked_pending_user` wording passed. Keying it as "this policy's
+    # sentence and not the other two" is simply false of a real corpus -- this
+    # one sends a `review_required` pair and a `blocked_pending_user` file to
+    # the SAME area, and the report is right to say both.
+    #
+    # What this test is for is the seam, and the seam is proved by the records
+    # above and the plans below. The report's copy is `74` §9's business.
     plans = []
     for decision in placed:
         built = build_plan(
@@ -366,14 +414,21 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
     conn.close()
 
     assert len(plans) == len(placed)
-    for plan in plans:
+    labels = {node.node_id: node.display_label for node in nodes}
+    for decision, plan in zip(placed, plans):
         # §5.12 / §6.2: the decision names a node, never a path, and P12 is the
         # part that composes one. A plan whose destination is not under the
         # anchor would mean the seam had carried a path across it.
         assert plan.resolved_destination_path.startswith(str(corpus.parent))
-        assert "Reading Inbox" in plan.resolved_destination_path
+        # The label P10 froze on the node P11's decision names -- read off the
+        # record, not typed here, and matched as a whole path COMPONENT rather
+        # than as a substring. A substring of a path is satisfied by any
+        # ancestor directory that happens to contain those characters.
+        assert (labels[decision.destination.node_id]
+                in Path(plan.resolved_destination_path).parts), (
+            plan.resolved_destination_path)
         # And nothing was created on disk: building a plan is not applying one.
-        assert not (corpus.parent / "Reading Inbox").exists()
+        assert not (corpus.parent / RESIDUAL_AREA).exists()
 
 
 # --- P7 -> P8, the seam the product does not have -----------------------------
@@ -425,24 +480,41 @@ def _gate_over(conn, plan_version: str):
         user_id="jy")
 
 
-def _one_classified_file(conn) -> tuple[str, str, object]:
-    """A file the run classified, and one of its real observations.
+def _the_file_the_run_refused_a_model(conn, plan_version: str) -> str:
+    """The file P11 RECORDED as blocked by §8.4 -- not the sentence it printed.
 
-    Not any file: `classifications` is what P7 actually wrote, so a corpus that
-    classified nothing would make every assertion below vacuous in exactly the
-    way `22` §6 warns about, and this raises instead.
+    The report's *"§8.4 did not clear this file for a model call"* is one of
+    three sentences `_abstention_explanation` chooses between, and asserting on
+    its words would be asserting on prose: any run that grew a header mentioning
+    §8.4 would satisfy it. The state that PRODUCES that sentence is a decision
+    row with `abstention_reason = privacy_blocked` whose subject is classified
+    and not protected, and those are three values P11 wrote. This finds one, and
+    the gate below is then asked about THAT file rather than about any file that
+    happens to have a classification.
+
+    Raises if there is none, because a run in which §8.4 blocked nothing would
+    make the comparison vacuous in exactly the way `22` §6 says check 4 is.
     """
+    blocked = [
+        decision for decision in decisions_for_plan(conn,
+                                                    plan_version=plan_version)
+        if decision.abstention_reason == PRIVACY_BLOCKED
+        and decision.privacy.handling_class != UNREADABLE_UNCLASSIFIED
+        and not decision.privacy.protected]
+    assert blocked, (
+        "the run blocked no CLASSIFIED file on §8.4, so there is no verdict for "
+        "§8.4's door to be compared against and this would pass by measuring "
+        "nothing")
+    return blocked[0].subject.file_id
+
+
+def _an_observation_of(conn, file_id: str) -> tuple[str, object]:
+    """One real observation of that file, by the key P4 stored it under."""
     from evidence_shape.store import observations_by_key
-    row = conn.execute(
-        "SELECT file_id FROM classifications LIMIT 1").fetchone()
-    assert row is not None, (
-        "the run classified nothing, so asking §8.4's door about it would be "
-        "the vacuous check `22` §6 says check 4 currently is")
-    file_id = row[0]
     key = conn.execute(
         "SELECT observation_key FROM evidence WHERE file_id = ? LIMIT 1",
         (file_id,)).fetchone()[0]
-    return file_id, key, observations_by_key(conn, key)[0]
+    return key, observations_by_key(conn, key)[0]
 
 
 def _model_call_request(file_id: str, key: str, observation, *, locality: str):
@@ -468,11 +540,16 @@ def _model_call_request(file_id: str, key: str, observation, *, locality: str):
 def test_the_gate_refuses_the_call_the_report_says_was_not_cleared(tmp_path):
     """P7 -> P8, asked of the records a real run wrote.
 
-    The report tells a person *"§8.4 did not clear this file for a model call"*.
-    That sentence is `placement/pipeline.py`'s, reached through P7's own
-    predicates rather than through the door -- `cli.py` builds no `Gate`, so
-    `Gate.release` has never been called on anything but a fixture. This asks the
-    door the same question about the same file and requires the same answer.
+    P11 records `abstention_reason = privacy_blocked` against a file it has a
+    classification for, reached through P7's own predicates rather than through
+    the door -- `cli.py` builds no `Gate`, so `Gate.release` has never been
+    called on anything but a fixture. This asks the door the same question about
+    THAT file and requires the same answer.
+
+    Keyed on the recorded reason and not on the sentence the report prints from
+    it. The sentence is prose, and prose is satisfied by prose: the guard beside
+    this one matched a fragment and went XPASS on an unrelated header line an
+    hour after it was written.
 
     If P7's door and P11's re-derivation ever diverge, a person is told one thing
     while §8.4's audit record says another, and nothing else in the suite can see
@@ -484,15 +561,14 @@ def test_the_gate_refuses_the_call_the_report_says_was_not_cleared(tmp_path):
     database = tmp_path / "plan.sqlite"
     out = io.StringIO()
     assert cli.main(_argv(corpus, database), out=out) == 0, out.getvalue()
-    assert ("§8.4 did not clear this file for a model call"
-            in _unwrapped(out.getvalue()))
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
     plan_version = conn.execute(
         "SELECT plan_version FROM privacy_policies ORDER BY rowid DESC "
         "LIMIT 1").fetchone()[0]
-    file_id, key, observation = _one_classified_file(conn)
+    file_id = _the_file_the_run_refused_a_model(conn, plan_version)
+    key, observation = _an_observation_of(conn, file_id)
     decision = _gate_over(conn, plan_version).release(
         _model_call_request(file_id, key, observation, locality="cloud"))
     conn.close()
@@ -504,7 +580,7 @@ def test_the_gate_refuses_the_call_the_report_says_was_not_cleared(tmp_path):
     # content leaves the device -- so the refusal is about egress and says
     # nothing about the material, which is the distinction
     # `placement/privacy.py` is written around.
-    assert decision.reason == "mode_forbids_target", decision.explanation
+    assert decision.reason == MODE_FORBIDS_TARGET, decision.explanation
 
 
 @pytest.mark.xfail(
@@ -538,14 +614,14 @@ def test_a_person_refused_a_model_call_is_offered_the_remedy_p7_composed(tmp_pat
     out = io.StringIO()
     assert cli.main(_argv(corpus, database), out=out) == 0, out.getvalue()
     report = _unwrapped(out.getvalue())
-    assert "§8.4 did not clear this file for a model call" in report
 
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
     plan_version = conn.execute(
         "SELECT plan_version FROM privacy_policies ORDER BY rowid DESC "
         "LIMIT 1").fetchone()[0]
-    file_id, key, observation = _one_classified_file(conn)
+    file_id = _the_file_the_run_refused_a_model(conn, plan_version)
+    key, observation = _an_observation_of(conn, file_id)
     decision = _gate_over(conn, plan_version).release(
         _model_call_request(file_id, key, observation, locality="cloud"))
     conn.close()
