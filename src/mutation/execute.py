@@ -98,6 +98,16 @@ _RESULT_DETAILS: Mapping[str, tuple[str, ...]] = {
 _NO_DETAIL: Mapping[str, object] = MappingProxyType({})
 
 
+class DestinationDirectoryChanged(RuntimeError):
+    """A collision behaviour changed the destination DIRECTORY, not just a name.
+
+    `resolve_collision` picks a name within the directory it was handed, so this
+    cannot happen today. It is raised rather than assumed because the
+    containment check in `apply_plan` is made once, against `destination`, and
+    its answer is only inherited by `final` for as long as that stays true.
+    """
+
+
 class BatchPolicyRequired(RuntimeError):
     """`74` §8 Q6's bound or halt rule is absent, or the batch exceeds the bound.
 
@@ -517,11 +527,19 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
         final = Path(collision.final_destination_path)
         # The containment answer above was about `destination`. A collision
         # behaviour may only rename WITHIN the directory, so `final` inherits
-        # it -- asserted rather than re-checked, because two containment checks
-        # are two things that can disagree.
-        assert final.parent == destination.parent, (
-            "a collision behaviour changed the destination DIRECTORY; the "
-            "containment check above no longer covers where this would land")
+        # it -- stated here rather than re-checked, because two containment
+        # checks are two things that can disagree.
+        #
+        # A `raise` and not an `assert`: `assert` vanishes under `python -O`,
+        # and this is the line standing between a collision behaviour that grew
+        # a new idea about directories and a file landing outside the root while
+        # the check above still says "inside".
+        if final.parent != destination.parent:
+            raise DestinationDirectoryChanged(
+                f"a collision behaviour moved the destination from "
+                f"{destination.parent} to {final.parent}; the containment check "
+                "this function already made no longer covers where the file "
+                "would land, and no move runs on an unchecked path")
 
     pre_apply = evaluate_preconditions(
         conn, plan, checkpoint=PRE_APPLY,

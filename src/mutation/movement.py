@@ -36,6 +36,14 @@ line 5353, where it is already the ruled primitive for the cross-volume branch -
 so the fallback is fail-closed too. `FileExistsError` therefore never reaches it:
 an occupied destination is an ANSWER, not a reason to try another way in.
 
+**One honesty note about that.** `os.link` and `O_EXCL` were MEASURED returning
+`EEXIST` against a case-twin and an NFC/NFD twin on APFS. The fallback exists for
+exFAT, FAT32 and network mounts, which cannot be measured from here, so the claim
+that it is fail-closed under THEIR folding is inferred: `O_EXCL` goes through the
+same name lookup that lets `rename` find and overwrite the twin in the first
+place, so a volume where one folds is a volume where the other does. Sound, and
+not run.
+
 The fallback loses only atomicity, never a file: a crash between the reservation
 and the rename leaves an empty file at the destination and the person's file
 untouched at the source.
