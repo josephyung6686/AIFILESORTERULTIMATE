@@ -30,6 +30,17 @@ learned nothing about you" to somebody who had corrected it twice.
 **Nothing here applies or deletes anything.** `learning_view.apply` and `.delete`
 both raise by design, and this module calls neither; the reset gesture is P13's
 `collect_reset`, which is a WRITE and belongs with the gestures rather than here.
+
+**The heading does not say "your corrections", and that is a finding rather than
+a preference.** Run against a live database, this view returns P10's own
+`destination-tree edit` events -- rows stamped `user_id` and `polarity=accept`
+whose own explanations read "the rules adopted plan version ... WITH NOBODY AT
+THE SCREEN". `learning_records` selects on `user_id IS NOT NULL`, which is P1's
+definition of a person's correction, and on this build the engine's tree edits
+satisfy it. Filtering them out here would hide a defect behind a screen and would
+break the one rule this view has, so the rows are shown and the heading claims
+only what is true of them: these are scoped corrections RECORDED against the
+user, not corrections the user is known to have made.
 """
 from __future__ import annotations
 
@@ -92,7 +103,7 @@ def learning_lines(conn: sqlite3.Connection, *,
         for row in view.rows)
     return (
         "",
-        "What your corrections have taught this product:",
+        "Scoped corrections this database has recorded against you:",
         *rows,
         f"  {len(view.negative_examples)} prior rejections are recorded on "
         "this surface.",

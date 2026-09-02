@@ -61,7 +61,7 @@ def test_every_correction_reaches_the_view_including_one_with_no_evidence(
         p13_conn, projection=learning_projection(p13_conn),
         subject_refs=()) == (
         "",
-        "What your corrections have taught this product:",
+        "Scoped corrections this database has recorded against you:",
         "  file / 'f-1' -- a reject correction at 'file' scope about 'f-1', "
         "with no stored evidence reference; it is shown as it is rather than "
         "omitted, because §8.7 requires that none of the learning is hidden "
