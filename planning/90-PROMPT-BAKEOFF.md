@@ -32,7 +32,7 @@ What does vary with the bytes, and is therefore what was measured:
 
 | | |
 |---|---|
-| **Conformance** | Byte-level invariants traceable to `76` §6 and `82` §5.6, checked against the **live** `dossier._body` and the **live** field catalogue, never against a count quoted in a document. |
+| **Conformance** | Byte-level invariants traceable to `76` §6 and `82` §5.6, checked against `dossier._body`'s **source** and the **live** field catalogue, never against a count quoted in a document. (The source, not `_body`'s output: calling it needs a `PromptDefinition`, and constructing one is the line this work does not cross.) |
 | **Shape executability** | The JSON objects a candidate *shows the model*, pulled out of its own bytes, instantiated with real values from a real Site A world, and run through the real dispatcher. A candidate that demonstrates a shape the machine rejects has taught the model to fail, and `76` R16 prices that at the whole response. |
 | **Size, and overlap** | Bytes, words, and which glossary-enumerated value words appear in the template. |
 
@@ -227,9 +227,9 @@ discriminate *these four*, and that is the honest result rather than a failure o
 
 Two things the scorer establishes about C0 that were previously assertions:
 
-- `_body`'s live key set is **fourteen**, read from the running code, and C0 names all fourteen in
-  sorted order on one line. `82` §5.8's correction to `76` R2's "twelve" is confirmed against
-  `dossier.py`, not against a document.
+- `_body`'s key set is **fourteen**, read out of `dossier.py:172-194` by the scorer rather than
+  taken from a document, and C0 names all fourteen in sorted order on one line. `82` §5.8's
+  correction to `76` R2's "twelve" is confirmed against the module.
 - **C0's two shown shapes both execute.** Instantiated with real values against a real world, the
   support shape is `accept_direct` and the decline shape is `abstain`. `claim_ref` is absent from
   both and that is safe — `validation.py:325-329` defaults it to `claim-<index>`.
