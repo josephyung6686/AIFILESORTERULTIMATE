@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import pathlib
 import re
 
 import pytest
@@ -49,8 +50,10 @@ from llm_harness.records import (
     PromptDefinition,
     ValidationUnavailable,
 )
+from llm_harness.validation import validate_response
 from llm_harness.vocabulary import (
-    A_FACT, DIRECT_ANCHOR, REDUCTION_NONE, REMAINS_AMBIGUOUS,
+    A_FACT, ACCEPT_DIRECT, CITATION_NOT_IN_DOSSIER, DIRECT_ANCHOR, REDUCTION_NONE,
+    REJECT, REMAINS_AMBIGUOUS,
 )
 from llm_harness.wire_handles import (
     WireHandleKeyRequired, issued_handles, local_ref, wire_handle,
@@ -327,3 +330,90 @@ def test_a_citation_of_the_handle_resolves_to_the_local_observation_key():
 def test_a_reference_the_dossier_never_issued_stays_unresolved():
     handles = issued_handles((OBS,), key=KEY_A)
     assert local_ref("handle:" + "0" * 64, handles=handles) == "handle:" + "0" * 64
+
+
+# --------------------------------------------------------------------------
+# 7. The whole round trip, through the real validator
+#
+# Every other test here stops at a boundary. This one is the only twin the
+# INVERSE has: the fixtures the rest of the suite validates against cite
+# `"obs-1"`, which is not a P4 key, so `wire_ref` hands it straight through and
+# a missing inverse looks exactly like a present one. A model that cites the
+# handle it was actually shown does not.
+
+
+def _response(cited: str) -> bytes:
+    return json.dumps({"claims": [{
+        "claim_ref": "claim-0",
+        "payload": {"field": "subject", "value": SECRET_VALUE},
+        "citations": [{
+            "evidence_ref": cited,
+            "cited_span": "redacted",
+            "why_it_supports": "the heading states it",
+        }],
+    }]}).encode("utf-8")
+
+
+def _validated(cited: str, *, resolves=True):
+    """One response through `validate_response`, with the resolver watched.
+
+    The resolver is the store, and the store knows only P4 keys. What it is
+    ASKED is the whole question here, so the asking is recorded.
+    """
+    asked: list[str] = []
+
+    def resolver(ref: str):
+        asked.append(ref)
+        return object() if resolves and ref == OBS else None
+
+    result = validate_response(
+        _build(), _response(cited),
+        evidence_resolver=resolver,
+        site_validator=lambda _dossier, _raw, _verdict: None,
+        contradicts=lambda *_a, **_k: False,
+        model_id="fixture-model",
+        prompt_fingerprint="fp",
+        dossier_builder="p8",
+        release_audit_id=17,
+        handle_key=KEY_A,
+    )
+    assert not isinstance(result, ValidationUnavailable), result
+    verdicts, _report = result
+    return verdicts[0], asked
+
+
+def test_a_model_citing_the_handle_it_saw_is_grounded_in_the_local_observation():
+    shown = _wire()["released_evidence"][0]["observation_key"]
+    verdict, asked = _validated(shown)
+    # The store was asked about P4's key and never about the handle.
+    assert asked == [OBS]
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.reasons == ()
+    # And the recorded citation names the local key, so the audit row, P6's
+    # `evidence_refs` and a later `resolve` all address the observation.
+    assert [item.citation_ref for item in verdict.citations_checked] == [OBS]
+    assert verdict.citations_checked[0].resolved is True
+    assert verdict.citations_checked[0].span_matched is True
+
+
+def test_a_handle_this_dossier_never_issued_is_absent_from_it():
+    verdict, asked = _validated("handle:" + "0" * 64)
+    assert asked == []
+    assert verdict.outcome == REJECT
+    assert verdict.reasons == (CITATION_NOT_IN_DOSSIER,)
+
+
+def test_no_part_package_reaches_for_the_fixture_key():
+    """A printable key wired into the product would void the whole fix.
+
+    `FIXTURE_HANDLE_KEY` exists so a test does not have to mint its own and get
+    it subtly wrong. It is also, by construction, a key an attacker has: a
+    composition root that reached for it out of convenience would hand every
+    handle back to a dictionary attack, and the bytes would look identical.
+    """
+    source = pathlib.Path(__file__).resolve().parents[2] / "src"
+    named = sorted(
+        path.relative_to(source).as_posix()
+        for path in source.rglob("*.py")
+        if "FIXTURE_HANDLE_KEY" in path.read_text(encoding="utf-8"))
+    assert named == ["llm_harness/fixtures.py"]

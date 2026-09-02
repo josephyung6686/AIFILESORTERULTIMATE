@@ -75,8 +75,11 @@ def reproject(conn: sqlite3.Connection, *, from_plan_version: str,
     `llm_harness.placement_validation.revalidate_for_plan` requires --
     `previous_verdict_id`, `dossier`, `response_bytes`, `evidence_resolver`,
     `contradicts`, `dependencies`, `model_id`, `prompt_fingerprint`,
-    `dossier_builder`, `release_audit_id` and `observed_at` -- because P11 stores
-    none of them and the caller that made the call holds them all.
+    `dossier_builder`, `release_audit_id`, `handle_key` and `observed_at` --
+    because P11 stores none of them and the caller that made the call holds them
+    all. `handle_key` is the local-only key the dossier's bytes were built with
+    (`llm_harness.wire_handles`): the stored response cites the handles the model
+    was shown, and without the key there is no way back to what they name.
 
     A verdict that re-validates as unavailable or refused joins
     `requiring_renewed_review` beside the removed-node cases: the node survived,
