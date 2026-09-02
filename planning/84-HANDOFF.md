@@ -74,6 +74,50 @@ unreachable from `cli.main`**, tracked live by
 which prints the current list. **That xfail's message is the real backlog** — run it rather than
 trusting any prose summary, including this one.
 
+## 2b. 2026-09-02, the day the parts started connecting
+
+**Read `92-SECURITY-REVIEW.md` before you touch `src/privacy/` or `llm_harness/transport.py`.**
+Four Criticals, every one reproduced by running code. Three were open at the time of
+writing and are being fixed: a whole absolute path released through the gate (`paths` is
+`ALWAYS_LOCAL`'s first entry), `transport.issue` sending bytes the gate never released,
+two un-keyed digests on the wire that were reversed in about a second, and four bypasses
+in the repo-wide egress guard. **The one thing preventing harm is that no prompt is
+ratified** — `PromptDefinition` refuses empty `template_bytes` with no default, so no
+call site can fire. They must all be closed BEFORE the owner ratifies one.
+
+**What became reachable today**, all of it previously built-and-imported-by-nothing:
+
+- **The role matcher.** `80` was fully built and tested for two days and `cli.py`
+  imported none of it, so R2's friction budget was enforced inside a function no run
+  called. `--describe-role`, `--declare-role`, `--answer role:x=revoke`.
+- **The model.** `model_deepseek.py` + `model_routing.py` + `83`'s three tiers, read
+  from `.env` at the composition root. `--enable-cloud` / `--disable-cloud`, consent
+  recorded once per corpus root.
+- **Corrections.** `--reject` was stored, retracted the fact, and changed nothing on
+  screen; the third of three stages named in `8260f46` had been left unwired.
+- **§1.1's other three exclusion rules**, which reached no screen at all although
+  "never silently omitted" is the first standing rule.
+
+**Still NOT reachable, and it is the biggest one left.** `src/mutation/` (P12) has
+`apply_plan`, `apply_batch`, `undo`, `approval` — seventeen modules and a walking
+skeleton that moves a real file and takes it back byte-identical — and `cli.py` imports
+exactly one name from it, `create_mutation_schema`. **The product has never moved a
+file.** The owner has ruled the gesture: `--freeze` approves the tree, `--apply` takes
+one branch, several, or everything, `--undo` reverses it. Being built.
+
+**Two measurements worth keeping.** The report was 9,460 lines at 5,000 files with the
+one actionable block starting at line 9,317; it is now 472 at 1,000 files with the first
+actionable line at 96. And across four personas, 74 files produced 5 ready to file — the
+student's corpus works, the litigant's, householder's and parent's produce nothing, which
+is the north star's own person failing.
+
+**The method that keeps paying, beyond `84` §5.** A guard that a passing SENTENCE can
+satisfy is measuring the sentence, not the seam: the egress leak scan reported ` the
+appli` as released text because the glossary ends "never the application target" and the
+corpus ends "to the applicant". Assert the whole argument or the token count, never a
+prefix or a containment — `85` §13.8. And **the shared working tree is not a test
+fixture**; copy `src/` into a scratchpad instead.
+
 ## 3. Owner decisions: settled and outstanding
 
 **Settled today, do not re-litigate:**
