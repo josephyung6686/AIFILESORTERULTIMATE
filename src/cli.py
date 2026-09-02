@@ -3093,6 +3093,20 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     out = out if out is not None else sys.stdout
     parser = argparse.ArgumentParser(
         prog="database-agent",
+        # NO ABBREVIATIONS. argparse defaults `allow_abbrev=True`, which makes
+        # any unique prefix of a flag that flag -- so `--apply-`, a stray
+        # trailing dash and no value, is a unique prefix of `--apply-everything`
+        # and MOVES THE WHOLE PLAN. Measured: `--apply-`, `--apply-e` and
+        # `--undo-` all fire. `--apply-everything` is spelled out precisely so
+        # that no slip in a branch name can reach it, and an abbreviation
+        # silently undoes that: the guard and the hole were the same length.
+        #
+        # It is off for every flag, not just those two. A person who types
+        # `--res` and gets `--residual` has been taught that prefixes work, and
+        # the lesson transfers to the flag that moves their files. This product
+        # asks people to paste what it prints; a refusal naming the flag they
+        # meant is the behaviour that keeps that true.
+        allow_abbrev=False,
         description="Read a directory, propose a folder tree for it, and say "
                     "where each file would go. Nothing is moved.")
     # These three are required for a run and are NOT marked required here, because
