@@ -90,7 +90,7 @@ from placement.config import CEILINGS, SupportPolicy, placement_limits
 from placement.pipeline import (
     PipelineInputs, ResidualSendRefused, act_on_residual_sets,
 )
-from placement.residual import ProtectedSetNotReadable
+from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import LOCAL_FIRST_MODES
@@ -2837,7 +2837,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            roles_held: Sequence[str] = (),
            invite_freeze: bool = False,
            list_every_name: bool = False,
-           show_protected: bool = False) -> tuple[str, ...]:
+           show_protected: bool = False,
+           not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -3215,6 +3216,22 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     for question, answer in DEFAULTED_DECISIONS:
         print(_wrapped(f"{question} -- {answer}", indent="    ", first="  - "),
               file=out)
+
+    if not_carried:
+        # NAMED, not applied. The label is the words the person typed; the date
+        # is trimmed to the day because a microsecond timestamp is a machine's
+        # answer to "when". No node id and no choice token: `node_id` is an
+        # internal address and `choice` is a vocabulary member, and neither is
+        # something a person has ever seen on this screen.
+        print("\nWhat you decided on an earlier run, which this plan does not "
+              "carry:", file=out)
+        for decision in not_carried:
+            print(_wrapped(
+                f'"{decision.label}", decided {decision.decided_at[:10]}. A '
+                "review set belongs to the plan it was surfaced in and this run "
+                "built a new one, so your answer was not applied again and "
+                "nothing was filed from it. The sets above are this run's.",
+                indent="    ", first="  - "), file=out)
 
     print(f"\nNothing was moved.\nPlan version: {tree.plan_version_id}  "
           f"(the name this proposal is saved under)", file=out)
@@ -3804,7 +3821,20 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    roles_held=role_panel_lines(held),
                    invite_freeze=not args.freeze,
                    list_every_name=args.freeze,
-                   show_protected=args.show_protected)
+                   show_protected=args.show_protected,
+                   # A §7.6 set answer belongs to the plan version it was given
+                   # in, and every run mints a new one, so an answer given
+                   # yesterday is not applied today. That is
+                   # `act_on_residual_sets`'s decision and it stands -- a later
+                   # run's set may hold different files. What did NOT stand is
+                   # saying nothing: the row sits in `residual_set_decisions`
+                   # for ever and the block it produced simply vanished from
+                   # the screen. `84` §6 -- a decision that no longer applies is
+                   # named, never silently omitted. Read here and passed IN, for
+                   # the same reason the roles and the questions above are.
+                   not_carried=prior_set_decisions(
+                       conn,
+                       plan_version=result.tree.tree.plan_version_id))
     if not args.freeze:
         return 0
 

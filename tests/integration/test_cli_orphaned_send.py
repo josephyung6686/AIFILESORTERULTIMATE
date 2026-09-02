@@ -136,14 +136,6 @@ def test_the_screen_prints_a_send_command_and_typing_it_works(tmp_path):
     assert "Would go into Review Later" in second, second
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "`src/cli.py` -- nothing prints the §7.6 answers an earlier run recorded, so "
-    "a decision that is no longer honoured vanishes with nothing said. The scope "
-    "is deliberate (`act_on_residual_sets`: a set answer belongs to its plan "
-    "version) and is not what this asks to change; the silence is. `84` §6 -- "
-    "never silently omitted. The reader is landed as "
-    "`placement.residual.prior_set_decisions`; the printing hunk is in "
-    "`scratchpad/learning/CLI-PATCH.txt` HUNK 3."))
 def test_a_decision_the_next_run_cannot_honour_is_named_rather_than_dropped(
         tmp_path):
     """Nothing is deleted here, on purpose.
