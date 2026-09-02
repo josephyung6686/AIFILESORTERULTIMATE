@@ -48,6 +48,9 @@ from types import MappingProxyType
 from typing import Mapping, Sequence
 
 from database_agent.budget import set_ceiling
+from database_agent.cloud_consent import (
+    DISABLED, ENABLED, CloudConsent, cloud_consent_for, record_cloud_consent,
+)
 from database_agent.db import DatabaseInsideCorpus, open_database
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
@@ -228,6 +231,45 @@ GROUPING_LIMITS = GroupingLimits(
 #: file when it is a fact about this line. `model_route` below says which it is.
 OPERATION_MODE: str = "offline"
 
+#: The mode a person selects by enabling cloud sending, and the choice between
+#: §8.4's two non-local modes is not a detail.
+#:
+#: `cloud_assisted` is the one that SOUNDS right -- "User explicitly permits
+#: selected corpus areas to use a cloud model" is almost a description of
+#: `--enable-cloud`. It is refused for two reasons, and the second decides it.
+#:
+#: 1. It cannot be spelled honestly today. What a "corpus area" IS is P7's **Open
+#:    question 3** (`privacy/vocabulary.py`): *"A scan root, a frozen tree node, an
+#:    accepted group, a domain? Consent grants cannot be scoped until this is
+#:    named."* It is unanswered, and `tests/p7/test_p7_no_invention.py` fails the
+#:    moment it is answered inside `src/privacy/`.
+#: 2. **`cloud_assisted` is the WEAKER mode, not the stronger one.**
+#:    `privacy/denial.py`'s `protected_cloud_denies` lets a PROTECTED file reach a
+#:    cloud target under exactly one condition: `cloud_assisted` plus a grant
+#:    naming its scope. Under `hybrid` that function returns True unconditionally
+#:    and protected material can never leave. The permissive-sounding name is the
+#:    one carrying the carve-out for the material this product promises never to
+#:    open, so choosing it would trade a standing guarantee for a sentence.
+#:
+#: `hybrid`'s own sentence -- "Sensitive files remain local; non-sensitive bounded
+#: dossiers may use a cloud LLM" -- is also the one that is TRUE of what is built:
+#: `ALWAYS_LOCAL` and the classification store are untouched by any of this, which
+#: `83` §4 requires ("No tier changes what may be SENT").
+CLOUD_ENABLED_MODE: str = "hybrid"
+
+
+def operation_mode_for(consent: CloudConsent | None) -> str:
+    """Which of §8.4's modes this run operates under. THE policy, in one place.
+
+    Absent is not ambiguous and is not a gap: nobody has decided, so the run stays
+    on the local-first floor. The default is what happens by NOT choosing, which is
+    `80` §8's first condition and the only arrangement under which forgetting is
+    safe.
+    """
+    if consent is not None and consent.permits_sending:
+        return CLOUD_ENABLED_MODE
+    return OPERATION_MODE
+
 
 def _unranked(candidates: frozenset[str]) -> tuple[str, ...]:
     """`80` §5 (R7): the order a person sees, chosen where policy is chosen.
@@ -328,11 +370,10 @@ def model_route(*, out) -> TierRouting | None:
     fresh checkout, and a misspelled model name is an ordinary mistake. Both print
     one sentence and the run continues without a model.
 
-    **Why it announces even when it succeeds.** Under `OPERATION_MODE = "offline"`
-    P7 denies every cloud target, so a route can be perfectly configured and still
-    never be asked. Saying so at the top is `84` §6's rule -- what the screen tells
-    a person has to be true -- applied to the model the way it was applied to the
-    unpasteable `--answer` line.
+    **It no longer announces.** Whether these models will actually be ASKED is a
+    question about this folder's consent, which this function does not read;
+    `announce_cloud_posture` holds both halves and says one true thing rather than
+    two half-true ones.
     """
     from os import environ
 
@@ -363,18 +404,81 @@ def model_route(*, out) -> TierRouting | None:
         print(f"\nNo model was consulted, and here is what it needed:\n"
               f"  {refusal}", file=out)
         return None
+    return routing
+
+
+def _turn_off_line(corpus_root: Path) -> str:
+    """The command that revokes, pasteable. `84` §6: what the screen tells a person
+    to type has to be true, which is why the path is quoted rather than
+    interpolated bare -- the folders this product is for have spaces in their
+    names."""
+    return f"    database-agent {shlex.quote(str(corpus_root))} --disable-cloud"
+
+
+def announce_cloud_posture(routing: TierRouting | None,
+                           consent: CloudConsent | None, *,
+                           corpus_root: Path, out) -> None:
+    """Say, BEFORE the scan, whether this run may send and why.
+
+    **Before, and not after.** `80` §8's second condition and `88` §3 both say it in
+    the same words: a run that sends says so on screen BEFORE sending -- not after,
+    not in a log. A notice printed at the end is a receipt, and a receipt is what a
+    person gets instead of a choice.
+
+    **It names the date and the person, because the consent is durable.** The owner
+    accepted that "consent outlives the moment it was given", and this sentence is
+    what makes that survivable: a person who reads "you turned this on for this
+    folder on 14 June" can recognise a decision they have forgotten. "Cloud sending
+    is on" tells them nothing they can act on.
+
+    **It always says how to turn it off.** Consent that cannot be withdrawn is not
+    consent, and a withdrawal a person has to go and look up is one they will not
+    make. `80` R2's friction budget is spent on the decision, not on undoing it.
+
+    **The off case earns its sentence too.** A file that could not be judged says
+    "§8.4 did not clear this file for a model call", which reads as a fact about
+    that file and is a fact about this folder's consent. The header is where the
+    difference gets said.
+    """
+    if consent is not None and consent.permits_sending:
+        print(f"\nCloud sending is ON for this folder"
+              f"{'' if routing else ', but no model is configured'}.", file=out)
+        # The path on its OWN line, never inside a wrapped paragraph. `textwrap`
+        # breaks a long unbroken token across lines, and half a path on each of two
+        # lines is a path a person cannot read and must not copy. The folders this
+        # product is for have spaces and long names; that is the ordinary case.
+        print(f"  Turned on by {consent.user_id} on {consent.decided_at}, for:",
+              file=out)
+        print(f"    {corpus_root}", file=out)
+        if routing is None:
+            print(_wrapped(
+                "Nothing was sent and nothing could have been: no model is "
+                "configured for this run. Turn sending off with:",
+                indent="  "), file=out)
+        else:
+            print(_wrapped(
+                f"Files that need a judgement may be sent to "
+                f"{routing.model_id_for(A_FACT)} (facts), "
+                f"{routing.model_id_for(C_PLACEMENT)} (checks) and "
+                f"{routing.model_id_for(D_RESIDUAL)} (review sets). Protected "
+                f"material and §8.4's always-local kinds are refused by P7 and "
+                f"are not among them. Turn it off with:", indent="  "), file=out)
+        print(_turn_off_line(corpus_root), file=out)
+        return
+    if routing is None:
+        # `model_route` has already said no model is configured. A second sentence
+        # about consent would answer a question the person cannot yet be asking.
+        return
     print(f"\nModel: {routing.model_id_for(A_FACT)} for facts, "
           f"{routing.model_id_for(C_PLACEMENT)} for checks, "
           f"{routing.model_id_for(D_RESIDUAL)} for review sets.", file=out)
-    if OPERATION_MODE in LOCAL_FIRST_MODES:
-        print(_wrapped(
-            f"None of them will be asked on this run. This deployment's operation "
-            f"mode is `{OPERATION_MODE}` -- \"{MODE_SEMANTICS[OPERATION_MODE]}\" "
-            f"-- so a cloud model is refused for every file, and a file below that "
-            f"says a model was not cleared for it is saying that and nothing about "
-            f"itself. Nothing was sent and no key was used.",
-            indent="  "), file=out)
-    return routing
+    print(_wrapped(
+        f"None of them will be asked on this run. Cloud sending is off for this "
+        f"folder, which is what happens by not choosing -- this run operates "
+        f"under `{OPERATION_MODE}`, \"{MODE_SEMANTICS[OPERATION_MODE]}\" -- so a "
+        f"file below that says a model was not cleared for it is saying that, and "
+        f"nothing about itself. Nothing was sent and no key was used. To turn "
+        f"sending on for this folder, add --enable-cloud.", indent="  "), file=out)
 
 #: P7's handling class for an ordinary file and for a protected area. The set is
 #: P7's vocabulary; which one a node carries is a deployment decision, and the
@@ -1000,7 +1104,8 @@ def _usable(facts, unresolved) -> bool:
                               for row in unresolved)
 
 
-def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
+def p1_p7_authorities(*, now, detector,
+                      operation_mode: str = OPERATION_MODE) -> P1P7Authorities:
     return P1P7Authorities(
         native_resolver=_resolver(tiers=frozenset(("filesystem", "native")),
                                   cache_key="cli-native-v1"),
@@ -1034,7 +1139,7 @@ def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False,
-        corpus_form="snapshot", policy_settings={"operation_mode": OPERATION_MODE},
+        corpus_form="snapshot", policy_settings={"operation_mode": operation_mode},
         file_entry_body=lambda row: {"payload_ref": row["content_hash"]},
         p7_component_version=COMPONENT_VERSION)
 
@@ -1473,7 +1578,8 @@ def _print_set_aside(summary: Mapping[str, object], aside, out) -> None:
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
         residuals: Sequence[str] = (),
-        sends: Mapping[str, str] = MappingProxyType({})) -> ProductionRun:
+        sends: Mapping[str, str] = MappingProxyType({}),
+        operation_mode: str = OPERATION_MODE) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
     `out` is here so the protected-container block can be printed the moment the
@@ -1734,14 +1840,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def set_privacy_policy(db: sqlite3.Connection, plan_version: str) -> None:
         set_policy(db, Policy(
-            policy_version=UNSET_POLICY_VERSION, operation_mode=OPERATION_MODE,
+            policy_version=UNSET_POLICY_VERSION, operation_mode=operation_mode,
             consent_grants=(), redaction_settings={},
             # §8.4: protected material is not moved automatically without a policy
             # that permits it. This deployment permits none, so nothing protected
             # moves and P11 records the refusal on the decision.
             automatic_move_permissions={}, plan_version=plan_version,
             set_at=clock), component_version=COMPONENT_VERSION, user_id=user_id,
-            reason="offline run from the command line")
+            # The mode, not the word "offline". This said `offline` unconditionally
+            # and would have gone on saying it under a mode that sends -- a policy
+            # whose own stored reason contradicted the policy, in the one record
+            # §8.5's replay reads back to find out what a run was allowed to do.
+            reason=f"{operation_mode} run from the command line")
 
     def _folders_this_file_is_already_in(file_id: str) -> tuple[str, ...]:
         """The names of the folders the person has ALREADY put this file inside.
@@ -1974,8 +2084,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         return ids
 
     result = run_production_corpus(
-        conn, selection_id, authorities=p1_p7_authorities(now=now,
-                                                          detector=detector),
+        conn, selection_id, authorities=p1_p7_authorities(
+            now=now, detector=detector, operation_mode=operation_mode),
         downstream=downstream,
         decisions=CorpusDecisions(
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
@@ -2816,6 +2926,40 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           f"(the name this proposal is saved under)", file=out)
 
 
+def _record_cloud_decision(args, decision: str, *, out) -> int:
+    """Write one decision and say what it means, without running a scan.
+
+    Its own function because the withdrawal path shares almost nothing with a run:
+    no situation, no label, no catalogue, no scan roots -- and deliberately no
+    `is_dir` check, so a folder that has been deleted can still have its consent
+    withdrawn.
+    """
+    from datetime import datetime, timezone
+
+    directory = args.directory.expanduser().resolve()
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    try:
+        conn = open_database(database, scan_roots=[directory])
+    except DatabaseInsideCorpus as refusal:
+        print(f"\n{refusal}", file=out)
+        return 2
+    try:
+        record_cloud_consent(
+            conn, corpus_root=str(directory), decision=decision,
+            user_id=args.user,
+            decided_at=datetime.now(timezone.utc).isoformat())
+        conn.commit()
+    finally:
+        conn.close()
+    print(f"\nCloud sending is off for {directory}.", file=out)
+    print(_wrapped(
+        "Nothing further from this folder will be sent to a model. What earlier "
+        "runs already sent cannot be recalled, and the record of when it was "
+        "enabled is kept rather than erased -- so the question of what was "
+        "authorised, and when, stays answerable.", indent="  "), file=out)
+    return 0
+
+
 def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
@@ -2900,6 +3044,18 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     parser.add_argument(
         "--list-residuals", action="store_true",
         help="print the residual areas `--residual` accepts, and stop.")
+    parser.add_argument(
+        "--enable-cloud", action="store_true",
+        help="allow this folder's files to be sent to a cloud model, from this "
+             "run on. Recorded against THIS FOLDER and remembered between runs, "
+             "so it is typed once and not every time; another folder is another "
+             "decision. Every run that may send says so before it does, and names "
+             "the day you enabled it. Protected material is never sent.")
+    parser.add_argument(
+        "--disable-cloud", action="store_true",
+        help="stop sending this folder's files to a cloud model, and stop. Takes "
+             "effect immediately and needs nothing else -- not a situation, not a "
+             "label, not even the folder still existing.")
     args = parser.parse_args(argv)
 
     if args.list_residuals:
@@ -2929,6 +3085,27 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\n{len(situations)} situations. Pass one to --situation. The "
               "words beside each are the folders it would build.", file=out)
         return 0
+
+    if args.enable_cloud and args.disable_cloud:
+        # `84` §6, applied for the fourth time: a gesture that acts on something
+        # other than what the person named is worse than one that stops and asks.
+        # Neither order of these two is more obviously right than the other, and
+        # picking one would decide what may leave the device by argument order.
+        parser.error("--enable-cloud and --disable-cloud say opposite things "
+                     "about the same folder; pass one")
+
+    # BEFORE the required-argument check, because turning sending OFF must not
+    # require a full run's worth of arguments. A person who wants it to stop should
+    # not have to name a situation and a label to say so, and the folder does not
+    # even have to still exist -- `--disable-cloud` on a folder you have deleted is
+    # a person tidying up after themselves, and refusing it would leave a record
+    # saying "enabled" with nothing able to change it.
+    if args.disable_cloud:
+        if args.directory is None:
+            parser.error("--disable-cloud needs the folder to stop sending for: "
+                         "consent is recorded per folder, so there is no single "
+                         "switch to throw")
+        return _record_cloud_decision(args, DISABLED, out=out)
 
     # The requirement argparse could not express. Same message and same exit code
     # it would have produced, so a run that forgets one reads no differently.
@@ -2965,7 +3142,15 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # call a model the person is told once, at the top, in a sentence about the
     # deployment -- rather than left to infer it from thirty file-level sentences
     # at the bottom that each read as a statement about one of their files.
-    model_route(out=out)
+    routing = model_route(out=out)
+    if args.enable_cloud:
+        # Applied on the invocation that supplies it, exactly as `--answer` and
+        # `--reject` are: a person who has just said yes should not have to run the
+        # command again to see what it did.
+        record_cloud_consent(conn, corpus_root=str(directory), decision=ENABLED,
+                             user_id=args.user, decided_at=now())
+    consent = cloud_consent_for(conn, str(directory))
+    announce_cloud_posture(routing, consent, corpus_root=directory, out=out)
     try:
         # BEFORE the run, so an answer takes effect on the very invocation that
         # supplies it. A person who has just been asked something and answers it
@@ -3019,7 +3204,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      residuals=_validate_residuals(args.residual),
-                     sends=_parse_sends(args.send_set))
+                     sends=_parse_sends(args.send_set),
+                     operation_mode=operation_mode_for(consent))
     except (AnswerNotPermitted, NotConfigured, ConfigurationRequired) as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)

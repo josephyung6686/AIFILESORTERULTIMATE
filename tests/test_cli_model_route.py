@@ -174,38 +174,12 @@ def test_the_route_carries_the_provider_and_the_locality_the_transport_accepts(
 
 
 # --- the sentence about the mode ----------------------------------------------
-
-def test_a_configured_route_still_says_it_will_not_be_asked(monkeypatch):
-    """THE sentence this whole change exists for. With a key, a route and no
-    prompt, `OPERATION_MODE = "offline"` means P7 denies every cloud target -- and
-    the file-level message a person then reads ("§8.4 did not clear this file for a
-    model call") sounds like a fact about their file. It is a fact about this
-    deployment, and the header has to say which."""
-    routing, printed = _route(monkeypatch, ENV)
-    assert routing is not None
-    assert cli.OPERATION_MODE in printed
-    assert "None of them will be asked" in printed
-    assert "Nothing was sent" in printed
-
-
-def test_the_mode_sentence_is_the_designs_own_words(monkeypatch):
-    """§8.4's four sentences are pinned in `privacy.vocabulary.MODE_SEMANTICS`
-    precisely so a paraphrase cannot promise less than the original. The screen
-    quotes them rather than restating them."""
-    from privacy.vocabulary import MODE_SEMANTICS
-
-    _, printed = _route(monkeypatch, ENV)
-    assert MODE_SEMANTICS[cli.OPERATION_MODE].split(";")[0] in printed
-
-
-def test_the_named_models_are_the_ones_the_route_would_call(monkeypatch):
-    """A person told "a model was consulted" has been told less than a person told
-    WHICH -- `questions/proposal.py` makes the same argument for the sentence a
-    person's own typed self-description gets."""
-    _, printed = _route(monkeypatch, ENV)
-    for model_id in ("a-reasoner", "a-logician", "a-sprinter"):
-        assert model_id in printed
-
+#
+# MOVED to `tests/test_cli_cloud_consent.py`. `model_route` no longer announces:
+# whether these models will be ASKED is a question about this folder's consent,
+# which this function does not read. Three tests moved with the sentence rather
+# than being deleted, because each of them is still a promise made to a person --
+# they are simply now made by the function that knows both halves.
 
 def test_the_key_is_never_printed(monkeypatch):
     """It is read from the environment and put in a closure. Nothing about a
