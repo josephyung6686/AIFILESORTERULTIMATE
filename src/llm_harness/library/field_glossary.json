@@ -1,0 +1,228 @@
+{
+ "_": "What a field key MEANS, for the model that is shown the key. `76` SS10.1 records the glossary decision as owed and names three options; the owner chose the second -- the dossier carries meanings, per call, for the fields of that call. Rule 2 of the `82` draft, which told the model to decline any key whose meaning is not plain from the key itself, is what this replaces: it was safe and it cost coverage on `subject`, `work_type`, `purpose`, `record_type`, `project` and `duplicate_family` -- the fields that matter most.\n\nEVERY MEANING HERE IS TRANSCRIBED, NONE IS AUTHORED. A field's meaning is text that goes to a model, so it is close to prompt text, and prompt text is the owner's to ratify. Each entry quotes a source that already existed and names it; `tests/p8/test_p8_field_glossary.py` re-reads the source and fails if the quote is not there. A field whose meaning is recorded nowhere is in `owed`, gets no entry, and the model is told nothing about it -- which is `82` rule 2's fail-closed position, kept for exactly the fields that earned it.\n\nA DEFINITION OF A FIELD, NEVER A HINT ABOUT A FILE. No entry may carry an example drawn from a person's corpus, may vary between two files, or may become a channel for anything in `privacy.vocabulary.ALWAYS_LOCAL`. The loader is given the allowed vocabulary and nothing else, which is what makes that structural rather than a promise.",
+ "owed": {
+  "capture_date": "No authored role sentence exists. `00` §3.2 gives the worked derivation (“an EXIF field called DateTimeOriginal is raw metadata”) and `60` mints no note for the key. Owed to the owner."
+ },
+ "fields": {
+  "file_type": {
+   "meaning": "detected format family of the file; a routing signal, not a meaning",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "creation_date": {
+   "meaning": "filesystem/document creation timestamp of this file version",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "language": {
+   "meaning": "natural language(s) of the file's content",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "duplicate_family": {
+   "meaning": "membership in a family of byte-identical or perceptually near-identical copies",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "version_family": {
+   "meaning": "membership in a draft/revision family of one logical document",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "download_session": {
+   "meaning": "membership in a tightly bounded download session; a purpose clue and review aid only",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "authored_by": {
+   "meaning": "who authored or produced the file; metadata by design, never a collection point",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "target_school": {
+   "meaning": "the school a document is addressed to, in section-3.8's own spelling; same entity type as target_university, different provenance sentence",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "our_firm": {
+   "meaning": "the holder's own organization on an engagement; authorship-side identity, never a collection point",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "client": {
+   "meaning": "the counterparty organization an engagement serves - the target side of the our_firm split",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "school": {
+   "meaning": "the institution the holder attends, attended, or teaches at - the person's own school, never the application target",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "term": {
+   "meaning": "academic term or cycle the material belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "subject": {
+   "meaning": "the course or study subject the material belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "instructor": {
+   "meaning": "the person teaching the course; a search/review field, not a folder level",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "work_type": {
+   "meaning": "if the file IS the work product of a bounded engagement or course -> `work_type`",
+   "source": "facts.fields:record_type FIELD_ROWS notes, transcribed from `60`"
+  },
+  "target_university": {
+   "meaning": "the institution an application is addressed TO - never the holder's own school",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "application_cycle": {
+   "meaning": "the admissions cycle an application belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "application_document_type": {
+   "meaning": "what role a document plays inside an application (essay, transcript, form, portal record); members are values, never roster nodes",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "purpose": {
+   "meaning": "what the file was FOR, as opposed to what it is about",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "project": {
+   "meaning": "the named project a file belongs to; shared by the research and code schemas (shares_field is derived from this shared reference, never authored)",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "stage": {
+   "meaning": "where in its workflow a research artifact sits",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "artifact_type": {
+   "meaning": "if it is an OUTPUT OF A MAKING PROCESS -> `artifact_type`",
+   "source": "facts.fields:record_type FIELD_ROWS notes, transcribed from `60`"
+  },
+  "lab": {
+   "meaning": "the lab or research group the work belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "venue": {
+   "meaning": "the journal, conference, or publication venue an artifact targets or appeared in",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "institution": {
+   "meaning": "the financial or record-issuing institution a record belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "account_type": {
+   "meaning": "the kind of account a financial record belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "tax_year": {
+   "meaning": "the tax year a financial record belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "record_type": {
+   "meaning": "`record_type` is what remains: the file evidences that a transaction, operation or decision occurred. Where two readings are both supported, `00` requires abstention, not the nearest declared key.",
+   "source": "facts.fields:record_type FIELD_ROWS notes, transcribed from `60`"
+  },
+  "account_holder": {
+   "meaning": "The holder is a person or entity identity, so it is a fact and never a folder level; `institution` is its `role_split` partner and is the eligible half of the pair.",
+   "source": "facts.fields:account_holder FIELD_ROWS notes, transcribed from `60`"
+  },
+  "capture_year": {
+   "meaning": "the year a photo or capture was taken, from capture metadata",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "event": {
+   "meaning": "the named occasion, trip, or gathering a capture or record belongs to",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "location": {
+   "meaning": "where a capture was taken, resolved from GPS or content",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "people": {
+   "meaning": "people appearing in a capture; a search/privacy field, seeded as not a folder level",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "camera_information": {
+   "meaning": "camera make/model/lens metadata; evidence for photo-vs-screenshot, never a folder level",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "media_type": {
+   "meaning": "what kind of capture this is (photo, screenshot, scan, video); members are values, never roster nodes",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "repository": {
+   "meaning": "the source repository a code file belongs to, from repo markers",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "programming_language": {
+   "meaning": "the language of a code file; a search field, seeded as not a folder level",
+   "source": "planning/domains/canonical_fields.json (fields[].role)"
+  },
+  "employer": {
+   "meaning": "`employer` is the organization the holder works or worked for, named from the holder's own side",
+   "source": "facts.fields:employer FIELD_ROWS notes, transcribed from `60`"
+  },
+  "target_employer": {
+   "meaning": "The employer the holder HAS is `employer`; the employer the holder is ADDRESSING is this key.",
+   "source": "facts.fields:target_employer FIELD_ROWS notes, transcribed from `60`"
+  },
+  "recruiting_cycle": {
+   "meaning": "the holder is a PARTICIPANT in the cycle. Its `role_split` partner `people_cycle` is the hr side, where the holder runs the cycle.",
+   "source": "facts.fields:recruiting_cycle FIELD_ROWS notes, transcribed from `60`"
+  },
+  "job_title": {
+   "meaning": "It is the POSITION held, never the person (`subject_of_record`) and never the organization (`employer`, `target_employer`).",
+   "source": "facts.fields:job_title FIELD_ROWS notes, transcribed from `60`"
+  },
+  "organization": {
+   "meaning": "the legal entity or internal unit whose own record this is",
+   "source": "planning/48-ENTITY-KEY-ADJUDICATION.md §1a"
+  },
+  "record_period": {
+   "meaning": "the bounded interval a record COVERS",
+   "source": "facts.fields:record_period FIELD_ROWS notes, transcribed from `60`"
+  },
+  "supplier": {
+   "meaning": "LABELLED SLOT ONLY -- Carrier / Haulier / Forwarder / Shipping Line / Airline, or the equivalent supplier label on the document.",
+   "source": "facts.fields:supplier FIELD_ROWS notes, transcribed from `60`"
+  },
+  "issuing_body": {
+   "meaning": "The authority that ISSUED the instrument -- a regulator, examining board, licensing authority or certifying body.",
+   "source": "facts.fields:issuing_body FIELD_ROWS notes, transcribed from `60`"
+  },
+  "property": {
+   "meaning": "a place the record is ABOUT",
+   "source": "planning/48-ENTITY-KEY-ADJUDICATION.md §5"
+  },
+  "design_item": {
+   "meaning": "the controlled design configuration whose definition a file governs -- never a saleable or sold article, which is `product`",
+   "source": "facts.fields:design_item FIELD_ROWS notes, transcribed from `60`"
+  },
+  "site": {
+   "meaning": "the operating place -- plant, works, depot, store, field",
+   "source": "facts.fields:site FIELD_ROWS notes, transcribed from `60`"
+  },
+  "asset": {
+   "meaning": "An enduring identified physical thing carrying a reference.",
+   "source": "facts.fields:asset FIELD_ROWS notes, transcribed from `60`"
+  },
+  "product": {
+   "meaning": "an article or formulation made through transformation, widened to a neutral output key",
+   "source": "facts.fields:product FIELD_ROWS notes, transcribed from `60`"
+  },
+  "authorization": {
+   "meaning": "The value is the instrument, never a regulator's name",
+   "source": "facts.fields:authorization FIELD_ROWS notes, transcribed from `60`"
+  },
+  "consignment": {
+   "meaning": "One described quantity of goods travelling under one carrier's undertaking -- a THING, the same ontological category as `asset`, not an occurrence.",
+   "source": "facts.fields:consignment FIELD_ROWS notes, transcribed from `60`"
+  },
+  "people_cycle": {
+   "meaning": "the holder RUNS the cycle -- an intake, onboarding or review round the organization operates",
+   "source": "facts.fields:people_cycle FIELD_ROWS notes, transcribed from `60`"
+  },
+  "workforce_unit": {
+   "meaning": "Internal sub-unit",
+   "source": "planning/48-ENTITY-KEY-ADJUDICATION.md §2"
+  },
+  "subject_of_record": {
+   "meaning": "The person or entity a record is ABOUT, as distinct from its author (`authored_by`), its holder (`our_firm`) and its counterparty (`client`).",
+   "source": "facts.fields:subject_of_record FIELD_ROWS notes, transcribed from `60`"
+  }
+ }
+}

@@ -13,11 +13,17 @@ identity meant two calls over identical content had two identities and no call
 could be recognised as a replay of another.
 
 This module authors no content. Every value it serialises comes from P7's
-`Released`, the builder's `DossierRequest`, or the injected `PromptDefinition`.
+`Released`, the builder's `DossierRequest`, the injected `PromptDefinition`, or
+`library/field_glossary.json` -- and that file authors none either: every meaning
+in it is quoted from something already ratified, and names the source it was
+quoted from.
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+import json
+from collections.abc import Mapping, Sequence
+from functools import lru_cache
+from pathlib import Path
 
 from evidence_shape.canonical import canonical_json
 from llm_harness.fingerprint import dossier_content_address
@@ -31,6 +37,56 @@ from llm_harness.records import (
     ValidationUnavailable,
 )
 from privacy.release import Released
+
+
+GLOSSARY_FILE = Path(__file__).resolve().parent / "library" / "field_glossary.json"
+
+
+class GlossaryRequired(RuntimeError):
+    """The shipped glossary is missing or is not the shape its consumer reads."""
+
+
+@lru_cache(maxsize=1)
+def _meanings() -> Mapping[str, str]:
+    """Every authored field meaning, by key. No fallback and no empty default.
+
+    An empty glossary would silently restore the state the owner ruled against: a
+    model shown 56 bare keys, guessing or declining. It would also do so invisibly,
+    because a dossier with no meanings is well-formed. So a missing file refuses.
+    """
+    if not GLOSSARY_FILE.is_file():
+        raise GlossaryRequired(
+            f"{GLOSSARY_FILE} is not on disk; this package ships no default meaning")
+    loaded = json.loads(GLOSSARY_FILE.read_text(encoding="utf-8"))
+    fields = loaded.get("fields")
+    if not isinstance(fields, dict) or not fields:
+        raise GlossaryRequired(f"{GLOSSARY_FILE} carries no field meanings")
+    return {key: entry["meaning"] for key, entry in fields.items()}
+
+
+def field_glossary(allowed_vocabulary: Sequence[str]) -> dict[str, str]:
+    """What each field key of THIS call means -- and nothing about this file.
+
+    `76` §10.1 records the glossary decision as owed and names three options; the
+    owner chose the one where the dossier carries the meanings. The defence `82`
+    §7.1 would otherwise have relied on was rule 2 -- *"if a key's meaning is not
+    plain from the key itself, decline that field"* -- which is safe and costs real
+    coverage on `subject`, `work_type`, `purpose`, `record_type`, `project` and
+    `duplicate_family`, the fields that matter most. Told, the model need neither
+    guess nor decline.
+
+    **The vocabulary is the only input, and that is the whole bound.** A meaning
+    defines a FIELD; it is never a hint about the FILE. Because nothing about the
+    file, the person or the corpus can reach this function, no entry can vary
+    between two files and nothing in §8.4's always-local set has a route in.
+
+    A field with no authored meaning is ABSENT, never filled: `library/
+    field_glossary.json` records those in `owed`, and for them `82` rule 2's
+    fail-closed position still holds -- which is what it was for.
+    """
+    meanings = _meanings()
+    return {field: meanings[field] for field in allowed_vocabulary
+            if field in meanings}
 
 
 def _requested_keys(request: DossierRequest) -> frozenset[str]:
@@ -123,6 +179,9 @@ def _body(
         ],
         "eligibility_reason": eligibility_reason,
         "evidence_items": [_evidence_item_body(item) for item in evidence_items],
+        # Built from `allowed_vocabulary` and nothing else, deliberately: it is the
+        # one key here whose content is the same on every file in every corpus.
+        "field_glossary": field_glossary(allowed_vocabulary),
         "max_dossier_tokens": max_dossier_tokens,
         "plan_version": plan_version,
         "policy_version": policy_version,
