@@ -77,3 +77,44 @@ same way, and where they conflict this policy spends money to protect the person
   it is repeated here because a tiering document invites the opposite instinct.
 - Budgets are enforced independently of routing (`llm_harness/budgets.py`, ceilings in
   `src/cli.py`). A tier is not a spending limit and must not be used as one.
+
+---
+
+## 6. 2026-09-02 — the model names in this document were wrong, measured against the API
+
+The three names §3 recorded were never checked against DeepSeek. A live probe of all three tiers
+(synthetic content only, no user file and no dossier) returned HTTP 400 from every one:
+
+> The supported API model names are `deepseek-v4-pro`, `deepseek-v4-flash`, and
+> `deepseek-v4-flash-vision-exp`, but you passed `DeepSeek-V4-Pro`.
+
+Two were case errors. **The third, `DeepSeek-R1`, does not exist on this API at all.** The
+transport itself was never at fault: a bad key returns 401 and this was 401-free, so the client,
+the routing and the credential were all correct and only the names were not.
+
+After correcting `.env`, all three tiers return the probe's expected word. **The model path is
+proven live for the first time.**
+
+### The finding this exposes, which is a decision and not a typo
+
+**Three tiers map onto two general-purpose models.** `logic` has no model of its own. The options:
+
+- `logic` -> `deepseek-v4-pro`. **Taken, and it is what `.env` now says.** §4's "no silent
+  downgrade" rules out the alternative: sending B_group, C_placement and E_template to `flash`
+  would be exactly the silent downgrade that rule exists to forbid, and it would be a downgrade of
+  the calls that decide grouping and placement.
+- `logic` -> `deepseek-v4-flash`. Cheaper, and refused on the above.
+- Collapse the vocabulary to two tiers. **Not taken**, and deliberately: the tier names are a
+  statement about the KIND of judgement a call site makes, and that statement stays true whether or
+  not two of them currently resolve to the same model. Collapsing them would throw away the
+  distinction and make it expensive to re-introduce when a third model exists.
+
+So `reasoning` and `logic` are the same model today. That is a fact about DeepSeek's catalogue on
+2026-09-02, not about this design, and the routing table is unchanged.
+
+`deepseek-v4-flash-vision-exp` exists and is unused. P5 extracts images and runs OCR; whether a
+vision model belongs in that path is a question this document does not answer and did not ask
+before. Named here so it is not discovered a third time.
+
+**How to re-check rather than trust this section:** the probe is six lines and sends nothing of the
+person's. Any claim here that a tier reaches its model should be re-measured rather than read.
