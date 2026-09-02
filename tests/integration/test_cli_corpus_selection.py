@@ -39,6 +39,7 @@ every time a person types it. The name has to carry the sentence.
 from __future__ import annotations
 
 import io
+import shlex
 import sqlite3
 import sys
 from pathlib import Path
@@ -48,6 +49,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
+from database_agent.cloud_consent import DISABLED  # noqa: E402
 from scan_agent.selection import (  # noqa: E402
     selection_candidate_roots,
     selection_sources,
@@ -476,4 +478,46 @@ def test_turning_the_cloud_off_reaches_every_folder_it_was_turned_on_for(
         row = conn.execute(
             "SELECT decision FROM cloud_consent WHERE corpus_root = ? "
             "ORDER BY decision_id DESC LIMIT 1", (str(folder),)).fetchone()
-        assert row is not None and row["decision"] != "enabled", (folder, row)
+        # `== DISABLED`, not `!= ENABLED`: a malformed write satisfies the
+        # negative and this has to be the withdrawal, not merely not-a-grant.
+        assert row is not None and row["decision"] == DISABLED, (folder, row)
+
+
+@PENDING_SELECTION
+def test_the_turn_off_line_the_screen_prints_turns_every_source_off(tmp_path):
+    """`84` §6: what the screen tells a person to type has to be true.
+
+    A run cleared for two folders printed `database-agent A --disable-cloud`.
+    Pasted, it turns off A, prints "Cloud sending is off for A", and leaves B
+    cleared -- so the next run over B sends. That is the footgun `--disable-cloud`
+    was widened to close, handed back to the person by the line the product tells
+    them to type. The line must name every folder this run reads, and the
+    posture block must name them too: a person told that sending is on for one
+    folder, while two are about to leave their device, has been told the scope
+    of the permission is smaller than it is.
+    """
+    downloads, desktop, _ = _corpus(tmp_path)
+    database = tmp_path / "holder" / "plan.sqlite"
+    printed = _run(str(downloads), "--also-read", str(desktop), "--enable-cloud",
+                   database=database)
+
+    assert "Cloud sending is ON" in printed, printed
+    # Both folders named in the posture block...
+    assert f"    {downloads}\n" in printed, printed
+    assert f"    {desktop}\n" in printed, printed
+    # ...and both in the command it tells them to paste, on one line.
+    off = [line for line in printed.splitlines() if "--disable-cloud" in line]
+    assert len(off) == 1, printed
+    assert str(downloads) in off[0] and str(desktop) in off[0], off[0]
+
+    # And it is true: pasting it leaves neither folder cleared.
+    out = io.StringIO()
+    cli.main(shlex.split(off[0].strip())[1:] + ["--database", str(database)],
+             out=out)
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    for folder in (downloads, desktop):
+        row = conn.execute(
+            "SELECT decision FROM cloud_consent WHERE corpus_root = ? "
+            "ORDER BY decision_id DESC LIMIT 1", (str(folder),)).fetchone()
+        assert row is not None and row["decision"] == DISABLED, (folder, row)
