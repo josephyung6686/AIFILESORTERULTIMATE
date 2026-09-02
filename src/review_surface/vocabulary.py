@@ -117,12 +117,29 @@ ACTION_SET_REFINEMENT_DISPOSITION: str = "set_refinement_disposition"
 #: faithful reading of one paragraph, where the design has four.
 #:
 #: **APPROVED BY: the owner (Joseph), ON: 2026-09-02.** Relayed by the team lead,
-#: whose message is the transport and not the authority. **He was shown these
-#: seven strings verbatim, as a tuple, beside this approval line, and answered
+#: whose message is the transport and not the authority.
+#:
+#: **SIX SPELLINGS were shown to him verbatim, as a tuple, and he answered
 #: "Approve, these names" -- he approved SPELLINGS, not a category:**
 #:
 #:     "exclude_from_packet", "rename", "merge", "split", "reorder",
-#:     "create_custom_template", "set_refinement_disposition"
+#:     "set_refinement_disposition"
+#:
+#: **`create_custom_template` IS NOT ONE OF THEM, and this block said it was.**
+#: Corrected 2026-09-02 by the lead who caused it. What he ruled about that member
+#: is that the GESTURE is distinct -- asked whether "creating a custom template"
+#: and `create_custom_folder` are one thing or two, he answered *"Two different
+#: gestures"*, which is why the member exists at all. He was never shown the
+#: string `create_custom_template`, and the earlier claim that he "was then asked
+#: directly and approved all seven" describes a conversation that did not happen.
+#: The lead's relay dropped the seventh spelling, and the correction of the count
+#: was then written up as though the spelling had been ratified too.
+#:
+#: So the honest state, and it is deliberately uncomfortable: **the member is
+#: authorised and its SPELLING is not.** It is one question to close and it is
+#: owed. A rename costs one line here plus its routing row; leaving a false
+#: attestation at a closed-vocabulary member costs the rule itself, which is the
+#: thing this whole episode was about.
 #:
 #: An earlier DELEGATED approval for the same members was offered and REFUSED,
 #: because `81` §14.1 reserves it: *"Each addition is a closed-vocabulary member
