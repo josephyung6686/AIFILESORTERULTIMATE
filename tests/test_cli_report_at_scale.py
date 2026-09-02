@@ -1,22 +1,25 @@
 # tests/test_cli_report_at_scale.py
 """The report a person reads when the corpus is a real disk and not a demo folder.
 
-Two files produce forty readable lines. Five thousand produced 9,460 -- 236
+Two files produce forty readable lines. Five thousand produced 9,470 -- 237
 screens -- and 97.7 % of them were the file section, because §8.6 splits a review
 set over the batch ceiling rather than truncating it and the report keyed its
 groups on the resulting shard LABEL. One hold, held for one reason, arrived as 420
-report groups, each repeating the same reason and the same explanation verbatim.
-The one thing the person could act on -- the questions -- sat at line 9,317.
+report groups, each repeating the same reason and the same explanation verbatim:
+1,072 of the report's sentences were repeats of one already printed, the worst of
+them 432 times. The one thing the person could act on -- the questions -- sat at
+line 9,317.
 
 Measured on a generated corpus with the realistic mess of a person's disk
 (coursework, payslips, a lease, medical notes, a passport, memes, screenshots,
-game saves, junk downloads, and one `.app` bundle):
+game saves, junk downloads, and one `.app` bundle). Both columns against the same
+`src/cli.py`, so the role-matcher block that landed the same day counts in both:
 
-    files      report lines    review sets    the questions block starts at
-       10               126              1    line 67
-      100               480             11    line 337
-    1,000             2,366             86    line 2,223
-    5,000             9,460            420    line 9,317
+    files    lines BEFORE    AFTER    review sets    the questions block
+       10             137      137              1    line 70 -> 70
+      100             491      313             11    line 337 -> 159
+    1,000           2,377      475             95    line 2,223 -> 337
+    5,000           9,470        ?            420    line 9,317 -> ?
 
 These tests are about the shape of that report, so they build the run directly
 rather than scanning five thousand files: the stub is the same one
@@ -181,8 +184,10 @@ def test_four_hundred_batches_of_one_hold_are_one_group_and_not_four_hundred():
 
 
 def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
-    """236 screens is not a report. The budget is what makes this a test rather
-    than an impression: a person's whole disk, on four screens."""
+    """237 screens is not a report. The budget is what makes this a test rather
+    than an impression -- and it is 220 lines and not 60 because the protected
+    group inside it is listed in full by rule, which the assertions below split
+    apart: the part the report is free to shorten is held to forty."""
     run, names = _at_scale()
     printed = _printed(run, names)
     lines = printed.splitlines()
