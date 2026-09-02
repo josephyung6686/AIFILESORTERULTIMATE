@@ -41,6 +41,31 @@ gate's mode branch disabled, and P7's remedy spliced into P11's sentence.
 **Always re-measure. Never quote a number from this file.** `85` §1's warning applies
 here for the same reason: the population moves as parts land.
 
+### A guard a passing sentence can satisfy is measuring the sentence, not the seam
+
+Learned the expensive way, an hour after the first version of this landed. The remedy
+xfail in §5.1 matched `"local model" in report`; `cli.model_route` then printed §8.4's
+mode sentence — *"only local rules and local models may run"* — in the run header, the
+strict xfail XPASSed, and the suite went red claiming the seam was connected. It was
+not: remedies matched by their own `action` or `detail` were still `[]`. The same shape
+had already bitten the egress leak scan the same day, which reported `" the appli"` as
+released source text because the field glossary ends "the application target" and the
+corpus ends "to the applicant". English collides with English, and adding prose is what
+this product does.
+
+So every assertion in `test_seam_census.py` is keyed on something that can only be
+present if the mechanism ran — a decision row's `review_policy`, a node's own
+`display_label` matched as a whole path component, an `abstention_reason`, a denial
+reason pinned against `privacy.vocabulary.DENIAL_REASONS`. **None of it asserts report
+wording**, and two attempts to do so were removed for being unfailable: reading the
+expected sentence from `cli.PLACEMENT_WORDS` is self-satisfying, because expectation and
+output come from one table and re-pointing the table moves both sides together — a
+sabotage that gave `review_required` the `blocked_pending_user` wording PASSED.
+
+The rule this leaves, for anyone extending the census: **match a value the code under
+test produced, or a whole authored sentence read from the object that composed it —
+never a fragment of prose.**
+
 ### What counts as a part
 
 `02`'s thirteen, one package each, plus three units that are not parts and are named as
