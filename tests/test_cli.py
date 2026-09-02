@@ -22,6 +22,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
 from tree_design.vocabulary import RESIDUAL_TEMPLATE_NAMES  # noqa: E402
+from facts.unresolved import (  # noqa: E402
+    BELOW_MARGIN, NO_CANDIDATE_EVIDENCE,
+)
 
 
 def _run(argv):
@@ -1223,8 +1226,27 @@ def test_a_file_whose_deterministic_pass_settled_nothing_gets_the_second_look():
     assert cli._usable((), ()) is False
     assert cli._usable(({"field_key": "subject"},), ()) is True
     # An attempted field that ended in a recorded refusal is evidence too: the
-    # pass ran and reached a conclusion, so it is not the empty case.
-    assert cli._usable((), ({"field_key": "subject"},)) is True
+    # pass ran and reached a conclusion, so it is not the empty case. A row
+    # carries its reason -- `write_unresolved` checks it against
+    # `UNRESOLVED_REASONS` and the table has the column -- and the reason is the
+    # whole difference between the next two lines.
+    assert cli._usable((), ({"field_key": "subject",
+                             "reason": BELOW_MARGIN},)) is True
+    # `no_candidate_evidence` is the one reason that does NOT count, and this is
+    # the case the product exists for: a scanned page whose text layer is broken
+    # yields no candidate for any field, so every attempted field ends in this
+    # row. Counting them would call that file "usable" and it would never be
+    # offered the second look -- the exact failure the unconditional `True` had.
+    # It would also answer the question with itself: the reason IS "nothing was
+    # there to read", which is what is being asked.
+    assert cli._usable((), ({"field_key": "subject",
+                             "reason": NO_CANDIDATE_EVIDENCE},)) is False
+    # And a page that yielded nothing on one field but refused on another having
+    # looked is still usable -- one real refusal is enough.
+    assert cli._usable((), ({"field_key": "subject",
+                             "reason": NO_CANDIDATE_EVIDENCE},
+                            {"field_key": "term",
+                             "reason": BELOW_MARGIN},)) is True
 
 
 def _two_shape_corpus(tmp_path):

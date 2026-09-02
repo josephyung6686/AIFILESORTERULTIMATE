@@ -21,7 +21,7 @@ from evidence_shape.store import (
     TextUnit, new_id, record_observation, record_run, record_text_unit,
 )
 from llm_harness.fingerprint import dossier_content_address, prompt_fingerprint
-from llm_harness.dossier import build_dossier, canonical_dossier_bytes
+from llm_harness.dossier import build_dossier, field_glossary, canonical_dossier_bytes
 from llm_harness.records import (
     DossierRequest, PromptDefinition, ValidationUnavailable, build_call_payload,
 )
@@ -355,6 +355,22 @@ def test_the_release_carries_no_text_outside_the_requested_span(egress_conn):
 
     The property, not the mechanism: no window of the source unit that reaches
     outside the requested span may appear in the bytes the model is shown.
+
+    **Why the glossary is subtracted before the scan, and why that is not a
+    loophole.** The dossier now also carries `field_glossary()`, whose prose is
+    authored English -- and English collides with English. `school`\'s meaning
+    ends "never the application target", this unit ends "to the applicant", and
+    the scan below reported ` the appli` as released source text. It was not:
+    those characters are in the bytes because a fixed sentence about a FIELD is,
+    and they would be there for a file that said nothing of the kind.
+
+    Subtracting it can only hide a leak if the glossary could ever carry
+    something about the file, and four tests in
+    `tests/p8/test_p8_field_glossary.py` say it cannot -- it varies between two
+    files (it does not), it is handed anything but the vocabulary (it is not),
+    always-local content reaches it (it does not), and every meaning is verbatim
+    from a cited ratified source. So the subtraction removes a constant, and a
+    constant cannot encode a secret.
     """
     released, body = _released_and_body(egress_conn)
 
@@ -362,11 +378,19 @@ def test_the_release_carries_no_text_outside_the_requested_span(egress_conn):
     assert item.value == "[redacted]"          # the span itself was redacted
     assert "[redacted]" in body                # and the release is not empty
 
+    # The file-independent constant, removed by VALUE rather than by position, so
+    # this keeps working if the dossier ever moves where it puts the glossary.
+    meanings = field_glossary(("school",))
+    assert meanings, "the glossary went empty; this subtraction is now hiding a leak"
+    scanned = body
+    for meaning in meanings.values():
+        scanned = scanned.replace(meaning, " ")
+
     window = SPAN.end - SPAN.start + 2         # wider than the requested span
     leaked = [
         TEXT[start:start + window]
         for start in range(len(TEXT) - window + 1)
-        if TEXT[start:start + window] in body
+        if TEXT[start:start + window] in scanned
     ]
     assert leaked == [], f"released text outside the requested span: {leaked}"
 
