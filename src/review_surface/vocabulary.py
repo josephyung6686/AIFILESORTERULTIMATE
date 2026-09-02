@@ -116,42 +116,48 @@ ACTION_SET_REFINEMENT_DISPOSITION: str = "set_refinement_disposition"
 #: residual-review sentence plus the §8.3/§8.4/§8.8 machinery actions -- a
 #: faithful reading of one paragraph, where the design has four.
 #:
-#: **APPROVED BY: the owner (Joseph), ON: 2026-09-02.** Relayed by the team lead,
-#: whose message is the transport and not the authority.
+#: **APPROVED BY: the owner (Joseph), ON: 2026-09-02, IN TWO ASKINGS.** Relayed by
+#: the team lead, whose message is the transport and not the authority.
 #:
-#: **SIX SPELLINGS were shown to him verbatim, as a tuple, and he answered
-#: "Approve, these names" -- he approved SPELLINGS, not a category:**
+#: **First asking -- SIX spellings shown to him verbatim, as a tuple, answered
+#: "Approve, these names". He approved SPELLINGS, not a category:**
 #:
 #:     "exclude_from_packet", "rename", "merge", "split", "reorder",
 #:     "set_refinement_disposition"
 #:
-#: **`create_custom_template` IS NOT ONE OF THEM, and this block said it was.**
-#: Corrected 2026-09-02 by the lead who caused it. What he ruled about that member
-#: is that the GESTURE is distinct -- asked whether "creating a custom template"
-#: and `create_custom_folder` are one thing or two, he answered *"Two different
-#: gestures"*, which is why the member exists at all. He was never shown the
-#: string `create_custom_template`, and the earlier claim that he "was then asked
-#: directly and approved all seven" describes a conversation that did not happen.
-#: The lead's relay dropped the seventh spelling, and the correction of the count
-#: was then written up as though the spelling had been ratified too.
+#: In the same asking he ruled the seventh GESTURE distinct: asked whether
+#: "creating a custom template" and `create_custom_folder` are one thing or two,
+#: he answered *"Two different gestures"*, which is why the member exists at all.
+#: That authorised the member. It did not ratify a spelling.
 #:
-#: So the honest state, and it is deliberately uncomfortable: **the member is
-#: authorised and its SPELLING is not.** It is one question to close and it is
-#: owed. A rename costs one line here plus its routing row; leaving a false
-#: attestation at a closed-vocabulary member costs the rule itself, which is the
-#: thing this whole episode was about.
+#: **Second asking -- the seventh SPELLING, put to him on its own and approved by
+#: name:** `create_custom_template`. That is what closes it, and it is recorded
+#: separately because it was asked separately.
+#:
+#: **This block once claimed the seventh spelling had been approved when it had
+#: not, and the record of that is kept on purpose.** The lead's first relay
+#: dropped it; the seventh was correctly HELD rather than inferred (a member
+#: nobody could attest he had SEEN is a member nobody approved); and then the
+#: write-up of how that got resolved said he "was shown these seven strings
+#: verbatim" and "was then asked directly and approved all seven", describing a
+#: conversation that had not happened. The lead caught it and corrected it in
+#: `6ad5110` before it was true; this block extends that correction rather than
+#: replacing it, because **a reader six months from now should be able to see that
+#: a false attestation was written, caught and fixed.** That is the failure this
+#: rule exists to prevent, and it nearly happened inside the write-up of getting
+#: it right.
 #:
 #: An earlier DELEGATED approval for the same members was offered and REFUSED,
 #: because `81` §14.1 reserves it: *"Each addition is a closed-vocabulary member
 #: and needs the owner's approval recorded at the member. They are not minted by
 #: whoever notices the gap."* The refusal is why this line names him.
 #:
-#: Landed in two commits and the reason is worth keeping: the first relay listed
-#: six of the seven, omitting `create_custom_template`, so six were landed and the
-#: seventh was held rather than inferred -- a member nobody could attest he had
-#: SEEN is a member nobody approved. He was then asked directly and approved all
-#: seven. Six gestures, seven members: *"merging or splitting groups"* is one
-#: §8.7 phrase and two gestures, and that is where the counts diverge.
+#: Landed across three commits, and the sequence is the evidence rather than
+#: bookkeeping: six members on the short relay, the seventh member on the gesture
+#: ruling, and the seventh SPELLING once it had actually been asked. Six gestures,
+#: seven members -- *"merging or splitting groups"* is one §8.7 phrase and two
+#: gestures, and that is where the two counts diverge and where the relay lost
+#: one.
 #:
 #: Also settled 2026-09-02, recorded here because a member outlives the
 #: conversation: **a canvas gesture DOES travel as a `review_action`** (`81`

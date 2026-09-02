@@ -91,11 +91,17 @@ def test_every_gesture_in_the_table_names_an_action_p13_actually_publishes():
 
 
 def test_the_seven_the_owner_approved_are_all_published():
-    """The live half of the 2026-09-02 approval. If any of the seven he was shown
-    verbatim is respelled or dropped, this names it.
+    """The live half of the 2026-09-02 approval. If any of the seven is respelled
+    or dropped, this names it.
+
+    Approved in TWO askings and the distinction cost a correction commit
+    (`6ad5110`): the first six were shown as a tuple and approved together, and
+    `create_custom_template` was put to him separately and approved by name after
+    a relay dropped it. The block above `ACTIONS` in `review_surface/vocabulary.py`
+    keeps that history.
 
     Spelled as literals rather than read off `v.ACTION_*`, deliberately: these are
-    the strings he was shown, and a test that compared the constants to themselves
+    the strings he approved, and a test that compared the constants to themselves
     would pass through any rename.
     """
     for approved in ("exclude_from_packet", "rename", "merge", "split",
