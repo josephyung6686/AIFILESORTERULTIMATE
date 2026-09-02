@@ -41,6 +41,7 @@ from collections.abc import Callable, Sequence
 
 from placement.records import PlacementDecision
 
+from review_surface.citations import UNRESOLVABLE
 from review_surface.items import (
     CitationResolver,
     PlacementReviewItem,
@@ -59,9 +60,15 @@ _CHAIN_JOIN = " > "
 def _card(item: PlacementReviewItem, name: str) -> tuple[str, ...]:
     """One subject's block. Every line is read off the item; none is computed."""
     chain = refuse_path_separator(item.destination_label_chain)
+    # Read off `ResolvedCitation.state`, which is `citations`' own answer, and
+    # never off the record's text. This counted a `str()` prefix once and was
+    # right only about the test's stand-in resolver: the real
+    # `resolve_matching_facts` returns a dataclass whose `str()` begins
+    # "ResolvedCitation(", so every citation in production would have counted as
+    # resolved and Done-means 3's whole point -- that a broken citation is
+    # visible AS missing -- would have been silently off.
     unresolved = sum(1 for _, resolution in item.cited_facts
-                     if resolution is None or str(resolution).startswith(
-                         "unresolved"))
+                     if getattr(resolution, "state", None) == UNRESOLVABLE)
     return (
         f"  {name}",
         f"    {item.render_state}, by {item.confidence_class} "

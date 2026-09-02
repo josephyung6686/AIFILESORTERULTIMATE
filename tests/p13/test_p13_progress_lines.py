@@ -116,7 +116,7 @@ def test_a_named_cause_replaces_the_missing_cause_sentence(p13_conn):
                    cause_for=lambda label: "ocr.max_time_per_file")
     assert lines == (
         "",
-        "What this run could read: 1 files indexed.",
+        "What this run could read: 1 file indexed.",
         "  0 fully extracted  (completed)",
         "  1 deferred  (deferred) -- ocr.max_time_per_file",
         "  A file counted here was not necessarily understood. Nothing above "

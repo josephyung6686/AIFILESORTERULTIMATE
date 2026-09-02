@@ -91,7 +91,8 @@ def progress_lines(conn: sqlite3.Connection, *, scan_ref: str,
             if entry.label != INDEXED]
     return (
         "",
-        f"What this run could read: {indexed.count} files indexed.",
+        f"What this run could read: {indexed.count} "
+        f"file{'' if indexed.count == 1 else 's'} indexed.",
         *rows,
         "  A file counted here was not necessarily understood. Nothing above "
         "is added together: deferred work and completed work are different "

@@ -24,6 +24,9 @@ Two properties carry these tests, and each has a sabotage of its own:
 """
 from __future__ import annotations
 
+from evidence_shape.observation import Location, Observation
+from evidence_shape.runs import ExtractionRun
+from evidence_shape.store import record_observation, record_run
 from placement.records import (
     DecisionDepth,
     Destination,
@@ -42,6 +45,8 @@ from placement.vocabulary import (
     REVIEW_REQUIRED,
 )
 
+from review_surface.citations import resolve_matching_facts
+
 from review_run.review import placement_lines
 
 T0 = "2026-08-29T00:00:00Z"
@@ -53,10 +58,11 @@ TWO_CONDITION = TwoCondition(
     requires_review=True)
 
 
-def _resolver(conn, matching_facts):
-    """P13's own resolver, standing in only for the evidence rows it would read."""
-    return tuple((fact, f"unresolved:{fact.evidence_ref}")
-                 for fact in matching_facts)
+#: P13's REAL resolver, not a stand-in. The composition root injects exactly this
+#: function, and a fixture returning strings would leave the renderer's
+#: unresolved count agreeing with the fixture and disagreeing with production --
+#: which is the shape that hid a live defect on this very line.
+_resolver = resolve_matching_facts
 
 
 def _decision(**overrides) -> PlacementDecision:
@@ -210,6 +216,36 @@ def test_a_named_file_and_an_unnamed_one_are_both_accounted_in_one_pass(
         "and it is still yours to review.")
 
 
+HASH_A = "a" * 64
+
+
+def _seed_observation(conn) -> str:
+    """One real observation, so a citation that DOES resolve exists to contrast."""
+    record_run(conn, ExtractionRun(
+        run_id="run-1", file_id="f-1", content_hash=HASH_A,
+        extractor_name="fixture-pdf", extractor_version="1",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=T0, observation_count=1,
+        coverage=None, finished_at=T0, failure_reason=None))
+    observation = Observation(
+        file_id="f-1", content_hash=HASH_A, extractor_name="fixture-pdf",
+        extractor_version="1", source_type="text_document",
+        raw_value="PHYS1401",
+        location=Location(zone="body", container_path=(), text_span=None,
+                          time_span=None, region=None),
+        occurrence_count=1, observed_at=T0, reliability="direct",
+        run_id="run-1", normalized_value="PHYS1401",
+        context_before="Course ", context_after=" Spring 2026",
+        context_truncated=False, confidence=None, signal_tier=None)
+    record_observation(conn, observation)
+    return observation.observation_key
+
+
+def _fact(evidence_ref: str) -> MatchingFact:
+    return MatchingFact(file_fact_id="ff-1", field="subject", value="PHYS1401",
+                        reliability="direct", evidence_ref=evidence_ref)
+
+
 def test_a_cited_fact_that_would_not_resolve_is_reported_as_unresolved(
         p13_conn):
     """Done-means 3: an unresolvable citation is rendered, not dropped.
@@ -218,10 +254,26 @@ def test_a_cited_fact_that_would_not_resolve_is_reported_as_unresolved(
     explanation with three citations does not silently become one with two. That
     property is only visible to a person if the renderer says how many did not
     resolve, so the count is on the line rather than in the record alone.
+
+    BOTH states are driven, through the REAL resolver, because the count was
+    once taken off `str(resolution)` and was right only about a fixture that
+    returned strings: `ResolvedCitation`'s `str()` begins "ResolvedCitation(",
+    so every citation in production counted as resolved and the line said "0 of
+    them unresolved" over a broken one. A test that only ever cites a missing
+    key cannot see that; a test that cites one of each can.
     """
     _tree(p13_conn)
-    decision = _decision(matching_facts=(
-        MatchingFact(file_fact_id="ff-1", field="subject", value="PHYS1401",
-                     reliability="direct", evidence_ref="obs-1"),))
-    assert _lines(p13_conn, (decision,))[-1] == (
+    resolvable = _seed_observation(p13_conn)
+
+    missing = _decision(matching_facts=(_fact("obs-does-not-exist"),))
+    assert _lines(p13_conn, (missing,))[-1] == (
         "    evidence: 1 cited, 1 of them unresolved")
+
+    found = _decision(matching_facts=(_fact(resolvable),))
+    assert _lines(p13_conn, (found,))[-1] == (
+        "    evidence: 1 cited, 0 of them unresolved")
+
+    both = _decision(matching_facts=(_fact(resolvable),
+                                     _fact("obs-does-not-exist")))
+    assert _lines(p13_conn, (both,))[-1] == (
+        "    evidence: 2 cited, 1 of them unresolved")
