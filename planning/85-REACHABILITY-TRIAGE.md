@@ -486,7 +486,38 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
    there changes no verdict today. It is the defensive half: the day the wrapping
    is fixed, its guard can already see a redirect.
 
-9. **The three verdicts do not cover "the owner has not chosen a number yet."**
+9. **An independence claim between two patch files is a TWO-DIRECTION
+   measurement, and testing the order you happen to run is the same masking
+   failure as the one-fixture guard.** I wrote that this file's patches and the
+   role-matcher agent's "are independent and either order works; that is checked,
+   not assumed". It was checked — in one direction. Theirs-then-mine failed:
+   their H1 merged `AnswerNotPermitted` into
+   `from questions.records import StructuralAnswer`, which is PATCH C1's anchor
+   verbatim, so C1 then matched zero times. Reproduced here on a copy, both
+   directions and both patch states:
+
+   | | before their fix | after (`dfac97f`) |
+   |---|---|---|
+   | theirs → mine | **C1 matches 0 times** | matches once |
+   | mine → theirs | matches once | matches once |
+
+   Fixed on their side by leaving the anchor byte-for-byte alone and adding
+   `AnswerNotPermitted` on its own import line. Verified independently here: both
+   orders now apply, produce identical `from questions` line sets, and both parse.
+
+   **The rule that generalises past this one collision:** a hunk that MODIFIES a
+   line consumes every other patch's anchor on that line; a hunk that INSERTS
+   beside a line does not. So an insert-only hunk is order-independent by
+   construction, and a modifying hunk owes a check against every other unapplied
+   patch's anchors. Cheap to honour, and it turns an ordering rule somebody has to
+   remember into a property — which is what this repo does with R2 inside
+   `role_declaration_is_due` and with the census's own EXEMPT list.
+
+   Found by the role-matcher agent CHECKING a claim they had no reason to doubt.
+   Worth its own line: the claim was mine, it was confidently worded, and the one
+   direction I ran was the one that passed.
+
+10. **The three verdicts do not cover "the owner has not chosen a number yet."**
    `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
    producers exist, the tests pass, and the only thing missing is three numbers a
    person has to decide. Calling that "correctly dormant" files an owner decision as
@@ -497,6 +528,10 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
 
 ## 14. Open, for whoever picks this up
 
+- **Both patch files are now order-independent in both directions, measured**
+  (§13.9). If a third patch file appears against `src/cli.py`, the thing to check
+  is not "does it conflict" but "does any hunk of it MODIFY a line another
+  patch's OLD block quotes" — that is the only way these collide.
 - **NEW OWNER ITEM. Two of P6's own done-means criteria are blocked on three
   deferred numbers.** Done-means 25 (`bounded_sessions`) needs a session window, a
   same-folder rule and a minimum member count; Done-means 26 (`photo_events`) needs a
