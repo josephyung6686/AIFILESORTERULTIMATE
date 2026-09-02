@@ -8,7 +8,11 @@ in it -- including a word it read off `field_glossary` -- and be accepted.
 
 **What this module claims, exactly.** The value's characters, read without case and
 without separators, occur as a whole-token run of a released value THIS CLAIM CITES.
-Nothing more. It is a text comparison and it is deliberately not a judgement about
+Nothing more. In particular a `False` here says the characters are ABSENT and never
+that the value was FABRICATED: a normalisation this deployment has no rule for and an
+honest mis-citation land in the same bucket as an invention, which is why the owner
+chose `VALUE_NOT_IN_CITED_TEXT` over `MADE_UP_VALUE` and why no caller may read it as
+proof of intent. It is a text comparison and it is deliberately not a judgement about
 meaning: `90` §2.2 records that a lifted `"screenshot"` and a found one can produce
 the identical pair, and several of the glossary's enumerated words are ordinary
 English, so this narrows the hazard where the word is absent and cannot close it

@@ -52,7 +52,9 @@ from llm_harness.vocabulary import (
     ACCEPT_DIRECT,
     DIRECT_ANCHOR,
     REDUCTION_NONE,
+    REJECT,
     REMAINS_AMBIGUOUS,
+    VALUE_NOT_IN_CITED_TEXT,
 )
 from p8.test_p8_transport import Recorder, _spent
 from llm_harness.records import Refusal
@@ -60,23 +62,64 @@ from privacy.release import NeedsConsent
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 RAW_EXCERPT = "Columbia University"
-#: What P7 actually releases: the egress fixture redacts every classified
-#: value, so the model is shown this and may cite nothing else (R4).
+#: What P7 actually releases for the classified reading: the egress fixture redacts
+#: every identifier, so the model is shown this and may cite nothing else (R4).
 RELEASED_VALUE = "[redacted]"
 SKELETON_TEXT = "Columbia University - redacted dossier excerpt for the applicant."
+
+#: A SECOND reading of the same file that carries no identifier, released verbatim.
+#:
+#: **The skeleton had only the redacted one, and the claim it walked through the pipe
+#: proposed `Columbia University` -- the text redaction had removed -- cited to the
+#: span `[redacted]`.** That was `accept_direct` and became an active `llm_supported`
+#: fact, so the product's one end-to-end proof was a model reconstructing redacted
+#: content. `llm_harness.value_grounding` refuses it, and the fix is not to relax the
+#: claim: a closed world in which everything is redacted has no proposable value in
+#: it at all, and the only correct answer over it is `unknown`. So the world gains a
+#: reading the gate releases in the clear, the accepting claim is bound to THAT, and
+#: R4 is still proved by the redacted one sitting beside it.
+CLEAR_TEXT = "Syllabus heading: PHYS1401 problem set."
+CLEAR_SPAN = (18, 26)
+CLEAR_VALUE = "PHYS1401"
+
 CONTENT_HASH = "hash-skeleton"
 OBSERVED_AT = "2026-08-22T09:00:00Z"
 
 
-def _direct_bytes(key: str, *, span: str = RELEASED_VALUE) -> bytes:
+#: Bound before the fixture replaces the module attribute, so the delegation below
+#: reaches the egress fixture's classifier and not this function again.
+_EGRESS_CLASSIFIER = egress._classifier
+
+
+def _classifier_sparing_the_clear_reading(value, *, context_before=None,
+                                          context_after=None):
+    """The egress fixture's classifier, except that `CLEAR_VALUE` is not an identifier.
+
+    `privacy.redaction.apply_redaction` releases a value verbatim when the classifier
+    returns `None`, so this is the whole mechanism by which one of the two readings
+    survives the gate and the other does not.
+    """
+    if value == CLEAR_VALUE:
+        return None
+    return _EGRESS_CLASSIFIER(
+        value, context_before=context_before, context_after=context_after)
+
+
+def _direct_bytes(key: str, *, span: str = CLEAR_VALUE) -> bytes:
+    """A claim whose value is IN the released text it cites.
+
+    Value and span are the same characters here on purpose: the released reading is
+    the course code and the value proposed is the course code. Anything else would be
+    a value the model was not shown.
+    """
     return json.dumps({
         "claims": [{
             "claim_ref": "c1",
-            "payload": {"field": "subject", "value": RAW_EXCERPT},
+            "payload": {"field": "subject", "value": CLEAR_VALUE},
             "citations": [{
                 "evidence_ref": key,
                 "cited_span": span,
-                "why_it_supports": "names the school",
+                "why_it_supports": "the heading names the course",
             }],
         }],
     }, separators=(",", ":")).encode("utf-8")
@@ -102,9 +145,19 @@ def walk(skeleton_conn, monkeypatch):
     monkeypatch.setattr(egress, "TEXT", SKELETON_TEXT)
     monkeypatch.setattr(egress, "SPAN", egress.TextSpan(start=0, end=19))
     conn = skeleton_conn
-    file_id, key = egress._seed_classified(
+    file_id, redacted_key = egress._seed_classified(
         conn, name="syllabus.pdf", content_hash=CONTENT_HASH,
     )
+    # The second reading of the same file. `_evidence` reads the module's TEXT and
+    # SPAN, so the world is built by moving them and calling it again; the gate then
+    # decides, per value, which of the two survives it.
+    clear_span = egress.TextSpan(start=CLEAR_SPAN[0], end=CLEAR_SPAN[1])
+    monkeypatch.setattr(egress, "TEXT", CLEAR_TEXT)
+    monkeypatch.setattr(egress, "SPAN", clear_span)
+    key = egress._evidence(conn, file_id, CONTENT_HASH)
+    monkeypatch.setattr(egress, "TEXT", SKELETON_TEXT)
+    monkeypatch.setattr(egress, "SPAN", egress.TextSpan(start=0, end=19))
+    monkeypatch.setattr(egress, "_classifier", _classifier_sparing_the_clear_reading)
     policy = egress._store_policy(conn, "hybrid")
     prompt = egress._prompt()
     fingerprint = egress.prompt_fingerprint(prompt)
@@ -115,15 +168,26 @@ def walk(skeleton_conn, monkeypatch):
         evidence_items=(
             EvidenceItem(
                 evidence_ref=key, kind="excerpt", location="heading",
+                excerpt_span=CLEAR_SPAN,
+                reliability_state="direct", basis=DIRECT_ANCHOR,
+            ),
+            EvidenceItem(
+                evidence_ref=redacted_key, kind="excerpt", location="heading",
                 excerpt_span=(egress.SPAN.start, egress.SPAN.end),
                 reliability_state="direct", basis=DIRECT_ANCHOR,
             ),
         ),
         conflicts=(),
         model_call_request=egress._request(
-            items=(egress.Excerpt(
-                observation_key=key, span=egress.SPAN, reason="heading",
-            ),),
+            items=(
+                egress.Excerpt(
+                    observation_key=key, span=clear_span, reason="heading",
+                ),
+                egress.Excerpt(
+                    observation_key=redacted_key, span=egress.SPAN,
+                    reason="heading",
+                ),
+            ),
             model_target=egress.CLOUD, file_ids=(file_id,),
             fingerprint=fingerprint,
         ),
@@ -137,7 +201,7 @@ def walk(skeleton_conn, monkeypatch):
         learning_scope="file",
         learning_subject_id=file_id,
         evidence_resolver=lambda observation_key: (
-            SKELETON_TEXT if observation_key == key else None
+            {key: CLEAR_TEXT, redacted_key: SKELETON_TEXT}.get(observation_key)
         ),
         site_dependencies=SiteDependencies(
             fact=FactSiteDependencies(
@@ -271,6 +335,48 @@ def test_one_run_call_walks_p7_to_p8_to_p6_to_p2(walk):
     assert stored["prompt_fingerprint"] == fingerprint
     assert "validator_version" not in VERSION_TUPLE_FIELDS
     assert "policy_version" not in VERSION_TUPLE_FIELDS
+
+
+def test_the_walk_refuses_a_value_the_gate_removed(walk):
+    """The claim this skeleton used to walk through the pipe, now refused.
+
+    The model is shown `[redacted]` for the classified reading and proposes
+    `Columbia University` -- the text the gate removed -- citing the redacted span
+    exactly, so checks 1, 2, 3 and 4 all pass. Nothing in the dossier carries those
+    characters: the model either invented them or knew them, and until
+    `llm_harness.value_grounding` this was `accept_direct` and became an active
+    `llm_supported` fact on the person's file.
+
+    This is not a test about the glossary. It is the same check meeting the case that
+    matters most, and it is pinned here so the fixture cannot drift back to proving
+    the walk with a value the gate had already taken away.
+    """
+    conn, file_id, key, digest, prompt, fingerprint, policy, request, deps = walk
+    redacted_key = request.evidence_items[1].evidence_ref
+
+    reconstructing = json.dumps({
+        "claims": [{
+            "claim_ref": "c1",
+            "payload": {"field": "subject", "value": RAW_EXCERPT},
+            "citations": [{
+                "evidence_ref": redacted_key,
+                "cited_span": RELEASED_VALUE,
+                "why_it_supports": "names the school",
+            }],
+        }],
+    }, separators=(",", ":")).encode("utf-8")
+
+    verdict, recorder = _run(
+        conn, request, deps, prompt=prompt, reply=reconstructing,
+    )
+    assert isinstance(verdict, P8Verdict)
+    assert verdict.outcome == REJECT
+    assert verdict.reasons == (VALUE_NOT_IN_CITED_TEXT,)
+    assert len(recorder.calls) == 1
+    assert [
+        fact for fact in facts_for_file(conn, file_id, digest)
+        if fact["field_key"] == "subject"
+    ] == []
 
 
 def test_replay_of_the_walk_uses_the_same_dispatcher_and_calls_no_model(walk):

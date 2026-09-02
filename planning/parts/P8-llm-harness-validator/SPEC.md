@@ -376,6 +376,7 @@ disappears into an abstention.
 | `FIELD_NOT_IN_ACTIVE_SCHEMA` | reject |
 | `VALUE_NOT_NORMALIZABLE` | reject |
 | `SEARCH_HINT_ONLY` | weak — §3.3's *"appropriate for a proposal rather than merely a search hint"*; §3.6's possible-clue downgrade |
+| `VALUE_NOT_IN_CITED_TEXT` | reject — the value's characters are not a whole-token run of any released value this claim cites. **Not one of §3.3/§3.6's codes; added 2026-09-02 with the owner's approval**, recorded at the member in `vocabulary.py`. `86` §4 is why the SPEC had no code for it: nothing in the product compared a value to any released text, so nothing ever had to say that it did not match. It establishes absence, never fabrication |
 
 **Site B adds (§4.5, §4.8):**
 

@@ -31,6 +31,7 @@ from llm_harness.records import (
     ValidationUnavailable,
 )
 from llm_harness.validation import check_citations
+from llm_harness.value_grounding import value_is_grounded
 from llm_harness.vocabulary import (
     ABSTAIN,
     ACCEPT_CONTEXT_SUPPORTED,
@@ -46,6 +47,7 @@ from llm_harness.vocabulary import (
     REJECT,
     REJECTED,
     SCOPE_FILE,
+    VALUE_NOT_IN_CITED_TEXT,
     VALUE_NOT_NORMALIZABLE,
     WEAK,
 )
@@ -69,6 +71,7 @@ _REASON_TO_CHECK = {
     CITATION_NOT_IN_DOSSIER: FOUR_CHECKS[1],
     CITATION_SPAN_MISMATCH: FOUR_CHECKS[1],
     VALUE_NOT_NORMALIZABLE: FOUR_CHECKS[2],
+    VALUE_NOT_IN_CITED_TEXT: FOUR_CHECKS[1],
     CONTRADICTED_BY_STRONGER: FOUR_CHECKS[3],
 }
 
@@ -229,11 +232,21 @@ def _run_checks(
             dossier_id=dossier_id,
         )
     raw_value = proposal.value
-    if not isinstance(raw_value, str) or (
-            dependencies.normalize(proposal.field_key, raw_value) is None):
+    normalized = (dependencies.normalize(proposal.field_key, raw_value)
+                  if isinstance(raw_value, str) else None)
+    if normalized is None:
         return _verdict(
             request, proposal, outcome=REJECT,
             reasons=(VALUE_NOT_NORMALIZABLE,),
+            citations_checked=checked, policy_version=policy_version,
+            dossier_id=dossier_id,
+        )
+    if not value_is_grounded(
+            raw_value, normalized,
+            citations=rich, released_evidence=dossier.released_evidence):
+        return _verdict(
+            request, proposal, outcome=REJECT,
+            reasons=(VALUE_NOT_IN_CITED_TEXT,),
             citations_checked=checked, policy_version=policy_version,
             dossier_id=dossier_id,
         )

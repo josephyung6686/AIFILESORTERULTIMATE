@@ -243,10 +243,52 @@ FIELD_NOT_IN_ACTIVE_SCHEMA: str = "FIELD_NOT_IN_ACTIVE_SCHEMA"
 VALUE_NOT_NORMALIZABLE: str = "VALUE_NOT_NORMALIZABLE"
 SEARCH_HINT_ONLY: str = "SEARCH_HINT_ONLY"
 
+#: THE FOURTH SITE-A CODE, ADDED 2026-09-02 WITH THE OWNER'S APPROVAL, RECORDED HERE.
+#:
+#: The three above are §3.3's and §3.6's, and each names something a check was
+#: already doing. This one names a check that did not exist. `86` §4: **the proposed
+#: `value` is never compared to the citation or to any released text.** `90` §5 ranks
+#: a check that compares them first among the things that would help -- ahead of any
+#: choice between prompt candidates. `llm_harness.value_grounding` is that
+#: comparison; this is the word it refuses with.
+#:
+#: THE NAME, AND WHAT IT WAS CHOSEN OVER. The owner was offered `VALUE_NOT_IN_CITED_
+#: EVIDENCE`, `VALUE_NOT_IN_THE_QUOTE` and `MADE_UP_VALUE`, and chose this one: it
+#: says what the check measured, in the phrase the codebase already uses for that
+#: thing. **`MADE_UP_VALUE` was rejected because absent is not fabricated.** A
+#: normalisation this deployment has no rule for, an honest mis-citation and an
+#: invention all land in this bucket, and a name asserting intent would make the
+#: report claim more than the check knows.
+#:
+#: WHAT IT ESTABLISHES, AND WHAT IT DOES NOT. It establishes ONE thing: the value's
+#: characters, read without case and without separators, are not a whole-token run of
+#: any released value this claim cites. It does NOT establish that the model invented
+#: the value, and nothing downstream may read it that way. The three false-reject
+#: classes are asserted in `tests/p8/test_p8_value_grounding.py` -- morphology, a
+#: canonical form whose raw spelling was never proposed, and any script that does not
+#: separate words. Nor does it establish that a value which PASSES was found rather
+#: than lifted: `90` §2.2 records that several of the glossary's enumerated words are
+#: ordinary English, and where the word is on the page a lift and a find are
+#: byte-identical. This check narrows S16; it does not close it.
+#:
+#: WHAT IT MAPS TO AT P6. `FOUR_CHECKS[1]`, whose P6 reason is
+#: `citation_absent_from_evidence`. The citation resolves and its span matches; what
+#: is absent from it is any support for the value. **The cost, chosen knowingly:** an
+#: `unresolved` row will say the model mis-cited when it mis-valued. The alternative
+#: was a fifth member of P6's `CHECK_REASONS` -- a second closed vocabulary, in
+#: another part -- and one approval was taken over two.
+#:
+#: WHY NOT AN EXISTING CODE. `SEARCH_HINT_ONLY` is the borrowable one: published,
+#: `weak`, and with no producer anywhere in `src/`. `39` A12 rules that it is to be
+#: implemented as §3.3's test or removed, not repurposed, and "the characters of this
+#: value are not in the text you cited" is not "this is merely a search hint".
+VALUE_NOT_IN_CITED_TEXT: str = "VALUE_NOT_IN_CITED_TEXT"
+
 SITE_A_REASON_CODES: tuple[str, ...] = (
     FIELD_NOT_IN_ACTIVE_SCHEMA,
     VALUE_NOT_NORMALIZABLE,
     SEARCH_HINT_ONLY,
+    VALUE_NOT_IN_CITED_TEXT,
 )
 
 TERM_MERGE_UNSUPPORTED: str = "TERM_MERGE_UNSUPPORTED"

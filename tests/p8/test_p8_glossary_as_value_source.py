@@ -39,6 +39,7 @@ from llm_harness.vocabulary import (
     DIRECT_ANCHOR,
     REDUCTION_NONE,
     REMAINS_AMBIGUOUS,
+    VALUE_NOT_IN_CITED_TEXT,
 )
 
 from cli import contradicts_stronger, normalize_for_model  # noqa: E402
@@ -216,17 +217,22 @@ def test_every_enumerated_word_survives_check_three(site_a_conn, tmp_path):
          for field_key, _schema_id, words in ENUMERATING_ENTRIES
          for word in words],
 )
-def test_s16_a_value_lifted_from_the_glossary_is_accepted(
+def test_s16_a_value_lifted_from_the_glossary_is_refused(
         field_key, schema_id, word, site_a_conn, tmp_path):
     """A real citation carrying a value that exists only in the glossary.
 
-    The span is copied exactly out of `released_evidence`, so check 2 passes. The
-    value normalizes, so check 3 passes. The field is in `allowed_vocabulary`, so
-    check 1 passes. No stronger fact exists, so check 4 passes. `accept_direct`.
+    **All 22 of these were `accept_direct` when this file was written.** The span is
+    copied exactly out of `released_evidence`, so check 2 passes. The value
+    normalizes, so check 3 passes. The field is in `allowed_vocabulary`, so check 1
+    passes. No stronger fact exists, so check 4 passes. Nothing looked at the value.
+
+    `llm_harness.value_grounding` looks at it. None of the 22 words is in
+    `RELEASED`, so none of them is a value the cited text carries, and all 22 are
+    `VALUE_NOT_IN_CITED_TEXT`.
 
     The control is the answer the draft directs -- decline, because no released value
-    carries the thing -- and it abstains. The two are one word apart in the response
-    bytes and the machine ranks them identically well.
+    carries the thing -- and it still abstains. The two are one word apart in the
+    response bytes and the machine no longer ranks them equally well.
     """
     world = _world_for_schema(site_a_conn, tmp_path, schema_id=schema_id)
     assert field_key in world.dossier.allowed_vocabulary
@@ -234,47 +240,50 @@ def test_s16_a_value_lifted_from_the_glossary_is_accepted(
     lifted = _response(_claim(
         field_key, word, key=world.released_key, span=REAL_SPAN,
         why="the office prepared it"))
-    assert _judge(world, lifted) == ONE_ACCEPT
+    assert _judge(world, lifted) == _one_reject(VALUE_NOT_IN_CITED_TEXT)
 
     declined = _response(_decline(
         field_key, "no released value names one"))
     assert _judge(world, declined) == ONE_ABSTAIN
 
 
-def test_s16_the_lifted_value_becomes_a_real_llm_supported_fact(
+def test_the_lifted_value_no_longer_becomes_a_real_llm_supported_fact(
         site_a_conn, tmp_path):
     """The consequence, not just the verdict -- the shape `86` §2 used for S1.
 
-    An accepted verdict that wrote nothing would be harmless. This runs the
-    consequence and reads P6's own table back: `media_type = "screenshot"` for a file
-    whose evidence never used the word, active, `llm_supported`, on the strength of a
-    citation about an office.
+    A refused verdict that still wrote the row would be no fix at all, so this runs
+    the consequence and reads P6's own table back. It used to hold
+    `media_type = "screenshot"`, active, `llm_supported`, for a file whose evidence
+    never used the word, on the strength of a citation about an office. It now holds
+    nothing for that field.
     """
     world = _world_for_schema(site_a_conn, tmp_path, schema_id="photos")
     lifted = _response(_claim(
         "media_type", "screenshot", key=world.released_key, span=REAL_SPAN,
         why="the office prepared it"))
 
-    assert _judge(world, lifted, apply=True) == ONE_ACCEPT
+    assert _judge(world, lifted, apply=True) == _one_reject(
+        VALUE_NOT_IN_CITED_TEXT)
 
     rows = [row for row in facts_for_file(
         site_a_conn, world.file_id, world.content_hash)
         if row["field_key"] == "media_type"]
-    assert [row["canonical_value"] for row in rows] == ["screenshot"]
-    assert rows[0]["reliability_state"] == "llm_supported"
-    assert rows[0]["active"] == 1
+    assert rows == []
 
 
-def test_s16_is_indiscriminable_the_way_s1_is(site_a_conn, tmp_path):
-    """The finding that makes S16 S1's sibling rather than S4's.
+def test_a_lift_and_a_find_are_told_apart_when_the_word_is_not_in_the_evidence(
+        site_a_conn, tmp_path):
+    """S16 was S1's sibling. It is not any more, and this is where that changed.
 
     `86` §1 records that S1's correct minimal answer and its over-quoted one produce
-    the identical `(outcome, reasons)` pair. So do these two. The first cites a span
-    about an office and proposes a word from the glossary; the second cites a span
-    that really is the word, from evidence that really says it. One is an invention
-    and one is a correct reading, and the machine returns the same pair for both.
+    the identical `(outcome, reasons)` pair, and this test used to assert that these
+    two did as well. The first cites a span about an office and proposes a word from
+    the glossary; the second cites a span that really is the word, from evidence that
+    really says it. One is an invention and one is a correct reading.
 
-    A test that could tell them apart would be a check the system does not have.
+    They now produce different pairs, and the correct reading is still accepted --
+    which is the half that matters, because a check that refused both would have
+    bought nothing.
     """
     invented = _world_for_schema(site_a_conn, tmp_path, schema_id="photos")
     from_the_glossary = _response(_claim(
@@ -288,8 +297,39 @@ def test_s16_is_indiscriminable_the_way_s1_is(site_a_conn, tmp_path):
         "media_type", "screenshot", key=found.released_key, span="screenshot",
         why="the line names the kind of capture"))
 
-    assert _judge(invented, from_the_glossary) == _judge(found, from_the_evidence)
-    assert _judge(invented, from_the_glossary) == ONE_ACCEPT
+    assert _judge(invented, from_the_glossary) != _judge(found, from_the_evidence)
+    assert _judge(invented, from_the_glossary) == _one_reject(
+        VALUE_NOT_IN_CITED_TEXT)
+    assert _judge(found, from_the_evidence) == ONE_ACCEPT
+
+
+def test_a_lift_and_a_find_stay_indiscriminable_when_the_word_IS_in_the_evidence(
+        site_a_conn, tmp_path):
+    """The limit of the check, asserted rather than promised.
+
+    `90` §2.2 warns that several of the 22 are ordinary English -- *form*, *field*,
+    *store*, *scan* -- and will legitimately appear in real released text. When the
+    word is there, a model that read it off the glossary and a model that read it off
+    the page produce byte-identical claims, and no comparison of characters can
+    separate them. The check NARROWS S16; it does not close it, and a report that
+    said "closed" would be false.
+
+    Both claims below cite a span about an office over prose that also happens to
+    mention a screenshot. One found the word and one lifted it. Both are accepted.
+    """
+    world = _world_for_schema(
+        site_a_conn, tmp_path, schema_id="photos",
+        released="Prepared by the office; a screenshot of the ledger is attached.")
+
+    lifted_but_present = _response(_claim(
+        "media_type", "screenshot", key=world.released_key, span=REAL_SPAN,
+        why="the office prepared it"))
+    genuinely_found = _response(_claim(
+        "media_type", "screenshot", key=world.released_key, span=REAL_SPAN,
+        why="the line names the kind of capture"))
+
+    assert _judge(world, lifted_but_present) == _judge(world, genuinely_found)
+    assert _judge(world, lifted_but_present) == ONE_ACCEPT
 
 
 def test_a_glossary_sentence_quoted_as_a_span_is_caught(site_a_conn, tmp_path):
@@ -315,22 +355,27 @@ def test_a_glossary_sentence_quoted_as_a_span_is_caught(site_a_conn, tmp_path):
     assert _judge(world, quoting_the_glossary) == _one_reject(CITATION_SPAN_MISMATCH)
 
 
-def test_the_prompt_only_set_is_larger_than_the_fifteen_recorded(
+def test_s16_is_machine_defended_and_the_prompt_only_set_is_the_fifteen_s_two(
         site_a_conn, tmp_path):
     """The deliverable, as an assertion, in the form `86` used for the fifteen.
 
-    `86` §1: twelve machine, two prompt-only, one neither. S16 is a third prompt-only
-    case, and it is not a variant of S1 -- S1 is a value that contains the right
-    characters plus some, S2 is a value with no relationship to the evidence found in
-    the model's own head, and S16 is a value with no relationship to the evidence
-    that **the dossier itself supplied**. The wording of the prompt is the entire
-    defence for all three.
+    `86` §1: twelve machine, two prompt-only, one neither. S16 was a THIRD prompt-only
+    case -- a value with no relationship to the evidence, supplied by the dossier
+    itself -- and the sentence in `82` §2 was the entire defence for it.
 
-    If a check is ever added that compares a value to the released text, this test is
-    where it will announce itself.
+    It is machine-defended now. The five `site` words that this test used to watch
+    sail through are refused, and the prompt-only set is back to `86`'s two: S1's
+    over-quotation, whose value IS in the evidence, and S2's plausible misreading,
+    whose value is also in the evidence. Both are outside what a character
+    comparison can see, which is exactly why they stay where they are.
+
+    The old docstring said: *"If a check is ever added that compares a value to the
+    released text, this test is where it will announce itself."* This is the
+    announcement.
     """
     world = _world_for_schema(site_a_conn, tmp_path, schema_id="logistics")
     for word in ("plant", "works", "depot", "store", "field"):
         assert _judge(world, _response(_claim(
             "site", word, key=world.released_key, span=REAL_SPAN,
-            why="the office prepared it"))) == ONE_ACCEPT
+            why="the office prepared it"))) == _one_reject(
+                VALUE_NOT_IN_CITED_TEXT)

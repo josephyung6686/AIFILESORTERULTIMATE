@@ -56,6 +56,7 @@ from llm_harness.vocabulary import (
     REJECT,
     REMAINS_AMBIGUOUS,
     SCHEMA_INVALID,
+    VALUE_NOT_IN_CITED_TEXT,
     VALUE_NOT_NORMALIZABLE,
 )
 
@@ -509,7 +510,12 @@ CASES: tuple[Case, ...] = (
     ),
     Case(
         "S15", "a value emitted as a number rather than a JSON string",
-        {"released": DEFAULT_RELEASED},
+        # The year is IN the released line. It did not have to be until
+        # `value_grounding` landed: the control proposed `2026` over a line that
+        # never said it, and was accepted because nothing compared the two. S15 is
+        # about JSON types, so the world carries the year and the case keeps its
+        # point instead of borrowing a hole.
+        {"released": DEFAULT_RELEASED + ", 2026"},
         lambda w: _response(_claim(
             "creation_date", 2026, key=w.released_key, span="PHYS1401")),
         _one_reject(VALUE_NOT_NORMALIZABLE),
@@ -598,25 +604,40 @@ def test_s1_check_three_does_not_bound_the_value_at_all(site_a_conn, tmp_path):
     assert normalize_for_model("instructor", 4) is None
 
 
-def test_s2_the_value_is_never_compared_to_the_evidence_it_cites(
+def test_the_value_is_now_compared_to_the_evidence_it_cites_and_s2_survives_it(
         site_a_conn, tmp_path):
-    """The widest hole the fifteen imply, stated on its own.
+    """The widest hole the fifteen imply, and exactly how much of it closed.
 
-    §3.6's check 2 asks whether the CITATION holds. Check 3 asks whether the VALUE
-    normalizes. Nothing asks whether the value has anything to do with the citation,
-    so a real span from the released text will carry any value at all -- including a
-    string that appears nowhere in the dossier. S2 is this failure with a plausible
-    value; here it is with an impossible one, so the absence of the check cannot be
-    mistaken for the check being lenient.
+    This test used to assert `ONE_ACCEPT` for `Dr Nobody` -- a value that appears
+    nowhere in the dossier, carried by a real span -- because §3.6's check 2 asked
+    whether the CITATION held, check 3 asked whether the VALUE normalized, and
+    nothing asked whether the two had anything to do with each other.
+    `llm_harness.value_grounding` asks. `Dr Nobody` is now `VALUE_NOT_IN_CITED_
+    EVIDENCE`.
+
+    **And S2 itself is still accepted, which is the half that did not close.**
+    `the committee` IS in the released prose; what is wrong with it is that a
+    committee is not an instructor, and that is a judgement about meaning that no
+    comparison of characters makes. So `90` §5's claim that this check "would close
+    S2 and S16 outright" is right about S16 and wrong about S2, and the `CASES`
+    table above still files S2 under `PROMPT_ONLY`.
+
+    Both halves are asserted here rather than described, because the difference
+    between them is the whole of what the check is worth.
     """
     world = _world(
         site_a_conn, tmp_path,
         released="Prepared for the committee in the autumn, with notes.")
-    unrelated = _response(_claim(
+
+    from_nowhere = _response(_claim(
         "instructor", "Dr Nobody", key=world.released_key, span="the committee",
         why="the committee named the instructor"))
+    assert _judge(world, from_nowhere) == _one_reject(VALUE_NOT_IN_CITED_TEXT)
 
-    assert _judge(world, unrelated) == ONE_ACCEPT
+    from_the_prose = _response(_claim(
+        "instructor", "the committee", key=world.released_key,
+        span="the committee", why="the committee named the instructor"))
+    assert _judge(world, from_the_prose) == ONE_ACCEPT
 
 
 def test_s6_one_course_becomes_two_value_rows(site_a_conn, tmp_path):

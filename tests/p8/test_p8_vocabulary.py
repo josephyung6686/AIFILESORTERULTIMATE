@@ -104,6 +104,7 @@ from llm_harness.vocabulary import (
     SENSITIVITY_RESTRICTION_IGNORED,
     SEVERAL_LEGAL_NODES_PLAUSIBLE,
     SITE_A_REASON_CODES,
+    VALUE_NOT_IN_CITED_TEXT,
     SITE_B_REASON_CODES,
     SITE_C_REASON_CODES,
     SITE_D_REASON_CODES,
@@ -280,14 +281,24 @@ def test_universal_reason_codes_are_screaming_snake_and_equal_their_names():
     )
 
 
-def test_site_a_adds_its_three_reason_codes():
+def test_site_a_adds_its_four_reason_codes():
+    """Three from the SPEC, and a fourth the SPEC did not have.
+
+    `VALUE_NOT_IN_CITED_TEXT` is not one of §3.3/§3.6's codes. It is the word
+    `llm_harness.value_grounding` refuses with, and `86` §4 is why there was no code
+    for it: nothing in the product compared a value to any released text, so nothing
+    ever had to say that it did not match. The member's own comment carries the
+    approval position; this test carries only the membership.
+    """
     assert FIELD_NOT_IN_ACTIVE_SCHEMA == "FIELD_NOT_IN_ACTIVE_SCHEMA"
     assert VALUE_NOT_NORMALIZABLE == "VALUE_NOT_NORMALIZABLE"
     assert SEARCH_HINT_ONLY == "SEARCH_HINT_ONLY"
+    assert VALUE_NOT_IN_CITED_TEXT == "VALUE_NOT_IN_CITED_TEXT"
     assert SITE_A_REASON_CODES == (
         FIELD_NOT_IN_ACTIVE_SCHEMA,
         VALUE_NOT_NORMALIZABLE,
         SEARCH_HINT_ONLY,
+        VALUE_NOT_IN_CITED_TEXT,
     )
 
 

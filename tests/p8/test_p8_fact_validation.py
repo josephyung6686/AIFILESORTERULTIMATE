@@ -480,7 +480,7 @@ def test_contradiction_oracle_fails_check_four(subject_file, p6_conn):
         seen_rows.append(row)
         return True
 
-    proposal = _proposal(subject_file, value="ECON 1010")
+    proposal = _proposal(subject_file, value="BUSIB4300")
     result = _validate(
         p6_conn, request, proposal,
         dependencies=_deps(contradicts=contradicts),
@@ -763,7 +763,7 @@ def test_contradicts_none_is_not_treated_as_no_conflict(subject_file, p6_conn):
     request = _request(p6_conn, subject_file)
     assert request.existing_facts
 
-    proposal = _proposal(subject_file, value="ECON 1010")
+    proposal = _proposal(subject_file, value="BUSIB4300")
     result = _validate(
         p6_conn, request, proposal,
         dependencies=_deps(contradicts=lambda *a, **k: None),
@@ -885,10 +885,17 @@ def _release(key, value):
     )
 
 
-def _claim_bytes(key, span):
+def _claim_bytes(key, span, value="BUSIB 4300"):
+    """A claim. `value` defaults to the released text and is separable from `span`.
+
+    They were one string, which meant every fixture proposed a value the release
+    happened to carry. The redaction test is the one that needs them apart: with
+    `[REDACTED] 4300` released, `BUSIB 4300` is a value the model was never shown,
+    and `llm_harness.value_grounding` refuses it.
+    """
     return json.dumps({"claims": [{
         "claim_ref": "c1",
-        "payload": {"field": "subject", "value": "BUSIB 4300"},
+        "payload": {"field": "subject", "value": value},
         "citations": [{
             "evidence_ref": key, "cited_span": span,
             "why_it_supports": "names the subject",
@@ -1010,9 +1017,24 @@ def test_site_a_span_matching_source_is_the_release_and_not_the_store(
     assert quoting_the_store.outcome == REJECT
     assert CITATION_SPAN_MISMATCH in quoting_the_store.reasons
 
+    # The value moves with the span. A model shown `[REDACTED] 4300` and proposing
+    # `BUSIB 4300` is proposing the text redaction removed, and the value check
+    # refuses it -- which is the same seam this test is about, seen from the value
+    # rather than from the quotation.
     quoting_the_release = _only_verdict(_dispatch_site_a(
-        p6_conn, dossier, _claim_bytes(released, "[REDACTED] 4300"), request))
+        p6_conn, dossier,
+        _claim_bytes(released, "[REDACTED] 4300", value="[REDACTED] 4300"),
+        request))
     assert quoting_the_release.outcome == ACCEPT_DIRECT
+
+    from llm_harness.vocabulary import VALUE_NOT_IN_CITED_TEXT
+
+    proposing_what_redaction_removed = _only_verdict(_dispatch_site_a(
+        p6_conn, dossier,
+        _claim_bytes(released, "[REDACTED] 4300", value="BUSIB 4300"),
+        request))
+    assert proposing_what_redaction_removed.outcome == REJECT
+    assert VALUE_NOT_IN_CITED_TEXT in proposing_what_redaction_removed.reasons
 
 
 def test_site_a_records_a_real_span_result_and_not_a_copy_of_resolved(

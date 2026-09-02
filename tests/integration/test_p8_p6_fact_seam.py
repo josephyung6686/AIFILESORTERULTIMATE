@@ -275,8 +275,11 @@ def test_stronger_fact_contradiction_keeps_the_existing_row(subject_file, seam_c
         reliability_state=VALIDATED, origin="rule",
         evidence_refs=(key,), cache_key="sha256:the-native-pass-slot", active=True)
     request = _request(seam_conn, subject_file)
+    # A second spelling of the released text, not a value from nowhere: the value
+    # check runs before check 4 and a value the release does not carry would be
+    # refused for that instead, which is not what this test is about.
     proposal = Proposal(
-        field_key="subject", value="ECON 1010", citations=(key,), unknown=False)
+        field_key="subject", value="BUSIB4300", citations=(key,), unknown=False)
     result = _validate(seam_conn, request, proposal)
     assert result.outcome == "reject"
     subjects = [

@@ -264,8 +264,31 @@ office.
 So the honest ranking of what would help, in order:
 
 1. **A check comparing `payload.value` to the released text it cites.** Not a prompt change. It
-   would close S2 and S16 outright and narrow S1 to the over-quotation case, which is what R11 is
-   for. Nothing in `src/` does this and no wording substitutes for it.
+   ~~would close S2 and S16 outright and~~ **closes S16 and** narrows S1 to the over-quotation case,
+   which is what R11 is for. Nothing in `src/` does this and no wording substitutes for it.
+
+   > **Correction, 2026-09-02.** The struck words were wrong and this document said them without
+   > measuring them. **The check does not close S2.** S2's value is `"the committee"` over released
+   > prose reading *"Prepared for the committee in the autumn, with notes."* — the characters ARE in
+   > the cited text, so any comparison of characters grounds it. What is wrong with S2 is that a
+   > committee is not an instructor, which is a judgement about meaning and is invisible to this
+   > check or to any other one built on text. **S2 remains prompt-only.**
+   >
+   > The check was built, and the corrected claim is: **closes S16, narrows S1 to over-quotation,
+   > leaves S2 prompt-only.** `tests/p8/test_p8_prompt_stress_cases.py::test_the_value_is_now_
+   > compared_to_the_evidence_it_cites_and_s2_survives_it` asserts both halves rather than either.
+   >
+   > Two further corrections this document owes, from the same work:
+   >
+   > - §2.2's *"even a check that compared the value to the glossary could not separate a lift from
+   >   a find"* generalises correctly to the check that was built. Where an enumerated word also
+   >   appears in the cited released text, a lift and a find are byte-identical and both are
+   >   accepted. **The check narrows S16 rather than closing it**, and
+   >   `test_a_lift_and_a_find_stay_indiscriminable_when_the_word_IS_in_the_evidence` pins that.
+   > - §6's *"What would change this recommendation"* holds, with one qualification. With the check
+   >   landed, S16 is machine-defended and `82` §2's sentence becomes belt-and-braces for it — but
+   >   **S1 and S2 stay prompt-only either way**, so the argument for prominence weakens rather than
+   >   disappears. The order still matters more than the choice, and the check has now gone first.
 2. **R22, worded to survive the glossary.** `76` R3 says *"the only quotable text is
    `released_evidence[].value"*, written when released evidence was the dossier's only prose. It is
    now not. R22 should be worded as *the value's characters must come from a released value*, and
@@ -275,6 +298,13 @@ So the honest ranking of what would help, in order:
    above, and this document would be misleading if it implied otherwise.
 
 `76` §9.1, §9.2 and §9.3 are untouched by all of this and all three remain open.
+
+**Item 1 was built on 2026-09-02.** `src/llm_harness/value_grounding.py`, wired at Site A behind
+`VALUE_NOT_IN_CITED_TEXT` — a fourth Site A reason code, added with the owner's approval recorded at
+the member. All 22 of §2.1's glossary lifts are refused; no legitimate value in the suite is. The
+check also refused something this document did not anticipate: the product's own walking skeleton
+proved its accept path with a claim that proposed the text P7's gate had redacted, cited to the span
+`[redacted]`, and that had been an active `llm_supported` fact.
 
 ---
 
