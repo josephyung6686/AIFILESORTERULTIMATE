@@ -1977,6 +1977,141 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     assert readers.ocr_engine is not None
 
 
+#: The words are a real court filing's, so the recognition vocabulary has
+#: something to fire on. They are shared by both files in the corpus below,
+#: because the whole question is whether the FORMAT changes the answer.
+_MOTION_LINES: tuple[str, ...] = (
+    "IN THE SUPERIOR COURT OF THE STATE OF CALIFORNIA",
+    "COUNTY OF ALAMEDA",
+    "HENDRICKS v. NORTHRIDGE PROPERTY MANAGEMENT LLC",
+    "Case No. CV20264417",
+    "PLAINTIFF'S MOTION TO COMPEL FURTHER RESPONSES",
+    "MEMORANDUM OF POINTS AND AUTHORITIES",
+    "Code of Civil Procedure section 2031.310(b)(2)",
+)
+
+
+def _one_page_pdf(lines) -> bytes:
+    """A real single-page PDF carrying `lines` as text, built with the stdlib.
+
+    `reportlab` is not a dependency of this project and must not become one for a
+    test. `pdfminer.six` IS -- it is in the `readers` extra, because the
+    deployment layer chose it -- so what this has to produce is a file pdfminer
+    will read: correct object offsets, a real xref table, and a content stream
+    with `Tj` operators rather than bytes that merely start with `%PDF`.
+    """
+    def esc(text: str) -> str:
+        return text.replace("\\", r"\\").replace("(", r"\(").replace(")", r"\)")
+
+    body = ["BT", "/F1 12 Tf", "72 720 Td", "14 TL"]
+    for line in lines:
+        body += [f"({esc(line)}) Tj", "T*"]
+    body.append("ET")
+    stream = "\n".join(body).encode("latin-1")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream
+        + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, payload in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += str(number).encode() + b" 0 obj\n" + payload + b"\nendobj\n"
+    xref_at = len(out)
+    out += b"xref\n0 " + str(len(objects) + 1).encode() + b"\n0000000000 65535 f \n"
+    for offset in offsets:
+        out += f"{offset:010d} 00000 n \n".encode()
+    out += (b"trailer\n<< /Size " + str(len(objects) + 1).encode()
+            + b" /Root 1 0 R >>\nstartxref\n" + str(xref_at).encode() + b"\n%%EOF\n")
+    return bytes(out)
+
+
+def _one_motion_two_formats(tmp_path):
+    """The same court filing, saved twice: once as .txt and once as a real PDF."""
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "motion.txt").write_text("\n".join(_MOTION_LINES) + "\n")
+    (corpus / "motion.pdf").write_bytes(_one_page_pdf(_MOTION_LINES))
+    return corpus
+
+
+def _run_two_formats(tmp_path):
+    corpus = _one_motion_two_formats(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "law_practice.discovery",
+                     "--label", "Matters", "--user", "jy",
+                     "--database", str(database)], out=out) == 0
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    extractors = {}
+    for row in conn.execute(
+            "SELECT f.filename, e.extractor_name FROM files f "
+            "JOIN evidence e ON e.file_id = f.file_id"):
+        extractors.setdefault(row["filename"], set()).add(row["extractor_name"])
+    conn.close()
+    # Not vacuous: if the deployment shipped no PDF library the file would be
+    # `unsupported` and this whole comparison would be about a missing install
+    # rather than about the seam.
+    assert "pdf.text" in extractors.get("motion.pdf", set()), (
+        "no PDF reader ran, so nothing here is about classification: "
+        f"{sorted(extractors.get('motion.pdf', ()))}")
+    return out.getvalue()
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "The same court filing gets two different answers depending on whether it "
+    "was saved as .txt or as PDF. The PDF is READ -- pdfminer runs and the page "
+    "text lands in `text_units` -- and the person is then told 'This file has "
+    "not been classified, nothing has yet said what kind of material it is', "
+    "while the identical .txt is told 'Deciding this file needed a model'. "
+    "Measured at the seam: `text.structured` writes TWO evidence rows for a "
+    "text file, the whole `body` and the identifier span inside it; `pdf.text` "
+    "writes only the span, `body:page=1#124-134`. The detector matches against "
+    "evidence values, so a text file always reaches it with the document's "
+    "words and a PDF reaches it with an identifier and some metadata. The "
+    "consequence is not a weaker answer for PDFs, it is NO answer: every "
+    "readable .txt in these runs got a classification from the detector -- "
+    "including a bland one that got `personal_non_sensitive` -- and no PDF got "
+    "one at all. Most documents on a real disk are PDFs, so this is the "
+    "largest single cause of 'nobody got a file filed', and it sits UPSTREAM "
+    "of the model: no amount of model wiring reaches a file the detector never "
+    "classified. Verified to go green when the detector is given the PDF's "
+    "words. Strict, so the suite turns red the day it is fixed."))
+def test_a_pdf_and_a_txt_of_the_same_document_get_the_same_answer(tmp_path):
+    """One document, two files, two sentences on the same screen.
+
+    A person who prints a letter to PDF and keeps the draft as text has one
+    thing, and the report tells them two different stories about it. The PDF is
+    the copy they kept.
+    """
+    printed = _run_two_formats(tmp_path)
+
+    pdf = _block_naming(printed, "motion.pdf")
+    assert "has not been classified" not in pdf, (
+        "the PDF was read and then reported as never classified, while the "
+        f"identical .txt was not:\n{pdf}\n\nwhole report:\n{printed}")
+
+
+def test_the_plain_text_copy_is_still_recognised(tmp_path):
+    """The twin. Levelling the two down would satisfy the guard above.
+
+    The .txt is the copy that works today. A fix that stopped recognising it --
+    or one that classified everything regardless of evidence -- would make the
+    two agree and make the product worse, so what the .txt gets is pinned here.
+    """
+    printed = _run_two_formats(tmp_path)
+
+    txt = _block_naming(printed, "motion.txt")
+    assert "has not been classified" not in txt, (
+        f"the .txt is no longer recognised either:\n{txt}")
+
+
 def _encrypted_container_corpus(tmp_path):
     """A password vault, an encrypted disk image, a passport and a holiday snap.
 
