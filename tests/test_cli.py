@@ -119,13 +119,32 @@ def test_a_file_the_detector_does_recognise_still_gets_its_candidate():
     assert classify(None, "file-1", "sha256:abc") is sentinel
 
 
-def test_the_help_says_nothing_is_moved(capsys):
-    """`00`'s promise, in the first sentence a person reads. This command reads and
-    proposes; P12 is what moves files and P12 does not exist, so a help text that
-    left this out would be describing a product that does not ship."""
+def test_the_help_is_true_about_whether_this_moves_files(capsys):
+    """`00`'s promise, in the first sentence a person reads -- and it changed.
+
+    This asserted "Nothing is moved", whose stated reason was "P12 is what moves
+    files and P12 does not exist". **That reason expired.** P12 exists, `--freeze`
+    approves and `--apply` moves, so the old sentence became false and the help
+    was corrected in `68c116e` while this assertion was left behind. `84` §5.4: a
+    decision whose stated reason has expired is not still a decision.
+
+    So the test is re-pointed rather than deleted, and pointed at the property
+    instead of the sentence, which is what it was always for. Two things must
+    both be true of the first paragraph a person reads:
+
+      * a run they type WITHOUT one of the moving gestures moves nothing, and
+      * the gestures that DO move are named there, because a person who is not
+        told they exist does not have them.
+
+    A help text carrying only the first half describes a product that cannot
+    file anything; only the second, one that moves files without saying when.
+    """
     with pytest.raises(SystemExit):
         cli.main(["--help"], out=io.StringIO())
-    assert "Nothing is moved" in capsys.readouterr().out
+    printed = " ".join(capsys.readouterr().out.split())
+    assert "A plain run moves nothing" in printed, printed
+    for gesture in ("--freeze", "--apply", "--undo"):
+        assert gesture in printed, (gesture, printed)
 
 
 # ======================================================================================
