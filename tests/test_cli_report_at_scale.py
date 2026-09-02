@@ -131,8 +131,12 @@ def _at_scale(*, sets_count=420, per_set=8, areas=("Review Later",)):
 
 
 def _printed(run, names, *, show_protected=False):
+    """Forwarded only when it is True, so the eleven tests here that predate
+    `--show-protected` keep running against a `report` that has never heard of
+    it. Passing it unconditionally turned every one of them into a TypeError."""
+    extra = {"show_protected": True} if show_protected else {}
     out = io.StringIO()
-    cli.report(run, names, out=out, show_protected=show_protected)
+    cli.report(run, names, out=out, **extra)
     return out.getvalue()
 
 
@@ -183,6 +187,21 @@ def test_four_hundred_batches_of_one_hold_are_one_group_and_not_four_hundred():
         + "\n".join(headings[:12]))
 
 
+#: The tests below describe the report AFTER the six hunks in
+#: `scratchpad/report/SHOW-PROTECTED-PATCH.txt` are applied to `src/cli.py`,
+#: which belongs to the lead and which this agent may not edit. Strict, for the
+#: reason this repo already uses strict: eleven sessions share this suite, so a
+#: dozen red tests would be a dozen false alarms, while a dozen XPASSes the
+#: moment the hunks land is the signal to strip these markers. **Applying the
+#: patch means deleting every `PENDING_SHOW_PROTECTED` marker in this file.**
+PENDING_SHOW_PROTECTED = (
+    "Describes the report after scratchpad/report/SHOW-PROTECTED-PATCH.txt's six "
+    "hunks are applied to src/cli.py, which the report agent may not edit. "
+    "Verified green against the patched source by scratchpad/report/patch2.py. "
+    "Strict, so the suite goes red the day the hunks land and the markers come "
+    "off with them. planning/93-PROTECTED-DISCLOSURE-RULING.md.")
+
+@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
     """237 screens is not a report. The budget is what makes this a test rather
     than an impression -- and it is 220 lines and not 60 because the protected
@@ -378,6 +397,7 @@ def test_a_batch_whose_files_straddle_two_headings_claims_no_total_it_cannot_see
     assert 'Held for review as "Not yet placed (1 of 1)"' in solo, solo
 
 
+@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_protected_list_no_longer_decides_how_long_the_report_is():
     """What the owner's ruling was measured against.
 
@@ -385,10 +405,13 @@ def test_the_protected_list_no_longer_decides_how_long_the_report_is():
     the person's disk: the protected group, listed in full. At 5,000 files it was
     810 lines of 1,113 -- 73 % of the report -- and 710 of them were filenames.
 
-    Summarised, the report no longer has a part that grows with how much
-    protected material a person owns. That is the property, so it is asserted as
-    a property: ninety-six protected files and nine hundred and sixty produce a
-    report of the same length.
+    The property is precise, and it is NOT "the report stops growing". Protected
+    review SET names are still uncapped -- deliberately, they are summaries
+    already and leak nothing about the files -- so the report still grows, at one
+    line per BATCH. What it no longer does is grow at one line per FILE, which is
+    the rate that made it 73 % filenames. Ten times the protected material here
+    is 864 more files and 108 more batches, and the assertions below say the
+    growth tracks the second number and not the first.
     """
     small = _printed(*_at_scale())
     nodes = [_node("node_0", "Coursework"),
@@ -401,15 +424,21 @@ def test_the_protected_list_no_longer_decides_how_long_the_report_is():
     large = _printed(_run(nodes=nodes, decisions=decisions + big_decisions,
                           sets=sets + big_sets), {**names, **big_names})
 
-    protected_lines = len(large.splitlines()) - len(small.splitlines())
-    assert protected_lines <= 110, (
-        f"ten times the protected material added {protected_lines} lines; the "
-        "report is still mostly a list of the person's private filenames")
+    added_files, added_batches = 960 - 96, 120 - 12
+    grew = len(large.splitlines()) - len(small.splitlines())
+    assert grew <= added_batches + 20, (
+        f"{added_batches} more review sets added {grew} lines; the growth should "
+        "be one line per batch and this is more than that")
+    assert grew < added_files // 4, (
+        f"ten times the protected material added {grew} lines for "
+        f"{added_files} more files; the report is still growing at the file "
+        "rate, which is what made it mostly a list of private filenames")
     # The twin: the count itself must still grow, or the summary is not counting.
     assert "960 protected files" in large, large
     assert "96 protected files" in small, small
 
 
+@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_show_protected_is_the_only_thing_that_expands_the_names():
     """The negative twin of the summary: asking for it works, and nothing else
     turns it on by accident. An ordinary group stays shortened either way --
@@ -423,14 +452,14 @@ def test_show_protected_is_the_only_thing_that_expands_the_names():
             "expansion is every one of them")
     ordinary = [line for line in shown.splitlines()
                 if line.strip().startswith("folder-0/note-")]
-    assert len(ordinary) == NAMES_LISTED, (
+    assert len(ordinary) == cli.NAMES_LISTED_PER_GROUP, (
         f"--show-protected also lengthened the ordinary list to {len(ordinary)}; "
         "it is not a verbosity flag")
 
 
-NAMES_LISTED = 10
 
 
+@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_flag_is_named_only_on_the_line_that_is_the_command():
     """What the screen tells a person to type has to be true, and FINDABLE.
 

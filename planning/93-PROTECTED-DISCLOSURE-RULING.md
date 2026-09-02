@@ -1,6 +1,9 @@
 # 93 — Protected filenames: summarised by default, `--show-protected` expands
 
-Date: **2026-09-02**. Status: **RULED BY THE OWNER. Implemented.**
+Date: **2026-09-02**. Status: **RULED BY THE OWNER.**
+Implementation: `scratchpad/report/SHOW-PROTECTED-PATCH.txt`, six hunks, **pending
+the lead** — `src/cli.py` is his. The tests below are `xfail(strict=True)` until
+they land, and the markers come off with them.
 Supersedes the disclosure half of the decision recorded at
 `tests/test_cli.py::test_a_protected_group_is_never_the_one_summarised_away`
 (now `..._is_counted_and_reachable_rather_than_listed`).
@@ -86,7 +89,7 @@ expansion would be the omission the rule forbids, wearing the fix's clothes.
 | `test_show_protected_lists_every_one` | the expansion is all forty, not the first ten |
 | `test_the_show_protected_command_the_report_prints_actually_shows_them` | the command is taken from the report verbatim, tokenised as a shell would, and passed back in |
 | `test_the_flag_is_named_only_on_the_line_that_is_the_command` | the flag is never mentioned in prose, where a person would copy something unpasteable |
-| `test_the_protected_list_no_longer_decides_how_long_the_report_is` | ten times the protected material does not lengthen the report |
+| `test_the_protected_list_no_longer_decides_how_long_the_report_is` | the report grows at the BATCH rate, not the file rate: ten times the protected material adds ~108 lines for 864 more files, because protected set names stay uncapped by design |
 | `test_a_protected_files_own_words_are_never_printed_back_to_the_person` | in BOTH views, a protected file's contents never appear |
 
 Five sabotages were run against the implementation and each turned at least one
@@ -115,4 +118,5 @@ Ruled by the owner on 2026-09-02, relayed through the team lead, who recorded th
 gesture `--show-protected` as carrying his sign-off under `84` §1 (a new mechanism
 needs manual owner approval). The measurement that prompted the question was made
 by the report agent and is in
-`scratchpad/report/` — `HANDOFF.md` and `CLI-PATCH.txt`.
+`scratchpad/report/` — `HANDOFF.md`, `CLI-PATCH.txt` and
+`SHOW-PROTECTED-PATCH.txt`.
