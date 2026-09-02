@@ -132,7 +132,7 @@ def test_every_verdict_of_the_seven_is_printed_including_the_empty_ones(
     lines = replay_lines(driven)
 
     printed = {verdict: line for verdict in VERDICTS for line in lines
-               if line.strip().startswith(verdict + " ")}
+               if re.fullmatch(rf"  {verdict} +\d+", line)}
     assert set(printed) == set(VERDICTS)
     assert printed["match"].split()[-1] == "1"
     assert printed["divergent"].split()[-1] == "0"
@@ -148,8 +148,12 @@ def test_every_stage_of_the_ten_is_printed_including_the_eight_that_are_absent(
 
     lines = replay_lines(driven)
 
+    # Matched on the block's own shape -- name, padding, count -- and not on
+    # `stage + " "`, which the Stages block's `extraction -- ...` lines also
+    # satisfy. The two blocks print the same ten names and a matcher either one
+    # can answer silently reads whichever was rendered last.
     printed = {stage: line for stage in STAGE_IDS for line in lines
-               if line.strip().startswith(stage + " ")}
+               if re.fullmatch(rf"  {stage} +\d+", line)}
     assert set(printed) == set(STAGE_IDS)
     assert printed["factual_validation"].split()[-1] == "1"
     assert printed["extraction"].split()[-1] == "0"
@@ -198,7 +202,7 @@ def test_the_count_p2_cannot_know_is_a_sentence_and_never_a_zero(
     assert driven.counts["files_requiring_model_review"] is None
     # The whole line, not a containment: what matters is that the value half is
     # the sentence and nothing else has been appended to it.
-    assert line == "  files awaiting model review:                  " + NOT_MEASURED
+    assert line == '  files awaiting model review:               ' + NOT_MEASURED
     assert line.endswith("P2 does not guess it)")
     # Every other count line does carry a number, so the sentence is this one
     # count's treatment and not the renderer refusing to print any.
@@ -353,3 +357,36 @@ def test_the_stage_block_names_no_aggregate(eval_conn, labelled):
 
     assert _forbidden_in(text) == set()
     assert "%" not in text
+
+
+def test_a_stage_that_ran_and_measured_nothing_is_not_reported_as_having_run(
+        eval_conn, labelled):
+    """The third case, between absent and failed.
+
+    An adapter that returns no result is a stage that RAN -- P2's runner writes
+    its own `abstained` row keyed on the bundle to say so -- and it emitted no
+    dimension value, so nothing it could have measured was measured. Reporting
+    that as "ran" beside a stage that produced real values erases the
+    distinction P2 keeps at the row level, and §8.6 asks the opposite: work that
+    did not happen stays visible as work that did not happen."""
+    driven = _drive(eval_conn, labelled, {"extraction": lambda ctx: []})
+
+    lines = replay_lines(driven, stages=stage_status(eval_conn, driven.run_id))
+
+    printed = {stage: line for stage in STAGE_IDS for line in lines
+               if line.strip().startswith(stage + " --")}
+    assert printed["extraction"] == \
+        "  extraction -- ran, and measured nothing"
+    assert printed["placement_scoring"] == \
+        ABSENT_LINE.format(stage="placement_scoring")
+
+
+def test_a_stage_that_measured_something_says_so(eval_conn, labelled):
+    """The negative half: "ran" is reserved for a stage that emitted a value."""
+    driven = _drive(eval_conn, labelled, {"factual_validation": _stage(
+        "fact", {"field": "school", "value": "Columbia"})})
+
+    lines = replay_lines(driven, stages=stage_status(eval_conn, driven.run_id))
+
+    line = next(l for l in lines if l.strip().startswith("factual_validation --"))
+    assert line == "  factual_validation -- ran"

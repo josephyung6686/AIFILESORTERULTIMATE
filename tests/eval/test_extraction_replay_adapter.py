@@ -305,7 +305,7 @@ def test_the_refusal_is_reachable_on_its_own_terms(bundled):
     # The whole message. It is what a person reads on the `--replay` screen when
     # the stage fails, so its wording is the report and not an internal detail.
     assert str(raised.value) == (
-        f"2 recorded extraction runs measure file version {CONTENT_HASH[:12]} "
+        f"2 recorded extraction runs measure file version {CONTENT_HASH} "
         "and 2 of them disagree. §8.5 names no rule for which analysis tier is "
         "authoritative over one file version, and `stage_dimension_value` admits "
         "one measurement per subject per run. An owner decision, not P2's and "

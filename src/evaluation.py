@@ -120,7 +120,7 @@ def extraction_adapter(ctx: ReplayContext) -> list[StageResult]:
         if len(distinct) > 1:
             raise AmbiguousExtractionMeasurement(
                 f"{len(values)} recorded extraction runs measure file version "
-                f"{subject_ref[:12]} and {len(distinct)} of them disagree. §8.5 "
+                f"{subject_ref} and {len(distinct)} of them disagree. §8.5 "
                 "names no rule for which analysis tier is authoritative over one "
                 "file version, and `stage_dimension_value` admits one measurement "
                 "per subject per run. An owner decision, not P2's and not P5's."
@@ -192,6 +192,11 @@ def stage_status(conn, run_id: str) -> Mapping[str, str]:
     The exception's own first line is carried through verbatim. It is the only
     actionable thing in the row, and a reader who is told "failed" without being
     told why has to go into the database to find out.
+
+    There are four answers and not three. A stage whose adapter returned nothing
+    RAN -- P2's runner writes its own `abstained` row keyed on the bundle to say
+    so -- and emitted no measurement, and calling that "ran" beside a stage that
+    produced real values erases a distinction P2 keeps at the row level.
     """
     outcomes: dict[str, set[str]] = {}
     errors: dict[str, str] = {}
@@ -204,6 +209,9 @@ def stage_status(conn, run_id: str) -> Mapping[str, str]:
             # line: the type and its message, which is what names the refusal.
             lines = [line for line in (row["payload"] or "").splitlines() if line]
             errors[row["stage_id"]] = lines[-1] if lines else "no detail recorded"
+    measured = {row["stage_id"] for row in conn.execute(
+        "SELECT DISTINCT stage_id FROM stage_dimension_value WHERE run_id = ?",
+        (run_id,))}
 
     status = {}
     for stage_id in STAGE_IDS:
@@ -212,8 +220,10 @@ def stage_status(conn, run_id: str) -> Mapping[str, str]:
             status[stage_id] = f"failed: {errors[stage_id]}"
         elif seen == {"not_implemented"}:
             status[stage_id] = ABSENT
-        else:
+        elif stage_id in measured:
             status[stage_id] = "ran"
+        else:
+            status[stage_id] = "ran, and measured nothing"
     return status
 
 
@@ -241,8 +251,12 @@ def replay_lines(run: EvaluationRun, *,
         lines.append("")
 
     lines.append("Verdicts")
+    # Widths measured off the vocabulary rather than typed, the way
+    # `--list-situations` measures its column: a name that grows past a
+    # hand-picked number silently loses the gap between it and its count.
+    width = max(len(verdict) for verdict in VERDICTS)
     for verdict in VERDICTS:
-        lines.append(f"  {verdict:<24}{run.verdicts.get(verdict, 0)}")
+        lines.append(f"  {verdict:<{width}}  {run.verdicts.get(verdict, 0)}")
     if not run.assertions_written:
         lines.append("  -- this bundle carries no expectation, so nothing was")
         lines.append("     measured against a label. A bundle with no labels is a")
@@ -251,16 +265,18 @@ def replay_lines(run: EvaluationRun, *,
     lines.append("")
 
     lines.append("Where the error began")
+    width = max(len(stage_id) for stage_id in STAGE_IDS)
     for stage_id in STAGE_IDS:
-        lines.append(f"  {stage_id:<26}{run.attribution.get(stage_id, 0)}")
+        lines.append(f"  {stage_id:<{width}}  {run.attribution.get(stage_id, 0)}")
     if not run.attributed:
         lines.append("  -- no wrong terminal outcome to attribute.")
     lines.append("")
 
     lines.append("Counts")
+    width = max(len(wording) for _, wording in COUNT_LINES) + len(":")
     for key, wording in COUNT_LINES:
         value = run.counts.get(key)
-        lines.append(f"  {wording+':':<46}"
+        lines.append(f"  {wording + ':':<{width}}  "
                      f"{NOT_MEASURED if value is None else value}")
 
     if comparison is not None:
