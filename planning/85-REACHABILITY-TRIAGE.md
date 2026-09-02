@@ -196,3 +196,253 @@ Counted 2026-08-31 02:00, excluding the 35 triaged above.
   currently held twice (§4.1). It is a `cli.py` decision, not P10's.
 - P11's residual return cycle — 13 mechanisms named in the 2026-08-30 xfail message —
   is **closed** and no longer on the list.
+
+---
+
+# Second slice — 142 more, 2026-09-02
+
+Same method, same three verdicts, appended rather than merged so §4's slice stays as
+its author left it. Nothing above this line was edited.
+
+**Re-measured 2026-09-02 with §1's snippet: 401 unexplained across 127 modules,
+population 1,490.** Down 12 from §1's 413 on a population that has not moved. Do not
+read that as progress or as regression without checking both numbers; and do not
+quote it — re-measure.
+
+Ownership at the time of writing: `review_surface.*` and `mutation.*` are two other
+agents' and are still in flight, so they are untouched here, as §5 asks.
+`readers.*` and `llm_harness.*` belong to whoever is wiring DeepSeek. This slice is
+everything else: `facts` (34), `eval_harness` (31), `questions` (28), `scan_agent`
+(13), `database_agent` (11), `extractors` (10), `grouping` (10), `evidence_shape` (3)
+and `orchestrator` (2).
+
+**Split: 26 wired, 111 correctly dormant, 4 flagged for deletion, 1 instrument
+artifact.** The ratio is close to §5's prediction and to §4's own 28:5.
+
+---
+
+## 8. Wired — design promise with no caller (26)
+
+Three patches, all in `src/cli.py`, held for the composition root's owner at
+`scratchpad/reach/CLI-PATCH.txt` as PATCH A, B and C. Each was applied to a COPY of
+`cli.py` and the real command run against it, so the hunks are measured rather than
+proposed. Each has a strict-xfail test committed that XPASSes — and so fails the
+suite, forcing the marker off — the day its patch lands. Every twin was proven by
+sabotaging the implementation and watching it go red.
+
+### 8.1 PATCH A — §1.1's other three exclusion rules reach no screen (2)
+
+`scan_agent.summary.set_aside_paths`, `scan_agent.summary.scan_run_summary`.
+Test: `tests/p3/test_p3_composition.py` (`94fe3f5`).
+
+**This is the most important thing in this slice.** §1 of `84`'s standing rules —
+"marked and counted, NEVER SILENTLY OMITTED" — is honoured for exactly one of §1.1's
+four exclusion rules. `cli.py:1672` prints `tree_design.upstream.protected_areas`,
+which filters to `RULE_PROTECTED_CONTAINER`. Literal directory name, category and
+software-project-root descendant are written to `exclusion_verdicts` and told to
+nobody.
+
+Measured by running the real command on a corpus of one syllabus plus
+`node_modules/`, `Library/` and a `myproject/` holding `package.json`. The report
+printed `Protected containers: 0 marked, none opened` and nothing else, while
+`set_aside_paths` on that same database returned four rows — `Library`,
+`node_modules`, and BOTH files under the project root. `summary.py`'s own module
+docstring already names the case: *"That is `Library/` on a real person's machine,
+which is where their mail and their app data live."*
+
+The same run puts `myproject/` in the plan as `[yours already]` while both files
+inside it were set aside unread, so a person sees a folder of their own in the
+proposal with nothing in it and no reason given.
+
+### 8.2 PATCH B — P15's role surface has no gesture (20)
+
+`questions.roles` (7: `apply_declarations`, `apply_descriptions`, `declare_role`,
+`described_sentences`, `live_roles`, `outcome_of_roles`, `skip_role`),
+`questions.triggers.role_declaration_is_due`, `questions.proposal` (4:
+`propose_roles`, `shortlist_for_question`, `RoleProposal`, `ProposalRefused`),
+`questions.explanation` (6), `questions.store` (2: `questions_for`, `answer_by_id`,
+reached through the two above).
+Test: `tests/p15/test_p15_composition.py` (`4b33e3c`).
+
+Two owner rulings land here and neither has a surface. `80` §3 (R1) puts the
+self-description question at the moment a run "hits its first genuinely ambiguous
+file"; `role_declaration_is_due` decides exactly that, mints nothing, and is called
+by nothing, so the moment never arrives. §13:453 requires a person to be able to
+inspect an answer, and `explain_question` is imported by nothing in `src/`.
+
+**The part says so about itself, which is what makes this a defect and not an
+absence.** `roles._split` refuses a malformed gesture with *"The form is
+`--declare-role <name>=<what>`"* and `apply_declarations` points at
+`--describe-role`. Those are flags `argparse` rejects. `84` §6: what the screen
+tells a person to type has to be true.
+
+With PATCH B on a copy: the run prints the invitation; `--describe-role` echoes the
+sentence and offers all 23 layouts alphabetically — Option 1, `propose=None`, which
+`80` §1 makes the fallback "whenever no local model is present"; `--declare-role`
+records it and `outcome_of_roles` reports `exact_activation`; a second run does NOT
+invite again, which is R2's friction budget spent once; and
+`--declare-role teaching=barrister` is refused with the whole closed list and exit
+code 2 rather than a traceback.
+
+**A defect found on the way, fixed in `c17c76a`.** Wiring `--explain` and reading
+what came out: §13's "how to change it" printed
+`--answer branch:Coursework=<school>term>subject>work_type | keep-as-it-is>`. Two
+things wrong on one line. It is manual-page notation, where the brackets and the bar
+are not the person's to type — while the report prints one whole
+`--answer <typable>   <label>` per option, so the same product said the same thing
+two ways. And it was unquoted: `school>term>subject>work_type` is a real shipped
+option id and `>` is the shell's redirect, so pasting that line does not fail — it
+silently creates files called `term`, `subject` and `work_type` wherever the person
+is standing. `explanation._how_to_change` now goes through the same `shlex.quote`
+computation `cli._typable` does, in the report's own form.
+
+### 8.3 PATCH C — §17's "meaningful diff" is built and nothing prints it (4)
+
+`questions.effects.changed_answer`, `diff_for_answer_change`, `AnswerChange`,
+`PlanEffectDiff`. Test: `tests/p15/test_p15_effects_composition.py` (`57812aa`).
+
+§17:576-582 requires that editing an answer show a meaningful diff. Today `--answer`
+supersedes a row, the run comes out different, and nothing says what the correction
+did. `61` A.5: *"An answer that quietly rewrote a tree the user could not trace is
+the defect this whole design exists to avoid."*
+
+**The split inside that module is the finding, and only two thirds of it is wired.**
+`changed_answer` and `diff_for_answer_change` need nothing but P15's own rows.
+`draft_for_answer_change` needs P10's `open_draft` and stays **correctly dormant**
+for the reason §4.2 already recorded against `tree_design.diff`: `_open_first_draft`
+opens an EMPTY draft, so a diff of first against last reports every node as added.
+
+The half of PATCH C that matters is that the diff prints the three of §17's six
+questions P15 CANNOT produce, each with its reason. A diff printing only the three
+it has would read as a complete account of the consequences, which is the one a
+person acts on. `PlanEffectDiff.is_empty` refuses to be read that way in its own
+docstring; the screen has to keep that promise too.
+
+---
+
+## 9. The reframe again — four more one-decision causes
+
+§3 found two causes behind 28 of 30. The same collapse holds here: **97 of the 111
+dormant are dark for seven decisions, none of them a defect in the part.**
+
+| Cause | Count | Evidence |
+|---|---|---|
+| **P2's evaluation is passed `None`.** `cli.py:1105`'s own comment says so: "the composition root passes `evaluation=None` a few hundred lines below". | 38 | all 31 of `eval_harness.*`, plus the four stage emitters (`facts.stage_output` 3, `extractors.stage_output` 2, `grouping.stage_output` 2 — minus overlap) that exist to fill a replay bundle |
+| **`orchestrator.run_wave2` is LEGACY.** `facts/usable.py:16` says it in capitals — "**DO NOT WIRE THIS INTO legacy `run_wave2`**" — and `production.py` composes `run_p1_p7` instead. | 3 | `orchestrator.run_wave2`, `orchestrator.TARGETED_OCR_UNAVAILABLE`, `extractors.dispatch.extract` (whose own docstring calls it "the backward-compatible composition") |
+| **No encoder is wired.** `cli.py:1697` passes `embeddings=EmbeddingsOff()` and the retrieval channels are all `None` at `cli.py:1681-1684`. | 4 | `grouping.embeddings.recompute_file_embedding`, `database_agent.vectors.get_embedding`/`put_embedding`, `database_agent.vector_versions.embedding_history` |
+| **The corpus source is the filesystem one.** `cli.py:826` passes `FilesystemCorpusSource()`; replay needs the snapshot one. | 8 | `scan_agent.replay.*` (5), `scan_agent.corpus_source.SnapshotCorpusSource`, `scan_agent.selection.selection_payload`/`record_selection_from_payload` |
+| **P14 "Find" is NOT being built** — owner declined 2026-08-31 (`84` §3). Every read-back-later surface loses its consumer with it. | ~14 | `facts.read_surface.*` (6), `facts.supersede.fact_history`, `facts.values.*` (5), `database_agent.files_table.file_path_history`, `evidence_shape.store.supersede_chain`, `grouping.store.*` (4) |
+| **No model transport** (§3's first cause, still). | ~7 | `facts.llm_seam.build_request`, `facts.domains.active_field_allowlist` (its only two callers are `llm_seam` and `read_surface`), `database_agent.scan_usage.record_llm_cost`, `questions.proposal.SelfDescriptionSending`/`sending_notice`, `grouping.failure_points.*` |
+| **P13's review surface is unreachable** (§3's second cause, still). | ~3 | `database_agent.learning.reset_preferences` — its own docstring names the caller: "P13 collects the gesture as `review_action` with surface = learning and action = reset_learning and routes it here"; `grouping.acceptance.membership_review_state_as_of` |
+
+**This matters more than the count.** Seven decisions, five of them deliberate and
+recorded, account for two thirds of what this slice found. §3's advice was right and
+should be applied to the remainder: check whether a module collapses before treating
+its symbols as findings.
+
+---
+
+## 10. Correctly dormant, with the reason that is true of that symbol
+
+The residue that is NOT explained by §9. One at a time, because that is the rule.
+
+| Symbol(s) | Why it is dormant, and what would legitimately call it |
+|---|---|
+| `facts.session.bounded_sessions`, `facts.photo_event.photo_events` | **These are Done-means 25 and 26 — P6's own done criteria — built, tested and blocked on numbers nobody has ruled.** `SessionBoundary` requires `window_seconds`, `require_same_parent_folder_context` and `minimum_members`; `PhotoEventClustering` requires `same_event` (the time window, GPS radius and camera-identity test, Deferred together) and `minimum_members`. Both docstrings say the design states none and that a default here "would be P6 answering a deferred question inside an implementation". `84` §1: absent means refuse, never guess. **This is an owner decision, not a wiring gap — see §12.** |
+| `facts.families.duplicate_family`, `facts.families.version_family`, `facts.families.Lineage` | The same shape, one step further out: `perceptual_hash_label` + `near_match`, and `lineage_rule`, are required with no default because "§2.6 names the perceptual hash and states no distance metric and no threshold". `cli.py:1695` passes `duplicate_or_version=None`, which is that refusal made explicit at the composition root. |
+| `extractors.budgets.p5_ceilings`, `facts.budgets.ceiling_values`, `facts.budgets.UnknownCeiling`, `database_agent.budget.all_ceilings` | **The same family as §4.1's `tree_limits`, and worth stating as a family.** Each is a part's declared reader of its own ceilings; each says in its own words that reading a ceiling is not enforcing one; and `cli._bootstrap` seeds `placement.config.CEILINGS` only, so P5's four `ocr.*`/`image.*` keys and P6's three are written by nothing. Unlike `tree_limits` these harm nobody today, because nothing consults them — but the day an OCR engine is wired, P5's four ceilings are absent and `p5_ceilings` returns four `None`s. |
+| `extractors.budgets.deferred_result`, `extractors.budgets.extraction_counts` | §8.6's user-facing sentence — "1,842 files indexed; 1,611 fully extracted; 89 scanned PDFs deferred after the OCR limit; 18 files remain unreadable". **The report prints none of it, and I did not wire it**: `extraction_counts` takes P4 run rows and there is no corpus-wide reader for them, so wiring from `cli.py` would mean writing a `SELECT` over `extraction_runs` in the one file that is supposed to hold no part's schema. PATCH A prints the counters `scan_run_summary` already computes, which is the half that needed no new query. **The other half is owed and named in §12.** |
+| `extractors.events.extraction_event`, `extractors.events.ocr_event` | Already triaged, in the module's own header, in capitals: "NOTHING IN `src/` CALLS EITHER ONE... Their only callers today are tests/p5/." P4's `record_run_event` builds its own payload from stored rows. Kept as "payload builders and as the guard that P5 authors none of P3's event types" — see §11, because that guard is a test's job. |
+| `extractors.router.routing_decisions`, `extractors.runs.analysis_tier_for` | Read-back surfaces over routing. `route(...)` and `record_routing_decision` are both live in `run_p1_p7`; the WRITE happens and the READ has no consumer, because there is no screen that explains why a file went to one extractor. `analysis_tier_for` is a lookup its writers already have inline. |
+| `extractors.stage_output.extraction_stage_output`, `extractor_versions`; `facts.stage_output.*`; `grouping.stage_output.*` | §8.5 stage emitters, gated on §9's first cause. Note the trap §6.1 records: `extraction_stage_output` is exercised by `tests/integration/test_live_path.py`, so it LOOKS live and no shipped run reaches it. |
+| `scan_agent.deferrals.scan_deferrals`, `scan_agent.run.get_scan_run`, `scan_agent.summary` (the rest) | Readers whose one consumer is the summary block. `scan_run_summary` reads `scan_deferrals` internally for its budget counter, so PATCH A reaches it indirectly; `scan_deferrals`' OTHER reasons — Q7, Q14, and the directory that could not be read — still have no surface. `summary.py` says they are "readable from `scan_deferrals` without an invented counter", which is true of a reader and not of a person. |
+| `scan_agent.watch.SessionWatch` | `11` §3's per-session watch: "Closing it ends the watch; nothing survives." A single-shot command has no session to watch. The legitimate caller is the long-running app, which is also `default_database_path`'s caller — see below. |
+| `database_agent.db.default_database_path` | Composes `~/Library/Application Support/<bundle>/agent.sqlite` per `11` §2. Its own docstring says the bundle identifier "is NOT specified by `11` and is not invented here: the application that launches P1 supplies it". A CLI has no bundle id; `cli.py:2589` puts the database in the working directory instead, and `open_database` already refuses one inside the corpus. The legitimate caller is the packaged macOS app. |
+| `database_agent.verify.verify_content`, `confirm_cross_volume_copy` | P12's, and reached only from `mutation.execute`/`undo`/`cross_volume`. Triage them WITH P12 when Wave G lands; do not delete. |
+| `database_agent.scan_usage.scan_resource_usage` | The reader for a row `scan_agent.run.start_scan` already writes. Its consumer is a progress or resource surface that does not exist. |
+| `evidence_shape.conformance.validate_observation` | "The extractor's gate... It never returns a repaired record." The live path constructs observations through `RunWriter`, which validates on write; a second gate ahead of it would be the same check in two places, which is the defect this repo has paid for most often. |
+| `evidence_shape.observation.collapse_key` | "Published so six extractors collapse the same way. P4 enforces no uniqueness on it." A published convention with no enforcement point is reached by whichever extractor chooses to collapse; none currently does. |
+| `facts.cache.is_stale`, `facts.usable.create_fact_passes` | `is_stale`'s job is done inside `FactResolver`'s cache key; `create_fact_passes` says outright that `create_facts_schema` already creates its table and that "it stays for a test that wants the one table without the rest" — a stated, checked reason, which is the difference between dormant and surplus. |
+| `facts.evidence.context_pair`, `facts.facets.word_boundary_match`, `facts.rules.context_check` | All three have exactly one caller, `facts.rules.apply_rules`, and it is dormant for the reason below. Triage them with it. |
+| `facts.rules.apply_rules` | `cli.py:696` states the reason and **I re-verified it rather than trusting it**, because `84` §5.4 records a case where exactly this reason had expired: no authored `facts.rules.Rule` set ships. `src/recognition/rules.py` is the near-miss and it is a DIFFERENT vocabulary — `SchemaRules` with context terms and extensions, not `(field_key, pattern, context)` — so it is not the missing rule set. The date half of §3.10 IS bound, at `cli._rule_stage`. |
+| `facts.states.is_stronger` | The ladder comparison. `cli.py:660`'s `contradicts_stronger` re-implements the one comparison it needs against `normalize_for_model`; `is_stronger` is the general predicate and nothing needs the general form. |
+| `facts.values.set_display_label` vs `facts.plan_versions.set_display_label` | Two functions with one name, deliberately: the version-independent default and the per-plan-version rendering. Both are dormant for §9's Find cause; recorded together so nobody "fixes" the duplicate name. |
+| `facts.plan_versions.create_plan_version_tables` | Its own docstring: "**NO LONGER OWED.** `facts.schema.create_facts_schema` now creates this table." See §11. |
+| `questions.triggers.question_for_situation` | §13's third consequence and `68` F6's real measured cost — Priya files her teaching as coursework because `--situation` takes one string for a whole disk. The function refuses fewer than two situations, and **nothing in the product decides which situations fire on a branch**: `shipped_situations` is read by `--list-situations` and by nothing else. Wiring it would mean inventing a per-branch situation detector. That detector is the thing to build. |
+| `questions.proposal.SelfDescriptionSending`, `sending_notice` | `80` §8's suspension, which is an opt-in to SEND. There is nothing to send to. The moment a transport exists these are the first things that should be wired, because C2 requires the notice on the line before the send. |
+| `questions.effects.draft_for_answer_change` | See §8.3. |
+| `grouping.acceptance.membership_review_state_as_of`, `grouping.failure_points.*`, `grouping.store.*` | §9's causes six and seven. `record_failure` in particular is explicit that P9 does not emit the `llm_interpretation` stage for a failure "that stage measures the model call, P8 makes the call" — so it is transport-gated twice over. |
+
+---
+
+## 11. Flagged for deletion (4)
+
+Not deleted here. Each is flagged for the owner of its package, the way §4.3 flagged
+`placement.store.placed_node_ids`.
+
+| Symbol | Why |
+|---|---|
+| `extractors.events.extraction_event`, `extractors.events.ocr_event` | The module header already establishes that nothing in `src/` calls either and that P4's `record_run_event` builds its own payload. The one stated reason to keep them — "the guard that P5 authors none of P3's event types" — is a property a test asserts, not a `src/` symbol. The header also records that `ocr_event()`'s claim "to describe a shape the database will produce" is FALSE today, since `record_run_event` leaves `prompt_fingerprint` NULL. A payload builder that describes a payload nothing builds is the definition of surplus. **For P5's owner.** |
+| `facts.plan_versions.create_plan_version_tables` | "NO LONGER OWED" by its own docstring; `create_facts_schema` creates the table. **For P6's owner.** |
+| `facts.usable.create_fact_passes` | The weaker sibling of the row above: same redundancy, but it carries a stated reason to survive ("a test that wants the one table without the rest"). Listed so the two are decided together; if that test does not exist, this goes with the row above. **For P6's owner.** |
+
+---
+
+## 12. Instrument artifact — NOT unreachable (1)
+
+`facts.learning.is_suppressed` **is called on every live run**, at
+`facts/direct.py:188`, inside `direct_facts`, which is `cli._direct_stage`. The census
+misses it because `direct.py:63` imports it as `_is_suppressed` and the census
+matches READ NAMES against symbol names (`_references_and_imports`, which collects
+`ast.Name` in a Load context). The alias is a different name.
+
+**Measured: exactly one symbol in the whole population is affected.** An AST pass over
+every `ImportFrom`/`Import` with an `asname` whose target is in the unreachable set
+returns this and nothing else, so the class is real but tiny and the 401 is
+overstated by one. Recorded here and in §13 so nobody spends an afternoon on it.
+
+---
+
+## 13. Traps, continued from §6
+
+5. **It matches read NAMES, so an aliased import hides a live call.** `from x import
+   f as _f` makes `f` look unreachable. One occurrence today (§12). This is the
+   opposite direction from §6.2's over-statement, and it is the more dangerous one,
+   because "unreachable" was supposed to be the safe verdict.
+6. **A test on the live path is not the live path.** `extraction_stage_output` is
+   exercised by `tests/integration/test_live_path.py`, whose name says the opposite
+   of what it proves about reachability. Read the CALL, not the test's name.
+7. **The three verdicts do not cover "the owner has not chosen a number yet."**
+   `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
+   producers exist, the tests pass, and the only thing missing is three numbers a
+   person has to decide. Calling that "correctly dormant" files an owner decision as
+   an engineering verdict. It is recorded as dormant in §10 with the reason stated,
+   and raised as an owner item in §14.
+
+---
+
+## 14. Open, for whoever picks this up
+
+- **NEW OWNER ITEM. Two of P6's own done-means criteria are blocked on three
+  deferred numbers.** Done-means 25 (`bounded_sessions`) needs a session window, a
+  same-folder rule and a minimum member count; Done-means 26 (`photo_events`) needs a
+  time window, a GPS radius, a camera-identity test and a minimum member count. Both
+  are built and tested. `84` §3's outstanding list does not carry them and should:
+  they are the same KIND of item as `74` §8's Q3/Q5/Q6, and they are cheaper, because
+  each is a number rather than a vocabulary.
+- **§8.6's count line is half-wired.** PATCH A prints P3's four counters.
+  `extractors.budgets.extraction_counts` — "89 scanned PDFs deferred; 18 files remain
+  unreadable" — still has no surface, and wiring it needs P4 to publish a
+  corpus-wide run reader. Writing that `SELECT` in `cli.py` would put P4's schema in
+  the composition root. **For P4's or P5's owner: publish the reader, and PATCH A's
+  block is where it goes.**
+- **The four §1.1 rules should be reported by one mechanism, not two.** PATCH A adds
+  a second block deliberately — a protected container is never openable by any
+  gesture, and a folder excluded by name is a rule this product chose — but the two
+  blocks now read the same table through two readers (`upstream.protected_areas` and
+  `summary.set_aside_paths`), filtered on complementary halves of one column. That is
+  fine and it is also exactly the shape that drifts. Worth a look when P3 next moves.
+- **`questions.triggers.question_for_situation` is waiting on a detector nobody has
+  started.** It is `68` F6's measured defect — the graduate student who also teaches,
+  filing her teaching as coursework — and it is the one entry in §10 whose fix is a
+  new producer rather than a call. If P15 gets more time, this is where it goes.
