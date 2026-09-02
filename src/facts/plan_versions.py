@@ -72,21 +72,6 @@ VALUE_RENDERINGS_COLUMNS: tuple[str, ...] = (
 
 
 
-def create_plan_version_tables(conn: sqlite3.Connection) -> None:
-    """Create the rendering table inside P1's database. Creates no other part's.
-
-    Idempotent: a second call keeps every rendering a version already chose.
-
-    NO LONGER OWED. `facts.schema.create_facts_schema` now creates this table, because
-    `VALUE_RENDERINGS_DDL` is in its `_TABLE_DDL`. Until it was, the table existed only
-    where a test fixture made it and every §8.8 read and write raised
-    `OperationalError` against a real database -- Task 23's positive half entirely.
-    This remains for a caller that wants the one table alone; it is idempotent, and a
-    second call keeps every rendering a version already chose.
-    """
-    conn.execute(VALUE_RENDERINGS_DDL)
-
-
 def _value_row(conn: sqlite3.Connection, value_id: str) -> sqlite3.Row:
     # `values` is a SQLite keyword; the identifier must be quoted or the statement is
     # a syntax error rather than a missing table.

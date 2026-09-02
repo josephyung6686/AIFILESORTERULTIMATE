@@ -22,8 +22,9 @@ from extractors.sink import ExtractionResult
 from facts import usable
 from facts.file_facts import FORBIDDEN_COLUMN_SUBSTRINGS, write_fact, RULE
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
+from facts.schema import create_facts_schema
 from facts.usable import (
-    FACT_PASSES_TABLE, FactPassNotRun, create_fact_passes, no_usable_facts_for,
+    FACT_PASSES_TABLE, FactPassNotRun, no_usable_facts_for,
     passes_for, record_pass, targeted_ocr_needed_for,
 )
 from facts.values import VALUE_ORIGINS, ensure_value
@@ -439,11 +440,14 @@ def test_the_pass_record_obeys_the_same_negative_contract_as_the_fact_tables(
 
 def test_creating_the_pass_record_twice_is_harmless_and_keeps_the_rows(
         scanned, p6_conn):
-    # `create_facts_schema` is idempotent and Step 3b puts this call inside it, so
-    # the fifth table must survive a second creation like the other four do.
+    # `create_facts_schema` is the ONLY creator of this table now -- the standalone
+    # `create_fact_passes` was deleted, because it created a table the aggregate
+    # creator already creates and no caller in `src/` wanted the one table alone. The
+    # property is unchanged: the creator runs on every open of an existing database,
+    # so the fifth table must survive a second creation like the other four do.
     file_id, content_hash = scanned
     record_pass(p6_conn, file_id=file_id, content_hash=content_hash,
                 analysis_tiers=NATIVE)
-    create_fact_passes(p6_conn)
+    create_facts_schema(p6_conn)
     assert passes_for(p6_conn, file_id=file_id, content_hash=content_hash) == (
         NATIVE,)

@@ -17,7 +17,7 @@ from database_agent.supersede import mark_superseded
 
 from placement import events as placement_events
 from placement.records import DECISION_FIELDS, PlacementDecision
-from placement.vocabulary import FILE, PLACE
+from placement.vocabulary import FILE
 
 #: The named columns beside `payload`. Every one is either an address derived from
 #: the record (`record_id`, `subject_ref`) or a field of it, so no column here can
@@ -176,12 +176,3 @@ def decisions_for_plan(conn: sqlite3.Connection, *,
     ).fetchall()
     return tuple(_from_row(row) for row in rows)
 
-
-def placed_node_ids(conn: sqlite3.Connection, *, plan_version: str) -> tuple[str, ...]:
-    """The nodes live `place` decisions name. Task 17 diffs this against the tree."""
-    rows = conn.execute(
-        "SELECT DISTINCT node_id FROM placement_decisions WHERE plan_version = ? "
-        "AND outcome = ? AND node_id IS NOT NULL AND superseded_by IS NULL "
-        "ORDER BY node_id", (plan_version, PLACE),
-    ).fetchall()
-    return tuple(row["node_id"] for row in rows)

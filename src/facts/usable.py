@@ -56,7 +56,7 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 from extractors.failure import ContractViolation
 
 from facts.file_facts import facts_for_file
-from facts.schema import FACT_PASSES_DDL, FACT_PASSES_TABLE
+from facts.schema import FACT_PASSES_TABLE
 from facts.unresolved import unresolved_for_file
 
 class FactPassNotRun(ContractViolation):
@@ -72,21 +72,6 @@ class FactPassNotRun(ContractViolation):
     corpus AND would hide the defect it exists to surface" -- which is exactly this
     exception's case.
     """
-
-
-def create_fact_passes(conn: sqlite3.Connection) -> None:
-    """Create the pass record, alone. Idempotent.
-
-    `facts.schema.create_facts_schema` already creates this table -- the DDL is in
-    `_TABLE_DDL` and `FACT_PASSES_DDL` is imported from there -- so no production
-    caller needs this. It stays for a test that wants the one table without the rest.
-    An earlier docstring here claimed the schema module CALLED it, which it never did:
-    the table then existed only where a test fixture had made it, and the whole point
-    of `FactPassNotRun` -- a `ContractViolation` the orchestrator re-raises by name --
-    was defeated in production by `sqlite3.OperationalError: no such table`, which
-    `_extract_one`'s broad `except Exception` records as the file's own failure.
-    """
-    conn.execute(FACT_PASSES_DDL)
 
 
 def record_pass(conn: sqlite3.Connection, *, file_id: str, content_hash: str,

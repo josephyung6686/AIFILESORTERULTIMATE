@@ -22,11 +22,11 @@ from facts.cache import fact_cache_key
 from facts.file_facts import (
     DETERMINISTIC_EXTRACTOR, FILE_FACTS_COLUMNS, write_fact,
 )
+from facts.schema import create_facts_schema
 from facts.plan_versions import (
     PLAN_VERSIONED,
     SHARED_ACROSS_PLAN_VERSIONS,
     VALUE_RENDERINGS_COLUMNS,
-    create_plan_version_tables,
     VALUE_RENDERINGS_DDL,
     VALUE_RENDERINGS_TABLE,
     display_label,
@@ -166,10 +166,13 @@ def test_the_renderings_table_is_keyed_by_version_and_carries_no_destination(con
 
 
 def test_creating_the_table_twice_is_not_an_error_and_loses_no_rendering(conn, value_id):
-    # The aggregate creator is owed a call to this; a second call from a test or a
-    # later wave must not drop what a version already chose.
+    # `create_facts_schema` is the ONLY creator of this table now -- the standalone
+    # `create_plan_version_tables` was deleted, because it created a table the
+    # aggregate creator already creates and no caller in `src/` wanted the one table
+    # alone. The property it guarded is still the real one: the creator runs on every
+    # open of an existing database, so a second run must not drop what a version chose.
     set_display_label(conn, value_id=value_id, plan_version="v2", label="UChicago")
-    create_plan_version_tables(conn)
+    create_facts_schema(conn)
     assert display_label(conn, value_id=value_id, plan_version="v2") == "UChicago"
 
 

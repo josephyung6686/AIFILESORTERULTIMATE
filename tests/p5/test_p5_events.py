@@ -20,7 +20,8 @@ from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import RunWriter, get_run, observation_keys_for_run
 
 from extractors.authorship import AUTHORED_EVENT_TYPES, SUBSYSTEM
-from extractors.events import EXTRACTION, OCR, extraction_event, ocr_event
+from extractors.authorship import event_defaults
+from extractors.events import EXTRACTION, OCR
 from extractors.shape import fingerprint, location, observation, run, segment, text_unit
 from extractors.sink import ExtractionResult
 
@@ -70,13 +71,6 @@ def an_ocr_run():
                 completeness="capped",
                 coverage={"units": "pages", "processed": 40, "total": 312},
                 observation_count=0, started_at=FIXED_CLOCK, finished_at=FIXED_CLOCK))
-
-
-def an_ocr_event():
-    return ocr_event(run_id="run-8", file_id="f-1", content_hash=CONTENT_HASH,
-                     provider="apple-vision", provider_version="19.1",
-                     config=CONFIG, completeness="capped",
-                     observed_at=FIXED_CLOCK)
 
 
 def only_event(conn, **where):
@@ -154,24 +148,14 @@ def test_the_stored_ocr_event_carries_no_prompt_fingerprint(conn, writer):
     stored = get_run(conn, run_id)
     assert stored.config == CONFIG
     assert stored.config_fingerprint == fingerprint(CONFIG)
-    assert an_ocr_event()["prompt_fingerprint"] == stored.config_fingerprint
 
 
-def test_an_ocr_event_puts_version_and_configuration_in_section_8_2s_model_slots():
-    # The builder, as a dict. §8.2's model positions are the OCR positions.
-    built = an_ocr_event()
-    assert built["component_version"] == "19.1"
-    assert built["prompt_fingerprint"] == fingerprint(CONFIG)
-    explanation = json.loads(built["explanation"])
-    assert explanation["provider"] == "apple-vision"
-    assert explanation["run_id"] == "run-8"
-    assert explanation["completeness"] == "capped"
-
-
-def test_one_configuration_has_one_identity_in_both_places():
-    # The event's `prompt_fingerprint` and P4's `config_fingerprint` are the same
-    # function of the same mapping, so an audit can join them.
-    assert an_ocr_event()["prompt_fingerprint"] == fingerprint(CONFIG)
+# `an_ocr_event()`'s two builder-only cases are DELETED with `extractors.events.ocr_event`
+# itself, 2026-09-02. They asserted that a dict the product never builds carries §8.2's
+# model positions -- and the module header already recorded that `record_run_event`
+# leaves `prompt_fingerprint` NULL, so the shape they described was not the shape the
+# database produces. `test_the_stored_ocr_event_carries_no_prompt_fingerprint` above
+# keeps the half that is true of a real row.
 
 
 def test_every_event_names_p5(conn, writer):
@@ -182,13 +166,14 @@ def test_every_event_names_p5(conn, writer):
 
 
 def test_p5_authors_none_of_p3s_events():
-    # M8: `discovery`, `stat observation` and `hashing` are P3's.
+    # M8: `discovery`, `stat observation` and `hashing` are P3's. Asserted against
+    # `event_defaults`, which is where the refusal has always lived and which the live
+    # writer path reaches; `extraction_event` was a deleted wrapper around it.
     for event_type in ("discovery", "stat observation", "hashing", "planned move"):
         with pytest.raises(ValueError):
-            extraction_event(run_id="r", file_id="f", content_hash="h",
-                             extractor_name="pdf.text", extractor_version="0.1.0",
-                             completeness="complete", observed_at=FIXED_CLOCK,
-                             event_type=event_type)
+            event_defaults(event_type=event_type, file_id="f", content_hash="h",
+                           component_version="0.1.0", observed_at=FIXED_CLOCK,
+                           explanation='{"run_id": "r"}')
 
 
 def test_exactly_one_event_per_run(conn, writer):

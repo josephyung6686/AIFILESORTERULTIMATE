@@ -19,14 +19,19 @@
 # wrapper would leave one writer under two names, which is the same defect as one
 # value under two computations and is the one this project has paid for most often.
 #
-# `extraction_event()` / `ocr_event()` remain below as payload builders and as the
-# guard that P5 authors none of P3's event types. Stated plainly, because a comment
-# that overstates is how the header above went stale: NOTHING IN `src/` CALLS EITHER
-# ONE. `record_run_event` builds its own payload from the stored rows, and it writes no
+# `extraction_event()` and `ocr_event()` are DELETED, 2026-09-02, for the reason this
+# header already established against them: nothing in `src/` ever called either one.
+# `record_run_event` builds its own payload from the stored rows, and it writes no
 # `prompt_fingerprint` on purpose -- P4's SPEC, Provenance: "`prompt fingerprint` does
 # not apply (P4 is model-free)" -- so §2.7's configuration identity reaches the
-# database on `extraction_runs.config_fingerprint`, not on the event row. Their only
-# callers today are tests/p5/.
+# database on `extraction_runs.config_fingerprint`, not on the event row. That made
+# `ocr_event()`'s docstring a description of a shape the database does not produce,
+# which is the same overstatement this header was rewritten to stop making. The one
+# stated reason to keep them -- "the guard that P5 authors none of P3's event types"
+# -- is `extractors.authorship.event_defaults`'s own refusal, which is live, and
+# `tests/p5/test_p5_events.py` now asserts it there.
+#
+# What survives here is §8.2's two spellings, which P1's writer validates against.
 """Section 8.2 - the two events P5 authors. P4 writes them, once per run (M8).
 
 Each carries "the event type, file ID, content hash, responsible subsystem, extractor
@@ -47,56 +52,14 @@ that goes through the sink, which is every OCR run now, has no configuration on 
 EVENT row. Nothing is lost from the database: the same digest is on
 `extraction_runs.config_fingerprint`, and no consumer reads `events.prompt_fingerprint`
 (P2's `prompt_fingerprint` is an axis of its own `version_tuple` record, not a read of
-this column). What is lost is `ocr_event()`'s claim to describe a shape the database
-will produce, and a docstring that overstates is how the header above went stale in
-the first place.
+this column). The paragraph above is kept because it describes §8.2 as WRITTEN, and
+the divergence is the thing worth knowing; the builder that used to claim otherwise
+is gone.
 """
 from __future__ import annotations
-
-from typing import Any, Mapping
-
-from extractors.authorship import event_defaults
-from extractors.shape import canonical_json, fingerprint
 
 #: Section 8.2's own spellings. `OCR`, not `ocr` (MINOR 2): P1's writer validates the
 #: type against section 8.2's frozen vocabulary and the lowercase form is rejected at
 #: the INSERT.
 EXTRACTION = "extraction"
 OCR = "OCR"
-
-
-def extraction_event(*, run_id: str, file_id: str, content_hash: str,
-                     extractor_name: str, extractor_version: str,
-                     completeness: str, observed_at: str,
-                     event_type: str = EXTRACTION, **extra: Any) -> dict:
-    """One `extraction` event - once per file per extractor family per content
-    version."""
-    return event_defaults(
-        event_type=event_type, file_id=file_id, content_hash=content_hash,
-        component_version=extractor_version, observed_at=observed_at,
-        explanation=canonical_json({
-            "run_id": run_id,
-            "extractor_name": extractor_name,
-            "extractor_version": extractor_version,
-            "completeness": completeness,
-            **extra,
-        }),
-    )
-
-
-def ocr_event(*, run_id: str, file_id: str, content_hash: str, provider: str,
-              provider_version: str, config: Mapping[str, Any],
-              completeness: str, observed_at: str, **extra: Any) -> dict:
-    """One `OCR` event - once per OCR run."""
-    return event_defaults(
-        event_type=OCR, file_id=file_id, content_hash=content_hash,
-        component_version=provider_version,
-        prompt_fingerprint=fingerprint(config), observed_at=observed_at,
-        explanation=canonical_json({
-            "run_id": run_id,
-            "provider": provider,
-            "provider_version": provider_version,
-            "completeness": completeness,
-            **extra,
-        }),
-    )
