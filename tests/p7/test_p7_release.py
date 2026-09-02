@@ -35,7 +35,7 @@ from evidence_shape.store import (
 )
 
 from privacy.authorship import COMPONENT_VERSION
-from privacy.binding import consume_release
+from privacy.binding import consume_release, content_digest_of
 from privacy.classification import ClassificationRecord, UNREADABLE_UNCLASSIFIED
 from privacy.classification_store import ClassificationStore
 from privacy.consent import NeedsConsent, pending_consent
@@ -675,14 +675,19 @@ def test_the_released_id_is_in_the_ledger_and_a_fabricated_one_is_not(gate_conn)
     decision = _gate(gate_conn).release(_request(
         items=(Excerpt(observation_key=key, span=SPAN, reason="heading"),),
         file_ids=(file_id,)))
+    # The gate folded the fourth binding term from what it resolved; the spender
+    # folds it from the same items. `llm_harness.transport` folds it from the BYTES
+    # instead, which is the point of the term -- see
+    # `tests/integration/test_released_content_binding.py`.
+    digest = content_digest_of(decision.materialised_items)
     consume_release(gate_conn, decision, model_target=CLOUD,
                     prompt_fingerprint="fingerprint.grouping",
-                    policy_version=policy.policy_version)
+                    policy_version=policy.policy_version, content_digest=digest)
     forged = dataclasses.replace(decision, release_id="0" * 32)
     with pytest.raises(Exception):
         consume_release(gate_conn, forged, model_target=CLOUD,
                         prompt_fingerprint="fingerprint.grouping",
-                        policy_version=policy.policy_version)
+                        policy_version=policy.policy_version, content_digest=digest)
 
 
 def test_no_content_is_read_before_every_request_decidable_check_has_run(

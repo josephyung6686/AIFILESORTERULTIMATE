@@ -30,11 +30,16 @@ from llm_harness.transport import (
     TransportTransactionOpen,
     issue,
 )
-from llm_harness.vocabulary import A_FACT
+from evidence_shape.canonical import canonical_json
+from llm_harness.vocabulary import (
+    A_FACT, B_GROUP, REDUCTION_NONE, REMAINS_AMBIGUOUS,
+)
+from llm_harness.released_content import DOSSIER_BODY_KEYS
 from privacy.binding import (
     BindingMismatch,
     ReleaseAlreadySpent,
     ReleaseNotIssued,
+    content_digest_of,
     mint_release,
 )
 from privacy.policy import Policy
@@ -116,13 +121,46 @@ def _forged(**over) -> Released:
     return Released(**values)
 
 
-def _payload(released: Released, *, dossier: bytes = b"DOSSIER",
+def _body(released: Released, *, call_site: str = A_FACT) -> bytes:
+    """A minimal, WELL-FORMED dossier body for a release that materialised nothing.
+
+    It used to be `b"DOSSIER"`. `issue` now folds the payload's own bytes into P7's
+    fourth binding term (CR-02), so a placeholder is refused before the spend --
+    correctly, because bytes that are not a dossier are bytes the gate never
+    authorized. Every key `dossier._body` writes is present and nothing else is; the
+    door checks the set exactly, since a key beside `released_evidence` is a key
+    nothing bound.
+    """
+    body = {
+        "allowed_vocabulary": [],
+        "call_site": call_site,
+        "conflicts": [],
+        "eligibility_reason": REMAINS_AMBIGUOUS,
+        "evidence_items": [],
+        "field_glossary": {},
+        "max_dossier_tokens": 0,
+        "plan_version": None,
+        "policy_version": released.policy_version,
+        "reduction_rung": REDUCTION_NONE,
+        "released_evidence": [
+            dict(item.content_mapping(), observation_key="handle:fixture")
+            for item in released.materialised_items
+        ],
+        "response_schema": "{}",
+        "shaping_policy": "{}",
+        "subject_ref": "handle:fixture-subject",
+    }
+    assert set(body) == DOSSIER_BODY_KEYS, "this fixture is not a dossier body"
+    return canonical_json(body).encode("utf-8")
+
+
+def _payload(released: Released, *, dossier: bytes | None = None,
              prompt: PromptDefinition | None = None,
              model_target: ModelTarget | None = None) -> CallPayload:
     definition = prompt or _prompt()
     return build_call_payload(
         definition,
-        dossier,
+        _body(released) if dossier is None else dossier,
         model_target=model_target or released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
@@ -140,7 +178,8 @@ def _mint(conn, *, model_target=CLOUD, prompt: PromptDefinition | None = None,
     digest = prompt_fingerprint(definition)
     release_id = mint_release(
         conn, policy=_policy(), model_target=model_target,
-        prompt_fingerprint=digest, audit_id=audit_id, minted_at=FIXED_CLOCK,
+        prompt_fingerprint=digest, content_digest=content_digest_of(()),
+        audit_id=audit_id, minted_at=FIXED_CLOCK,
     )
     return _forged(
         release_id=release_id, audit_id=audit_id, model_target=model_target,
@@ -271,16 +310,24 @@ def test_client_receives_only_model_visible_bytes(transport_conn):
     recorder = Recorder()
     prompt = _prompt()
     released = _mint(transport_conn, prompt=prompt, audit_id=17)
-    payload = _payload(released, prompt=prompt, dossier=b"VISIBLE-DOSSIER")
+    visible = _body(released, call_site=B_GROUP)
+    payload = _payload(released, prompt=prompt, dossier=visible)
     issue(transport_conn, released, payload, model_client=_client(CLOUD, recorder))
     assert recorder.calls == [payload.model_visible_bytes]
-    assert recorder.calls[0] == assemble(prompt, b"VISIBLE-DOSSIER")
+    assert recorder.calls[0] == assemble(prompt, visible)
     sent = recorder.calls[0]
     assert payload.release_id.encode() not in sent
-    assert payload.policy_version.encode() not in sent
     assert payload.prompt_fingerprint.encode() not in sent
     assert b"17" not in sent
     assert CLOUD.model_id.encode() not in sent
+    # `policy_version` IS in the sent bytes, and used not to be here only because
+    # this fixture's dossier was the placeholder `b"DOSSIER"`. `dossier._body`
+    # writes `"policy_version"` into the model-visible body deliberately, so
+    # `CallPayload.__post_init__`'s "not part of the model-visible bytes" is true of
+    # the other two provenance fields and overstated about this one. It is a version
+    # string the gate stamped, not a value read out of anybody's file -- which is
+    # why the assertion is corrected here rather than the body changed.
+    assert payload.policy_version.encode() in sent
 
 
 def test_issued_and_received_events_carry_audit_id_and_fingerprint(transport_conn):

@@ -3,6 +3,19 @@
 
 `issue` recomputes the payload from immutable sources, consumes the release, then
 invokes the injected client. The client receives model-visible bytes only.
+
+**The bytes are bound to the release, and were not until 2026-09-02.** The security
+review's CR-02 spent a real release -- one materialised item, `"[redacted]"` -- on a
+payload whose dossier bytes were a dump of every `raw_value`, every `context_before`,
+every path and every content hash, and this function returned a `ModelResponse`. The
+three checks that ran were all self-consistency: `_require_sources` recomputes the
+fingerprint and reassembles the payload's own two fields, and `CallPayload.
+__post_init__` does the same. `_require_binding` and `consume_release` bound WHO
+received the bytes and UNDER WHAT POLICY. Nothing bound WHAT.
+
+`released_content.released_content_digest` now folds the payload's own bytes into
+P7's fourth binding term and `consume_release` compares it with the ledger row the
+gate wrote. See that module for the three checks and for what they do NOT cover.
 """
 from __future__ import annotations
 
@@ -27,6 +40,7 @@ from llm_harness.records import (
     MalformedRecord,
     assemble,
 )
+from llm_harness.released_content import released_content_digest
 from llm_harness.store import record_call_failure, record_response
 from privacy.binding import BindingMismatch, consume_release
 from privacy.release import ModelTarget, Released
@@ -94,6 +108,12 @@ def _require_sources(payload: CallPayload) -> str:
 
 def _require_binding(released: Released, payload: CallPayload,
                      model_client: ModelClient) -> None:
+    """The identities. WHAT the bytes are is the fourth term, checked in the spend.
+
+    Kept here rather than folded into this function on purpose: a binding term is
+    the ledger's, and comparing content here against the `Released` in the caller's
+    hand would be comparing a `dataclasses.replace`d forgery with itself.
+    """
     if not (
         model_client.model_target == payload.model_target == released.model_target
     ):
@@ -164,13 +184,17 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
           model_client: ModelClient) -> ModelResponse | CallFailed:
     """Consume one live release, then invoke the bound client once.
 
-    Binding and payload integrity are checked before the ledger spend. The client
-    is invoked only after `consume_release` returns, and it receives only
-    `payload.model_visible_bytes`.
+    Binding, payload integrity and the released CONTENT are all checked before the
+    ledger spend. The client is invoked only after `consume_release` returns, and it
+    receives only `payload.model_visible_bytes` -- whose dossier half has been shown
+    to carry exactly what the gate released, in exactly the shape the builder writes.
     """
     _reject_open_transaction(conn)
     fingerprint = _require_sources(payload)
     _require_binding(released, payload, model_client)
+    # Folded from the bytes about to be sent, and compared against the gate's ledger
+    # row inside `consume_release` -- before the spend, before the socket.
+    content = released_content_digest(payload.canonical_dossier_bytes)
     issued_at = _now()
     with transaction(conn):
         consume_release(
@@ -178,6 +202,7 @@ def issue(conn: sqlite3.Connection, released: Released, payload: CallPayload, *,
             model_target=model_client.model_target,
             prompt_fingerprint=fingerprint,
             policy_version=payload.policy_version,
+            content_digest=content,
         )
         _record_issued(
             conn, released=released, payload=payload, fingerprint=fingerprint,

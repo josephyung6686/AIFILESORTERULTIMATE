@@ -60,7 +60,7 @@ from llm_harness.vocabulary import (
 )
 from p8.conftest import FIXED_CLOCK, make_evidence_item
 from p8.test_p8_transport import Recorder
-from privacy.binding import mint_release
+from privacy.binding import content_digest_of, mint_release
 from privacy.consent import ConsentRequirement
 from privacy.denial import RemedyOption
 from evidence_shape.location import TextSpan
@@ -75,9 +75,9 @@ from privacy.release import (
     NeedsConsent,
     NoPolicyInForce,
     Released,
+    ReleasedItem,
     Target,
 )
-from privacy.resolve import Materialised
 from privacy.schema import create_privacy_schema
 from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
@@ -265,19 +265,28 @@ def _needs_consent() -> NeedsConsent:
     )
 
 
-def _materialised(**overrides) -> Materialised:
+def _materialised(**overrides) -> ReleasedItem:
+    """One item as a `Released` carries it, which is `ReleasedItem` and not
+    `resolve.Materialised`.
+
+    This built a `Materialised` -- the PRE-redaction record, which carries the
+    `context_before`/`context_after` §8.4 keeps local. `Released.materialised_items`
+    is typed `ReleasedItem` precisely so there is nowhere to put them, and its
+    docstring calls that "the property rather than a discipline about it". A fixture
+    holding the other type made this file the one place that property was not true.
+    Nothing downstream noticed, because `dossier._released_evidence` reads only the
+    four fields both types share -- which is exactly the shape of defect that made a
+    fixture worth correcting rather than adapting to.
+    """
     values = dict(
         observation_key="obs-key-1",
         span="0:19",
         value=RELEASED_MATERIAL,
         zone="body",
-        context_before=None,
-        context_after=None,
-        context_truncated=False,
         unit_length=64,
     )
     values.update(overrides)
-    return Materialised(**values)
+    return ReleasedItem(**values)
 
 
 def _budget(*, files: int = 1000, rate: int = 1, cost: str = "10") -> ScanBudget:
@@ -364,23 +373,27 @@ class RecordingGate:
             raise self.decision()
         if self.decision == "released" or self.decision is Released:
             digest = prompt_fingerprint(self.prompt)
+            # A shard is a subset of the evidence, so two shards of one subject do
+            # not show the model the same material. Varying the zone by target keeps
+            # the fixture honest about that; identical material would make two shards
+            # one dossier by content address.
+            items = (_materialised(
+                observation_key=self.key,
+                zone="body:" + "+".join(request.target.file_ids),
+            ),)
+            # The real gate folds the fourth binding term from what it resolved,
+            # BEFORE the id exists; a stand-in that minted a release bound to
+            # different content would be a stand-in the door correctly refuses.
             release_id = mint_release(
                 self.conn, policy=_policy(), model_target=request.model_target,
-                prompt_fingerprint=digest, audit_id=17 + len(self.released),
-                minted_at=FIXED_CLOCK,
+                prompt_fingerprint=digest, content_digest=content_digest_of(items),
+                audit_id=17 + len(self.released), minted_at=FIXED_CLOCK,
             )
             granted = Released(
                 release_id=release_id,
                 audit_id=17 + len(self.released),
                 policy_version=POLICY_VERSION,
-                # A shard is a subset of the evidence, so two shards of one
-                # subject do not show the model the same material. Varying the
-                # zone by target keeps the fixture honest about that; identical
-                # material would make two shards one dossier by content address.
-                materialised_items=(_materialised(
-                    observation_key=self.key,
-                    zone="body:" + "+".join(request.target.file_ids),
-                ),),
+                materialised_items=items,
                 redaction_manifest=RedactionManifest(entries=()),
                 model_target=request.model_target,
             )

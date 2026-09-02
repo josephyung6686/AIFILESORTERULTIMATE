@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import tempfile
 from dataclasses import replace
 from pathlib import Path
@@ -25,6 +26,7 @@ from llm_harness.dossier import build_dossier, field_glossary, canonical_dossier
 from llm_harness.records import (
     DossierRequest, PromptDefinition, ValidationUnavailable, build_call_payload,
 )
+from llm_harness.released_content import DOSSIER_BODY_KEYS
 from llm_harness.schema import create_llm_schema
 from llm_harness.transport import ModelClient, ModelResponse, issue
 from llm_harness.vocabulary import A_FACT, REDUCTION_NONE, REMAINS_AMBIGUOUS
@@ -172,9 +174,36 @@ def _request(*, items, model_target, file_ids, fingerprint: str) -> ModelCallReq
 
 
 def _payload_from(released: Released, prompt: PromptDefinition):
-    dossier = b"\n".join(
-        item.value.encode("utf-8") for item in released.materialised_items
-    )
+    """A real dossier body, not a newline-joined list of values.
+
+    It used to be the latter, and `issue` accepted it because nothing compared the
+    payload's bytes with the release. CR-02 made that the finding it was: the fourth
+    binding term is folded from these bytes and checked against the ledger row, so
+    bytes that are not a dossier body are refused before the spend. The body is built
+    here rather than through `build_dossier` because these tests are about the
+    P7 -> P8 seam and not about the builder; `test_released_content_binding.py` runs
+    the real builder through the same door.
+    """
+    dossier = canonical_json({
+        "allowed_vocabulary": [],
+        "call_site": A_FACT,
+        "conflicts": [],
+        "eligibility_reason": REMAINS_AMBIGUOUS,
+        "evidence_items": [],
+        "field_glossary": {},
+        "max_dossier_tokens": 0,
+        "plan_version": None,
+        "policy_version": released.policy_version,
+        "reduction_rung": REDUCTION_NONE,
+        "released_evidence": [
+            dict(item.content_mapping(), observation_key="handle:fixture")
+            for item in released.materialised_items
+        ],
+        "response_schema": "{}",
+        "shaping_policy": "{}",
+        "subject_ref": "handle:fixture-subject",
+    }).encode("utf-8")
+    assert set(json.loads(dossier)) == DOSSIER_BODY_KEYS
     return build_call_payload(
         prompt,
         dossier,

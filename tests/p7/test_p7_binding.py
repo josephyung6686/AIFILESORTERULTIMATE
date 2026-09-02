@@ -18,7 +18,7 @@ import pytest
 
 from privacy.binding import (
     BINDING_TERMS, BindingMismatch, ReleaseAlreadySpent, ReleaseNotIssued,
-    consume_release, mint_release,
+    consume_release, content_digest, content_digest_of, mint_release,
 )
 from privacy.policy import Policy
 from privacy.release import RELEASED_FIELDS, ModelTarget, Released
@@ -67,16 +67,26 @@ def a_policy(**over) -> Policy:
     return Policy(**base)
 
 
+#: The fourth binding term for a release that materialised nothing, which is what
+#: `a_released` builds. Folded through the published function rather than written as
+#: a literal: the digest is what the gate and the door must agree on, and a literal
+#: here would keep agreeing after they stopped.
+NO_ITEMS_DIGEST = content_digest_of(())
+
+
 def mint(conn, *, policy=None, model_target=CLOUD, prompt_fingerprint=FINGERPRINT,
-         audit_id=1, minted_at=FIXED_CLOCK) -> str:
+         content_digest_value=NO_ITEMS_DIGEST, audit_id=1,
+         minted_at=FIXED_CLOCK) -> str:
     return mint_release(conn, policy=policy or a_policy(), model_target=model_target,
-                        prompt_fingerprint=prompt_fingerprint, audit_id=audit_id,
+                        prompt_fingerprint=prompt_fingerprint,
+                        content_digest=content_digest_value, audit_id=audit_id,
                         minted_at=minted_at)
 
 
 def spend(conn, released, **over) -> None:
     base = dict(model_target=CLOUD, prompt_fingerprint=FINGERPRINT,
-                policy_version="policy-1")
+                policy_version="policy-1",
+                content_digest=content_digest_of(released.materialised_items))
     base.update(over)
     consume_release(conn, released, **base)
 
@@ -189,13 +199,21 @@ def test_a_released_whose_echo_disagrees_with_the_call_is_refused(p7_conn, minte
         consume_release(p7_conn, a_released(release_id=minted.release_id,
                                             model_target=LOCAL),
                         model_target=CLOUD, prompt_fingerprint=FINGERPRINT,
-                        policy_version="policy-1")
+                        policy_version="policy-1",
+                        content_digest=NO_ITEMS_DIGEST)
 
 
 # --- audit_id is not a binding term -----------------------------------------
 
-def test_the_binding_terms_are_the_specs_three(p7_conn):
-    assert BINDING_TERMS == ("model_target", "prompt_fingerprint", "policy_version")
+def test_the_binding_terms_are_the_specs_three_and_the_content_added_against_cr02(p7_conn):
+    # SPEC §6's tuple is three, and this is the one place the fourth is compared
+    # against it. It EXCEEDS the design's stated tuple, deliberately: §6's own reason
+    # for binding is "to keep the audit record truthful", and a record naming one
+    # redacted excerpt is as false of a call that carried a corpus as of a call to
+    # another model. The reason is recorded at the constant.
+    assert BINDING_TERMS[:3] == ("model_target", "prompt_fingerprint",
+                                 "policy_version")
+    assert BINDING_TERMS[3:] == ("content_digest",)
     assert "audit_id" not in BINDING_TERMS
 
 
@@ -280,8 +298,14 @@ def test_the_ledger_holds_no_content(p7_conn):
     # the text" (SPEC §7). A ledger that stored the payload would be that second
     # copy, in a table with no reason to have one.
     columns = {row[1] for row in p7_conn.execute("PRAGMA table_xinfo(release_ledger)")}
+    # `content_digest` is the fourth binding term, added against CR-02. It is one
+    # column wide whatever was released and it never leaves the device, so it is not
+    # the "second copy of the text" §7 keeps out of here -- and without it the door
+    # had nothing to compare a payload against, which is how a corpus went out under
+    # a release whose one item was `"[redacted]"`.
     assert columns == {"release_id", "model_target", "prompt_fingerprint",
-                       "policy_version", "audit_id", "minted_at", "spent_at"}
+                       "policy_version", "content_digest", "audit_id", "minted_at",
+                       "spent_at"}
 
 
 def test_consume_release_is_the_only_spender():
@@ -291,8 +315,12 @@ def test_consume_release_is_the_only_spender():
     published = {name for name, value in vars(module).items()
                  if not name.startswith("_") and callable(value)
                  and getattr(value, "__module__", None) == module.__name__}
+    # `content_digest` and `content_digest_of` FOLD the fourth binding term; neither
+    # touches the connection, and the `UPDATE ... SET spent_at` is still in exactly
+    # one function.
     assert published == {"mint_release", "consume_release", "ReleaseNotIssued",
-                         "ReleaseAlreadySpent", "BindingMismatch"}
+                         "ReleaseAlreadySpent", "BindingMismatch",
+                         "content_digest", "content_digest_of"}
 
 
 def test_p7_adds_no_delete_trigger_to_its_own_ledger(p7_conn):

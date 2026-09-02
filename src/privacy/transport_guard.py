@@ -52,10 +52,30 @@ module the property is actually about.
 
 **Stated limit.** This is an existence proof over ONE module namespace. Classes the
 transport imports -- P8's `CallPayload`, which carries the model-visible bytes -- are
-not walked, exactly as an imported helper is not counted as a second entry point.
-That a `CallPayload`'s bytes are the released dossier is proven at runtime by
+not walked, exactly as an imported helper is not counted as a second entry point. So
+NOTHING HERE SAYS ANYTHING ABOUT WHAT IS IN THOSE BYTES. This is a check on the SHAPE
+of the door, and the door being the right shape does not make what goes through it
+authorized.
+
+**The sentence that used to stand here was false, and it is worth saying why.** It
+read: "That a `CallPayload`'s bytes are the released dossier is proven at runtime by
 `build_call_payload`, `CallPayload.__post_init__` and `issue`'s own
-`_require_sources`, not here.
+`_require_sources`." None of the three ever sees the `Released`.
+`build_call_payload` takes bare values; `__post_init__` checks `model_visible_bytes
+== assemble(prompt_definition, canonical_dossier_bytes)`; `_require_sources`
+recomputes the fingerprint and reassembles the same two fields. All three are
+self-consistency. A security review took that sentence at its word, went looking
+anyway, and spent a real release on a payload carrying every `raw_value`, every path
+and every content hash in the corpus (CR-02) -- and the sentence is why the hole
+survived, because it told the previous reader not to look. A stated limit disposed of
+by a false claim is worse than an unstated one.
+
+WHAT ACTUALLY PROVES IT, since 2026-09-02, is P7's fourth binding term:
+`llm_harness.released_content.released_content_digest` folds the payload's own bytes
+and `privacy.binding.consume_release` compares them with the ledger row the gate
+wrote, before the spend. That is a RUNTIME check on a call, not a static property of
+a namespace, which is why it lives there and not here. Its own limits -- the
+builder-authored strings it binds in shape and not in content -- are written at it.
 """
 from __future__ import annotations
 

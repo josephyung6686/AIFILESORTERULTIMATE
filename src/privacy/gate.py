@@ -41,7 +41,7 @@ from evidence_shape.canonical import canonical_json
 
 from privacy.audit import AuditRecord, append_audit
 from privacy.authorship import SUBSYSTEM
-from privacy.binding import mint_release
+from privacy.binding import content_digest_of, mint_release
 from privacy.classification import (
     UNREADABLE_UNCLASSIFIED, ClassificationRecord, resolve_class,
 )
@@ -311,10 +311,16 @@ class Gate:
                                  manifest, observed_at),
             author=SUBSYSTEM, component_version=self._component_version)
 
-        # 6 -- the capability, recorded in Task 12's ledger and bound to three terms.
+        # 6 -- the capability, recorded in Task 12's ledger and bound to FOUR terms.
+        # The fourth is the content, added against CR-02: the other three bind who
+        # receives the bytes and under what policy, and a transport handed a payload
+        # the gate never authorized had nothing to compare it against. It is folded
+        # HERE, from `resolved`, because the ledger row is the one record of what was
+        # released that a caller cannot reach and rewrite.
         release_id = mint_release(
             self._conn, policy=policy, model_target=request.model_target,
-            prompt_fingerprint=request.prompt_fingerprint, audit_id=audit_id,
+            prompt_fingerprint=request.prompt_fingerprint,
+            content_digest=content_digest_of(resolved), audit_id=audit_id,
             minted_at=observed_at)
 
         return Released(

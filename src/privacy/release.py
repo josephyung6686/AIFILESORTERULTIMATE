@@ -36,6 +36,7 @@ __all__ = [
     "LOCALITIES", "ModelTarget", "Target", "ModelCallRequest", "ReleasedItem",
     "Released", "Denied",
     "NeedsConsent", "ReleaseDecision", "REQUEST_FIELDS", "RELEASED_FIELDS",
+    "RELEASED_EVIDENCE_FIELDS", "CONTENT_BOUND_FIELDS",
     "DENIED_FIELDS", "NEEDS_CONSENT_FIELDS", "DECISION_TYPES", "DECISION_ORDER",
     "FORBIDDEN_PARAMETER_NAMES", "RELEASE_PARAMETERS", "MalformedRequest",
     "MalformedDecision", "NoPolicyInForce",
@@ -175,6 +176,47 @@ class ReleasedItem:
     value: str
     zone: str
     unit_length: int | None
+
+    def content_mapping(self) -> dict[str, str]:
+        """What this item CONTRIBUTES to the model-visible bytes, and only that.
+
+        `binding.content_digest` folds these into the fourth binding term, and
+        `llm_harness.released_content` recomputes the same three fields from the
+        payload at the door. The two must produce the same mapping or the term
+        binds nothing, so the shape is published HERE -- next to the type that
+        defines it -- rather than agreed between two modules that cannot import
+        each other.
+
+        `unit_length` is absent because it is never written to the wire: it is the
+        measurement the whole-document refusal is taken against, not a value.
+
+        `observation_key` is absent for a different reason, and it is the one worth
+        writing down. It IS on the wire, but keyed: `llm_harness.wire_handles`
+        emits `HMAC(install key, observation_key)` so a recipient cannot run the
+        dictionary attack that recovered a redacted value from an unkeyed digest.
+        The gate holds the unkeyed key and the transport holds neither key nor the
+        keying function, so neither can compute what the other sees -- and binding
+        the identifier would have meant either handing the transport the handle key
+        or unkeying the wire. What is bound is the CONTENT: the address it came
+        from, the post-redaction value, and the zone.
+        """
+        return {"address": self.span, "value": self.value, "zone": self.zone}
+
+
+#: The four keys `llm_harness.dossier._released_body` writes for one released item.
+#: The door checks the payload's entries carry exactly these -- a fifth is how the
+#: `context_before` §8.4 keeps local rides along beside a value that was redacted.
+RELEASED_EVIDENCE_FIELDS: tuple[str, ...] = (
+    "address", "observation_key", "value", "zone",
+)
+
+#: The three of those four the release BINDS, read from the method rather than
+#: retyped so the two cannot drift. See `ReleasedItem.content_mapping` for why the
+#: identifier is not among them.
+CONTENT_BOUND_FIELDS: tuple[str, ...] = tuple(
+    ReleasedItem(observation_key="", span="", value="", zone="",
+                 unit_length=None).content_mapping()
+)
 
 
 @dataclass(frozen=True, slots=True)
