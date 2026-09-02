@@ -198,6 +198,27 @@ SUPPORT_POLICY = SupportPolicy(
 #: person's disk rather than optimising one.
 CEILING_VALUE: int = 8
 
+#: ONE OF THE SEVEN IS NOT A SPEND CEILING, and it had this value only because
+#: it was in the same loop. `residual.max_files_per_review_batch` does not bound
+#: what a run COSTS -- it bounds how many files a person is shown in one review
+#: set, and §8.6 splits a set at this number rather than truncating it. So it
+#: also decides how many separate `--send-set` commands they must type to file
+#: one hold: measured on a 5,000-file corpus, 420 sets from a single hold and
+#: therefore 420 commands.
+#:
+#: It is separated here rather than re-valued, because the two directions are a
+#: real trade and the trade is not this file's to settle. A larger batch is
+#: fewer commands AND a bigger set accepted in one gesture with no per-file
+#: look, which is exactly the scrutiny `--send-set` spends. `00` states no value
+#: and the design's own answer -- §7.6 makes the person authorise a set before
+#: anything happens to it -- is about spend, not about typing.
+#:
+#: So this stays at `CEILING_VALUE` and the question is named rather than
+#: quietly answered: whether 420 commands is fixed by a bigger batch or by
+#: letting one gesture address a HOLD instead of a batch, is the owner's, and
+#: the second is a gesture change (`84` §1).
+RESIDUAL_REVIEW_BATCH: int = CEILING_VALUE
+
 #: §5.7's and §5.9's tree bounds. `00` states no numbers for these either.
 TREE_LIMITS = TreeLimits(
     # `00`:256's two numbers, since P1 publishes them separately. Four options
@@ -1424,8 +1445,11 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
     # belongs to the part, not to whether today's run reaches it.
     create_mutation_schema(conn)
     create_review_schema(conn)
-    for key in CEILINGS.values():
-        set_ceiling(conn, key, CEILING_VALUE)
+    for name, key in CEILINGS.items():
+        # Named, so the one that is not a spend ceiling is visibly not one.
+        set_ceiling(conn, key,
+                    RESIDUAL_REVIEW_BATCH if name == "max_residual_files_per_batch"
+                    else CEILING_VALUE)
 
 
 def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
