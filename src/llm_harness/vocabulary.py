@@ -23,8 +23,40 @@ C_PLACEMENT: str = "C_placement"
 D_RESIDUAL: str = "D_residual"
 E_TEMPLATE: str = "E_template"
 
+#: THE SIXTH, ADDED 2026-09-02 WITH THE OWNER'S APPROVAL, RECORDED HERE.
+#:
+#: The five above are the SPEC's envelope spellings and are about FILES: a fact
+#: about one, a group of them, a placement, a residual, a template. This one is
+#: about the PERSON, and it is the only call site in the product that is -- which
+#: is why it is a sixth member rather than a reading of one of the five.
+#:
+#: `80` §1 rules that a model proposes the role shortlist and the person confirms.
+#: `80` §2 rules a typed self-description a `user_edits` item, always local; `80`
+#: §8 suspends the ENFORCEMENT of that for development, not the classification.
+#: On 2026-09-02 the owner chose a narrow P7 release path for it, over a genuinely
+#: local model -- which `80` §1 actually specifies and which
+#: `readers/model_ollama.py` could already serve -- and over deferring until a
+#: local version existed to compare against, with the irreversibility named:
+#: `00`:200, "revocation cannot necessarily retract data already sent to an
+#: external provider."
+#:
+#: WHAT THE APPROVAL COVERS, and it is narrow on purpose: the self-description,
+#: for the role shortlist, and nothing else. It does not admit a second question
+#: about the person, and `privacy.items.SelfDescription` is the type that makes
+#: that structural rather than promised.
+#:
+#: `83` §3 routes this site to the REASONING tier, because R4 requires the
+#: shortlist to read as having heard the WHOLE sentence and that is the judgement
+#: a cheaper model flattens to one keyword. `83` §4 forbids the silent downgrade.
+#:
+#: NO PROMPT IS INSTALLED FOR IT. A `PromptDefinition` naming this site still
+#: needs `template_bytes`, which are the owner's to ratify and which no agent may
+#: author or adopt. The draft is `planning/87-ROLE-PROMPT-DRAFT.md` and it is
+#: inert until he acts.
+F_ROLE_SHORTLIST: str = "F_role_shortlist"
+
 CALL_SITES: tuple[str, ...] = (
-    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE, F_ROLE_SHORTLIST,
 )
 
 # ---------------------------------------------------------------------------

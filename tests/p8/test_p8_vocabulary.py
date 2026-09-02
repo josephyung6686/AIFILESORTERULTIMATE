@@ -38,7 +38,7 @@ from llm_harness.vocabulary import (
     DIRECT_FACTS_CONFLICT,
     DIRECT_MEMBERSHIP,
     DISPOSITIONS,
-    E_TEMPLATE,
+    E_TEMPLATE, F_ROLE_SHORTLIST,
     EVIDENCE_BASES,
     EVIDENCE_NOT_IN_FILE_RECORD,
     FACT_ELIGIBILITY,
@@ -132,9 +132,17 @@ def test_call_sites_are_the_spec_envelope_spellings():
     assert C_PLACEMENT == "C_placement"
     assert D_RESIDUAL == "D_residual"
     assert E_TEMPLATE == "E_template"
-    assert CALL_SITES == (A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE)
+    # The SIXTH is the owner's, added 2026-09-02 with the approval recorded at the
+    # member. The five above are the SPEC's envelope spellings and are about FILES;
+    # this one is about the PERSON, which is why it is a member rather than a
+    # reading of one of the five. No prompt is installed for it: a
+    # `PromptDefinition` naming it still needs `template_bytes` the owner ratifies.
+    assert F_ROLE_SHORTLIST == "F_role_shortlist"
+    assert CALL_SITES == (A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+                          F_ROLE_SHORTLIST)
     assert CALL_SITES == (
         "A_fact", "B_group", "C_placement", "D_residual", "E_template",
+        "F_role_shortlist",
     )
 
 
