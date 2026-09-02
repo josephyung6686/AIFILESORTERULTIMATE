@@ -23,12 +23,15 @@ Amendments read before writing: `80`, `88`, `91`, `93`, and `84` §1/§3/§5/§6
 - the same run with `--enable-cloud` and a complete fake `DEEPSEEK_*` routing — F2, F3;
 - `--freeze` alone, and `--freeze` after `--residual` + `--send-set` — F1, F16, F19;
 - the same corpus with the one protected file deleted — **F1's causality, both directions**;
+- the same corpus with `--declare-role me=academic` added, to test whether the
+  role gesture would change any of it — **it changes nothing**, which corrected
+  F5 after it was first written;
 - a corpus containing a `.app` bundle — F17.
 
 Every claim about a screen below is a line this session actually printed. Every
 claim about a database row is a row read back out of the run's own SQLite.
 
-**Verified by reading, not by running:** the classification of F5, F7, F9, F10,
+**Verified by reading, not by running:** the classification of F7, F9, F10,
 F12, F13, F14, F15. `tests/integration/test_composition_root.py -rx` was run and
 its three xfail messages are quoted where they apply; the module reachability
 figure (60 of 307 dead to a run) is a re-run of the lead's own `ast` script.
@@ -40,8 +43,8 @@ figure (60 of 307 dead to a run) is a re-run of the lead's own `ast` script.
    them, and F1 means the shipped pipeline could not put a plan in front of them
    on four of the five corpora tried.
 2. **No corpus that produces a tied reading was constructed**, so the P15 question
-   block and the role-declaration moment (F5) were never seen firing. F5 is a
-   negative result — five ambiguous files produced no offer — not a positive one.
+   block and the role-declaration moment (F5) were never seen firing. F5 rests on
+   a negative result plus one control run, not on watching the moment work.
 3. **Nothing at scale.** The largest corpus here is five files. `93` and `84` §2b
    both record findings that only became visible at 1,000 and 5,000; this audit
    would not have found them.
@@ -179,16 +182,34 @@ holds ordinary coursework, and then **down** to every sibling. `84` §1's rule i
 that protected material is *marked and counted, never opened*. Nothing here opened
 it; what it did was stop four unrelated files and blame them.
 
-**Three separate things are wrong and they can be fixed independently:**
+**The root cause is that two parts read one field to mean two different things,
+and the fix belongs on P12's side, not P10's.**
 
-1. A branch's handling class is the max over its members, and a branch with one
-   protected member is not a protected branch.
-2. `protected_without_policy` is `mutation`'s only class for this and it is the
-   wrong word for *"a folder above this one has a strong handling class"*.
-3. The word is printed to the person verbatim, under an ungrammatical sentence.
+1. **`Node.handling_class` carries two meanings.** P10 writes it as *the floor for
+   what may be filed here* — `cli.py:1817`'s own comment says the collapse to the
+   strongest class is what "keep[s] a sensitive file from landing somewhere
+   weaker", which is §5.2's privacy ordering and a P10 invariant. P12's
+   `_refuse_protected_label` reads the same field as *this label was composed from
+   protected material*, which its docstring is explicit about: `69` §3 blocker 3,
+   a client's passport number reaching a folder name. **`Coursework` is not
+   composed from anything protected. Its floor is high because one member is.**
+   Removing the collapse would let a passport be filed into a branch with a weaker
+   floor — that is the wrong repair. The right one is on P12: check the
+   provenance of the label, or read a field that means provenance, rather than
+   reading the floor.
+2. **`protected_without_policy` is `mutation`'s only refusal class for this**, and
+   it is the wrong word for *"a folder above this one has a strong floor"*.
+3. **The class is printed to the person verbatim**, under an ungrammatical
+   sentence.
 
 `91` §7 already flags (2) from the apply side. This is the freeze side, and it is
 worse: on the apply side the sentence is misleading; here the product refuses.
+
+**This does not contradict `91` §5's successful measurement.** That corpus is
+listed there — three PHYS files and a reading list, no protected member — and its
+"protected" refusal was the unclassified homework file hitting `91` §7's collapse.
+A branch with no `sensitive_personal` member keeps an ordinary floor and freezes,
+which is exactly what the control run here did.
 
 **Scope.** This fires whenever the corpus contains anything `SAFETY_DOMAIN_HANDLING`
 marks finance, identity, medical or legal. That is the north star's own person.
@@ -279,7 +300,9 @@ Later is not saying what it is.
 has to be true*. This is the same rule from the other side: the screen tells the
 person to **do** something and prints nothing that does it. The gestures that
 would — `--answer` for a blocked reading, `--declare-role` for what the material
-is — are not offered here, and F5 explains why the second one is not.
+is — are not offered here. F5 is why: the module that decides when to offer the
+role gesture has already concluded that nothing is waiting for the person on
+exactly these files.
 
 `OUTCOME_WORDS[ABSTAIN]` is `cli.py:2595`. §6.10's *"correct abstention is a
 successful outcome"* is honoured in the record; what the person is handed is a
@@ -287,30 +310,40 @@ verb with no gesture.
 
 ---
 
-### F5 — The role moment fires on tied readings, not on abstentions, so the personas whose whole corpus abstains are never offered it · **DIVERGENT**
+### F5 — Two modules disagree about whether an abstention is the person's to act on · **DIVERGENT**
 
-**What a person experiences.** Five files, every one of them ambiguous, three of
-them literally *"needed a model"* — and the self-description block never appears.
-Measured: no `--describe-role` or `--declare-role` line was printed on any run in
-this audit.
+**This is F4's other half, and it is a contradiction inside the product rather
+than a gap against the design.** The same file is described two ways by two
+modules on the same run:
 
-**Mechanism.** `questions/triggers.py:296` `role_declaration_is_due` operationalises
+| module | what it says about a `needed a model` abstention |
+|---|---|
+| `cli.py:2595` `OUTCOME_WORDS[ABSTAIN]` | **"Waiting for you to say what these are"** — the person's move |
+| `questions/triggers.py:296` `role_declaration_is_due` | not an ambiguity at all; its docstring records that firing the role moment on exactly this case *"told the person that the decisions above were waiting for them, when nothing was"* |
+
+One of those two sentences is wrong and they are on the same screen.
+
+**What was measured.** Five files, every one of them abstaining, three of them
+literally *"needed a model"* — and no `--describe-role` or `--declare-role` line
+was printed on any run in this audit. `role_declaration_is_due` operationalises
 `80` R1's *"precisely when it hits its first genuinely ambiguous file"* as
-*"at least one open non-branch P15 question"*. P15 questions come from
-`tied_readings` — a file whose evidence supports two readings of the same field.
-A file that **abstained**, or that nothing classified at all, raises no question,
-so it is not an ambiguous file by this definition.
+*"at least one open non-branch P15 question"*, and P15 questions come from
+`tied_readings` — a file whose evidence supports two readings of one field. An
+abstention raises none.
 
-The docstring is careful and its exclusion of nesting offers is right (*"an offer
-is not an ambiguity"*). The gap is on the other side: an abstention is the most
-common ambiguity this product produces and it is not counted as one.
+**And the trigger's author is right on the facts.** Re-running the same corpus
+with `--declare-role me=academic` added produces a **byte-identical** outcome
+block: same three groups, same reasons, same zero ready to file. A declared role
+feeds `activated_schemas` into the detector's `settled_by_user` (`cli.py:1758`),
+which settles *tied readings* — the very files that already trigger the moment.
+It does nothing for a file blocked on the model path. So the earlier reading of
+this finding — that the litigant, householder and parent of `84` §2b are denied
+the gesture that would rescue them — is **wrong, and the measurement says so**.
 
-**Why it matters more than it looks.** `84` §2b's measurement is that across four
-personas, *"the litigant's, householder's and parent's produce nothing"*. Those
-are exactly the corpora that abstain wholesale, and `--declare-role` is the one
-gesture that would tell the product what their material is — it feeds
-`activated_schemas` into the detector's `settled_by_user` (`cli.py:1758`). The
-people who most need the question are the people the trigger excludes.
+**What is actually owed.** Not a wider trigger. A screen that stops telling
+somebody to act when the product has already concluded there is nothing for them
+to do, or a gesture that makes the sentence true. Whichever way it is resolved,
+`OUTCOME_WORDS[ABSTAIN]` and `triggers.py`'s docstring must end up agreeing.
 
 ---
 
@@ -603,8 +636,21 @@ zero files ready to file because the two stages that would decide a file (a mode
 or a person at a screen) are both absent, and the one gesture that reaches the disk
 is blocked by F1 for any corpus that contains a passport.
 
-**Routing suggestion.** F1 and F19.1–2 are one small fix and they unblock the
-product's only mutation gesture. F2 layer 3 and F3's missing reason code are
-independent of the model-wiring work and should not wait for it. F5 is one
-predicate. F16 is one branch. F6/F7 and F8 are the design's real remaining
-surface and are somebody's phase, not somebody's patch.
+**On the standing rule "absent means refuse, never guess": nothing guesses in a
+way that changes a file's fate.** Every absence this audit provoked produced a
+refusal or an abstention with a reason attached — `model_route` returns `None` and
+says so, `_resolver` treats a missing stage as non-existent rather than empty,
+`FactResolver` leaves an unreached fact unresolved rather than absent,
+`ask_or_abstain` abstains where §6.9 would have it choose an institution, and
+`shared_material` keeps the multi-home decision with the person. The one place a
+default is written down as though somebody chose it is **F11**, and it changes a
+record rather than a file. The two places a person is told something untrue are
+**F2** (a capability that cannot fire) and **F1/F19.2** (a wrong reason for a real
+refusal); neither is a guess about their material.
+
+**Routing suggestion.** F1 is one fix on P12's side of a two-part field-meaning
+conflation, and with F19.1–2 it unblocks the product's only mutation gesture. F2
+layer 3 and F3's missing reason code are independent of the model-wiring work and
+should not wait for it. F5 is a one-line contradiction between two modules that
+somebody has to adjudicate rather than patch. F16 is one branch. F6/F7 and F8 are
+the design's real remaining surface and are somebody's phase, not somebody's patch.
