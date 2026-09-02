@@ -97,6 +97,17 @@ def protected_label_provenance(
     llm-proposed one because it is refused exactly when somebody typed or
     proposed the protected value itself.
 
+    **A label that CONTAINS protected material without being composed of it --
+    `--label "Passport X12345678"` -- stands, and that is RULED rather than open**
+    (lead, 2026-09-03, on `94` F1's report). It is a person typing a string into
+    the name of their own local folder, nothing leaves the device, and
+    `test_a_persons_own_words_survive_even_when_the_folder_holds_protected_files`
+    already rules that a person's own words survive. Refusing it would be the
+    product overriding what somebody deliberately typed about their own files,
+    which is a worse posture than the edge it closes. `carries_no_material` is
+    the tool that would close it and this module's own header says why it must
+    not be pointed at provenance: it refuses on any shared two-character run.
+
     The handling class is the CLASSIFICATION'S, not the node's. The aggregate
     says "1 protected <class>", which is a statement about the material the label
     came from; the node's own class is P10's collapse over its members and would
