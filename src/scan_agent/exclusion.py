@@ -63,6 +63,10 @@ LABEL_UNTOUCHED_PROTECTED = "untouched_protected"
 #: CATEGORY "system location" and enumerates no member, so P3 authors none: inventing
 #: `/System`, `/Library` or `/usr` here would be the gazetteer this project refuses to
 #: write. A deployment supplies the rest through `extra`.
+#:
+#: Written lower-case and compared lower-case. macOS is case-insensitive by default,
+#: so `Numbers.APP` and `Numbers.app` are ONE directory — and an exact comparison let
+#: the shift key switch off the one rule that has no override.
 PROTECTED_BUNDLE_SUFFIXES: tuple[str, ...] = (".app",)
 
 
@@ -82,7 +86,11 @@ def is_protected_container(path, *, extra=None) -> bool:
     """
     candidate = PurePath(path)
     for ancestor in (candidate, *candidate.parents):
-        if ancestor.suffix in PROTECTED_BUNDLE_SUFFIXES:
+        # Case-FOLDED, because the volume is: the same bundle typed `Numbers.APP`
+        # cleared this rule and was read end to end. On a case-sensitive volume this
+        # refuses a folder a person really did name `Photos.APP`, which is the
+        # direction a rule with no override is required to err in.
+        if ancestor.suffix.lower() in PROTECTED_BUNDLE_SUFFIXES:
             return True
         if extra is not None and extra(ancestor):
             return True

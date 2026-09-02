@@ -159,3 +159,36 @@ def test_an_ordinary_exclusion_carries_its_own_label_and_not_the_protected_one(t
                             applies_to="scanned_source")
     assert verdict is not None
     assert verdict.label != LABEL_UNTOUCHED_PROTECTED
+
+
+def test_the_same_bundle_named_in_another_case_is_still_protected(tmp_path):
+    """macOS is case-insensitive by default, so `Numbers.APP` and `Numbers.app` are
+    ONE directory. The suffix comparison was exact, so the rule that "no policy,
+    approval, or user gesture makes them movable" was switched off by the shift key.
+
+    Typed one way the run said "1 marked, none opened"; typed the other it read the
+    bundle's contents, hashed them and offered them for filing. Same bytes, same
+    disk, same person. Protection is a property of the container, not of how the
+    path was spelled — and on a case-sensitive volume a folder someone really did
+    name `Photos.APP` is refused rather than opened, which is the direction this
+    rule errs in by design.
+    """
+    for spelling in ("Numbers.APP", "Numbers.App", "NUMBERS.APP"):
+        assert is_protected_container(tmp_path / spelling), spelling
+        assert is_protected_container(
+            tmp_path / spelling / "Contents" / "sheet.numbers"), spelling
+
+
+def test_traversal_rooted_at_the_other_case_does_not_open_the_bundle(tmp_path):
+    """The reachable form of the same defect: the ROOT is the path the person typed,
+    and `_walk_root` excludes it before listing. Spelled `.APP` the root cleared the
+    rule, `os.scandir` followed it on a case-insensitive volume, and every descendant
+    inherited an ancestor that no longer matched — so the whole bundle was scanned."""
+    app = tmp_path / "Numbers.app"; (app / "Contents").mkdir(parents=True)
+    (app / "Contents" / "sheet.numbers").write_text("never read")
+    seen = [str(getattr(item, "path", ""))
+            for item in walk(FilesystemCorpusSource(),
+                             sources=[tmp_path / "Numbers.APP"],
+                             candidate_roots=[], budget_exhausted=lambda: False)]
+    assert not any("sheet.numbers" in s for s in seen), (
+        "opened a protected container because the root was typed in another case")
