@@ -1,10 +1,17 @@
 # src/grouping/learning.py
 """P13's review action, received structurally. Two writes, and never one.
 
-P13 is specification only. Nothing here imports it or a stand-in for it: the
-receiver takes any value carrying the published fields, and a test proves
+The receiver takes any value carrying the published fields, and a test proves
 `src/grouping/` imports nothing from `tests/`. A source stub would be P9 deciding
 what a user action looks like, which is P13's to say.
+
+This docstring used to open *"P13 is specification only. Nothing here imports it
+or a stand-in for it."* P13 shipped, and `81` §14 ruled that **the part which
+COLLECTS a gesture owns its name**, so the NAMES below are now imported from
+`review_surface.vocabulary` and respelled nowhere. The record's SHAPE is still
+read structurally and still not imported -- that is Option G (`81` §12) and it is
+unchanged: the receiver declares what it requires, the producer produces the
+SPEC's record, and an integration test running the real chain holds them together.
 
 Every accepted action produces two records.
 
@@ -42,24 +49,51 @@ from grouping.vocabulary import (
     USER_EXCLUDED_FROM_PACKET,
     USER_REJECTED,
 )
+from review_surface.vocabulary import (
+    ACTION_ACCEPT, ACTION_DEFER, ACTION_REJECT, SURFACE_GROUP_PLAN,
+)
 
 #: The surface a group review happens on. An action from a node or template
 #: surface reaching this receiver would be P9 recording a decision about
 #: something it does not own.
-GROUP_PLAN_SURFACE: str = "group_plan"
+#:
+#: P13's, carried verbatim (`81` §14, MINOR 6). It was `"group_plan"` spelled
+#: here, and a surface P13 renamed would have become a surface P9 silently
+#: refused.
+GROUP_PLAN_SURFACE: str = SURFACE_GROUP_PLAN
 
 #: The event P1 reserves for a user's decision about a group.
 USER_GROUP_DECISION: str = "user group decision"
 
-#: What each of P13's seven actions means to P9: the plan-version acceptance, the
+#: What each action P9 receives means to it: the plan-version acceptance, the
 #: review state that goes with it, and the learning polarity P1 records. Stated
 #: one line per action rather than derived, because "reject implies negative" is
 #: the kind of derivation that quietly acquires an eighth case.
+#:
+#: **The keys are P13's, where P13 has a name.** `81` §14 ruled the collector owns
+#: the name, so `accept`, `reject` and `defer` are imported and respelled nowhere.
+#:
+#: **The other four are the ruling's unfinished half, and they are left standing
+#: deliberately.** `edit` and `exclude-from-packet` name gestures §8.7 names in
+#: its own words -- renaming, and *"excluding one member from a packet"* -- that
+#: P13 has no member for; adding those members needs the owner's approval
+#: recorded at the member, which is owed and not given
+#: (`review_surface/vocabulary.py`, the block above `ACTIONS`;
+#: `tests/p13/test_p13_unhomed_gestures.py` reports it). `restore` and
+#: `reset-suggestion` are worse than unhomed: `81` §8 Q5 answered **no** under
+#: both readings, because no sentence in P9's SPEC or the design names either.
+#: They are removals, not renames, and removing them is P9's own contract
+#: revision rather than this ruling's consequence. Nothing here is a second home
+#: for a P13 name; each is a name P13 does not have.
+#:
+#: The third element of each tuple is §8.7's POLARITY, which is P1's axis and not
+#: an action -- `defer` is an action with no polarity in P11's vocabulary, and the
+#: two spellings colliding is the reason these are not bound to the keys.
 _ACTIONS: dict[str, tuple[str, str, str]] = {
-    "accept": (ACCEPTED, USER_ACCEPTED, "accept"),
+    ACTION_ACCEPT: (ACCEPTED, USER_ACCEPTED, "accept"),
     "edit": (ACCEPTED, USER_ACCEPTED, "accept"),
-    "reject": (REJECTED, USER_REJECTED, "reject"),
-    "defer": (DEFERRED, DEFERRED, "defer"),
+    ACTION_REJECT: (REJECTED, USER_REJECTED, "reject"),
+    ACTION_DEFER: (DEFERRED, DEFERRED, "defer"),
     "restore": (ACCEPTED, USER_ACCEPTED, "accept"),
     "reset-suggestion": (PENDING_REVIEW, PENDING_REVIEW, "reset"),
     "exclude-from-packet": (

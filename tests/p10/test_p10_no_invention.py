@@ -57,11 +57,29 @@ def _authorship_imports(trees):
             if module.split(".")[0] in {"planning", "prompts", "domains"}]
 
 
+#: The one downstream module P10 may read, and the reason it is not an exception
+#: to the rule below but an instance of it.
+#:
+#: `81` §14 ruled that **P13 owns the name of a gesture**, so P10 carries P13's
+#: action and surface names verbatim rather than spelling its own (MINOR 6/7).
+#: Carrying requires importing: a tuple that merely AGREES is one P13 edit away
+#: from disagreeing, which is the argument `src/placement/vocabulary.py:130-133`
+#: already makes against itself.
+#:
+#: `review_surface.vocabulary` is a values-only leaf -- it imports
+#: `database_agent.events` and nothing else, holds no behaviour, and reads no
+#: P10 output -- so this edge is the same shape as P10's existing import of P1's
+#: `CORRECTION_SCOPES`, not the shape the guard exists to stop. Every other
+#: `review_surface` module stays forbidden, and the twin below proves it.
+CARRIED_VOCABULARY_MODULE = "review_surface.vocabulary"
+
+
 def _downstream_imports(trees):
     return [f"{path.name}:{line} {module}"
             for path, tree in trees
             for line, module in _imported_modules(tree)
-            if module.split(".")[0] in {"placement", "apply_undo", "review_surface"}]
+            if module.split(".")[0] in {"placement", "apply_undo", "review_surface"}
+            and module != CARRIED_VOCABULARY_MODULE]
 
 
 FORBIDDEN_FS_MODULES = {"pathlib", "shutil", "glob", "tempfile"}
@@ -202,9 +220,23 @@ def test_no_module_imports_planning_prompts_or_domain_research():
 
 def test_no_module_imports_p11_p12_or_p13():
     """P10 publishes; it consumes nothing downstream. A runtime edge the other
-    way would make P10 depend on the parts that consume its own output."""
+    way would make P10 depend on the parts that consume its own output.
+
+    **Narrowed 2026-08-31 by `81` §14's ruling**, and narrowed rather than
+    dropped. P13 owns the name of a gesture, so P10 carries P13's action and
+    surface names and cannot carry what it does not import. The exception is
+    exactly one values-only module -- `review_surface.vocabulary`, which imports
+    only P1 and holds no behaviour. `review_surface.store`, `.collect`,
+    `.routing` and every other module are still refused, which is the half of
+    this guard that would otherwise quietly go missing.
+    """
     assert _downstream_imports(_trees()) == []
     assert _downstream_imports(_fake("from placement.index import IndexEntry"))
+    assert _downstream_imports(
+        _fake("from review_surface.store import record_action"))
+    assert _downstream_imports(_fake("import review_surface"))
+    assert _downstream_imports(
+        _fake("from review_surface.vocabulary import ACTION_ACCEPT")) == []
 
 
 def test_no_module_touches_the_filesystem():

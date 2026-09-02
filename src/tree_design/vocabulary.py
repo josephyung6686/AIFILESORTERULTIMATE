@@ -42,6 +42,20 @@ from llm_harness.vocabulary import (
 from privacy.vocabulary import (
     HANDLING_CLASSES, OPERATION_MODES, USER as _BASIS_USER,
 )
+#: P13's, carried verbatim. `81` §14 ruled that the part which COLLECTS a gesture
+#: owns its name, so every action and surface P13 publishes is imported here and
+#: respelled nowhere. `review_surface.vocabulary` is a values-only leaf importing
+#: only P1, which is why this edge is the same shape as `CORRECTION_SCOPES` above
+#: and not the downstream dependency `tests/p10/test_p10_no_invention.py` forbids.
+from review_surface.vocabulary import (
+    ACTION_ACCEPT as _P13_ACCEPT,
+    ACTION_ADOPT_VERSION as _P13_ADOPT_VERSION,
+    ACTION_DEFER as _P13_DEFER,
+    ACTION_LEAVE_UNTOUCHED as _P13_LEAVE_UNTOUCHED,
+    ACTION_RESTORE_VERSION as _P13_RESTORE_VERSION,
+    SURFACE_CANVAS as _P13_SURFACE_CANVAS,
+    SURFACE_PLAN_VERSION as _P13_SURFACE_PLAN_VERSION,
+)
 from scan_agent.inventory import CURATION_SIGNAL_VALUES
 
 # --- node identity (§5.12) ------------------------------------------------------
@@ -368,11 +382,20 @@ BRANCH_BEARING_SHARED_POLICIES: tuple[str, ...] = (
 
 # --- user actions ---------------------------------------------------------------
 
-ACCEPT: str = "accept"
+#: `accept` and `defer` are P13's gestures, carried (`81` §14, MINOR 6). A distinct
+#: name bound to P13's object is carrying; a distinct name bound to a fresh string
+#: is the parallel vocabulary MINOR 6 forbids, which is what these two were.
+ACCEPT: str = _P13_ACCEPT
+DEFER: str = _P13_DEFER
+
+#: The rest of §5.1's branch gestures. **P13 has no name for any of them**, which
+#: is the gap `81` §14 left open and `tests/p13/test_p13_unhomed_gestures.py`
+#: reports: under the ruling these are P13's to name, and until the owner approves
+#: the members they stay here, spelled by P10, because deleting them would remove
+#: functions `01`:856-857 promises rather than rename them.
 RENAME: str = "rename"
 MERGE: str = "merge"
 MOVE_UNDER_ROOT: str = "move-under-root"
-DEFER: str = "defer"
 CREATE_MANUALLY: str = "create-manually"
 ADD: str = "add"
 REMOVE: str = "remove"
@@ -395,7 +418,14 @@ ADOPT_AS_BRANCH: str = "adopt-as-branch"
 MERGE_WITH_PROPOSAL: str = "merge-with-proposal"
 ATTACH_BENEATH: str = "attach-beneath"
 RENAME_PROPOSAL_TO_MATCH: str = "rename-proposal-to-match"
-LEAVE_UNTOUCHED: str = "leave-untouched"
+
+#: **`81` §14.1 resolved `74` §8 Q4 to P13's `leave_untouched`.** This was
+#: `"leave-untouched"`: one gesture, two spellings, in two live `src/`
+#: vocabularies, both green -- the `scan_state` defect exactly (`69`:68-73), and
+#: the only member of the four-way disagreement that was unambiguously a defect
+#: rather than a decision. P13 collects the gesture, so P13's spelling wins and
+#: P10 carries it.
+LEAVE_UNTOUCHED: str = _P13_LEAVE_UNTOUCHED
 
 #: §5.10's six. Every one is an explicit user action; §5.10 forbids reaching any
 #: of these outcomes because a template would have produced a different shape.
@@ -426,11 +456,14 @@ TREE_EDIT_ACTIONS: tuple[str, ...] = (
     ADD_SCOPED_GENERAL, SET_SHARED_MATERIAL_POLICY,
 )
 
-ADOPT_VERSION: str = "adopt_version"
-RESTORE_VERSION: str = "restore_version"
+#: §8.8's two version actions. This block already said they were "in P13's
+#: spelling"; under `81` §14 that is not enough -- agreeing with P13 is one P13
+#: edit away from disagreeing -- so they are now P13's objects, carried.
+ADOPT_VERSION: str = _P13_ADOPT_VERSION
+RESTORE_VERSION: str = _P13_RESTORE_VERSION
 
-#: §8.8's two version actions, in P13's spelling. They act on a plan version
-#: rather than on a node, so they are not `destination-tree edit` actions.
+#: They act on a plan version rather than on a node, so they are not
+#: `destination-tree edit` actions.
 VERSION_ACTIONS: tuple[str, ...] = (ADOPT_VERSION, RESTORE_VERSION)
 
 # --- diffs and warnings ---------------------------------------------------------
@@ -510,11 +543,14 @@ DIMENSION_SCOPE_VALUES: tuple[str, ...] = DIMENSION_SCOPES
 CALL_SITE_TEMPLATE: str = E_TEMPLATE
 TEMPLATE_ELIGIBILITY_REASONS: tuple[str, ...] = TEMPLATE_ELIGIBILITY
 
-#: P13 collects tree edits on one of two surfaces (§5, §8.8). P13 is unbuilt and
-#: publishes no constant, so P10 names them here and Task 16 replaces this block
-#: with P13's import.
-SURFACE_CANVAS: str = "canvas"
-SURFACE_PLAN_VERSION: str = "plan_version"
+#: P13 collects tree edits on one of two surfaces (§5, §8.8).
+#:
+#: This block used to read *"P13 is unbuilt and publishes no constant, so P10
+#: names them here and Task 16 replaces this block with P13's import."* P13
+#: shipped on 2026-08-30 (`95d0ee5`) and publishes both, so the replacement is
+#: done: a decision whose stated reason has expired is not still a decision.
+SURFACE_CANVAS: str = _P13_SURFACE_CANVAS
+SURFACE_PLAN_VERSION: str = _P13_SURFACE_PLAN_VERSION
 
 #: The third surface, which is no surface: nobody was shown anything.
 #:
