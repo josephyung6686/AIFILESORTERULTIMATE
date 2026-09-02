@@ -326,13 +326,6 @@ def test_the_producer_refuses_to_run_without_the_thresholds_and_the_weights():
 
 # --- the composition root must not claim `term` twice ------------------------
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="src/cli.py still declares the `cli.text.term` DIRECT slot, which "
-           "SPEC:409-410 forbids for a date recovered from text. Until it is "
-           "removed, wiring this producer gives one file a `term` twice -- once "
-           "`direct` and once `validated`, in two spellings. The removal and this "
-           "marker's deletion are one patch.")
 def test_no_direct_slot_claims_a_field_the_date_producer_fills():
     # THE COLLISION, stated as a test rather than as a warning in a report. Two
     # producers that can both write `term` for one file version give a person two

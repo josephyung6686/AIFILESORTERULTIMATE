@@ -51,10 +51,15 @@ from database_agent.db import DatabaseInsideCorpus, open_database
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.safety import SafetyPolicy
+from facts.date_facts import date_facts
+from facts.dates import (
+    ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, DatePattern, DatePatterns,
+)
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.discount import MetadataScreen
 from facts.learning import NoSuchClaim, reject_claim
 from facts.resolver import FactResolver
+from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from grouping.acceptance import group_state_as_of, record_acceptance
 from grouping.config import GroupingLimits
@@ -266,40 +271,81 @@ COLLECTOR_FIELD_KEYS = frozenset({"authored_by", "organization"})
 #: page number and a sentence are all still invisible to it.
 _STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b")
 
-#: THE SECOND DIMENSION. A term or period, in the two spellings people write:
-#: `Fall 2026`, `Spring2026`, and `2026-Spring`. `00`:78's own recommended tree is
-#: `Academics/Columbia/2026-Spring/PHYS1401/Homework`, so a term is one of the four
-#: levels the design asks for by name -- and until now the pattern above swallowed
-#: it: `SPRING2026` is letters-then-digits, so a SEMESTER was read as a course
-#: code, and a household's report cards were proposed a folder named after a term
-#: pretending to be a subject.
+#: THE SECOND DIMENSION, and §3.10's three named forms rather than one of them.
+#: `00`:78's recommended tree is `Academics/Columbia/2026-Spring/PHYS1401/Homework`,
+#: so a term is one of the four levels the design asks for by name -- and until
+#: 2026-08-31 this deployment recognised only a season and a year. A person whose
+#: university writes `AY 2024-25` or `Michaelmas Term 2024` got NO term folder, and
+#: `AY 2024-25` was worse than nothing: `_STRUCTURED` claimed `AY 2024` and filed
+#: their essays under a course called AY2024.
 #:
-#: Four seasons and a four-digit year, and nothing else. Not a general date
-#: parser: §2.2's classes are "URLs, email addresses, DOI values, citations,
-#: identifiers", a free date is none of them, and a pattern that matched every
-#: number pair would put page numbers and sums of money into the tree.
-def _is_term(raw: str) -> bool:
-    """Whether a reading is a TERM rather than an identifier.
+#: The three sources are one each for §3.10's three worked cases. They are the
+#: deployment's, like every other pattern in this file: `facts.dates` authors the
+#: three IDS the design names and not one character of regex, because the date and
+#: academic-term regex catalogue beyond those three is Deferred.
+_SEASON = r"(?:Spring|Summer|Fall|Autumn|Winter)"
+_TERM_NAME = r"(?:Michaelmas|Hilary|Trinity|Lent|Easter)"
+_SEASON_YEAR_SOURCE = (
+    rf"\b(?:{_SEASON}[ \-_]?[0-9]{{4}}|[0-9]{{4}}[ \-_]?{_SEASON})\b")
+_ACADEMIC_YEAR_SOURCE = r"\bAY[ \-_]?[0-9]{4}[ ]?[-/][ ]?[0-9]{2}\b"
+_NAMED_TERM_SOURCE = rf"\b{_TERM_NAME}(?:[ \-_]Term)?[ \-_][0-9]{{4}}\b"
 
-    Asked of the READING, which is the only place the two can be told apart: they
-    sit in the same body text and share every locator prefix.
-    """
-    return _TERM.fullmatch(raw.strip()) is not None
-
-
-_TERM = re.compile(
-    r"\b(?:(?:Fall|Spring|Summer|Winter)[ -]?[0-9]{4}"
-    r"|[0-9]{4}[ -]?(?:Fall|Spring|Summer|Winter))\b", re.IGNORECASE)
+_TERM = re.compile("|".join(
+    (_SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
+    re.IGNORECASE)
 
 
 def _is_term(raw: str) -> bool:
     """Whether a reading is a term rather than an identifier.
 
     Asked of the READING, which is the only place the two can be told apart: they
-    sit in the same body text and share every locator prefix, so `names` alone
-    cannot separate them and a deployment could ship only one text slot.
+    sit in the same body text and share every locator prefix. It survives the
+    removal of the term DIRECT slot below, because its job here is the other one --
+    keeping the `subject` slot off a term.
     """
     return _TERM.fullmatch(raw.strip()) is not None
+
+
+#: ONE VALUE PER TERM, WHATEVER IT WAS WRITTEN AS. `Spring 2026`, `Spring2026` and
+#: `2026-Spring` are one semester, and a semester that reaches §3.7 as several
+#: values reaches it as several candidates, which tie, which the margin refuses.
+#: Measured 2026-08-31: on the `direct` path there is no margin at all, so
+#: `Spring 2025` and `2025-Spring` in one corpus proposed the folders `Spring2025`
+#: AND `2025Spring`. Order is a spelling, not a fact.
+#:
+#: Every token that DISTINGUISHES two terms is kept and nothing else is: the season
+#: or the term's name, and the year or the year range. Only case, separators, the
+#: written order and the noise word `Term` are dropped.
+def _canonical_season_year(raw: str) -> str:
+    season = re.search(_SEASON, raw, re.IGNORECASE).group(0)
+    return f"{season.capitalize()}{re.search(r'[0-9]{4}', raw).group(0)}"
+
+
+def _canonical_academic_year(raw: str) -> str:
+    match = re.search(r"([0-9]{4})[^0-9]+([0-9]{2})", raw)
+    return f"AY{match.group(1)}-{match.group(2)}"
+
+
+def _canonical_named_term(raw: str) -> str:
+    name = re.search(_TERM_NAME, raw, re.IGNORECASE).group(0)
+    return f"{name.capitalize()}{re.search(r'[0-9]{4}', raw).group(0)}"
+
+
+DATE_PATTERNS = DatePatterns(patterns=(
+    DatePattern(pattern_id=SEASON_YEAR,
+                pattern=re.compile(_SEASON_YEAR_SOURCE, re.IGNORECASE),
+                canonical=_canonical_season_year),
+    DatePattern(pattern_id=ACADEMIC_YEAR_RANGE,
+                pattern=re.compile(_ACADEMIC_YEAR_SOURCE, re.IGNORECASE),
+                canonical=_canonical_academic_year),
+    DatePattern(pattern_id=NAMED_TERM_YEAR,
+                pattern=re.compile(_NAMED_TERM_SOURCE, re.IGNORECASE),
+                canonical=_canonical_named_term),
+))
+
+#: The field §3.10's producer fills. Spelled once, because `active_schema_for` and
+#: `normalize_for_model` both need it and neither may re-spell it.
+TERM_FIELD = "term"
 
 #: The same identifier, however it was printed. `PHYS 1401`, `PHYS-1401` and
 #: `PHYS1401` are one course code and must reach P6 as ONE value: `65` §4.2 records
@@ -371,39 +417,18 @@ DIRECT_SLOTS = DirectSlots(slots=(
         # Whitespace collapsed, THEN the identifier's own separator removed, so
         # the two spellings of one course code canonicalise to one value.
         canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),
-    DirectSlot(
-        slot_id="cli.text.term", field_key="term",
-        names=reads_a_structured_string,
-        matches=lambda raw: _is_term(raw),
-        # ONE spelling for `Spring 2026`, `Spring-2026` and `SPRING2026`. The
-        # course codes taught this lesson already: `65` §4.2 records four files
-        # of one course becoming four one-file groups because one identity
-        # arrived as several spellings. `2026-Spring` keeps its own ORDER --
-        # which of the two a corpus uses is the corpus's, and reordering it would
-        # be inventing a label §5.4 says must emerge from the facts.
-        canonical=lambda raw: "".join(raw.split()).replace("-", "").title()),
 ))
 
-#: THE SECOND DIMENSION, WRITTEN AND NOT SHIPPED. `00`:78's recommended tree is
-#: `Academics/Columbia/2026-Spring/PHYS1401/Homework`, so a term is one of the four
-#: levels the design asks for by name -- and `_STRUCTURED` swallows it, because
-#: `SPRING2026` is letters-then-digits and a SEMESTER therefore reads as a course
-#: code. A household's report cards are proposed a folder named after a term
-#: pretending to be a subject.
+#: THE TERM SLOT IS GONE, AND THE SPEC IS WHY. P6 SPEC:409-410: "Filesystem
+#: timestamps are direct; dates recovered from text or filenames are not, and take
+#: the §3.10 path." This slot read a date out of BODY TEXT and stated it `direct`,
+#: which that sentence forbids by name. The term is now filled by `_rule_stage`,
+#: `validated`, through the §3.10 path the SPEC points at.
 #:
-#: Shipping it makes two of four personas WORSE, and the reason is not this
-#: pattern. A term level with one value trips V2, which fails the WHOLE candidate
-#: rather than skipping the redundant level, so the four-role corpus went from
-#: five folders to one. That is V5's mistake in a third place and it is a P10
-#: contract decision -- `tests/integration/test_production_corpus.py` carries the
-#: strict xfail that states it.
-#:
-#: This stays here, unwired and named, because the next person to reach for it
-#: should find the blocker rather than the idea. P6 already carries the other half
-#: (`DirectSlot.matches`), which is what makes two text slots possible at all.
-_TERM = re.compile(
-    r"\b(?:(?:Fall|Spring|Summer|Winter)[ -]?[0-9]{4}"
-    r"|[0-9]{4}[ -]?(?:Fall|Spring|Summer|Winter))\b", re.IGNORECASE)
+#: It could not be left beside the producer. `file_facts` has no uniqueness
+#: constraint over (file_id, content_hash, field_key), so both would have written:
+#: one file, two live `term` facts, two reliability states, two spellings, two term
+#: folders.
 
 METADATA_SCREEN = MetadataScreen(tool_producer_strings=(),
                                  metadata_property_names=())
@@ -591,6 +616,16 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
     slot = next((one for one in DIRECT_SLOTS.slots
                  if one.field_key == field_key), None)
     if slot is None:
+        if field_key == TERM_FIELD:
+            # The term has no slot any more (SPEC:409-410) but it is still a filled
+            # field, and this function's promise is that a model's value is
+            # canonicalised by the SAME rule the deterministic path uses. Without
+            # this, a model proposing `Spring 2026` would store `Spring 2026`
+            # beside the producer's `Spring2026` -- the several-spellings failure,
+            # re-created across the seam instead of inside one stage.
+            claimed = next((one for one in DATE_PATTERNS.patterns
+                            if one.pattern.fullmatch(text)), None)
+            return None if claimed is None else claimed.canonical(text)
         return text
     if slot.matches is not None and not slot.matches(raw_value):
         return None
@@ -633,16 +668,57 @@ def _direct_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
                         slots=DIRECT_SLOTS, screen=METADATA_SCREEN)
 
 
-def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
-    """P6, deterministic. `rule` and `llm` are `None`, which is a decision.
+#: §3.7's positional weights, over P4's fifteen zones. The SPEC defers them by name
+#: and `facts.facets.rank` RAISES on a zone it was given no weight for rather than
+#: defaulting, so all fifteen are here. The shape is §3.7's own sentence: "a value
+#: in a filename or document title carries more meaning than the same value in a
+#: footer or a late body-page reference."
+ZONE_WEIGHT = {"filename": 3.0, "title": 3.0, "heading": 2.0, "body": 1.0,
+               "header_footer": 0.25, "metadata": 1.0, "path": 1.0, "table": 1.0,
+               "notes": 1.0, "link": 1.0, "annotation": 1.0, "reference_list": 0.5,
+               "manifest": 1.0, "ocr": 1.0, "transcript": 1.0}
 
-    §3 allows all three stages. This deployment ships no authored rule set and no
-    model route, and `FactFesolver` treats `None` as "this stage does not exist"
-    rather than as an empty one -- so a fact this run could not reach stays
-    unresolved and visible instead of being recorded as absent.
+#: §2.6's three bands, likewise deferred and likewise required.
+TIER_WEIGHT = {1: 4.0, 2: 2.0, 3: 1.0}
+
+#: §3.7's two thresholds. One reading of a term in a document's body scores exactly
+#: 1.0, so the floor is set where a single honest mention clears it and nothing
+#: below one does. The margin is half of that: two different terms in one file are
+#: within it and fill nothing, which is the refusal §3.7 asks for rather than a
+#: guess between them.
+MINIMUM_SCORE = 1.0
+MINIMUM_MARGIN = 0.5
+
+
+def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
+    """§8.6's second producer: §3.10's dates, ranked as §3.7 requires.
+
+    Not `apply_rules`: this deployment still ships no authored rule set, and a
+    course code is already read by the `subject` slot above. What it ships is the
+    date path, which had been written in full across two modules and called from
+    nowhere.
+    """
+    return date_facts(conn, file_id=file_id, content_hash=content_hash,
+                      field_key=TERM_FIELD, patterns=DATE_PATTERNS,
+                      zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
+                      minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+
+
+def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
+    """P6, deterministic. `llm` is `None`, which is a decision.
+
+    §3 allows all three stages. This deployment ships no model route, and
+    `FactResolver` treats `None` as "this stage does not exist" rather than as an
+    empty one -- so a fact this run could not reach stays unresolved and visible
+    instead of being recorded as absent.
+
+    `rule` stopped being `None` on 2026-08-31. It is §3.10's date producer, not an
+    authored rule set: `facts.dates` and `facts.facets` had both existed since P6
+    landed and nothing joined them, so Done-means 10's three written forms produced
+    two nothings and one `direct` fact the SPEC forbids.
     """
     return FactResolver(
-        stages={"direct": _direct_stage, "rule": None, "llm": None},
+        stages={"direct": _direct_stage, "rule": _rule_stage, "llm": None},
         pending_fields=lambda conn, file_id, content_hash: (),
         budget_exhausted=lambda ceiling: False,
         model_route_permitted=lambda file_id: False,
@@ -729,7 +805,14 @@ def _usable(facts, unresolved) -> bool:
     produced nothing about. Every other corpus keeps the deferred answer, and no
     document that yielded so much as one fact is ever re-read.
     """
-    return bool(facts) or bool(unresolved)
+    # `no_candidate_evidence` is excluded, and this function's own words are
+    # why: the second look is offered to exactly one kind of file, the one the
+    # read produced nothing about. That reason IS "nothing was there to look at",
+    # so counting it would answer the question with itself. Every other reason is
+    # a refusal the product reached having looked, and those still count, because
+    # re-reading the bytes is not what such a file needs.
+    return bool(facts) or any(row["reason"] != NO_CANDIDATE_EVIDENCE
+                              for row in unresolved)
 
 
 def p1_p7_authorities(*, now, detector) -> P1P7Authorities:
@@ -1600,8 +1683,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                     document_compatible=None, channel_weights={}, similarity=None,
                     similarity_threshold=None, embedding_identity=None,
                     domain=None),
+                # `DIRECT_SLOTS` is no longer the whole of the schema: `term`
+                # is filled by `_rule_stage` and has no slot (SPEC:409-410). A
+                # field missing here is a field P9 will not group on.
                 active_schema_for=lambda db, file_id, content_hash: (
-                    tuple(slot.field_key for slot in DIRECT_SLOTS.slots)),
+                    tuple(slot.field_key for slot in DIRECT_SLOTS.slots)
+                    + (TERM_FIELD,)),
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),
