@@ -43,6 +43,7 @@ rather than respells.
 """
 from __future__ import annotations
 
+import shlex
 from collections.abc import Callable, Iterable
 
 from questions.proposal import ProposalRefused, RoleProposal
@@ -91,8 +92,34 @@ def questions_a_run_could_not_settle(
                  if kind_of(question.question_id) is not ROLE_KIND)
 
 
+def _typable(flag: str, argument: str) -> str:
+    """One `FLAG ARGUMENT` line a person can actually paste into a shell.
+
+    `84` §6, and the fourth time it has bitten. `c17c76a` fixed §13's "how to change
+    it", which printed `--answer branch:Coursework=<school>term>subject>work_type>`
+    unquoted -- and `>` is the shell's redirect, so pasting it did not fail. It
+    silently created files named `term`, `subject` and `work_type` in whatever
+    directory the person happened to be in. A command that fails is a bad screen; a
+    command that quietly does something else is a defect of a different order.
+
+    Every argument this module prints is exposed to that, and two ways at once. The
+    declaration id is a string the person typed -- `--declare-role "my thesis=research"`
+    is a legal gesture -- so it carries whatever they put in it. And `<layout>` is a
+    redirect on EVERY role, which broke the panel's change command for everybody, not
+    only for odd names.
+
+    `shlex.quote` is the same instrument `cli._typable` uses for the same reason, and
+    it leaves an argument that needs no quoting exactly as it was: `teaching=research`
+    is unchanged and only the line that would break is altered. Two call sites of one
+    stdlib function rather than one shared helper, because the alternative is a part
+    package importing the composition root.
+    """
+    return f"{flag} {shlex.quote(argument)}"
+
+
 def _withdraw_command(declaration_id: str) -> str:
-    return f"--answer {ROLE_KIND.kind_id}:{declaration_id}={REVOKE_WORD}"
+    return _typable("--answer",
+                    f"{ROLE_KIND.kind_id}:{declaration_id}={REVOKE_WORD}")
 
 
 def role_moment_lines(*, blocked: Iterable[object],
@@ -122,7 +149,7 @@ def role_moment_lines(*, blocked: Iterable[object],
         "If you say what this material is for you, in your own words, this can "
         "offer you the layouts that fit -- and say so plainly when none of them "
         "does.",
-        f'    {DESCRIBE_FLAG} me="whatever you would say to somebody who asked"',
+        f"    {_typable(DESCRIBE_FLAG, 'me=whatever you would say to somebody who asked')}",
         "The name before the = is yours to choose, and it is how you change or "
         "withdraw this later. You can hold as many as you actually hold.",
         "What you say does not become a folder name, and it gives nothing "
@@ -190,7 +217,8 @@ def role_panel_lines(declarations: Iterable[RoleDeclaration]) -> tuple[str, ...]
             lines.append(f'      "{role.raw_wording}"')
         lines.extend(_period(role))
         lines.append(
-            f"      {DECLARE_FLAG} {role.declaration_id}=<layout>   change it")
+            f"      {_typable(DECLARE_FLAG, f'{role.declaration_id}=<layout>')}"
+            f"   change it")
         lines.append(
             f"      {_withdraw_command(role.declaration_id)}   take it back")
     return tuple(lines)
@@ -234,9 +262,10 @@ def shortlist_lines(proposal: RoleProposal, *, name: str,
         f'    "{proposal.self_description}"',
         "Layouts this product has that could hold material like that:",
     ]
-    lines.extend(f"    {DECLARE_FLAG} {name}={candidate}" for candidate in shown)
+    lines.extend(f"    {_typable(DECLARE_FLAG, f'{name}={candidate}')}"
+                 for candidate in shown)
     lines.append(
-        f"You can name any other layout instead, and `{DECLARE_FLAG} {name}="
-        f"{NOT_LISTED}` is an answer of its own that turns nothing on. Your words "
-        "above are kept either way.")
+        f"You can name any other layout instead, and "
+        f"`{_typable(DECLARE_FLAG, f'{name}={NOT_LISTED}')}` is an answer of its own "
+        "that turns nothing on. Your words above are kept either way.")
     return tuple(lines)

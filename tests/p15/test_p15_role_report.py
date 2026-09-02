@@ -25,6 +25,7 @@ the line the panel printed and running it.
 from __future__ import annotations
 
 import inspect
+import shlex
 import sqlite3
 
 import pytest
@@ -32,6 +33,9 @@ import pytest
 from facts.domains import SCHEMA_IDS
 from questions.proposal import RoleProposal
 from questions.registry import ROLE_KIND
+from questions.role_report import (
+    role_moment_lines, role_panel_lines, shortlist_lines,
+)
 from questions.roles import apply_declarations, apply_descriptions, live_roles
 from questions.schema import create_questions_schema
 from questions.triggers import question_for_tied_reading
@@ -395,3 +399,103 @@ def test_an_unanswered_role_question_is_not_a_blocked_decision_either(qconn):
                                           schemas=SCHEMA_IDS)
 
     assert questions_a_run_could_not_settle((asked,) + _blocked()) == _blocked()
+
+
+# --- a line a shell will not mangle --------------------------------------------------
+
+
+def _shell_tokens(line: str) -> list[str]:
+    """One line, split THE WAY A SHELL SPLITS IT, operators included.
+
+    `punctuation_chars=True` is the whole point and plain `shlex.split` is the
+    trap: `shlex.split("role:a>b=revoke")` returns one happy token, because the
+    default lexer has no opinion about redirects. A test written on it passes on
+    exactly the input `c17c76a` was about -- a guard that cannot fail, which is
+    `84` §5.3's own failure mode and one this file nearly shipped.
+    """
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    return list(lexer)
+
+
+def _argument_after(lines, flag: str) -> str:
+    """The one argument a person would paste, as the shell would hand it over."""
+    for line in lines:
+        tokens = _shell_tokens(line)
+        if flag in tokens:
+            return tokens[tokens.index(flag) + 1]
+    raise AssertionError(f"no line offers {flag}: {lines}")
+
+
+def test_a_role_whose_name_has_a_space_still_prints_a_command_that_works(qconn):
+    """`c17c76a`'s defect, in this module. The declaration id is a string the person
+    typed -- `--declare-role "my thesis=research"` is a legal gesture -- and every
+    pasteable line here is built from it by hand.
+
+    Unquoted, `--answer role:my thesis=revoke` is three arguments to a shell and two
+    to `argparse`, and the person's own withdrawal command refuses as though they
+    had mistyped it."""
+    import cli
+
+    _declare(qconn, "my thesis=research")
+    lines = role_panel_lines(live_roles(qconn))
+
+    assert _argument_after(lines, "--answer") == "role:my thesis=revoke"
+    cli.apply_answers(qconn, [_argument_after(lines, "--answer")],
+                      user_id="jy", recorded_at=T1)
+    assert live_roles(qconn) == ()
+
+
+def test_a_name_carrying_a_shell_redirect_never_reaches_the_shell_as_one(qconn):
+    """The `c17c76a` failure exactly, and the reason it is worth its own test: it
+    does not fail loudly. `>` is the shell's redirect, so pasting the line does not
+    error -- it silently creates a file named after whatever followed, in whatever
+    directory the person happened to be in.
+
+    Scoped to the lines that ARE commands. The line describing the role says
+    `a>b -- turns on the "research" layout.` and contains the same character; it is
+    prose, nobody pastes it, and a rule that could not tell the two apart would
+    forbid ever printing a person's own name back to them."""
+    _declare(qconn, "a>b=research")
+    lines = role_panel_lines(live_roles(qconn))
+
+    # The FIRST token, not any token: the descriptive line reads
+    # `a>b -- turns on the "research" layout.` and its `--` is a dash in a
+    # sentence, which `any(...)` cannot tell from a flag. A command starts with
+    # the flag it invokes.
+    commands = [line for line in lines
+                if _shell_tokens(line) and _shell_tokens(line)[0].startswith("--")]
+    assert commands, f"the panel offers no command at all: {lines}"
+    for line in commands:
+        assert ">" not in _shell_tokens(line), (
+            f"{line!r} hands the shell a redirect, which writes a file instead of "
+            "running the command the panel promised")
+
+
+def test_the_layout_placeholder_is_pasteable(qconn):
+    """Not only odd names: `<layout>` is a shell redirect on EVERY role, so this
+    line was broken for everybody. `<` reads stdin from a file called `layout`,
+    which does not exist, so the command a person copied fails before it starts."""
+    _declare(qconn, "teaching=research")
+    lines = role_panel_lines(live_roles(qconn))
+
+    assert _argument_after(lines, "--declare-role") == "teaching=<layout>"
+
+
+def test_every_candidate_on_the_shortlist_is_pasteable(qconn):
+    """The same rule on the other render. The name comes from the person's own
+    `--describe-role` gesture, so it carries whatever they typed."""
+    proposal = RoleProposal(self_description="I teach", candidates=frozenset({"academic"}),
+                            from_model=True)
+    lines = shortlist_lines(proposal, name="my thesis",
+                            order=lambda c: tuple(sorted(c)))
+
+    assert _argument_after(lines, "--declare-role") == "my thesis=academic"
+
+
+def test_the_invitation_is_pasteable_too(qconn):
+    """The one line a person is most likely to copy, since it is the first one they
+    are ever shown."""
+    lines = role_moment_lines(blocked=_blocked(), already_declared=())
+
+    assert _argument_after(lines, "--describe-role").startswith("me=")
