@@ -2284,11 +2284,60 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # is not remembered between runs: the run that files the files is the run the
     # person named them in.
     if sends:
-        result = dataclasses.replace(result, placement=act_on_residual_sets(
-            conn, result=result.placement,
-            inputs=placement_inputs(result.tree), sends=sends,
-            evidence_for=evidence_for, component_version=COMPONENT_VERSION,
-            observed_at=now(), user_id=user_id))
+        try:
+            result = dataclasses.replace(result, placement=act_on_residual_sets(
+                conn, result=result.placement,
+                inputs=placement_inputs(result.tree), sends=sends,
+                evidence_for=evidence_for, component_version=COMPONENT_VERSION,
+                observed_at=now(), user_id=user_id))
+        except ResidualSendRefused as refusal:
+            # REFUSED, AND THE PLAN SURVIVES. Refusing is right -- a renumbered
+            # set holds different files, and filing them would be the gesture
+            # acting on something other than what the person named. Letting the
+            # refusal end the run was not: `result` is already the whole run,
+            # and discarding it left a person who re-typed yesterday's command
+            # with no plan at all. Review sets are named by POSITION in a
+            # chunking, so deleting a file anywhere renumbers them and a name
+            # that was correct yesterday names nothing today -- which is what
+            # makes shell history a hazard for this command.
+            #
+            # Nothing was written on this path: `act_on_residual_sets` resolves
+            # every pair before recording any, precisely so that a refusal
+            # cannot half happen. So `result` is exactly the run that would
+            # have been reported had the flag not been typed at all.
+            #
+            # THE `--residual` SENTENCE IS KEPT, AND MADE TRUE. It was in
+            # `main`, printed for EVERY `ResidualSendRefused` -- and the
+            # exception has three raise sites: an unknown SET, an unenabled
+            # AREA, and an ambiguous one. Only the second is about enabling an
+            # area, so a person who mistyped a SET name was told to add a
+            # `--residual` flag that was already in the command they had just
+            # typed. Measured, not reasoned.
+            #
+            # The test is NOT "which raise site fired". P11 does not publish
+            # that, and inferring it from the prose of a message is how a
+            # second home for one rule gets built. It is a fact this command
+            # owns outright: DID THIS COMMAND ENABLE THE AREA IT IS SENDING TO?
+            # `residuals` is what `--residual` validated and `sends` is what
+            # `--send-set` parsed, so the answer is already here and needs
+            # nothing from P11. It gets all three sites right -- an unknown set
+            # whose area IS enabled says nothing about `--residual`; an
+            # unenabled area says it; an ambiguous area is by definition
+            # enabled, and enabling it again is not the answer. Only the areas
+            # actually missing are named, where `main` named every area the
+            # person had mentioned.
+            unenabled = [area for area in dict.fromkeys(sends.values())
+                         if area not in residuals]
+            advice = (
+                "\n  `--residual` enables an area for the run it is typed in, "
+                "so it belongs in the same command as the `--send-set` that "
+                "uses it: "
+                + " ".join(f"--residual {shlex.quote(area)}"
+                           for area in unenabled)) if unenabled else ""
+            print(f"\nThat send was refused, and the plan below is unaffected:"
+                  f"\n  {refusal}{advice}\n  Nothing was filed in bulk, and "
+                  "the plan below is the run that was already computed.",
+                  file=out)
     _raise_blocked_questions(conn, detector=detector, asked_at=clock)
     return result
 
@@ -3876,30 +3925,6 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)
         return 2
-    except ResidualSendRefused as refusal:
-        # P11's own standard, met where it can be. `approved_residual_area`
-        # refuses a send to an area this plan has not enabled, and its docstring
-        # states the rule: "a refusal that does not say what to type is half a
-        # refusal". The branch that fires when the plan has NO residual area
-        # says "enable one first" and cannot say how, because a part package may
-        # not name a flag. The composition root is where the flag exists, so it
-        # is where the sentence is finished.
-        #
-        # Found by running the product. A person enabled `Review Later` in one
-        # run, saw the folder appear, and sent a set to it in the NEXT -- and
-        # lost the whole plan to a refusal that never mentioned the one fact
-        # that explains it: `--residual` enables an area for the run it is typed
-        # in. That is the sentence, and it names the command they can paste.
-        print(f"\nNo plan was made for {directory}, and this is why:\n"
-              f"  {type(refusal).__name__}: {refusal}\n"
-              f"  `--residual` enables an area for the run it is typed in, so "
-              f"it belongs in the same command as the `--send-set` that uses "
-              f"it: "
-              + " ".join(f"--residual {shlex.quote(area)}"
-                         for area in dict.fromkeys(
-                             _parse_sends(args.send_set).values())),
-              file=out)
-        return 1
     except REFUSALS as refusal:
         # A NAMED refusal, printed rather than raised. §5's chain refuses by name
         # -- C1-C8, V1-V6, §5.4's empty branch -- and each refusal says which

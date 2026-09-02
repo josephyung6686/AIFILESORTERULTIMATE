@@ -210,16 +210,6 @@ def test_yesterdays_command_still_works_when_nothing_on_the_disk_changed(
         assert FIRST_LABEL not in passage, passage
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "`src/cli.py` -- `ResidualSendRefused` propagates out of `run()` into "
-    "`main()`'s `except REFUSALS`, which discards a plan that had already been "
-    "computed, so one stale line in shell history leaves the person with no plan "
-    "at all. Refusing is right; refusing by destroying the run is not, and the "
-    "refusal already names the sets it DID surface. Review sets are named by "
-    "position in a chunking, so deleting files ANYWHERE renumbers them and a "
-    "name that was correct yesterday names nothing today. Hunk in "
-    "`scratchpad/learning/CLI-PATCH.txt` HUNK 4; the naming question itself is "
-    "HUNK 5 and is the owner's."))
 def test_a_stale_send_leaves_the_person_a_plan_and_a_way_forward(tmp_path):
     """Delete files that are in no sent set, re-type yesterday's exact command.
 
@@ -242,33 +232,8 @@ def test_a_stale_send_leaves_the_person_a_plan_and_a_way_forward(tmp_path):
     assert "Not yet placed (1 of 3)" in stale, stale
 
 
-def test_today_that_stale_command_destroys_the_whole_run(tmp_path):
-    """The measurement behind the xfail above, recorded as it is rather than as
-    it should be, so the two cannot drift apart.
-
-    Passes today and is meant to. It goes red the moment the hunk lands, next to
-    the xfail turning into an XPASS -- two signals for one change.
-    """
-    corpus = _corpus(tmp_path)
-    _run(corpus)
-    _run(corpus, "--send-set", FIRST_SET)
-    _delete_unrelated(corpus)
-
-    code, stale = _run(corpus, "--send-set", FIRST_SET)
-
-    assert code != 0, stale
-    assert "No plan was made" in stale, stale
-    assert "is not a review set this run surfaced" in stale, stale
-    # It already knows enough to help: the current names are in the refusal.
-    assert "Not yet placed (1 of 3)" in stale, stale
-    # And there is no plan anywhere on the screen.
-    assert "Folders in this plan" not in stale, stale
-
-
-#: The exact sentence `main` used to print for every refusal, and that HUNK 4
-#: moves into `run` and makes conditional. Matched as a phrase because the
-#: wording is the composition root's to settle; what may not vary is WHEN it
-#: appears.
+#: The sentence that is true only when the area really is unenabled. Named once
+#: so the three tests below cannot drift into asserting three near-misses of it.
 AREA_ADVICE = "`--residual` enables an area for the run it is typed in"
 
 
@@ -277,17 +242,6 @@ def _first_run(corpus: Path) -> None:
     _run(corpus)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "`src/cli.py` -- the `except ResidualSendRefused` in `main` prints the "
-    "`--residual` sentence for EVERY refusal, and the exception has three raise "
-    "sites in `placement/pipeline`: an unknown SET, an unenabled AREA, and an "
-    "ambiguous one. Only the second is about enabling an area. So a person who "
-    "mistypes a SET name is told to add a `--residual` flag that is already in "
-    "the command they just typed -- wrong advice, confidently given, and `84` "
-    "§6 says what the screen tells a person to type has to be true. Fixed by "
-    "the merged HUNK 4 in `scratchpad/learning/CLI-PATCH.txt`, which asks a "
-    "question this command can answer from its own inputs -- did it enable the "
-    "area it is sending to? -- rather than guessing the raise site."))
 def test_a_mistyped_set_name_is_not_told_to_enable_an_area_it_already_has(
         tmp_path):
     """Case B. The area IS enabled, in this very command; only the set is wrong.
@@ -304,27 +258,6 @@ def test_a_mistyped_set_name_is_not_told_to_enable_an_area_it_already_has(
     assert AREA_ADVICE not in printed, printed
 
 
-def test_today_a_mistyped_set_name_gets_advice_about_an_area_it_already_has(
-        tmp_path):
-    """The measurement behind the xfail above, recorded as it is rather than as
-    it should be. Passes today; goes red when the hunk lands, beside the xfail
-    turning into an XPASS. Two signals for one change.
-    """
-    corpus = _corpus(tmp_path)
-    _first_run(corpus)
-
-    _, printed = _run(corpus, "--send-set", "Nonsense set=Review Later")
-
-    assert AREA_ADVICE in printed, printed
-    assert "--residual 'Review Later'" in printed, printed
-
-
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "Same hunk, from the other side: the paste-able `--residual` command must "
-    "SURVIVE for the refusal it is actually about. `main`'s handler prints it "
-    "but kills the run; catching in `run` keeps the plan, so the sentence has "
-    "to be carried across rather than dropped. This is the assertion that fails "
-    "if HUNK 4 is applied without moving it."))
 def test_an_unenabled_area_still_gets_the_paste_able_command_and_a_plan(
         tmp_path):
     """Case A. `--residual` was NOT typed in this command, so the advice is
