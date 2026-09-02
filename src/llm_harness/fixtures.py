@@ -74,6 +74,13 @@ SPAN = "span-1"
 #: SPAN: the span branch and the address branch must be told apart by a test.
 ADDRESS = "address-1"
 OBS = "obs-1"
+
+#: A FIXTURE key, and never a deployment one. `llm_harness.wire_handles` digests
+#: every identifier leaving the device under a local-only key, and a test that
+#: had to mint its own would be a test each file could get subtly wrong. A real
+#: key is chosen at the composition root, is never written down here, and is
+#: never this value -- which is why this one is printable and obviously fake.
+FIXTURE_HANDLE_KEY: bytes = b"fixture-wire-handle-key-not-a-deployment-key"
 PLAN_V1 = "plan-v1"
 SNAP_1 = "snap-1"
 POLICY = "policy-1"

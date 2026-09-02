@@ -206,6 +206,7 @@ def validate_group_response(
     prompt_fingerprint: str,
     dossier_builder: str,
     release_audit_id: int | None,
+    handle_key: bytes,
 ) -> tuple[tuple[P8Verdict, ...], object] | ValidationUnavailable:
     result = validate_response(
         dossier,
@@ -217,6 +218,7 @@ def validate_group_response(
         prompt_fingerprint=prompt_fingerprint,
         dossier_builder=dossier_builder,
         release_audit_id=release_audit_id,
+        handle_key=handle_key,
     )
     if isinstance(result, ValidationUnavailable):
         return result

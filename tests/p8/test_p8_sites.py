@@ -36,6 +36,7 @@ from llm_harness.vocabulary import (
     E_TEMPLATE,
     REJECT,
 )
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 HARNESS_ROOT = Path(__file__).resolve().parents[2] / "src" / "llm_harness"
 RELEASED = "span-1"
@@ -119,7 +120,7 @@ def _dispatch(dossier, response_bytes, *, conn=None, site_dependencies=None, **o
         dossier,
         response_bytes,
         site_dependencies=site_dependencies or _site_dependencies(),
-        **values,
+        **values, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 

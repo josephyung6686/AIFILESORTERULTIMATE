@@ -79,6 +79,7 @@ from privacy.release import (
 )
 from privacy.resolve import Materialised
 from privacy.schema import create_privacy_schema
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 
 SRC_HARNESS = Path(__file__).resolve().parents[2] / "src" / "llm_harness" / "harness.py"
@@ -319,7 +320,7 @@ def _deps(**overrides):
         policy_version=POLICY_VERSION,
     )
     values.update(overrides)
-    return CallDependencies(**values)
+    return CallDependencies(**values, wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _events(conn, event_type: str) -> list:
@@ -456,11 +457,11 @@ def test_released_issues_once_validates_and_persists(harness_conn, subject):
         request, granted,
         reduction_rung=REDUCTION_NONE,
         allowed_vocabulary=("school",),
-        prompt=prompt,
+        prompt=prompt, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert recorder.calls == [
         build_call_payload(
-            prompt, canonical_dossier_bytes(dossier, prompt),
+            prompt, canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY),
             model_target=CLOUD,
             policy_version=POLICY_VERSION,
             release_id=granted.release_id,

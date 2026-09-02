@@ -33,7 +33,8 @@ from llm_harness.vocabulary import (
     RETURN_CONFIRMED_GROUP, RETURN_TO_PLACEMENT as P8_RETURN_TO_PLACEMENT,
     VALID_REVIEW_REQUIRED,
 )
-from privacy.classification import ClassificationRecord, observation_key
+from evidence_shape.observation import observation_key
+from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 
@@ -46,6 +47,7 @@ from placement.residual import ResidualSetDecision, record_set_decision
 from placement.store import current_decision
 from p11.conftest import FIXED_CLOCK
 from p11.p10_fixtures import FROZEN_TREE
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 #: 0.50 sits ABOVE a direct fact alone (3/7 = 0.4286) and BELOW a direct fact plus
 #: an accepted group (5/7 = 0.7143). Both halves are asserted below, so a threshold
@@ -503,7 +505,7 @@ def _call_dependencies():
                                max_estimated_cost=Decimal("10"),
                                min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
-        allowed_vocabulary=None, policy_version="policy-1")
+        allowed_vocabulary=None, policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _model_inputs(conn, **overrides):

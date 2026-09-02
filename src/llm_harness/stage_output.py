@@ -250,6 +250,7 @@ def replay_recorded_response(
     contradicts,
     dossier_builder: str,
     policy_version: str,
+    handle_key: bytes,
 ):
     """Re-validate stored response bytes against the current evidence snapshot.
 
@@ -257,6 +258,11 @@ def replay_recorded_response(
     return a previously stored verdict, and does not append a second consequence
     to another part's store: Site A's `apply_verdict` writes P6's fact or its
     `unresolved` row, and `write_unresolved` is always an INSERT.
+
+    `handle_key` is the same local-only key the dossier's bytes were built with.
+    The stored bytes carry the handles the model was shown, so a replay reads
+    them back through the same map the live call did -- which is the property
+    that makes a replay comparable to the call it replays.
     """
     row = conn.execute(
         "SELECT response_bytes, model_id, prompt_fingerprint, release_audit_id "
@@ -282,6 +288,7 @@ def replay_recorded_response(
         release_audit_id=row["release_audit_id"],
         policy_version=policy_version,
         apply_consequence=False,
+        handle_key=handle_key,
     )
 
 
@@ -311,6 +318,7 @@ class RecordedCall:
 
 def replay_stage_adapter(
     calls: Sequence[RecordedCall], *, dossier_builder: str, policy_version: str,
+    handle_key: bytes,
 ) -> Callable[[ReplayContext], list[StageResult]]:
     """P2's `llm_interpretation` stage adapter over recorded responses.
 
@@ -341,6 +349,7 @@ def replay_stage_adapter(
                 contradicts=call.contradicts,
                 dossier_builder=dossier_builder,
                 policy_version=policy_version,
+                handle_key=handle_key,
             )
             # `dispatch` returns either `ValidationUnavailable` or a
             # (verdicts, report) pair. The report is P8's own record and is not

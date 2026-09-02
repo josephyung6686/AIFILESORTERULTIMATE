@@ -69,7 +69,9 @@ from llm_harness.vocabulary import (
     SPLIT,
 )
 from privacy.gate import Gate
-from privacy.release import Denied, NeedsConsent, NoPolicyInForce, Released
+from privacy.release import (
+    Denied, MalformedRequest, NeedsConsent, NoPolicyInForce, Released,
+)
 
 _SCOPE_BY_SITE = {
     A_FACT: SCOPE_FILE,
@@ -106,6 +108,12 @@ class CallDependencies:
     actual_cost: Decimal | None
     allowed_vocabulary: Sequence[str] | None
     policy_version: str | None
+    #: The local-only key every identifier leaving this device is digested under
+    #: (`llm_harness.wire_handles`). It is a credential: it is chosen at the
+    #: composition root, it never reaches a screen, a log, an audit row or the
+    #: wire, and an absent one is reported missing rather than replaced by an
+    #: un-keyed digest a recipient can reverse.
+    wire_handle_key: bytes | None
 
 
 def _missing_from_deps(deps: object) -> tuple[str, ...]:
@@ -276,12 +284,13 @@ def _issue_and_validate(
         reduction_rung=reduction_rung,
         allowed_vocabulary=deps.allowed_vocabulary,
         prompt=prompt,
+        handle_key=deps.wire_handle_key,
     )
     if isinstance(dossier, ValidationUnavailable):
         return dossier
     payload = build_call_payload(
         prompt,
-        canonical_dossier_bytes(dossier, prompt),
+        canonical_dossier_bytes(dossier, prompt, handle_key=deps.wire_handle_key),
         model_target=released.model_target,
         policy_version=released.policy_version,
         release_id=released.release_id,
@@ -345,6 +354,7 @@ def _validate_and_record(
         release_audit_id=released.audit_id,
         policy_version=dossier.policy_version,
         apply_consequence=True,
+        handle_key=deps.wire_handle_key,
     )
     if isinstance(checked, ValidationUnavailable):
         return checked
@@ -441,7 +451,16 @@ def run_call(
 
         try:
             decision = gate.release(unit.model_call_request)
-        except NoPolicyInForce:
+        except (MalformedRequest, NoPolicyInForce):
+            # BOTH of the gate's non-decisions, for the reason the comment below
+            # `_issue_and_validate` gives: a raise between `reserve_call` and
+            # `settle_call` that does not release the reservation takes a call and
+            # its estimated cost out of the scan budget permanently, with nothing
+            # left holding the id. `MalformedRequest` joined that set on 2026-09-02
+            # -- the gate now refuses a requested item it has no reading for rather
+            # than dropping it from the release -- and a refusal that silently
+            # spends a budget slot would be its own smaller version of the same
+            # defect.
             release_reservation(conn, reservation)
             raise
 

@@ -46,6 +46,7 @@ from llm_harness.template_validation import (
     TemplateDependencies,
     validate_template_response,
 )
+from llm_harness.wire_handles import issued_handles, local_ref
 from llm_harness.validation import (
     parse_citation,
     report_from_verdicts,
@@ -133,12 +134,18 @@ def _claims(response_bytes: bytes) -> tuple[Mapping[str, object], ...] | None:
 
 def _proposal(
     claim: Mapping[str, object],
+    *,
+    handles: Mapping[str, str],
 ) -> tuple[Proposal, tuple[Citation, ...]] | None:
     """One claim as P6 sees it, plus the citations with their spans intact.
 
     P6's `Proposal` carries bare observation keys. A key alone cannot say whether
     the model quoted what P7 released or invented the quotation, so Site A keeps
     both shapes and hands both down.
+
+    The model cited the handle it was shown, and BOTH shapes carry P4's own key
+    from here on: `_run_checks` compares the bare list against P6's citable
+    observations, and a handle would match none of them.
     """
     payload = claim.get("payload")
     payload = payload if isinstance(payload, Mapping) else {}
@@ -166,7 +173,9 @@ def _proposal(
         parsed = parse_citation(item)
         if parsed is None or not parsed.evidence_ref:
             return None
-        citations.append(parsed)
+        citations.append(replace(
+            parsed,
+            evidence_ref=local_ref(parsed.evidence_ref, handles=handles)))
     return Proposal(
         field_key=field_key, value=payload.get("value"),
         citations=tuple(item.evidence_ref for item in citations), unknown=False,
@@ -186,6 +195,7 @@ def _fact_site(
     release_audit_id: int | None,
     policy_version: str,
     apply_consequence: bool,
+    handle_key: bytes,
 ):
     if conn is None:
         return ValidationUnavailable(missing=("conn",))
@@ -202,7 +212,9 @@ def _fact_site(
     claims = _claims(response_bytes)
     if claims is None:
         return finished((schema_invalid_verdict(dossier),))
-    parsed = [_proposal(claim) for claim in claims]
+    handles = issued_handles(
+        (item.evidence_ref for item in dossier.evidence_items), key=handle_key)
+    parsed = [_proposal(claim, handles=handles) for claim in claims]
     if any(item is None for item in parsed):
         return finished((schema_invalid_verdict(dossier),))
     fields = [proposal.field_key for proposal, _citations in parsed]
@@ -266,6 +278,7 @@ def dispatch(
     release_audit_id: int | None,
     policy_version: str,
     apply_consequence: bool,
+    handle_key: bytes,
 ):
     """Validate a response at the site the dossier names. One mapping, P8's own.
 
@@ -286,6 +299,9 @@ def dispatch(
         prompt_fingerprint=prompt_fingerprint,
         dossier_builder=dossier_builder,
         release_audit_id=release_audit_id,
+        # The key the dossier's bytes were built with. Every site reads the
+        # model's references, and none of them may read a handle as a P4 key.
+        handle_key=handle_key,
     )
 
     if site == A_FACT:
@@ -300,6 +316,7 @@ def dispatch(
             release_audit_id=release_audit_id,
             policy_version=policy_version,
             apply_consequence=apply_consequence,
+            handle_key=handle_key,
         ), response_bytes)
     if site == B_GROUP:
         return _addressed_to_the_response(

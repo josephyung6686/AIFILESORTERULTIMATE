@@ -35,7 +35,7 @@ from evidence_shape.canonical import canonical_json
 from evidence_shape.schema import create_evidence_schema
 from llm_harness.dossier import canonical_dossier_bytes, dossier_address
 from llm_harness.fingerprint import prompt_fingerprint
-from llm_harness.fixtures import SITE_B_OUTCOME_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_B_OUTCOME_PAIRS
 from llm_harness.records import PromptDefinition
 from llm_harness.schema import create_llm_schema
 from llm_harness.sites import SiteDependencies
@@ -122,7 +122,7 @@ def run_probe() -> dict:
         site_dependencies=_site_dependencies(),
         contradicts=lambda *_a, **_k: False,
         dossier_builder="determinism-probe",
-        policy_version=POLICY_VERSION,
+        policy_version=POLICY_VERSION, handle_key=FIXTURE_HANDLE_KEY,
     )
 
     # The P2 row is emitted and read back, not re-serialised from the verdict.
@@ -145,9 +145,9 @@ def run_probe() -> dict:
     stage_row = stage_outputs(conn, run_id, stage_id="llm_interpretation")[0]
 
     return {
-        "dossier_content_address": dossier_address(dossier, prompt),
+        "dossier_content_address": dossier_address(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY),
         "canonical_dossier_sha256": hashlib.sha256(
-            canonical_dossier_bytes(dossier, prompt)
+            canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY)
         ).hexdigest(),
         "response_sha256": hashlib.sha256(RESPONSE).hexdigest(),
         "verdict": json.loads(canonical_json(_jsonable(verdicts))),

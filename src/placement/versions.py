@@ -150,7 +150,11 @@ def _revalidates(conn, decision, to_plan_version: str, inputs) -> bool:
             key: entry[key] for key in (
                 "previous_verdict_id", "dossier", "response_bytes",
                 "evidence_resolver", "contradicts", "dependencies", "model_id",
-                "prompt_fingerprint", "dossier_builder", "release_audit_id")
+                "prompt_fingerprint", "dossier_builder", "release_audit_id",
+                # The key the dossier's bytes were built with. A re-validation
+                # reads the model's references, so it needs the way back from
+                # what the model saw; absent, `revalidate_for_plan` refuses.
+                "handle_key")
         })
     if isinstance(result, ValidationUnavailable):
         return False

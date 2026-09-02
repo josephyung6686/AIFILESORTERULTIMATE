@@ -39,7 +39,8 @@ from llm_harness.harness import CallDependencies
 from llm_harness.records import EvidenceItem, PromptDefinition
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import C_PLACEMENT
-from privacy.classification import ClassificationRecord, observation_key
+from evidence_shape.observation import observation_key
+from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.gate import Gate
 from privacy.items import Excerpt, TextSpan
@@ -55,6 +56,7 @@ from placement.records import MatchingFact, Subject
 from placement.schema import create_placement_schema
 from p11.conftest import FIXED_CLOCK
 from p11.p10_fixtures import FROZEN_TREE
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 POLICY = SupportPolicy(policy_id="live-v1", support_scale_max=1.0,
                        minimum_support_threshold=0.5, margin_threshold=0.2)
@@ -191,7 +193,7 @@ def _call_dependencies():
                                max_estimated_cost=Decimal("10"),
                                min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
-        allowed_vocabulary=None, policy_version="policy-1")
+        allowed_vocabulary=None, policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _model_call_request(*, subject_ref, evidence_items, max_dossier_tokens):

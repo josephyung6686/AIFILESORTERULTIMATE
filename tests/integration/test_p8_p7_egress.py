@@ -40,6 +40,7 @@ from privacy.schema import create_privacy_schema
 
 from p8.conftest import make_evidence_item
 from p8.test_p8_transport import Recorder, _spent
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 
 OBSERVED_AT = "2026-08-22T09:00:00Z"
@@ -337,10 +338,10 @@ def _released_and_body(conn) -> tuple[Released, str]:
         decision,
         reduction_rung=REDUCTION_NONE,
         allowed_vocabulary=("school",),
-        prompt=prompt,
+        prompt=prompt, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert not isinstance(dossier, ValidationUnavailable), dossier
-    return decision, canonical_dossier_bytes(dossier, prompt).decode("utf-8")
+    return decision, canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY).decode("utf-8")
 
 
 def test_the_release_carries_no_text_outside_the_requested_span(egress_conn):

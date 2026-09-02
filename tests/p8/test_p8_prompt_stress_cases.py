@@ -64,6 +64,7 @@ from llm_harness.vocabulary import (
 # them (`cli.py:558`, `cli.py:600`). A second normaliser written here would be a
 # second deployment, and the whole point of the suite is to measure this one.
 from cli import contradicts_stronger, normalize_for_model  # noqa: E402
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 CLOCK = "2026-08-31T12:00:00+00:00"
 MODEL = "stress-model"
@@ -242,7 +243,7 @@ def _judge(world: World, response_bytes: bytes, *,
         dossier_builder="stress-suite",
         release_audit_id=None,
         policy_version=POLICY,
-        apply_consequence=apply,
+        apply_consequence=apply, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, tuple), result
     verdicts, _report = result

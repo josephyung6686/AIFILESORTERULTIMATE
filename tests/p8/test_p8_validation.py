@@ -36,6 +36,7 @@ from llm_harness.vocabulary import (
     UNCITED_CLAIM,
     WEAK,
 )
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 # Recorded response bytes. Later site validators reuse this shape:
 # {"claims":[{"claim_ref": str, "payload": object,
@@ -147,7 +148,7 @@ def _validate(dossier, response_bytes, *, evidence_resolver=None, site_validator
         prompt_fingerprint="fp-canonical",
         dossier_builder="fixture",
         release_audit_id=17,
-        **kwargs,
+        **kwargs, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 
@@ -281,7 +282,7 @@ def test_omitted_contradiction_oracle_is_unavailable_when_check_four_is_needed()
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, ValidationUnavailable)
     assert "contradicts" in result.missing
@@ -306,7 +307,7 @@ def test_contradicts_none_does_not_fall_back_to_resolver_attribute():
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("contradicts",)
@@ -349,7 +350,7 @@ def test_raw_store_material_cannot_rescue_a_span_the_release_does_not_carry():
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert verdicts[0].outcome == "reject"
     assert verdicts[0].reasons == (CITATION_SPAN_MISMATCH,)
@@ -442,7 +443,7 @@ def test_omitting_site_validator_fails_closed():
             model_id="fixture-model",
             prompt_fingerprint="fp-canonical",
             dossier_builder="fixture",
-            release_audit_id=17,
+            release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
         )
 
 

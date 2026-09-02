@@ -84,6 +84,7 @@ from readers.deployment import macos_readers
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.exclusion import is_protected_container
 from scan_agent.selection import record_selection
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 _HERE = Path(__file__).resolve()
 
@@ -429,7 +430,7 @@ def _call_dependencies(live: LiveRun) -> CallDependencies:
             min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
         allowed_vocabulary=("coherent",),
-        policy_version=live.policy.policy_version)
+        policy_version=live.policy.policy_version, wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 #: P9's request USED to need repairing before P7 would accept it. Both fields are

@@ -38,6 +38,7 @@ from llm_harness.vocabulary import (
     REJECT,
     REMAINS_AMBIGUOUS,
 )
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 KEY = "sha256:obs-1"
 MEMBER = "file-7"
@@ -115,7 +116,7 @@ def _validate(dossier, response_bytes, *, resolver=None, contradicts=None):
         model_id="fixture-model",
         prompt_fingerprint="fp-1",
         dossier_builder="fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 
@@ -303,7 +304,7 @@ def test_a_false_unknown_is_not_an_abstention():
     from llm_harness.sites import _proposal
 
     for falsey in (False, 0, "", []):
-        assert _proposal({
+        assert _proposal(handles={}, claim={
             "payload": {"field": "school", "value": "Columbia"},
             "unknown": falsey,
             "citations": [{
@@ -317,7 +318,7 @@ def test_a_false_unknown_is_not_an_abstention():
 def test_a_real_unknown_is_still_an_abstention():
     from llm_harness.sites import _proposal
 
-    parsed = _proposal({
+    parsed = _proposal(handles={}, claim={
         "payload": {"field": "school"},
         "unknown": {"insufficiency_statement": "no labelled school"},
     })
@@ -333,7 +334,7 @@ def test_a_claim_keeps_its_spans_on_the_way_to_site_a():
     quoted the release or invented the quotation, so both shapes travel."""
     from llm_harness.sites import _proposal
 
-    parsed = _proposal({
+    parsed = _proposal(handles={}, claim={
         "payload": {"field": "school", "value": "Columbia"},
         "citations": [{
             "evidence_ref": KEY, "cited_span": REDACTED,

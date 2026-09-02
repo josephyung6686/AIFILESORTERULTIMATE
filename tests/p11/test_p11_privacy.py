@@ -10,7 +10,8 @@ import json
 from database_agent.files_table import get_file, record_file
 from privacy import moves as p7_moves
 from privacy.moves import UNREADABLE_UNCLASSIFIED
-from privacy.classification import ClassificationRecord, observation_key
+from evidence_shape.observation import observation_key
+from privacy.classification import ClassificationRecord
 from privacy.classification_store import (
     ClassificationStore, GateOutcomeNotAFileFact,
 )

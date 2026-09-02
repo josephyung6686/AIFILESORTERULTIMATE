@@ -56,6 +56,7 @@ from privacy.release import (
 from privacy.vocabulary import ALWAYS_LOCAL
 
 from llm_harness.dossier import build_dossier
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 REPO = Path(__file__).resolve().parents[2]
 CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
@@ -105,12 +106,12 @@ def _build(*, subject_ref: str = "file-1", value: str = "Columbia University",
         model_target=CLOUD,
     )
     return build_dossier(request, released, reduction_rung=REDUCTION_NONE,
-                         allowed_vocabulary=allowed_vocabulary, prompt=_prompt())
+                         allowed_vocabulary=allowed_vocabulary, prompt=_prompt(), handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _body(**overrides) -> dict:
     dossier = _build(**overrides)
-    return json.loads(canonical_dossier_bytes(dossier, _prompt()).decode("utf-8"))
+    return json.loads(canonical_dossier_bytes(dossier, _prompt(), handle_key=FIXTURE_HANDLE_KEY).decode("utf-8"))
 
 
 def _library() -> dict:

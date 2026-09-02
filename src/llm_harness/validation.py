@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import replace
 from typing import Any
 
 from llm_harness.authorship import COMPONENT_VERSION
@@ -42,6 +43,7 @@ from llm_harness.records import (
     Unknown,
     ValidationUnavailable,
 )
+from llm_harness.wire_handles import WIRE_HANDLE_KEY, issued_handles, local_ref
 from llm_harness.vocabulary import (
     pre_call_address,
     A_FACT,
@@ -321,6 +323,7 @@ def _validate_claim(
     evidence_resolver: Callable[[str], object],
     site_validator: Callable[..., Any],
     oracle: Callable[..., Any] | None,
+    handles: Mapping[str, str],
 ) -> P8Verdict | ValidationUnavailable:
     claim_ref = f"claim-{index}"
     if not isinstance(raw, Mapping):
@@ -380,7 +383,12 @@ def _validate_claim(
         parsed = parse_citation(item)
         if parsed is None:
             return schema_invalid_verdict(dossier, claim_ref)
-        citations.append(parsed)
+        # The model cites the handle it was shown; every check below, the
+        # `evidence_resolver` and the recorded `CheckedCitation` all speak P4's
+        # own key. Translating once, here, is what keeps them speaking it.
+        citations.append(replace(
+            parsed,
+            evidence_ref=local_ref(parsed.evidence_ref, handles=handles)))
     if not citations:
         return _make_verdict(
             dossier=dossier,
@@ -448,6 +456,7 @@ def validate_response(
     prompt_fingerprint: str,
     dossier_builder: str,
     release_audit_id: int | None,
+    handle_key: bytes,
 ) -> tuple[tuple[P8Verdict, ...], GroundingReport] | ValidationUnavailable:
     """Validate recorded response bytes against a released dossier.
 
@@ -455,16 +464,25 @@ def validate_response(
     material the model saw, or ``None`` if that key was not shown.
     ``contradicts`` is the injected contradiction oracle; passing ``None`` when a
     cited claim needs that check is ``ValidationUnavailable``, not a pass.
+
+    ``handle_key`` is the same key the dossier bytes were built with. It is the
+    only way back from what the model saw to what this validator checks, and an
+    absent one refuses rather than reading the model's references as if they were
+    P4 keys.
     """
     missing: list[str] = []
     if evidence_resolver is None:
         missing.append("evidence_resolver")
     if site_validator is None:
         missing.append("site_validator")
+    if not isinstance(handle_key, (bytes, bytearray)) or not handle_key:
+        missing.append(WIRE_HANDLE_KEY)
     if missing:
         return ValidationUnavailable(missing=tuple(missing))
 
     oracle = contradicts
+    handles = issued_handles(
+        (item.evidence_ref for item in dossier.evidence_items), key=handle_key)
 
     def _finished(verdicts: Sequence[P8Verdict]):
         return (
@@ -496,6 +514,7 @@ def validate_response(
             evidence_resolver=evidence_resolver,
             site_validator=site_validator,
             oracle=oracle,
+            handles=handles,
         )
         if isinstance(result, ValidationUnavailable):
             return result

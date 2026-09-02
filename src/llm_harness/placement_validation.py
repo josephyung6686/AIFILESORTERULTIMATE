@@ -389,6 +389,7 @@ def validate_placement_response(
     prompt_fingerprint: str,
     dossier_builder: str,
     release_audit_id: int | None,
+    handle_key: bytes,
 ):
     missing = _missing_placement(dependencies)
     if missing:
@@ -407,6 +408,7 @@ def validate_placement_response(
         prompt_fingerprint=prompt_fingerprint,
         dossier_builder=dossier_builder,
         release_audit_id=release_audit_id,
+        handle_key=handle_key,
     )
     return _finish(result, adjust=_placement_disposition)
 
@@ -422,6 +424,7 @@ def validate_residual_response(
     prompt_fingerprint: str,
     dossier_builder: str,
     release_audit_id: int | None,
+    handle_key: bytes,
 ):
     missing = _missing_residual(dependencies)
     if missing:
@@ -440,6 +443,7 @@ def validate_residual_response(
         prompt_fingerprint=prompt_fingerprint,
         dossier_builder=dossier_builder,
         release_audit_id=release_audit_id,
+        handle_key=handle_key,
     )
     if isinstance(result, ValidationUnavailable):
         return result
@@ -551,6 +555,7 @@ def revalidate_for_plan(
     prompt_fingerprint: str,
     dossier_builder: str,
     release_audit_id: int | None,
+    handle_key: bytes,
 ) -> P8Verdict | ValidationUnavailable:
     _ensure_identity_table(conn)
     row = conn.execute(
@@ -597,6 +602,7 @@ def revalidate_for_plan(
             prompt_fingerprint=prompt_fingerprint,
             dossier_builder=dossier_builder,
             release_audit_id=release_audit_id,
+            handle_key=handle_key,
         )
     else:
         result = validate_residual_response(
@@ -609,6 +615,7 @@ def revalidate_for_plan(
             prompt_fingerprint=prompt_fingerprint,
             dossier_builder=dossier_builder,
             release_audit_id=release_audit_id,
+            handle_key=handle_key,
         )
     if isinstance(result, ValidationUnavailable):
         return result

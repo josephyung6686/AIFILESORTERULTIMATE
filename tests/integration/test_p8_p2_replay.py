@@ -35,6 +35,7 @@ from eval_harness.run import VERSION_TUPLE_FIELDS, get_version_tuple, start_run
 from eval_harness.stage_output import stage_outputs
 from eval_harness.store import create_eval_schema
 from evidence_shape.schema import create_evidence_schema
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 DIRECT_BYTES = (
     b'{"claims":[{"claim_ref":"c1","payload":{"field":"school","value":"Columbia"},'
@@ -187,7 +188,7 @@ def test_replay_revalidates_stored_bytes_without_a_model_call(replay_conn, subje
         site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
-        policy_version="policy-1",
+        policy_version="policy-1", handle_key=FIXTURE_HANDLE_KEY,
     )
     assert trap.calls == []
     assert client.invoke is trap
@@ -224,7 +225,7 @@ def test_replay_does_not_trust_cached_validation(replay_conn, subject):
         site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
-        policy_version="policy-1",
+        policy_version="policy-1", handle_key=FIXTURE_HANDLE_KEY,
     )
     assert first[0].outcome == ACCEPT_DIRECT
     stored_outcome = replay_conn.execute(
@@ -241,7 +242,7 @@ def test_replay_does_not_trust_cached_validation(replay_conn, subject):
         site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
-        policy_version="policy-1",
+        policy_version="policy-1", handle_key=FIXTURE_HANDLE_KEY,
     )
     assert trap.calls == []
     assert second[0].outcome == REJECT
@@ -279,7 +280,7 @@ def test_site_a_replay_appends_no_second_p6_consequence(replay_conn, subject):
             site_dependencies=bundle,
             contradicts=_never_contradicts,
             dossier_builder="fixture",
-            policy_version="policy-1",
+            policy_version="policy-1", handle_key=FIXTURE_HANDLE_KEY,
         )
 
     first, _ = replay()
@@ -329,6 +330,6 @@ def test_replay_reads_the_latest_response_under_a_fixed_clock(
         site_dependencies=bundle,
         contradicts=_never_contradicts,
         dossier_builder="fixture",
-        policy_version="policy-1",
+        policy_version="policy-1", handle_key=FIXTURE_HANDLE_KEY,
     )
     assert [v.outcome for v in verdicts] == [ACCEPT_DIRECT]

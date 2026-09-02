@@ -57,6 +57,7 @@ from llm_harness.vocabulary import (
 from p8.test_p8_transport import Recorder, _spent
 from llm_harness.records import Refusal
 from privacy.release import NeedsConsent
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 RAW_EXCERPT = "Columbia University"
 #: What P7 actually releases: the egress fixture redacts every classified
@@ -166,7 +167,7 @@ def walk(skeleton_conn, monkeypatch):
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),
         allowed_vocabulary=("subject",),
-        policy_version=policy.policy_version,
+        policy_version=policy.policy_version, wire_handle_key=FIXTURE_HANDLE_KEY,
     )
     return conn, file_id, key, digest, prompt, fingerprint, policy, request, dependencies
 
@@ -289,13 +290,13 @@ def test_replay_of_the_walk_uses_the_same_dispatcher_and_calls_no_model(walk):
     released = egress._gate(conn).release(request.model_call_request)
     dossier = build_dossier(
         request, released, reduction_rung=REDUCTION_NONE,
-        allowed_vocabulary=("subject",), prompt=prompt,
+        allowed_vocabulary=("subject",), prompt=prompt, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert released.release_id != dossier_id
     assert dossier.dossier_id == dossier_id, (
         "a second release of identical content produced a different address"
     )
-    assert canonical_dossier_bytes(dossier, prompt)
+    assert canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY)
 
     replayed, report = replay_recorded_response(
         conn, dossier,
@@ -303,7 +304,7 @@ def test_replay_of_the_walk_uses_the_same_dispatcher_and_calls_no_model(walk):
         site_dependencies=deps.site_dependencies,
         contradicts=deps.contradicts,
         dossier_builder="p8-skeleton",
-        policy_version=policy.policy_version,
+        policy_version=policy.policy_version, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert replayed[0].outcome == live.outcome
     assert report.citations_span_matched == 1

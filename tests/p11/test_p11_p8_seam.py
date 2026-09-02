@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from llm_harness.fixtures import SITE_C_OUTCOME_PAIRS, SITE_C_REASON_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_C_OUTCOME_PAIRS, SITE_C_REASON_PAIRS
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.placement_validation import (
     PlacementDependencies, ResidualDependencies, record_cd_verdict,
@@ -145,7 +145,7 @@ def test_the_bundle_is_accepted_by_p8s_own_call_dependencies(indexed):
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
         allowed_vocabulary=tuple(sorted(
             legal_node_ids(indexed, plan_version="plan-1"))),
-        policy_version="policy-1")
+        policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
     assert deps.site_dependencies.placement is not None
     assert _legal_node_id() in deps.allowed_vocabulary
 
@@ -166,7 +166,7 @@ def test_a_permissive_sensitivity_authority_cannot_pass_an_invented_node(indexed
         site_dependencies=deps, evidence_resolver=lambda key: "span-1",
         contradicts=lambda *_a, **_k: False, model_id="fixture-model",
         prompt_fingerprint="fp-1", dossier_builder="p11-test",
-        release_audit_id=17, policy_version="policy-1", apply_consequence=False,
+        release_audit_id=17, policy_version="policy-1", apply_consequence=False, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert verdicts[0].outcome == REJECT
     assert INVENTED_NODE in verdicts[0].reasons
@@ -179,7 +179,7 @@ def test_omitting_an_authority_is_unavailable_and_never_a_pass():
         evidence_resolver=lambda key: "span-1",
         contradicts=lambda *_a, **_k: False, dependencies=None,
         model_id="m", prompt_fingerprint="fp", dossier_builder="p11-test",
-        release_audit_id=17)
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
     assert isinstance(result, ValidationUnavailable)
     assert "support_threshold" in result.missing
 
@@ -273,7 +273,7 @@ def _verdict_for(pair, **dep_overrides):
         contradicts=lambda *_a, **_k: False,
         dependencies=PlacementDependencies(**values),
         model_id="m", prompt_fingerprint="fp", dossier_builder="p11-test",
-        release_audit_id=17)[0][0]
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)[0][0]
 
 
 def test_the_verdict_vocabulary_is_carried_unchanged_into_the_record():

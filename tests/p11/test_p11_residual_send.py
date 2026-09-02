@@ -25,7 +25,8 @@ import pytest
 from database_agent.budget import set_ceiling
 from llm_harness.budgets import create_budget_schema
 from llm_harness.schema import create_llm_schema
-from privacy.classification import ClassificationRecord, observation_key
+from evidence_shape.observation import observation_key
+from privacy.classification import ClassificationRecord
 from privacy.classification_store import ClassificationStore
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 

@@ -40,6 +40,7 @@ from llm_harness.records import P8Verdict
 from llm_harness.schema import create_llm_schema
 from privacy.classification_store import ClassificationStore
 from privacy.release import ModelTarget
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 T0 = "2026-08-27T00:00:00Z"
 GROUP = "fixture-course-group"
@@ -164,7 +165,7 @@ def test_site_b_rejects_a_member_the_dossier_did_not_carry(seam_conn):
         evidence_resolver=lambda key: "PHYS1401",
         contradicts=lambda *_a, **_k: False,
         model_id="fixture", prompt_fingerprint="sha256:fp-group",
-        dossier_builder="P9", release_audit_id=17,
+        dossier_builder="P9", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert verdicts[0].outcome == REJECT
     assert INVENTED_MEMBERSHIP in verdicts[0].reasons
@@ -205,7 +206,7 @@ def _materialise(request):
     dossier = build_dossier(
         request, released, reduction_rung=REDUCTION_NONE,
         allowed_vocabulary=("coherent",),
-        prompt=_prompt(),
+        prompt=_prompt(), handle_key=FIXTURE_HANDLE_KEY,
     )
     assert not isinstance(dossier, llm_harness.ValidationUnavailable), dossier
     return dossier
@@ -248,7 +249,7 @@ def test_a_grounded_group_verdict_becomes_a_p9_membership(seam_conn):
         evidence_resolver=lambda key: "PHYS1401",
         contradicts=lambda *_a, **_k: False,
         model_id="fixture", prompt_fingerprint="sha256:fp-group",
-        dossier_builder="P9", release_audit_id=17,
+        dossier_builder="P9", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(verdicts[0], P8Verdict)
     assert verdicts[0].outcome == ACCEPT_DIRECT, verdicts[0].reasons
@@ -547,7 +548,7 @@ def _live_dependencies(policy_version, key):
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),
         allowed_vocabulary=("coherent",),
-        policy_version=policy_version,
+        policy_version=policy_version, wire_handle_key=FIXTURE_HANDLE_KEY,
     )
 
 

@@ -6,7 +6,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from llm_harness.fixtures import SITE_B_OUTCOME_PAIRS, SITE_B_REASON_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_B_OUTCOME_PAIRS, SITE_B_REASON_PAIRS
 from llm_harness.group_validation import validate_group_response
 from llm_harness.records import P8Verdict, ValidationUnavailable
 from llm_harness.vocabulary import (
@@ -54,7 +54,7 @@ def _validate(pair, *, contradicts=_never_contradicts, evidence_resolver=_resolv
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 

@@ -5,7 +5,7 @@ import ast
 import json
 from pathlib import Path
 
-from llm_harness.fixtures import SITE_E_OUTCOME_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_E_OUTCOME_PAIRS
 from llm_harness.records import ValidationUnavailable
 from llm_harness.template_validation import (
     TemplateDependencies,
@@ -56,7 +56,7 @@ def _validate(pair, *, dependencies=None, contradicts=_never_contradicts):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 
@@ -126,7 +126,7 @@ def test_omitted_schema_validator_is_unavailable():
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("schema_validator",)

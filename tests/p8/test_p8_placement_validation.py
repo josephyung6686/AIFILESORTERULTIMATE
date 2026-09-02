@@ -61,6 +61,7 @@ from llm_harness.vocabulary import (
     WEAK,
 )
 from p8.conftest import FIXED_CLOCK
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 RELEASED = "span-1"
 SUPPORT_THRESHOLD = 0.5
@@ -120,7 +121,7 @@ def _validate_c(pair, *, dependencies=None, contradicts=_never_contradicts):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 
@@ -135,7 +136,7 @@ def _validate_d(pair, *, dependencies=None, contradicts=_never_contradicts):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 
@@ -393,7 +394,7 @@ def test_omitting_placement_oracles_is_unavailable():
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, ValidationUnavailable)
     for name in (
@@ -413,7 +414,7 @@ def test_omitting_residual_oracles_is_unavailable():
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, ValidationUnavailable)
     assert "node_exists" in result.missing
@@ -592,7 +593,7 @@ def test_revalidate_same_version_is_stable(p8_conn):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, P8Verdict)
     assert result.verdict_id == verdict.verdict_id
@@ -629,7 +630,7 @@ def test_revalidate_changed_plan_appends_and_supersedes(p8_conn):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, P8Verdict)
     assert result.verdict_id != verdict.verdict_id
@@ -673,7 +674,7 @@ def test_revalidate_changed_snapshot_appends_and_supersedes(p8_conn):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, P8Verdict)
     assert result.verdict_id != verdict.verdict_id
@@ -705,7 +706,7 @@ def test_revalidate_missing_oracles_leaves_prior_row_historical(p8_conn):
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="p8-fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert isinstance(result, ValidationUnavailable)
     row = p8_conn.execute(

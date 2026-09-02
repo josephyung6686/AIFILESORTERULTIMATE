@@ -52,6 +52,7 @@ from llm_harness.vocabulary import (
     VALUE_NOT_NORMALIZABLE,
     WEAK,
 )
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 CLOCK = "2026-08-19T12:00:00+00:00"
 MODEL = "test-model-1"
@@ -924,7 +925,7 @@ def _dispatch_site_a(conn, dossier, response_bytes, request):
         evidence_resolver=lambda key: "BUSIB 4300",
         contradicts=_never_contradicts,
         model_id=MODEL, prompt_fingerprint=PROMPT, dossier_builder="fixture",
-        release_audit_id=17, policy_version=POLICY, apply_consequence=True,
+        release_audit_id=17, policy_version=POLICY, apply_consequence=True, handle_key=FIXTURE_HANDLE_KEY,
     )
 
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from llm_harness.fixtures import SITE_D_REASON_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_D_REASON_PAIRS
 from llm_harness.placement_validation import (
     ResidualDependencies, validate_residual_response,
 )
@@ -46,7 +46,7 @@ def _verdict_for(expected_reason):
         evidence_resolver=lambda key: "span-1" if key.startswith("obs-") else None,
         contradicts=lambda *_a, **_k: False, dependencies=_residual_deps(pair),
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
-        dossier_builder="p11-test", release_audit_id=17)
+        dossier_builder="p11-test", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
     return verdicts[0]
 
 

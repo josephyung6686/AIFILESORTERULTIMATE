@@ -42,6 +42,8 @@ from privacy.redaction import RedactionManifest
 from privacy.release import (
     ModelCallRequest, ModelTarget, Released, ReleasedItem, Target,
 )
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
+from llm_harness.wire_handles import wire_handle
 
 CLOUD = ModelTarget(locality="cloud", model_id="acme-large", provider="Acme")
 KEY = "obs-key-1"
@@ -141,13 +143,13 @@ def _build(**overrides):
     values.update(overrides)
     request = values.pop("request")
     released = values.pop("released")
-    return build_dossier(request, released, **values)
+    return build_dossier(request, released, **values, handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _body(dossier=None, prompt=None) -> dict:
     dossier = dossier if dossier is not None else _build()
     prompt = prompt if prompt is not None else _prompt()
-    return json.loads(canonical_dossier_bytes(dossier, prompt).decode("utf-8"))
+    return json.loads(canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY).decode("utf-8"))
 
 
 # --- the common envelope --------------------------------------------------------
@@ -156,7 +158,9 @@ def _body(dossier=None, prompt=None) -> dict:
 def test_canonical_bytes_carry_the_common_envelope():
     body = _body()
     assert body["call_site"] == A_FACT
-    assert body["subject_ref"] == "file-1"
+    # Keyed on the way out. The record still says "file-1"; the model is shown a
+    # handle, because a `subject_ref` was reversed straight off the wire once.
+    assert body["subject_ref"] == wire_handle("file-1", key=FIXTURE_HANDLE_KEY)
     assert body["eligibility_reason"] == REMAINS_AMBIGUOUS
     assert body["plan_version"] is None
     assert body["policy_version"] == "policy-1"
@@ -169,7 +173,7 @@ def test_canonical_bytes_carry_every_allowed_vocabulary_member():
 
 
 def test_canonical_bytes_never_carry_the_release_capability():
-    raw = canonical_dossier_bytes(_build(), _prompt())
+    raw = canonical_dossier_bytes(_build(), _prompt(), handle_key=FIXTURE_HANDLE_KEY)
     assert b"rel-1" not in raw
     body = json.loads(raw.decode("utf-8"))
     assert "release_id" not in body
@@ -182,7 +186,7 @@ def test_canonical_bytes_never_carry_the_release_capability():
 
 def test_canonical_bytes_carry_the_full_released_item_not_a_joined_value():
     item = _body()["released_evidence"][0]
-    assert item["observation_key"] == KEY
+    assert item["observation_key"] == wire_handle(KEY, key=FIXTURE_HANDLE_KEY)
     assert item["address"] == "0:18"
     assert item["value"] == "Columbia University"
     assert item["zone"] == "body"
@@ -250,7 +254,12 @@ def test_p8_does_not_synthesise_basis_kind_or_reliability():
 def test_canonical_bytes_carry_the_builders_conflicts():
     request = _request(conflicts=(Conflict(conflict_id="c-9", kind="target_institution"),))
     conflicts = _body(_build(request=request))["conflicts"]
-    assert conflicts == [{"conflict_id": "c-9", "kind": "target_institution"}]
+    # `conflict_id` is `f"{group_id}:{kind}"` at P9's seam and carried the group
+    # digest with it, so it leaves keyed as well. `kind` is a closed vocabulary
+    # and says nothing about the person, so it stays readable.
+    assert conflicts == [{
+        "conflict_id": wire_handle("c-9", key=FIXTURE_HANDLE_KEY),
+        "kind": "target_institution"}]
 
 
 # --- the authored response schema and shaping policy ----------------------------
@@ -269,7 +278,7 @@ def test_dossier_id_is_the_content_address_and_not_the_release_id():
     dossier = _build()
     assert dossier.release_id == "rel-1"
     assert dossier.dossier_id != dossier.release_id
-    assert dossier.dossier_id == dossier_address(dossier, _prompt())
+    assert dossier.dossier_id == dossier_address(dossier, _prompt(), handle_key=FIXTURE_HANDLE_KEY)
     assert len(dossier.dossier_id) == 64
 
 
@@ -278,8 +287,8 @@ def test_equivalent_released_content_under_two_release_ids_has_one_address():
     second = _build(released=_released(release_id="rel-2", audit_id=99))
     assert first.release_id != second.release_id
     assert first.dossier_id == second.dossier_id
-    assert canonical_dossier_bytes(first, _prompt()) == canonical_dossier_bytes(
-        second, _prompt()
+    assert canonical_dossier_bytes(first, _prompt(), handle_key=FIXTURE_HANDLE_KEY) == canonical_dossier_bytes(
+        second, _prompt(), handle_key=FIXTURE_HANDLE_KEY
     )
 
 
@@ -396,7 +405,7 @@ def test_the_injected_authorities_reach_the_model_as_text_not_hex():
         response_schema_bytes=b'{"type":"object","required":["claims"]}',
         shaping_policy_bytes=b'{"policy":"one claim per field"}',
     )
-    raw = canonical_dossier_bytes(_build(prompt=prompt), prompt).decode("utf-8")
+    raw = canonical_dossier_bytes(_build(prompt=prompt), prompt, handle_key=FIXTURE_HANDLE_KEY).decode("utf-8")
     body = json.loads(raw)
     assert body["response_schema"] == '{"type":"object","required":["claims"]}'
     assert body["shaping_policy"] == '{"policy":"one claim per field"}'
@@ -411,4 +420,4 @@ def test_an_authority_the_model_cannot_read_is_refused():
 
     prompt = _prompt(response_schema_bytes=b"\xff\xfe not text")
     with pytest.raises(MalformedRecord):
-        canonical_dossier_bytes(_build(prompt=prompt), prompt)
+        canonical_dossier_bytes(_build(prompt=prompt), prompt, handle_key=FIXTURE_HANDLE_KEY)

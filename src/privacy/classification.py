@@ -45,7 +45,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from evidence_shape.observation import observation_key
+from evidence_shape.observation import is_observation_key
 from evidence_shape.store import runs_for_file
 
 from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
@@ -71,13 +71,6 @@ UNREADABLE_UNCLASSIFIED: str = check_handling_class("unreadable_unclassified")
 #: not a reading of a span.
 _EVIDENCE_REQUIRED_BASIS: str = _DETECTOR
 
-#: M14's citation handle, shaped by asking P4 rather than by hard-coding a pattern.
-#: One probe key at import yields the algorithm prefix and the digest width, so a
-#: change in `evidence_shape.canonical.sha256_of` propagates instead of drifting.
-_PROBE_KEY: str = observation_key(
-    content_hash="", extractor_name="", locator="", raw_value="")
-_KEY_PREFIX, _, _KEY_DIGEST = _PROBE_KEY.partition(":")
-_HEX = frozenset("0123456789abcdef")
 
 
 class UnbackedClassification(ValueError):
@@ -89,18 +82,11 @@ class UnbackedClassification(ValueError):
     """
 
 
-def _is_observation_key(value: object) -> bool:
-    """P4's content-addressed handle, never the per-row `observation_id` (M14).
-
-    `evidence_shape.store.new_id()` mints `str(uuid.uuid4())` and P1's `content_hash`
-    carries no algorithm prefix, so both are rejected by shape rather than by policy.
-    """
-    if not isinstance(value, str):
-        return False
-    prefix, separator, digest = value.partition(":")
-    if not separator or prefix != _KEY_PREFIX or len(digest) != len(_KEY_DIGEST):
-        return False
-    return all(character in _HEX for character in digest)
+#: M14's citation handle, shaped by asking P4 rather than by hard-coding a pattern.
+#: The predicate lives beside the function that mints a key
+#: (`evidence_shape.observation.is_observation_key`); P7 asks it, and so does the
+#: module that decides which references may go to a model.
+_is_observation_key = is_observation_key
 
 
 @dataclass(frozen=True, slots=True)

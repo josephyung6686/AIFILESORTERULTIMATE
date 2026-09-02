@@ -38,6 +38,7 @@ from privacy.denial import RemedyOption
 from privacy.items import CandidateLabel
 from privacy.release import Denied, ModelCallRequest, ModelTarget, NeedsConsent, Target
 from p8.conftest import make_evidence_item
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 
 DIRECT_BYTES = (
@@ -267,7 +268,7 @@ def test_response_bearing_report_derives_from_verdict_and_citation_results():
         model_id="fixture-model",
         prompt_fingerprint="fp-canonical",
         dossier_builder="fixture",
-        release_audit_id=17,
+        release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert report.claims_total == len(verdicts)
     assert report.claims_accepted_direct == sum(

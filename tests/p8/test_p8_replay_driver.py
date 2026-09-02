@@ -33,6 +33,7 @@ from p8.conftest import (
     make_released_evidence,
     record_subject,
 )
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY
 
 MODEL_ID = "fixture-model"
 PROMPT_FP = "fp-p8-driver"
@@ -117,7 +118,7 @@ def _drive(conn, bundle_id, calls):
         conn, bundle_id, version_tuple=_tuple(), budget_ceilings={},
         run_settings={"model_enabled": False, "embeddings_enabled": False},
         adapters={"llm_interpretation": replay_stage_adapter(
-            calls, dossier_builder="fixture", policy_version="policy-1")},
+            calls, dossier_builder="fixture", policy_version="policy-1", handle_key=FIXTURE_HANDLE_KEY)},
     )
 
 

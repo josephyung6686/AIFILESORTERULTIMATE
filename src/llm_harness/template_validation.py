@@ -249,6 +249,7 @@ def validate_template_response(
     prompt_fingerprint: str,
     dossier_builder: str,
     release_audit_id: int | None,
+    handle_key: bytes,
 ):
     if dependencies is None or dependencies.schema_validator is None:
         return ValidationUnavailable(missing=("schema_validator",))
@@ -271,6 +272,7 @@ def validate_template_response(
         prompt_fingerprint=prompt_fingerprint,
         dossier_builder=dossier_builder,
         release_audit_id=release_audit_id,
+        handle_key=handle_key,
     )
     if isinstance(result, ValidationUnavailable):
         return result

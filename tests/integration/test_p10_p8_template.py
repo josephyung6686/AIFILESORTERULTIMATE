@@ -20,7 +20,7 @@ from __future__ import annotations
 import dataclasses
 import json
 
-from llm_harness.fixtures import SITE_E_OUTCOME_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_E_OUTCOME_PAIRS
 from llm_harness.template_validation import validate_template_response
 from llm_harness.vocabulary import ACCEPT_DIRECT, E_TEMPLATE, REJECT, SCOPE_TEMPLATE
 from tree_design.template_schema import allowed_vocabulary_for, template_dependencies
@@ -59,7 +59,7 @@ def _validate(dossier, payload):
         dossier, _response(payload), evidence_resolver=_resolver,
         contradicts=_never_contradicts, dependencies=template_dependencies(CATALOGUE),
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
-        dossier_builder="p10", release_audit_id=17)
+        dossier_builder="p10", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _dossier(vocabulary=("event", "capture_year")):
@@ -114,7 +114,7 @@ def test_a_site_e_call_with_no_published_fragment_authority_is_unavailable():
         dependencies=TemplateDependencies(
             schema_validator=lambda payload: True, published_fragment=None),
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
-        dossier_builder="p10", release_audit_id=17)
+        dossier_builder="p10", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
     assert isinstance(result, ValidationUnavailable)
     assert result.missing == ("published_fragment",)
 

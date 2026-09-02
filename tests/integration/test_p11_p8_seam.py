@@ -16,7 +16,7 @@ import json
 from database_agent.db import create_schema
 from database_agent.files_table import record_file
 from llm_harness.budgets import ScanBudget, create_budget_schema
-from llm_harness.fixtures import SITE_C_OUTCOME_PAIRS
+from llm_harness.fixtures import FIXTURE_HANDLE_KEY, SITE_C_OUTCOME_PAIRS
 from llm_harness.harness import CallDependencies, run_call
 from llm_harness.placement_validation import (
     record_cd_verdict, revalidate_for_plan, validate_placement_response,
@@ -95,7 +95,7 @@ def _call_dependencies(conn, *, plan_version):
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
         allowed_vocabulary=tuple(sorted(
             legal_node_ids(conn, plan_version=plan_version))),
-        policy_version="policy-1")
+        policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 #: A real P7 release request. `DossierRequest` refuses anything else, which is
@@ -191,7 +191,7 @@ def test_a_c_verdict_binds_p11s_plan_version_and_snapshot(indexed):
         evidence_resolver=lambda key: "span-1" if key.startswith("obs-") else None,
         contradicts=lambda *_a, **_k: False, dependencies=deps,
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
-        dossier_builder="p11-integration", release_audit_id=17)
+        dossier_builder="p11-integration", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
     verdict = result[0][0]
     assert isinstance(verdict, P8Verdict)
     record_cd_verdict(
@@ -264,7 +264,7 @@ def _stored_verdict(conn, pair):
         evidence_resolver=lambda key: "span-1" if key.startswith("obs-") else None,
         contradicts=lambda *_a, **_k: False, dependencies=deps,
         model_id="fixture-model", prompt_fingerprint="fp-canonical",
-        dossier_builder="p11-integration", release_audit_id=17)
+        dossier_builder="p11-integration", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
     verdict = result[0][0]
     return record_cd_verdict(
         conn, verdict, evidence_snapshot_id=pair.evidence_snapshot_id,

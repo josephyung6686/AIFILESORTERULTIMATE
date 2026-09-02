@@ -119,6 +119,37 @@ def observation_key(*, content_hash: str, extractor_name: str, locator: str,
     return sha256_of(content_hash, extractor_name, locator, raw_value)
 
 
+#: The key's own shape, asked of the key rather than hard-coded: one probe at
+#: import yields the algorithm prefix and the digest width, so a change in
+#: `canonical.sha256_of` propagates instead of drifting.
+_PROBE_KEY: str = observation_key(
+    content_hash="", extractor_name="", locator="", raw_value="")
+_KEY_PREFIX, _, _KEY_DIGEST = _PROBE_KEY.partition(":")
+_HEX = frozenset("0123456789abcdef")
+
+
+def is_observation_key(value: object) -> bool:
+    """P4's content-addressed handle, never the per-row `observation_id` (M14).
+
+    PUBLISHED here, beside the function that mints one, because two callers ask
+    the question for opposite reasons and one answer has to serve both:
+    `privacy.classification` refuses a classification whose reference is not a
+    key, and `llm_harness.wire_handles` decides which references may not be
+    spoken to a model. A second copy of this shape is how one concept ends up
+    with two answers.
+
+    `evidence_shape.store.new_id()` mints `str(uuid.uuid4())` and P1's
+    `content_hash` carries no algorithm prefix, so both are rejected by shape
+    rather than by policy.
+    """
+    if not isinstance(value, str):
+        return False
+    prefix, separator, digest = value.partition(":")
+    if not separator or prefix != _KEY_PREFIX or len(digest) != len(_KEY_DIGEST):
+        return False
+    return all(character in _HEX for character in digest)
+
+
 #: The property below needs the function while the class body shadows the name.
 _key = observation_key
 
