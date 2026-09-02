@@ -440,17 +440,53 @@ def bundle_baseline(conn, bundle_id: str) -> str | None:
     return None if row is None else row["run_id"]
 
 
+def resolve_bundle(conn, given: str) -> str | None:
+    """The sealed bundle this name or id identifies, or None.
+
+    A name first, then an id. Both, because `--record` takes a name and a gesture
+    whose argument can only be obtained by reading a uuid4 off a previous screen
+    is a gesture nobody uses twice -- and because every bundle the ordinary run
+    has ever sealed is unnamed, so the id can never stop working.
+
+    None is a refusal, not a fallback. There is no nearest match, no prefix and no
+    most recent: two bundles are two different corpora, and guessing would report
+    on files the person did not name.
+
+    A DRAFT does not resolve. Its contents can still change under the run that
+    measured them, which would leave a measurement describing a corpus that no
+    longer exists.
+    """
+    from eval_harness.bundle import bundle_named, get_bundle
+
+    if not given:
+        return None
+    named = bundle_named(conn, given)
+    candidate = named if named is not None else given
+    row = get_bundle(conn, candidate)
+    if row is None or row["sealed_at"] is None:
+        return None
+    return row["bundle_id"]
+
+
 def recorded_bundles(conn, *, source_scan_ref: str | None = None) -> Sequence[dict]:
     """Every sealed bundle, newest first, with what a person needs to name one.
 
-    `--replay` refuses without a bundle id -- absent means refuse, never guess and
-    never "the latest one" -- so a person needs a way to see the ids that exist.
-    This is that listing and it chooses nothing.
+    `--replay` refuses without a bundle -- absent means refuse, never guess and
+    never "the latest one" -- so a person needs a way to see what exists. This is
+    that listing and it chooses nothing.
+
+    An unnamed bundle, which is every one the ordinary run seals, is listed with
+    no name rather than omitted: someone hunting for their recording has to be
+    able to see that the other rows are there too.
     """
-    sql = ("SELECT bundle_id, created_at, corpus_form, source_scan_ref, sealed_at "
-           "FROM bundle_manifest WHERE sealed_at IS NOT NULL")
+    sql = ("SELECT m.bundle_id, m.created_at, m.corpus_form, m.source_scan_ref, "
+           "m.sealed_at, m.supersedes_bundle_id, r.name "
+           "FROM bundle_manifest AS m "
+           "LEFT JOIN bundle_recording AS r ON r.bundle_id = m.bundle_id "
+           "WHERE m.sealed_at IS NOT NULL")
     args: list = []
     if source_scan_ref is not None:
-        sql += " AND source_scan_ref = ?"
+        sql += " AND m.source_scan_ref = ?"
         args.append(source_scan_ref)
-    return [dict(row) for row in conn.execute(sql + " ORDER BY created_at DESC, rowid DESC", args)]
+    return [dict(row) for row in conn.execute(
+        sql + " ORDER BY m.created_at DESC, m.rowid DESC", args)]

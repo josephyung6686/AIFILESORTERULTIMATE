@@ -218,3 +218,69 @@ def test_a_bundle_that_does_not_exist_is_refused(eval_conn):
     with pytest.raises(KeyError):
         record_bundle(eval_conn, from_bundle_id="not-a-bundle", name="x",
                       snapshot=SNAPSHOT, accepted=())
+
+
+# ======================================================================================
+# Naming a recording, and replaying it by that name
+# ======================================================================================
+
+def test_a_recording_is_replayable_by_the_name_it_was_recorded_under(
+        eval_conn, sealed):
+    """`--record` takes a name and `--replay` must accept it, or the name is
+    decoration. A bundle id is a uuid4: a gesture whose argument can only be
+    obtained by reading it off a previous screen is a gesture nobody uses twice."""
+    from evaluation import resolve_bundle
+
+    recorded = record_bundle(eval_conn, from_bundle_id=sealed,
+                             name="before-upgrade", snapshot=SNAPSHOT,
+                             accepted=ACCEPTED)
+
+    assert resolve_bundle(eval_conn, "before-upgrade") == recorded
+    # The id still works. A name is an additional way in, never the only one --
+    # every bundle the ordinary run has ever sealed is unnamed.
+    assert resolve_bundle(eval_conn, recorded) == recorded
+    assert resolve_bundle(eval_conn, sealed) == sealed
+
+
+def test_neither_a_name_nor_an_id_resolves_to_nothing_rather_than_a_guess(
+        eval_conn, sealed):
+    """Absent means refuse. There is no nearest match and no most recent."""
+    from evaluation import resolve_bundle
+
+    record_bundle(eval_conn, from_bundle_id=sealed, name="before-upgrade",
+                  snapshot=SNAPSHOT, accepted=ACCEPTED)
+
+    assert resolve_bundle(eval_conn, "before-upgrad") is None
+    assert resolve_bundle(eval_conn, "") is None
+    assert resolve_bundle(eval_conn, "not-a-bundle") is None
+
+
+def test_an_unsealed_bundle_does_not_resolve(eval_conn):
+    """A draft is not replayable: its contents can still change under the run
+    that measured them, which would make the measurement describe a corpus that
+    no longer exists."""
+    from evaluation import resolve_bundle
+
+    create_eval_schema(eval_conn)
+    draft = open_bundle(eval_conn, corpus_form="snapshot", source_scan_ref="s",
+                        pinned_plan_id=None, pinned_plan_version=None,
+                        policy_settings={})
+
+    assert resolve_bundle(eval_conn, draft) is None
+
+
+def test_the_listing_carries_the_name_so_a_person_can_read_one_off_it(
+        eval_conn, sealed):
+    """`--replay` with no argument prints this. An unnamed bundle -- which is
+    every one the ordinary run seals -- is listed with no name rather than
+    omitted, because a person looking for their recording needs to see that the
+    other rows exist too."""
+    from evaluation import recorded_bundles
+
+    recorded = record_bundle(eval_conn, from_bundle_id=sealed,
+                             name="before-upgrade", snapshot=SNAPSHOT,
+                             accepted=ACCEPTED)
+
+    listed = {row["bundle_id"]: row["name"] for row in recorded_bundles(eval_conn)}
+
+    assert listed == {recorded: "before-upgrade", sealed: None}
