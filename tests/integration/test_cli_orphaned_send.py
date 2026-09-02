@@ -206,6 +206,16 @@ def test_yesterdays_command_still_works_when_nothing_on_the_disk_changed(
 
     assert code == 0, again
     assert "Would go into Review Later" in again, again
+    # AND IT MUST NOT ALSO BE CALLED UNCARRIED. Up-arrow is how people re-run, so
+    # this records a new decision under this run's plan version for a set with
+    # the same label, while the earlier run's row is still the most recent one
+    # belonging to another version. The first version of the reader named it, and
+    # the screen said both things about one set at once -- "Would go into Review
+    # Later" in the file list and "which this plan does not carry" below it.
+    # Caught by review, not by this test, which is why the assertion is here now.
+    if NOT_CARRIED in again:
+        passage = again[again.index(NOT_CARRIED):]
+        assert FIRST_LABEL not in passage, passage
 
 
 @pytest.mark.xfail(strict=True, raises=AssertionError, reason=(

@@ -297,6 +297,17 @@ def prior_set_decisions(conn: sqlite3.Connection, *,
     # decision whose set row is missing is still a decision the person made, and
     # dropping it here would reintroduce the exact silence this function exists
     # to end. It falls back to the set_id, which is ugly and present.
+    # AND NOT A LABEL THIS RUN HAS ALSO DECIDED. A person re-runs by pressing
+    # up-arrow, `--send-set` and all, which records a new decision under THIS
+    # plan version for a set with the SAME label -- while the earlier run's row
+    # is still the most recent one belonging to another version. Without this the
+    # screen said both things about one set at once: "Would go into Review Later"
+    # in the file list, and "which this plan does not carry" naming the same
+    # label below it. Measured, on the most ordinary path there is.
+    #
+    # By LABEL and not by `set_id`: a set_id embeds the plan version and so can
+    # never repeat across runs, which makes it exactly the wrong key here. The
+    # label is what the person typed and the only thing the two runs share.
     rows = conn.execute(
         "SELECT d.set_id, d.plan_version, d.choice, d.node_id, d.decided_at, "
         "       s.label "
@@ -304,8 +315,20 @@ def prior_set_decisions(conn: sqlite3.Connection, *,
         "LEFT JOIN residual_sets s "
         "  ON s.record_id = d.set_id AND s.superseded_by IS NULL "
         "WHERE d.plan_version = ? AND d.superseded_by IS NULL "
+        # COALESCE on BOTH sides, and a LEFT JOIN in the subquery too, so that a
+        # decision whose set row is missing keeps the fallback the comment above
+        # promises. A bare `s.label NOT IN (...)` would compare NULL, which is
+        # NULL rather than true, and the row would vanish -- reintroducing this
+        # function's own defect at the one place it is hardest to notice.
+        "  AND COALESCE(s.label, d.set_id) NOT IN ("
+        "      SELECT COALESCE(s2.label, d2.set_id) "
+        "      FROM residual_set_decisions d2 "
+        "      LEFT JOIN residual_sets s2 "
+        "        ON s2.record_id = d2.set_id AND s2.superseded_by IS NULL "
+        "      WHERE d2.plan_version = ? AND d2.superseded_by IS NULL"
+        "  ) "
         "ORDER BY s.label, d.set_id",
-        (latest["plan_version"],),
+        (latest["plan_version"], plan_version),
     ).fetchall()
     return tuple(
         PriorSetDecision(

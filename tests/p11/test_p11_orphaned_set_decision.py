@@ -164,3 +164,73 @@ def test_a_superseded_answer_is_not_named_as_though_it_still_stood(db):
     prior = prior_set_decisions(db, plan_version=VERSION)
 
     assert [row.label for row in prior] == ["Not yet placed (2 of 8)"]
+
+
+def test_a_label_this_run_has_also_decided_is_not_reported_as_uncarried(db):
+    """The up-arrow case, and the one that makes this worth a filter at all.
+
+    A person re-runs by pressing up-arrow, `--send-set` and all. That records a
+    NEW decision under this run's plan version for a set with the SAME label --
+    and the earlier run's row is still the most recent one belonging to another
+    version, so it would be named as "not carried" on the very screen that shows
+    it applied. Measured before this filter existed: "Would go into Review Later"
+    and "which this plan does not carry" both naming `Not yet placed (1 of 4)`,
+    on one screen.
+
+    The rule is by LABEL and not by set_id, because a set_id embeds the plan
+    version and so can never repeat -- the label is the thing the person typed
+    and the only thing the two runs have in common.
+    """
+    _decide(db, plan_version="version_old_2", label="Not yet placed (1 of 4)",
+            index=1, at=T1)
+    _decide(db, plan_version=VERSION, label="Not yet placed (1 of 4)",
+            index=1, at=T2)
+
+    assert prior_set_decisions(db, plan_version=VERSION) == ()
+
+
+def test_an_earlier_label_this_run_did_not_decide_is_still_named(db):
+    """THE TWIN. The filter above must exclude the label that was re-decided and
+    nothing else: a person who sent two sets yesterday and re-typed only one of
+    them has still lost the other, and that is exactly what they need told.
+    """
+    _decide(db, plan_version="version_old_2", label="Not yet placed (1 of 4)",
+            index=1, at=T1)
+    _decide(db, plan_version="version_old_2", label="Not yet placed (2 of 4)",
+            index=2, at=T1)
+    _decide(db, plan_version=VERSION, label="Not yet placed (1 of 4)",
+            index=1, at=T2)
+
+    prior = prior_set_decisions(db, plan_version=VERSION)
+
+    assert [row.label for row in prior] == ["Not yet placed (2 of 4)"]
+
+
+def test_a_decision_whose_set_row_is_missing_is_still_named(db):
+    """The label lives in a different table written in a different transaction,
+    and a decision with no set row is still a decision the person made.
+
+    It falls back to the set_id, which is ugly and present -- dropping it would
+    be this function reintroducing its own defect at the one place hardest to
+    notice. Kept as a test because the obvious spelling of the same-label filter
+    (`s.label NOT IN (...)`) compares NULL, which is NULL rather than true, and
+    silently loses exactly this row.
+
+    THIS RUN HAS TO HAVE DECIDED SOMETHING for that to be reachable, which is
+    the only reason the first `_decide` is here. SQLite evaluates
+    `x NOT IN (empty set)` as TRUE for every x, NULL included -- so with no
+    current-version decision the subquery is empty, the naive spelling keeps the
+    row anyway, and the test passes against the very bug it is named for. It did
+    exactly that until this line was added.
+    """
+    _decide(db, plan_version=VERSION, label="Something else this run",
+            index=9, at=T2)
+    db.execute(
+        "INSERT INTO residual_set_decisions (record_id, plan_version, set_id, "
+        "choice, node_id, decided_at, payload) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("rec-1", "version_old_2", "version_old_2:orphaned-1",
+         SEND_TO_APPROVED_NODE, "node_1", T1, "{}"))
+
+    prior = prior_set_decisions(db, plan_version=VERSION)
+
+    assert [row.label for row in prior] == ["version_old_2:orphaned-1"]
