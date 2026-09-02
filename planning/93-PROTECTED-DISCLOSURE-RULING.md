@@ -48,9 +48,15 @@ game saves, junk downloads, one `.app` bundle.
 | 1,000 | 173 lines of a 250-line file section: 144 filenames + 19 set names | **69 % of the file section** |
 | 5,000 | 810 lines of 1,113: 710 filenames + 89 set names | **73 % of the whole report** |
 
-The two ordinary groups at 5,000 files were 37 and 38 lines. After the earlier
-collapse (`d99f501`) the protected list was **the only part of the report still
-growing linearly with the person's disk**.
+The two ordinary groups at 5,000 files were 37 and 38 lines.
+
+**Why this became visible when it did.** `d99f501` had just collapsed the report
+at the same scale: **9,470 lines to 1,113** — 237 screens to 28 — with the block
+a person can act on moving from **line 9,317 of 9,460 to line 960 of 1,113**, and
+1,072 redundant repeated sentences down to 23. That is what left the protected
+list as **the only part of the report still growing linearly with the person's
+disk**, and therefore as 73 % of what remained. The question was not visible
+before, because everything was too long to see anything.
 
 So what a person's screen mostly showed, on a real corpus, was their own
 payslips, bank statements, medical notes and passport scans **by name**.
