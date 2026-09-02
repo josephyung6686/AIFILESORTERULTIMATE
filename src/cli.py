@@ -2611,10 +2611,51 @@ DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
 #: How many files of one kind are named before the rest are counted instead.
 #: `src/tree_design/health.py` shortens its warning list for the same reason --
 #: a list longer than the thing it describes is not a summary of anything -- and
-#: this follows it, INCLUDING the one exemption: a protected group is never one
-#: of the counted ones. `00` states no number; ten is enough to recognise a
-#: folder's worth of files by eye and short enough to stay a summary.
+#: this follows it. `00` states no number; ten is enough to recognise a folder's
+#: worth of files by eye and short enough to stay a summary.
+#:
+#: It no longer carries an exemption for protected groups. Those are not
+#: shortened to ten either -- they are summarised entirely and expanded by
+#: `--show-protected`, which is `PROTECTED_SUMMARY` below.
 NAMES_LISTED_PER_GROUP: int = 10
+
+#: WHAT THE REPORT SAYS INSTEAD OF A PERSON'S PROTECTED FILENAMES, and the
+#: command that prints them.
+#:
+#: THE OWNER RULED THIS ON 2026-09-02, REVERSING HIS OWN EARLIER DECISION.
+#: `planning/93-PROTECTED-DISCLOSURE-RULING.md` records what he chose, over what,
+#: and on which numbers -- read it before changing this, because the code here
+#: contradicts one half of `00` on purpose and the next person to notice will
+#: otherwise "fix" it back.
+#:
+#: The short version. He first chose "listed in full, and last" when the longest
+#: such list anyone had seen was four names in a demo folder. Measured on a
+#: corpus the size of a real disk it was 710 filenames -- 73 % of the whole
+#: report -- so what the screen mostly showed was the person's own payslips,
+#: bank statements, medical notes and passport scans, by name. Shown that, he
+#: took `00`:201's other half: "a summary such as '11 protected identity
+#: records' may be safe to show, while a visible list of passport filenames on a
+#: shared screen may not be."
+#:
+#: "MARKED AND COUNTED, NEVER SILENTLY OMITTED" IS UNCHANGED, and both lines
+#: below are what keeps it true. The count is on the screen every time, so a
+#: person never has to ask whether something was set aside. The command is on the
+#: screen every time, so the names are one paste away -- a summary a person
+#: cannot get out of would be the concealment the rule forbids, and dropping the
+#: second line is the way this stops being a summary and starts being a hiding
+#: place. The expansion is COMPLETE and not the first ten, for the same reason.
+#:
+#: `{count}` and `{plural}` are the group's own, so the number here and the
+#: number in the heading above it can never disagree. The second line is indented
+#: and is therefore printed verbatim -- `_role_lines`' convention, because a
+#: command a text wrapper has broken is not a command.
+PROTECTED_SUMMARY: tuple[str, ...] = (
+    "{count} protected file{plural}, marked and counted, and none of them "
+    "opened. Their names are not printed here, because a list of them is the "
+    "part of this report least safe to have on a screen somebody else can see. "
+    "Nothing is being kept from you -- to see every one:",
+    "      --show-protected",
+)
 
 
 def file_names(conn: sqlite3.Connection, root: Path) -> dict[str, str]:
@@ -2795,7 +2836,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            role_moment: Sequence[str] = (),
            roles_held: Sequence[str] = (),
            invite_freeze: bool = False,
-           list_every_name: bool = False) -> tuple[str, ...]:
+           list_every_name: bool = False,
+           show_protected: bool = False) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -2806,6 +2848,18 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     person reads, and a line at the bottom of a long report is not that. The
     grouping below never reaches this block -- count, name, path and sentence are
     what the rest of the report is shortened around, not with.
+
+    `show_protected` is the person asking for the FILENAMES inside a protected
+    group, which are summarised by default under the owner's 2026-09-02 ruling
+    (`PROTECTED_SUMMARY`, and `planning/93-PROTECTED-DISCLOSURE-RULING.md`). It
+    reaches nothing else: the protected containers block above is a different
+    thing and is always whole, the protected review sets are named either way,
+    and an ordinary group stays shortened to ten. It is not a verbosity flag.
+
+    It defaults to `False`, and that is the one default in this function that is
+    deliberately not `names`' rule. A forgotten `names` argument brought the
+    id-only report back; a forgotten `show_protected` prints fewer of somebody's
+    passport filenames than they asked for, which is the safe direction to fail.
 
     `names` is required rather than optional. A default would let the id-only
     report back in by nothing more than a forgotten argument.
@@ -3016,24 +3070,49 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # report does would buy nothing and would fight the ruling that
         # protected filenames sit behind `--show-protected`. Whatever that work
         # makes of the first clause, this one does not reach into it.
-        listed = (files if shielded[key]
-                  else files if list_every_name
-                  else files[:NAMES_LISTED_PER_GROUP])
-        if not shielded[key]:
-            # And what a freeze may approve never includes a protected file, so
-            # a protected name does not enter this set even on the day the first
-            # clause prints one. The exclusion is here as well as in `freeze`
-            # because two independent refusals are what "never" means.
-            named.extend(listed)
-        for file_id in listed:
-            print(f"    {names.get(file_id, file_id)}", file=out)
-        rest = len(files) - len(listed)
-        if rest:
-            print(_wrapped(
-                f"...and {rest} more, counted here rather than listed one by one "
-                "so that the list stays shorter than the folder it describes; "
-                "none of them is a protected area, which is never summarised "
-                "away", indent="    "), file=out)
+        if shielded[key] and not show_protected:
+            # The owner's 2026-09-02 ruling, and it is the clause the freeze
+            # patch above deliberately left room for: the count and the command,
+            # and no filenames. `PROTECTED_SUMMARY` carries the reasoning and
+            # points at the planning note, because this contradicts half of `00`
+            # on purpose and a reader who finds only one half will put it back.
+            # An indented line is printed verbatim: it is a command.
+            #
+            # `named` is untouched here, and that is not an omission. Nothing
+            # printed under this clause may ever be approved by a freeze, which
+            # is the same conclusion the `not shielded[key]` guard below reaches
+            # by the other road.
+            for line in PROTECTED_SUMMARY:
+                said = line.format(count=len(files), plural=plural)
+                print(said if said.startswith(" ")
+                      else _wrapped(said, indent="    "), file=out)
+        else:
+            # EVERY one when it was asked for. A `--show-protected` that listed
+            # the first ten and counted the rest would be the silent omission the
+            # standing rule forbids, wearing the fix's clothes.
+            listed = (files if shielded[key]
+                      else files if list_every_name
+                      else files[:NAMES_LISTED_PER_GROUP])
+            if not shielded[key]:
+                # And what a freeze may approve never includes a protected file,
+                # so a protected name does not enter this set even on the day the
+                # first clause prints one -- which is now every day somebody
+                # types `--show-protected`. A flag about what is on the SCREEN
+                # may not widen what a gesture is allowed to MOVE. The exclusion
+                # is here as well as in `freeze` because two independent refusals
+                # are what "never" means.
+                named.extend(listed)
+            for file_id in listed:
+                print(f"    {names.get(file_id, file_id)}", file=out)
+            rest = len(files) - len(listed)
+            if rest:
+                print(_wrapped(
+                    f"...and {rest} more, counted here rather than listed one by "
+                    "one so that the list stays shorter than the folder it "
+                    "describes. None of these is protected material: that is "
+                    "counted in its own block, with the way to see it printed "
+                    "there -- summarised, but never silently", indent="    "),
+                    file=out)
         if reason:
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
                   file=out)
@@ -3436,6 +3515,15 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "created unless you name it, and it can be given more than once. "
              "`--list-residuals` prints them.")
     parser.add_argument(
+        "--show-protected", action="store_true",
+        help="print the name of every protected file, instead of the count. "
+             "They are counted and named as a group on every run and nothing "
+             "about them is read, indexed or moved either way -- what this "
+             "changes is only whether their filenames are on your screen, which "
+             "is the part of the report least safe to have somebody read over "
+             "your shoulder. It does not widen what any gesture may move: a "
+             "freeze still cannot approve a protected file.")
+    parser.add_argument(
         "--send-set", action="append", default=[], metavar="SET=AREA",
         help="file a whole review set into one of the residual areas this plan "
              "has, e.g. --send-set \"Not yet placed=Review Later\". Name the "
@@ -3715,7 +3803,8 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                                                  already_declared=held),
                    roles_held=role_panel_lines(held),
                    invite_freeze=not args.freeze,
-                   list_every_name=args.freeze)
+                   list_every_name=args.freeze,
+                   show_protected=args.show_protected)
     if not args.freeze:
         return 0
 

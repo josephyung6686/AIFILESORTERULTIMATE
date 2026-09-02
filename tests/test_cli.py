@@ -268,14 +268,6 @@ def test_one_reason_shared_by_four_files_is_said_once():
 #: dozen red tests would be a dozen false alarms, while a dozen XPASSes the
 #: moment the hunks land is the signal to strip these markers. **Applying the
 #: patch means deleting every `PENDING_SHOW_PROTECTED` marker in this file.**
-PENDING_SHOW_PROTECTED = (
-    "Describes the report after scratchpad/report/SHOW-PROTECTED-PATCH.txt's six "
-    "hunks are applied to src/cli.py, which the report agent may not edit. "
-    "Verified green against the patched source by scratchpad/report/patch2.py. "
-    "Strict, so the suite goes red the day the hunks land and the markers come "
-    "off with them. planning/93-PROTECTED-DISCLOSURE-RULING.md.")
-
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_every_decided_file_is_accounted_for_when_the_list_is_shortened():
     """Forty files of one kind are not forty lines, but they are still forty.
 
@@ -303,7 +295,6 @@ def test_every_decided_file_is_accounted_for_when_the_list_is_shortened():
     assert "never silently" in " ".join(printed.split()), printed
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_a_protected_group_is_counted_and_reachable_rather_than_listed():
     """The standing rule, as the owner re-decided it on 2026-09-02.
 
@@ -361,7 +352,6 @@ def test_a_protected_group_is_counted_and_reachable_rather_than_listed():
         "shared screen does not open with a passport (`00`:201)")
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_show_protected_lists_every_one():
     """The other half, and the one that keeps the summary honest.
 
@@ -389,7 +379,6 @@ def test_show_protected_lists_every_one():
     assert "--show-protected" not in printed, printed
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_show_protected_command_the_report_prints_actually_shows_them(tmp_path):
     """`84` §6: what the screen tells a person to type has to be true.
 
@@ -1511,7 +1500,6 @@ def test_a_person_can_change_their_mind(tmp_path):
     assert "CHEM1500" in folders, folders
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_a_protected_files_own_words_are_never_printed_back_to_the_person(tmp_path):
     """§8.4 and `00`:201 -- the whole point of marking a file protected.
 
@@ -2561,7 +2549,6 @@ def test_a_password_vault_is_not_reported_as_not_marked_sensitive(tmp_path):
         + vault)
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_passport_in_the_same_corpus_is_still_marked_and_still_refused(tmp_path):
     """The twin. Marking everything protected would satisfy the guard above.
 
@@ -2603,7 +2590,6 @@ def _mixed_sensitivity_corpus(tmp_path):
     return corpus
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_a_review_set_says_truthfully_whether_it_holds_protected_material(tmp_path):
     """`residual_partition` declared every set `protected: False` and
     `sensitivity_status: "none"`, as literals, whatever it actually held.

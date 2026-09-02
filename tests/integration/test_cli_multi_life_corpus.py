@@ -106,14 +106,6 @@ def _run(corpus: Path) -> str:
 #: dozen red tests would be a dozen false alarms, while a dozen XPASSes the
 #: moment the hunks land is the signal to strip these markers. **Applying the
 #: patch means deleting every `PENDING_SHOW_PROTECTED` marker in this file.**
-PENDING_SHOW_PROTECTED = (
-    "Describes the report after scratchpad/report/SHOW-PROTECTED-PATCH.txt's six "
-    "hunks are applied to src/cli.py, which the report agent may not edit. "
-    "Verified green against the patched source by scratchpad/report/patch2.py. "
-    "Strict, so the suite goes red the day the hunks land and the markers come "
-    "off with them. planning/93-PROTECTED-DISCLOSURE-RULING.md.")
-
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_a_person_with_three_lives_gets_a_plan_and_not_a_traceback(tmp_path):
     """Found by running the product, which is the only way it could have been.
 

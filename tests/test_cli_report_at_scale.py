@@ -194,14 +194,6 @@ def test_four_hundred_batches_of_one_hold_are_one_group_and_not_four_hundred():
 #: dozen red tests would be a dozen false alarms, while a dozen XPASSes the
 #: moment the hunks land is the signal to strip these markers. **Applying the
 #: patch means deleting every `PENDING_SHOW_PROTECTED` marker in this file.**
-PENDING_SHOW_PROTECTED = (
-    "Describes the report after scratchpad/report/SHOW-PROTECTED-PATCH.txt's six "
-    "hunks are applied to src/cli.py, which the report agent may not edit. "
-    "Verified green against the patched source by scratchpad/report/patch2.py. "
-    "Strict, so the suite goes red the day the hunks land and the markers come "
-    "off with them. planning/93-PROTECTED-DISCLOSURE-RULING.md.")
-
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
     """237 screens is not a report. The budget is what makes this a test rather
     than an impression -- and it is 220 lines and not 60 because the protected
@@ -397,7 +389,6 @@ def test_a_batch_whose_files_straddle_two_headings_claims_no_total_it_cannot_see
     assert 'Held for review as "Not yet placed (1 of 1)"' in solo, solo
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_protected_list_no_longer_decides_how_long_the_report_is():
     """What the owner's ruling was measured against.
 
@@ -438,7 +429,6 @@ def test_the_protected_list_no_longer_decides_how_long_the_report_is():
     assert "96 protected files" in small, small
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_show_protected_is_the_only_thing_that_expands_the_names():
     """The negative twin of the summary: asking for it works, and nothing else
     turns it on by accident. An ordinary group stays shortened either way --
@@ -459,7 +449,6 @@ def test_show_protected_is_the_only_thing_that_expands_the_names():
 
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_the_flag_is_named_only_on_the_line_that_is_the_command():
     """What the screen tells a person to type has to be true, and FINDABLE.
 
@@ -484,7 +473,6 @@ def test_the_flag_is_named_only_on_the_line_that_is_the_command():
             "searching the report for what to type can land on it")
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
 def test_showing_a_protected_name_does_not_let_a_freeze_approve_it():
     """A flag about what is on the SCREEN may not widen what a gesture may MOVE.
 
