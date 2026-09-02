@@ -107,6 +107,42 @@ BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never overwritten (§8.2, §8
 """
 
 
+#: (table, column, type) added to a P7 table after its first release. `CREATE TABLE
+#: IF NOT EXISTS` is a no-op on a database that already has the table, so a column
+#: added to a DDL string above never reaches an existing database -- P1 hit this and
+#: `database_agent.db.FILES_ADDED_COLUMNS` is the pattern this follows.
+#:
+#: BOTH ARE ADDED NULLABLE, and neither is a hole.
+#:
+#: `suspended_item_kinds` is nullable in the DDL too, and `policy._suspended_kinds_of`
+#: reads absent as "nothing suspended" -- a person's existing plan must not read as
+#: having permitted a send it never permitted.
+#:
+#: `content_digest` is `NOT NULL` on a FRESH ledger, and SQLite cannot add a NOT NULL
+#: column without a default. It arrives nullable here instead, and the NULL is the
+#: safe answer rather than a compromise: `consume_release` compares the stored term
+#: with the caller's recomputation, and NULL equals nothing, so a release minted
+#: before the term existed is refused with `BindingMismatch` rather than spent
+#: unbound. A default would have been the hole -- every old release would then match
+#: whatever produced that default.
+PRIVACY_ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
+    (POLICIES_TABLE, "suspended_item_kinds", "TEXT"),
+    ("release_ledger", "content_digest", "TEXT"),
+)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Add any column an existing P7 table predates. Idempotent, and never drops.
+
+    Runs AFTER the `CREATE TABLE IF NOT EXISTS` statements so a fresh database has
+    the tables to inspect and every column already, which makes this a no-op there.
+    """
+    for table, column, column_type in PRIVACY_ADDED_COLUMNS:
+        present = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in present:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+
+
 def create_privacy_schema(conn: sqlite3.Connection) -> None:
     """Create every P7-owned table. Idempotent. P1's `create_schema` runs first."""
     from privacy.binding import RELEASE_LEDGER_DDL
@@ -115,3 +151,4 @@ def create_privacy_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(POLICIES_DDL)
     # Task 12's ledger is what makes `Released` single-use (SPEC §6).
     conn.executescript(RELEASE_LEDGER_DDL)
+    _migrate(conn)
