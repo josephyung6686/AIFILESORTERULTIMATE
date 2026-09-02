@@ -241,3 +241,103 @@ def test_rejecting_something_the_product_never_said_is_refused_by_name(tmp_path)
     assert "This run was refused" in printed, printed
     assert "carries no subject of 'CHEM1500'" in printed, printed
     assert "'week 3.pdf.txt'" in printed, printed
+
+
+#: §8.7's reset half, part by part, checked with the census instrument
+#: `test_composition_root` already uses rather than with a grep.
+#:
+#: `reset_cutoff` is listed and IS reachable -- `learning_records` calls it on
+#: every read, so the cutoff is honoured the moment one exists. That is the shape
+#: of this gap and the reason it is worth naming: the reading side is wired and
+#: waiting, and the three that would ever WRITE a cutoff, or show a person what
+#: they have taught the product, are wired to nothing.
+RESET_HALF = (
+    ("database_agent.learning", "reset_preferences"),   # the P1 writer
+    ("database_agent.learning", "reset_cutoff"),        # the cutoff every read honours
+    ("review_surface.learning_view", "learning_view"),  # "inspectable"
+    ("review_surface.learning_view", "collect_reset"),  # "resettable"
+)
+
+
+def _census() -> "frozenset[tuple[str, str]]":
+    """`test_composition_root`'s own reachability instrument, by file path.
+
+    By path and not `from tests.integration.test_composition_root import ...`:
+    there is no `tests/__init__.py`, so the dotted form raises ModuleNotFoundError
+    -- and under a bare `xfail` that import error counted as the expected failure.
+    The first draft of the test below "xfailed" for that reason and not for its
+    assertion, which is `84` §5's guard-that-cannot-fail committed while hunting
+    for guards that cannot fail. `raises=AssertionError` on the marker is the
+    other half of the fix: it can now only xfail for the reason it claims.
+    """
+    import importlib.util
+
+    path = Path(__file__).with_name("test_composition_root.py")
+    spec = importlib.util.spec_from_file_location("_census_probe", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module._reachable_from_cli_main()
+
+
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
+    "§8.7's reset half is complete, tested and unreachable from anything a "
+    "person can type: `reset_preferences`, `learning_view` and `collect_reset` "
+    "have no caller in `src/`, and `learning_resets` is never written on a live "
+    "run -- while `reset_cutoff`, the read side, is called on every single "
+    "`learning_records` query and is waiting for a cutoff that can never arrive. `facts/learning.py`'s docstring gives the reason -- "
+    "'still owed to P13's wave' -- and `84` §5.4 retires it: P13 Wave A and all "
+    "fourteen of Wave B have landed. Needs an owner decision on the gesture's "
+    "name and route before a hunk can be written; see "
+    "`scratchpad/learning/CLI-PATCH.txt` HUNK 2."))
+def test_a_person_can_take_back_a_correction_as_well_as_make_one(tmp_path):
+    """`--reject` is one-way. There is no gesture to undo it and none to see it.
+
+    This is the asymmetry, not a missing nicety. §8.7's requirement is quoted
+    inside `collect_reset` itself: learned preferences must be "INSPECTABLE as
+    well as resettable". Today a person can tell the product it is wrong and can
+    never tell it that it was right after all, and cannot see what they have
+    already told it. `--help` names no such option and the report prints no such
+    word after a rejection -- both measured.
+
+    It is inside `test_composition_root`'s count of 235 unreachable mechanisms,
+    which is a number rather than a name; this says which four they are and what
+    a person loses. Asserted with that file's own census instrument so the two
+    cannot disagree.
+    """
+    reachable = _census()
+    unreachable = [f"{module}.{name}" for module, name in RESET_HALF
+                   if (module, name) not in reachable]
+    assert unreachable == [], unreachable
+
+
+def test_the_reset_half_is_wired_to_nothing_and_the_table_stays_empty(tmp_path):
+    """The measurement behind the xfail above, so it rests on a run and not a grep.
+
+    Passes today and is meant to: it records the state a person is actually in.
+    It goes red the moment a reset gesture lands, next to the xfail turning into
+    an XPASS -- two signals for one change, which is what stops this being
+    quietly re-forgotten.
+    """
+    import sqlite3
+
+    corpus = _corpus(tmp_path)
+    _run(corpus)
+    printed = _run(corpus, "--reject", GESTURE)
+
+    # Nothing on the screen tells them the correction can be seen or undone.
+    #
+    # The `Plan database:` line is dropped before scanning, and that is `84` §4's
+    # warning arriving in a new place rather than fastidiousness: pytest names
+    # `tmp_path` after the test function, the report prints the database's full
+    # path, and the first draft of this test found the word "reset" in its OWN
+    # NAME echoed back at it. A test that reads the screen has to read the part
+    # of the screen the product wrote.
+    report = "\n".join(line for line in printed.splitlines()
+                       if not line.startswith("Plan database:"))
+    for word in ("undo", "reset", "take it back", "corrections you"):
+        assert word not in report.lower(), (word, report)
+
+    conn = sqlite3.connect(corpus.parent / "plan.sqlite")
+    resets = conn.execute("SELECT COUNT(*) FROM learning_resets").fetchone()[0]
+    conn.close()
+    assert resets == 0, resets
