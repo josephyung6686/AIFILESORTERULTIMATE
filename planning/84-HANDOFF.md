@@ -136,6 +136,26 @@ fixture**; copy `src/` into a scratchpad instead.
   shipped design — the parts are P1–P13, and "P15" in this repo means the onboarding/questions
   workstream in `src/questions/`.
 - **`83` — model routing.** Three DeepSeek tiers, one per kind of judgement. No silent downgrade.
+  **Amended 2026-09-02 by measurement:** all three model names were wrong and `DeepSeek-R1` does
+  not exist on the API. Corrected in `.env`; all three tiers now return a live probe. Three tiers
+  map onto TWO models, so `logic` shares `deepseek-v4-pro` with `reasoning` — §4's no-silent-
+  downgrade forbids sending grouping and placement to `flash`. `83` §6 has it.
+- **THE MODEL PATH IS PROVEN LIVE**, 2026-09-02, for the first time. Client, routing, three tiers,
+  cloud opt-in and the wire handle key are all wired and measured against the real API with
+  synthetic content. **The only remaining gate is the owner's prompt ratification.**
+- **`81` §14.1's six unhomed gestures — APPROVED, 2026-09-02**, spellings shown verbatim before
+  approval: `exclude_from_packet`, `rename`, `merge`, `split`, `reorder`,
+  `set_refinement_disposition`. The lead first tried to approve these by delegation and
+  `p13-eighteen-actions` REFUSED, correctly, citing §14.1's *"they are not minted by whoever
+  notices the gap"* — and demolished the precedent the lead was reaching for: `80` §2 works
+  because it ADDS NOTHING and is a restriction, and six new members are the opposite shape by that
+  document's own test. **The refusal is the reason this entry says APPROVED rather than
+  ASSUMED.**
+- **`81` §7 — CLOSED, 2026-09-02.** "Creating a custom template" and `create_custom_folder` are
+  TWO gestures, not one. A template is a reusable shape; a folder is one folder.
+- **Q5′ — CLOSED, 2026-09-02.** A canvas gesture DOES travel as a `review_action`: one audit trail
+  explains every change rather than two that need cross-referencing. §14.1's "and §5's canvas" was
+  assuming correctly, but it is now answered rather than assumed. **This also closes `74` §8 Q4.**
 
 **Delegated, not ruled — taken by the lead under the owner's standing "just do it in the best
 interest of the north star". Revisitable; recorded so the next reader knows which kind it is:**
