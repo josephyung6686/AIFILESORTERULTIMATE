@@ -37,26 +37,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
 
-#: The eight tests below describe the report AFTER
-#: `scratchpad/report/CLI-PATCH.txt`'s four hunks are applied to `src/cli.py`,
-#: which belongs to the lead and which this agent may not edit. They were written
-#: first, run red, and then run green against the patched source -- `patchcli.py`
-#: beside the patch reads `src/cli.py`, applies the hunks and imports the result,
-#: so the whole of `tests/test_cli.py` and this file were run against exactly the
-#: text that will be pasted in.
-#:
-#: Strict, and for the reason this repo already uses strict for: eleven sessions
-#: share this suite and eight red tests would be eight false alarms, while eight
-#: XPASSes the moment the hunks land is the unambiguous signal to strip these
-#: markers. **Applying the patch means deleting every `@pytest.mark.xfail(...
-#: PENDING_PATCH)` line in this file, and the identical one on
-#: `tests/test_cli.py::test_a_printed_send_set_command_survives_being_pasted_
-#: into_a_shell`, which those hunks also fix.**
-PENDING_PATCH = (
-    "Describes the report after scratchpad/report/CLI-PATCH.txt's four hunks are "
-    "applied to src/cli.py, which the report agent may not edit. Verified green "
-    "against the patched source by scratchpad/report/patchcli.py. Strict, so the "
-    "suite goes red the day the hunks land and these markers come off with them.")
+#: Eight of these were written before the change they describe and carried a
+#: `strict=True` xfail while `src/cli.py`'s four hunks were waiting on the lead --
+#: eight red tests in a suite eleven sessions share would have been eight false
+#: alarms, and eight XPASSes was the signal that the hunks had landed. They landed
+#: in `d99f501` and the markers came off with them, which is why there are none
+#: here now.
 
 REASON = ("no destination in this tree matched them well enough to decide "
           "without asking you.")
