@@ -170,7 +170,18 @@ whose detector declined still routed on its declared extension and still reached
 _no_reader`. The five-entry table cost nothing for a file that *has* an extension and
 everything for the 1,057 that do not — see `7b25e27`.
 
-### 5.4 A whole document is releasable to a model as one excerpt
+### 5.4 CLOSED 2026-09-03 (`acb75cd`, CR-07). A whole document WAS releasable as one excerpt
+
+**Closed.** `resolve.materialise` now reports the unit length at the observation's own container
+path when the value covers it, and `is_whole_document` refuses it. §2.3's cell and §2.8's field are
+untouched. `92` CR-07 carries the verification and the four things it does not cover — the first of
+which, an observation standing where no unit stands, **§5.5's PDF body work inherits as a hard
+requirement.**
+
+The original finding follows, unedited, because a closed defect read without its cause teaches
+nothing.
+
+### 5.4 (as found) A whole document is releasable to a model as one excerpt
 
 **Open, and the reason `5.5` is not built.** `extractors/structured_text.py` emits the whole
 document as one span-less `body` observation. That is deliberate and its folder-naming half

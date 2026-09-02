@@ -690,7 +690,7 @@ carry an invented value from a model to a person's file without objecting.
 
 ---
 
-## CR-07 — a whole document passes the gate as one span-less excerpt
+## CR-07 — CLOSED 2026-09-03 at `acb75cd`. A whole document passed the gate as one span-less excerpt
 
 Found by `deepen-extraction` while writing `95` §5.4, and **reproduced independently by the lead
 on 2026-09-03** rather than accepted on report:
@@ -725,3 +725,41 @@ container path** — narrower than "span-less", and it belongs in `src/privacy/`
 
 The finder did not build it, correctly: it is a `src/privacy/` decision and the module it lives in
 already reasons carefully about the case it would break.
+
+### CR-07 CLOSED, `acb75cd`, verified independently by the lead
+
+```
+span-less excerpt covering its whole unit:  is_whole_document -> True,  check_item -> REFUSED
+a cell / EXIF field with no unit to cover:                             check_item -> PASSED
+```
+
+Both halves, because the second is the one that would have been missing. The fix is **not** a
+blanket refusal of span-less items: `resolve.materialise` looks up the unit at the observation's
+OWN container path and reports a length only when the value covers it; `is_whole_document` keeps
+`unit_length is None -> False` as its first line, so §2.3's cell and §2.8's field are still decided
+by the line that always decided them. No numeric literal, no threshold, no owner ruling —
+**"a document short enough to send whole" stays unruled because the rule is coverage of a unit and
+not size.**
+
+The existing suite would have caught the wrong fix on its own: the blanket version turns **16 tests
+red across six files, five of which pre-date this work.**
+
+A crash was found on the way: `check_item`'s refusal message read `item.span.start`, which the
+span-less arm does not have, so the refusal would have raised `AttributeError` out of
+`Gate.release` instead of returning `Denied`. **A refusal that crashes is not a refusal.**
+
+**What CR-07's closure does NOT cover**, recorded because a closed finding with unstated edges is
+how the next one gets missed:
+
+1. **A span-less whole document at a path with NO unit.** The refusal is a lookup: an extractor that
+   emitted document prose without writing the matching `text_units` row at the same path reopens
+   this with every test green. No extractor does that today and the premise is PINNED rather than
+   assumed — `test_the_real_extractor_stands_its_document_observation_where_its_unit_stands` drives
+   the real extractor. **`95` §5.5's PDF body work inherits this as a hard requirement**; if it
+   moves the unit, that test goes red.
+2. **Reassembly** — N proper substrings that together cover the document. No policy exists and none
+   was invented.
+3. **`transport.issue`'s `payload` parameter (CR-02)**, which never reaches `check_item` at all.
+4. **The refusal is post-materialisation**: the text is in memory before `Denied` is returned. That
+   is `DECISION_ORDER`'s existing cost, unchanged here, and moving it forward is a separate
+   decision with a storage read in front of every content read.
