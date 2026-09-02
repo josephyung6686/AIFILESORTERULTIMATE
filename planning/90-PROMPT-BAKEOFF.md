@@ -280,11 +280,16 @@ So the honest ranking of what would help, in order:
    >
    > Two further corrections this document owes, from the same work:
    >
-   > - §2.2's *"even a check that compared the value to the glossary could not separate a lift from
-   >   a find"* generalises correctly to the check that was built. Where an enumerated word also
-   >   appears in the cited released text, a lift and a find are byte-identical and both are
-   >   accepted. **The check narrows S16 rather than closing it**, and
-   >   `test_a_lift_and_a_find_stay_indiscriminable_when_the_word_IS_in_the_evidence` pins that.
+   > - **"Closes S16" means S16 as §2 defines it, and that distinction has to be stated or the two
+   >   sentences above and below read as contradicting each other.** §2 builds the case on released
+   >   prose containing none of the 22 words, and every one of those 22 is closed. §2.2's *"even a
+   >   check that compared the value to the glossary could not separate a lift from a find"*
+   >   generalises correctly to the check that was built, and names what is NOT closed: where an
+   >   enumerated word also appears in the cited released text, a lift and a find are byte-identical
+   >   and both are accepted. **So: S16 as §2 defines it is closed; the variant where the word is
+   >   also on the page is not, and §2.2's warning about it stands.**
+   >   `test_a_lift_and_a_find_stay_indiscriminable_when_the_word_IS_in_the_evidence` pins the
+   >   variant.
    > - §6's *"What would change this recommendation"* holds, with one qualification. With the check
    >   landed, S16 is machine-defended and `82` §2's sentence becomes belt-and-braces for it — but
    >   **S1 and S2 stay prompt-only either way**, so the argument for prominence weakens rather than
