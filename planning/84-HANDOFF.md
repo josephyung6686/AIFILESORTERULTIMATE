@@ -137,6 +137,24 @@ fixture**; copy `src/` into a scratchpad instead.
   workstream in `src/questions/`.
 - **`83` — model routing.** Three DeepSeek tiers, one per kind of judgement. No silent downgrade.
 
+**Delegated, not ruled — taken by the lead under the owner's standing "just do it in the best
+interest of the north star". Revisitable; recorded so the next reader knows which kind it is:**
+
+- **P2 stays and gets a driver.** `reachability-sweep` measured ~45 unreachable mechanisms
+  (`eval_harness.*`, seven `stage_output` emitters, `scan_agent.replay.*`,
+  `SnapshotCorpusSource`) dormant on one decision, and asked whether to cut the part. Kept,
+  because the owner's north star IS the design doc and `01` §8.5 specifies replay by name —
+  **deleting a numbered part is the override; keeping it is the default.** What made it
+  essential rather than infrastructure: §8.5's own measurement list asks *"LLM grounding: Did
+  every cited excerpt exist? Did the model return unknown when evidence was insufficient?"*, and
+  CR-06 (`92`) is that question failing unnoticed. The design's instrument for the defect had
+  been sitting unwired while the defect went undetected.
+  **Do not overstate it:** wiring P2 today would NOT have caught CR-06. `_grounding_value`
+  tallies `citations_resolved` and `citations_span_matched`; CR-06's citation passed both — the
+  span was real, it merely did not contain the proposed value. That third question is
+  `b91f6d6`'s `VALUE_NOT_IN_CITED_TEXT`, at the gate. P2 adds seeing it as a RATE across a
+  corpus rather than by accident. `88` §4 is why that sentence is the weaker one.
+
 **Outstanding and BLOCKING, still the owner's:**
 
 1. **Q1, the sizing question** (`65` §2.2, `68` F1). Widen the extractor, narrow the detector, or
@@ -149,6 +167,13 @@ fixture**; copy `src/` into a scratchpad instead.
    owner to ratify**. It is inert until he does. Nothing installs it.
 4. `74` §8 Q3, Q5, Q6, Q7, Q8 — collision suffix format, locked files, batch bound, the fate of an
    unverified cross-volume copy, journal lifetime. All injected-with-no-default until ruled.
+5. **CUT 7 — does P6's read surface exist at all?** `src/facts/read_surface.py`'s own header
+   says *"CUT 7 is unratified and this module is its target (preamble §2, D13)"*, and until
+   2026-09-02 that was the ONLY place the decision was recorded. Found by `reachability-sweep`,
+   which routed it rather than acting — correctly. **Default is KEEP and it is not ratified:**
+   the module is the declared shape for P9, P10, P11, P13, P2 and the review UI, and P13 is in
+   flight. Deleting a declared read surface while its consumer is being built is §5's defect
+   running in reverse.
 
 ## 4. Resume in two commands
 
