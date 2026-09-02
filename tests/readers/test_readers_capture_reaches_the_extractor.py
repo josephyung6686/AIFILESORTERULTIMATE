@@ -51,7 +51,7 @@ def run(readers, path, *, policy=OPEN_POLICY):
                          read_image=readers.read_image,
                          dimension_signal=readers.dimension_signal,
                          filename_pattern=readers.filename_pattern,
-                         now="2026-08-31T00:00:00Z", context_window=0)
+                         now="2026-08-31T00:00:00Z", context_window=0).extraction
 
 
 def slots(result):

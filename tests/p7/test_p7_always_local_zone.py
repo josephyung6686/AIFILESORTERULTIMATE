@@ -438,33 +438,6 @@ def test_a_filename_under_a_metadata_address_would_have_been_released(zone_conn)
     assert released.materialised_items[0].value == "Divorce settlement final.pdf"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "CR-05's second half, OPEN. `extractors/image.py:180` emits every EXIF tag as "
-    "`zone=\"metadata\"` with the tag name as the label, so `image_exif` and `gps` "
-    "-- two more of §8.4's nine -- sit in a releasable zone and a GPS coordinate is "
-    "Released. Unlike the filename it cannot be fixed by re-zoning: `metadata` IS "
-    "the truthful zone for an EXIF tag and `ZONES` has no `exif` member, so adding "
-    "one needs owner approval and a SHAPE_VERSION bump. The structural handle "
-    "exists -- `ExifValue.kind` already carries §2.6's signal name and `SIGNAL_TIER` "
-    "ranks `GPS` -- but carrying it to the gate needs the `SensitivitySignal` "
-    "channel, which `ExtractionResult` does not have and which WR-07 already records "
-    "as a P5 gap. Fixing it means a `sensitivity` field on `extractors/sink.py`'s "
-    "`ExtractionResult`, remapped through `collapsed_index`, plus a "
-    "`record_sensitivity_signals` call site in `orchestrator.py`. That is P5 surface "
-    "this agent does not own, so it is marked rather than guessed at. STRICT: the "
-    "day someone closes it, this turns the suite red and must be deleted."))
-def test_a_gps_coordinate_in_the_metadata_zone_is_refused(zone_conn):
-    file_id, _key = _seed(zone_conn, zone="body", raw_value="a bounded value")
-    key = _labelled_observation(
-        zone_conn, file_id, "hash-gps", zone="metadata", label="GPSLatitude",
-        raw_value="37 deg 46' 29.64\" N", extractor="image.metadata")
-    decision = _gate(zone_conn).release(_request(
-        items=(Excerpt(observation_key=key, span=None, reason="metadata"),),
-        file_id=file_id))
-    assert isinstance(decision, Denied), (
-        "§8.4 puts 'gps' and 'image_exif' in the always-local set")
-
-
 # ================================================================================
 # What an absent zone means, run rather than reasoned about
 # ================================================================================

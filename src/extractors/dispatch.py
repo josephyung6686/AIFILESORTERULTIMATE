@@ -89,6 +89,13 @@ class Dispatched:
     """
     results: tuple[ExtractionResult, ...]
     sensitivity: tuple = ()
+    #: WHICH of `results` the signals index into. Was implicit -- the caller keyed
+    #: them to `results[0]` and nothing said so -- until CR-05b gave the image branch
+    #: a second result: an image that also runs OCR returns two, and a signal raised
+    #: on the image batch had no way to say which. Zero is what the caller already
+    #: assumed, so nothing changes for E3; what changes is that it is now written
+    #: down and checked.
+    sensitivity_target: int = 0
 
     def __post_init__(self) -> None:
         """A signal indexes into ONE batch, so it may only ride with one.
@@ -101,15 +108,18 @@ class Dispatched:
         FILESYSTEM run's keys for a day, so §2.9's "addresses and message content as
         potentially sensitive" was recorded against a filename.
 
-        Only E3 raises signals and it returns exactly one result, so this holds today
-        and the assertion is here to make a future two-result emitter fail loudly
-        rather than silently mis-key a privacy signal.
+        E3 was the only emitter and returned exactly one result, so a bare "exactly
+        one result" assertion held. E5 is the second emitter and does NOT: §2.7 runs
+        OCR after an image with no usable metadata, and that branch returns two. So
+        the invariant is now that the signals NAME their batch, which is the thing
+        the old assertion was protecting by making the ambiguous case impossible.
         """
-        if self.sensitivity and len(self.results) != 1:
+        if self.sensitivity and not 0 <= self.sensitivity_target < len(self.results):
             raise ValueError(
-                f"{len(self.results)} results carry {len(self.sensitivity)} "
-                "sensitivity signals; a signal's observation_index is a position in "
-                "ONE batch and cannot name which of several it counts in")
+                f"{len(self.sensitivity)} sensitivity signals name result "
+                f"{self.sensitivity_target} of {len(self.results)}; a signal's "
+                "observation_index is a position in ONE batch and the batch it "
+                "counts in has to exist")
 
 
 def _ocr(*, file_row, path, policy, readers, now,
@@ -193,15 +203,21 @@ def extract_initial(*, file_row: Mapping[str, Any], decision, path: Path, policy
             recognize_markers=readers.recognize_markers, **common),))
 
     if decision.extractor_name == image.EXTRACTOR_NAME:
-        first = extract_image(read_image=readers.read_image,
-                              dimension_signal=readers.dimension_signal,
-                              filename_pattern=readers.filename_pattern, **common)
+        produced = extract_image(read_image=readers.read_image,
+                                 dimension_signal=readers.dimension_signal,
+                                 filename_pattern=readers.filename_pattern, **common)
+        first = produced.extraction
         # §2.7's trigger: no usable text AND no usable metadata.
         if image_ocr_decision(result=first).run_ocr:
             second = _ocr(readers=readers, **common)
             if second is not None:
-                return Dispatched((first, second))
-        return Dispatched((first,))
+                # The signals index into the IMAGE batch, which is result 0. An
+                # image with no usable metadata rarely carries EXIF, so this pairing
+                # is uncommon -- and dropping the signals here rather than naming
+                # the batch is exactly how a GPS tag would go unmarked on the one
+                # file that had both.
+                return Dispatched((first, second), produced.sensitivity, 0)
+        return Dispatched((first,), produced.sensitivity, 0)
 
     if decision.extractor_name == structured_text.EXTRACTOR_NAME:
         # The half-pick. By SOURCE TYPE, because both halves answer to this name.

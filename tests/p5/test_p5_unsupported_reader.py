@@ -74,7 +74,7 @@ def test_an_image_with_no_reader_is_unsupported_not_failed(file_row, policy):
     result = extract_image(file_row=file_row, path=_path(file_row), policy=policy,
                            read_image=NONE_READER, dimension_signal=lambda w, h: None,
                            filename_pattern=lambda n: None,
-                           now=NOW, context_window=40)
+                           now=NOW, context_window=40).extraction
     assert result.run["completeness"] == "unsupported"
 
 

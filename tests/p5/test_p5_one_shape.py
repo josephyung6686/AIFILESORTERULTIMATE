@@ -107,7 +107,7 @@ def producers(*, context_window: int = 16):
             perceptual_hash="phash:1",
             exif=(ExifValue(name="Make", value="Apple", kind="camera EXIF"),)),
         dimension_signal=lambda width, height: None,
-        filename_pattern=lambda name: None, **common)
+        filename_pattern=lambda name: None, **common).extraction
 
     yield "ocr", lambda: extract_ocr(
         ocr_engine=lambda target, *, config: OcrOutput(
@@ -312,7 +312,7 @@ def duplicating_producers():
             exif=(ExifValue(name="Make", value="Apple", kind="camera EXIF"),
                   ExifValue(name="Model", value="Apple", kind="camera EXIF"))),
         dimension_signal=lambda width, height: None,
-        filename_pattern=lambda name: None, **common)
+        filename_pattern=lambda name: None, **common).extraction
 
     yield "ocr", lambda: extract_ocr(
         ocr_engine=lambda target, *, config: OcrOutput(

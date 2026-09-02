@@ -308,7 +308,8 @@ def _extract_one(*, file_row, path, decision, policy, readers, now, context_wind
             readers=readers, now=now, context_window=context_window,
             no_usable_facts=no_usable_facts,
             transcription_authorized=transcription_authorized)
-        return dispatched.results, dispatched.sensitivity
+        return (dispatched.results, dispatched.sensitivity,
+                dispatched.sensitivity_target)
     except (ProtectedContainerRefused, DatalessRefused, ContractViolation):
         # The refusals are the caller's to handle per 11 §4b/§5. A ContractViolation
         # is not about this file at all, so recording it as the file's failure would
@@ -316,11 +317,14 @@ def _extract_one(*, file_row, path, decision, policy, readers, now, context_wind
         # to surface.
         raise
     except Exception as error:                       # noqa: BLE001 -- see docstring
+        # No signals on a failed run -- there are no observations to index into --
+        # so the target is 0 and names nothing, which `Dispatched.__post_init__`
+        # only checks when signals are present.
         return (failed_result(
             file_row=file_row, error=error,
             extractor_name=decision.extractor_name,
             extractor_version=_failed_version(decision, versions),
-            source_type=decision.source_type, now=now),), ()
+            source_type=decision.source_type, now=now),), (), 0
 
 
 def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
@@ -396,7 +400,7 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
         try:
             results = [extract_filesystem(file_row=file_row, path=path, policy=policy,
                                           now=stamp, context_window=context_window)]
-            routed, signals = _extract_one(
+            routed, signals, signal_index = _extract_one(
                 file_row=file_row, path=path, decision=decision, policy=policy,
                 readers=readers, now=stamp, context_window=context_window,
                 no_usable_facts=no_usable_facts,
@@ -407,7 +411,11 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
             # by identity because `results` is filesystem-first and the filesystem
             # run always has observations -- the filename is one -- so a "first
             # result with observations" test matched the wrong run every time.
-            signal_target = routed[0] if routed else None
+            #
+            # WHICH routed batch is `Dispatched.sensitivity_target`, which used to be
+            # an unwritten `[0]`. E5 became a second emitter with a two-result branch
+            # (CR-05b), so the batch is now named rather than assumed.
+            signal_target = routed[signal_index] if routed else None
         except ProtectedContainerRefused:
             # 11 §4b, ratified 2026-08-20. NOTHING: no run row, no observation, no
             # status write for anything inside. `continue` the outer loop and never
@@ -572,6 +580,7 @@ def run_p1_p7(
                     transcription_authorized=transcription_authorized)
                 routed = list(dispatched.results)
                 signals = dispatched.sensitivity
+                signal_index = dispatched.sensitivity_target
             except (ProtectedContainerRefused, DatalessRefused, ContractViolation):
                 raise
             except Exception as error:                 # noqa: BLE001
@@ -581,7 +590,8 @@ def run_p1_p7(
                     extractor_version=_failed_version(decision, versions),
                     source_type=decision.source_type, now=stamp)]
                 signals = ()
-            signal_target = routed[0] if routed else None
+                signal_index = 0
+            signal_target = routed[signal_index] if routed else None
             results.extend(routed)
             for result in routed:
                 tier = result.run["analysis_tier"]

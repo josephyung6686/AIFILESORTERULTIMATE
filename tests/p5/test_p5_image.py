@@ -42,12 +42,16 @@ def a_photo_heic() -> ImageRecord:
 
 def run_it(record=None, *, dimension_signal=NO_DIMENSION_SIGNAL,
            filename_pattern=NO_PATTERN, file_row=None):
+    # `.extraction`: E5 became a signal emitter against CR-05b, so it returns an
+    # `ImageResult` -- the batch plus §8.4's always-local signals -- the way
+    # `long_tail` already did. `tests/p5/test_p5_image_sensitivity.py` is the half of
+    # that this file does not cover.
     return extract_image(
         file_row=file_row or FILE_ROW, path=Path("/corpus/IMG_4821.heic"),
         policy=OPEN_POLICY,
         read_image=lambda target: record if record is not None else a_photo_heic(),
         dimension_signal=dimension_signal, filename_pattern=filename_pattern,
-        now=FIXED_CLOCK, context_window=20)
+        now=FIXED_CLOCK, context_window=20).extraction
 
 
 def slots(rows):

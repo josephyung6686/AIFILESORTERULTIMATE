@@ -219,7 +219,7 @@ def _real_image(**over):
                             is_dataless=lambda p: False),
         read_image=lambda p: record,
         dimension_signal=over.pop("dimension_signal", lambda w, h: None),
-        filename_pattern=lambda n: None, now=FIXED_CLOCK, context_window=40)
+        filename_pattern=lambda n: None, now=FIXED_CLOCK, context_window=40).extraction
 
 
 def test_a_real_opaque_screenshot_reaches_ocr():

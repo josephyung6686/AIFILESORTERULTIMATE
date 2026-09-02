@@ -31,6 +31,7 @@ from extractors.safety import SafetyPolicy, admit
 from extractors.shape import (
     location, normalize_mechanical, observation, run, segment,
 )
+from extractors.long_tail import POTENTIALLY_SENSITIVE, SensitivitySignal
 from extractors.sink import ExtractionResult
 
 VERSION = "0.1.0"
@@ -69,6 +70,12 @@ DIMENSIONS_FIELD = "pixel dimensions"
 PERCEPTUAL_HASH_FIELD = "perceptual hash"
 FILENAME_PATTERN_FIELD = "filename pattern"
 
+#: Why every EXIF tag is signalled, recorded on the row. `00` §8.4's own words, so
+#: the reason travels with the signal instead of living in a commit message.
+EXIF_BASIS: str = (
+    "§8.4 places image EXIF and GPS in the always-local set; the zone a tag is "
+    "emitted into is `metadata`, which is releasable and truthful for it")
+
 
 class UnknownSignal(Exception):
     """A signal name section 2.6's hierarchy does not contain."""
@@ -106,6 +113,44 @@ class ImageRecord:
     software: Mapping[str, str] = dataclass_field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class ImageResult:
+    """The P4 batch, and §8.4's always-local signals raised while building it.
+
+    Two values rather than one, for the reason `long_tail.LongTailResult` gives: P4
+    conformance rule 6 forbids an extractor-private field on an observation, and the
+    signal is per located value so it cannot ride on the run either.
+
+    ADDED 2026-09-02 against the security review's CR-05b. Every EXIF tag is emitted
+    into `zone="metadata"` -- which is the truthful zone for one, so P7's always-local
+    ZONE rule cannot reach it, and a GPS coordinate came back `Released` from the real
+    gate. `ZONES` has no `exif` member to move them to and adding one needs owner
+    approval and a `SHAPE_VERSION` bump; the signal is the channel the design already
+    has for "this located value is sensitive", and it is the one WR-07 records as
+    missing for every format but E3's.
+    """
+
+    extraction: ExtractionResult
+    sensitivity: tuple[SensitivitySignal, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Every signal indexes into the batch beside it, checked HERE.
+
+        The same invariant `LongTailResult` states, for the same reason: this is the
+        only place a batch position and the batch it indexes into exist side by side.
+        By the time `record_sensitivity_signals` sees them a database is open, and a
+        position past the end raises `IndexError`, which nothing catches.
+        """
+        held = len(self.extraction.observations)
+        beyond = [s.observation_index for s in self.sensitivity
+                  if not 0 <= s.observation_index < held]
+        if beyond:
+            raise ValueError(
+                f"sensitivity signals at batch positions {beyond} index outside a "
+                f"batch of {held}; `observation_index` is a position in THIS "
+                "extraction's observations (D10 collapses and renumbers them)")
+
+
 def _tier(signal: str | None) -> int | None:
     if signal is None:
         return None
@@ -120,7 +165,7 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
                   read_image: Callable[[Path], ImageRecord],
                   dimension_signal: Callable[[int, int], str | None],
                   filename_pattern: Callable[[str], str | None],
-                  now: str, context_window: int) -> ExtractionResult:
+                  now: str, context_window: int) -> ImageResult:
     """Section 2.6's fields, as P4 records, with the hierarchy on the record.
 
     `context_window` builds no context here: every value is a whole metadata slot
@@ -136,13 +181,22 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
         # §2.4: no reader for this format in this deployment. `unsupported`, never
         # `failed` -- the bytes were never looked at, so a `failed` run would report
         # a missing library as a corrupt file.
-        return unsupported_result(
+        # Wrapped, so this function has ONE return type. A bare `ExtractionResult`
+        # on the early path and an `ImageResult` on the late one would make every
+        # caller test which it got, and the caller that forgot would drop §8.4's
+        # signals on the path that has them.
+        return ImageResult(extraction=unsupported_result(
             file_row=file_row, extractor_name=EXTRACTOR_NAME,
             extractor_version=VERSION, source_type=SOURCE_TYPE,
-            analysis_tier=ANALYSIS_TIER, now=now)
+            analysis_tier=ANALYSIS_TIER, now=now))
 
 
     observations: list[Mapping[str, Any]] = []
+    #: Positions in the SUBMITTED list, remapped through `collapsed_index` below.
+    #: Recorded rather than recomputed from the finished batch: after D10 there is no
+    #: way to tell an EXIF tag from any other `metadata` row, which is the whole
+    #: reason P7 could not refuse one.
+    exif_positions: list[int] = []
 
     def emit(*, zone, raw, label, reliability, signal=None):
         observations.append(observation(
@@ -177,6 +231,13 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
     for tag in record.exif:
         if not tag.value:
             continue                    # presence only; an absence is never a row
+        # §8.4 puts `image_exif` in the always-local nine, and `record.exif` IS the
+        # EXIF tags -- so the position is noted for EVERY one, not for the ranked
+        # kinds only. `gps` is a second member of the nine and arrives inside this
+        # same loop, which is why keying on `kind` would have been the narrower and
+        # wrong rule. No tag-name list is needed anywhere: the reader classifies and
+        # P5 places, exactly as `ExifValue`'s docstring says.
+        exif_positions.append(len(observations))
         emit(zone="metadata", raw=tag.value, label=tag.name, reliability="direct",
              signal=tag.kind)
 
@@ -197,7 +258,7 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
         # this degrades to the coarser address (P4 segment-kind rule 4).
         emit(zone="filename", raw=matched, label=None, reliability="possible")
 
-    return ExtractionResult(
+    extraction = ExtractionResult(
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
                 extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
@@ -208,3 +269,28 @@ def extract_image(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPoli
                 observation_count=len(observations), started_at=now, finished_at=now),
         observations=tuple(observations),
     )
+
+    # D10 collapsed and renumbered, so a submitted position is mapped through before
+    # it leaves this function -- after this point nothing remembers what the
+    # submitted list looked like. The identical step `long_tail` takes, and for the
+    # identical reason.
+    #
+    # Two tags can land on one survivor: `DateTime` and `DateTimeOriginal` agree on
+    # almost every photo, and once collapsed they ARE one located value. One located
+    # value gets one row -- `extraction_sensitivity_signal` is UNIQUE on (run_id,
+    # observation_key) -- so the first is kept and the rest dropped rather than
+    # written. A tag can also collapse onto an EARLIER non-EXIF row carrying the same
+    # string, and then that row is the one signalled: it is now the row that carries
+    # the EXIF value, and D10's rule is one row per located value.
+    seen: set[int] = set()
+    signals: list[SensitivitySignal] = []
+    for position in exif_positions:
+        moved = extraction.collapsed_index[position]
+        if moved in seen:
+            continue
+        seen.add(moved)
+        signals.append(SensitivitySignal(
+            observation_index=moved, signal=POTENTIALLY_SENSITIVE,
+            basis=EXIF_BASIS))
+
+    return ImageResult(extraction=extraction, sensitivity=tuple(signals))
