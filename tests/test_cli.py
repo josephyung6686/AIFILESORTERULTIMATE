@@ -1710,24 +1710,62 @@ def test_a_stronger_fact_about_another_field_is_not_a_contradiction():
     assert cli.contradicts_stronger(proposal, row) is False
 
 
-def test_a_printed_answer_command_survives_being_pasted_into_a_shell(tmp_path):
+#: The shell's own operators, which `shlex.split` does not know are operators.
+SHELL_OPERATORS: frozenset[str] = frozenset({">", "<", ">>", "|", "||", "&", "&&", ";"})
+
+
+def shell_tokens(line: str) -> list[str]:
+    """One line, split THE WAY A SHELL SPLITS IT -- operators and all.
+
+    `punctuation_chars=True` is the whole of this function and plain
+    `shlex.split` is the trap it exists to avoid: `shlex.split("q=a>b")` returns
+    one happy token, because the default lexer has no opinion about redirects.
+    A guard written on it passes on the exact input `c17c76a` was about.
+
+    `posix=True` so quotes are consumed the way a shell consumes them, which is
+    what makes a correctly quoted line come back as ONE argument rather than as
+    a token still wearing its quotes.
+    """
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    return list(lexer)
+
+
+@pytest.mark.parametrize("label", ["Legal Matters", "Coursework"])
+def test_a_printed_answer_command_survives_being_pasted_into_a_shell(tmp_path, label):
     """The report tells the person exactly what to type. It must be typable.
 
-    `--label` is the person's own words, and it becomes the SCOPE of every
-    branch question: a person who files under "Legal Matters" gets a question
-    whose scope is `branch:Legal Matters`. Printed bare, the line the report
-    offers is `--answer branch:Legal Matters=subject`, which a shell splits at
-    the space into two arguments -- so the one instruction the report gives is
-    an instruction that does not work, and it fails in a way that looks like the
-    person's mistake.
+    TWO HAZARDS, and this ran on one of them for a long time.
 
-    `shlex.split` is the test rather than an eyeball, because "it looks quoted"
-    is exactly the judgement that has been wrong here before.
+    The first is the SPACE. `--label` is the person's own words and it becomes
+    the SCOPE of every branch question, so a person who files under "Legal
+    Matters" gets `--answer branch:Legal Matters=subject`, which a shell splits
+    at the space into two arguments -- one instruction, and it does not work, and
+    it fails looking like the person's mistake.
+
+    The second is the REDIRECT, and it is the one this test could not see. A
+    nesting option id is `school>term>subject>work_type`, and `>` is the shell's
+    output redirect: pasting that line unquoted does not fail, it silently writes
+    files called `term`, `subject` and `work_type` into whatever directory the
+    person happened to be in. `c17c76a` fixed that in `cli._typable`; this test
+    was still measuring only the space, because its one corpus used a label that
+    HAS a space and the louder hazard masked the quieter one.
+
+    So it runs twice. `Legal Matters` fires the space with the redirect present;
+    `Coursework` has no space at all, which leaves the redirect alone and
+    unmasked. One fixture cannot tell a line that survives a shell from one that
+    merely survives `shlex.split`, which is exactly how this got written.
+
+    And the assertion had to change with the lexer. `"=" in tokens[1]` passes on
+    the broken line too: unquoted, `branch:Coursework=school>term>...` lexes to
+    `branch:Coursework=school` -- which still contains an `=` -- followed by a
+    `>` operator. What is actually being asserted is that no operator survives
+    into the command at all.
     """
     corpus = _two_shape_corpus(tmp_path)
     printed = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
-              "--label", "Legal Matters", "--user", "jy",
+              "--label", label, "--user", "jy",
               "--database", str(tmp_path / "plan.sqlite")], out=printed)
     report = printed.getvalue()
 
@@ -1737,11 +1775,16 @@ def test_a_printed_answer_command_survives_being_pasted_into_a_shell(tmp_path):
     for line in offered:
         # The report prints the command and then a description after it, so only
         # the command's own two tokens are under test.
-        tokens = shlex.split(line)
+        tokens = shell_tokens(line)
         assert tokens[0] == "--answer", line
         assert "=" in tokens[1], (
             f"{line!r} splits into {tokens[:2]!r}: pasting it would pass "
             f"{tokens[1]!r} to --answer and leave the rest as stray arguments")
+        stray = SHELL_OPERATORS & set(tokens)
+        assert not stray, (
+            f"{line!r} hands the shell {sorted(stray)}, which redirects or pipes "
+            f"instead of running the command. It does not fail: pasting it writes "
+            f"a file named after whatever followed. Tokens: {tokens!r}")
 
 
 def test_a_skipped_question_can_still_be_found_afterwards(tmp_path):
@@ -2550,7 +2593,12 @@ def test_a_printed_send_set_command_survives_being_pasted_into_a_shell(tmp_path)
         for line in offered:
             command = line[line.index("--send-set"):]
             try:
-                tokens = shlex.split(command)
+                # `shell_tokens` and not `shlex.split`, for the reason that
+                # function's own docstring gives: the default lexer has no
+                # opinion about `>`, so a redirect in a residual area's name
+                # would come back as one happy token and this guard would pass
+                # on a line that writes a file instead of filing a set.
+                tokens = shell_tokens(command)
             except ValueError as unbalanced:
                 raise AssertionError(
                     f"the report offers {command!r}, which a shell cannot "
