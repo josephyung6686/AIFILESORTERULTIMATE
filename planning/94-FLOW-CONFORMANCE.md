@@ -717,3 +717,47 @@ stays unresolved. **The only option it offers is one it has already computed to 
 this corpus, and it offers it anyway without saying so.** That is a second defect beside the
 first, and it is the one a person actually meets: `84` §6 — a screen that tells a person what to
 type has to be true, and an option predicted to resolve nothing is not an offer.
+
+### F20, resolved 2026-09-03 — and there IS a route, three runs long
+
+`fix-f1-lockout` re-measured with a full flag matrix, fresh directory and database per cell,
+against `bb5995b~1` and HEAD. Its earlier without-passport result was a report omission, not a
+disagreement: every run in its script carried `--residual`, and the without-passport run also
+carried `--send-set`, which its working notes had and its report dropped. **F20 stands.**
+
+```
+                                      PRE-FIX          POST-FIX
+WITH passport (5 files)
+  a) --freeze only                    nothing          3 -> Coursework/PHYS1401
+  b) --residual --freeze              nothing          3 -> Coursework/PHYS1401
+  c) --residual --send-set --freeze   nothing          3 -> Coursework/PHYS1401
+WITHOUT passport (4 files)
+  a) --freeze only                    nothing          nothing
+  b) --residual --freeze              nothing          nothing
+  c) --residual --send-set --freeze   3 -> Review Later 3 -> Review Later
+```
+
+**Row b is what settles it: `--residual` alone changes nothing.** It creates the destination;
+`--send-set` is the only gesture in the matrix that files anything into a corpus with no subject
+node. Confirmed independently on the three-file single-subject corpus — the exact command the
+screen prints freezes all three into `Coursework/Review Later`.
+
+**So F20 is not a dead end. It is a three-run maze, and each screen reveals only the next step.**
+
+1. A plain run says *"This plan has nowhere to put them yet: enable an area with `--residual`"*.
+   It does **not** mention `--send-set`, measured: `"--send-set" in output` is `False`.
+2. A run with `--residual` still freezes nothing — and now prints `--send-set 'Not yet
+   placed=Review Later'`.
+3. A run with both files all three.
+
+**Three invocations to file a folder of one course's material, with the first screen giving no
+sign there are three.** Each individual sentence is true, which is why nothing here trips `84`
+§6 — and a person is still walked into two dead ends before the product tells them the whole
+route. That is the F20 defect as a person actually meets it, and it is separable from the
+placement cause: even once a subject node gets built, the residual path stays the answer for
+every corpus that genuinely has no destination, so the sequencing is worth fixing on its own.
+
+Also corrected here: `fix-f1-lockout` withdrew its "causality proven both directions" claim, and
+`94` F1's original reproduction shares the weakness. The clean control is the COLUMN — same
+corpus, same command, before and after the fix — not the row, which varies corpus and flags at
+once. The committed integration test asserts the column.
