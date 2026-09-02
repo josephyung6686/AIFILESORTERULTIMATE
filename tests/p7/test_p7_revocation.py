@@ -53,13 +53,18 @@ RETRACTION_LIMIT = (
     "sent to Acme, listed above."
 )
 
-#: The thirteen tables that already refused a delete before P7 created a table.
+#: The fourteen tables that already refused a delete before P7 created a table.
 #: P1's `events`, P4's two, P5's `extraction_runs`, P3's `exclusion_verdicts`, and
-#: P2's eight `bundle_*`. Counted from the substrate rather than remembered.
+#: P2's nine `bundle_*`. Counted from the substrate rather than remembered.
+#:
+#: `bundle_recording` is the ninth, added with EVAL_SCHEMA_VERSION 2: §8.5's frozen
+#: corpus snapshot and the name a recording is called by. It carries the same three
+#: seal triggers every other bundle child does, which is why it belongs here.
 SUBSTRATE_GUARDED: frozenset[str] = frozenset({
     "events", "evidence", "text_units", "extraction_runs", "exclusion_verdicts",
     "bundle_accepted_group", "bundle_expectation", "bundle_extraction_output",
     "bundle_extraction_run", "bundle_file_entry", "bundle_learning_record",
+    "bundle_recording",
     "bundle_manifest", "bundle_text_unit",
 })
 
@@ -438,17 +443,21 @@ def _delete_guarded(conn) -> set[str]:
         if "BEFORE DELETE" in (row["sql"] or "")}
 
 
-def test_thirteen_substrate_tables_already_refuse_a_delete(p7_conn):
+def test_fourteen_substrate_tables_already_refuse_a_delete(p7_conn):
     # The substrate D3 lands on top of, counted rather than remembered: events,
-    # evidence, text_units, extraction_runs, exclusion_verdicts and P2's eight
+    # evidence, text_units, extraction_runs, exclusion_verdicts and P2's nine
     # bundle_* tables. "Deletion later is always available; un-deletion never is" is a
     # posture the schema already holds.
+    #
+    # Nine since `bundle_recording` (EVAL_SCHEMA_VERSION 2): §8.5's frozen corpus
+    # snapshot and the name a recording is called by, sealed on the same three
+    # triggers as every other bundle child.
     from eval_harness.store import create_eval_schema
     from scan_agent.schema import create_scan_schema
     create_scan_schema(p7_conn)
     create_eval_schema(p7_conn)
     guarded = _delete_guarded(p7_conn)
-    assert len(SUBSTRATE_GUARDED) == 13
+    assert len(SUBSTRATE_GUARDED) == 14
     assert SUBSTRATE_GUARDED <= guarded
 
 
@@ -462,7 +471,7 @@ def test_the_only_additions_are_p7s_own_two_supersede_bearing_tables(p7_conn):
     create_scan_schema(p7_conn)
     create_eval_schema(p7_conn)
     assert _delete_guarded(p7_conn) == SUBSTRATE_GUARDED | P7_GUARDED
-    assert len(SUBSTRATE_GUARDED | P7_GUARDED) == 15
+    assert len(SUBSTRATE_GUARDED | P7_GUARDED) == 16
 
 
 def test_the_release_ledger_takes_no_before_delete_trigger(p7_conn):
