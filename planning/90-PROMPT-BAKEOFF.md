@@ -313,7 +313,12 @@ proved its accept path with a claim that proposed the text P7's gate had redacte
 
 ---
 
-## 6. Recommendation: C3. The deciding factor is placement, not volume
+## 6. Recommendation: **superseded by §6.1 — the answer is now C2.** Original text below
+
+*Written before `value_grounding` shipped. Kept unedited because §6.1 is only legible
+against it, and because the prediction it makes is the thing §6.1 has to answer.*
+
+### 6.0 C3. The deciding factor is placement, not volume
 
 **Recommended: C3.** With the caveat that the recommendation rests on an argument, because §1 says
 no score is available, and the argument is this:
@@ -344,6 +349,46 @@ failure class with the system helping, so the same argument applies with more fo
 answer: the machine would then defend S16, the sentence would become belt-and-braces like the twelve
 machine-defended cases, and `82` §6.7's argument for the shortest ratifiable text would win
 unopposed. **The order matters more than the choice.**
+
+### 6.1 Revised 2026-09-02, after check 1 landed: **C2, not C3**
+
+§6 was written before `llm_harness.value_grounding` existed. It has since shipped, and §5's own
+sentence — *"If check 1 in §5 is written first, C0 becomes the right answer"* — has to be honoured
+rather than quoted. Honouring it does not produce C0. It produces **C2**, and this section says why
+the prediction was half right.
+
+**What the check did to each candidate's job.** Both deltas are aimed at the glossary sentence, and
+that sentence had three instructions in it. Two are now machine-backed:
+
+| the instruction | before | now |
+|---|---|---|
+| do not **cite** the glossary as a span | machine (`CITATION_SPAN_MISMATCH`) | unchanged |
+| do not **lift a value** from it | prompt-only, 22 of 22 accepted | **machine** (`VALUE_NOT_IN_CITED_TEXT`) — except where the word is also in the cited text |
+| do **use** it, to name the right key | prompt-only | prompt-only, and untouched by any check |
+
+**So C1's case weakened and C2's did not.** C1's rule 12 is entirely about the glossary hazard, and
+the machine now covers most of that hazard's range; a twelfth rule pointed at a mostly-defended case
+is exactly what `82` §7.4 warns about — more explanation inviting more consideration, each considered
+field an INSERT. **C1 and C3 are no longer recommended.**
+
+C2's main argument was never the hazard. It is `82` §7.1's **doubt 2**: whether *"nothing written in
+it may be quoted"* invites a model to treat the meanings as untrusted and decline, handing back the
+S5 coverage the owner's ruling was made to buy. That risk is about **coverage**, and no check touches
+coverage. **The check inverted the asymmetry**: over-deterring glossary use costs coverage that
+nothing recovers, while under-deterring it now costs a lift the machine catches unless the word
+happens to be on the page. C2 is 60 bytes, adds no policy, and separates "use it" from "do not lift
+from it" — which is the shape the seam now actually has.
+
+**And C0 is still defensible.** It is 60 bytes shorter, and `82` §6.7's argument for ratifying the
+shortest text that satisfies the requirements is untouched. What it keeps is a sentence whose leading
+clause restates something the machine enforces twice over, while the clause carrying its one
+remaining prompt-only job sits subordinate to it. **That is a real difference and it is a small one.**
+C2 over C0 is a close call, the owner should know it is close, and either is ratifiable.
+
+**What did not change.** S1 and S2 are prompt-only exactly as before — §6's argument for prominence
+weakens, it does not disappear. R22's §6.1 in `76` records that S2 is not closeable by any rule built
+on characters, so the two-moves lines and rule 7 are load-bearing forever, in every candidate. None
+of the four differs in a word of them.
 
 ---
 
