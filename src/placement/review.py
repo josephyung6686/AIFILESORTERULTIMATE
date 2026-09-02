@@ -42,9 +42,13 @@ from placement.vocabulary import (
 )
 
 #: P13 SPEC:294 -- the surfaces whose actions route to P11. Imported, not
-#: re-spelled: `placement/vocabulary.py` is the one home for a value P13 owns and
-#: has not yet published, and two copies of one vocabulary is how a surface P13
-#: renames becomes a surface P11 silently refuses.
+#: re-spelled, and two copies of one vocabulary is how a surface P13 renames
+#: becomes a surface P11 silently refuses.
+#:
+#: This used to say `placement/vocabulary.py` was "the one home for a value P13
+#: owns and **has not yet published**". P13 has published, so that file now
+#: carries P13's objects rather than holding a second home for them (`81` §14.3's
+#: Q2'); the import here is unchanged and is now one hop from the owner.
 P11_SURFACES: tuple[str, ...] = REVIEW_SURFACES
 P11_ACTIONS: tuple[str, ...] = REVIEW_ACTIONS
 

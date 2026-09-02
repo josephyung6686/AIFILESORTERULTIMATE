@@ -38,6 +38,27 @@ from llm_harness.vocabulary import (
     WEAK,
 )
 from privacy.vocabulary import HANDLING_CLASSES
+#: P13's review-action vocabulary, carried verbatim (`81` §14, MINOR 6/7). Aliased
+#: on import so the local names below are visibly BOUND to P13's objects rather
+#: than shadowing them, and so `from placement.vocabulary import ACTION_ACCEPT`
+#: keeps working for the eleven call sites in `placement/review.py`.
+from review_surface.vocabulary import (
+    ACTION_ACCEPT as _P13_ACCEPT,
+    ACTION_ACCEPT_BULK as _P13_ACCEPT_BULK,
+    ACTION_CHANGE_DESTINATION as _P13_CHANGE_DESTINATION,
+    ACTION_CREATE_CUSTOM_FOLDER as _P13_CREATE_CUSTOM_FOLDER,
+    ACTION_DEFER as _P13_DEFER,
+    ACTION_DISABLE_SUGGESTION_TYPE as _P13_DISABLE_SUGGESTION_TYPE,
+    ACTION_EDIT_RECOMMENDATION as _P13_EDIT_RECOMMENDATION,
+    ACTION_LEAVE_UNTOUCHED as _P13_LEAVE_UNTOUCHED,
+    ACTION_MARK_PRIVATE as _P13_MARK_PRIVATE,
+    ACTION_REJECT as _P13_REJECT,
+    ACTION_RETURN_TO_ACCEPTED_GROUP as _P13_RETURN_TO_ACCEPTED_GROUP,
+    SURFACE_GROUP_PLAN as _P13_SURFACE_GROUP_PLAN,
+    SURFACE_PLACEMENT as _P13_SURFACE_PLACEMENT,
+    SURFACE_RESIDUAL_FILE as _P13_SURFACE_RESIDUAL_FILE,
+    SURFACE_RESIDUAL_SET as _P13_SURFACE_RESIDUAL_SET,
+)
 # P10's node vocabulary, aliased on import. Four of its names collide with a P11
 # axis -- `RESIDUAL`, `PROTECTED`, `LEAVE_IN_PLACE` and `EXISTING` all mean
 # something else here -- so each arrives under a `P10_` name and is rebound below
@@ -281,15 +302,27 @@ assert POLARITY_REJECT == REJECT
 
 # --- P13's review action: the surfaces and actions P13 routes to P11 --------------
 #
-# P13 is specification only -- its three event types are registered and no producer
-# exists -- so these are spelled here from P13 SPEC:264-294 and this module is
-# their one home until P13 publishes them, exactly as P10's node vocabulary is
-# above. `placement/review.py` imports them and spells none.
+# This block used to read: *"P13 is specification only ... so these are spelled here
+# from P13 SPEC:264-294 and this module is their one home until P13 publishes them,
+# exactly as P10's node vocabulary is above."* That was step 2 of the same five-step
+# lifecycle this file already ran to completion for P10's node vocabulary two hundred
+# lines above -- spell it locally, WITH A COMMENT SAYING IT WILL BECOME A RE-EXPORT,
+# then re-export the day the owner publishes.
+#
+# **P13 published on 2026-08-30 (`95d0ee5`), so this is step 4** (`81` §13.1's Q2',
+# ruled housekeeping at §14.3: it removes a second home rather than adding a member,
+# and a restriction is recordable without a fresh ratification round). The values
+# agreed the whole time. They agreed the way `scan_state` agreed until it did not,
+# and this file's own argument against itself is at :130-133 -- *"A tuple that merely
+# agrees is one P10 edit away from disagreeing."*
+#
+# These are P13's OBJECTS now, not strings that match P13's. `placement/review.py`
+# imports them from here and spells none, which is unchanged.
 
-SURFACE_PLACEMENT: str = "placement"
-SURFACE_GROUP_PLAN: str = "group_plan"
-SURFACE_RESIDUAL_SET: str = "residual_set"
-SURFACE_RESIDUAL_FILE: str = "residual_file"
+SURFACE_PLACEMENT: str = _P13_SURFACE_PLACEMENT
+SURFACE_GROUP_PLAN: str = _P13_SURFACE_GROUP_PLAN
+SURFACE_RESIDUAL_SET: str = _P13_SURFACE_RESIDUAL_SET
+SURFACE_RESIDUAL_FILE: str = _P13_SURFACE_RESIDUAL_FILE
 
 #: P13 SPEC:294's four. A fifth would be P13 routing a surface P11 does not own.
 REVIEW_SURFACES: tuple[str, ...] = (
@@ -302,17 +335,17 @@ REVIEW_SURFACES: tuple[str, ...] = (
 #: reading a surface must not reach for the origin-stage constant to spell it.
 assert SURFACE_PLACEMENT == PLACEMENT
 
-ACTION_ACCEPT: str = "accept"
-ACTION_ACCEPT_BULK: str = "accept_bulk"
-ACTION_CHANGE_DESTINATION: str = "change_destination"
-ACTION_RETURN_TO_ACCEPTED_GROUP: str = "return_to_accepted_group"
-ACTION_CREATE_CUSTOM_FOLDER: str = "create_custom_folder"
-ACTION_MARK_PRIVATE: str = "mark_private"
-ACTION_DEFER: str = "defer"
-ACTION_LEAVE_UNTOUCHED: str = "leave_untouched"
-ACTION_REJECT: str = "reject"
-ACTION_EDIT_RECOMMENDATION: str = "edit_recommendation"
-ACTION_DISABLE_SUGGESTION_TYPE: str = "disable_suggestion_type"
+ACTION_ACCEPT: str = _P13_ACCEPT
+ACTION_ACCEPT_BULK: str = _P13_ACCEPT_BULK
+ACTION_CHANGE_DESTINATION: str = _P13_CHANGE_DESTINATION
+ACTION_RETURN_TO_ACCEPTED_GROUP: str = _P13_RETURN_TO_ACCEPTED_GROUP
+ACTION_CREATE_CUSTOM_FOLDER: str = _P13_CREATE_CUSTOM_FOLDER
+ACTION_MARK_PRIVATE: str = _P13_MARK_PRIVATE
+ACTION_DEFER: str = _P13_DEFER
+ACTION_LEAVE_UNTOUCHED: str = _P13_LEAVE_UNTOUCHED
+ACTION_REJECT: str = _P13_REJECT
+ACTION_EDIT_RECOMMENDATION: str = _P13_EDIT_RECOMMENDATION
+ACTION_DISABLE_SUGGESTION_TYPE: str = _P13_DISABLE_SUGGESTION_TYPE
 
 #: The subset of P13's actions a placement or residual surface collects.
 #: `adopt_version`, `restore_version`, `select_consent_option`, `set_redaction`,

@@ -31,7 +31,7 @@ from review_surface import vocabulary as v
 
 #: The receiver packages. Every module in each is read; a package that carries
 #: P13's vocabulary may not respell any part of it anywhere.
-RECEIVER_PACKAGES = ("grouping", "tree_design")
+RECEIVER_PACKAGES = ("grouping", "placement", "tree_design")
 
 #: Every string P13 owns as a gesture or a place a gesture is made. `VERDICTS`,
 #: `PROGRESS_STATES` and `PROGRESS_SOURCES` are deliberately out: no receiver
@@ -138,6 +138,33 @@ def test_a_receiver_never_respells_a_name_p13_owns(package):
         f"{package} respells vocabulary P13 owns; MINOR 6 says the owning part "
         f"names it and everyone else carries it verbatim: {offenders}"
     )
+
+
+def test_every_set_a_receiver_publishes_is_a_subset_of_p13s():
+    """The runtime half, and it catches the failure the source guard cannot.
+
+    A receiver can carry P13's names correctly and still publish a set P13 no
+    longer covers -- P13 retires a member, the import still resolves through some
+    other module, and the receiver goes on offering a gesture nothing collects.
+    The source guard reads assignments and would see nothing; a subset assertion
+    over the published tuples does.
+    """
+    from grouping import learning
+    from placement import vocabulary as p11
+    from tree_design import vocabulary as p10
+
+    actions, surfaces = frozenset(v.ACTIONS), frozenset(v.SURFACES)
+    assert frozenset(p11.REVIEW_ACTIONS) <= actions
+    assert frozenset(p11.REVIEW_SURFACES) <= surfaces
+    assert frozenset(p10.VERSION_ACTIONS) <= actions
+    assert frozenset(p10.REVIEW_SURFACES) - {p10.SURFACE_UNATTENDED} <= surfaces
+    assert learning.GROUP_PLAN_SURFACE in surfaces
+
+    #: P10's `unattended` is deliberately NOT one of P13's twelve and must stay
+    #: out of them: it is the surface where nobody was shown anything, so an
+    #: `unattended` P13 could route would be a gesture attributed to a person who
+    #: was not there (`tree_design/provenance.py:62-77`).
+    assert p10.SURFACE_UNATTENDED not in surfaces
 
 
 def test_the_guard_can_actually_find_a_respelling():
