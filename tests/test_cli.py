@@ -2552,16 +2552,6 @@ def test_a_protected_set_is_not_offered_a_command_that_would_refuse(tmp_path):
     assert "--send-set" in ordinary.split("\n\n", 1)[0], ordinary
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "The printed `--send-set` command is wrapped mid-quote and cannot be "
-    "pasted. `_review_note` builds the command into a sentence and `report` "
-    "runs that sentence through `_wrapped`, so where the line break falls "
-    "depends on how long the set label and the area name happen to be. With "
-    "`Receipts and Confirmations` -- one of the nine shipped names -- the "
-    "report prints `--send-set \"Not yet placed=Receipts and` and puts "
-    "`Confirmations\"` on the next line. `--answer` was fixed by printing its "
-    "command on a line of its own; `--send-set` was left inside the prose. "
-    "Strict, so the suite turns red the day it is fixed."))
 def test_a_printed_send_set_command_survives_being_pasted_into_a_shell(tmp_path):
     """The same rule as `--answer`, applied to the other flag the report offers.
 

@@ -2637,9 +2637,22 @@ def _review_note(item, areas: Sequence[str]) -> str:
         # counted; what is withheld is a suggestion that was never true.
         return held
     if areas:
-        return (f'{held} To file them all at once, name a home for them: '
-                f'--send-set "{item.label}={areas[0]}"'
-                + (f' (this plan also has {", ".join(areas[1:])})'
+        # THE COMMAND GOES ON ITS OWN LINE, and it is `shlex.quote`d rather than
+        # hand-wrapped in double quotes. Both halves are the same defect, and
+        # both were live: `report` runs this sentence through `_wrapped`, so with
+        # `Receipts and Confirmations` -- one of the nine shipped area names --
+        # the line broke as `--send-set "Not yet placed=Receipts and` with
+        # `Confirmations"` beneath it, and a shell reading that raises `No
+        # closing quotation`. Hand-written quotes fail the same way for a label
+        # holding a quote of its own.
+        #
+        # `--answer` was fixed this way and `--send-set` was left inside the
+        # prose (`_typable`, and `84` §6: what the screen tells a person to type
+        # has to be true). The render loop below prints an already-indented line
+        # unchanged, which is the convention `_wrapped`'s own caller uses.
+        return (f'{held} To file them all at once, name a home for them:'
+                f'\n      --send-set {shlex.quote(f"{item.label}={areas[0]}")}'
+                + (f'\n    (this plan also has {", ".join(areas[1:])})'
                    if areas[1:] else ""))
     return (f"{held} This plan has nowhere to put them yet: enable an area with "
             '`--residual "Review Later"` and they can all be sent there in one '
@@ -2826,7 +2839,13 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
                   file=out)
         for note in review:
-            print(_wrapped(note, indent="    "), file=out)
+            # An already-indented line is a command and is printed VERBATIM;
+            # everything else is prose and is wrapped. Same convention as
+            # `_wrapped`'s other caller, and the reason is the same: wrapping a
+            # command is what breaks it.
+            for line in note.split("\n"):
+                print(line if line.startswith(" ")
+                      else _wrapped(line, indent="    "), file=out)
 
     # §7.5's sets are printed where the files they cover are printed, so the same
     # four files are never counted twice in two vocabularies. A set covering no
