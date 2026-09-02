@@ -687,3 +687,41 @@ back. Both twins fail in opposite directions under sabotage.
 failed is not a guard; **a proof whose premise is impossible is not a proof.** This one
 passed for as long as it existed, and what it demonstrated was that the pipeline will
 carry an invented value from a model to a person's file without objecting.
+
+---
+
+## CR-07 — a whole document passes the gate as one span-less excerpt
+
+Found by `deepen-extraction` while writing `95` §5.4, and **reproduced independently by the lead
+on 2026-09-03** rather than accepted on report:
+
+```
+is_whole_document(span=None, unit_length=None) -> False
+'complete_extracted_text' in ALWAYS_LOCAL      -> True
+check_item(...)  : PASSED -- the gate admits a span-less whole-document excerpt
+```
+
+`extractors/structured_text.py` emits a whole text document as one span-less `body` observation.
+`privacy/resolve.py:197` resolves a span-less observation to its `raw_value`, which is the whole
+document. And `privacy/items.py:369` reads `span is None or unit_length is None` as **not** a whole
+document, so §8.4's *"should not send full documents where a short heading or OCR excerpt is
+enough"* never fires on it. Reproduced on the live path by its finder: a 339-character `.txt`
+through `run_wave2` releases as one `Excerpt` and `check_item` passes.
+
+**`complete_extracted_text` is member 2 of `ALWAYS_LOCAL`.** This is the gate admitting, as an
+"excerpt", exactly the kind the vocabulary says never leaves the device.
+
+**Not live today and that is timing, not design.** `MODEL_CALL_SITES_WIRED` is `False`, no site
+builds an A_fact dossier, and no prompt is installed — so nothing can send anything. **It must
+close before the model path opens**, and the model path is the next thing anyone will want to
+build. A hole that is unreachable only because the feature above it is unfinished is a hole.
+
+**Why the obvious fix is wrong.** `items.py:369`'s reasoning is sound where it was written:
+`unit_length is None` is the container-path form — §2.3's spreadsheet cell, §2.8's EXIF field —
+where there is no unit for a span to cover, and reading it as length zero *"would make every cell a
+whole document"*. A blanket refusal of span-less items breaks those legitimate cases. The shape of
+the fix is **refuse a span-less item whose `raw_value` is the whole of a text unit at its own
+container path** — narrower than "span-less", and it belongs in `src/privacy/`.
+
+The finder did not build it, correctly: it is a `src/privacy/` decision and the module it lives in
+already reasons carefully about the case it would break.
