@@ -14,12 +14,21 @@ live classification and a live node reach it.
 
 The provenance answer is exact and is not a string search. `grouping.naming`'s
 `label_for` is "the anchor values, deduplicated" -- so a group's label is derived
-from protected material exactly when one of its anchor facts stands on a file P7
-flagged, and `AnchorFact.file_ids` carries that join with nothing to infer. A
-`carries_no_material` scan over the label would have been the tempting shortcut
-and would be wrong: it refuses on any shared two-character run, so "Columbia
-2026" beside a protected observation reading "2026-01-01" strips a person's own
-folder name off their tree.
+from protected material exactly when one of the anchor facts THAT COMPOSED IT
+stands on a file P7 flagged, and `AnchorFact.file_ids` carries that join with
+nothing to infer. A `carries_no_material` scan over the label would have been the
+tempting shortcut and would be wrong: it refuses on any shared two-character run,
+so "Columbia 2026" beside a protected observation reading "2026-01-01" strips a
+person's own folder name off their tree.
+
+**Amended by `94` F1.** "The anchor facts that composed it" used to read "the
+anchor facts it holds", which is the same claim only for an ENGINE label -- and
+`src/cli.py` accepts one group per `--label`, whose label is the person's own
+word under `label_source = user-edited` and whose anchor facts are everything
+underneath it. So `Coursework` came back derived from a passport it merely
+contained, P12 read that as "this name IS protected material", and every ordinary
+file in the folder became unfilable. The value test below is the fix and the last
+test in this file is the case.
 """
 from __future__ import annotations
 
@@ -81,6 +90,30 @@ def _classify(conn, file_id: str, *, protected: bool, handling: str) -> None:
         "'validated', '2026-09-02T00:00:00Z')",
         (f"c-{file_id}", file_id, handling, 1 if protected else 0))
 
+
+def _accepted_group(conn, group_id: str, *, label: str, anchors) -> None:
+    """The group `src/cli.py` accepts for `--label`: the person's word on top.
+
+    `label_source` is `user-edited` and the anchors are every value under it, so
+    the label is composed from NONE of them. That pairing is legal in P9's schema
+    and is what `94` F1 turned on -- a group's own tests all mint an engine label,
+    where the label IS the join, and the two readings agree.
+    """
+    conn.execute(
+        "INSERT INTO groups (group_id, seed_ref, seed_kind, proposed_basis, "
+        "anchor_facts, pre_model_signals, anchor_count, coherence_verdict, "
+        "coherence_citations, group_category, display_label, label_source, "
+        "conflicts, stop_rule_hits, state, sensitivity_state, created_by, "
+        "created_at) VALUES (?, 'seed', 'file', 'basis', ?, '[]', 1, "
+        "'coherent', '[]', NULL, ?, 'user-edited', '[]', '[]', 'supported', "
+        "'none', 'fixture', '2026-09-02T00:00:00Z')",
+        (group_id,
+         json.dumps([{"field": "subject", "value": value,
+                      "file_ids": list(file_ids),
+                      "reliability_state": "direct",
+                      "observation_key": f"obs-{value}"}
+                     for value, file_ids in anchors]),
+         label))
 
 def test_a_branch_label_minted_from_a_protected_file_prints_as_an_aggregate(
         p13_conn):
@@ -195,3 +228,41 @@ def test_a_superseded_protected_classification_does_not_answer_for_the_group(
         "UPDATE classifications SET superseded_by = 'c-later', "
         "supersede_reason = 'the detector was wrong' WHERE fact_id = 'c-f-1'")
     assert protected_label_provenance(p13_conn, group_ids=("g-1",)) == {}
+
+
+def test_a_persons_own_label_is_not_derived_from_a_passport_it_merely_contains(
+        p13_conn):
+    """`94` F1's root cause, on P13's side of it.
+
+    `src/cli.py` accepts ONE group per `--label`, so the group carrying the
+    person's own word `Coursework` also carries the anchor facts of every file
+    under it -- including the passport's. Its label was composed from none of
+    them: `label_source` is `user-edited` and the word came off the command line.
+
+    The old join asked whether the group HELD a protected anchor file and
+    answered yes, and P12 then refused to compose a path through `Coursework`,
+    which is every destination in the tree. The join now asks whether a protected
+    anchor fact's VALUE is one of the label's own components.
+
+    Both halves are asserted on one fixture: the same group, the same protected
+    file, and the engine-labelled group beside it that IS named after the
+    passport and still refuses. A test that only showed `Coursework` surviving
+    would pass for a join that had been switched off.
+    """
+    _accepted_group(p13_conn, "g-label", label="Coursework", anchors=(
+        ("PHYS1401", ("f-ordinary",)), (PASSPORT, ("f-passport",))))
+    _group(p13_conn, "g-passport", label=PASSPORT, file_ids=("f-passport",))
+    _classify(p13_conn, "f-ordinary", protected=False, handling=PERSONAL)
+    _classify(p13_conn, "f-passport", protected=True,
+              handling=CREDENTIAL_BEARING)
+
+    provenance = protected_label_provenance(
+        p13_conn, group_ids=("g-label", "g-passport"))
+    assert provenance == {
+        "g-passport": ProtectedLabel(PASSPORT, CREDENTIAL_BEARING)}
+
+    branch = _node("n-course", "Coursework", groups=("g-label",))
+    assert folder_label(branch, provenance=provenance) == "Coursework"
+    named = _node("n-pass", PASSPORT, groups=("g-label", "g-passport"))
+    assert folder_label(named, provenance=provenance) == (
+        f"1 protected {CREDENTIAL_BEARING}")
