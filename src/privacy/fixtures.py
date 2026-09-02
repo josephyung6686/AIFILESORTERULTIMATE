@@ -226,7 +226,17 @@ def _whole_unit_observation(number: int) -> Observation:
 
 
 #: The P4 fixture the whole-document request stands on.
-WHOLE_UNIT_P4_FIXTURE: int = 11
+#:
+#: MOVED FROM 11 ON 2026-09-02, against the security review's CR-01. Fixture 11 is
+#: `fs.basic`'s `Wash U.docx` in the `filename` zone, and `vocabulary.
+#: ALWAYS_LOCAL_ZONES` now refuses an excerpt that addresses one -- before anything is
+#: materialised, and with the stronger reason, so fixture 5 came back
+#: `always_local_item` and P7's only exercise of `whole_document_requested` was gone.
+#: Fixture 13 is `pptx.notes`' 66-character speaker note in the `notes` zone: a
+#: releasable zone, a real document zone, and short enough that "the whole of it was
+#: requested" is the plain reading. The spec case is unchanged; what changed is that a
+#: filename is no longer available to stand in for a document, which is the point.
+WHOLE_UNIT_P4_FIXTURE: int = 13
 WHOLE_UNIT_OBSERVATION: Observation = _whole_unit_observation(WHOLE_UNIT_P4_FIXTURE)
 
 #: Fixture number -> the observations a replay must record beyond P4's published set.

@@ -65,7 +65,9 @@ from privacy.release import (
     DECISION_ORDER, Denied, ModelCallRequest, NeedsConsent, NoPolicyInForce,
     ReleaseDecision, Released, ReleasedItem,
 )
-from privacy.resolve import UnresolvableSpan, current_location, materialise
+from privacy.resolve import (
+    AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
+)
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
 # each of them a second spelling inside the one file that publishes both.
@@ -446,9 +448,41 @@ class Gate:
                 "`over_dossier_ceiling` cannot return True in that state")
         return int(value)
 
+    def _located_zone(self, item: object) -> str | None:
+        """The document zone an item addresses, WITHOUT reading its text.
+
+        `current_location` selects `observation_id, observation_key, file_id,
+        location, superseded_by` and no content column -- its own docstring is
+        explicit that adding one "would move content access in front of the consent
+        decision". The zone is therefore a locator fact, and §8.4's always-local zone
+        refusal can be taken before anything is materialised.
+
+        An unresolvable or ambiguous key returns `None` rather than raising, and the
+        second reason is the one that matters. Raising here would turn a call the
+        operation mode already forbids into an exception instead of a denial,
+        putting a lookup in front of §7's answer. And a key `current_location` cannot
+        resolve is a key `materialise` cannot resolve either -- so nothing is
+        released down that path; `UnresolvableSpan` is raised there, which is where
+        it was raised before this method existed.
+        """
+        key = getattr(item, "observation_key", None)
+        if key is None:
+            return None
+        try:
+            return current_location(self._conn, key).location.zone
+        except (UnresolvableSpan, AmbiguousObservationKey):
+            return None
+
     def _precheck_items(self, request: ModelCallRequest, *, protected: bool,
                         sensitive_keys) -> Exception | None:
         """Task 7's refusals that need no content. `unit_length=None` means unknown.
+
+        The zone comes from `_located_zone`, which reads no content column either --
+        so §8.4's always-local ZONE refusal is decided here, beside the other five
+        reasons `denial.DECIDABLE_FROM_REQUEST` names, and not after `_materialise`.
+        `DECISION_ORDER` is explicit that a gate which resolved first would hold the
+        text in memory before deciding it was allowed to, and an absolute directory
+        is the one value where holding it is itself the harm.
 
         `allow_unratified=True` because SPEC §4's flagged reading permits `filename`
         for non-protected files and denies it for protected ones; the denial is §7.3's
@@ -456,7 +490,8 @@ class Gate:
         """
         for item in request.requested_items:
             try:
-                check_item(item, unit_length=None, protected=protected,
+                check_item(item, unit_length=None, zone=self._located_zone(item),
+                           protected=protected,
                            sensitive_keys=sensitive_keys, allow_unratified=True,
                            suspension_permits_self_description=self._suspension_permits_self_description)
             except (AlwaysLocalRequested, ProtectedItemRequested) as caught:
@@ -466,13 +501,25 @@ class Gate:
     def _postcheck_items(self, request: ModelCallRequest,
                          resolved: Sequence[ReleasedItem], *, protected: bool,
                          sensitive_keys) -> Exception | None:
-        """The one refusal that needs the resolved unit length."""
+        """The one refusal that needs the resolved unit length.
+
+        `zone` here is the RESOLVED zone -- the one `ReleasedItem` carries and
+        `dossier._released_body` puts on the wire -- where the precheck used the
+        locator's. They read the same evidence row, so an always-local zone has
+        already been refused by the time this runs and the check below cannot fire
+        from `zone`. It is passed anyway rather than as `None`, because `None` there
+        would be this method telling `check_item` the zone is unknown when it is
+        holding it; if the two readings ever disagreed, `AlwaysLocalRequested` would
+        propagate out of `release` uncaught, which is the fail-closed direction.
+        """
         lengths = {item.observation_key: item.unit_length for item in resolved}
+        zones = {item.observation_key: item.zone for item in resolved}
         for item in request.requested_items:
             if not isinstance(item, TEXT_BEARING):
                 continue
             try:
                 check_item(item, unit_length=lengths.get(item.observation_key),
+                           zone=zones.get(item.observation_key),
                            protected=protected, sensitive_keys=sensitive_keys,
                            allow_unratified=True,
                            suspension_permits_self_description=self._suspension_permits_self_description)

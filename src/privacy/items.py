@@ -46,7 +46,8 @@ from evidence_shape.store import runs_for_file
 from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 
 from privacy.vocabulary import (
-    ALWAYS_LOCAL, ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary, check_item_kind,
+    ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES,
+    ITEM_KINDS, OPEN_QUESTIONS, OutOfVocabulary, check_item_kind,
 )
 
 
@@ -352,17 +353,27 @@ def is_whole_document(item: object, *, unit_length: int | None) -> bool:
     return span.start <= 0 and span.end >= unit_length
 
 
-def check_item(item: object, *, unit_length: int | None, protected: bool,
-               sensitive_keys: Container[str], allow_unratified: bool,
+def check_item(item: object, *, unit_length: int | None, zone: str | None,
+               protected: bool, sensitive_keys: Container[str],
+               allow_unratified: bool,
                suspension_permits_self_description: bool) -> None:
     """The release-time half of §8.4's item rules. Returns None or raises (A11).
 
-    FIVE required keywords, no defaults. `sensitive_keys` in particular: a default of
+    SIX required keywords, no defaults. `sensitive_keys` in particular: a default of
     the empty set would mean "nothing is sensitive" for a caller who never wired P5,
     which is the same shape of failure as a column with no writer. And
     `suspension_permits_self_description` in particular: a default of False would be SAFE, and it
     would still be a caller who never made the choice -- `80` §8.3's C1 wants the
     developer who forgets this exception to be stopped, not defaulted.
+
+    `zone` is the DOCUMENT ZONE the item's observation addresses, read off P4's
+    locator -- `resolve.current_location`, which selects no content column. `None`
+    means the caller has not resolved the observation yet, which is true of the
+    gate's pre-materialisation pass over a non-text-bearing item; it is not a
+    permission, because the same item is checked again with the zone in hand before
+    anything is released. It is a required keyword rather than a defaulted one for
+    the reason the other five are: a caller who never wired it would silently get
+    the behaviour that put `/Users/<name>/Documents/Legal/Divorce` on the wire.
 
     The order matches `release.DECISION_ORDER`: always-local before whole-document,
     so an item that fails both is reported as the stronger refusal.
@@ -417,6 +428,21 @@ def check_item(item: object, *, unit_length: int | None, protected: bool,
             f"'raw_sensitive_values' in the always-local set. §8.4 permits 'redacted "
             f"identifiers', so the same key is releasable as a RedactedIdentifier, "
             f"whose transform is injected with no default."
+        )
+
+    if zone in ALWAYS_LOCAL_ZONES:
+        raise AlwaysLocalRequested(
+            f"the observation addresses zone {zone!r}, and no releasable item kind "
+            f"may address one of {sorted(ALWAYS_LOCAL_ZONES)}. §8.4's always-local "
+            f"list opens with the word 'Paths', and a `path`-zone observation "
+            f"carries the parent directory of a scanned file -- span-less, so "
+            f"`is_whole_document` cannot bound it, and unredacted, because a path "
+            f"is the classifier's ordinary `None`. §7.7's filename is the flagged "
+            f"SIXTH releasable kind and must arrive as a `Filename` under "
+            f"`allow_unratified`, where §7.3's protected-records ban also applies; "
+            f"as an excerpt it would bypass both. Neither has a redacted second "
+            f"route the way a sensitive value does: a redacted directory is still "
+            f"the shape of a person's private machine."
         )
 
     if is_whole_document(item, unit_length=unit_length):

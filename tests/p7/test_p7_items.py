@@ -81,13 +81,14 @@ ONE_OF_EACH: tuple[RequestedItem, ...] = (
 #: A permissive default for the three keywords a given test is not about. Every one
 #: of them is REQUIRED on `check_item` (A11); this helper spells them so a test that
 #: IS about one of them can override exactly that one and nothing else.
-def admit(item, *, unit_length=None, protected=False, sensitive_keys=frozenset(),
+def admit(item, *, unit_length=None, zone=None, protected=False,
+          sensitive_keys=frozenset(),
           allow_unratified=True, suspension_permits_self_description=False) -> None:
     # `suspension_permits_self_description=False` by default HERE, where the existing tests are
     # all about the other six kinds: the seventh is `80` §8's suspension and it has
     # its own file, `test_p7_self_description_item.py`. A helper that opened it for
     # every test in this one would be the scope creep `80` §8.1 forbids.
-    check_item(item, unit_length=unit_length, protected=protected,
+    check_item(item, unit_length=unit_length, zone=zone, protected=protected,
                sensitive_keys=sensitive_keys, allow_unratified=allow_unratified,
                suspension_permits_self_description=suspension_permits_self_description)
 
@@ -353,14 +354,16 @@ def test_an_excerpt_over_an_unsignalled_key_is_permitted():
           unit_length=BODY_LENGTH, sensitive_keys=frozenset({KEY}))
 
 
-def test_check_item_requires_every_one_of_its_four_keywords():
-    # A11: none of the four has a default. A build that forgets one is a TypeError,
+def test_check_item_requires_every_one_of_its_six_keywords():
+    # A11: none of the six has a default. A build that forgets one is a TypeError,
     # never a release. `sensitive_keys` in particular: a default of `frozenset()`
-    # would mean "nothing is sensitive" for a caller who never wired P5.
+    # would mean "nothing is sensitive" for a caller who never wired P5, and `zone`
+    # for the same reason: a default of None would mean "no zone was checked" for a
+    # caller who never wired the locator, which is the state CR-01 reproduced.
     item = Excerpt(observation_key=KEY, span=TextSpan(16, 27), reason="it")
-    for omit in ("unit_length", "protected", "sensitive_keys", "allow_unratified",
-                 "suspension_permits_self_description"):
-        kwargs = dict(unit_length=BODY_LENGTH, protected=False,
+    for omit in ("unit_length", "zone", "protected", "sensitive_keys",
+                 "allow_unratified", "suspension_permits_self_description"):
+        kwargs = dict(unit_length=BODY_LENGTH, zone="body", protected=False,
                       sensitive_keys=frozenset(), allow_unratified=False,
                       suspension_permits_self_description=False)
         del kwargs[omit]
@@ -427,7 +430,8 @@ def test_filename_is_the_unratified_sixth_kind_needs_joseph_b5d_c9a():
 
 def test_a_filename_cannot_be_admitted_without_the_explicit_opt_in():
     with pytest.raises(UnratifiedItemKind) as caught:
-        check_item(Filename(file_id="file-1"), unit_length=None, protected=False,
+        check_item(Filename(file_id="file-1"), unit_length=None, zone=None,
+                   protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
                    suspension_permits_self_description=False)
     assert "filename" in str(caught.value)
@@ -442,7 +446,7 @@ def test_the_five_ratified_kinds_need_no_opt_in():
         # `allow_unratified` and `suspension_permits_self_description` are for.
         if kind_of(item) in UNRATIFIED_ITEM_KINDS + SUSPENDED_ITEM_KINDS:
             continue
-        check_item(item, unit_length=None, protected=False,
+        check_item(item, unit_length=None, zone=None, protected=False,
                    sensitive_keys=frozenset(), allow_unratified=False,
                    suspension_permits_self_description=False)
 

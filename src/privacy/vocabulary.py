@@ -173,6 +173,29 @@ ALWAYS_LOCAL: tuple[str, ...] = (
     "gps", "user_edits", "group_memberships", "raw_sensitive_values",
 )
 
+#: The two members of P4's `evidence_shape.vocabulary.ZONES` that an excerpt may not
+#: address. ADDED 2026-09-02 against the security review's CR-01, which reproduced a
+#: whole absolute directory reaching the model-visible bytes on the ordinary release
+#: path -- `/Users/<name>/Documents/Legal/Divorce`, released as an `Excerpt` because
+#: no check in the product ever read `zone`.
+#:
+#: THIS IS A MAPPING ONTO THE NINE ABOVE, NOT A TENTH MEMBER. `ALWAYS_LOCAL` stays at
+#: nine and `80` §2's "NO TENTH MEMBER IS ADDED" is untouched. `"path"` is the ZONE
+#: through which member 1, `"paths"`, has a route out: `extractors/filesystem.py`
+#: writes one observation per scanned file whose `raw_value` is the parent directory.
+#: `"filename"` is here for a different reason -- the filename is §7.7's flagged sixth
+#: RELEASABLE kind, admitted only as `items.Filename` under `allow_unratified` and
+#: banned outright on a Protected Records file by §7.3. An `Excerpt` addressing a
+#: filename zone is that kind arriving through a door where neither check applies, so
+#: it is refused HERE and released THERE, which is what "the sixth kind is flagged"
+#: was supposed to mean.
+#:
+#: Not enumerable from `ALWAYS_LOCAL` itself: the nine are kinds of DATA and the
+#: fifteen zones are places in a document, and no member-by-member correspondence
+#: exists between them (`"gps"` and `"image_exif"` both live in `metadata`, which is
+#: releasable). Two names, chosen because §8.4 and §7.7 name exactly these two.
+ALWAYS_LOCAL_ZONES: frozenset[str] = frozenset({"path", "filename"})
+
 # --- §8.4: the compact dossier -----------------------------------------------
 
 #: "the engine should send only a compact dossier relevant to the current question:

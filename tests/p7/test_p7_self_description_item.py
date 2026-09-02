@@ -48,7 +48,8 @@ A_ROLE = "role:me"
 
 
 def _check(item, **overrides):
-    kwargs = dict(unit_length=None, protected=False, sensitive_keys=frozenset(),
+    kwargs = dict(unit_length=None, zone=None, protected=False,
+                  sensitive_keys=frozenset(),
                   allow_unratified=False, suspension_permits_self_description=False)
     kwargs.update(overrides)
     return check_item(item, **kwargs)
@@ -143,6 +144,9 @@ def test_neither_flag_has_a_default_anywhere_it_appears():
 
     assert parameters["suspension_permits_self_description"].default is inspect.Parameter.empty
     assert parameters["allow_unratified"].default is inspect.Parameter.empty
+    # And `zone`, which arrived the same way and for the same reason: a caller who
+    # never wired it would silently get the behaviour it exists to stop.
+    assert parameters["zone"].default is inspect.Parameter.empty
 
 
 def test_the_other_six_kinds_are_unaffected_by_the_new_flag():

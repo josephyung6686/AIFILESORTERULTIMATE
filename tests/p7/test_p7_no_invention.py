@@ -459,7 +459,7 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     # question is open, not open-for-unprotected-files.
     for protected in (True, False):
         with pytest.raises(UnratifiedItemKind) as caught:
-            check_item(item, unit_length=None, protected=protected,
+            check_item(item, unit_length=None, zone=None, protected=protected,
                        sensitive_keys=(), allow_unratified=False,
                        suspension_permits_self_description=False)
         assert "B5d" in str(caught.value) and "C9a" in str(caught.value)
@@ -469,10 +469,12 @@ def test_the_filename_sixth_kind_is_flagged_and_not_treated_as_settled():
     # `allow_unratified=True` and its docstring claims exactly this; executed here
     # rather than believed.
     with pytest.raises(ProtectedItemRequested):
-        check_item(item, unit_length=None, protected=True, sensitive_keys=(),
+        check_item(item, unit_length=None, zone=None, protected=True,
+                   sensitive_keys=(),
                    suspension_permits_self_description=False,
                    allow_unratified=True)
-    assert check_item(item, unit_length=None, protected=False, sensitive_keys=(),
+    assert check_item(item, unit_length=None, zone=None, protected=False,
+                      sensitive_keys=(),
                       suspension_permits_self_description=False,
                       allow_unratified=True) is None
 
