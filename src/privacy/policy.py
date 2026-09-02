@@ -56,6 +56,7 @@ from evidence_shape.canonical import canonical_json
 
 from privacy.authorship import CONSENT_GRANTED, POLICY_SET, event_defaults
 from privacy.schema import POLICIES_TABLE
+from privacy.items import SUSPENDED_ITEM_KINDS
 from privacy.vocabulary import (
     CONSENT_OPTIONS,
     DISPLAY_FACETS,
@@ -90,7 +91,8 @@ UNSET_POLICY_VERSION = ""
 
 _COLUMNS = (
     "policy_version", "plan_version", "operation_mode", "consent_grants",
-    "redaction_settings", "automatic_move_permissions", "set_at",
+    "redaction_settings", "automatic_move_permissions", "suspended_item_kinds",
+    "set_at",
 )
 
 
@@ -134,9 +136,42 @@ class Policy:
     automatic_move_permissions: dict
     plan_version: str
     set_at: str
+    #: WHICH of §8.4's always-local kinds this policy suspends the rule for.
+    #:
+    #: EMPTY BY DEFAULT, and that is `80` §8.3's condition C1 in the record: local
+    #: is what happens by not choosing, so a caller who has never heard of the
+    #: amendment stores a policy that permits nothing. It defaults where
+    #: `check_item` refuses to, because this is a RECORD of what was decided and
+    #: "nobody decided anything" is a fact it can hold, where the check is a
+    #: DECISION and a caller must have made it.
+    #:
+    #: A LIST OF KINDS and not a flag, deliberately. A boolean here would read as
+    #: "cloud was on for this run" the first time somebody skim-read it, and it
+    #: would be true of any future suspension as well as this one. Naming the kind
+    #: cannot widen: the vocabulary is `items.SUSPENDED_ITEM_KINDS`, which has one
+    #: owner-approved member, and a second door would need a second type and a
+    #: second approval before it could be spelled here at all.
+    #:
+    #: It says NOTHING about the operation mode and does not turn a cloud one on.
+    #: It is also not `database_agent/cloud_consent.py`, which answers whether one
+    #: FOLDER's files may reach a cloud model and is keyed to a corpus root. Two
+    #: records of one run that disagree is the failure that module found in its own
+    #: work; these two cannot, because they answer different questions.
+    suspended_item_kinds: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         check_mode(self.operation_mode)
+        for kind in self.suspended_item_kinds:
+            if kind not in SUSPENDED_ITEM_KINDS:
+                raise OutOfVocabulary(
+                    f"{kind!r} is not a kind any suspension covers. The suspendable "
+                    f"kinds are {SUSPENDED_ITEM_KINDS!r} -- one member, added "
+                    f"2026-09-02 with the owner's approval recorded at it, for the "
+                    f"self-description REFERENCE and nothing else. §8.4's other "
+                    f"always-local kinds have no releasable type at all, so no "
+                    f"policy can name one here: `80` §8.1 scopes the suspension to "
+                    f"nothing but the self-description, and this is where a widening "
+                    f"would have to be written down first.")
         for facet, value in self.redaction_settings.items():
             if facet not in DISPLAY_FACETS:
                 raise OutOfVocabulary(
@@ -167,7 +202,31 @@ def _row_to_policy(row: sqlite3.Row) -> Policy:
         automatic_move_permissions=json.loads(row["automatic_move_permissions"]),
         plan_version=row["plan_version"],
         set_at=row["set_at"],
+        suspended_item_kinds=_suspended_kinds_of(row),
     )
+
+
+def _suspended_kinds_of(row: sqlite3.Row) -> tuple[str, ...]:
+    """What this policy suspended the always-local rule for, or nothing.
+
+    ABSENT MEANS NOTHING SUSPENDED, in both of the shapes absent takes, and that
+    is the whole of this function. A row written before the column was added has
+    NULL there; a database created before the column existed does not have the
+    column at all, because the DDL is `CREATE TABLE IF NOT EXISTS` and an existing
+    table is left alone. Either way a person's existing plan must not read as
+    having permitted a send it never permitted.
+
+    Not a default and not a guess: it is the answer. "Absent means refuse, never
+    guess" is usually a refusal because absent is ambiguous; here absent is
+    unambiguous -- nobody authorised anything -- and refusing to read an old plan
+    at all would be worse than answering the question it can answer.
+    """
+    if "suspended_item_kinds" not in row.keys():
+        return ()
+    stored = row["suspended_item_kinds"]
+    if not stored:
+        return ()
+    return tuple(json.loads(stored))
 
 
 def _live_row(conn: sqlite3.Connection, plan_version: str) -> sqlite3.Row | None:
@@ -219,7 +278,8 @@ def _persist(conn: sqlite3.Connection, policy: Policy, *,
             (version, policy.plan_version, policy.operation_mode,
              canonical_json([list(pair) for pair in policy.consent_grants]),
              canonical_json(policy.redaction_settings),
-             canonical_json(policy.automatic_move_permissions), policy.set_at),
+             canonical_json(policy.automatic_move_permissions),
+             canonical_json(list(policy.suspended_item_kinds)), policy.set_at),
         )
         if prior is not None:
             mark_superseded(conn, POLICIES_TABLE, old_id=prior["policy_version"],

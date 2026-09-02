@@ -155,7 +155,7 @@ GATE_ARGUMENTS: tuple[str, ...] = (
     "store", "plan_version", "classifier", "transform",
     "unclassified_permits_local", "scope_for", "files_in_scope",
     "component_version", "now", "user_id",
-    "measure_tokens", "template_for", "suspension_permits_self_description",
+    "measure_tokens", "template_for",
 )
 
 
@@ -295,7 +295,7 @@ REDACTED_VALUE: str = _redaction_transform("", identifier_class=FIXTURE_IDENTIFI
 
 
 def gate_arguments(fixture: "GateFixture", *, store: object) -> dict[str, object]:
-    """The thirteen keywords `Gate(conn, **...)` takes, filled for one fixture.
+    """The twelve keywords `Gate(conn, **...)` takes, filled for one fixture.
 
     Every value is either the fixture's own or a constant this module already
     publishes; nothing here is a rule. `unclassified_permits_local` in particular is
@@ -320,12 +320,6 @@ def gate_arguments(fixture: "GateFixture", *, store: object) -> dict[str, object
         "user_id": FIXTURE_USER_ID,
         "measure_tokens": _measure_tokens,
         "template_for": lambda _file_id: fixture.residual_template,
-        # LAST, because `test_gate_arguments_fills_every_one` compares this dict's
-        # key order to `GATE_ARGUMENTS`. `False` for every one of the eighteen: each
-        # is a §8.4 case that predates `80` §8, and replaying one with the suspension
-        # on would assert P7's behaviour under a permission its own scenario never
-        # asked for -- the scope creep §8.1 forbids.
-        "suspension_permits_self_description": False,
     }
 
 

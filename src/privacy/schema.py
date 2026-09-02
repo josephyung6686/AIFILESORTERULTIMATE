@@ -80,6 +80,13 @@ CREATE TABLE IF NOT EXISTS {POLICIES_TABLE} (
     consent_grants             TEXT NOT NULL,
     redaction_settings         TEXT NOT NULL,
     automatic_move_permissions TEXT NOT NULL,
+    -- WHICH always-local kinds this policy suspends the rule for, as canonical
+    -- JSON. NULLABLE, and null is the safe reading: a row written before the
+    -- column existed, or by a caller who never mentioned it, suspends nothing.
+    -- `80` §8's suspension is the only member today and its vocabulary is
+    -- `items.SUSPENDED_ITEM_KINDS`, which is owner-scoped -- so this column can
+    -- never say more than the owner has approved a door for.
+    suspended_item_kinds       TEXT,
     set_at                     TEXT NOT NULL,
     supersedes                 TEXT,
     superseded_by              TEXT,
@@ -93,7 +100,8 @@ BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never removed (§8.2, §8.5 r
 -- §8.8's diff needs both sides. The three supersede columns stay writable.
 CREATE TRIGGER IF NOT EXISTS privacy_policies_never_overwritten
 BEFORE UPDATE OF policy_version, plan_version, operation_mode, consent_grants,
-                 redaction_settings, automatic_move_permissions, set_at
+                 redaction_settings, automatic_move_permissions,
+                 suspended_item_kinds, set_at
     ON {POLICIES_TABLE}
 BEGIN SELECT RAISE(ABORT, 'a policy is superseded, never overwritten (§8.2, §8.8)'); END;
 """

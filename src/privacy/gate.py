@@ -28,6 +28,36 @@ no placement decision and no P8 `Refusal`. The catcher is always the caller's.
 It decides no precedence of its own: it COLLECTS every triggered reason and asks
 `denial.first_reason` which one wins, because `DENIAL_ORDER` is Task 13's and a second
 total order here would be a second home for it.
+
+WHAT AN ABSENT ZONE MEANS, since `_located_zone` may return `None` and §8.4's
+always-local ZONE refusal is decided from what it returns. Written here rather than
+only at the method, because "absent means refuse, never guess" is a rule about this
+whole door and a reader checking it should not have to find the one method.
+
+`None` is returned in exactly two situations and NEITHER is an unknown zone:
+
+  1. **The item addresses no observation.** `CandidateLabel` carries a destination
+     name, `MetadataField` a field NAME, `Filename` a `file_id`, `SelfDescription` a
+     `question_id`. None has an `observation_key`, so no zone applies to it and
+     `None` is the accurate answer rather than a missing one. §8.4 reaches those
+     kinds through their own refusals -- `_refuse_always_local_name`, `Filename`'s
+     path-separator check, `UNRATIFIED_ITEM_KINDS` -- not through the zone.
+  2. **The observation key does not resolve.** This one is a genuine absence, and it
+     is NOT treated as "not always-local". It cannot release anything: the same key
+     is unreadable to `resolve.materialise`, which raises `UnresolvableSpan` at step
+     3 before any value exists. The refusal is deferred, never waived, and
+     `test_p7_always_local_zone.py` runs that path rather than reasoning about it.
+
+There is deliberately no third case, and the type system is why: `Location` validates
+`zone` against `evidence_shape.vocabulary.ZONES` in `__post_init__`, so a located
+observation ALWAYS carries one of the fifteen. "A locator with no zone" is not a state
+this product can store, which is a stronger guarantee than a refusal would be.
+
+Case 2 is deferred rather than denied because `test_a_resolve_failure_propagates_and_
+is_not_a_denial` rules on it: a key the evidence does not carry is a contract
+violation by the CALLER, and `Denied` and `NeedsConsent` are values where that is an
+exception. Turning an unresolvable key into `Denied(always_local_item)` would answer a
+typo with a privacy verdict.
 """
 from __future__ import annotations
 
@@ -56,14 +86,16 @@ from privacy.denial import (
     unclassified_denies,
 )
 from privacy.items import (
-    AlwaysLocalRequested, Excerpt, ProtectedItemRequested, RedactedIdentifier,
-    WholeDocumentRequested, check_item, sensitive_observation_keys,
+    SUSPENDED_ITEM_KINDS,
+    AlwaysLocalRequested, CandidateLabel, EvidenceReference, Excerpt, Filename,
+    MetadataField, ProtectedItemRequested, RedactedIdentifier,
+    WholeDocumentRequested, check_item, kind_of, sensitive_observation_keys,
 )
 from privacy.policy import current_policy
 from privacy.redaction import RedactionManifest, apply_redaction, span_address
 from privacy.release import (
-    DECISION_ORDER, Denied, ModelCallRequest, NeedsConsent, NoPolicyInForce,
-    ReleaseDecision, Released, ReleasedItem,
+    DECISION_ORDER, Denied, MalformedRequest, ModelCallRequest, NeedsConsent,
+    NoPolicyInForce, ReleaseDecision, Released, ReleasedItem,
 )
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
@@ -78,6 +110,31 @@ from privacy import display, learning_seam, moves, revocation
 #: local content -- §4: an evidence reference is "an id only -- no content" -- so they
 #: are never materialised and never echoed back.
 TEXT_BEARING: tuple[type, ...] = (Excerpt, RedactedIdentifier)
+
+#: §4's four kinds that address no local text and so resolve to no value. They are
+#: absent from a release's `materialised_items` BY DESIGN and always were -- §4: an
+#: evidence reference is "an id only -- no content" -- which is what makes them
+#: different from an item that was asked about and then quietly stopped counting.
+#:
+#: Named as its own tuple on 2026-09-02 so that the difference is written down
+#: rather than inferred from `TEXT_BEARING`'s complement. The complement of one list
+#: is every kind that exists, including the ones nobody has taught this gate to read.
+#:
+#: **THE WRONG PLACE TO PUT A `self_description`, and the reason is not obvious.**
+#: It carries a reference, exactly like the four here, so it superficially belongs.
+#: It does not: the gate has to READ something to turn a `question_id` into bytes,
+#: and §4's "no content" is true of a `CandidateLabel` and of a `MetadataField`'s
+#: NAME in a way it is not true of a person's typed sentence. Filed here it would
+#: be released as an id and never resolved -- which is the silent drop this tuple
+#: exists to end, back again and wearing a classification that says it is fine.
+#: Its honest reading is materialised; the refusal below is what holds until one
+#: exists. (`build-role-matcher`, who owns the type, 2026-09-02.)
+REFERENCE_ONLY: tuple[type, ...] = (
+    CandidateLabel, MetadataField, EvidenceReference, Filename)
+
+#: The one kind a suspension can cover, read from the type table rather than
+#: respelled. `80` §8.1 scopes the suspension to nothing but the self-description.
+SELF_DESCRIPTION_KIND: str = SUSPENDED_ITEM_KINDS[0]
 
 
 class Gate:
@@ -101,8 +158,7 @@ class Gate:
                  component_version: str, now: Callable[[], str],
                  user_id: str | None,
                  measure_tokens: Callable[..., int] | None = None,
-                 template_for: Callable[[str], str | None] | None = None,
-                 suspension_permits_self_description: bool = False) -> None:
+                 template_for: Callable[[str], str | None] | None = None) -> None:
         self._conn = conn
         self._store = store
         self._plan_version = plan_version
@@ -117,39 +173,6 @@ class Gate:
         self._user_id = user_id
         self._measure_tokens = measure_tokens
         self._template_for = template_for
-        #: NAMED FOR THE RULING, not for the permission, and the difference is what
-        #: `test_no_signature_and_no_branch_field_names_an_override` is protecting:
-        #: P7's published names may not read as a back door. `unclassified_permits_
-        #: local` is the precedent -- a legitimate permission says what CONDITION
-        #: permits what, and this one says the `80` §8 suspension is what permits a
-        #: self-description. It is not an override of the policy: a run without the
-        #: suspension refuses exactly as it did before the amendment existed.
-        #:
-        #: PER-INVOCATION, AND DELIBERATELY NOT THE `--enable-cloud` CONSENT. The
-        #: two look alike and have different cadences, so a later reader may be
-        #: tempted to harmonise them. `--enable-cloud` is the operation mode for
-        #: FILE facts: it recurs on every run and every file, which is why the
-        #: owner's ruling on it is "once, recorded". A self-description is sent on
-        #: the ONE run where the person types their sentence, because that is the
-        #: run where the shortlist is computed; after they confirm a role the moment
-        #: is over (`80` §4, R2) and nothing sends again.
-        #:
-        #: So this opt-in is never stored, and that is the whole design. R2 says a
-        #: confirmation a person learns to click through is not a safety mechanism
-        #: -- and there is nothing here to learn, because nothing repeats. A STORED
-        #: opt-in would force the choice between a notice on every run (the
-        #: click-through R2 forbids) and no notice at all (the silent send C2
-        #: forbids), and both are worse than asking on the one run that sends.
-        #:
-        #: `80` §8.3's condition C1, at the composition surface. DEFAULTED, where
-        #: `check_item` refuses to default, and the two are the same requirement
-        #: read from its two ends: "a developer who forgets this exception exists
-        #: gets the safe behaviour". Forgetting it HERE gives you `False`, which is
-        #: the safe behaviour; forgetting it at `check_item` gives you a TypeError,
-        #: because that is the layer where every caller must have chosen. A default
-        #: in both places would be a caller who never chose; a default in neither
-        #: would put a required argument on Task 20's pinned constructor.
-        self._suspension_permits_self_description = suspension_permits_self_description
 
     # -- §8.4's only door ---------------------------------------------------
 
@@ -204,7 +227,8 @@ class Gate:
             builders["policy_revoked"] = lambda: deny_policy_revoked(
                 scope=scopes[revoked[0]], policy=policy, file_ids=file_ids)
 
-        caught = self._precheck_items(request, protected=bool(protected_ids),
+        caught = self._precheck_items(request, policy=policy,
+                                      protected=bool(protected_ids),
                                       sensitive_keys=sensitive_keys)
         if isinstance(caught, AlwaysLocalRequested):
             builders["always_local_item"] = lambda: deny_always_local_item(
@@ -250,6 +274,49 @@ class Gate:
             return self._denied(builders[chosen](), request, policy, decisive,
                                 hashes, observed_at)
 
+        # 1b -- every requested item now reaches an outcome, or none of them does.
+        #
+        # A kind this gate can neither materialise nor read as a bare reference used
+        # to fall through BOTH: everything below filters `requested_items` on
+        # `TEXT_BEARING`, so such an item entered no branch, produced no
+        # `ReleasedItem`, and appeared in no line of §8.4's record. Two items asked
+        # about, one released, and the second named nowhere -- neither released nor
+        # refused. That is the one outcome the design has no reading for, and it is
+        # `84` §1's rule read against the item table: absent means refuse, never
+        # guess. A kind this door has no reading for is REFUSED, by name.
+        #
+        # Not a `Denied`. A denial is §8.4's answer to "may this be sent", drawn
+        # from a closed vocabulary of reasons the owner approved; this is a request
+        # the gate cannot evaluate at all -- the same class as `NoPolicyInForce` and
+        # `resolve.UnresolvableSpan`, which is why it propagates.
+        #
+        # AFTER the denials, on purpose. A self-description under a policy that
+        # suspends nothing is `Denied always_local_item`, which is the answer a
+        # person needs and the stronger of the two; raising here first would replace
+        # a decision with a crash. And BEFORE step 2, because the consent branch
+        # filters on `TEXT_BEARING` as well and would otherwise be a second place an
+        # item silently stops counting.
+        unreadable = tuple(item for item in request.requested_items
+                           if not isinstance(item, (*TEXT_BEARING, *REFERENCE_ONLY)))
+        if unreadable:
+            raise MalformedRequest(
+                f"the gate has no materialiser and no reference-only reading for "
+                f"{sorted({kind_of(item) for item in unreadable})}, so a release "
+                f"would have carried {len(request.requested_items) - len(unreadable)}"
+                f" of {len(request.requested_items)} requested items and named the "
+                f"rest nowhere -- not in `materialised_items`, not in a denial, not "
+                f"in `AuditRecord.excerpts_included`. §8.4's record must describe "
+                f"the call, and a record that omits what was asked about does not. "
+                f"A kind reaches this only while it is in neither `TEXT_BEARING` "
+                f"nor `REFERENCE_ONLY`. To lift it: write a materialiser for the "
+                f"kind and then admit it, or say at the type that it carries no "
+                f"content and add it to `REFERENCE_ONLY`. Admitting it FIRST is "
+                f"not the shorter road -- `resolve.materialise` reads "
+                f"`observation_key` and `span` and its docstring says nothing else "
+                f"is read, so a kind carrying neither reaches `_materialise` and "
+                f"raises `AttributeError`: an unhandled crash where this refusal "
+                f"was, which is worse than the silent drop both replace.")
+
         # 2 -- a question only the user can answer, asked only if nothing denied.
         text_items = tuple(item for item in request.requested_items
                            if isinstance(item, TEXT_BEARING))
@@ -285,7 +352,7 @@ class Gate:
 
         # 4 -- the two reasons that needed the resolved text.
         late: dict[str, Callable[[], Denied]] = {}
-        caught = self._postcheck_items(request, resolved,
+        caught = self._postcheck_items(request, resolved, policy=policy,
                                        protected=bool(protected_ids),
                                        sensitive_keys=sensitive_keys)
         if isinstance(caught, WholeDocumentRequested):
@@ -454,6 +521,32 @@ class Gate:
                 "`over_dossier_ceiling` cannot return True in that state")
         return int(value)
 
+    @staticmethod
+    def _suspends(policy) -> bool:
+        """Whether the policy IN FORCE suspends the always-local rule for a
+        self-description.
+
+        READ FROM THE STORED POLICY, and that is the whole of the 2026-09-02 fix.
+        It was a constructor argument, which is a fact about a process rather than
+        about a run: §8.4's audit record names the authorizing policy, so the one
+        act in this product that cannot be taken back was authorised by something
+        the record could not name. Now the audit's `policy_version` leads to the
+        row that says it, and `what said this was permitted` has an answer that
+        outlives the process.
+
+        `80` §8.3's condition C1 survives the move: a policy that says nothing
+        suspends nothing, and so does a policy written before the column existed.
+
+        NAMED FOR THE RULING, not for the permission, and the difference is what
+        `test_no_signature_and_no_branch_field_names_an_override` protects: P7's
+        published names may not read as a back door. `unclassified_permits_local` is
+        the precedent -- a legitimate permission says what CONDITION permits what,
+        and this one says the `80` §8 suspension is what permits a self-description.
+        It is not an override OF the policy; it is a reading of it, which is what
+        moving it out of the constructor made true rather than merely stated.
+        """
+        return SELF_DESCRIPTION_KIND in policy.suspended_item_kinds
+
     def _located_zone(self, item: object) -> str | None:
         """The document zone an item addresses, WITHOUT reading its text.
 
@@ -462,6 +555,11 @@ class Gate:
         explicit that adding one "would move content access in front of the consent
         decision". The zone is therefore a locator fact, and §8.4's always-local zone
         refusal can be taken before anything is materialised.
+
+        `None` is NOT "the zone is unknown", and the module docstring sets out both
+        situations it covers. `Location.__post_init__` validates `zone` against
+        `evidence_shape.vocabulary.ZONES`, so a located observation always carries
+        one of the fifteen and there is no third case to be unsure about.
 
         An unresolvable or ambiguous key returns `None` rather than raising, and the
         second reason is the one that matters. Raising here would turn a call the
@@ -480,7 +578,7 @@ class Gate:
             return None
 
     def _precheck_items(self, request: ModelCallRequest, *, protected: bool,
-                        sensitive_keys) -> Exception | None:
+                        sensitive_keys, policy) -> Exception | None:
         """Task 7's refusals that need no content. `unit_length=None` means unknown.
 
         The zone comes from `_located_zone`, which reads no content column either --
@@ -499,14 +597,14 @@ class Gate:
                 check_item(item, unit_length=None, zone=self._located_zone(item),
                            protected=protected,
                            sensitive_keys=sensitive_keys, allow_unratified=True,
-                           suspension_permits_self_description=self._suspension_permits_self_description)
+                           suspension_permits_self_description=self._suspends(policy))
             except (AlwaysLocalRequested, ProtectedItemRequested) as caught:
                 return caught
         return None
 
     def _postcheck_items(self, request: ModelCallRequest,
                          resolved: Sequence[ReleasedItem], *, protected: bool,
-                         sensitive_keys) -> Exception | None:
+                         sensitive_keys, policy) -> Exception | None:
         """The one refusal that needs the resolved unit length.
 
         `zone` here is the RESOLVED zone -- the one `ReleasedItem` carries and
@@ -528,7 +626,7 @@ class Gate:
                            zone=zones.get(item.observation_key),
                            protected=protected, sensitive_keys=sensitive_keys,
                            allow_unratified=True,
-                           suspension_permits_self_description=self._suspension_permits_self_description)
+                           suspension_permits_self_description=self._suspends(policy))
             except WholeDocumentRequested as caught:
                 return caught
         return None

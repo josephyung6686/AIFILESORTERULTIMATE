@@ -42,6 +42,7 @@ from database_agent.db import create_schema
 from database_agent.files_table import record_file
 from evidence_shape.canonical import canonical_json
 from evidence_shape.location import Location, Segment, TextSpan
+from evidence_shape.vocabulary import ZONES
 from evidence_shape.locator import serialize_locator
 from evidence_shape.observation import Observation, observation_key
 from evidence_shape.runs import ExtractionRun
@@ -59,6 +60,7 @@ from privacy.items import (
 )
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import Denied, ModelCallRequest, ModelTarget, Released, Target
+from privacy.resolve import UnresolvableSpan
 from privacy.schema import create_privacy_schema
 from privacy.vocabulary import ALWAYS_LOCAL, ALWAYS_LOCAL_ZONES
 
@@ -344,6 +346,46 @@ def test_a_candidate_label_addresses_no_observation_and_is_unaffected(zone_conn)
     decision = _gate(zone_conn).release(_request(
         items=(CandidateLabel(label="Legal"),), file_id=file_id))
     assert isinstance(decision, Released)
+
+
+# ================================================================================
+# What an absent zone means, run rather than reasoned about
+# ================================================================================
+
+def test_a_key_that_does_not_resolve_releases_nothing(zone_conn):
+    """`_located_zone` returns `None` for a key it cannot resolve, and `None` skips
+    the zone refusal. That is safe, and this is the test that says so with a run
+    instead of an argument.
+
+    The refusal is DEFERRED, never waived: the same key is unreadable to
+    `resolve.materialise`, which raises at step 3 before any value exists. So the
+    item cannot be released, and `None` never becomes "not always-local".
+
+    It stays an exception rather than becoming `Denied always_local_item` because
+    `test_p7_release.test_a_resolve_failure_propagates_and_is_not_a_denial` rules on
+    it: a key the evidence does not carry is a contract violation by the CALLER, and
+    answering a typo with a privacy verdict would be the wrong kind of true.
+    """
+    file_id, _key = _seed(zone_conn, zone="path", raw_value=PRIVATE_DIRECTORY)
+    with pytest.raises(UnresolvableSpan):
+        _gate(zone_conn).release(_request(
+            items=(Excerpt(observation_key="sha256:no-such-key", span=None,
+                           reason="path"),),
+            file_id=file_id))
+
+
+def test_every_stored_zone_is_one_of_p4s_fifteen(zone_conn):
+    """Why there is no third case for `_located_zone` to be unsure about.
+
+    `Location.__post_init__` runs `check(self.zone, ZONES)`, so "a locator with no
+    zone" is not a state this product can store. The always-local set is a subset of
+    what a locator can carry, which is what makes a zone check total.
+    """
+    with pytest.raises(Exception):
+        Location(zone="", container_path=(), text_span=None)
+    with pytest.raises(Exception):
+        Location(zone="not-a-zone", container_path=(), text_span=None)
+    assert ALWAYS_LOCAL_ZONES <= set(ZONES)
 
 
 # ================================================================================
