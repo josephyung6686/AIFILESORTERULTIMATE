@@ -619,13 +619,24 @@ def announce_cloud_posture(routing: TierRouting | None,
             # key works; no call site does. Saying "may be sent" here would be the
             # product frightening a person about something it cannot do, on the one
             # screen where being believed is the whole point.
+            #
+            # But the two things this notice already earned stay: the models are
+            # NAMED, because a person told "an external provider" has been told
+            # less than a person told the name; and protected material is said to
+            # be excluded, because that is the standing rule and this is where a
+            # person is deciding. Both were dropped by a first version of this
+            # branch and both matter MORE once the wiring lands, not less -- a
+            # person reading today's notice is deciding about tomorrow's runs.
             print(_wrapped(
-                f"Nothing was sent and nothing could have been. A model is "
-                f"configured ({routing.model_id_for(A_FACT)}), but no part of this "
-                f"run can call one yet, so every file was judged on this device. "
-                f"You do not need to turn sending off for this run -- but it stays "
-                f"on for the next one, and you can turn it off with:",
-                indent="  "), file=out)
+                f"Nothing was sent and nothing could have been. Three models are "
+                f"configured -- {routing.model_id_for(A_FACT)} (facts), "
+                f"{routing.model_id_for(C_PLACEMENT)} (checks) and "
+                f"{routing.model_id_for(D_RESIDUAL)} (review sets) -- but no part "
+                f"of this run can call one yet, so every file was judged on this "
+                f"device. Protected material and §8.4's always-local kinds are "
+                f"refused by P7 and would not be among what they receive when that "
+                f"changes. Sending stays ON for this folder until you turn it off "
+                f"with:", indent="  "), file=out)
         else:
             print(_wrapped(
                 f"Files that need a judgement may be sent to "
@@ -640,23 +651,28 @@ def announce_cloud_posture(routing: TierRouting | None,
         # `model_route` has already said no model is configured. A second sentence
         # about consent would answer a question the person cannot yet be asking.
         return
-    if not MODEL_CALL_SITES_WIRED:
-        # Same untruth in the quieter half of the branch. Naming three models under
-        # the word "Model:" reads as a statement about what this run will do.
-        print(f"\nModel: {routing.model_id_for(A_FACT)} is configured, but no part "
-              f"of this run can call one yet. Every file is judged on this device.",
-              file=out)
-        return
     print(f"\nModel: {routing.model_id_for(A_FACT)} for facts, "
           f"{routing.model_id_for(C_PLACEMENT)} for checks, "
           f"{routing.model_id_for(D_RESIDUAL)} for review sets.", file=out)
+    # TWO independent reasons nothing is sent, and both are said. An earlier
+    # version of this branch returned early when the call sites were unwired, and
+    # in doing so dropped the entire consent explanation -- a person with sending
+    # off lost the sentence saying so and the command that turns it on. That
+    # traded one untruth for a worse silence. The wiring sentence is ADDED to the
+    # consent one rather than replacing it, because a person who turns sending on
+    # tomorrow needs to know that today's quiet had two causes and only one of
+    # them was their choice.
+    unwired = ("" if MODEL_CALL_SITES_WIRED else
+               " No part of this run can call a model yet either, so turning "
+               "sending on today would still send nothing.")
     print(_wrapped(
         f"None of them will be asked on this run. Cloud sending is off for this "
         f"folder, which is what happens by not choosing -- this run operates "
         f"under `{OPERATION_MODE}`, \"{MODE_SEMANTICS[OPERATION_MODE]}\" -- so a "
         f"file below that says a model was not cleared for it is saying that, and "
-        f"nothing about itself. Nothing was sent and no key was used. To turn "
-        f"sending on for this folder, add --enable-cloud.", indent="  "), file=out)
+        f"nothing about itself. Nothing was sent and no key was used.{unwired} To "
+        f"turn sending on for this folder, add --enable-cloud.",
+        indent="  "), file=out)
 
 #: P7's handling class for an ordinary file and for a protected area. The set is
 #: P7's vocabulary; which one a node carries is a deployment decision, and the
@@ -2958,10 +2974,27 @@ def file_names(conn: sqlite3.Connection, *roots: Path) -> dict[str, str]:
 
 def _wrapped(text: str, *, indent: str, first: str | None = None) -> str:
     """`first` differs from `indent` only for a bullet, whose marker belongs on
-    the first line and whose continuation lines must line up past it."""
+    the first line and whose continuation lines must line up past it.
+
+    NOTHING IS BROKEN MID-TOKEN, and both switches are load-bearing rather than
+    tidy. `_role_lines` below already records the rule -- "textwrap breaking a
+    command across two lines produces a command that does not work, which is `84`
+    §6's recurring defect" -- and applies it by keeping pasteable lines out of the
+    wrapper. But a flag named INSIDE a sentence never reaches that escape, and
+    `textwrap` splits on hyphens by default, so `--enable-cloud` was printing as
+    `--enable-` then `cloud`: the product telling a person to type something that
+    is not typeable. `model-for-D_residual` split the same way, leaving a model
+    name a person could not read or search for.
+
+    `break_on_hyphens=False` is the one that fixes both; `break_long_words=False`
+    covers the token with no hyphen in it at all -- a long path or an unbroken
+    identifier -- which is the same hazard the send-set line and the database path
+    already dodge by printing on their own line.
+    """
     return textwrap.fill(text, width=78,
                          initial_indent=indent if first is None else first,
-                         subsequent_indent=indent)
+                         subsequent_indent=indent,
+                         break_on_hyphens=False, break_long_words=False)
 
 
 def _role_lines(lines: Sequence[str], *, out) -> None:
