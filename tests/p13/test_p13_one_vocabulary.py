@@ -31,7 +31,12 @@ from review_surface import vocabulary as v
 
 #: The receiver packages. Every module in each is read; a package that carries
 #: P13's vocabulary may not respell any part of it anywhere.
-RECEIVER_PACKAGES = ("grouping", "placement", "tree_design")
+#:
+#: `review_run` is here because it is the composition seam that RENDERS P13's
+#: surfaces, so it handles action and surface names constantly and was scanned by
+#: nothing -- a literal there would silently rebuild the second home this guard
+#: exists to prevent, in the one package whose whole job is to read the first.
+RECEIVER_PACKAGES = ("grouping", "placement", "review_run", "tree_design")
 
 #: Every string P13 owns as a gesture or a place a gesture is made. `VERDICTS`,
 #: `PROGRESS_STATES` and `PROGRESS_SOURCES` are deliberately out: no receiver

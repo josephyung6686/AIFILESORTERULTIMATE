@@ -34,6 +34,7 @@ from placement.residual import (
 
 from review_surface.residual import (
     SEVEN_ATTRIBUTES,
+    WEAK_NEIGHBOURS,
     IncompleteResidualCard,
     residual_card,
     residual_file_view,
@@ -105,16 +106,54 @@ def test_a_set_missing_an_attribute_is_a_failure_not_a_blank(p13_conn):
             with pytest.raises(ValueError):
                 _set(reason_not_placed="")
             continue
+        if name == WEAK_NEIGHBOURS:
+            # The one of the seven §7.5 qualifies. See the test below: an empty
+            # tuple here is the set's ANSWER, so it is checked there rather than
+            # among the blanks, and this loop still covers the other five.
+            continue
         with pytest.raises(IncompleteResidualCard) as caught:
             residual_card(_set(**{name: blanks[name]}))
         assert name in str(caught.value)
+        assert caught.value.missing == [name]
 
 
-def test_a_set_with_no_weak_neighbours_states_it_rather_than_omitting_the_row(
+def test_a_set_with_no_weak_neighbours_answers_with_none_rather_than_a_sentinel(
         p13_conn):
-    """The attribute is then the STATEMENT that there are none, never a gap."""
-    card = residual_card(_set(weak_graph_neighbours=("none",)))
-    assert card.weak_graph_neighbours == ("none",)
+    """§7.5 qualifies exactly one of the seven, and the word is "ANY".
+
+        "...sensitivity status, ANY weak graph neighbors, and the reason the
+        system could not safely place the files..."
+
+    Every other attribute is named flat. So a set with no weak graph neighbours
+    has a true answer -- there are none -- and `()` is that answer rather than a
+    producer who did not fill the field in. Treating the two alike is what this
+    test's predecessor documented as design: it asserted a card built with
+    `weak_graph_neighbours=("none",)`, which is a producer inventing a sentinel
+    to get past the check, and a card that would then display a weak neighbour
+    named "none" to a person.
+
+    The twin is the second half. `age_range` carries no such qualifier, so an
+    empty one is still a rendering failure, and a fix that simply stopped
+    checking emptiness would pass the first assertion here and fail the second.
+    """
+    card = residual_card(_set(weak_graph_neighbours=()))
+    assert card.weak_graph_neighbours == ()
+
+    with pytest.raises(IncompleteResidualCard):
+        residual_card(_set(age_range=()))
+
+
+def test_the_refusal_names_which_attributes_are_missing_as_data(p13_conn):
+    """So a composition root can print the gap instead of printing a traceback.
+
+    `84` §6: what the screen tells a person has to be true, and a person whose
+    build cannot answer two of §7.5's seven is owed those two by name rather than
+    a stack trace or a screen that never renders. The names are on the exception
+    as a list, not only inside its message, because a caller cannot act on prose.
+    """
+    with pytest.raises(IncompleteResidualCard) as caught:
+        residual_card(_set(age_range=(), file_type_distribution=()))
+    assert caught.value.missing == ["file_type_distribution", "age_range"]
 
 
 def test_the_summary_line_and_the_cards_cannot_disagree(p13_conn):

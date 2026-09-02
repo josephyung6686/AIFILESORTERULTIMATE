@@ -13,6 +13,16 @@ pipeline." A card missing one is a rendering failure, so `residual_card` raises
 rather than emitting a shorter card. That is the difference between a screen that
 helps and a screen that admits it does not know while looking complete.
 
+**Six of the seven. Read that sentence's one qualifier: "ANY weak graph
+neighbors".** Every other attribute in it is named flat, and this module used to
+treat all seven alike -- an empty value was a missing value, whatever the field.
+A set with no weak graph neighbours has a TRUE answer, and refusing it meant a
+producer could only say "there are none" by inventing a sentinel to put in a list
+of neighbour ids. The test that used to stand for this asserted a card built with
+`weak_graph_neighbours=("none",)`, which is a weak neighbour called "none" on a
+person's screen. `WEAK_NEIGHBOURS` is skipped by the completeness check for that
+reason and no other; the remaining six still refuse.
+
 `member_file_ids` is deliberately NOT projected onto the card. A card that carried
 the member list would let a protected set be expanded into a filename list by
 anything holding the card, and Done-means 15 forbids exactly that while the policy
@@ -50,7 +60,8 @@ from placement.residual import (
 )
 
 __all__ = [
-    "SEVEN_ATTRIBUTES", "IncompleteResidualCard", "ResidualFileView",
+    "SEVEN_ATTRIBUTES", "WEAK_NEIGHBOURS",
+    "IncompleteResidualCard", "ResidualFileView",
     "ResidualScreen", "ResidualSetCard", "SetDecisionRequired",
     "residual_card", "residual_file_view", "residual_screen",
 ]
@@ -63,9 +74,28 @@ SEVEN_ATTRIBUTES: tuple[str, ...] = (
     "reason_not_placed",
 )
 
+#: The ONE of the seven §7.5 qualifies, and the qualifier is the word "any":
+#: "...sensitivity status, ANY weak graph neighbors, and the reason...". Every
+#: other attribute in that sentence is named flat. So an empty tuple here is the
+#: set's ANSWER -- there are none -- and not a producer who left the field
+#: unfilled, and the completeness check below skips it for that reason and no
+#: other. Named rather than spelled inline so the check and this paragraph cannot
+#: come apart.
+WEAK_NEIGHBOURS: str = "weak_graph_neighbours"
+assert WEAK_NEIGHBOURS in SEVEN_ATTRIBUTES
+
 
 class IncompleteResidualCard(RuntimeError):
-    """A set missing one of §7.5's seven. A failure, not a shorter card."""
+    """A set missing one of §7.5's seven. A failure, not a shorter card.
+
+    Carries `missing` as a LIST and not only inside the message. A composition
+    root that catches this owes the person the attributes their build cannot
+    answer, by name -- `84` §6 -- and it cannot act on prose.
+    """
+
+    def __init__(self, message: str, *, missing: Sequence[str]) -> None:
+        super().__init__(message)
+        self.missing = list(missing)
 
 
 @dataclass(frozen=True)
@@ -109,14 +139,23 @@ class ResidualScreen:
 
 def residual_card(residual_set: ResidualSet) -> ResidualSetCard:
     """One card. Raises if any of §7.5's seven attributes is absent or empty."""
+    # `WEAK_NEIGHBOURS` is skipped, and only it: §7.5 qualifies that one
+    # attribute with "any", so a set with none has answered rather than been
+    # left unfilled. Before this, saying "there are none" required the producer
+    # to invent a sentinel -- the test that used to stand here asserted a card
+    # built with `("none",)`, which is a weak neighbour named "none" on a
+    # person's screen -- and a set that honestly had none could not be shown at
+    # all. Every other attribute is named flat in that sentence and still
+    # refuses.
     missing = [name for name in SEVEN_ATTRIBUTES
-               if not getattr(residual_set, name)]
+               if name != WEAK_NEIGHBOURS and not getattr(residual_set, name)]
     if missing:
         raise IncompleteResidualCard(
             f"residual set {residual_set.set_id!r} has no value for {missing}. "
-            "§7.5 requires all seven attributes on every set, and a card that "
+            "§7.5 requires these attributes on every set, and a card that "
             "silently drops one looks complete while hiding the thing the user "
-            "needs in order to decide")
+            "needs in order to decide",
+            missing=missing)
     return ResidualSetCard(
         set_id=residual_set.set_id,
         plan_version=residual_set.plan_version,
