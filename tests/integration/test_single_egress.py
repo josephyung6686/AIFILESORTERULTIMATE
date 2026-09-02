@@ -63,6 +63,12 @@ weakness is undocumented is trusted past it.
   materialises and `resolve.py` has to be able to type the row it looks up. A rule
   that flagged every mention would forbid wiring the very door it keeps narrow.
 
+  **And the hole that trade leaves, said plainly.** The type handed as an ARGUMENT
+  to something else -- `partial(SelfDescription)`, `register(SelfDescription)` -- is
+  the same syntax as `isinstance(x, SelfDescription)`, so a factory built out of the
+  type is not a finding. Nothing distinguishes them without banning the exemption
+  above. Rule E seals the spellings of construction, not every path to one.
+
 **D. `src/questions/` does not even NAME a client.** Stricter than the rest of the
 tree on purpose, because a self-description is a `user_edits` item under `80` §2 and
 the amendment in §8.1 scopes its suspension to that one item: "this suspension
