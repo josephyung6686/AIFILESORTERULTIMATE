@@ -1,6 +1,6 @@
 # 84 — HANDOFF. Read this first if the session was cut.
 
-Date: 2026-08-31, updated continuously.
+Date: 2026-08-31, **updated 2026-09-02**, updated continuously.
 **Supersedes `69-HANDOFF.md` and `67-HANDOFF.md`.** Those describe a product that had no P12,
 no P13, no residual library and no model. Do not resume from them.
 
@@ -32,15 +32,17 @@ enough to pick up without losing anything.**
 
 ## 2. Where the product actually is
 
-**Suite: ~6016 passing, 19 skipped, 7 xfailed** as of the last full green run. The xfails are
+**Suite: 6322 passing, 19 skipped, 13 xfailed**, measured 2026-09-02 15:30. The xfails are
 deliberate known-gap markers — several are `strict=True`, so they turn the suite RED the day
 someone fixes them. That is intended; read the marker's reason before "fixing" anything.
+**Re-measure; never quote this number.** Ten agents are landing work as of this writing.
 
 **Built and reachable from a command a person types:**
 
 - P1–P11 compose into one command that prints a report in sentences.
 - **P12** Waves C, D, E — names, resolution, plan, preconditions, collision, special objects,
-  execute, cross-volume, approval, refusal events. **Wave F (undo) and G (the seam) in flight.**
+  execute, cross-volume, approval, refusal events. **F1–F4 and G1–G3 landed** (`3fc0f18`,
+  `12cd3d1`, `97c6f6c`, `df0595a`, `e7adf86`, `75b9af8`, `16867f2`); G4 outstanding.
 - **P13** Wave A and all fourteen of Wave B.
 - **P15 / questions** — registry, data classifications, free-text answers with scope and period,
   plan-version drafts, inspection.
@@ -56,6 +58,15 @@ changed disk until `704e383`:
 | `--residual "<name>"` / `--list-residuals` | enable one of the nine residual homes |
 | `--send-set "SET=AREA"` | file a whole review set into one, zero model calls |
 | `--reject "file:field=value"` | tell it a conclusion is wrong; it remembers |
+
+**THE SINGLE BIGGEST THING STILL WRONG, found 2026-09-02: no model is wired at all.**
+Nothing in `src/` constructs a `ModelClient`. `src/readers/model_anthropic.py` and
+`src/readers/model_ollama.py` are imported by nobody. `src/cli.py` names no provider, no env
+variable and no `ModelTarget`. A valid DeepSeek key sits in `.env` and **nothing reads it**, and
+there is no `model_deepseek.py`. Every part of the LLM path is built, tested and connected to
+nothing — the defect class §5 describes, in the one place the owner called "so crucial". This is
+why every persona ends with most files reporting *"needed a model"*: there is no model. Being
+fixed now; if `src/readers/model_deepseek.py` does not exist when you read this, it is still open.
 
 **The single biggest thing still wrong:** **~235 public mechanisms across ~97 modules are
 unreachable from `cli.main`**, tracked live by
