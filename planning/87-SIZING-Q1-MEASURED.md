@@ -248,6 +248,18 @@ need one either.** `needs_model_call`'s own docstring refuses the empty case bec
 invent"*; a candidate set every member of which the evidence failed to support is that
 situation with extra steps.
 
+**Added 2026-09-03, from `9e7152e`, and it is a better argument for 2B than the one
+above.** A corpus was measured whose three candidates tied at 2/7 — the accepted-group
+channel alone, no direct fact anywhere — and `needs_model_call` sent all three to a model
+as a bounded ambiguity. `materialise.branch_expectations` then gave the branch the
+`subject` its files agree on, one candidate carried a direct fact, and the tie broke with
+no call. **A tie between destinations none of which states anything is not a bounded
+ambiguity, it is a tree with nothing to match against.** That is the same reasoning
+`needs_model_call` already applies to the EMPTY candidate set, and 2B is where it belongs:
+the question is not how many candidates there are, it is whether any of them said
+anything the file could match. Written up against the shipped command, not a prototype —
+`9e7152e` is landed and `tests/integration/test_cli_agreeing_corpus.py` holds the case.
+
 ### 4.2 What they moved
 
 | | ready to file | files a wired model would receive | what the person is told |
