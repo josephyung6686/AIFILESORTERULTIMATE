@@ -76,7 +76,7 @@ def decision(p12_conn, file_id):
 
 def _build(p12_conn, decision, landscape, ids, *, nodes=FIXTURE_NODES, legal=None,
            cross_folder_moves=True, collision_policy=None,
-           constraints=CONSTRAINTS):
+           constraints=CONSTRAINTS, protected_labels=None):
     return build_plan(
         p12_conn, decision, nodes=nodes,
         legal_destination_ids=(
@@ -84,6 +84,7 @@ def _build(p12_conn, decision, landscape, ids, *, nodes=FIXTURE_NODES, legal=Non
         cross_folder_moves=cross_folder_moves, constraints=constraints,
         high_level_folders=landscape, volume_of=_volume,
         protected_handling_classes=PROTECTED_CLASSES,
+        protected_label_classes={} if protected_labels is None else protected_labels,
         collision_policy=(collision_policy
                           or v.PRESERVE_BOTH_DETERMINISTIC_SUFFIX),
         expiration_state="no expiry configured",
@@ -341,9 +342,22 @@ def test_a_protected_label_refuses_before_a_plan_exists(p12_conn, decision,
              fixture_node("n-phys", "X1234567", "n-course",
                           handling_class="highly_sensitive_credential_bearing"))
     with pytest.raises(PlanRefused) as excinfo:
-        _build(p12_conn, decision, landscape, ids, nodes=nodes)
+        _build(p12_conn, decision, landscape, ids, nodes=nodes,
+               protected_labels={"n-phys": "highly_sensitive_credential_bearing"})
     assert excinfo.value.refusal_class == v.PROTECTED_WITHOUT_POLICY
     assert "X1234567" not in str(excinfo.value.detail)
+
+    # `94` F1's twin at this level: the same tree with the same floors, and the
+    # provenance answer saying the name came from nowhere protected, builds a
+    # plan. A guard reading `Node.handling_class` refuses both and the branch
+    # under a protected floor is the one a person actually has.
+    ordinary = (fixture_node("n-course", "Coursework", None,
+                             handling_class="sensitive_personal"),
+                fixture_node("n-phys", "PHYS1401", "n-course"))
+    built = _build(p12_conn, decision, landscape, ids, nodes=ordinary)
+    assert built is not None
+    assert built[0].resolved_destination_path.endswith(
+        "Coursework/PHYS1401/Syllabus.pdf")
 
 
 def test_a_decision_naming_a_file_p1_has_no_record_of_refuses(

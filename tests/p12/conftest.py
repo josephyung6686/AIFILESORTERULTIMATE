@@ -233,6 +233,7 @@ def plan_a_move(conn, landscape, ids, *, volume_of,
         constraints=CONSTRAINTS, high_level_folders=landscape,
         volume_of=volume_of,
         protected_handling_classes=PROTECTED_CLASSES,
+        protected_label_classes={},
         collision_policy=collision_policy or PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
         expiration_state="no expiry configured",
         now=lambda: FIXED_CLOCK, mint_id=ids)

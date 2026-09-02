@@ -249,6 +249,7 @@ def _plan(conn, landscape, ids, *, review_policy=REVIEW_REQUIRED,
         cross_folder_moves=True, constraints=CONSTRAINTS,
         high_level_folders=landscape, volume_of=lambda path: "vol-main",
         protected_handling_classes=PROTECTED_CLASSES,
+        protected_label_classes={},
         collision_policy=v.PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
         expiration_state="no expiry configured",
         now=lambda: FIXED, mint_id=ids)

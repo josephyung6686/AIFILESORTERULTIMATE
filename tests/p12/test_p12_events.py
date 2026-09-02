@@ -136,6 +136,7 @@ def _via_construction(conn, landscape, ids, *, nodes, constraints,
                    high_level_folders=landscape,
                    volume_of=lambda path: "vol-main",
                    protected_handling_classes=PROTECTED_CLASSES,
+                   protected_label_classes={},
                    collision_policy=v.PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
                    expiration_state="no expiry configured",
                    now=lambda: "2026-08-29T00:00:00Z", mint_id=ids)

@@ -16,9 +16,13 @@ protected FILENAMES has not asked for a passport number to become a folder.
 
 **Provenance is a join, not a string search.** `grouping.naming.label_for` is
 "the anchor values, deduplicated, in the order the facts carry them" -- so a
-group's label is derived from protected material exactly when one of its anchor
-facts stands on a file P7 flagged, and `AnchorFact.file_ids` carries that join
-with nothing left to infer. `redaction_boundary.carries_no_material` is the
+group's label is derived from protected material exactly when one of the anchor
+facts THAT COMPOSED IT stands on a file P7 flagged, and `AnchorFact.file_ids`
+carries that join with nothing left to infer. The words "that composed it" are
+`94` F1's whole cost and are checked by comparing the fact's value against the
+label's own components; a group merely HOLDING a protected anchor fact says
+nothing, because a group's label may also be the person's own word.
+`redaction_boundary.carries_no_material` is the
 tempting shortcut and is the wrong tool: it refuses on any shared run of two
 characters, which is what makes it a good check on a MASKED form and a
 catastrophic one on provenance -- "Columbia 2026" beside a protected observation
@@ -43,6 +47,7 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from grouping.naming import LABEL_JOIN
 from tree_design.records import Node
 
 from review_surface.redaction_boundary import (
@@ -50,7 +55,8 @@ from review_surface.redaction_boundary import (
     proposed_folder_name,
 )
 
-__all__ = ["ProtectedLabel", "folder_label", "protected_label_provenance"]
+__all__ = ["ProtectedLabel", "folder_label", "protected_label_classes",
+           "protected_label_provenance"]
 
 
 @dataclass(frozen=True)
@@ -72,10 +78,24 @@ def protected_label_provenance(
         group_ids: Sequence[str]) -> Mapping[str, ProtectedLabel]:
     """The groups whose `display_label` was minted from a protected file.
 
-    A group with no live protected anchor file is simply absent. Absence means
-    safe HERE and only here: the refusal itself lives in `proposed_folder_name`,
-    which takes the answer as a required keyword with no default, so nothing
-    downstream can arrive at "safe" by forgetting to ask.
+    A group whose label no protected anchor fact composed is simply absent.
+    Absence means safe HERE and only here: the refusal itself lives in
+    `proposed_folder_name`, which takes the answer as a required keyword with no
+    default, so nothing downstream can arrive at "safe" by forgetting to ask.
+
+    **The join is on the anchor facts that COMPOSED THE LABEL, not on the ones
+    the group holds.** `label_for` is `LABEL_JOIN.join(dict.fromkeys(values))`, so
+    every component of an engine label IS an anchor value and an anchor fact
+    whose value is no component of it contributed no letter to the name. Asking
+    only "does this group hold a protected anchor file" was true of engine labels
+    and false of every other kind, and `94` F1 is what that cost: `src/cli.py`
+    accepts one group per `--label`, so the person's own word -- `Coursework`,
+    `label_source = user-edited` -- inherited the anchor facts of everything
+    under it, including a passport's, and a name derived from nothing at all came
+    back "derived from protected material". The value test is exact for all three
+    `LABEL_SOURCES`: an engine label because it IS the join, a user-edited or
+    llm-proposed one because it is refused exactly when somebody typed or
+    proposed the protected value itself.
 
     The handling class is the CLASSIFICATION'S, not the node's. The aggregate
     says "1 protected <class>", which is a statement about the material the label
@@ -94,8 +114,10 @@ def protected_label_provenance(
             (group_id,)).fetchone()
         if row is None or not row[1]:
             continue
+        composed = set(row[1].split(LABEL_JOIN))
         file_ids = {file_id
                     for fact in json.loads(row[0] or "[]")
+                    if fact.get("value") in composed
                     for file_id in fact.get("file_ids", ())}
         if not file_ids:
             continue
@@ -112,9 +134,10 @@ def protected_label_provenance(
     return provenance
 
 
-def folder_label(node: Node, *,
-                 provenance: Mapping[str, ProtectedLabel]) -> str:
-    """The one string a tree may print for this node.
+def _named_from_protected_material(
+        node: Node, *,
+        provenance: Mapping[str, ProtectedLabel]) -> ProtectedLabel | None:
+    """The protected material this node's OWN NAME was composed from, or `None`.
 
     A node's label came FROM a group exactly when it EQUALS that group's label:
     P10 copies `candidate.display_label` onto the node it builds
@@ -123,19 +146,60 @@ def folder_label(node: Node, *,
     template branch holding one protected file -- which is most people's
     corpus -- and the tree would be unreadable for the wrong reason.
 
+    One function because two readers now ask the same question: `folder_label`
+    for the string a tree prints, and `protected_label_classes` for the answer
+    P12 composes a PATH against. A second spelling of the rule is a second
+    chance to spell it differently.
+    """
+    for group_id in node.associated_group_ids:
+        protected = provenance.get(group_id)
+        if protected is not None and protected.display_label == node.display_label:
+            return protected
+    return None
+
+
+def protected_label_classes(
+        nodes: Sequence[Node], *,
+        provenance: Mapping[str, ProtectedLabel]) -> Mapping[str, str]:
+    """Which nodes' NAMES came from protected material, and from what class.
+
+    P12's `resolve_destination` composes a directory out of ancestor labels and
+    must refuse to write one that IS protected material (`74` §5.6, `69` §3
+    blocker 3). It cannot answer that itself: `Node` carries a `handling_class`
+    which P10 collapses to the STRONGEST class among a branch's members, so it is
+    the floor for what may be filed there and says nothing about where the name
+    came from. Reading the floor as provenance is `94` F1 -- one passport gave
+    the whole `Coursework` branch `sensitive_personal` and every ordinary file
+    under it became unfilable, with the person's coursework named on the screen
+    as the thing that was protected.
+
+    The class is the CLASSIFICATION'S, as in `protected_label_provenance`: it is
+    what the aggregate may say about the material the name came from, and the
+    node's own class would describe a different thing under the same words.
+    """
+    found = {}
+    for node in nodes:
+        protected = _named_from_protected_material(node, provenance=provenance)
+        if protected is not None:
+            found[node.node_id] = protected.handling_class
+    return found
+
+
+def folder_label(node: Node, *,
+                 provenance: Mapping[str, ProtectedLabel]) -> str:
+    """The one string a tree may print for this node.
+
     `provenance` is what `protected_label_provenance` returns and is a required
     keyword. A default of `{}` would make every caller that forgot it print every
     label, which is the state this module exists to end.
     """
-    for group_id in node.associated_group_ids:
-        protected = provenance.get(group_id)
-        if protected is None or protected.display_label != node.display_label:
-            continue
-        try:
-            return proposed_folder_name(
-                display_label=node.display_label,
-                derived_from_protected_material=True,
-                handling_class=protected.handling_class)
-        except ProposedNameFromProtectedMaterial as refusal:
-            return refusal.aggregate.text
-    return node.display_label
+    protected = _named_from_protected_material(node, provenance=provenance)
+    if protected is None:
+        return node.display_label
+    try:
+        return proposed_folder_name(
+            display_label=node.display_label,
+            derived_from_protected_material=True,
+            handling_class=protected.handling_class)
+    except ProposedNameFromProtectedMaterial as refusal:
+        return refusal.aggregate.text

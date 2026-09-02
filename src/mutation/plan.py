@@ -224,6 +224,7 @@ def build_plan(conn: sqlite3.Connection, decision: PlacementDecision, *,
                high_level_folders: Mapping[str, Path],
                volume_of: Callable[[Path], str],
                protected_handling_classes: frozenset[str],
+               protected_label_classes: Mapping[str, str],
                collision_policy: str,
                expiration_state: str,
                now: Callable[[], str],
@@ -236,6 +237,12 @@ def build_plan(conn: sqlite3.Connection, decision: PlacementDecision, *,
     are decisions not to move (§7.7), and recording one of them as a P12 refusal
     would make the apply run's refused count describe decisions that were never
     asked to move.
+
+    `protected_label_classes` is passed straight through to `resolve_destination`,
+    where its own guard states why it exists and why `Node.handling_class` is not
+    it (`94` F1). It is a required keyword here for the same reason it is one
+    there: a caller that forgot it would compose a path through a name it had
+    never asked about.
 
     `collision_policy` and `expiration_state` are injected with NO default.
     §8.3 names the collision field and its four behaviours but never says which
@@ -274,7 +281,8 @@ def build_plan(conn: sqlite3.Connection, decision: PlacementDecision, *,
             source_path=source_path, high_level_folders=high_level_folders,
             constraints=constraints, cross_folder_moves=cross_folder_moves,
             volume_of=volume_of, mint_resolution_id=mint_id,
-            protected_handling_classes=protected_handling_classes)
+            protected_handling_classes=protected_handling_classes,
+            protected_label_classes=protected_label_classes)
     except ResolutionRefused as refused:
         raise PlanRefused(refused.refusal_class, str(refused),
                           detail=refused.detail) from refused

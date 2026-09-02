@@ -19,6 +19,7 @@ import pytest
 from database_agent.db import create_schema
 from database_agent.files_table import record_file
 from eval_harness.store import create_eval_schema
+from grouping.schema import create_grouping_schema
 from placement.fixtures import EXACT_PLACEMENT
 from placement.records import Destination, PrivacyState, Subject
 from placement.schema import create_placement_schema
@@ -75,8 +76,13 @@ CORPUS = (
 @pytest.fixture()
 def world(conn, tmp_path):
     """The database, the folders, the bytes, and the four decisions."""
+    # P9's tables are here because `freeze` now reads them: it joins the
+    # provenance of every node's NAME before composing a path, and a read against
+    # an absent table proves nothing about the read (`94` F1, and P11's conftest
+    # gives the same reason for creating P9's).
     for create in (create_schema, create_eval_schema, create_privacy_schema,
-                   create_placement_schema, create_mutation_schema):
+                   create_placement_schema, create_mutation_schema,
+                   create_grouping_schema):
         create(conn)
 
     documents = tmp_path / "Documents"

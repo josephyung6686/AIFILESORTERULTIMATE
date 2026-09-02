@@ -38,6 +38,9 @@ from placement.records import PlacementDecision
 from placement.vocabulary import (
     AUTO_ELIGIBLE, BLOCKED_PENDING_USER, PLACE, REVIEW_REQUIRED,
 )
+from review_run.structure import (
+    protected_label_classes, protected_label_provenance,
+)
 from tree_design.records import Node
 
 from mutation.constraints import FilesystemConstraints
@@ -198,8 +201,26 @@ def freeze(conn: sqlite3.Connection,
     leave-in-place is a decision not to move; recording either as something
     withheld would tell a person that files were kept back when in fact they
     were decided.
+
+    **The provenance of every node's NAME is joined here, once, and handed down.**
+    P12 refuses to compose a directory out of a label that IS protected material
+    (`74` §5.6) and cannot answer that from the tree: `Node.handling_class` is
+    P10's floor, raised for a whole branch by one protected member, and reading
+    it as provenance is `94` F1 -- a passport scan in a folder made every
+    ordinary file beside it unfilable and named the coursework as the protected
+    thing. `review_run.structure` owns the join, the same one P13's tree printer
+    asks, so the screen and the path agree about which names came from where.
+    It is a read over records this run already wrote, not a policy: nothing is
+    chosen here that `src/cli.py` has not already decided.
     """
     frozen_at = now()
+    label_classes = protected_label_classes(
+        nodes,
+        provenance=protected_label_provenance(
+            conn,
+            group_ids=tuple(dict.fromkeys(
+                group_id for node in nodes
+                for group_id in node.associated_group_ids))))
     replaces = _previous(conn)
     plans: list[MovePlan] = []
     held: list[Held] = []
@@ -222,6 +243,7 @@ def freeze(conn: sqlite3.Connection,
                 cross_folder_moves=cross_folder_moves, constraints=constraints,
                 high_level_folders=high_level_folders, volume_of=volume_of,
                 protected_handling_classes=protected_handling_classes,
+                protected_label_classes=label_classes,
                 collision_policy=collision_policy,
                 expiration_state=expiration_state, now=now, mint_id=mint_id)
         except PlanRefused as refused:

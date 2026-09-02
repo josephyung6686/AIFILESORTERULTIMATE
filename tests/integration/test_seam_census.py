@@ -403,6 +403,10 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
             # and not typed -- `02` D2: P7 owns the classification.
             protected_handling_classes=frozenset({
                 SENSITIVE_PERSONAL, HIGHLY_SENSITIVE}),
+            # `94` F1: which node NAMES came from protected material. No node in
+            # this census tree is named after any, and P10's floor is a different
+            # field answering a different question.
+            protected_label_classes={},
             collision_policy=PRESERVE_BOTH_DETERMINISTIC_SUFFIX,
             expiration_state="no expiry configured",
             now=lambda: "2026-09-02T00:00:00Z",

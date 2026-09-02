@@ -75,7 +75,7 @@ def _volume(path: Path) -> str:
 
 def _resolve(node_id, nodes=FOUR_LEVEL, *, source=DOCUMENTS / "Inbox" / "a.pdf",
              constraints=CASE_KEEPING_VOLUME, cross_folder_moves=True,
-             folders=None, protected_classes=None):
+             folders=None, protected_classes=None, protected_labels=None):
     return resolve_destination(
         plan_version="plan_1", node_id=node_id, nodes=nodes, source_path=source,
         high_level_folders=FOLDERS if folders is None else folders,
@@ -83,7 +83,9 @@ def _resolve(node_id, nodes=FOUR_LEVEL, *, source=DOCUMENTS / "Inbox" / "a.pdf",
         cross_folder_moves=cross_folder_moves, volume_of=_volume,
         mint_resolution_id=_mint,
         protected_handling_classes=(
-            PROTECTED_CLASSES if protected_classes is None else protected_classes))
+            PROTECTED_CLASSES if protected_classes is None else protected_classes),
+        protected_label_classes=(
+            {} if protected_labels is None else protected_labels))
 
 
 # --------------------------------------------------------------------------
@@ -202,7 +204,8 @@ def test_two_sibling_labels_normalizing_to_one_name_are_refused_never_merged():
             source_path=DOCUMENTS / "Inbox" / "a.pdf",
             high_level_folders=FOLDERS, constraints=CASE_FOLDING_VOLUME,
             cross_folder_moves=True, volume_of=_volume, mint_resolution_id=_mint,
-            protected_handling_classes=PROTECTED_CLASSES)
+            protected_handling_classes=PROTECTED_CLASSES,
+            protected_label_classes={})
     refusal = excinfo.value
     assert refusal.refusal_class == v.NODE_PATH_COLLISION
     assert set(refusal.detail["labels"]) == {"Offers Q1", "offers q1"}
@@ -219,7 +222,8 @@ def test_the_same_two_siblings_coexist_on_a_case_keeping_volume():
         source_path=DOCUMENTS / "Inbox" / "a.pdf", high_level_folders=FOLDERS,
         constraints=CASE_KEEPING_VOLUME, cross_folder_moves=True,
         volume_of=_volume, mint_resolution_id=_mint,
-        protected_handling_classes=PROTECTED_CLASSES)
+        protected_handling_classes=PROTECTED_CLASSES,
+        protected_label_classes={})
     assert got.resolved_destination_directory.endswith("offers q1")
 
 
@@ -313,8 +317,18 @@ def test_a_resolution_round_trips_through_its_table_and_cannot_be_overwritten(p1
 # Wave C4 — NEW (`74` §5.6). `69` §3 blocker 3: a client's passport number became
 # a group's `display_label` and, under per-group acceptance, printed as a proposed
 # FOLDER NAME. P13's side is A6; this is P12's -- path composition refuses a
-# segment whose source node carries a protected handling class, and the refusal
-# names the node rather than the label.
+# segment whose NAME WAS COMPOSED FROM protected material, and the refusal names
+# the node rather than the label.
+#
+# **Amended by `94` F1.** The guard used to read `Node.handling_class`, which is
+# P10's collapse to the strongest class among a branch's MEMBERS -- the floor for
+# what may be filed there, not a statement about where the name came from. One
+# passport scan therefore gave a whole `Coursework` branch `sensitive_personal`
+# and every ordinary file under it became unfilable, on a screen that named the
+# person's coursework as the protected thing. The answer is now injected
+# provenance (`review_run.structure.protected_label_classes`), and the two cases
+# below -- the passport-named node and the ordinary node under a protected
+# floor -- are what tell the two readings apart.
 # --------------------------------------------------------------------------
 
 #: The composition root names these. There is no default: P7 states that a
@@ -328,6 +342,12 @@ PROTECTED_CLASSES = frozenset({
 PASSPORT_LABEL = "X1234567"
 
 
+#: What `review_run.structure.protected_label_classes` answers for that tree: the
+#: node whose NAME the passport composed, and the class of the material it came
+#: from. Its floor is a different field and says a different thing.
+PASSPORT_NAMED = {"n_passport": "highly_sensitive_credential_bearing"}
+
+
 def _protected_tree():
     return (*FOUR_LEVEL,
             node("n_passport", PASSPORT_LABEL, "n_2026", ordinal=1,
@@ -336,7 +356,8 @@ def _protected_tree():
 
 def test_a_path_segment_is_never_composed_from_a_protected_label():
     with pytest.raises(ResolutionRefused) as excinfo:
-        _resolve("n_passport", _protected_tree())
+        _resolve("n_passport", _protected_tree(),
+                 protected_labels=PASSPORT_NAMED)
     refusal = excinfo.value
     assert refusal.refusal_class == v.PROTECTED_WITHOUT_POLICY
     assert refusal.detail["node_id"] == "n_passport"
@@ -346,16 +367,74 @@ def test_a_path_segment_is_never_composed_from_a_protected_label():
     assert PASSPORT_LABEL not in str(refusal.detail)
     assert PASSPORT_LABEL not in str(refusal)
 
-    # An ancestor carrying the class refuses too, even when the requested node
-    # itself is ordinary: the segment would still be composed and written.
+    # An ancestor whose NAME came from it refuses too, even when the requested
+    # node itself is ordinary: the segment would still be composed and written.
     deeper = (*_protected_tree(),
               node("n_scans", "Scans", "n_passport", ordinal=0))
     with pytest.raises(ResolutionRefused) as excinfo:
-        _resolve("n_scans", deeper)
+        _resolve("n_scans", deeper, protected_labels=PASSPORT_NAMED)
     assert excinfo.value.detail["node_id"] == "n_passport"
 
     # And the guard is not a blanket refusal: the ordinary siblings still resolve.
-    assert _resolve("n_offers", _protected_tree()).resolved_destination_directory
+    assert _resolve("n_offers", _protected_tree(),
+                    protected_labels=PASSPORT_NAMED).resolved_destination_directory
+
+
+def test_a_branch_whose_floor_is_protected_by_one_member_still_composes():
+    """`94` F1, as a unit. The defect and its fix are one line apart.
+
+    `Coursework` holds a passport scan among four ordinary files, so P10's
+    `collapse_handling_classes` writes `sensitive_personal` on the branch -- the
+    FLOOR, §5.2's privacy ordering, the thing that stops the passport landing
+    somewhere weaker. Nothing about that name came from the passport. The old
+    guard read the floor and refused, and because the refusal is on an ANCESTOR
+    it took every ordinary file in the folder with it: three coursework files
+    that had been decided, held, with `protected_without_policy` printed under
+    their names.
+
+    Every assertion here is the whole composed directory rather than "it did not
+    raise", because a guard that returned a truncated path would satisfy the
+    weaker claim and put the files somewhere nobody approved.
+    """
+    tree = (
+        node("n_course", "Coursework", None,
+             handling_class="sensitive_personal"),
+        node("n_phys", "PHYS1401", "n_course",
+             handling_class="personal_non_sensitive"),
+    )
+    got = _resolve("n_phys", tree, protected_labels={})
+    assert got.resolved_destination_directory == str(
+        DOCUMENTS / "Coursework" / "PHYS1401")
+    assert [segment.intended_display_label
+            for segment in got.segments_composed] == ["Coursework", "PHYS1401"]
+
+    # The same tree, the same floors, and the passport's own node named this
+    # time: the guard is still there and still refuses.
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_phys", tree, protected_labels={"n_course": "sensitive_personal"})
+    assert excinfo.value.detail["node_id"] == "n_course"
+
+
+def test_a_protected_container_is_never_a_folder_on_a_composed_path():
+    """`84` §1. A marked container is not opened, and not built inside either.
+
+    `protected_area_nodes` mints it with `accepts_placement=False` so nothing may
+    be filed IN it; composing a path THROUGH it would create a directory inside a
+    sealed bundle, which is the same act one level up. `node_type` is what says a
+    node IS protected material, and it is a different question from where a name
+    came from -- so it is a different guard, and it holds with the provenance
+    mapping empty.
+    """
+    tree = (
+        node("n_apps", "Applications", None),
+        node("n_numbers", "Numbers.app", "n_apps", node_type="protected",
+             accepts=False, handling_class="highly_sensitive_credential_bearing"),
+        node("n_inside", "Contents", "n_numbers"),
+    )
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_inside", tree, protected_labels={})
+    assert excinfo.value.refusal_class == v.PROTECTED_WITHOUT_POLICY
+    assert excinfo.value.detail["node_id"] == "n_numbers"
 
 
 def test_a_protected_class_set_is_required_and_absent_means_refuse():
@@ -370,26 +449,61 @@ def test_a_protected_class_set_is_required_and_absent_means_refuse():
             source_path=DOCUMENTS / "Inbox" / "a.pdf",
             high_level_folders=FOLDERS, constraints=CASE_KEEPING_VOLUME,
             cross_folder_moves=True, volume_of=_volume,
-            mint_resolution_id=_mint)
+            mint_resolution_id=_mint, protected_label_classes={})
     with pytest.raises(ProtectedClassesRequired):
         _resolve("n_offers", protected_classes=frozenset())
     with pytest.raises(ProtectedClassesRequired):
         _resolve("n_offers", protected_classes=frozenset({"sensitive"}))
 
 
+def test_the_provenance_answer_is_required_and_an_empty_one_is_a_real_answer():
+    """`94` F1's other half. The two absences are different and both are named.
+
+    An empty MAPPING is the ordinary answer -- most trees name nothing after
+    protected material -- so refusing it, the way an empty class set is refused,
+    would refuse every honest tree. An ABSENT mapping is the caller not having
+    asked, which is exactly how a name nobody examined becomes a directory, so it
+    is a `TypeError` and not a default.
+    """
+    with pytest.raises(TypeError):
+        resolve_destination(
+            plan_version="plan_1", node_id="n_offers", nodes=FOUR_LEVEL,
+            source_path=DOCUMENTS / "Inbox" / "a.pdf",
+            high_level_folders=FOLDERS, constraints=CASE_KEEPING_VOLUME,
+            cross_folder_moves=True, volume_of=_volume,
+            mint_resolution_id=_mint,
+            protected_handling_classes=PROTECTED_CLASSES)
+    assert _resolve("n_offers", protected_labels={}) \
+        .resolved_destination_directory == str(
+            DOCUMENTS / "Career" / "Stripe" / "2026 Job Search" / "Offers")
+
+
 def test_a_protected_label_never_reaches_a_collision_detail_either():
     """The collision refusal names both labels so the person can rename one.
     A protected sibling would put the protected material in that list, so the
-    protected refusal wins and the label stays out of the record."""
+    protected refusal wins and the label stays out of the record.
+
+    The provenance mapping reaches this call site too. Passing it only to the
+    segment loop and not here is the sabotage this asserts against: the collision
+    detail is a second, quieter way for the same string to be written down."""
     nodes = (*FOUR_LEVEL,
              node("n_ordinary", "x1234567", "n_2026", ordinal=1),
              node("n_passport", PASSPORT_LABEL, "n_2026", ordinal=2,
                   handling_class="sensitive_personal"))
     with pytest.raises(ResolutionRefused) as excinfo:
-        _resolve("n_ordinary", nodes, constraints=CASE_FOLDING_VOLUME)
+        _resolve("n_ordinary", nodes, constraints=CASE_FOLDING_VOLUME,
+                 protected_labels={"n_passport": "sensitive_personal"})
     assert excinfo.value.refusal_class == v.PROTECTED_WITHOUT_POLICY
     assert excinfo.value.detail["node_id"] == "n_passport"
     assert PASSPORT_LABEL not in str(excinfo.value.detail)
+
+    # And the collision itself still reports, with both labels, when neither
+    # name came from protected material -- the guard did not swallow rule 5.
+    with pytest.raises(ResolutionRefused) as excinfo:
+        _resolve("n_ordinary", nodes, constraints=CASE_FOLDING_VOLUME,
+                 protected_labels={})
+    assert excinfo.value.refusal_class == v.NODE_PATH_COLLISION
+    assert set(excinfo.value.detail["labels"]) == {"x1234567", PASSPORT_LABEL}
 
 
 def test_the_refusal_appends_refused_move_and_names_the_node_not_the_label(p12_conn):
@@ -400,7 +514,8 @@ def test_the_refusal_appends_refused_move_and_names_the_node_not_the_label(p12_c
     implementation that put the passport number in `new_path`.
     """
     with pytest.raises(ResolutionRefused) as excinfo:
-        _resolve("n_passport", _protected_tree())
+        _resolve("n_passport", _protected_tree(),
+                 protected_labels=PASSPORT_NAMED)
 
     record_resolution_refusal(
         p12_conn, excinfo.value, file_id="f1",

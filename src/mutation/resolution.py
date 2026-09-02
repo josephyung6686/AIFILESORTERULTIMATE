@@ -31,7 +31,7 @@ from pathlib import Path
 from database_agent.events import append_event
 from evidence_shape.canonical import canonical_json
 from privacy.vocabulary import HANDLING_CLASSES
-from tree_design.records import EXISTING, Node
+from tree_design.records import EXISTING, PROTECTED, Node
 
 from mutation.constraints import FilesystemConstraints
 from mutation.names import collation_key, resolve_name
@@ -65,15 +65,24 @@ class RootAnchorUnresolved(RuntimeError):
 
 
 class ProtectedClassesRequired(RuntimeError):
-    """The set of handling classes that make a label unusable as a folder name.
+    """The composition root's declaration of which handling classes are protected.
 
-    Injected by the composition root with NO default, and refused when empty.
-    P7 is explicit that a neighbour *"should consume the `protected` flag, not
-    infer it from the class"* (`privacy/classification.py:110-113`), and `Node`
-    carries a `handling_class` and no flag -- so P12 cannot derive this set
-    without answering P7's own Open question 1 on its behalf. A7: absent means
-    refuse, never guess. An EMPTY set is refused too, because reading it as
-    "nothing is protected" would silently disable the guard.
+    Injected with NO default, and refused when empty or misspelled. P7 is
+    explicit that a neighbour *"should consume the `protected` flag, not infer it
+    from the class"* (`privacy/classification.py:110-113`), and `Node` carries a
+    `handling_class` and no flag -- so P12 cannot derive this set without
+    answering P7's own Open question 1 on its behalf. A7: absent means refuse,
+    never guess.
+
+    **What it no longer does is decide a refusal.** It was the proxy P12 used for
+    "was this label composed from protected material", and `94` F1 is the record
+    of that proxy being wrong: the field it was matched against is P10's FLOOR,
+    which one protected member raises for a whole branch. `_refuse_protected_label`
+    now reads `protected_label_classes`, which is provenance. This declaration is
+    still validated here, still cannot be forgotten or emptied, and is now
+    consumed by nothing in `src/mutation/`; retiring it is a change to
+    `src/cli.py`'s `freeze(...)` call and to `apply_run.freeze`'s signature at
+    the same instant, which is the composition root's to make and not P12's.
     """
 
 
@@ -164,7 +173,7 @@ def _require_protected_classes(value: object) -> frozenset[str]:
 
 
 def _refuse_protected_label(item: Node,
-                            protected_handling_classes: frozenset[str]) -> None:
+                            protected_label_classes: Mapping[str, str]) -> None:
     """`74` §5.6. A segment is never composed from a protected label.
 
     `69` §3 blocker 3: a client's passport number reached a group's
@@ -174,14 +183,65 @@ def _refuse_protected_label(item: Node,
     the refusal names the NODE. Putting the label in the refusal would move the
     protected material from one record into another.
 
+    **The answer is PROVENANCE and is injected. It is not `Node.handling_class`,
+    and reading that field here was `94` F1.** P10 writes a node's class as the
+    collapse to the STRONGEST class among the branch's members (`src/cli.py`'s
+    `collapse_handling_classes`, which is §5.2's privacy ordering and the floor
+    that stops a passport landing somewhere weaker). Two parts then read one
+    field two ways: to P10 it is *the floor for what may be filed here*, to this
+    guard it was *this label was composed from protected material*. A branch
+    called `Coursework` holding one passport scan is not composed from anything
+    protected -- its floor is high because one member is -- and refusing it
+    refused every ordinary file under it and told the person their coursework was
+    the protected thing. One file in a folder made the whole folder unmovable.
+
+    So the caller supplies the join it can actually make:
+    `review_run.structure.protected_label_classes` matches a node's label against
+    the label of the group that authored it, and that group's label against the
+    anchor facts that composed it. `74` §5.6's C4 says "a segment whose source
+    node carries a protected `handling_class`"; that sentence named the field
+    available at the time and the guard it describes is unchanged -- what changed
+    is that the field now means what the sentence says.
+
+    An EMPTY mapping is a real and common answer -- most trees name nothing after
+    protected material -- so unlike `protected_handling_classes` it is not
+    refused. What is refused is its ABSENCE: it is a required keyword all the way
+    up, so no caller arrives at "nothing here is protected" by forgetting to ask.
+
     Only COMPOSED segments are checked. An `existing` ancestor's path is a folder
     the person already has; P12 neither minted its name nor may rename it.
     """
-    if item.handling_class in protected_handling_classes:
+    handling_class = protected_label_classes.get(item.node_id)
+    if handling_class is not None:
         raise ResolutionRefused(
             PROTECTED_WITHOUT_POLICY,
             "a folder name for this level would be composed from protected "
             "material, so no path was composed",
+            detail={"node_id": item.node_id,
+                    "handling_class": handling_class,
+                    "parent_node_id": item.parent_node_id})
+
+
+def _refuse_protected_container(item: Node) -> None:
+    """A marked container is never a folder on a composed path.
+
+    `84` §1: a protected container is marked and counted and NEVER OPENED, and
+    `tree_design.candidates.protected_area_nodes` mints it with
+    `accepts_placement=False` so nothing may be filed IN it. Composing a path
+    THROUGH it is the same act one level up -- it would create a directory
+    inside a sealed bundle -- and it is refused here rather than being left to
+    the fact that P10 builds no children under one today.
+
+    Split from the label guard above because it is a different claim about a
+    different thing: that guard asks where a NAME came from, this one asks what
+    a NODE is. `node_type` is the answer to the second and always was; the class
+    check that used to stand in for it is what `94` F1 was.
+    """
+    if item.node_type == PROTECTED:
+        raise ResolutionRefused(
+            PROTECTED_WITHOUT_POLICY,
+            "this level is a protected container, which is marked and counted "
+            "and is not a place anything can be filed, so no path was composed",
             detail={"node_id": item.node_id,
                     "handling_class": item.handling_class,
                     "parent_node_id": item.parent_node_id})
@@ -197,7 +257,7 @@ def _segment_key(label: str, constraints: FilesystemConstraints) -> str:
 
 def _refuse_sibling_collision(child: Node, nodes: Sequence[Node],
                               constraints: FilesystemConstraints,
-                              protected_handling_classes: frozenset[str]) -> None:
+                              protected_label_classes: Mapping[str, str]) -> None:
     """Rule 5. Two sibling nodes whose distinct labels normalize to one name.
 
     Merging them would collapse two frozen nodes into one destination the user
@@ -217,7 +277,7 @@ def _refuse_sibling_collision(child: Node, nodes: Sequence[Node],
             # The collision refusal names both labels so the person can rename
             # one. A protected sibling would put protected material into that
             # list, so `74` §5.6 wins and the label stays out of the record.
-            _refuse_protected_label(other, protected_handling_classes)
+            _refuse_protected_label(other, protected_label_classes)
             raise ResolutionRefused(
                 NODE_PATH_COLLISION,
                 "two folders in this plan would become one folder on disk",
@@ -257,6 +317,7 @@ def resolve_destination(*, plan_version: str, node_id: str,
                         volume_of: Callable[[Path], str],
                         mint_resolution_id: Callable[[], str],
                         protected_handling_classes: frozenset[str],
+                        protected_label_classes: Mapping[str, str],
                         ) -> PathResolution:
     protected_handling_classes = _require_protected_classes(
         protected_handling_classes)
@@ -304,9 +365,10 @@ def resolve_destination(*, plan_version: str, node_id: str,
     segments: list[Segment] = []
     created: list[str] = []
     for item in below:
-        _refuse_protected_label(item, protected_handling_classes)
+        _refuse_protected_container(item)
+        _refuse_protected_label(item, protected_label_classes)
         _refuse_sibling_collision(item, nodes, constraints,
-                                  protected_handling_classes)
+                                  protected_label_classes)
         resolved = resolve_name(
             item.display_label, constraints=constraints,
             directory_byte_length=len(str(directory).encode("utf-8")),
