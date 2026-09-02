@@ -192,10 +192,12 @@ def test_a_corpus_that_agrees_on_everything_is_filed_from_its_own_facts(tmp_path
                     "WHERE superseded_by IS NULL ORDER BY rowid")]
     conn.close()
     # The last three, because the first run's decisions are still here and are
-    # not superseded: two runs against one database is two assessments per file,
-    # and the first run's is the `weak` one this whole file is about.
+    # not superseded: two runs against one database is two assessments per file.
+    # Only the last three are asserted, and deliberately: what the FIRST run's
+    # three say depends on `cli.choose_option`, which the xfail below is about,
+    # so pinning them here would make this test fail on the hunk landing rather
+    # than on anything being wrong.
     assert verdicts[-3:] == ["accept_direct"] * 3, verdicts
-    assert verdicts[:-3] == ["weak"] * 3, verdicts
     # Nothing was even prepared for a model: no dossier, no pre-call abstention.
     assert "Nothing about it left this device" not in second, second
 
@@ -247,8 +249,14 @@ def test_two_folders_that_both_claim_the_value_still_have_to_ask(tmp_path):
     "CHILDREN, so the option that populates the branch itself -- no children, "
     "one rewritten node -- is skipped and `keep-as-it-is` is taken instead. "
     "`src/cli.py` is the composition root and belongs to the lead; the hunk is "
-    "written out in scratchpad/q1/CLI-PATCH.txt. Under it this passes and the "
-    "suite is otherwise unchanged. UNMARK when it lands, do not delete."))
+    "written out in scratchpad/q1/CLI-PATCH.txt. Measured under it: this XPASSes "
+    "and EIGHT other tests turn red, seven of them because their corpora were "
+    "built to leave a file unplaced and it no longer is -- the fixtures need "
+    "re-cutting, not the hunk reverting. The eighth is a message: a protected "
+    "file contradicted off the branch's new expectation is told "
+    "`conflicting_facts` where it used to be told `protected material`, which is "
+    "`66` §4's collapse and is the lead's to rule on. UNMARK when it lands, do "
+    "not delete."))
 def test_the_first_run_files_them_without_being_answered(tmp_path):
     """`80` R2: the friction budget is spent once. A person whose files agree on
     everything should not have to answer a question to be told what the product
