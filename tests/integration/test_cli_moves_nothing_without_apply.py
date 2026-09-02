@@ -34,6 +34,22 @@ def _tree(root: Path) -> dict[str, str]:
             for p in sorted(root.rglob("*")) if p.is_file()}
 
 
+#: `--database` IS NOT OPTIONAL HERE, and the reason is not tidiness.
+#:
+#: `cli.py` defaults it to `Path.cwd() / "database-agent-plan.sqlite"`, and
+#: pytest's cwd is the repository root -- so the `--freeze` test below was writing
+#: a 2.4 MB plan database into the working directory that every session on this
+#: machine commits into. It is not cleaned up, so it is also READ on the next run:
+#: facts, groups and plan versions carried across pytest invocations, shared with
+#: any other test that ever omits the flag, while `_corpus` builds a fresh
+#: `tmp_path` every time. State that outlives the run that made it is how a suite
+#: acquires an order it depends on.
+#:
+#: MEASURED: only the `--freeze` run leaves the file; the run above it happens not
+#: to persist one. Both are given a database anyway, because "happens not to" is
+#: not a property either test asserts and the next edit to `cli.py` may change it.
+#:
+#: The corpus is already under `tmp_path`; the database belongs beside it.
 def _corpus(tmp_path: Path) -> Path:
     corpus = tmp_path / "Files"
     (corpus / "Uni").mkdir(parents=True)
@@ -53,7 +69,8 @@ def test_a_whole_run_leaves_every_file_exactly_where_it_was(tmp_path):
 
     out = io.StringIO()
     cli.main(["--situation", "academic.coursework", "--label", "Coursework",
-              "--user", "jy", str(corpus)], out=out)
+              "--user", "jy", "--database", str(tmp_path / "plan.sqlite"),
+              str(corpus)], out=out)
 
     assert _tree(corpus) == before
 
@@ -74,7 +91,8 @@ def test_a_freeze_moves_nothing_even_when_a_frozen_plan_is_already_there(tmp_pat
     """
     corpus = _corpus(tmp_path)
     shared = ["--situation", "academic.coursework", "--label", "Coursework",
-              "--user", "jy", "--freeze", str(corpus)]
+              "--user", "jy", "--database", str(tmp_path / "plan.sqlite"),
+              "--freeze", str(corpus)]
 
     cli.main(shared, out=io.StringIO())          # a frozen plan now exists
     before = _tree(corpus)

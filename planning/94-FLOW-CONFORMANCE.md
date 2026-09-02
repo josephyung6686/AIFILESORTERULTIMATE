@@ -762,6 +762,51 @@ Also corrected here: `fix-f1-lockout` withdrew its "causality proven both direct
 corpus, same command, before and after the fix — not the row, which varies corpus and flags at
 once. The committed integration test asserts the column.
 
+### F20, corrected 2026-09-03 — the passport was a coincidence, and the true rule is worse
+
+The headline above says *"adding an unrelated file fixes it"* and *"what they share is that the
+corpus DIVIDES on `subject`"*. Both are wrong, and the correction is the finding.
+
+`fix-q1-sizing` could not reproduce row two. Measured against the real pre-fix tree
+(`9e7152e~1`), not a simulation of it:
+
+```
+1  one subject, 3 files                  ->  Nothing was frozen.        agrees
+2  one subject + a passport              ->  Nothing was frozen.        DOES NOT AGREE
+2b one subject + an invoice              ->  Frozen: 3 file(s).         row 2, reproduced
+3  two subjects                          ->  Frozen: 2 file(s).
+```
+
+**The passport in that corpus settles TWO `subject` values** — `X12345678` and `JUN1998`, both
+`direct`, both in `file_facts`. P6's OQ6 is open, so `preferred_value_for` returns `None` rather
+than choosing between them, and the passport therefore contributes **no value at all** to the
+level. The level still holds one value, still does not divide, and nothing freezes. The lead's
+passport settled exactly one; shape 2b swaps it for an invoice that settles one and reproduces
+their row exactly. So the mechanism is confirmed and the instrument was poor.
+
+**The true statement is narrower and much worse than "the corpus divides on `subject`":** it is
+that **some OTHER file in the same branch has to happen to settle a second, different,
+single-valued subject.** Not the corpus — the branch, because `divides` is evaluated over the
+branch's own members. Not any extra file — one whose reading P6 will actually settle, so two
+files that each carry two readings cancel out and leave the folder unfilable.
+
+That matters for how the defect reads. *"Add an unrelated file"* at least sounds like a workaround
+a person could be told. **A person cannot arrange this and would never think to** — it depends on
+a coincidence between two documents they did not write, mediated by an open question in P6 about
+multiplicity that has no user-visible surface at all.
+
+Row 3 is also 2 rather than 3, and for a reason that is not this defect: all three files get
+`place`/`accept_direct` and the tree is `Coursework/{PHYS1401, BUSIB4300}`, but the BUSIB syllabus
+is unclassified and is held as *"Would go into … once you say what these are"*. That is the P7
+gate working, and it is identical before and after the fix.
+
+**Fixed by `9e7152e` + `c59fc7d`, and the fix does not depend on any of this.** A level that
+divides nothing now states its single value ON THE BRANCH, so the destination is reachable by the
+fact whether or not a second document obliges. Shapes 2b and 3 are byte-identical before and
+after — where a level divides, children are built and carry their own values — and a corpus with
+two folders both claiming `subject = PHYS1401` still abstains and still says a model would be
+needed. The cold run on shape 1 now reads `Files: 3 decided, 3 ready to file`, `Frozen: 3 file(s)`.
+
 ---
 
 ## F21 — an EXIF reader would DELETE OCR from 976 of the owner's images. Ruled: do not build it.
