@@ -9,6 +9,8 @@ contains. Every count here is an intersection, never a product.
 """
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from tree_design.config import ConfigurationRequired
@@ -16,9 +18,11 @@ from tree_design.materialise import (
     BranchEvidence,
     LevelEvidence,
     MaterialisationRefused,
+    branch_expectations,
     child_counts,
     materialise_branch,
     project_branch_nodes,
+    project_branch_preview,
 )
 from tree_design.records import ExpectedValue, Node
 from tree_design.routing import CompositionCandidate, ResolvedDimension
@@ -525,3 +529,149 @@ def test_a_branch_with_no_protected_file_marks_none(seeded):
         protected_handling_classes=PROTECTED_CLASSES)
     assert evidence.protected_file_ids == frozenset()
     assert len(evidence.member_file_ids) == 2
+
+
+def test_a_branch_whose_levels_divide_nothing_states_their_values_on_itself(seeded):
+    """§5.4 measures every level and builds only the ones that divide. What it
+    did with the measurement was nothing at all.
+
+    `_top_level_node` says a proposed branch's "expectations are composed by
+    `_project` from the branch's evidence", and `_project` composed them onto
+    CHILDREN only -- so a branch that built no child stated nothing, and a fact
+    naming that very branch had no expected value to match. One file at one
+    school on one course is the shape: three levels, three single values, no
+    folder worth building, and a destination that cannot be reached by any of the
+    three facts that describe it.
+    """
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject"),
+                         ("work_type", "work_type")),
+        branch_node_id="n_academics", members=seeded.members("syllabus"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
+    assert [level.divides for level in evidence.levels] == [False, False, False]
+    assert branch_expectations(evidence) == (
+        ExpectedValue(field="school", value="Columbia"),
+        ExpectedValue(field="subject", value="BUSIB 4300"),
+        ExpectedValue(field="work_type", value="Syllabus"),
+    )
+    # And the projection hands the store the branch itself, so the values are
+    # written rather than computed and dropped. No FOLDER is created: the one
+    # node is the branch that already existed.
+    nodes = project_branch_nodes(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    assert [node.node_id for node in nodes] == ["n_academics"]
+    assert nodes[0].expected_values == branch_expectations(evidence)
+
+
+def test_a_branch_that_builds_a_child_states_nothing_on_itself(seeded):
+    """The discriminating half, and the reason this is not applied to the chain.
+
+    Two courses divide, so `subject` becomes folders and each one carries its own
+    expected value. `school` divides nothing here too -- but adding `Columbia` to
+    the branch beside two reachable children would give one file two direct-fact
+    destinations where the evidence names one, and adding it to the CHILDREN
+    would make a level deliberately not built discriminate after all.
+    """
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject")),
+        branch_node_id="n_academics",
+        members=seeded.members("syllabus", "hw3", "lab"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
+    preview = project_branch_preview(
+        evidence, ACCEPTED, parent=_parent(), plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    assert preview.branch_expectations == ()
+    assert preview.parent.expected_values == ()
+    assert {node.display_label for node in preview.nodes} == {
+        "BUSIB 4300", "PHYS1401"}
+    for node in preview.nodes:
+        assert [value.field for value in node.expected_values] == ["subject"]
+
+
+def test_a_value_only_protected_files_carry_is_not_stated_on_the_branch(seeded):
+    """The same rule `_project` applies to a folder NAME, applied to an
+    expectation.
+
+    A name carried by nothing but protected material publishes that material, and
+    an expected value is published in the same places: the placement index, the
+    dossier, and every sentence that names a destination. The file stays a
+    member, stays counted and stays marked -- what it loses is a claim of its own.
+    """
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject")),
+        branch_node_id="n_academics", members=seeded.members("syllabus"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=lambda member: (
+            "highly_sensitive_credential_bearing"),
+        protected_handling_classes=PROTECTED_CLASSES)
+    assert evidence.protected_file_ids == evidence.member_file_ids
+    assert branch_expectations(evidence) == ()
+    # Counted, not omitted: the member is still in the branch's evidence.
+    assert len(evidence.member_file_ids) == 1
+
+
+def test_the_branch_keeps_the_expectations_it_already_observed(seeded):
+    """An adopted folder already states what its contents agree on (§6.2), read
+    off a directory that exists. A measured level may add to that and may never
+    restate a field the observation already answered, or P11 would match one file
+    against two values of one field on one node."""
+    conn = seeded.conn
+    _, evidence = materialise_branch(
+        conn, _candidate(("school", "school"), ("subject", "subject")),
+        branch_node_id="n_academics", members=seeded.members("syllabus"),
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES)
+    observed = dataclasses.replace(
+        _parent(), expected_values=(
+            ExpectedValue(field="subject", value="BUSIB 4300"),))
+    preview = project_branch_preview(
+        evidence, ACCEPTED, parent=observed, plan_version_id="plan_1",
+        mint_node_id=_ids(), handling_class_for=ALWAYS_ORDINARY,
+        template_context_for=NO_CONTEXT)
+    assert preview.parent.expected_values == (
+        ExpectedValue(field="subject", value="BUSIB 4300"),
+        ExpectedValue(field="school", value="Columbia"),
+    )
+
+
+def test_a_level_that_divides_never_contributes_a_value_to_the_branch():
+    """Asked of the function directly, because the projection's own guard hides
+    it: `branch_expectations` runs only where no node was built, and a level that
+    divides normally builds one.
+
+    Normally. A level whose every value is carried by protected files alone
+    builds nothing, and so does one whose values reach none of the parent's
+    remaining members -- and in either case a level with two values has no single
+    value to state. Taking `values[0]` would file every file in the branch under
+    whichever name sorts first, which is the invention §5.4 exists to prevent.
+    """
+    divided = LevelEvidence(
+        dimension_role="subject", field_ref="subject", order_index=0,
+        metadata_only=False, display_labels={},
+        members_by_value={"BUSIB 4300": frozenset({"f2"}),
+                          "PHYS1401": frozenset({"f1"})},
+        handling_classes_by_value={
+            "BUSIB 4300": frozenset({"personal_non_sensitive"}),
+            "PHYS1401": frozenset({"personal_non_sensitive"})})
+    agreed = LevelEvidence(
+        dimension_role="school", field_ref="school", order_index=1,
+        metadata_only=False, display_labels={},
+        members_by_value={"Columbia": frozenset({"f1", "f2"})},
+        handling_classes_by_value={
+            "Columbia": frozenset({"personal_non_sensitive"})})
+    evidence = BranchEvidence(
+        branch_node_id="n_branch", levels=(divided, agreed),
+        member_file_ids=frozenset({"f1", "f2"}), unresolved_by_field={})
+    assert branch_expectations(evidence) == (
+        ExpectedValue(field="school", value="Columbia"),)

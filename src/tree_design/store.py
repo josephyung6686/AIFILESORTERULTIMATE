@@ -550,17 +550,26 @@ def apply_review_action(conn: sqlite3.Connection, action, *,
                 )
             for node in projected:
                 write_node(conn, node)
+            # The composition can populate the BRANCH instead of a child: every
+            # level names one value, so §5.4 builds no folder and what comes back
+            # is the branch itself carrying what its files agree on. Saying "it
+            # became 1 node(s)" there would tell a reader a folder appeared.
+            on_branch = projected[0].origin_node_id == action.subject_ref
+            became = (
+                "no folder was added, and the branch now records the "
+                f"{len(projected[0].expected_values)} value(s) its files share"
+                if on_branch else
+                f"it became {len(projected)} node(s) built from facts P6 had "
+                "already settled")
             record_tree_edit(
                 conn, action=ACCEPT, node_id=projected[0].node_id,
                 plan_version_id=draft.plan_version_id, before={},
                 after={"display_label": projected[0].display_label,
-                       "node_count": len(projected)},
+                       "node_count": 0 if on_branch else len(projected)},
                 explanation=(
                     f"{actor_phrase(action.surface)} accepted "
                     f"{action.subject_ref!r}"
-                    f"{surface_phrase(action.surface)}; it became "
-                    f"{len(projected)} node(s) built from facts P6 had already "
-                    "settled."),
+                    f"{surface_phrase(action.surface)}; {became}."),
                 observed_at=action.observed_at, user_id=action.user_id,
                 component_version=component_version,
                 correction_scope=action.correction_scope,

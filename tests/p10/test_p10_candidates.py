@@ -415,6 +415,62 @@ def test_a_level_that_would_produce_one_child_warns_before_the_choice(conn):
         "the levels that separate nothing were materialised anyway")
 
 
+def test_an_option_that_builds_no_folder_says_what_the_branch_records_instead(conn):
+    """The sentence a person reads before choosing, and it was not true.
+
+    `resulting_child_counts` is `child_counts`, which counts a level's DISTINCT
+    values and does not ask whether the level divides -- so an option that builds
+    nothing summarised itself as "This option would create 1 school, and 1 term".
+    Two folders were promised and none was built.
+
+    `child_counts` is deliberately left alone: `cli._nesting_key` derives an
+    ANSWER's durable identity from its keys, and emptying it would rename the
+    shape a person answered for. The sentence is what is wrong, so the sentence
+    is what changes, and only for the option this is about.
+    """
+    evidence = _evidence(
+        _level("school", "school", 0, {"Columbia": {"f1", "f2", "f3"}}),
+        _level("term", "term", 1, {"2026": {"f1", "f2", "f3"}}))
+    option = _options(conn, evidence, "school", "term")[0]
+    assert option.branch_expectations == (("school", "Columbia"), ("term", "2026"))
+    assert "would create 1 school" not in option.summary
+    assert "no folders" in option.summary
+    # And the values it records instead are named, because a person cannot judge
+    # an option whose effect is invisible.
+    assert "Columbia" in option.summary and "2026" in option.summary
+
+
+def test_a_file_the_branch_states_a_value_for_is_not_reported_unresolved(conn):
+    """`_unplaced` asks which files no CHILD would hold, and the answer is "all
+    of them" when no child is built -- so the option that finally files these
+    files announced that all three would stay unresolved.
+
+    A file the branch itself states a value for is placed, by the branch. A file
+    that carries none of those values still is not, and saying so is the half of
+    this that has to keep working: §5.11 lets a tree be accepted with unresolved
+    files, and hiding them would be the silent omission the standing rule
+    forbids.
+    """
+    evidence = BranchEvidence(
+        branch_node_id="n_branch",
+        levels=(_level("subject", "subject", 0, {"PHYS1401": {"f1", "f2"}}),),
+        member_file_ids=frozenset({"f1", "f2", "f3"}), unresolved_by_field={})
+    option = _options(conn, evidence, "subject")[0]
+    assert option.branch_expectations == (("subject", "PHYS1401"),)
+    assert option.unresolved_file_ids == ("f3",)
+
+
+def test_an_option_that_builds_a_folder_records_nothing_on_the_branch(conn):
+    """The discriminating twin: a level that divides is built, so the branch
+    states nothing of its own and the summary is the count it always was."""
+    evidence = _evidence(
+        _level("subject", "subject", 0,
+               {"PHYS1401": {"f1"}, "BUSIB 4300": {"f2"}}))
+    option = _options(conn, evidence, "subject")[0]
+    assert option.branch_expectations == ()
+    assert "would create 2 subject" in option.summary
+
+
 def test_a_one_child_level_that_makes_a_real_split_readable_stays_silent(conn):
     """The negative twin, and it is `00`:78's own recommended path:
 

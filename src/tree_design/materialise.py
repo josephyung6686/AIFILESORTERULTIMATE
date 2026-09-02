@@ -324,6 +324,54 @@ def child_counts(evidence: BranchEvidence) -> Mapping[str, int]:
             for level in evidence.levels if not level.metadata_only}
 
 
+def branch_expectations(evidence: BranchEvidence) -> tuple[ExpectedValue, ...]:
+    """What a branch holds, when none of its levels was worth a folder.
+
+    §5.4 measures every level and builds only the ones that divide -- "if every
+    file names the same term, a folder for it would hold all of them and you
+    would open it to find one folder" is the command's own disclosure and it is
+    right. What was wrong is what happened to the measurement: nothing. A value
+    measured and then written down nowhere has not been measured, it has been
+    discarded.
+
+    `_top_level_node` states the contract this fills: a proposed branch's
+    "expectations are composed by `_project` from the branch's evidence".
+    `_project` composed them onto CHILDREN, so a branch that built no child
+    stated nothing at all -- and a destination that states nothing cannot be
+    reached by a fact. Three files whose `subject` names the very branch they sit
+    under scored on their group membership alone, short of §6.10's support
+    threshold, and P11 reported that deciding them needed a model with the answer
+    already sitting in `file_facts`.
+
+    Exclusive with building, by construction rather than by care: `divides` is
+    `len(values) > 1`, so a value stated here is one no folder was built for and
+    no folder can be built for.
+
+    Only the BRANCH, and never the chain beneath it. A child built from a
+    dividing value already carries its own expected value and is already
+    reachable; adding the undivided levels to its chain would make
+    `Coursework/PHYS1401` claim `term = Spring2026` as well, which is a level
+    deliberately not built made to discriminate after all -- and the next term's
+    files would then be pushed off the course folder that is plainly theirs.
+
+    A value carried by nothing but protected material is left out, exactly as
+    `_project` leaves such a value out of a folder NAME. An expectation is spoken
+    too: it reaches the placement index, the dossier, and every sentence that
+    names a destination. The files stay members and stay counted -- what they
+    lose is a claim of their own.
+    """
+    return tuple(
+        ExpectedValue(field=level.field_ref, value=level.values[0])
+        for level in evidence.levels
+        if level.field_ref is not None
+        and not level.metadata_only
+        and not level.divides
+        and level.values
+        and not (level.members_by_value[level.values[0]]
+                 <= evidence.protected_file_ids)
+    )
+
+
 def project_branch_nodes(
     evidence: BranchEvidence,
     report: ValidationReport,
@@ -359,11 +407,20 @@ def project_branch_nodes(
             "HANDLING_CLASSES and has published none, and a rank chosen here "
             "could give a node a weaker floor than one of its files requires")
 
-    return project_branch_preview(
+    preview = project_branch_preview(
         evidence, report, parent=parent, plan_version_id=plan_version_id,
         mint_node_id=mint_node_id, handling_class_for=handling_class_for,
         template_context_for=template_context_for,
-        protected_movement_permitted=protected_movement_permitted).nodes
+        protected_movement_permitted=protected_movement_permitted)
+    # The branch itself, when the composition put its values there rather than
+    # into a folder. It is a REWRITE of a node that already exists and creates
+    # nothing: `write_node` replaces the row and the expected values are added to
+    # it. Returning nothing here is what made `apply_review_action` refuse the
+    # whole run -- "accepting X produced no node" -- for a corpus whose files
+    # agreed on every dimension, which is the easiest corpus there is.
+    if preview.branch_expectations:
+        return (preview.parent, *preview.nodes)
+    return preview.nodes
 
 
 @dataclass(frozen=True)
@@ -387,6 +444,12 @@ class BranchPreview:
     parent: Node
     nodes: tuple[Node, ...]
     members_by_node: Mapping[str, frozenset[str]]
+    #: The values `branch_expectations` put ON `parent`, empty whenever a child
+    #: was built. Carried separately from `parent.expected_values` because an
+    #: adopted folder arrives with observed ones and a reader has to be able to
+    #: tell what this branch was MEASURED to hold from what its directory was
+    #: seen to hold.
+    branch_expectations: tuple[ExpectedValue, ...] = ()
 
     @property
     def tree(self) -> tuple[Node, ...]:
@@ -431,9 +494,20 @@ def project_branch_preview(
              template_context_for=template_context_for,
              protected_movement_permitted=protected_movement_permitted,
              out=nodes, members_out=members)
+    # Only when the walk built nothing. A branch with a child has reachable
+    # destinations already, and a second claim on the parent would give one file
+    # two direct-fact homes where its evidence names one.
+    stated = () if nodes else tuple(
+        expected for expected in branch_expectations(evidence)
+        if expected.field not in {
+            observed.field for observed in parent.expected_values})
+    if stated:
+        parent = dataclasses.replace(
+            parent, expected_values=parent.expected_values + stated)
     return BranchPreview(
         parent=parent, nodes=tuple(nodes),
-        members_by_node={parent.node_id: evidence.member_file_ids, **members})
+        members_by_node={parent.node_id: evidence.member_file_ids, **members},
+        branch_expectations=stated)
 
 
 def _project(evidence, *, level_index, parent, eligible, chain, plan_version_id,

@@ -18,7 +18,9 @@ import pytest
 
 from p10 import p13_fixtures
 from tree_design.diff import diff_versions
-from tree_design.records import Node, PlanVersion, SharedMaterialPolicy
+from tree_design.records import (
+    ExpectedValue, Node, PlanVersion, SharedMaterialPolicy,
+)
 from tree_design.schema import create_tree_schema
 from tree_design.store import (
     FrozenVersionImmutable,
@@ -185,6 +187,39 @@ def test_accepting_a_branch_writes_the_nodes_it_was_populated_with(seeded):
         "SELECT * FROM events WHERE event_type = 'destination-tree edit' "
         "AND correction_subject = 'cand_academics'").fetchone()
     assert row is not None
+
+
+def test_accepting_a_branch_whose_files_all_agree_records_no_new_folder(seeded):
+    """The composition that populates the BRANCH rather than a child.
+
+    Every level names one value, so §5.4 builds no folder -- "you would open it
+    to find one folder" -- and what the projection hands over is the branch node
+    itself, rewritten with the values its files share. The refusal below must not
+    fire on it: nothing here is a silent no-op, the node is written and the
+    expected values are new.
+
+    The sentence in the log has to say so. "It became 1 node(s)" would tell a
+    reader a folder appeared, and none did.
+    """
+    action = p13_fixtures.accept("n_root", plan_version="plan_1")
+
+    def project(_action, plan_version_id):
+        parent = next(node for node in nodes_for_version(seeded, plan_version_id)
+                      if node.origin_node_id == "n_root")
+        return (dataclasses.replace(parent, expected_values=(
+            ExpectedValue(field="subject", value="PHYS1401"),)),)
+
+    new_version = apply_review_action(
+        seeded, action, new_version_id="plan_2", created_at=T1,
+        mint_node_id=_ids(), component_version="p10-1", project=project)
+    written = {n.origin_node_id: n for n in nodes_for_version(seeded, new_version)}
+    assert written["n_root"].expected_values == (
+        ExpectedValue(field="subject", value="PHYS1401"),)
+    row = seeded.execute(
+        "SELECT explanation FROM events WHERE event_type = 'destination-tree edit' "
+        "AND correction_subject = 'n_root'").fetchone()
+    assert "no folder was added" in row["explanation"]
+    assert "node(s) built from facts" not in row["explanation"]
 
 
 def test_an_accept_that_would_write_no_node_is_refused_not_silently_empty(seeded):

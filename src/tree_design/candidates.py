@@ -138,6 +138,16 @@ class VerticalOption:
     #: are §5.7's ENGINE checks, which decide whether an option may be built at
     #: all. These are advice to the user about a tree that is perfectly legal.
     warnings: tuple[Warning_, ...]
+    #: `(field, value)` this option would record ON THE BRANCH instead of
+    #: building a folder for it — every level whose files all name the same
+    #: thing. Non-empty only when the option builds no child at all, because that
+    #: is the only case `materialise.branch_expectations` fires in.
+    #:
+    #: It is what tells this option apart from "keep this branch as it is": the
+    #: two produce the same folders — none — and only one of them leaves the
+    #: branch able to receive its own files. A caller choosing between them with
+    #: `total_child_branches` alone cannot see the difference.
+    branch_expectations: tuple[tuple[str, str], ...] = ()
 
 
 def _folder_label(directory_path: str) -> str:
@@ -356,6 +366,16 @@ def horizontal_candidates(
     return tuple(candidates)
 
 
+def _and_list(parts: Sequence[str]) -> str:
+    """"a, b, and c" — the joining `_summarise` does, over plain strings."""
+    parts = list(parts)
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    return ", ".join(parts[:-1]) + f", and {parts[-1]}"
+
+
 def _summarise(counts: Mapping[str, int]) -> str:
     """§5.5's whole-option sentence: "three schools, five terms, twelve courses".
 
@@ -435,6 +455,19 @@ def _unplaced(preview: BranchPreview, evidence: BranchEvidence) -> frozenset[str
     placed: frozenset[str] = frozenset().union(
         *(preview.members_by_node.get(node.node_id, frozenset())
           for node in preview.nodes)) if preview.nodes else frozenset()
+    # A branch that states its own values places the files that carry them. They
+    # are not unresolved: the destination is the branch, and P11 reaches it by
+    # exactly the fact this records. A member carrying NONE of those values still
+    # is unresolved, which is why this is a union over the stated levels and not
+    # the whole membership.
+    stated = {(expected.field, expected.value)
+              for expected in preview.branch_expectations}
+    if stated:
+        placed = placed | frozenset().union(*(
+            level.members_by_value[value]
+            for level in evidence.levels
+            for value in level.values
+            if (level.field_ref, value) in stated))
     return evidence.member_file_ids - placed
 
 
@@ -512,7 +545,24 @@ def vertical_options(
              if file_id not in candidate.covered_file_ids} | unplaced))
         kind = (COMPLETE_TEMPLATE if len(candidate.applicability_refs) == 1
                 else FRAGMENT_COMPOSITION)
+        stated = (() if built is None else
+                  tuple((expected.field, expected.value)
+                        for expected in built.branch_expectations))
         summary = f"This option would create {_summarise(counts)}."
+        if stated:
+            # `counts` says "1 school, and 1 term" here and no such folder is
+            # built: `child_counts` counts a level's distinct VALUES and never
+            # asks whether the level divides. Correcting `child_counts` would
+            # rewrite `cli._nesting_key`, which derives an answer's durable
+            # identity from its keys — a person's recorded answer would name a
+            # different shape. So the SENTENCE is corrected, where the promise
+            # was made, and only for the option that would keep it.
+            summary = (
+                "This option would create no folders: every file here names the "
+                f"same {_and_list([role for role in counts if counts[role]])}. "
+                "The branch records "
+                + _and_list([f"{field} {value}" for field, value in stated])
+                + " instead, so these files can be filed into it.")
         if unresolved:
             summary += (
                 f" {len(unresolved)} file(s) would stay unresolved and visible.")
@@ -537,6 +587,7 @@ def vertical_options(
             children=children,
             protected_file_ids=protected,
             warnings=warnings,
+            branch_expectations=stated,
         ))
 
     no_split_summary = (
