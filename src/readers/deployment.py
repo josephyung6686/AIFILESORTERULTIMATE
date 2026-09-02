@@ -30,7 +30,9 @@ from readers.archive_zipfile import zipfile_reader
 from readers.capture import make_dimension_signal, make_filename_pattern
 from readers.docx_python_docx import python_docx_reader
 from readers.image_headers import header_image_reader
+from readers.long_tail_stdlib import stdlib_long_tail_reader
 from readers.pdf_pdfminer import pdfminer_reader
+from readers.text_documents import stdlib_text_document_reader
 
 #: Catalogue 03's proposed tolerance, and the only number this module chooses beyond
 #: Vision's. It is a **proposal**, recorded as one in the catalogue's own
@@ -89,7 +91,14 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
 
     wired: dict[str, Any] = {
         "read_pdf": pdfminer_reader(),
-        "read_text_document": read_text_file,
+        # Was `read_text_file`, which decoded any of §2.9's eight text formats as
+        # UTF-8 and returned the bytes. Right for `.txt` and for source code, and
+        # measurably wrong for the rest: a `.rtf` stored its own control words as
+        # the document's prose, a `.html` stored its `<script>` and `<style>`
+        # bodies, and a `.md` yielded no headings at all. `readers/text_documents.py`
+        # reads each format as the format it is; `read_text_file` below is kept
+        # because it is still the whole of the plain-text answer.
+        "read_text_document": stdlib_text_document_reader(),
         "ocr_engine": vision_ocr(),
         "ocr_config": dict(VISION_CONFIG),
         "read_docx": python_docx_reader(),
@@ -97,8 +106,20 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # are worth listing is a deployment budget, and this deployment would
         # rather carry a long manifest than a truncated one it has to explain.
         "read_manifest": zipfile_reader(),
-        # No library shipped for this yet -- `None` is §2.4's `unsupported`.
-        "read_long_tail": _no_reader,
+        # WAS `_no_reader`, and that one line was the largest single loss of
+        # information measured in this product. §2.9 gives spreadsheets,
+        # presentations, email, calendar, contacts and audio/video a field list
+        # each; every one of those files recorded `unsupported` with
+        # `coverage {"processed": 0, "total": 1}` -- the bytes never looked at --
+        # and nothing downstream could tell that from an empty file. Measured over
+        # a real folder on 2026-09-03, seven of seventeen files yielded zero
+        # observations for this reason, `grades.csv` among them.
+        #
+        # `readers/long_tail_stdlib.py` reads eight of those formats with the
+        # standard library and returns `None` for the rest, which keeps §2.4's
+        # `unsupported` meaning what it says for `.xls`, `.ppt`, `.msg`, `.ods`,
+        # `.odp`, `.numbers` and `.mp3`.
+        "read_long_tail": stdlib_long_tail_reader(),
         # §2.6's container header, from the standard library. Wired 2026-08-31: it
         # was `_no_reader`, so `extract_image` returned `unsupported` on its second
         # line and the two catalogue-fed keywords below were never called at all.
