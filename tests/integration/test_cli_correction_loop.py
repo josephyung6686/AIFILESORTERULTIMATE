@@ -48,6 +48,7 @@ lands, the xfail turns into a failure and should be UNMARKED, not deleted.
 from __future__ import annotations
 
 import io
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -56,6 +57,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
+from placement import vocabulary as pv  # noqa: E402
 
 #: Three files, which is the smallest corpus that can tell a correction apart
 #: from a sweep. Two of them carry the SAME subject, so a rejection aimed at one
@@ -118,15 +120,6 @@ def _section_holding(printed: str, filename: str) -> str:
     return "ABSENT"
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`src/cli.py:1547` -- `evidence_for` selects `active = 1 AND superseded_by "
-    "IS NULL`, which is the exact shape of the `rejected` row P6 writes when a "
-    "person types `--reject`, and then passes `reliability=pv.DIRECT` for every "
-    "row it read. `rejected` is deliberately absent from P11's `EVIDENCE_TYPES` "
-    "and `MatchingFact` checks against it, so hardcoding `direct` makes that "
-    "guard unable to fire and the retracted claim scores the placement. Named "
-    "but not fixed by `8260f46`, which says the diff goes to the owner of that "
-    "file. The hunk is in `scratchpad/learning/CLI-PATCH.txt`."))
 def test_a_rejected_conclusion_is_gone_from_the_next_run_and_the_one_after(tmp_path):
     """Three runs, not two. A gesture that survives one run and not two is worse
     than one that never worked, because the person has already started trusting
@@ -341,3 +334,50 @@ def test_the_reset_half_is_wired_to_nothing_and_the_table_stays_empty(tmp_path):
     resets = conn.execute("SELECT COUNT(*) FROM learning_resets").fetchone()[0]
     conn.close()
     assert resets == 0, resets
+
+
+def test_the_only_unfilable_reliability_is_the_one_the_query_excludes(tmp_path):
+    """A tripwire on the relationship `evidence_for`'s fix depends on.
+
+    `evidence_for` does two things: it excludes `rejected` rows, and it reports
+    each row's OWN reliability instead of calling everything `direct`. The
+    exclusion is guarded by four tests in this file. The pass-through is guarded
+    by nothing, and three attempts to guard it end to end all failed for the same
+    honest reason -- **there is currently no reachable input that distinguishes
+    the two implementations.**
+
+    Measured, so nobody repeats the work:
+      * downgrading every fact to `possible` -> `NothingToDesign`. No plan forms,
+        so nothing is filed either way and the observation is vacuous.
+      * downgrading ONE file's facts -> still "Ready to file", because group
+        membership carries the file whatever its own reliability says.
+      * writing a seventh, unrecognised state -> grouping fails first, so the
+        rows never reach P11's `MatchingFact` check at all.
+      * no placement table persists `MatchingFact.reliability`, so it cannot be
+        read back out of the database either.
+
+    The reason all four come out that way is this assertion: **`rejected` is the
+    only member of `RELIABILITY_STATES` that P11 will not accept as evidence, and
+    it is exactly the member the query already excludes.** While that holds, the
+    pass-through is defence in depth and cannot change a plan.
+
+    So this test guards the CONDITION rather than pretending to guard the code.
+    Add a seventh reliability state that is not an evidence type and this fails,
+    naming `evidence_for` -- because at that moment the pass-through stops being
+    defence in depth and becomes the only thing standing between a new state and
+    a silent relabel to `direct`, and it will need a real end-to-end guard that
+    is finally possible to write.
+    """
+    unfilable = tuple(state for state in pv.RELIABILITY_STATES
+                      if state not in pv.EVIDENCE_TYPES)
+    assert unfilable == (pv.DROPPED_RELIABILITY_STATE,), (
+        f"{unfilable} are reliability states P11 does not accept as evidence, "
+        f"but `cli.evidence_for` only excludes {pv.DROPPED_RELIABILITY_STATE!r}. "
+        f"Every other one now reaches `MatchingFact` -- which is what its check "
+        f"against EVIDENCE_TYPES is for, and why that call must keep passing the "
+        f"row's own `reliability_state` rather than `pv.DIRECT`. Give the new "
+        f"state an end-to-end test in this file; it is reachable now.")
+
+    # And the run still works, so this is a tripwire beside a working product
+    # rather than an assertion about vocabularies in isolation.
+    assert "Ready to file" in _run(_corpus(tmp_path))

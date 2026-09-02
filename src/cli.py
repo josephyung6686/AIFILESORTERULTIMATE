@@ -1693,11 +1693,23 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     def evidence_for(file_id: str) -> dict:
         """§6.3's evidence for one file: the facts P6 actually settled about it."""
         facts, items = [], []
+        # §3.13's `rejected` is P11's DROPPED state, and this is the third of the
+        # three stages that believed a retracted fact (8260f46 fixed P9's and
+        # P11's and named this one). A `--reject` writes a `rejected` row that is
+        # `active` with no `superseded_by`, which is the exact shape the old
+        # WHERE clause selected -- so the claim the person had just told the
+        # product was wrong went on scoring their placement. The reliability is
+        # the row's own from here on, not `direct` for everything: `MatchingFact`
+        # checks it against `EVIDENCE_TYPES`, and a caller that reports every row
+        # as `direct` is what made that check unreachable.
         for row in conn.execute(
                 "SELECT ff.fact_id, ff.field_key, ff.evidence_refs, "
+                "ff.reliability_state, "
                 'v.canonical_value FROM file_facts ff JOIN "values" v '
                 "ON ff.value_id = v.value_id WHERE ff.file_id = ? "
-                "AND ff.active = 1 AND ff.superseded_by IS NULL", (file_id,)):
+                "AND ff.active = 1 AND ff.superseded_by IS NULL "
+                "AND ff.reliability_state != ?",
+                (file_id, pv.DROPPED_RELIABILITY_STATE)):
             from llm_harness.records import EvidenceItem
             from placement.records import MatchingFact
 
@@ -1705,12 +1717,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             ref = refs[0] if refs else None
             facts.append(MatchingFact(
                 file_fact_id=row["fact_id"], field=row["field_key"],
-                value=row["canonical_value"], reliability=pv.DIRECT,
+                value=row["canonical_value"],
+                reliability=row["reliability_state"],
                 evidence_ref=ref))
             items.append(EvidenceItem(
                 evidence_ref=ref, kind="fact", location="heading",
                 excerpt_span=(0, len(row["canonical_value"])),
-                reliability_state="direct", basis="direct-anchor"))
+                reliability_state=row["reliability_state"],
+                basis="direct-anchor"))
         return dict(
             facts=tuple(facts), evidence_items=tuple(items),
             group_ids=tuple(accepted_ids),
