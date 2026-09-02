@@ -9,9 +9,56 @@ line that moved and what it traces to. Nothing was silently rewritten.
 
 ---
 
+## 0. RATIFIED, 2026-09-02, as C2. Read this before §1.
+
+**The owner ratified this text with `90` C2's delta applied.** §1 below still says DRAFT and is
+left standing rather than rewritten, because it is the argument the ratification answers and a
+reader who cannot see what was put to him cannot judge what he agreed to.
+
+**What he ratified**, in `90` §3's terms: C0 — the text in §2 — with C2's one-sentence delta. In
+`WHAT THE DOSSIER CONTAINS`, this sentence
+
+> It is a definition and it is not evidence: nothing written in it may be quoted, and a word that
+> appears only there is not a value you found.
+
+becomes
+
+> Read it to work out which key names the thing you found. It is a definition and it is not
+> evidence, so no part of it may be cited as a span and a word that appears only there is not a
+> value you found.
+
+7,349 bytes, 1,242 words, sha256 `e4fe6d12…ae10`. **C1 and C3 were withdrawn before he saw them**
+and he was told so: a twelfth numbered rule aimed at a hazard the machine now catches is `82` §7.4's
+dilution worry, and `VALUE_NOT_IN_CITED_TEXT` had landed in the meantime.
+
+**He was told the choice was close.** C0 is 60 bytes shorter, §6.7's shortest-ratifiable-text
+argument is untouched, and the agent that recommended C2 said it would not argue against C0. What
+C2 buys is separating three instructions C0 carries in one — USE the glossary to pick the key,
+never CITE it as a span, never LIFT a value from it — where the machine now enforces the second,
+and the third is the whole remaining defence. C0's weakest word is *"quoted"*, which names the thing
+the machine already catches rather than the thing that goes wrong.
+
+**The order was deliberate and it is why this is ratifiable at all.** `90` §5 ranked three things:
+the value-to-evidence check, then R22, then the prompt — *"then, and only then, the prompt"*. The
+check landed (`b91f6d6`, `src/llm_harness/value_grounding.py`); R22 landed (`6e6df83`, `76` §6.1).
+This is the third.
+
+**What ratifying does NOT do.** S1 and S2 stay prompt-only, and no wording closes them: S2's value
+is genuinely present in the cited text and what is wrong with it is a judgement about meaning,
+which no rule built on characters can reach. S16 is narrowed, not closed — where an enumerated word
+also appears in the cited text, a lift and a find are byte-identical. Those are named here rather
+than left for a reader to discover, because a ratification recorded without its limits reads as a
+guarantee.
+
+**Still not installed by this document.** The bytes are approved; wiring them into a
+`PromptDefinition` is a separate change with its own tests, and `MODEL_CALL_SITES_WIRED` in
+`src/cli.py` stays FALSE until that lands.
+
+---
+
 ## 1. What this is, and its status
 
-**This is a DRAFT. It is not installed anywhere and it is not approved.**
+**This was a DRAFT when it was written. It is ratified as of §0 above.**
 
 No `PromptDefinition` is constructed with this text. Nothing in `src/` was touched. No manifest, no
 test, no vocabulary. The bytes below are inert until the owner ratifies them, and the owner ratifies
