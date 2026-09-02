@@ -94,6 +94,7 @@ from placement.residual import ProtectedSetNotReadable
 from placement.schema import create_placement_schema
 from privacy.classification_store import ClassificationStore
 from privacy.defaults import LOCAL_FIRST_MODES
+from privacy.display import display_policy
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -166,6 +167,7 @@ from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
 from tree_design.store import nodes_for_version
+from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
 from apply_run.freeze import freeze, frozen_plans
 from apply_run.report import apply_lines, freeze_lines, undo_lines
@@ -2792,7 +2794,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            role_moment: Sequence[str] = (),
            roles_held: Sequence[str] = (),
-           invite_freeze: bool = False) -> None:
+           invite_freeze: bool = False,
+           list_every_name: bool = False) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -2955,6 +2958,12 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 marks.add(id(item))
                 held_sets.setdefault(key, []).append(item)
 
+    # Every file id this function PRINTS BY NAME. `apply_run.freeze` reads it
+    # to decide what a freeze may approve, so it is collected where the printing
+    # happens rather than re-derived from the same grouping afterwards: a second
+    # copy of this loop would be a second answer to "what was on the screen",
+    # and the two would drift.
+    named: list[str] = []
     rank = {outcome: index for index, outcome in enumerate(OUTCOME_WORDS)}
     ordered = sorted(members, key=lambda key: (
         # Protected LAST. `00`:201 -- "a summary such as '11 protected identity
@@ -2991,7 +3000,31 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 heading = f"{heading} into {where}"
         plural = "" if len(files) == 1 else "s"
         print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
-        listed = files if shielded[key] else files[:NAMES_LISTED_PER_GROUP]
+        # `list_every_name` is set by the freeze run and by nothing else. The
+        # owner ruled that a freeze IS the person's approval, and an approval
+        # covers what they were shown -- so under the ordinary ten-name cap the
+        # eleventh file in a group could never be approved by any gesture that
+        # exists, because the next run groups it the same way and caps it again.
+        # A freeze run is long over a big folder. That is the cost of the
+        # ruling, and the alternative is a person approving a line that says
+        # "...and 4,058 more".
+        #
+        # It widens the PROTECTED group not at all, and the protected clause is
+        # left exactly as it was found. A freeze cannot approve protected
+        # material -- `apply_run.freeze` holds every protected placement before
+        # it reaches an approval -- so naming more of it than the ordinary
+        # report does would buy nothing and would fight the ruling that
+        # protected filenames sit behind `--show-protected`. Whatever that work
+        # makes of the first clause, this one does not reach into it.
+        listed = (files if shielded[key]
+                  else files if list_every_name
+                  else files[:NAMES_LISTED_PER_GROUP])
+        if not shielded[key]:
+            # And what a freeze may approve never includes a protected file, so
+            # a protected name does not enter this set even on the day the first
+            # clause prints one. The exclusion is here as well as in `freeze`
+            # because two independent refusals are what "never" means.
+            named.extend(listed)
         for file_id in listed:
             print(f"    {names.get(file_id, file_id)}", file=out)
         rest = len(files) - len(listed)
@@ -3117,6 +3150,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             "either: what it prints is one line per branch saying exactly what "
             "to type to move that branch, and you can move one branch, "
             "several, or all of it.", indent="  "), file=out)
+    return tuple(named)
 
 
 def _record_cloud_decision(args, decision: str, *, out) -> int:
@@ -3202,6 +3236,11 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
     print(f"Plan database: {database}", file=out)
     try:
         create_mutation_schema(conn)
+        # `--apply` opens its own connection and runs no pipeline, so nothing
+        # else on this path has created P13's tables. A database frozen by an
+        # older build has none of them, and the approval lookup below would meet
+        # a missing table rather than an unapproved plan.
+        create_review_schema(conn)
         plans = frozen_plans(conn)
         if not plans:
             # NO command is printed here, deliberately. Freezing needs the
@@ -3256,10 +3295,12 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
                 extra_protected=None, conflict_copies=lambda path: (),
                 dataless_of=lambda path: False,
                 # `mutation.approval`: absence of a `ReviewApproval` IS the
-                # refusal, and P13's screen -- the only thing that could write
-                # one -- is not built. `--freeze` freezes no plan that would
-                # need one, so nothing should ever reach this.
-                approval_for=lambda plan_id: None,
+                # refusal. The record now exists -- `--freeze` is the surface
+                # that collects it (the owner's ruling, 2026-09-02) -- so this
+                # reads the rows back instead of returning `None` forever. A
+                # plan nobody approved still gets `None`, which is the refusal
+                # and not a gap in the wiring.
+                approval_for=approval_reader(conn),
                 constraints=_FILESYSTEM_CONSTRAINTS,
                 normalize_filename=lambda name: unicodedata.normalize(
                     _FILESYSTEM_CONSTRAINTS.unicode_form, name),
@@ -3667,12 +3708,14 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # it one so it could ask a second part a question would make the report a
     # place where new facts are discovered.
     held = live_roles(conn)
-    report(result, file_names(conn, directory), out=out,
-           questions=open_now,
-           set_aside=set_aside_questions(conn),
-           role_moment=role_moment_lines(blocked=open_now, already_declared=held),
-           roles_held=role_panel_lines(held),
-           invite_freeze=not args.freeze)
+    shown = report(result, file_names(conn, directory), out=out,
+                   questions=open_now,
+                   set_aside=set_aside_questions(conn),
+                   role_moment=role_moment_lines(blocked=open_now,
+                                                 already_declared=held),
+                   roles_held=role_panel_lines(held),
+                   invite_freeze=not args.freeze,
+                   list_every_name=args.freeze)
     if not args.freeze:
         return 0
 
@@ -3682,9 +3725,16 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # `--apply` reads, on a later invocation, instead of re-running a pipeline
     # that would mint a whole new proposal under names nothing has ever seen.
     plan_counter = count()
+    approval_counter = count()
 
     def mint_plan_id() -> str:
         return f"{uuid.uuid4().hex}:{next(plan_counter)}"
+
+    def mint_approval_id() -> str:
+        # Prefixed, because an approval id and a plan id are two different
+        # things a person may be asked about later and a bare uuid says which of
+        # the two it is only by where it was found.
+        return f"approval-{uuid.uuid4().hex}:{next(approval_counter)}"
 
     proposal = freeze(
         conn, result.placement.decisions, nodes=result.tree.tree.nodes,
@@ -3705,6 +3755,30 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         # asks; nothing is written over and no name is invented.
         collision_policy=mv.STOP_AND_ASK,
         expiration_state=_EXPIRATION_STATE,
+        # The owner's ruling of 2026-09-02: `--freeze` IS P13's review surface.
+        # A person who has read the proposal and typed the word has approved
+        # those placements -- so the freeze writes P13's `review_approval`, and
+        # `mutation.approval`'s gate is satisfied by a record a person actually
+        # produced rather than by nothing.
+        #
+        # `shown` is what the report printed by name, and it is the whole of
+        # what "informed" means here: a placement this run did not name is not
+        # approved by this run, and `freeze` holds it and says so.
+        shown_file_ids=frozenset(shown),
+        approve_reviewed=approval_writer(
+            conn,
+            # Read from P7 at the moment of display rather than assumed. §8.4
+            # makes what was displayed a privacy-relevant fact, and this run has
+            # no standing to guess which policy the person was reading under.
+            settings=display_policy(
+                conn, plan_version=result.tree.tree.plan_version_id),
+            # The plan version IS this sitting: `run_token` mints a fresh one on
+            # every run, so it names the reading and the freezing that followed
+            # it, and nothing else in this process has a longer or truer claim
+            # to being the session.
+            session_id=result.tree.tree.plan_version_id,
+            user_id=args.user, component_version=COMPONENT_VERSION,
+            mint_id=mint_approval_id),
         component_version=COMPONENT_VERSION, now=now, mint_id=mint_plan_id)
     conn.commit()
     for line in freeze_lines(
