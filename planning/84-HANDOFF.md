@@ -199,6 +199,18 @@ interest of the north star". Revisitable; recorded so the next reader knows whic
   span was real, it merely did not contain the proposed value. That third question is
   `b91f6d6`'s `VALUE_NOT_IN_CITED_TEXT`, at the gate. P2 adds seeing it as a RATE across a
   corpus rather than by accident. `88` §4 is why that sentence is the weaker one.
+  **And weaker again, 2026-09-03, from `wire-p2-replay`'s measurements.** "P2 adds seeing it as a
+  rate" is true only ONCE LABELS EXIST, and nothing in the live path authors one. A bundle
+  recorded today carries zero expectations, so `assert_run` writes zero assertions and `--replay`
+  reports the counts and the stage list and nothing else — no verdict histogram, no attribution.
+  **Today P2 is the RECORDING half.** It becomes the instrument when somebody labels a reference
+  corpus by hand, which P2's own SPEC says is hand work and which `--record` says on screen rather
+  than implying otherwise.
+  **A §8.5 sentence is also not achievable and should be known before anyone plans on it:** *"the
+  same bundle can be processed by a new extractor version and compared against prior results"*
+  cannot be done, because a bundle carries content HASHES and not bytes — which is why
+  `scan_agent.replay.replay` writes no `files` row and says so. A replay scores the runs a bundle
+  RECORDED and re-asserts P3's boundary from the snapshot. It cannot re-extract.
 
 **Outstanding and BLOCKING, still the owner's:**
 
