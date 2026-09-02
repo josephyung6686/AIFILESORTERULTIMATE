@@ -37,6 +37,7 @@ from review_surface.store import approvals_for
 from review_surface.vocabulary import SURFACE_APPLY, VERDICT_APPROVED
 
 from apply_run.approval import approval_reader, approval_writer
+from apply_run.report import freeze_lines
 from apply_run.freeze import (
     AWAITING_CLASSIFICATION, NOT_SHOWN, PROTECTED_NEEDS_PERMISSION,
     freeze,
@@ -282,3 +283,70 @@ def test_a_plan_is_not_frozen_when_its_approval_could_not_be_written(
         "SELECT COUNT(*) FROM move_plans WHERE file_id = ?",
         (article,)).fetchone()[0]
     assert rows == 0
+
+
+def test_a_protected_hold_is_counted_and_not_named(world, ids, clock):
+    """The owner ruled on 2026-09-02: protected filenames sit behind a gesture.
+
+    A freeze cannot approve a protected file at all, so it has no claim on the
+    name that the ordinary report does not have -- and putting a passport on the
+    screen at the moment a person is being asked to approve a batch is the worst
+    place for it. Counted, explained, and not silently omitted: the count is on
+    the screen and the total above it includes them.
+    """
+    passport = next(d.subject.file_id for d in world.decisions
+                    if d.privacy.protected)
+    decisions = tuple(
+        dataclasses.replace(d, review_policy=REVIEW_REQUIRED)
+        if d.privacy.protected else d
+        for d in world.decisions)
+    proposal = _freeze(world, decisions, ids=ids, clock=clock,
+                       shown={d.subject.file_id for d in decisions})
+
+    text = "\n".join(freeze_lines(
+        proposal, names={f: p.name for f, p in world.sources.items()},
+        nodes=NODES, apply_command=lambda branch: "cmd",
+        apply_everything_command="all"))
+
+    assert world.sources[passport].name == "passport scan.pdf"
+    assert "passport scan.pdf" not in text
+    assert "1 protected file(s), counted here and not named" in text
+    # Whitespace-collapsed, because the sentence is wrapped to the screen and a
+    # containment test against the raw text would be measuring the wrap.
+    assert ("freezing a proposal is not permission to move it"
+            in " ".join(text.split()))
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "The two sides of this contradiction are both live and neither is wrong on "
+    "its own. `privacy.defaults.MORE_REDACTING` makes every §8.4 facet "
+    "`redacted` by default, so a fresh install reads `names: redacted`; and "
+    "`cli.report` and `apply_run.report.freeze_lines` both print filenames "
+    "without consulting the policy at all. So the presentation this freeze "
+    "records is HONEST about the policy in force and the screen did something "
+    "else. Recording the policy was the right half to keep -- §8.4 makes what "
+    "was displayed a privacy-relevant fact, and a record that guessed at the "
+    "screen instead of reading the policy would be a worse lie. Fixing the "
+    "screen belongs to whoever owns `report()`; when they do, this test PASSES "
+    "and the strict marker turns the suite red so they find this record "
+    "waiting for them."))
+def test_a_screen_that_prints_a_filename_does_not_record_that_names_were_hidden(
+        world, reviewable, ids, clock):
+    """The redaction policy on the record, against what the person actually read."""
+    article = _article(reviewable)
+    proposal = _freeze(world, reviewable, ids=ids, clock=clock,
+                       shown={d.subject.file_id for d in reviewable})
+    plan = next(p for p in proposal.plans if p.file_id == article)
+    approval = approvals_for(world.conn, plan_id=plan.plan_id)[0]
+    recorded = presented_state(world.conn, approval.presented_state_ref)
+
+    names = {f: p.name for f, p in world.sources.items()}
+    text = "\n".join(freeze_lines(
+        proposal, names=names, nodes=NODES,
+        apply_command=lambda branch: "cmd", apply_everything_command="all"))
+
+    if recorded.redaction_policy["names"] == "redacted":
+        on_screen = [name for name in names.values() if name in text]
+        assert on_screen == [], (
+            f"the recorded presentation says names were redacted, and the "
+            f"screen printed {on_screen}")

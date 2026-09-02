@@ -131,6 +131,27 @@ def freeze_lines(proposal: FrozenProposal, *,
                    item.detail if item.reason == REFUSED_AT_CONSTRUCTION else "")
             grouped.setdefault(key, []).append(_name(names, item.file_id))
         for (reason, detail), held_names in grouped.items():
+            if reason == PROTECTED_NEEDS_PERMISSION:
+                # Counted and explained, and NOT named. The owner ruled on
+                # 2026-09-02 that protected filenames sit behind
+                # `--show-protected`, and a freeze has no claim on them that the
+                # ordinary report does not: it cannot approve a protected file
+                # at all, so listing the names here would buy the person
+                # nothing and would put a passport on the screen at the moment
+                # they are being asked to approve a batch.
+                #
+                # Not silently omitted, which is the other half of the standing
+                # rule: the count is on the screen, the reason is under it, and
+                # the total above already includes them. No command is offered,
+                # because the gesture that would grant one of these a move is
+                # `74` Wave B9's and is not reachable from anything a person can
+                # type -- and a line that refuses is worse than no line.
+                lines.append(f"    {len(held_names)} protected file(s), counted "
+                             f"here and not named")
+                lines.append(_wrap(
+                    f"{'This one is' if len(held_names) == 1 else 'Each of these is'}"
+                    f" {_HOLD_SENTENCES[reason]}", indent="      "))
+                continue
             for name in sorted(held_names):
                 lines.append(f"    {name}")
             lines.append(_wrap(
