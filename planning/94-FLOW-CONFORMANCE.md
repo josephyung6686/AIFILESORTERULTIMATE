@@ -761,3 +761,37 @@ Also corrected here: `fix-f1-lockout` withdrew its "causality proven both direct
 `94` F1's original reproduction shares the weakness. The clean control is the COLUMN — same
 corpus, same command, before and after the fix — not the row, which varies corpus and flags at
 once. The committed integration test asserts the column.
+
+---
+
+## F21 — an EXIF reader would DELETE OCR from 976 of the owner's images. Ruled: do not build it.
+
+Found by `deepen-extraction`, verified by the lead at `src/extractors/ocr_policy.py:143`.
+
+§2.7's trigger runs OCR on an image only when the file yields **"no usable text AND no usable
+metadata"**, and `image_ocr_decision` implements that literally: `_has_metadata_observation(result)`
+returns `run_ocr=False`. So a reader that emitted EXIF as observations would **stop OCR running on
+every photograph carrying camera EXIF** — which is every phone picture, including the photographed
+whiteboard and the snapped receipt that are the whole reason OCR is there.
+
+On the owner's disk that trades **976 images' WORDS for their CAPTURE METADATA.** `image_headers.py`
+says "adding EXIF is a reader change and nothing else"; that is true of the mechanism and false of
+the consequence, which is exactly the shape of change that ships as an improvement.
+
+**RULED, delegated, 2026-09-03: the EXIF reader is not built.** Three reasons and the third is the
+one that settles it:
+
+1. Words beat capture metadata for filing. "PHYS 1401 Lecture 8" written on a whiteboard is what
+   places the file; the camera model and the shutter time are not.
+2. **`image_exif` and `gps` are both in `ALWAYS_LOCAL`.** EXIF can never inform a model, by
+   construction. OCR output is also always-local, but the FACTS derived from it are releasable in
+   the ordinary way — so the two are not comparable in what they can reach.
+3. §2.7's own wording — *"opaque images without EXIF"* — was written when an image carrying EXIF was
+   assumed to be understandable from it. That assumption is false for the case the product is for:
+   EXIF tells you which camera, never what the picture says. **So this is a design clause worth
+   revisiting, and the trigger has to change BEFORE the reader is written, not after.** Building the
+   reader first would silently take the words away and nobody would see it happen.
+
+Whoever wants EXIF later: change `image_ocr_decision` so EXIF does not count as the "usable
+metadata" that suppresses OCR, prove OCR still runs on an EXIF-bearing photograph, and only then
+write the reader.
