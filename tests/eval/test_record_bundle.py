@@ -192,8 +192,15 @@ def test_a_name_already_taken_is_refused_and_opens_no_bundle(eval_conn, sealed):
 def test_a_metadata_safe_bundle_carries_no_text_units(eval_conn):
     """§8.4 requires full extracted text to stay local and §8.5 offers a
     metadata-safe form without defining it -- SPEC Open question 5, which
-    `add_text_unit` refuses to answer. A rebuild must not answer it either by
-    copying text into a form that may not hold it."""
+    `add_text_unit` refuses to answer.
+
+    `record_bundle` carries no corpus-form guard for this and the absence is
+    deliberate. The first version of this test paired one, and sabotaging that
+    guard left the suite GREEN: a metadata_safe bundle cannot hold a text unit in
+    the first place, so the rebuild has none to copy and the branch was
+    unreachable from any state P2's writers can produce. The vacuous half is
+    gone; what is pinned below is the property that makes the guard unnecessary,
+    including P2's refusal itself, which is the thing actually doing the work."""
     create_eval_schema(eval_conn)
     first = open_bundle(eval_conn, corpus_form="metadata_safe",
                         source_scan_ref="scan-1", pinned_plan_id=None,
@@ -210,6 +217,18 @@ def test_a_metadata_safe_bundle_carries_no_text_units(eval_conn):
     assert get_bundle(eval_conn, recorded)["corpus_form"] == "metadata_safe"
     assert text_units(eval_conn, recorded) == []
     assert extraction_runs(eval_conn, recorded) == extraction_runs(eval_conn, first)
+    # The refusal that makes the above true, rather than a coincidence: there was
+    # never a text unit on the first bundle either, because P2 will not write one
+    # into this form. Shown on a bundle that is still OPEN, so what refuses is
+    # the corpus form and not the seal.
+    assert text_units(eval_conn, first) == []
+    still_open = open_bundle(eval_conn, corpus_form="metadata_safe",
+                             source_scan_ref="scan-2", pinned_plan_id=None,
+                             pinned_plan_version=None, policy_settings={})
+    with pytest.raises(NotImplementedError):
+        add_text_unit(eval_conn, still_open, row={
+            "run_id": "run-1", "container_path": "/c/a.txt", "unit_locator": "p1",
+            "text": "Columbia", "length": 8, "truncated": 0})
 
 
 def test_a_bundle_that_does_not_exist_is_refused(eval_conn):

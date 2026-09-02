@@ -49,7 +49,6 @@ from eval_harness.store import canonical_json
 from eval_harness.vocabulary import (
     DIMENSIONS, OUTCOME_ERROR, OUTCOME_NOT_IMPLEMENTED, STAGE_IDS, VERDICTS,
 )
-from scan_agent.replay import CORPUS_FORM_METADATA_SAFE
 from extractors.stage_output import STAGE_ID, extraction_stage_output
 
 
@@ -244,13 +243,14 @@ def record_bundle(conn, *, from_bundle_id: str, name: str, snapshot: dict | None
             metadata_only=row["metadata_only"])
     for row in extraction_runs(conn, from_bundle_id):
         add_extraction_run(conn, recorded, row=row)
-    if old["corpus_form"] != CORPUS_FORM_METADATA_SAFE:
-        # Whether a metadata_safe bundle may carry text units is SPEC Open
-        # question 5, and `add_text_unit` refuses to answer it. A rebuild must not
-        # answer it either by copying text into a form that may not hold it --
-        # §8.4 requires full extracted text to remain local.
-        for row in text_units(conn, from_bundle_id):
-            add_text_unit(conn, recorded, row=row)
+    # No corpus-form guard here, and that absence is measured rather than assumed.
+    # Whether a metadata_safe bundle may carry text units is SPEC Open question 5
+    # and `add_text_unit` refuses to answer it, so such a bundle has none for this
+    # loop to find -- a guard would be unreachable from any state P2's own writers
+    # can produce, and a test for it could not be made to fail. `84` §5: a guard
+    # that has never failed is not a guard.
+    for row in text_units(conn, from_bundle_id):
+        add_text_unit(conn, recorded, row=row)
     for row in extraction_outputs(conn, from_bundle_id):
         add_extraction_output(
             conn, recorded, content_hash=row["content_hash"],
