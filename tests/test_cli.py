@@ -2142,6 +2142,128 @@ def test_a_printed_send_set_command_survives_being_pasted_into_a_shell(tmp_path)
                 f"prints would be refused")
 
 
+def _two_lives_one_semester_corpus(tmp_path):
+    """One person, two lives, one word in common.
+
+    A part-time law student who is also a parent. Her CONTRACTS files sit in the
+    semester folder she made; her child's report cards sit in `Kid`. The only
+    thing the two lives share is the word "Fall 2026", which is a `term` in one
+    life and a school trimester in the other.
+
+    Five files is the minimum that reproduces it: the branch has to resolve on
+    `term`, which needs two distinct terms in the corpus, which is what the
+    second report card supplies.
+    """
+    corpus = tmp_path / "corpus"
+    semester = corpus / "School" / "Bayline College of Law" / "Fall 2026"
+    semester.mkdir(parents=True)
+    (semester / "CONTRACTS 210 syllabus.txt").write_text(
+        "BAYLINE COLLEGE OF LAW\nCONTRACTS 210 - Section B\nFall 2026 Syllabus\n\n"
+        "Instructor: Professor H. Nakamura\nCredits: 4\n"
+        "Required text: Farnsworth, Cases and Materials on Contracts.\n"
+        "GRADING Final examination 70 percent. Midterm 20 percent.\n")
+    (semester / "CONTRACTS 210 problem set 2.txt").write_text(
+        "CONTRACTS 210 - Problem Set 2\nBayline College of Law, Fall 2026\n"
+        "Due: September 18, 2026\nProfessor H. Nakamura\n"
+        "Answer all three. Cite to the casebook where relevant.\n")
+    (semester / "CONTRACTS 210 problem set 2 FINAL FINAL.txt").write_text(
+        "CONTRACTS 210 - Problem Set 2 - submission\n"
+        "Bayline College of Law, Fall 2026\nProfessor H. Nakamura\n"
+        "A contract was not formed on March 3.\n")
+    kid = corpus / "Kid"
+    kid.mkdir()
+    (kid / "report card fall 2026.txt").write_text(
+        "RIDGEWAY ELEMENTARY SCHOOL\n"
+        "Student Progress Report - Fall 2026 Trimester\n"
+        "Student: A. Brannigan-Okonjo\nGrade: 4\nTeacher: Mr. R. Halloway\n"
+        "READING: Exceeds standard.\nMATHEMATICS: Meets standard.\n")
+    (kid / "report card spring 2026.txt").write_text(
+        "RIDGEWAY ELEMENTARY SCHOOL\n"
+        "Student Progress Report - Spring 2026 Trimester\n"
+        "Student: A. Brannigan-Okonjo\nGrade: 3\nTeacher: Ms. K. Duval\n"
+        "READING: Meets standard.\nMATHEMATICS: Approaching standard.\n")
+    return corpus
+
+
+def _ready_to_file_blocks(printed: str) -> list[str]:
+    """The blocks the report headed "Ready to file into ...".
+
+    Read off the report rather than the database on purpose: what is under test
+    is the sentence a person acts on, and a placement recorded but not printed
+    would not move anything.
+    """
+    return [block for block in printed.split("\n\n")
+            if block.strip().startswith("Ready to file into")]
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "The child's report cards are proposed for the parent's law school "
+    "semester folders, and they are the ONLY two files in the corpus the "
+    "product is confident enough to move. One course means `subject` does not "
+    "divide, so the report leaves that level out -- correctly, by its own "
+    "stated rule -- and the branch resolves on `term` alone. The destinations "
+    "then expect exactly `term=Fall2026` and `term=Spring2026`, and a report "
+    "card's whole recorded evidence is one `term` fact. So a semester word is "
+    "a COMPLETE match: the file states nothing about a course and nothing "
+    "asks it to. The anchoring field is absent and the file is placed on the "
+    "period alone, which is 'absent means refuse, never guess' read the other "
+    "way round. This is the north star's own case -- the person who is a "
+    "student and a parent at once -- and the report's honesty about it is a "
+    "line at the BOTTOM ('applied to EVERY file in the folder -- including any "
+    "that are something else entirely'), while the line at the top says "
+    "'Ready to file'. Whether the answer is a non-period field requirement, a "
+    "category check, or a question, is the owner's call; the symptom is not. "
+    "Verified to go green under the first of those. Strict, so the suite "
+    "turns red the day it is fixed."))
+def test_a_childs_report_card_is_not_filed_into_the_law_school_semester(tmp_path):
+    """Two lives, one word, and the product moves the wrong one.
+
+    Every other file in this corpus comes back "waiting for you to say what
+    these are". The two the product WILL act on are the two it has no business
+    acting on, which is worse than placing nothing: a person who trusts the one
+    confident line on the screen ends up with their child's school record in
+    their Contracts folder.
+    """
+    corpus = _two_lives_one_semester_corpus(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")],
+                    out=out) == 0
+    printed = out.getvalue()
+
+    misfiled = [block for block in _ready_to_file_blocks(printed)
+                if "report card" in block]
+    assert not misfiled, (
+        "the report offers to move the child's report cards into the law "
+        "school's semester folders:\n" + "\n\n".join(misfiled)
+        + "\n\nwhole report:\n" + printed)
+
+
+def test_the_coursework_the_semester_folder_does_hold_is_still_recognised(tmp_path):
+    """The twin, and the reason the test above may not be satisfied by silence.
+
+    Refusing to place anything at all would pass the guard above and destroy
+    the product. The three CONTRACTS files really do belong in the semester
+    folder they are already in, and the report has to keep saying so.
+    """
+    corpus = _two_lives_one_semester_corpus(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")],
+                    out=out) == 0
+    printed = out.getvalue()
+
+    settled = [block for block in printed.split("\n\n")
+               if block.strip().startswith("Already in Fall 2026")]
+    named = [name for block in settled for name in block.splitlines()
+             if "CONTRACTS 210" in name]
+    assert len(named) == 3, (
+        f"the semester folder's own coursework is no longer recognised as "
+        f"being where it belongs; only {named} were:\n{printed}")
+
+
 def _course_corpus(tmp_path):
     corpus = tmp_path / "corpus"
     corpus.mkdir()
