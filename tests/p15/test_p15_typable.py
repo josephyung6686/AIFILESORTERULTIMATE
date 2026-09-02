@@ -84,6 +84,13 @@ REDIRECTING = StructuralQuestion(
     evidence_refs=("declared:branch:Coursework",))
 
 
+#: What `punctuation_chars=True` promotes to tokens of its own. Any of these
+#: surviving into a line a person is told to paste means the shell will act on it
+#: and `--answer` will receive only the part before it.
+_SHELL_OPERATORS: frozenset[str] = frozenset(
+    {">", "<", ">>", "<<", "|", "||", "&", "&&", ";", ";;", "(", ")"})
+
+
 def _shell_tokens(line: str) -> list[str]:
     """What a SHELL makes of the line, which is not what `shlex.split` makes of it.
 
@@ -180,7 +187,7 @@ def test_a_redirect_alone_is_caught_when_nothing_else_is_wrong(qconn):
                       option_id="school>term>subject>work_type")
     for command in _commands(seen.how_to_change):
         tokens = _shell_tokens(command)
-        assert ">" not in tokens, (
+        assert not (set(tokens) & _SHELL_OPERATORS), (
             f"a shell reads {command!r} as {tokens} -- the `>` is a redirect it "
             f"will act on, silently, and the option is truncated before it "
             f"reaches `--answer`")
@@ -203,23 +210,47 @@ def test_the_explanation_offers_the_options_the_way_the_report_does(qconn):
         f"the instruction still uses placeholder notation: {seen.how_to_change!r}")
 
 
-def test_the_rendered_lines_are_still_one_command_each(qconn):
+@pytest.mark.parametrize("question,option_id", [
+    (HOSTILE, "keep-as-it-is"),
+    (REDIRECTING, "school>term>subject>work_type"),
+])
+def test_the_rendered_lines_are_still_one_command_each(qconn, question, option_id):
     """The same, through the renderer a person actually reads.
 
     `render_explanation` puts the instruction on a labelled line, and a
     multi-line instruction that arrived flattened would undo the whole of this
     file without changing `how_to_change` at all.
+
+    **Both fixtures, and the operator check, because the ASSERTION had to move
+    with the lexer.** This asserted only that the argument starts with the
+    question id, and that property SURVIVES the defect even under a
+    shell-accurate lexer: unquoted, `branch:Coursework=school>term>...` lexes to
+    `branch:Coursework=school`, which starts with `branch:Coursework=` perfectly
+    happily, with the `>` following as an operator token. So the test had teeth
+    only because `HOSTILE`'s id carries a space -- the same masking this file was
+    written to stop, one level in. Raised by the role-matcher agent, who found
+    the identical residue at `tests/test_cli.py:1740` (`"=" in tokens[1]`, also
+    true of the truncated token) and fixed it in `b9a608c`.
+
+    What is asserted now is that no shell OPERATOR token survives into the
+    command at all, which is the property that cannot be satisfied by a token
+    the shell has already cut in half.
     """
-    rendered = render_explanation(_explained(qconn))
+    rendered = render_explanation(_explained(qconn, question=question,
+                                            option_id=option_id))
     typable = [line.strip() for line in rendered.splitlines()
                if line.strip().startswith("--answer")]
-    assert len(typable) == len(HOSTILE.options) + 2, (
+    assert len(typable) == len(question.options) + 2, (
         f"the renderer offers {len(typable)} typable lines:\n{rendered}")
     for line in typable:
         parts = _shell_tokens(line)
-        assert parts[1].startswith(f"{HOSTILE.question_id}="), (
+        assert parts[1].startswith(f"{question.question_id}="), (
             f"a shell reads {line!r} as {parts}, whose argument is not this "
             f"question's")
+        assert not (set(parts) & _SHELL_OPERATORS), (
+            f"a shell reads {line!r} as {parts}: an operator token survives into "
+            f"the command, so the argument reaching `--answer` is the part "
+            f"before it and the rest is something the shell acts on")
 
 
 def test_a_line_that_needs_no_quoting_is_left_exactly_as_it_was(qconn):

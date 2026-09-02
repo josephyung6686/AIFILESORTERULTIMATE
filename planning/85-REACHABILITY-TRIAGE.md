@@ -438,11 +438,26 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
    `whitespace_split=True`. Raised by the role-matcher agent, who hit the identical
    hole in `role_report`'s three renders (`061cfff`); measured here by sabotage —
    with the quoting removed, reverting the lexer turns the redirect test GREEN on
-   the live defect. **Fixed in this file's own guard; `tests/test_cli.py:1740` and
-   `:2553` still read the REPORT's `--answer` and `--send-set` lines with
-   `shlex.split`, masked the same way by a deliberate `--label "Legal Matters"`.
-   The code they guard is correct today, so this is a weak guard rather than a
-   live defect — for that file's owner.**
+   the live defect. **And the ASSERTION has to move with the lexer, which is the half
+   that is easy to stop at.** Swapping in the shell-accurate lexer is not enough
+   if the property being asserted is one the truncated token still satisfies.
+   Unquoted, `branch:Coursework=school>term>subject>work_type` lexes to
+   `branch:Coursework=school` followed by a `>` operator — which still contains
+   an `=` (`tests/test_cli.py:1740`'s old property) and still starts with
+   `branch:Coursework=` (this file's old property). Both would have stayed green
+   on the defect under the good lexer. The property that cannot be satisfied by a
+   token the shell has already cut in half is **no shell operator token survives
+   into the command at all**, and that is what both files now assert.
+   Demonstrated by a three-way sabotage: quoting removed with lexer AND assertion
+   fixed → 4 red; with the assertion alone reverted → the redirect case passes on
+   the same live defect.
+
+   **All three sites are now fixed** — `960467c` here, `b9a608c` for the report's
+   two. One thing to be accurate about on `tests/test_cli.py:2553`: that test is
+   a known-gap strict xfail for an unrelated reason (`_review_note`'s command is
+   wrapped mid-quote by `_wrapped` and cannot be pasted at all), so the lexer
+   there changes no verdict today. It is the defensive half: the day the wrapping
+   is fixed, its guard can already see a redirect.
 
 9. **The three verdicts do not cover "the owner has not chosen a number yet."**
    `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
@@ -476,9 +491,10 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
   fine and it is also exactly the shape that drifts. Worth a look when P3 next moves.
 - ~~Generalise `test_p15_no_second_egress.py` to all of `src/`.~~ **Done,
   `5e0f835`** — see §13.7, including the one limit its network rule carries.
-- **Two guards in `tests/test_cli.py` cannot fail for the hazard they name**
-  (§13.8), at `:1740` and `:2553`. Not edited here: that file had another agent's
-  traffic on it, and the code it guards is correct, so nothing is broken today.
+- ~~Two guards in `tests/test_cli.py` cannot fail for the hazard they name.~~
+  **Done, `b9a608c`** — both sites take the shell-accurate lexer AND an assertion
+  the truncated token cannot satisfy, and `:1740` now runs over two labels so
+  neither hazard masks the other. See §13.8 for the caveat on `:2553`.
 - **`questions.triggers.question_for_situation` is waiting on a detector nobody has
   started.** It is `68` F6's measured defect — the graduate student who also teaches,
   filing her teaching as coursework — and it is the one entry in §10 whose fix is a
