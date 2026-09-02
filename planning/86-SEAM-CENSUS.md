@@ -13,7 +13,8 @@ sits beside it, which is this repo's own convention (`13-`, `18-`, `19-`, `26-`,
 the design says must talk, does data actually cross on a run of `cli.main`?
 
 **Status: 57 ordered pairs measured, 31 of them design-named and triaged here with a
-verdict; the remaining edges are the ones every part has to P1 and to the composition
+verdict — 18 connected, 7 dark on an owner decision, 1 dark and a gap, 5 carried;
+the remaining edges are the ones every part has to P1 and to the composition
 root, which are triaged as one row each rather than 26. P12↔P13 and P13↔P9/P10 are
 carried untriaged on purpose — two peers are mid-flight in them (§7).**
 
@@ -139,7 +140,7 @@ something a bug. Not a defect.
 
 ---
 
-## 5. Dark, and the reason is an owner decision — 5 seams
+## 5. Dark, and the reason is an owner decision — 7 ordered pairs, 4 causes
 
 ### 5.1 P7 → P8, and P8 → P7. **The most important seam in the product.**
 
