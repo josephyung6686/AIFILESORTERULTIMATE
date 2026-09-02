@@ -42,6 +42,7 @@ import sqlite3
 import sys
 import uuid
 import textwrap
+import unicodedata
 from itertools import count
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
@@ -162,6 +163,15 @@ from tree_design.upstream import (
 )
 from tree_design.schema import create_tree_schema
 from mutation.schema import create_mutation_schema
+from mutation import vocabulary as mv
+from mutation.constraints import FilesystemConstraints
+from tree_design.store import nodes_for_version
+from apply_run.branches import BranchRefused, branches_named
+from apply_run.freeze import freeze, frozen_plans
+from apply_run.report import apply_lines, freeze_lines, undo_lines
+from apply_run.run import (
+    already_applied, applied_entries, apply_selected, plans_under, take_back,
+)
 from review_surface.schema import create_review_schema
 from review_surface.vocabulary import ACTION_REJECT
 from tree_design.residuals import (
@@ -552,6 +562,50 @@ HANDLING_POLICY: Mapping[str, Handling] = MappingProxyType({
 
 #: §1.1's root anchor -- the top of the tree the plan is written against.
 ROOT_ANCHOR: str = "root_documents"
+
+
+#: `00`:173's platform table. Every field is a fact about the filesystem this
+#: build runs on, and none of them may be guessed inside a part package.
+#:
+#: `case_sensitive=False` on darwin is deliberate and is the field that can
+#: destroy a file if it is wrong. APFS and HFS+ are case-INSENSITIVE by default,
+#: so `Resume.pdf` and `resume.pdf` are one path; declaring the filesystem
+#: case-sensitive would let `find_collision` decide there was no collision and
+#: let the rename that follows overwrite the incumbent. The safe error is to see
+#: a collision that is not there -- that stops and asks -- not to miss one.
+_FILESYSTEM_CONSTRAINTS: FilesystemConstraints = FilesystemConstraints(
+    unicode_form="NFC",
+    case_sensitive=sys.platform not in ("darwin", "win32"),
+    max_component_bytes=255,
+    max_path_bytes=1024 if sys.platform == "darwin" else 4096,
+    prohibited_characters=(frozenset({"/", "\0", ":"})
+                           if sys.platform == "darwin"
+                           else frozenset({"/", "\0"})),
+    reserved_names=frozenset(),
+    replacement_character="_")
+
+#: **`74` §8 Q6, the half of it this build needs: the halt rule.** The batch
+#: BOUND is not needed -- `apply_run` applies one plan at a time, which is
+#: `00`:155's first option verbatim -- but a run of many plans still has to say
+#: when it stops. Every stop before the move leaves the disk exactly as it was,
+#: so a refusal, a staleness and a pause are reported and stepped past; a
+#: `failed` is not, because it is the one result meaning something happened that
+#: P12 could not confirm. THE OWNER'S TO CONFIRM; it is here, in one place.
+_HALT_ON: frozenset[str] = frozenset({mv.FAILED})
+
+#: **`74` §8 Q7 is open**, so a move crossing to another drive is not attempted:
+#: `apply_plan` demands a disposition for a copy it cannot confirm BEFORE it
+#: touches anything, and none has been ruled. This is the sentence the person
+#: reads. It promises nothing about later, because nothing has been decided.
+_CROSS_VOLUME_UNRULED_SENTENCE: str = (
+    "This file would move to a different drive. Moving between drives means "
+    "copying and then removing the original, and what happens to a copy that "
+    "cannot be confirmed is not settled yet -- so nothing was copied and "
+    "nothing was removed.")
+
+#: `00`:170's expiration state. No expiry rule exists anywhere in the design, so
+#: this says so rather than inventing a clock a pending move goes stale against.
+_EXPIRATION_STATE: str = "no expiry configured"
 
 #: The review this run's groups and acceptances belong to.
 PLAN_VERSION: str = "plan_0"
@@ -2737,7 +2791,8 @@ def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            role_moment: Sequence[str] = (),
-           roles_held: Sequence[str] = ()) -> None:
+           roles_held: Sequence[str] = (),
+           invite_freeze: bool = False) -> None:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -3051,6 +3106,17 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
 
     print(f"\nNothing was moved.\nPlan version: {tree.plan_version_id}  "
           f"(the name this proposal is saved under)", file=out)
+    if invite_freeze:
+        # A gesture nothing on screen names is a gesture nobody finds. This says
+        # what freezing does and what it does NOT do, because freezing is the
+        # point at which a person starts wondering whether their files are about
+        # to move.
+        print(_wrapped(
+            "Run the same command again with --freeze to turn this proposal "
+            "into a plan you can move files with. Freezing moves nothing "
+            "either: what it prints is one line per branch saying exactly what "
+            "to type to move that branch, and you can move one branch, "
+            "several, or all of it.", indent="  "), file=out)
 
 
 def _record_cloud_decision(args, decision: str, *, out) -> int:
@@ -3087,6 +3153,160 @@ def _record_cloud_decision(args, decision: str, *, out) -> int:
     return 0
 
 
+def _volume_of(path: Path) -> str:
+    """Which device a path is on, asking the nearest ancestor that exists.
+
+    A destination directory is usually not there yet -- that is the point of a
+    plan -- so `stat` on it would raise. The nearest existing ancestor is on the
+    same volume by construction, because a mount point is a directory.
+    """
+    import os
+
+    cursor = path
+    while not cursor.exists() and cursor != cursor.parent:
+        cursor = cursor.parent
+    return str(os.stat(cursor).st_dev)
+
+
+def _typed(directory: Path, database: Path | None, tail: str) -> str:
+    """One command line a person can paste, with the database named if it was.
+
+    `84` §6: what the screen tells a person to type has to be true. A run given
+    `--database` that printed an `--apply` line without it would send the person
+    at a different database -- which holds no frozen plan, so the honest-looking
+    answer would be "nothing to move".
+    """
+    parts = ["database-agent", shlex.quote(str(directory))]
+    if database is not None:
+        parts += ["--database", shlex.quote(str(database))]
+    return " ".join(parts) + " " + tail
+
+
+def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
+                       everything: bool, out) -> int:
+    """`--apply` and `--undo`: act on the frozen plan, running no pipeline.
+
+    Its own function because it shares almost nothing with a run: no situation,
+    no label, no catalogue, no scan, no model. What it reads is the plans
+    `--freeze` wrote, which are `00`:156-170's record of what was approved.
+    """
+    from datetime import datetime, timezone
+
+    directory = args.directory.expanduser().resolve()
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    try:
+        conn = open_database(database, scan_roots=[directory])
+    except DatabaseInsideCorpus as refusal:
+        print(f"\n{refusal}", file=out)
+        return 2
+    print(f"Plan database: {database}", file=out)
+    try:
+        create_mutation_schema(conn)
+        plans = frozen_plans(conn)
+        if not plans:
+            # NO command is printed here, deliberately. Freezing needs the
+            # situation and the label, and this invocation was not given
+            # either -- so any line printed would carry a placeholder, and a
+            # line with a placeholder in it is not a line a person can paste.
+            # `84` §6: what the screen tells a person to type has to be true.
+            print(_wrapped(
+                "There is no frozen plan for this folder yet, so there is "
+                "nothing to move and nothing to put back. Run the ordinary "
+                "command over this folder again with --freeze added -- the one "
+                "with your --situation and --label on it. Freezing still moves "
+                "nothing; it prints the lines that do.", indent="  "), file=out)
+            return 2
+
+        versions = sorted({plan.organization_plan_version for plan in plans})
+        nodes = tuple(node for version in versions
+                      for node in nodes_for_version(conn, version))
+        legal = frozenset(node.node_id for node in nodes
+                          if node.accepts_placement)
+
+        if everything:
+            selected = frozenset(node.node_id for node in nodes)
+        else:
+            try:
+                selected = branches_named(branches, nodes=nodes)
+            except BranchRefused as refusal:
+                print(f"\n{refusal}", file=out)
+                return 2
+
+        names = file_names(conn, directory)
+        counter = count()
+
+        def now() -> str:
+            return datetime.now(timezone.utc).isoformat()
+
+        def mint_id() -> str:
+            return f"{uuid.uuid4().hex}:{next(counter)}"
+
+        if moving:
+            chosen = plans_under(plans, selected)
+            filed = already_applied(conn, chosen)
+            outcome = apply_selected(
+                conn, tuple(plan for plan in chosen
+                            if plan.plan_id not in filed),
+                legal_destination_ids=legal,
+                source_root=directory, destination_root=directory,
+                # No cloud-sync conflict detection is built, so none is claimed:
+                # `conflict_copies` returning nothing says "none was found", and
+                # `00`:174's sync-conflict pause is a NAMED GAP, not a check
+                # that ran and passed.
+                extra_protected=None, conflict_copies=lambda path: (),
+                dataless_of=lambda path: False,
+                # `mutation.approval`: absence of a `ReviewApproval` IS the
+                # refusal, and P13's screen -- the only thing that could write
+                # one -- is not built. `--freeze` freezes no plan that would
+                # need one, so nothing should ever reach this.
+                approval_for=lambda plan_id: None,
+                constraints=_FILESYSTEM_CONSTRAINTS,
+                normalize_filename=lambda name: unicodedata.normalize(
+                    _FILESYSTEM_CONSTRAINTS.unicode_form, name),
+                unruled_cross_volume_sentence=_CROSS_VOLUME_UNRULED_SENTENCE,
+                halt_on=_HALT_ON, scan_state="included", materialized=True,
+                component_version=COMPONENT_VERSION, user_id=args.user,
+                now=now, mint_id=mint_id)
+            conn.commit()
+            for line in apply_lines(
+                    outcome, names=names,
+                    already_filed=sorted(plan.file_id for plan in chosen
+                                         if plan.plan_id in filed),
+                    undo_command=_typed(
+                        directory, args.database,
+                        " ".join(f"--undo {shlex.quote(name)}"
+                                 for name in branches)
+                        if branches else "--undo-everything")):
+                print(line, file=out)
+            return 0
+
+        # `--undo-everything` takes EVERY entry, with no node filter. The
+        # freeze report promises that anything already filed under an earlier
+        # proposal "stays filed and can still be taken back", and the real
+        # pipeline mints a new plan version on every run -- so an entry from a
+        # superseded proposal has node ids that are in no current branch and
+        # filtering by them would silently skip exactly the files the sentence
+        # was about. `--undo BRANCH` still resolves against the current version,
+        # because resolving a label across every version a database has ever
+        # held would make every label ambiguous with its own older self.
+        entries = [entry for entry, node_id in applied_entries(conn)
+                   if everything or node_id in selected]
+        by_entry = {entry.entry_id: entry.file_id for entry in entries}
+        outcome = take_back(
+            conn, entries, constraints=_FILESYSTEM_CONSTRAINTS,
+            normalize_filename=lambda name: unicodedata.normalize(
+                _FILESYSTEM_CONSTRAINTS.unicode_form, name),
+            scan_state="included", materialized=True,
+            component_version=COMPONENT_VERSION, user_id=args.user,
+            now=now, mint_id=mint_id)
+        conn.commit()
+        for line in undo_lines(outcome, names=names, file_of=by_entry):
+            print(line, file=out)
+        return 0
+    finally:
+        conn.close()
+
+
 def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
@@ -3108,7 +3328,10 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         # meant is the behaviour that keeps that true.
         allow_abbrev=False,
         description="Read a directory, propose a folder tree for it, and say "
-                    "where each file would go. Nothing is moved.")
+                    "where each file would go. A plain run moves nothing. "
+                    "--freeze turns the proposal into a plan; --apply moves "
+                    "one branch of it, or several, or all of it; --undo puts "
+                    "any of it back.")
     # These three are required for a run and are NOT marked required here, because
     # `--list-situations` exists to tell a person what to pass to `--situation`. A
     # discovery flag that requires the answer it supplies is a closed door: the only
@@ -3197,6 +3420,31 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         help="stop sending this folder's files to a cloud model, and stop. Takes "
              "effect immediately and needs nothing else -- not a situation, not a "
              "label, not even the folder still existing.")
+    parser.add_argument(
+        "--freeze", action="store_true",
+        help="turn this run's proposal into a plan you can move files with. "
+             "Freezing moves nothing. What it prints is one line per branch "
+             "saying exactly what to type to move that branch.")
+    parser.add_argument(
+        "--apply", action="append", default=[], metavar="BRANCH",
+        help="move the files frozen for one branch, e.g. --apply Coursework. "
+             "Name it exactly as --freeze printed it; naming a parent moves "
+             "everything under it. Give it more than once for several "
+             "branches. A name that fits two branches is refused and both are "
+             "printed -- it is never guessed. Needs no situation and no label: "
+             "it moves what you already approved.")
+    parser.add_argument(
+        "--apply-everything", action="store_true",
+        help="move every file this plan has frozen. Spelled out in full, and "
+             "separate from --apply, so no slip in a branch name reaches it.")
+    parser.add_argument(
+        "--undo", action="append", default=[], metavar="BRANCH",
+        help="put every file this product moved into one branch back exactly "
+             "where it came from. Same spelling as --apply. A file you have "
+             "edited or moved yourself since is reported, never overwritten.")
+    parser.add_argument(
+        "--undo-everything", action="store_true",
+        help="put back every file this product has moved and not yet put back.")
     args = parser.parse_args(argv)
 
     if args.list_residuals:
@@ -3247,6 +3495,31 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                          "consent is recorded per folder, so there is no single "
                          "switch to throw")
         return _record_cloud_decision(args, DISABLED, out=out)
+
+    # BEFORE the required-argument check, for the reason `--disable-cloud` is:
+    # moving files you already approved needs no situation and no label. The
+    # approval IS the frozen plan, and re-running the pipeline to move it would
+    # mint a whole new proposal under names nothing has ever seen.
+    moving = bool(args.apply) or args.apply_everything
+    undoing = bool(args.undo) or args.undo_everything
+    if moving and undoing:
+        # `84` §6 for the fifth time. Moving and putting back in one invocation
+        # is not a thing anyone means, and choosing an order would decide which
+        # of somebody's files ends up where by argument order.
+        parser.error("--apply and --undo say opposite things about the same "
+                     "files; pass one")
+    if moving or undoing:
+        if args.directory is None:
+            parser.error(
+                ("--apply" if moving else "--undo")
+                + " needs the folder whose plan you froze: a plan belongs to "
+                  "one folder, so there is no single switch to throw")
+        return _move_frozen_files(
+            args, moving=moving,
+            branches=tuple(args.apply if moving else args.undo),
+            everything=(args.apply_everything if moving
+                        else args.undo_everything),
+            out=out)
 
     # The requirement argparse could not express. Same message and same exit code
     # it would have produced, so a run that forgets one reads no differently.
@@ -3398,7 +3671,50 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
            questions=open_now,
            set_aside=set_aside_questions(conn),
            role_moment=role_moment_lines(blocked=open_now, already_declared=held),
-           roles_held=role_panel_lines(held))
+           roles_held=role_panel_lines(held),
+           invite_freeze=not args.freeze)
+    if not args.freeze:
+        return 0
+
+    # `00`:51 and `00`:102: freezing is what turns a proposal into an approved
+    # destination tree. It moves nothing. What it writes is one plan per file,
+    # holding `00`:156-170's complete expected precondition -- which is what
+    # `--apply` reads, on a later invocation, instead of re-running a pipeline
+    # that would mint a whole new proposal under names nothing has ever seen.
+    plan_counter = count()
+
+    def mint_plan_id() -> str:
+        return f"{uuid.uuid4().hex}:{next(plan_counter)}"
+
+    proposal = freeze(
+        conn, result.placement.decisions, nodes=result.tree.tree.nodes,
+        legal_destination_ids=frozenset(
+            node.node_id for node in result.tree.tree.nodes
+            if node.accepts_placement),
+        # §1.1's setting, as `record_selection` above already states it: this
+        # build organises WITHIN the folder the person named and moves nothing
+        # out of it. `00`:20 makes that one of the two things a person may
+        # choose, and it is the one nothing here can ask them about yet.
+        cross_folder_moves=False,
+        constraints=_FILESYSTEM_CONSTRAINTS,
+        high_level_folders={ROOT_ANCHOR: directory},
+        volume_of=_volume_of,
+        protected_handling_classes=PROTECTED_CLASSES,
+        # `74` §8 Q3 is open, so the only behaviour that can be frozen is the
+        # one of `00`:172's four that needs no suffix. A collision stops and
+        # asks; nothing is written over and no name is invented.
+        collision_policy=mv.STOP_AND_ASK,
+        expiration_state=_EXPIRATION_STATE,
+        component_version=COMPONENT_VERSION, now=now, mint_id=mint_plan_id)
+    conn.commit()
+    for line in freeze_lines(
+            proposal, names=file_names(conn, directory),
+            nodes=result.tree.tree.nodes,
+            apply_command=lambda branch: _typed(
+                directory, args.database, f"--apply {shlex.quote(branch)}"),
+            apply_everything_command=_typed(
+                directory, args.database, "--apply-everything")):
+        print(line, file=out)
     return 0
 
 
