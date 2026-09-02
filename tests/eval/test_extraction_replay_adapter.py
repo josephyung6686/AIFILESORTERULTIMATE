@@ -36,6 +36,8 @@ from eval_harness.stage_output import stage_outputs
 from eval_harness.store import create_eval_schema
 from eval_harness.vocabulary import DIMENSIONS, STAGE_IDS
 
+from extractors.stage_output import extraction_subject_ref
+
 from evaluation import extraction_adapter
 
 CONTENT_HASH = "sha256:" + "a" * 64
@@ -97,7 +99,11 @@ def _bundle(conn, *, rows, expected_value, expected_outcome_kind="produced"):
     for row in rows:
         add_extraction_run(conn, bundle_id, row=row)
     add_expectation(
-        conn, bundle_id, dimension="extraction", subject_ref=CONTENT_HASH,
+        conn, bundle_id, dimension="extraction",
+        # P2 SPEC's dimension table gives dimension 1 the subject `(content hash,
+        # extractor id)`. A label naming the hash alone cannot say which of a
+        # file's passes it is about, and matches none of them.
+        subject_ref=extraction_subject_ref(CONTENT_HASH, "pdf"),
         expected_value=expected_value,
         expected_outcome_kind=expected_outcome_kind, source="hand-labelled")
     seal_bundle(conn, bundle_id)
@@ -229,19 +235,19 @@ def _ocr_row(*, observation_count: int):
     return row
 
 
-def test_agreeing_runs_are_two_rows_and_one_measurement(bundled):
-    """Two extractor versions over one file version is two runs and two envelope
-    rows: §8.5's version tuple exists so two versions can be diffed, and
-    collapsing them would delete the thing being compared.
+def test_two_passes_over_one_file_version_are_two_measurements(bundled):
+    """The case that fired on every file of a real corpus, now measured.
 
-    The MEASUREMENT is keyed the other way -- P5 puts it on the content hash and
-    `stage_dimension_value` admits one per subject per run -- so where the two
-    runs agree, the value they agree on is written once. Nothing is chosen: there
-    is nothing to choose between identical measurements."""
+    A filesystem-tier pass and a native-tier pass over one file version are two
+    recorded runs that read different things and answer §8.5's extraction
+    question differently. They are two envelope rows AND two measurements,
+    because P2 SPEC's dimension table gives dimension 1 the subject `(content
+    hash, extractor id)` -- a pair. Under the content hash alone they were one
+    contested row and the stage errored."""
     bundle_id = _bundle(
         bundled,
         rows=[_p4_row(completeness="complete", observation_count=7,
-                      coverage=COVERAGE), _ocr_row(observation_count=7)],
+                      coverage=COVERAGE), _ocr_row(observation_count=4)],
         expected_value=MEASURED)
 
     driven = _drive(bundled, bundle_id, {"extraction": extraction_adapter})
@@ -250,28 +256,61 @@ def test_agreeing_runs_are_two_rows_and_one_measurement(bundled):
     assert len(rows) == 2
     assert sorted(json.loads(row["payload"])["extractor_version"]
                   for row in rows) == ["ocr-1", "pdf-1"]
-    # One expectation, one subject, one assertion -- the second row does not mint
-    # a second verdict on a label that names one subject (§8.7).
+    measured = {row["subject_ref"]: json.loads(row["value"])["observation_count"]
+                for row in bundled.execute(
+                    "SELECT subject_ref, value FROM stage_dimension_value "
+                    "WHERE run_id = ?", (driven.run_id,))}
+    assert measured == {extraction_subject_ref(CONTENT_HASH, "pdf"): 7,
+                        extraction_subject_ref(CONTENT_HASH, "ocr"): 4}
+    # One expectation, so one assertion: the label named one pass and the other
+    # pass is measured but unlabelled, which is a corpus fact and not a miss.
     assert driven.assertions_written == 1
     assert driven.verdicts == {"match": 1}
 
 
-def test_disagreeing_runs_over_one_file_version_refuse_and_the_stage_errors(bundled):
-    """The undecided case, reported as undecided.
+def test_one_pass_measures_as_one_subject(bundled):
+    """A format only one extractor reads produces one run and one subject. No
+    placeholder is minted for a pass that never happened -- a row for an absent
+    tier would be a measurement of nothing and the counts would stop meaning
+    what they say."""
+    bundle_id = _bundle(
+        bundled,
+        rows=[_p4_row(completeness="complete", observation_count=7,
+                      coverage=COVERAGE)],
+        expected_value=MEASURED)
 
-    A native pass and a targeted OCR pass over one PDF are two recorded runs on
-    one content hash with two different measurements, and P5 keys the extraction
-    measurement on the content hash while P2 admits one per subject per run.
-    Nothing in §8.5 says which extractor version is authoritative -- its version
-    tuple carries "one version per extractor" precisely so both can be in scope --
-    so the adapter refuses, `replay_bundle` records the stage as `error` with the
-    traceback, and the run reports a stage that failed rather than a measurement
-    nobody chose. `error` is P2's own word for this and is distinct from an
+    driven = _drive(bundled, bundle_id, {"extraction": extraction_adapter})
+
+    assert [row["subject_ref"] for row in bundled.execute(
+        "SELECT subject_ref FROM stage_dimension_value WHERE run_id = ?",
+        (driven.run_id,))] == [extraction_subject_ref(CONTENT_HASH, "pdf")]
+    assert driven.verdicts == {"match": 1}
+
+
+def _second_version(*, observation_count: int):
+    """The SAME extractor at another version. Composes the same subject on
+    purpose: §8.7 keeps a label alive across an upgrade, and §8.5 compares two
+    versions by measuring the same subject in two runs."""
+    row = _p4_row(completeness="complete", observation_count=observation_count,
+                  coverage=COVERAGE)
+    row["run_id"], row["extractor_version"] = "run-pdf-2", "pdf-2"
+    return row
+
+
+def test_one_extractor_at_two_versions_in_one_run_refuses(bundled):
+    """The residual case, reported as undecided.
+
+    Two versions of one extractor compose ONE subject, deliberately -- that is
+    what makes them comparable. Within one run they are therefore two
+    measurements of one thing, and §8.5 answers a version comparison with two
+    RUNS rather than one. So the adapter refuses, `replay_bundle` records the
+    stage as `error`, and the run reports a stage that failed rather than a
+    measurement nobody chose. `error` is P2's own word and is distinct from an
     abstention and from a deferral."""
     bundle_id = _bundle(
         bundled,
         rows=[_p4_row(completeness="complete", observation_count=7,
-                      coverage=COVERAGE), _ocr_row(observation_count=4)],
+                      coverage=COVERAGE), _second_version(observation_count=4)],
         expected_value=MEASURED)
 
     driven = _drive(bundled, bundle_id, {"extraction": extraction_adapter})
@@ -284,6 +323,22 @@ def test_disagreeing_runs_over_one_file_version_refuse_and_the_stage_errors(bund
     assert driven.attribution == {}
 
 
+def test_two_versions_that_agree_are_one_measurement_and_do_not_refuse(bundled):
+    """Identical measurements are not ambiguous: there is nothing to choose
+    between them, so the value they agree on is written once and no refusal
+    fires. The refusal is about disagreement, not about arity."""
+    bundle_id = _bundle(
+        bundled,
+        rows=[_p4_row(completeness="complete", observation_count=7,
+                      coverage=COVERAGE), _second_version(observation_count=7)],
+        expected_value=MEASURED)
+
+    driven = _drive(bundled, bundle_id, {"extraction": extraction_adapter})
+
+    assert len(stage_outputs(bundled, driven.run_id, stage_id="extraction")) == 2
+    assert driven.verdicts == {"match": 1}
+
+
 def test_the_refusal_is_reachable_on_its_own_terms(bundled):
     """The same refusal, raised rather than swallowed, so the message is pinned
     where a reader of the traceback will meet it."""
@@ -294,7 +349,7 @@ def test_the_refusal_is_reachable_on_its_own_terms(bundled):
     bundle_id = _bundle(
         bundled,
         rows=[_p4_row(completeness="complete", observation_count=7,
-                      coverage=COVERAGE), _ocr_row(observation_count=4)],
+                      coverage=COVERAGE), _second_version(observation_count=4)],
         expected_value=MEASURED)
     ctx = ReplayContext(conn=bundled, run_id="run-x", bundle_id=bundle_id,
                         stage_id="extraction", run_settings={}, budget_ceilings={})
@@ -305,11 +360,12 @@ def test_the_refusal_is_reachable_on_its_own_terms(bundled):
     # The whole message. It is what a person reads on the `--replay` screen when
     # the stage fails, so its wording is the report and not an internal detail.
     assert str(raised.value) == (
-        f"2 recorded extraction runs measure file version {CONTENT_HASH} "
-        "and 2 of them disagree. §8.5 names no rule for which analysis tier is "
-        "authoritative over one file version, and `stage_dimension_value` admits "
-        "one measurement per subject per run. An owner decision, not P2's and "
-        "not P5's.")
+        f"2 recorded extraction runs measure "
+        f"{extraction_subject_ref(CONTENT_HASH, 'pdf')} and 2 of them disagree. "
+        "That subject is a file version and an extractor, so what differs is the "
+        "extractor VERSION -- and §8.5 compares two versions by measuring the "
+        "same subject in two RUNS, not by holding both in one. This bundle is "
+        "two runs to compare, not one to replay.")
 
 
 def test_the_adapter_measures_the_extraction_dimension_and_no_other(bundled):

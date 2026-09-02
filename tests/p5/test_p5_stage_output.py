@@ -17,7 +17,8 @@ from eval_harness.vocabulary import (
 
 from extractors.stage_output import (
     CEILING_REACHED_COMPLETENESS, DIMENSION, ENVELOPE_FIELDS,
-    OUTCOME_BY_COMPLETENESS, STAGE_ID, extraction_stage_output, extractor_versions,
+    OUTCOME_BY_COMPLETENESS, STAGE_ID, extraction_stage_output,
+    extraction_subject_ref, extractor_versions,
 )
 
 from conftest import FIXED_CLOCK
@@ -119,7 +120,14 @@ def test_every_envelope_is_accepted_by_p2s_writer(conn, p2_run):
     for completeness in P4_COMPLETENESS:
         # One content hash each: `stage_dimension_value` is keyed
         # (run_id, dimension, subject_ref), so nine measurements of one file
-        # version in one run is a collision no real replay produces.
+        # version in one run would collide.
+        #
+        # This comment used to end "a collision no real replay produces". That was
+        # wrong, and measuring a live corpus is what showed it: every file version
+        # there carried two passes at one hash and the second insert raised. The
+        # subject now carries the extractor as well, so the real case no longer
+        # collides -- nine COMPLETENESS values at one extractor still would, which
+        # is why the hashes here stay distinct.
         envelope = extraction_stage_output(run={**a_run(completeness=completeness),
                                                 "content_hash": completeness})
         assert envelope["budget_state"] in BUDGET_STATES
@@ -177,14 +185,78 @@ def test_the_envelope_carries_the_dimension_value_p2_asserts_on():
     StageResult(**{k: v for k, v in envelope.items() if k != "stage_id"})
 
 
-def test_the_dimension_value_is_keyed_on_the_file_version_not_the_file():
-    """The envelope's subject is the file id; the DIMENSION's subject is the content
-    hash. Section 8.2's identity for a file version is the hash, and it is what every
-    `extraction` expectation in this repo is written against."""
+def test_the_dimension_value_is_keyed_on_the_file_version_and_the_pass():
+    """The envelope's subject is the file id; the DIMENSION's subject is the file
+    version AND the extractor that read it.
+
+    Section 8.2's identity for a file version is the content hash, and the hash
+    alone was this key until it was measured against a real corpus: EVERY file
+    there carries two recorded runs, a `filesystem`-tier pass and a `native`-tier
+    pass, which read different things and produce different observation counts.
+    `stage_dimension_value` is keyed (run_id, dimension, subject_ref), so the hash
+    alone made those two one contested row -- and section 8.5's question, "did the
+    expected text, metadata, table values appear?", has a different answer for
+    each of them.
+
+    The extractor VERSION is deliberately not in the key. Section 8.7 keeps a
+    citation alive across an upgrade -- `observation_key` excludes the version for
+    exactly that reason -- and a label that died on every extractor bump would be
+    hand work thrown away on a schedule."""
     envelope = extraction_stage_output(run=a_run())
     assert envelope["subject_ref"] == "f-1"
     assert [value.subject_ref for value in envelope["values"]] == [
-        "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"]
+        "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
+        ":pdf.text"]
+    assert extraction_subject_ref(
+        "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124",
+        "pdf.text") == envelope["values"][0].subject_ref
+
+
+def test_two_passes_over_one_file_version_are_two_measurements(conn, p2_run):
+    """The collision this key exists to end, written against P2's real writer.
+
+    Measured on a live three-file corpus before this change: every file version
+    carried a `filesystem.record` pass and a `text.structured` pass with
+    different observation counts, and the second insert raised on the primary
+    key. The comment above `test_every_envelope_is_accepted_by_p2s_writer` called
+    that "a collision no real replay produces"; it was the only collision a real
+    replay produced."""
+    run_id, ref = p2_run
+    for extractor in ("filesystem.record", "text.structured"):
+        _record(conn, run_id, ref,
+                extraction_stage_output(run=a_run(extractor_name=extractor)))
+
+    rows = dimension_values(conn, run_id, dimension=DIMENSION)
+    assert sorted(row["subject_ref"] for row in rows) == [
+        "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
+        ":filesystem.record",
+        "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
+        ":text.structured"]
+
+
+def test_one_pass_measures_as_one_subject_not_one_of_a_notional_two(conn, p2_run):
+    """A format only one extractor reads produces one run, one measurement and one
+    subject. Nothing here mints a placeholder for a pass that never happened: a
+    row for an absent tier would be a measurement of nothing, and the counts would
+    stop meaning what they say."""
+    run_id, ref = p2_run
+    _record(conn, run_id, ref,
+            extraction_stage_output(run=a_run(extractor_name="text.structured")))
+
+    rows = dimension_values(conn, run_id, dimension=DIMENSION)
+    assert [row["subject_ref"] for row in rows] == [
+        "67e9bc3cfd2163c2978358dfe00d2f912cd4ee0c99f077c3583b39b48aebb124"
+        ":text.structured"]
+
+
+def test_the_version_is_not_in_the_key_so_a_label_survives_an_upgrade():
+    """Section 8.7's rule, applied to the measured subject. Two versions of one
+    extractor measure the same subject -- which is what makes them comparable,
+    and what section 8.5's whole version-tuple comparison rests on."""
+    before = extraction_stage_output(run=a_run(version="0.1.0"))
+    after = extraction_stage_output(run=a_run(version="0.2.0"))
+
+    assert before["values"][0].subject_ref == after["values"][0].subject_ref
 
 
 def test_the_measurement_is_what_the_extraction_actually_produced(conn, p2_run):
@@ -243,7 +315,12 @@ def test_assert_run_scores_the_extraction_that_ran_rather_than_not_run(conn, p2_
     bundle_id = open_bundle(conn, corpus_form="snapshot", source_scan_ref="p5-seam",
                             pinned_plan_id=None, pinned_plan_version=None,
                             policy_settings={})
-    add_expectation(conn, bundle_id, dimension=DIMENSION, subject_ref=content_hash,
+    # The label names WHICH PASS it is about. `extraction_subject_ref` is the
+    # subject a measurement is keyed on, so a label written against the bare hash
+    # matches nothing and scores `not_run` -- which is the failure this test was
+    # already built to catch, now with a second way of causing it.
+    add_expectation(conn, bundle_id, dimension=DIMENSION,
+                    subject_ref=extraction_subject_ref(content_hash, "pdf.text"),
                     expected_value={"observation_count": 3,
                                     "coverage": {"units": "pages", "processed": 18,
                                                  "total": 18}},

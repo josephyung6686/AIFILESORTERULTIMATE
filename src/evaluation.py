@@ -53,23 +53,29 @@ from extractors.stage_output import STAGE_ID, extraction_stage_output
 
 
 class AmbiguousExtractionMeasurement(Exception):
-    """Two recorded runs measure one file version, and §8.5 does not say which wins.
+    """Two recorded runs measure one subject, and §8.5 does not say which wins.
 
-    P5 keys its extraction measurement on the CONTENT HASH -- §8.2's identity for
-    a file version, and what every `extraction` expectation is written against --
-    while `stage_dimension_value`'s primary key is (run_id, dimension,
-    subject_ref). One file version therefore admits exactly one extraction
-    measurement per run, and a bundle that recorded a native pass AND a targeted
-    OCR pass over the same hash offers two.
+    This used to fire on every file in an ordinary corpus, because P5 keyed its
+    extraction measurement on the content hash alone while every file version
+    carries two passes -- a filesystem-tier one and a native-tier one. P2 SPEC's
+    dimension table had always given dimension 1 the subject `(content hash,
+    extractor id)`, a PAIR, so the hash alone was a defect rather than a design
+    tension. `extractors.stage_output.extraction_subject_ref` is that pair now and
+    the common case measures both passes.
 
-    That is a real conflict between two published surfaces and not a bug here.
-    Resolving it means choosing which run is authoritative, or minting a merged
-    measurement shape, and both are policy: §8.5 names neither, and §8.5's version
-    tuple carries "one version per extractor" precisely so two extractors can both
-    be in scope. So this refuses, `replay_bundle` records the stage as `error`
-    with this traceback, and the run reports a stage that failed rather than a
-    measurement nobody chose. Identical measurements are not ambiguous and do not
-    raise -- there is nothing to choose between them.
+    What is left is the residual: two runs of the SAME extractor at different
+    versions over one file version. They compose one subject, deliberately --
+    §8.7 keeps a label alive across an upgrade, and §8.5's central comparison is
+    two versions measured against the same subject -- so within ONE run they are
+    still two measurements of one thing, and which is authoritative is a question
+    §8.5 does not answer. A bundle like that is two runs to compare rather than
+    one to replay, which is what `extractor_versions` says when it refuses to
+    build a version tuple for it.
+
+    So this refuses, `replay_bundle` records the stage as `error`, and the run
+    reports a stage that failed rather than a measurement nobody chose. Identical
+    measurements are not ambiguous and do not raise -- there is nothing to choose
+    between them.
     """
 
 
@@ -99,10 +105,11 @@ def extraction_adapter(ctx: ReplayContext) -> list[StageResult]:
     §8.5's version tuple exists to let a reader diff. The `payload` is P5's and
     carries the extractor name and version, so both survive in full.
 
-    The measured VALUE is a different keying -- P5 puts it on the content hash --
-    and P2 admits one per subject per run. Where the recorded runs agree, the one
-    they agree on is emitted; where they disagree, this refuses rather than
-    picking. See `AmbiguousExtractionMeasurement`.
+    The measured VALUE is keyed differently again -- P5 puts it on the file
+    version AND the extractor, P2 SPEC's `(content hash, extractor id)` -- so the
+    two passes an ordinary file carries are two measurements rather than one
+    contested row. What can still collide is one extractor at two versions, and
+    that refuses rather than picking. See `AmbiguousExtractionMeasurement`.
 
     Reads `ctx.conn` and `ctx.bundle_id` only. It opens no file, and it does not
     read P4's `extraction_runs` table -- the tests drive it in a database where
@@ -121,11 +128,12 @@ def extraction_adapter(ctx: ReplayContext) -> list[StageResult]:
         distinct = {canonical_json([value.outcome, value.value]) for value in values}
         if len(distinct) > 1:
             raise AmbiguousExtractionMeasurement(
-                f"{len(values)} recorded extraction runs measure file version "
-                f"{subject_ref} and {len(distinct)} of them disagree. §8.5 "
-                "names no rule for which analysis tier is authoritative over one "
-                "file version, and `stage_dimension_value` admits one measurement "
-                "per subject per run. An owner decision, not P2's and not P5's."
+                f"{len(values)} recorded extraction runs measure {subject_ref} "
+                f"and {len(distinct)} of them disagree. That subject is a file "
+                "version and an extractor, so what differs is the extractor "
+                "VERSION -- and §8.5 compares two versions by measuring the same "
+                "subject in two RUNS, not by holding both in one. This bundle is "
+                "two runs to compare, not one to replay."
             )
 
     results = []

@@ -43,7 +43,9 @@ from eval_harness.bundle import bundle_files, expectations
 from eval_harness.replay import StageResult, replay_bundle
 from eval_harness.run import VERSION_TUPLE_FIELDS
 from eval_harness.stage_output import stage_outputs
-from extractors.stage_output import extraction_stage_output
+from extractors.stage_output import (
+    extraction_stage_output, extraction_subject_ref,
+)
 from evidence_shape.location import TextSpan
 from evidence_shape.locator import location_from_mapping, serialize_locator
 from evidence_shape.store import observations_for_file
@@ -356,13 +358,19 @@ def live(conn, tmp_path) -> LiveRun:
     # selection, the labelling, and the per-subject expected values are hand
     # work"). The label is authored HERE, before the bundle exists, because a
     # bundle is immutable once created (P2 SPEC §3, "Replay bundle") and carries
-    # `bundle_expectation[]` among its contents. The subject is the content hash --
-    # §8.5's five shared-evidence dimensions are keyed to it -- computed with P1's
+    # `bundle_expectation[]` among its contents. The hash is computed with P1's
     # own published `hash_file` rather than a second spelling of R1.
+    #
+    # The subject is the PAIR. P2 SPEC's dimension table (line 153) gives
+    # dimension 1 the subject `(content hash, extractor id)`, and a label that
+    # named the hash alone could not say which of this file's two passes it was
+    # about -- the filesystem-tier pass and the native-tier pass read different
+    # things and answer §8.5's extraction question differently.
     anchor_hash = hash_file(corpus / "Syllabus.pdf", materialized=True)
     run = run_production_p1_p7(conn, selection_id, authorities=_authorities(
         bundle_expectations=({"dimension": "extraction",
-                              "subject_ref": anchor_hash,
+                              "subject_ref": extraction_subject_ref(
+                                  anchor_hash, "pdf.text"),
                               "expected_value": {"observation_count": 1,
                                                  "coverage": {"units": "pages",
                                                               "processed": 1,
@@ -917,19 +925,22 @@ def test_p2_can_carry_an_expectation_for_the_bundle_the_run_produced(live):
     fitted to the results it exists to judge.
     """
     carried = expectations(live.conn, live.run.bundle_id, dimension="extraction")
-    assert [row["subject_ref"] for row in carried] == [live.anchor_content_hash]
+    assert [row["subject_ref"] for row in carried] == [
+        extraction_subject_ref(live.anchor_content_hash, "pdf.text")]
     assert carried[0]["source"] == "hand-labelled"
 
     def extraction_from_the_bundle(ctx):
-        """P5's real envelope, over the extraction runs the bundle captured.
+        """P5's real envelope, over EVERY extraction run the bundle captured.
 
-        ONE EXTRACTOR PER REPLAY, and not by preference. P2 SPEC's dimension table
-        gives dimension 1 the subject `(content hash, extractor id)` -- a PAIR --
-        but `extractors.stage_output` keys its `DimensionValue` on the content hash
-        alone, so this corpus's `pdf.text` and `filesystem.record` runs over one file
-        version collide on `stage_dimension_value`'s
-        (run_id, dimension, subject_ref) key. Measuring one extractor is one slice of
-        the pair and is the only shape available until that key is the pair.
+        This used to filter to one extractor, and not by preference: P2 SPEC's
+        dimension table gives dimension 1 the subject `(content hash, extractor
+        id)` -- a PAIR -- while `extractors.stage_output` keyed its
+        `DimensionValue` on the content hash alone, so this corpus's `pdf.text`
+        and `filesystem.record` runs over one file version collided on
+        `stage_dimension_value`'s (run_id, dimension, subject_ref) key. The filter
+        was the only shape available until that key became the pair. It is the
+        pair now (`extraction_subject_ref`), so both passes are measured and the
+        slice is gone.
 
         P4's row is read from the retained `row` column, which is P4's row exactly as
         P4 published it -- the promoted columns are the subset P2 queries and carry
@@ -942,15 +953,31 @@ def test_p2_can_carry_an_expectation_for_the_bundle_the_run_produced(live):
         return [StageResult(**{k: v for k, v in extraction_stage_output(
                     run=p4_row(row["row"])).items() if k != "stage_id"})
                 for row in ctx.conn.execute(
-                    "SELECT row FROM bundle_extraction_run "
-                    "WHERE bundle_id = ? AND extractor_name = ?",
-                    (ctx.bundle_id, "pdf.text"))]
+                    "SELECT row FROM bundle_extraction_run WHERE bundle_id = ?",
+                    (ctx.bundle_id,))]
 
     run_id = replay_bundle(
         live.conn, live.run.bundle_id, version_tuple=_version_axes(),
         budget_ceilings={},
         run_settings={"model_enabled": False, "embeddings_enabled": False},
         adapters={"extraction": extraction_from_the_bundle})
+
+    # EVERY recorded pass measured, which is what removing the one-extractor
+    # filter is for. Compared against what the bundle actually holds rather than
+    # a hand-written list, so a filter reintroduced anywhere -- by extractor, by
+    # file, by tier -- shows up here as a missing subject.
+    measured = {row["subject_ref"] for row in live.conn.execute(
+        "SELECT subject_ref FROM stage_dimension_value WHERE run_id = ? "
+        "AND dimension = 'extraction'", (run_id,))}
+    recorded = {extraction_subject_ref(row["content_hash"], row["extractor_name"])
+                for row in live.conn.execute(
+                    "SELECT content_hash, extractor_name FROM bundle_extraction_run "
+                    "WHERE bundle_id = ?", (live.run.bundle_id,))}
+    assert measured == recorded, (measured, recorded)
+    # And the anchor really does carry two passes, so the equality above is not
+    # trivially true of a corpus where every file has one.
+    assert {extraction_subject_ref(live.anchor_content_hash, name)
+            for name in ("pdf.text", "filesystem.record")} <= measured
 
     assert assert_run(live.conn, run_id) == 1, (
         "§8.5's per-stage assertions are unreachable from a real run")

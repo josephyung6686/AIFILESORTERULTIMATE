@@ -72,6 +72,38 @@ OUTCOME_BY_COMPLETENESS: dict[str, str] = {
 CEILING_REACHED_COMPLETENESS: tuple[str, ...] = ("deferred", "capped")
 
 
+def extraction_subject_ref(content_hash: str, extractor_name: str) -> str:
+    """The subject one extraction measurement is ABOUT: a file version, read by
+    one extractor.
+
+    P11's `candidate_subject_ref` is the shape this copies, and the reason is the
+    same: `stage_dimension_value` declares `PRIMARY KEY (run_id, dimension,
+    subject_ref)`, so a key that does not distinguish two real measurements makes
+    them one contested row.
+
+    The hash ALONE was that key until it was measured against a live corpus. Every
+    file version there carries two recorded runs -- a `filesystem`-tier pass that
+    re-emits filesystem observations and a `native`-tier pass that reads the
+    bytes -- with different observation counts, so the second insert raised. They
+    are two facts about extraction and not one fact with a tie to break: they read
+    different things, they can be right or wrong independently, and section 8.5's
+    question ("did the expected text, metadata, table values, OCR text, or image
+    facts appear?") has a different answer for each.
+
+    The alternative was naming one tier authoritative, which throws a real
+    measurement away -- and the discarded one is exactly where a regression could
+    hide with nothing left to report it.
+
+    **The extractor VERSION is not in the key, deliberately.** Section 8.7 keeps a
+    citation alive across an upgrade -- P4's `observation_key` excludes the version
+    for that reason -- and a subject that changed on every bump would throw away
+    the hand-authored label on a schedule. It would also make section 8.5's
+    central comparison impossible: two extractor versions over one bundle are
+    compared by measuring THE SAME subject twice.
+    """
+    return f"{content_hash}:{extractor_name}"
+
+
 def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
     """One envelope for one `extraction_runs` row.
 
@@ -79,10 +111,10 @@ def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
     by; `inputs` is the CONTENT HASH, because an extraction run's input is the file
     VERSION - section 3.4's "a rename is free and a content rewrite is expensive".
 
-    The DIMENSION value is keyed the other way round, on the content hash: section
-    8.2's identity for a file version is the hash, and it is what every `extraction`
-    expectation is written against. A `DimensionValue` carries its own subject_ref
-    for exactly this reason.
+    The DIMENSION value is keyed the other way round, on the file version AND the
+    extractor that read it -- see `extraction_subject_ref`, which says why the hash
+    alone could not carry it. A `DimensionValue` carries its own subject_ref for
+    exactly this reason.
     """
     completeness = run["completeness"]
     if completeness not in OUTCOME_BY_COMPLETENESS:
@@ -108,7 +140,8 @@ def extraction_stage_output(*, run: Mapping[str, Any]) -> dict:
                          if completeness in CEILING_REACHED_COMPLETENESS
                          else "within_ceiling"),
         "values": (DimensionValue(dimension=DIMENSION,
-                                  subject_ref=run["content_hash"],
+                                  subject_ref=extraction_subject_ref(
+                                      run["content_hash"], run["extractor_name"]),
                                   outcome=outcome,
                                   value=_measurement(run, outcome)),),
     }
