@@ -236,9 +236,27 @@ class SelfDescription:
 
     **A REFERENCE, and never the sentence.** SPEC §6: "references only, never
     materialised content", which every other item here obeys. This one carries the
-    `question_id` of the role declaration and `resolve.py` looks the wording up --
-    so the words exist in exactly one place, the gate is what reads them, and an
-    item sitting in a request or a fixture carries nothing a person typed.
+    `question_id` of the role declaration, so the words exist in exactly one place
+    and an item sitting in a request or a fixture carries nothing a person typed.
+
+    **NO RESOLVER FOR IT EXISTS YET, and this paragraph used to say one did.** It
+    read "`resolve.py` looks the wording up -- so the words exist in exactly one
+    place, the gate is what reads them", which described a connection that has
+    never been built: `resolve.materialise` reads `observation_key` and `span` and
+    its own docstring says it reads nothing else, and `gate.TEXT_BEARING` is
+    `(Excerpt, RedactedIdentifier)`. So the door ADMITS a self-description and
+    nothing turns the reference into bytes. That is the honest state -- the type,
+    the tier and the policy record are built; the wiring waits on the owner
+    ratifying prompt text -- and `gate.py`'s WR-01 refusal makes it visible rather
+    than a silent drop.
+
+    Corrected here rather than quietly, because a comment that states something as
+    BUILT when it is not is the failure the whole reachability exercise is about,
+    and this one was written by the author of the type an hour after building it.
+    Whoever writes the resolver: it is not enough to add this to `TEXT_BEARING`.
+    `materialise` would raise `AttributeError` on the first field it reads, because
+    this type has neither of the two it wants. It needs a materialiser that
+    dispatches on kind and resolves a role `question_id` against P15's answer store.
 
     **It can address a role declaration and nothing else.** A `question_id` is a key
     into P15's whole answer store, which holds readings taken from the person's own
