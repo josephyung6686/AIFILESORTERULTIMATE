@@ -68,7 +68,10 @@ def test_the_named_slots_are_direct_and_the_free_positions_are_possible(sink):
     by_locator = {locator_for(o["location"]): o for o in sink.observations}
     assert by_locator["metadata:field=extension"]["reliability"] == "direct"
     assert by_locator["metadata:field=mime_type"]["reliability"] == "direct"
-    assert by_locator["metadata:field=normalized_filename"]["reliability"] == "direct"
+    # `metadata:field=normalized_filename` is GONE, removed against CR-05: it was a
+    # second home for the filename, in a releasable zone, and P7 released it in full
+    # from there while refusing it from the `filename` address in the same run.
+    assert "metadata:field=normalized_filename" not in by_locator
     assert by_locator["filename#0-11"]["reliability"] == "possible"
     assert by_locator["path"]["reliability"] == "possible"
 

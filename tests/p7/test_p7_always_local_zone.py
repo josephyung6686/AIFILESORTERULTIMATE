@@ -46,6 +46,7 @@ from evidence_shape.vocabulary import ZONES
 from evidence_shape.locator import serialize_locator
 from evidence_shape.observation import Observation, observation_key
 from evidence_shape.runs import ExtractionRun
+from extractors.filesystem import METADATA_SLOTS
 from evidence_shape.schema import create_evidence_schema
 from evidence_shape.store import (
     TextUnit, new_id, record_observation, record_run, record_text_unit,
@@ -346,6 +347,122 @@ def test_a_candidate_label_addresses_no_observation_and_is_unaffected(zone_conn)
     decision = _gate(zone_conn).release(_request(
         items=(CandidateLabel(label="Legal"),), file_id=file_id))
     assert isinstance(decision, Released)
+
+
+# ================================================================================
+# CR-05: the same value under a second address, in a zone that is not its own
+# ================================================================================
+#
+# The zone rule is enforced ON THE ZONE, so it is only as good as the honesty of the
+# address. `extractors/filesystem.py` used to write the filename TWICE in one run --
+# once truthfully at `zone="filename"`, and once through `METADATA_SLOTS` as
+# `metadata:field=normalized_filename`. The gate refused the first and released the
+# second in full, for the same file, in the same run.
+#
+# The fix is at the SOURCE and not here: the slot is gone, because a value in the
+# wrong zone is a defect in the address rather than a gap in the rule. Answering it
+# with a list of forbidden field names would have made `items.py` own the "gazetteer
+# ... keyword list" its module docstring forbids, and would have left the next
+# mis-zoned value uncaught. These tests hold the invariant the cut restores.
+
+
+def _labelled_observation(conn, file_id: str, content_hash: str, *,
+                          zone: str, label: str, raw_value: str,
+                          extractor: str) -> str:
+    """One span-less observation at `zone:field=label`, the CR-05 shape."""
+    digest = hashlib.sha256(f"{content_hash}:{zone}:{label}".encode()).hexdigest()
+    run_id = new_id()
+    location = Location(zone=zone,
+                        container_path=(Segment(kind="field", label=label),),
+                        text_span=None)
+    record_run(conn, ExtractionRun(
+        run_id=run_id, file_id=file_id, content_hash=digest,
+        extractor_name=extractor, extractor_version="1.0.0",
+        source_type="image", analysis_tier="native", config={},
+        completeness="complete", started_at=OBSERVED_AT, observation_count=1,
+    ))
+    record_observation(conn, Observation(
+        file_id=file_id, content_hash=digest, extractor_name=extractor,
+        extractor_version="1.0.0", source_type="image", raw_value=raw_value,
+        location=location, occurrence_count=1, observed_at=OBSERVED_AT,
+        reliability="direct", run_id=run_id,
+        context_before=None, context_after=None, context_truncated=False,
+    ))
+    return observation_key(
+        content_hash=digest, extractor_name=extractor,
+        locator=serialize_locator(location), raw_value=raw_value)
+
+
+def test_the_filesystem_extractor_gives_the_filename_exactly_one_home(zone_conn):
+    """CR-05, closed at the source. The reproduction was a released filename.
+
+    `METADATA_SLOTS` is read here rather than respelled, so restoring the slot fails
+    this test rather than quietly restoring the release.
+
+    SABOTAGE: put `"normalized_filename"` back in `METADATA_SLOTS` and this goes red.
+    """
+    assert "normalized_filename" not in METADATA_SLOTS, (
+        "the filename has a home at `zone=\"filename\"`; a second one in a "
+        "releasable zone is what CR-05 released in full")
+    assert set(METADATA_SLOTS) == {"extension", "mime_type"}, (
+        "both identify a FORMAT and neither identifies a person; a slot naming "
+        "anything a person wrote or chose does not belong in a releasable zone")
+
+
+def test_a_filename_under_a_metadata_address_would_have_been_released(zone_conn):
+    """What the cut prevents, stated as the mechanism rather than as a worry.
+
+    This is the reviewer's CR-05 probe: the identical `raw_value` is refused from the
+    `filename` address and released from a `metadata` one. It documents that the gate
+    decides on the ZONE and cannot see that two addresses carry one value -- which is
+    why the fix had to be at the extractor.
+    """
+    file_id, filename_key = _seed(
+        zone_conn, zone="filename", raw_value="Divorce settlement final.pdf")
+    metadata_key = _labelled_observation(
+        zone_conn, file_id, "hash-cr05", zone="metadata",
+        label="normalized_filename", raw_value="Divorce settlement final.pdf",
+        extractor="filesystem")
+
+    refused = _gate(zone_conn).release(_request(
+        items=(Excerpt(observation_key=filename_key, span=None, reason="filename"),),
+        file_id=file_id))
+    assert isinstance(refused, Denied) and refused.reason == "always_local_item"
+
+    released = _gate(zone_conn).release(_request(
+        items=(Excerpt(observation_key=metadata_key, span=None, reason="metadata"),),
+        file_id=file_id))
+    assert isinstance(released, Released), (
+        "if this is ever Denied the gate grew a rule that does not key off the zone; "
+        "read it before deleting this test")
+    assert released.materialised_items[0].value == "Divorce settlement final.pdf"
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "CR-05's second half, OPEN. `extractors/image.py:180` emits every EXIF tag as "
+    "`zone=\"metadata\"` with the tag name as the label, so `image_exif` and `gps` "
+    "-- two more of §8.4's nine -- sit in a releasable zone and a GPS coordinate is "
+    "Released. Unlike the filename it cannot be fixed by re-zoning: `metadata` IS "
+    "the truthful zone for an EXIF tag and `ZONES` has no `exif` member, so adding "
+    "one needs owner approval and a SHAPE_VERSION bump. The structural handle "
+    "exists -- `ExifValue.kind` already carries §2.6's signal name and `SIGNAL_TIER` "
+    "ranks `GPS` -- but carrying it to the gate needs the `SensitivitySignal` "
+    "channel, which `ExtractionResult` does not have and which WR-07 already records "
+    "as a P5 gap. Fixing it means a `sensitivity` field on `extractors/sink.py`'s "
+    "`ExtractionResult`, remapped through `collapsed_index`, plus a "
+    "`record_sensitivity_signals` call site in `orchestrator.py`. That is P5 surface "
+    "this agent does not own, so it is marked rather than guessed at. STRICT: the "
+    "day someone closes it, this turns the suite red and must be deleted."))
+def test_a_gps_coordinate_in_the_metadata_zone_is_refused(zone_conn):
+    file_id, _key = _seed(zone_conn, zone="body", raw_value="a bounded value")
+    key = _labelled_observation(
+        zone_conn, file_id, "hash-gps", zone="metadata", label="GPSLatitude",
+        raw_value="37 deg 46' 29.64\" N", extractor="image.metadata")
+    decision = _gate(zone_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=None, reason="metadata"),),
+        file_id=file_id))
+    assert isinstance(decision, Denied), (
+        "§8.4 puts 'gps' and 'image_exif' in the always-local set")
 
 
 # ================================================================================

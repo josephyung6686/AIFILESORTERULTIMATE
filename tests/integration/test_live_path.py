@@ -45,6 +45,7 @@ from eval_harness.run import VERSION_TUPLE_FIELDS
 from eval_harness.stage_output import stage_outputs
 from extractors.stage_output import extraction_stage_output
 from evidence_shape.location import TextSpan
+from evidence_shape.locator import location_from_mapping, serialize_locator
 from evidence_shape.store import observations_for_file
 from extractors.reading import StructuredString
 from extractors.safety import SafetyPolicy
@@ -79,6 +80,7 @@ from privacy.items import Excerpt
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import ModelCallRequest, ModelTarget, Released, Target
 from privacy.transport_guard import assert_single_egress
+from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 from production import P1P7Authorities, bootstrap_p1_p7, run_production_p1_p7
 from readers.deployment import macos_readers
 from scan_agent.corpus_source import FilesystemCorpusSource
@@ -986,3 +988,57 @@ def test_one_walk_goes_from_a_directory_on_disk_to_a_p9_membership(live):
     assert live.conn.execute(
         "SELECT count(*) AS c FROM exclusion_verdicts "
         "WHERE label = 'untouched_protected'").fetchone()["c"] == 1
+
+
+# --- CR-05: one value, one home, checked against the corpus that was scanned --------
+
+def test_no_scanned_name_or_path_is_stored_outside_an_always_local_zone(live):
+    """A DATA invariant, over every observation a real scan produced.
+
+    §8.4's rule is enforced on the ZONE (`privacy.vocabulary.ALWAYS_LOCAL_ZONES`), so
+    it is exactly as good as the honesty of the address. CR-05 was the gap that opens
+    when it is not: `extractors/filesystem.py` wrote the filename a second time as
+    `metadata:field=normalized_filename`, and the gate refused it from the `filename`
+    address while releasing it in full from the `metadata` one -- same run, same
+    extractor, same file.
+
+    This asserts the invariant rather than the fix, so it also catches the NEXT
+    extractor that files a name or a path somewhere releasable. It is here, on the
+    live corpus, because it needs real rows: a unit test would assert against
+    whatever the fixture happened to write.
+
+    The other direction is deliberately not asserted. A releasable zone may of course
+    hold a value that merely LOOKS like a name -- it is the identity with what P1
+    recorded for this file that makes it the file's own name.
+
+    SABOTAGE PROVEN: restoring `"normalized_filename"` to `METADATA_SLOTS` turns this
+    red, naming the locator and the value.
+    """
+    files = {
+        row["file_id"]: (row["filename"], row["current_path"])
+        for row in live.conn.execute(
+            "SELECT file_id, filename, current_path FROM files")
+    }
+    offenders = []
+    for row in live.conn.execute(
+            "SELECT file_id, raw_value, location FROM evidence "
+            "WHERE superseded_by IS NULL"):
+        filename, current_path = files[row["file_id"]]
+        value = row["raw_value"]
+        if value is None:
+            continue
+        names = {filename, filename.lower()}
+        is_a_name = value in names
+        is_a_path = bool(current_path) and current_path.startswith(value) \
+            and value not in ("", "/")
+        if not (is_a_name or is_a_path):
+            continue
+        location = location_from_mapping(json.loads(row["location"]))
+        if location.zone not in ALWAYS_LOCAL_ZONES:
+            offenders.append(
+                (serialize_locator(location), location.zone, value))
+
+    assert offenders == [], (
+        "these observations carry a scanned file's own name or its path in a zone "
+        "§8.4's always-local rule does not reach, so P7 releases them: "
+        f"{offenders}")

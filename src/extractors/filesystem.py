@@ -46,7 +46,25 @@ ANALYSIS_TIER = "filesystem"
 #: duplicate and version-family signals to P6 "from P1's content hashes", and G6
 #: gives the bounded download session to P6 "computed from P3 timestamps". P6 reads
 #: those from `files`; a second copy here would be two homes for one value.
-METADATA_SLOTS: tuple[str, ...] = ("normalized_filename", "extension", "mime_type")
+#:
+#: `normalized_filename` WAS THE FIRST MEMBER AND WAS REMOVED 2026-09-02, against the
+#: security review's CR-05, on exactly the sentence above. The filename already has a
+#: home: the `zone="filename"` observation this function emits first, which carries
+#: the run's one text unit and P4 fixture 11's span. Listing it here gave one value a
+#: SECOND home at `metadata:field=normalized_filename` -- and the second home was
+#: mis-zoned, because `metadata` is where §2.9 puts a page count, not a person's own
+#: name for their file.
+#:
+#: What that cost, reproduced against the real gate: `ALWAYS_LOCAL_ZONES` refused
+#: `Divorce settlement final.pdf` from the `filename` address and RELEASED it in full
+#: from this one, in the same run, from the same extractor, for the same file. It
+#: also walked past the `Filename` kind's `allow_unratified` opt-in and §7.3's
+#: protected-records filename ban, neither of which `check_item` applies to an
+#: excerpt. Removed rather than re-zoned, and rather than answered with a check:
+#: §8.4's rule is enforced on the zone, so a value in the wrong zone is a defect in
+#: the value's address and not a gap in the rule. Nothing in `src/` read this
+#: observation; `extension` and `mime_type` stay, and identify nobody.
+METADATA_SLOTS: tuple[str, ...] = ("extension", "mime_type")
 
 
 def extract_filesystem(*, file_row: Mapping[str, Any], path: Path,
