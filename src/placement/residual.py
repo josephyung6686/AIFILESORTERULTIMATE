@@ -130,6 +130,34 @@ def _set_payload(item: ResidualSet) -> str:
     return json.dumps(dataclasses.asdict(item), sort_keys=True)
 
 
+def _examples_of(batch: tuple[str, ...], offered: tuple[str, ...]) -> tuple[str, ...]:
+    """§7.5's "representative examples", of the batch that shows them.
+
+    Found by running the product: twelve unplaced files split into "Not yet
+    placed (1 of 2)" and "(2 of 2)", and both carried the same three example
+    ids -- every one of them a member of the first. The second set offered, as a
+    sample of what is inside it, three files that are not.
+
+    The split already knew: `file_count` and `member_file_ids` are the batch's
+    and only the field DESCRIBING them was left as the whole group's. §8.6's
+    "split, never truncate" is about the description too, because the examples
+    are what a person reads before deciding what happens to all of it -- and a
+    `--send-set` is a decision about every member from a look at three.
+
+    **No number is chosen here.** How many examples a set shows is part of
+    §7.5's injected taxonomy, so the count is read off the list the partition
+    supplied: the ones that survived the split, then this batch's own members up
+    to the same total. A set that did not split keeps exactly what it was given,
+    which is what makes this additive.
+    """
+    kept = tuple(file_id for file_id in offered if file_id in set(batch))
+    if len(kept) == len(offered):
+        return kept
+    return kept + tuple(
+        file_id for file_id in batch if file_id not in set(kept)
+    )[:len(offered) - len(kept)]
+
+
 def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
                           unplaced, partition, limits,
                           placement_pass_complete: bool,
@@ -171,6 +199,7 @@ def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
             ceiling = limits.max_residual_files_per_batch
             # Split, never truncate: §8.6 reduces work and never drops files.
             batches = [members[i:i + ceiling] for i in range(0, len(members), ceiling)]
+            offered = tuple(group["representative_examples"])
             for index, batch in enumerate(batches, start=1):
                 suffix = f"-{index}" if len(batches) > 1 else ""
                 label = group["label"] + (f" ({index} of {len(batches)})"
@@ -179,7 +208,7 @@ def surface_residual_sets(conn: sqlite3.Connection, *, plan_version: str,
                     set_id=f"{plan_version}:{group['label']}{suffix}",
                     plan_version=plan_version, label=label,
                     file_count=len(batch),
-                    representative_examples=tuple(group["representative_examples"]),
+                    representative_examples=_examples_of(batch, offered),
                     file_type_distribution=tuple(group["file_type_distribution"]),
                     age_range=tuple(group["age_range"]),
                     evidence_availability=group["evidence_availability"],

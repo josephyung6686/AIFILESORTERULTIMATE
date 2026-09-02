@@ -140,6 +140,59 @@ def test_a_set_over_the_batch_ceiling_is_split_not_truncated(p11_conn):
     assert {f for s in sets for f in s.member_file_ids} == set(UNPLACED)
 
 
+def test_a_split_batch_shows_examples_of_ITSELF(p11_conn):
+    """§7.5: "Each set should display representative examples". Of itself.
+
+    Found by running the product. A corpus of twelve unplaced files split into
+    "Not yet placed (1 of 2)" and "(2 of 2)", and BOTH carried the same three
+    example ids -- all three members of the first. The second set offered, as a
+    sample of what a person would find inside it, three files that are not in it.
+
+    The split already knew this: `file_count` and `member_file_ids` are the
+    batch's, and only the field that DESCRIBES them was left as the whole
+    group's. §8.6's "split, never truncate" applies to the description as much
+    as to the members, because a set is what a person reads before they decide
+    what to do with all of it.
+
+    The count is the partition's own, read off the list it supplied. P11 picks
+    no number: §7.5's taxonomy is injected and how many examples a set shows is
+    part of it.
+    """
+    sets = _surface(p11_conn)
+    assert len(sets) > 1, "the fixture must actually split for this to mean anything"
+    for item in sets:
+        assert set(item.representative_examples) <= set(item.member_file_ids), (
+            f"{item.label} offers {item.representative_examples} as examples of "
+            f"itself and holds {item.member_file_ids}")
+
+
+def test_a_split_batch_shows_as_many_examples_as_the_partition_asked_for(p11_conn):
+    """The negative twin. Narrowing to the members that survive the split is the
+    obvious fix and it silently empties the second set's examples: the partition
+    asked for examples and got none, which is a set that describes nothing.
+
+    Removing the refill in `surface_residual_sets` makes this fail while the test
+    above still passes -- which is why the two are separate."""
+    partition = lambda file_ids: (
+        _group("Screenshots with no association", tuple(file_ids),
+               representative_examples=tuple(file_ids)[:2]),)
+    sets = _surface(p11_conn, partition=partition)
+    assert len(sets) > 1
+    for item in sets:
+        assert len(item.representative_examples) == min(
+            2, len(item.member_file_ids)), (
+            f"{item.label} shows {len(item.representative_examples)} examples "
+            f"of {len(item.member_file_ids)} members; the partition asked for 2")
+
+
+def test_an_unsplit_set_keeps_the_examples_the_partition_gave_it(p11_conn):
+    """The other twin, and the one that says this change is additive. A set that
+    does not split must come out byte-identical to what it was before."""
+    sets = _surface(p11_conn, unplaced=("f-gate", "f-receipt"))
+    assert len(sets) == 1
+    assert sets[0].representative_examples == ("f-gate",)
+
+
 def test_a_set_within_the_ceiling_is_not_relabelled_as_a_slice(p11_conn):
     # The negative twin of the split. Without it the "(n of m)" suffix could be
     # unconditional and every single-batch set would read as a fragment.
