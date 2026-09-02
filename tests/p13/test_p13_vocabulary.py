@@ -33,12 +33,12 @@ def test_the_twelve_surfaces_are_the_spec_s_twelve():
     )
 
 
-def test_the_twenty_four_actions_are_the_spec_s_twenty_four():
+def test_the_twenty_five_actions_are_the_spec_s_twenty_five():
     """Eighteen until 2026-09-02, when the owner approved six of §8.7's gestures.
 
     The name of this test carries the count deliberately: it was
     `test_the_eighteen_actions_are_the_spec_s_eighteen` and would have been a lie
-    the moment there were twenty-four.
+    the moment there were twenty-five.
     """
     assert v.ACTIONS == (
         "accept", "accept_bulk", "change_destination",
@@ -48,7 +48,7 @@ def test_the_twenty_four_actions_are_the_spec_s_twenty_four():
         "select_consent_option", "set_redaction", "adopt_version",
         "restore_version", "reset_learning",
         "exclude_from_packet", "rename", "merge", "split", "reorder",
-        "set_refinement_disposition",
+        "create_custom_template", "set_refinement_disposition",
     )
 
 
@@ -60,7 +60,8 @@ def test_every_action_the_spec_prints_is_present():
                  "refresh_plan", "approve_for_apply", "select_consent_option",
                  "set_redaction", "adopt_version", "restore_version",
                  "reset_learning", "exclude_from_packet", "rename", "merge",
-                 "split", "reorder", "set_refinement_disposition"):
+                 "split", "reorder", "create_custom_template",
+                 "set_refinement_disposition"):
         assert name in v.ACTIONS, f"{name} is one of P13 SPEC's printed actions"
 
 

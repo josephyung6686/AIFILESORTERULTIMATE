@@ -7,43 +7,36 @@ own words: *"P13's eighteen must grow to cover §8.7's six unhomed gestures and
 §5's canvas ... Each addition is a closed-vocabulary member and needs the owner's
 approval recorded at the member. They are not minted by whoever notices the gap."*
 
-**That approval has not been given, so nothing is minted here.** This module is
-the report, in the shape `84` §2 describes: a strict xfail that states the gap
-today and turns the suite RED the day the six are added, so the addition cannot
-land without someone reading the reason and filling in the approval the ruling
-requires. The same pattern is at `tests/integration/test_composition_root.py:143`,
-`tests/p13/test_p13_fixture_compatibility.py:72` and `tests/p6/test_p6_llm_seam.py:517`.
+**All six are homed as of 2026-09-02, on the owner's approval of seven members
+recorded at `ACTIONS` in `src/review_surface/vocabulary.py`.** This module was the
+report while they were not: a strict xfail that stated the gap and would turn the
+suite RED the day the members landed, so they could not land without someone
+reading the reason and filling in the approval the ruling requires. It did exactly
+that, twice -- a delegated approval was refused on it, and a relay that listed six
+of the seven left it in place naming the missing one.
 
-The alternative shape -- declaring six `ACTION_*` constants in
-`src/review_surface/vocabulary.py` with an empty approval line -- was rejected on
-that file's own evidence: a constant whose string `review_surface.vocabulary.check`
-refuses is a second home for a name nobody has approved, and *"a literal is a
-second home for a vocabulary and this project's most expensive defect class"*
-(`src/review_surface/vocabulary.py:4-6`). The record of what is owed is instead a
-comment AT the `ACTIONS` member, which is where `src/privacy/vocabulary.py:143-168`
-records the one ruling this project has already taken on a closed vocabulary.
+**The marker is gone now, removed by the commit that closed the gap**, which is
+the interlock working rather than a formality: the tuple and the marker could not
+move in separate commits in either direction. What remains is the live guard --
+every §8.7 gesture still names an action P13 publishes, and a member retired or
+respelled brings the report back.
+
+The alternative shape -- declaring the `ACTION_*` constants early with an empty
+approval line -- was rejected on `vocabulary.py`'s own evidence: a constant whose
+string `review_surface.vocabulary.check` refuses is a second home for a name
+nobody has approved, and *"a literal is a second home for a vocabulary and this
+project's most expensive defect class"* (`src/review_surface/vocabulary.py:4-6`).
 """
 from __future__ import annotations
 
-import pytest
-
 from review_surface import vocabulary as v
 
-#: **ONE PROPOSED SPELLING, NOT APPROVED, AND NOT PUBLISHED ANYWHERE IN `src/`.**
-#:
-#: Five of §8.7's six unhomed gestures were homed on 2026-09-02 -- the owner
-#: approved six members for them, recorded at `ACTIONS` in
-#: `review_surface/vocabulary.py`. Those five now point at real `v.ACTION_*`
-#: constants below.
-#:
-#: **"Creating a custom template" is the one still unhomed.** The owner ruled it
-#: DISTINCT from `create_custom_folder` on 2026-09-02 -- a template is a reusable
-#: shape, a folder is one actual folder -- so it needs its own member; but its
-#: spelling was not among the six he was shown, so no member exists and none is
-#: minted here. `review_surface.vocabulary.check` refuses the name below and no
-#: module under `src/` spells it. **The spelling is the owner's to rule.**
-PROPOSED_CREATE_CUSTOM_TEMPLATE: str = "create_custom_template"
-
+#: **ALL SIX ARE HOMED as of 2026-09-02.** The owner approved seven members --
+#: six gestures, seven members, because "merging or splitting groups" is one §8.7
+#: phrase and two gestures -- recorded at `ACTIONS` in
+#: `review_surface/vocabulary.py`. There is nothing left to propose here, so
+#: every entry below points at a real `v.ACTION_*` constant and the strict-xfail
+#: marker that reported the gap is gone, removed by the commit that closed it.
 #: §8.7's own sentence, `planning/01-product-design-structured.md`:1842-1845, split
 #: into the eleven gestures it names and mapped to the P13 action(s) that record
 #: each. This is `81` §4.4's table, transcribed. The right-hand column is P13's,
@@ -57,7 +50,7 @@ SECTION_8_7_GESTURES: dict[str, tuple[str, ...]] = {
     "renaming a branch": (v.ACTION_RENAME,),
     "merging or splitting groups": (v.ACTION_MERGE, v.ACTION_SPLIT),
     "changing template order": (v.ACTION_REORDER,),
-    "creating a custom template": (PROPOSED_CREATE_CUSTOM_TEMPLATE,),
+    "creating a custom template": (v.ACTION_CREATE_CUSTOM_TEMPLATE,),
     "moving a residual file to a custom location": (
         v.ACTION_CHANGE_DESTINATION, v.ACTION_CREATE_CUSTOM_FOLDER),
     "choosing a shallow fallback": (v.ACTION_SET_REFINEMENT_DISPOSITION,),
@@ -66,10 +59,10 @@ SECTION_8_7_GESTURES: dict[str, tuple[str, ...]] = {
     "disabling a type of suggestion": (v.ACTION_DISABLE_SUGGESTION_TYPE,),
 }
 
-#: The one with no member of `ACTIONS` behind it today. Named rather than
-#: re-derived at the call site so the xfail's reason and the guard cannot disagree.
-#: It was six until 2026-09-02.
-UNHOMED: tuple[str, ...] = ("creating a custom template",)
+#: Empty, and the whole point of this module is that it stays empty. It was six
+#: until 2026-09-02. A gesture appearing here again means §8.7 grew or a member
+#: was retired, and either way somebody made a gesture the product cannot record.
+UNHOMED: tuple[str, ...] = ()
 
 
 def unhomed_gestures(actions: tuple[str, ...]) -> tuple[str, ...]:
@@ -84,7 +77,7 @@ def unhomed_gestures(actions: tuple[str, ...]) -> tuple[str, ...]:
     )
 
 
-def test_the_five_homed_gestures_name_actions_p13_actually_publishes():
+def test_every_gesture_in_the_table_names_an_action_p13_actually_publishes():
     """The live half. If a name in the table above is respelled or dropped from
     `ACTIONS`, this fails -- so the table cannot quietly go stale and make the
     report below look smaller than it is."""
@@ -97,19 +90,17 @@ def test_the_five_homed_gestures_name_actions_p13_actually_publishes():
                 "publishes")
 
 
-def test_the_one_proposed_name_is_not_in_p13s_closed_vocabulary_yet():
-    """The proposal above is a proposal. `check` refuses it, which is what "not
-    minted" means concretely -- an action carrying this name cannot be collected."""
-    assert PROPOSED_CREATE_CUSTOM_TEMPLATE not in v.ACTIONS
-    with pytest.raises(v.OutOfVocabulary):
-        v.check(PROPOSED_CREATE_CUSTOM_TEMPLATE, v.ACTIONS, name="action")
+def test_the_seven_the_owner_approved_are_all_published():
+    """The live half of the 2026-09-02 approval. If any of the seven he was shown
+    verbatim is respelled or dropped, this names it.
 
-
-def test_the_six_the_owner_approved_are_all_published():
-    """The live half of the 2026-09-02 approval. If any of the six he was shown
-    verbatim is respelled or dropped, this names it."""
+    Spelled as literals rather than read off `v.ACTION_*`, deliberately: these are
+    the strings he was shown, and a test that compared the constants to themselves
+    would pass through any rename.
+    """
     for approved in ("exclude_from_packet", "rename", "merge", "split",
-                     "reorder", "set_refinement_disposition"):
+                     "reorder", "create_custom_template",
+                     "set_refinement_disposition"):
         assert approved in v.ACTIONS, (
             f"{approved!r} was approved by the owner on 2026-09-02 and recorded "
             "at the member; it is no longer published")
@@ -134,21 +125,6 @@ def test_the_report_can_tell_a_homed_gesture_from_an_unhomed_one():
     assert unhomed_gestures(everything) == ()
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "ONE §8.7 gesture is still unhomed: creating a custom template. On "
-    "2026-09-02 the owner homed the other five -- he was shown six spellings "
-    "verbatim and answered 'Approve, these names' -- and separately ruled that "
-    "creating a custom template is NOT the same gesture as create_custom_folder "
-    "(a template is a reusable shape, a folder is one actual folder), so it "
-    "needs its own member. But its spelling was NOT among the six he was shown, "
-    "and adding a member to a closed vocabulary requires the owner's approval "
-    "recorded AT THE MEMBER (`src/review_surface/move_permission.py:33-34`); "
-    "`81` §14.1: they 'are not minted by whoever notices the gap'. So no member "
-    "is minted for it. The record is at the member, in the block above `ACTIONS` "
-    "in `src/review_surface/vocabulary.py`. The spelling this file proposes is a "
-    "placeholder and the owner's ruling replaces it. When it is approved and "
-    "added this test XPASSES and the suite goes RED -- delete the marker then, "
-    "and not before."))
 def test_every_gesture_section_8_7_names_has_a_p13_action():
     """§8.7 says every one of these *"should become local learning records with
     scope"*. A gesture P13 cannot name is a gesture that becomes no record at

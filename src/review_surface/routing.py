@@ -25,6 +25,7 @@ from review_surface.vocabulary import (
     ACTION_ADOPT_VERSION,
     ACTION_APPROVE_FOR_APPLY,
     ACTION_CREATE_CUSTOM_FOLDER,
+    ACTION_CREATE_CUSTOM_TEMPLATE,
     ACTION_MARK_PRIVATE,
     ACTION_REFRESH_PLAN,
     ACTION_RESET_LEARNING,
@@ -85,6 +86,13 @@ ACTION_ROUTING: Mapping[str, tuple[str, ...]] = MappingProxyType({
     # goes to P10. It produces a new plan version (§8.8); it is never the model
     # inventing a destination (§7.4).
     ACTION_CREATE_CUSTOM_FOLDER: ("P10",),
+    # A custom TEMPLATE reaches P10 for the same reason a custom folder does, and
+    # it is the ONLY one of §8.7's seven that needs a row: P10 owns the template
+    # library, and this gesture can be made on a residual surface, which routes to
+    # P11 alone. The other six reach the right part from the surface already --
+    # `rename` on `group_plan` is P9's and on `canvas` is P10's, and a row here
+    # would add its part to BOTH.
+    ACTION_CREATE_CUSTOM_TEMPLATE: ("P10",),
     # A reclassification to private is P7's AND P6's, jointly.
     ACTION_MARK_PRIVATE: ("P6", "P7"),
     ACTION_SELECT_CONSENT_OPTION: ("P7",),

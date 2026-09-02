@@ -17,12 +17,12 @@ from dataclasses import dataclass
 #: reversible at P9's decision layer: none of them deletes or moves a file.
 REVIEW_ACTIONS: tuple[str, ...] = (
     "accept",
-    "edit",
+    "rename",
     "reject",
     "defer",
     "restore",
     "reset-suggestion",
-    "exclude-from-packet",
+    "exclude_from_packet",
 )
 
 
@@ -104,7 +104,7 @@ def reject_group(**overrides) -> ReviewActionFixture:
 
 def exclude_member(**overrides) -> ReviewActionFixture:
     values = dict(
-        action="exclude-from-packet",
+        action="exclude_from_packet",
         membership_id="fixture-membership",
         basis="this transcript belongs to a different application",
         correction_scope="file",

@@ -74,16 +74,25 @@ ACTION_RESTORE_VERSION: str = "restore_version"
 ACTION_RESET_LEARNING: str = "reset_learning"
 
 # --- §8.7's gestures, homed 2026-09-02 -------------------------------------
-#: Five of §8.7's six unhomed gestures, in six members -- *"merging or splitting
-#: groups"* is one phrase and two gestures. Every spelling is the receiving part's
-#: own existing word, ADOPTED rather than coined, so P13 takes the word the part
-#: that applies the gesture already uses (`81` §3.3 traces each to a design
-#: sentence). The approval block below records who approved these exact strings.
+#: §8.7's six unhomed gestures, in SEVEN members -- *"merging or splitting
+#: groups"* is one phrase and two gestures. Every spelling but the last is the
+#: receiving part's own existing word, ADOPTED rather than coined, so P13 takes
+#: the word the part that applies the gesture already uses (`81` §3.3 traces each
+#: to a design sentence). The approval block below records who approved these
+#: exact strings.
 ACTION_EXCLUDE_FROM_PACKET: str = "exclude_from_packet"
 ACTION_RENAME: str = "rename"
 ACTION_MERGE: str = "merge"
 ACTION_SPLIT: str = "split"
 ACTION_REORDER: str = "reorder"
+
+#: NOT `create_custom_folder`. The owner ruled them two gestures on 2026-09-02:
+#: **a template is a reusable shape; a folder is one actual folder.** `81` §7 had
+#: this open -- *"They read as two; the SPEC does not say"* -- and it is now
+#: closed. Creating a template from the canvas or during residual review is a
+#: change to what the product will propose NEXT time; creating a folder is a
+#: change to this plan.
+ACTION_CREATE_CUSTOM_TEMPLATE: str = "create_custom_template"
 
 #: The one coined name, and it is coined from the sentence recording its own
 #: absence: `tree_design/pipeline.py:460-472` says outright *"there is no
@@ -108,26 +117,24 @@ ACTION_SET_REFINEMENT_DISPOSITION: str = "set_refinement_disposition"
 #: faithful reading of one paragraph, where the design has four.
 #:
 #: **APPROVED BY: the owner (Joseph), ON: 2026-09-02.** Relayed by the team lead,
-#: whose message is the transport and not the authority. **He was shown these six
-#: strings verbatim, as a tuple, beside this approval line, and answered "Approve,
-#: these names" -- he approved SPELLINGS, not a category:**
+#: whose message is the transport and not the authority. **He was shown these
+#: seven strings verbatim, as a tuple, beside this approval line, and answered
+#: "Approve, these names" -- he approved SPELLINGS, not a category:**
 #:
 #:     "exclude_from_packet", "rename", "merge", "split", "reorder",
-#:     "set_refinement_disposition"
+#:     "create_custom_template", "set_refinement_disposition"
 #:
-#: An earlier delegated approval for the same members was offered and REFUSED,
+#: An earlier DELEGATED approval for the same members was offered and REFUSED,
 #: because `81` §14.1 reserves it: *"Each addition is a closed-vocabulary member
 #: and needs the owner's approval recorded at the member. They are not minted by
 #: whoever notices the gap."* The refusal is why this line names him.
 #:
-#: **ONE §8.7 GESTURE IS STILL UNHOMED: "creating a custom template".** `81` §7
-#: asked whether it and `create_custom_folder` are one gesture or two; the owner
-#: ruled on 2026-09-02 that they are **two** -- *a template is a reusable shape, a
-#: folder is one actual folder* -- so it needs its own member. **Its spelling was
-#: NOT among the six shown to him**, so no member is minted for it here and the
-#: strict xfail in `tests/p13/test_p13_unhomed_gestures.py` stays on, naming that
-#: one gesture. It comes off when that spelling is approved the same way these
-#: six were.
+#: Landed in two commits and the reason is worth keeping: the first relay listed
+#: six of the seven, omitting `create_custom_template`, so six were landed and the
+#: seventh was held rather than inferred -- a member nobody could attest he had
+#: SEEN is a member nobody approved. He was then asked directly and approved all
+#: seven. Six gestures, seven members: *"merging or splitting groups"* is one
+#: §8.7 phrase and two gestures, and that is where the counts diverge.
 #:
 #: Also settled 2026-09-02, recorded here because a member outlives the
 #: conversation: **a canvas gesture DOES travel as a `review_action`** (`81`
@@ -146,7 +153,8 @@ ACTIONS: tuple[str, ...] = (
     ACTION_RESTORE_VERSION, ACTION_RESET_LEARNING,
     # §8.7's, homed 2026-09-02 on the owner's approval recorded above.
     ACTION_EXCLUDE_FROM_PACKET, ACTION_RENAME, ACTION_MERGE, ACTION_SPLIT,
-    ACTION_REORDER, ACTION_SET_REFINEMENT_DISPOSITION,
+    ACTION_REORDER, ACTION_CREATE_CUSTOM_TEMPLATE,
+    ACTION_SET_REFINEMENT_DISPOSITION,
 )
 
 # --- approval verdicts (P13 SPEC, `review_approval.verdict`) --------------

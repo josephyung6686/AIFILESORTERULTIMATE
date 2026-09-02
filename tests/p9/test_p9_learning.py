@@ -141,7 +141,7 @@ def test_an_edit_records_the_user_label_without_touching_the_proposal(review_con
     from p9.p13_fixtures import accept_group as base
 
     apply_review_action(review_conn, base(
-        action="edit", user_edited_label="Physics I", plan_version_id="plan-2",
+        action="rename", user_edited_label="Physics I", plan_version_id="plan-2",
         basis="the user renamed the group"))
     row = review_conn.execute(
         "SELECT user_edited_label, review_state FROM group_acceptance").fetchone()

@@ -26,6 +26,7 @@ from review_surface.vocabulary import (
     SURFACE_APPLY,
     SURFACE_CONSENT,
     SURFACE_CANVAS,
+    SURFACE_RESIDUAL_FILE,
     SURFACE_GROUP_PLAN,
     SURFACE_LEARNING,
     SURFACE_PLACEMENT,
@@ -157,15 +158,23 @@ def test_one_gesture_reaches_two_different_owners_depending_on_the_surface():
     assert route(SURFACE_CANVAS, ACTION_SET_REFINEMENT_DISPOSITION) == ("P10",)
 
 
-def test_none_of_the_six_carries_an_action_routing_row():
-    """The negative twin of the test above, and it is the one that would catch a
-    later well-meant "fix".
+def test_only_create_custom_template_of_the_seven_carries_a_routing_row():
+    """The negative twin of the test above, and the one that catches a later
+    well-meant "fix".
 
     `81` §5 predicted *"an `ACTION_ROUTING` row per new member"*. That was written
-    before Wave B landed the surface table and is wrong for all six: a row here
-    would break the surface distinction rather than complete it. Stated as a test
-    so the next person to reach for one is told why not.
+    before Wave B landed the surface table and is wrong for six of the seven: a
+    row would break the surface distinction rather than complete it. Stated as a
+    test so the next person to reach for one is told why not.
+
+    `create_custom_template` is the exception and needs its row for the same
+    reason `create_custom_folder` has one -- it can be made on a residual surface,
+    which routes to P11 alone, and P10 owns the template library.
     """
+    from review_surface.vocabulary import ACTION_CREATE_CUSTOM_TEMPLATE
+    assert ACTION_ROUTING[ACTION_CREATE_CUSTOM_TEMPLATE] == ("P10",)
+    assert route(SURFACE_RESIDUAL_FILE, ACTION_CREATE_CUSTOM_TEMPLATE) == (
+        "P10", "P11")
     from review_surface.vocabulary import (
         ACTION_EXCLUDE_FROM_PACKET, ACTION_MERGE, ACTION_RENAME, ACTION_REORDER,
         ACTION_SET_REFINEMENT_DISPOSITION, ACTION_SPLIT,

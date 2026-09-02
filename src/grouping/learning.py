@@ -50,7 +50,8 @@ from grouping.vocabulary import (
     USER_REJECTED,
 )
 from review_surface.vocabulary import (
-    ACTION_ACCEPT, ACTION_DEFER, ACTION_REJECT, SURFACE_GROUP_PLAN,
+    ACTION_ACCEPT, ACTION_DEFER, ACTION_EXCLUDE_FROM_PACKET, ACTION_REJECT,
+    ACTION_RENAME, SURFACE_GROUP_PLAN,
 )
 
 #: The surface a group review happens on. An action from a node or template
@@ -73,30 +74,34 @@ USER_GROUP_DECISION: str = "user group decision"
 #: **The keys are P13's, where P13 has a name.** `81` §14 ruled the collector owns
 #: the name, so `accept`, `reject` and `defer` are imported and respelled nowhere.
 #:
-#: **The other four are the ruling's unfinished half, and they are left standing
-#: deliberately.** `edit` and `exclude-from-packet` name gestures §8.7 names in
-#: its own words -- renaming, and *"excluding one member from a packet"* -- that
-#: P13 has no member for; adding those members needs the owner's approval
-#: recorded at the member, which is owed and not given
-#: (`review_surface/vocabulary.py`, the block above `ACTIONS`;
-#: `tests/p13/test_p13_unhomed_gestures.py` reports it). `restore` and
-#: `reset-suggestion` are worse than unhomed: `81` §8 Q5 answered **no** under
-#: both readings, because no sentence in P9's SPEC or the design names either.
-#: They are removals, not renames, and removing them is P9's own contract
-#: revision rather than this ruling's consequence. Nothing here is a second home
-#: for a P13 name; each is a name P13 does not have.
+#: **`edit` became `rename` on 2026-09-02, and that is a READING rather than a
+#: fact.** `81` §3.2 found P9's own SPEC names this gesture `rename` and the
+#: fixture frozen at Task 3 renamed it to `edit`; §14.1 says §8 Q2 is answered by
+#: whatever the derivation produces, and the derivation produces `rename`. The
+#: doubt worth recording: P9's `edit` renames a group LABEL while §8.7's phrase is
+#: *"renaming a branch"*. They are the same verb on two subjects, and the SURFACE
+#: separates them exactly as it separates P9's `merge` from P10's -- `rename` on
+#: `group_plan` routes to P9, on `canvas` to P10, from one member. **I read that
+#: as one gesture and could not confirm it from a document.** Overturning it is a
+#: one-line change here plus a member in P13; it was left cheap on purpose.
+#:
+#: **`restore` and `reset-suggestion` are NOT P13's and stay as they are.** `81`
+#: §8 Q5 answered them **no** under both readings, because no sentence in P9's
+#: SPEC or the design names either. They are removals, not renames, and removing
+#: them is P9's own contract revision rather than this ruling's consequence.
+#: Nothing here is a second home for a P13 name; each is a name P13 does not have.
 #:
 #: The third element of each tuple is §8.7's POLARITY, which is P1's axis and not
 #: an action -- `defer` is an action with no polarity in P11's vocabulary, and the
 #: two spellings colliding is the reason these are not bound to the keys.
 _ACTIONS: dict[str, tuple[str, str, str]] = {
     ACTION_ACCEPT: (ACCEPTED, USER_ACCEPTED, "accept"),
-    "edit": (ACCEPTED, USER_ACCEPTED, "accept"),
+    ACTION_RENAME: (ACCEPTED, USER_ACCEPTED, "accept"),
     ACTION_REJECT: (REJECTED, USER_REJECTED, "reject"),
     ACTION_DEFER: (DEFERRED, DEFERRED, "defer"),
     "restore": (ACCEPTED, USER_ACCEPTED, "accept"),
     "reset-suggestion": (PENDING_REVIEW, PENDING_REVIEW, "reset"),
-    "exclude-from-packet": (
+    ACTION_EXCLUDE_FROM_PACKET: (
         REJECTED, USER_EXCLUDED_FROM_PACKET, "reject"),
 }
 

@@ -365,6 +365,26 @@ against the SPEC's printed list — so the **SPEC block itself must be edited**,
 revision. `src/review_surface/routing.py:82-97` needs an `ACTION_ROUTING` row per new member or the
 gesture routes only by surface. The compatibility xfail XPASSes and must be retired.
 
+> **CORRECTED 2026-09-02, when §14's ruling was actually implemented.** The
+> `ACTION_ROUTING` sentence above overstates the cost and misreads the mechanism. It was
+> written before Wave B landed the surface table at `routing.py:59-79`, and **six of the
+> seven members added on 2026-09-02 needed no row at all** — routing by surface is the
+> CORRECT behaviour for them, not a shortfall. `ROUTING` already sends `group_plan` to P9
+> and P11 and `canvas` to P10, so ONE member reaches the right owner from either surface.
+>
+> That is what lets §8.7's *"merging or splitting **groups**"* (P9's) and `01`:856's
+> *"rename a **branch**"* (P10's) share one name instead of needing two, and it is a point
+> **for** the owner's reading (i) that this document never made: one vocabulary, two
+> receivers, separated by where the person was standing, and no new mechanism.
+>
+> A row would be actively WRONG for those six, because `ACTION_ROUTING` adds its part to a
+> gesture on EVERY surface. Verified by running it: with `ACTION_ROUTING[merge] = ("P10",)`,
+> `route('group_plan', 'merge')` returns `('P9', 'P10', 'P11')` — a group merge handed to
+> the part that owns the tree. Only `create_custom_template` took a row, for the same reason
+> `create_custom_folder` has one: it can be made on a residual surface, which routes to P11
+> alone, while P10 owns the template library. Both halves are held by
+> `tests/p13/test_p13_routing.py`.
+
 **What has to be re-tested.** `tests/p13/` — 21 collect tests, 14 routing, 11 vocabulary — plus every
 `no_invention` guard that walks the vocabulary.
 
