@@ -690,6 +690,28 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
             "one supported home. Nothing moved: which one is its home is a "
             "choice about your material, not a gap in the evidence."
         )
+    if context.privacy.protected:
+        # PROTECTED OUTRANKS EVERY OTHER TRUE SENTENCE, and this check moved above
+        # the reason switch rather than living inside `PRIVACY_BLOCKED`.
+        #
+        # Found when `branch_expectations` landed: a branch that now states
+        # `subject = PHYS1401` is contradicted by a passport whose own `subject`
+        # is its document number, so the file abstained on `conflicting_facts` and
+        # took the §6.10 sentence at the bottom of this function. Nothing leaked
+        # and the outcome was unchanged -- but the person was told their passport
+        # had competing destinations, which describes a subordinate mechanism,
+        # when the governing fact is that this product does not file protected
+        # material at all. `66` §4 forbids exactly that collapse.
+        #
+        # It is not a choice between two equally true sentences. One of them names
+        # the rule that decided the outcome; the other names a step that ran on
+        # the way there and would still have refused if it had agreed.
+        return (
+            "This file is protected material (§8.4), so nothing about it was "
+            "assembled for a model and it was left exactly where it is. That "
+            "is a deliberate decision about sensitivity, not a failure to "
+            "find a destination."
+        )
     if reason == PRIVACY_BLOCKED:
         if is_unclassified(context.privacy):
             # The third cause, and the one a corpus produces most. Neither of the
@@ -717,13 +739,6 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
                 "kind of material it is -- so it was not shown to a model and "
                 "nothing moved. It is waiting for you to say what it is, not "
                 "marked sensitive and not judged on thin evidence."
-            )
-        if context.privacy.protected:
-            return (
-                "This file is protected material (§8.4), so nothing about it was "
-                "assembled for a model and it was left exactly where it is. That "
-                "is a deliberate decision about sensitivity, not a failure to "
-                "find a destination."
             )
         return (
             "Deciding this file needed a model, and §8.4 did not clear this file "
