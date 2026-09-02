@@ -11,7 +11,7 @@ import re
 from mutation import vocabulary as v
 
 from apply_run.branches import branches_named
-from apply_run.freeze import AWAITING_APPROVAL
+from apply_run.freeze import NOT_SHOWN
 from apply_run.report import apply_lines, freeze_lines, undo_lines
 from apply_run.run import applied_entries, plans_under
 
@@ -58,13 +58,16 @@ def test_the_headline_count_and_the_files_under_it_agree(world, ids, clock):
 
 def test_every_held_file_is_named_with_its_reason(world, review_required,
                                                   ids, clock):
-    proposal = _freeze(world, review_required, ids=ids, clock=clock)
+    unseen = next(d.subject.file_id for d in review_required
+                  if d.review_policy == "review_required")
+    proposal = _freeze(world, review_required, ids=ids, clock=clock,
+                       shown=frozenset(world.sources) - {unseen})
     text = "\n".join(freeze_lines(
         proposal, names=_names(world), nodes=NODES,
         apply_command=lambda branch: "cmd", apply_everything_command="all"))
-    assert proposal.held[0].reason == AWAITING_APPROVAL
+    assert proposal.held[0].reason == NOT_SHOWN
     assert "saved article.pdf" in text
-    assert "review screen is not built" in text
+    assert "not named on the screen you froze" in text
 
 
 def test_a_protected_file_is_named_in_the_apply_report_with_its_sentence(

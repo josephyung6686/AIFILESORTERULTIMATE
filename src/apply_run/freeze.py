@@ -35,7 +35,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from placement.records import PlacementDecision
-from placement.vocabulary import PLACE, AUTO_ELIGIBLE
+from placement.vocabulary import (
+    AUTO_ELIGIBLE, BLOCKED_PENDING_USER, PLACE, REVIEW_REQUIRED,
+)
 from tree_design.records import Node
 
 from mutation.constraints import FilesystemConstraints
@@ -47,12 +49,27 @@ from mutation.plan import MovePlan, PlanRefused, build_plan, record_plan
 #: is never silently omitted is the same rule for every held file. A held file
 #: that no sentence names is a file that vanished.
 AWAITING_APPROVAL: str = "awaiting_approval"
+#: `placement.privacy.blocked_policy`'s own distinction, kept: *"a reviewer can
+#: act on a decision that merely needs confirming, and cannot act on one whose
+#: subject nothing has classified."* A freeze is a reviewer, so it may not
+#: collapse the two either -- and the sentence a person reads for this one is
+#: about classification rather than about approval, because that is what is true.
+AWAITING_CLASSIFICATION: str = "awaiting_classification"
+#: The person's screen never named this file, so their freeze cannot have
+#: approved it. §8.7 requires a decision to be stored with the evidence that
+#: produced it, and there is no evidence that this one was ever displayed.
+NOT_SHOWN: str = "not_shown"
+#: Protected, and no policy permits moving it. `84` §1: marked and counted, never
+#: opened -- and never swept into a bulk approval, which is what freezing every
+#: reviewable placement would make of a passport.
+PROTECTED_NEEDS_PERMISSION: str = "protected_needs_permission"
 ALREADY_AT_DESTINATION: str = "already_at_destination"
 REFUSED_AT_CONSTRUCTION: str = "refused_at_construction"
 NO_SAFE_NAME: str = "no_safe_name"
 HOLD_REASONS: tuple[str, ...] = (
-    AWAITING_APPROVAL, ALREADY_AT_DESTINATION, REFUSED_AT_CONSTRUCTION,
-    NO_SAFE_NAME)
+    AWAITING_APPROVAL, AWAITING_CLASSIFICATION, NOT_SHOWN,
+    PROTECTED_NEEDS_PERMISSION, ALREADY_AT_DESTINATION,
+    REFUSED_AT_CONSTRUCTION, NO_SAFE_NAME)
 
 
 @dataclass(frozen=True)
@@ -114,6 +131,45 @@ def _previous(conn: sqlite3.Connection) -> Replaced | None:
     return Replaced(frozen_at=frozen_at, count=count)
 
 
+
+def _withheld(decision: PlacementDecision,
+              shown_file_ids: frozenset[str]) -> tuple[str, str] | None:
+    """Why this placement is not the person's to approve, or `None`.
+
+    Three refusals and a fallback, and none of them is about tidiness.
+
+    The **protected** one is first because it is the one a mistake costs most.
+    `placement.privacy.review_policy_for`'s third rule puts a protected file with
+    no permitting policy into `review_required`, which is the queue a freeze now
+    empties -- so without this line the single word `--freeze` would be consent
+    to move a passport. Only `74` Wave B9's surface can grant that, one named
+    file at a time.
+
+    The **unshown** one is what makes the approval informed rather than assumed.
+    §8.7 wants a decision stored with the evidence that produced it, and P13's
+    `approve` refuses an approval whose presentation is missing; this is the same
+    rule one step earlier, where the file can still be named to the person.
+
+    The **unclassified** one keeps `placement.privacy`'s two obligations apart.
+    A file nothing has looked at is not a file waiting for a nod.
+
+    The fallback catches a `review_policy` P11 adds after this was written. It
+    holds rather than approving, because a policy this build has no rule for is
+    not one it may treat as satisfied.
+    """
+    if decision.review_policy == AUTO_ELIGIBLE:
+        return None
+    if decision.privacy.protected:
+        return PROTECTED_NEEDS_PERMISSION, decision.privacy.handling_class
+    if decision.review_policy == BLOCKED_PENDING_USER:
+        return AWAITING_CLASSIFICATION, decision.review_policy
+    if decision.subject.file_id not in shown_file_ids:
+        return NOT_SHOWN, decision.review_policy
+    if decision.review_policy == REVIEW_REQUIRED:
+        return None
+    return AWAITING_APPROVAL, decision.review_policy
+
+
 def freeze(conn: sqlite3.Connection,
            decisions: Sequence[PlacementDecision], *,
            nodes: Sequence[Node],
@@ -125,6 +181,8 @@ def freeze(conn: sqlite3.Connection,
            protected_handling_classes: frozenset[str],
            collision_policy: str,
            expiration_state: str,
+           shown_file_ids: frozenset[str],
+           approve_reviewed: Callable[[MovePlan, str], None],
            component_version: str,
            now: Callable[[], str],
            mint_id: Callable[[], str]) -> FrozenProposal:
@@ -150,17 +208,12 @@ def freeze(conn: sqlite3.Connection,
         if decision.outcome != PLACE or decision.destination is None:
             continue
         node_id = decision.destination.node_id
-        if decision.review_policy != AUTO_ELIGIBLE:
-            # `mutation.approval` is explicit that absence of a `ReviewApproval`
-            # IS the refusal and that P13 -- the surface that would collect one
-            # -- is unbuilt. Freezing such a plan would put a file in the
-            # approved set that every apply run must then decline, which reads
-            # to a person as a product that keeps failing rather than one that
-            # is waiting for a screen it does not have yet.
+        withheld = _withheld(decision, shown_file_ids)
+        if withheld is not None:
             held.append(Held(
                 file_id=decision.subject.file_id, source_path=None,
-                destination_node=node_id, reason=AWAITING_APPROVAL,
-                detail=decision.review_policy))
+                destination_node=node_id, reason=withheld[0],
+                detail=withheld[1]))
             continue
         try:
             built = build_plan(
@@ -200,6 +253,13 @@ def freeze(conn: sqlite3.Connection,
                 destination_node=node_id, reason=ALREADY_AT_DESTINATION,
                 detail=plan.resolved_destination_path))
             continue
+        if plan.required_review_policy == REVIEW_REQUIRED:
+            # BEFORE `record_plan`, and the order is load-bearing. Writing the
+            # plan first and the approval second would leave a plan in the
+            # approved set with no approval the moment P13's writer refuses --
+            # a file every apply run must then decline, which is the state this
+            # whole change exists to end. The approval refuses loudly instead.
+            approve_reviewed(plan, frozen_at)
         record_plan(conn, plan, resolution, created_at=frozen_at,
                     component_version=component_version)
         plans.append(plan)

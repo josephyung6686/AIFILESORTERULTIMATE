@@ -27,7 +27,8 @@ from tree_design.records import Node
 
 from apply_run.branches import qualified_path
 from apply_run.freeze import (
-    ALREADY_AT_DESTINATION, AWAITING_APPROVAL, FrozenProposal, NO_SAFE_NAME,
+    ALREADY_AT_DESTINATION, AWAITING_APPROVAL, AWAITING_CLASSIFICATION,
+    FrozenProposal, NOT_SHOWN, NO_SAFE_NAME, PROTECTED_NEEDS_PERMISSION,
     REFUSED_AT_CONSTRUCTION,
 )
 from apply_run.run import ApplyOutcome, TakeBackOutcome
@@ -36,9 +37,24 @@ from apply_run.run import ApplyOutcome, TakeBackOutcome
 #: occurred, and say what is available. Held is not refused -- nothing was
 #: attempted -- so none of these tells the person to try again.
 _HOLD_SENTENCES: Mapping[str, str] = {
+    # The sentence this used to carry -- "the review screen is not built" -- was
+    # true until the owner ruled that freezing IS the review. What is left under
+    # this reason is a `review_policy` P11 adds after this was written, and the
+    # honest sentence for that is that nothing was assumed about it.
     AWAITING_APPROVAL:
-        "waiting for an approval this product cannot yet collect, because the "
-        "review screen is not built. It stays where it is.",
+        "waiting on a kind of review this build has no rule for, so nothing "
+        "was assumed on your behalf. It stays where it is.",
+    AWAITING_CLASSIFICATION:
+        "nothing has looked inside it yet, so there is nothing here for you to "
+        "approve. Freezing says where a file goes; it cannot say what a file "
+        "is. It stays where it is.",
+    NOT_SHOWN:
+        "not named on the screen you froze, so freezing did not approve it. "
+        "It stays where it is.",
+    PROTECTED_NEEDS_PERMISSION:
+        "protected, and freezing a proposal is not permission to move it. "
+        "Nothing has been opened, and it stays where it is: this build has no "
+        "gesture yet for granting one protected file a move.",
     ALREADY_AT_DESTINATION:
         "already in the folder the plan would put it in, so there is nothing "
         "to move.",

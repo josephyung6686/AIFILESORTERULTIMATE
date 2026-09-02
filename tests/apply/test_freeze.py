@@ -14,14 +14,27 @@ import json
 from mutation.plan import current_plan
 
 from apply_run.freeze import (
-    ALREADY_AT_DESTINATION, AWAITING_APPROVAL, REFUSED_AT_CONSTRUCTION,
+    ALREADY_AT_DESTINATION, NOT_SHOWN, REFUSED_AT_CONSTRUCTION,
     freeze, frozen_plans,
 )
 
 from .conftest import COLLISION_POLICY, CONSTRAINTS, LEGAL, NODES, PROTECTED_CLASSES
 
 
-def _freeze(world, decisions, *, ids, clock, volume=lambda path: "vol-main"):
+def _no_approval(plan, at):
+    """Every world below is auto-eligible, so nothing here needs an approval.
+
+    A stub that quietly returned would let a plan needing consent be frozen with
+    none, and the tests would still be green. This raises instead: the day a
+    fixture here grows a reviewable placement, the test says so.
+    """
+    raise AssertionError(
+        f"{plan.plan_id} asked for an approval, and no test in this file has a "
+        "person at the screen to give one")
+
+
+def _freeze(world, decisions, *, ids, clock, volume=lambda path: "vol-main",
+            shown=None, approve=_no_approval):
     return freeze(
         world.conn, decisions, nodes=NODES, legal_destination_ids=LEGAL,
         cross_folder_moves=True, constraints=CONSTRAINTS,
@@ -29,6 +42,12 @@ def _freeze(world, decisions, *, ids, clock, volume=lambda path: "vol-main"):
         volume_of=volume, protected_handling_classes=PROTECTED_CLASSES,
         collision_policy=COLLISION_POLICY,
         expiration_state="no expiry configured",
+        # The report named every file in these worlds, which is what the freeze
+        # run does. `tests/apply/test_freeze_approval.py` is where the set is
+        # narrowed and where the guard that reads it is proved.
+        shown_file_ids=frozenset(world.sources) if shown is None
+        else frozenset(shown),
+        approve_reviewed=approve,
         component_version="apply-test", now=clock, mint_id=ids)
 
 
@@ -77,14 +96,25 @@ def test_the_collision_behaviour_frozen_into_every_plan_is_stop_and_ask(
     assert {plan.collision_policy for plan in proposal.plans} == {"stop_and_ask"}
 
 
-def test_a_placement_awaiting_an_approval_is_held_and_named_not_dropped(
+def test_a_placement_the_person_never_saw_is_held_and_named_not_dropped(
         world, review_required, ids, clock):
-    proposal = _freeze(world, review_required, ids=ids, clock=clock)
+    """A reviewable placement the screen did not name is not the freeze's to approve.
+
+    This test used to say that NO reviewable placement could be frozen, because
+    P13 had no surface. The owner ruled on 2026-09-02 that `--freeze` is that
+    surface, so what is left of the rule is the half that still binds: an
+    approval covers what the person was shown and nothing else. The held file is
+    still named rather than dropped, which was always the point.
+    """
+    unseen = next(d.subject.file_id for d in review_required
+                  if d.review_policy == "review_required")
+    proposal = _freeze(world, review_required, ids=ids, clock=clock,
+                       shown=frozenset(world.sources) - {unseen})
 
     assert len(proposal.plans) == 3
     assert [(item.reason, item.detail) for item in proposal.held] == [
-        (AWAITING_APPROVAL, "review_required")]
-    assert proposal.held[0].file_id in world.sources
+        (NOT_SHOWN, "review_required")]
+    assert proposal.held[0].file_id == unseen
 
 
 def test_a_file_already_at_its_destination_is_held_rather_than_moved_onto_itself(
@@ -122,6 +152,7 @@ def test_a_decision_naming_a_node_outside_the_frozen_tree_is_held_with_its_class
         protected_handling_classes=PROTECTED_CLASSES,
         collision_policy=COLLISION_POLICY,
         expiration_state="no expiry configured",
+        shown_file_ids=frozenset(world.sources), approve_reviewed=_no_approval,
         component_version="apply-test", now=clock, mint_id=ids)
     assert proposal.plans == ()
     assert proposal.held[0].reason == REFUSED_AT_CONSTRUCTION
