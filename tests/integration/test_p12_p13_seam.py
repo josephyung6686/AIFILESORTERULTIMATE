@@ -570,10 +570,14 @@ def test_undo_availability_is_injected_and_absent_means_refuse(
         seam_conn, landscape, root, clock, ids):
     """A7 one part over: `66` §11's retention is the composition root's.
 
-    P12's undo retention is Wave F's and does not exist yet, so what the product
-    can honestly say today is "nothing here can tell you". Guessing `66` §11's
+    P13 has no answer of its own and will not invent one. Guessing `66` §11's
     90-day default inside P13 would put a number this package has no authority to
-    choose in front of a person as a promise.
+    choose in front of a person as a promise about their files.
+
+    This docstring used to add *"P12's undo retention is Wave F's and does not
+    exist yet"*. It did exist: F3 landed at `97c6f6c`, one commit before the wave
+    that wrote this line. The refusal below is right for the reason above and was
+    never right for that one -- and the test that closes the gap is the next one.
     """
     plan, _, _ = _applied(seam_conn, landscape, root, clock, ids)
     action = _completed(seam_conn, plan)
@@ -586,6 +590,73 @@ def test_undo_availability_is_injected_and_absent_means_refuse(
         [action], undo_availability_for=lambda entry: "undoable until 2026-11-27")
     assert answered[0].undo_availability == "undoable until 2026-11-27"
     assert answered[0].undo_availability_absence is None
+
+
+def test_undo_availability_is_answered_by_p12s_own_retention_module(
+        seam_conn, landscape, root, clock, ids):
+    """G3's second named absence, closed. `74` §6 G3 asks for §9 END TO END.
+
+    `84` §5.4: a decision whose stated reason has expired is not still a decision.
+    G3 shipped `undo_availability` permanently absent because *"P12's retention
+    module is a later wave"* -- and F3 had landed one commit earlier.
+    `mutation.retention.undo_offered` answers exactly `66` §9's availability
+    column, and this is the join, so the eighth attribute stops rendering as
+    *"the product cannot say yet"* on a product that can.
+
+    P13 still answers nothing of its own and imports no mutation surface. The
+    producer is built HERE, playing the composition root exactly as `_completed`
+    already does for the triple, and `66` §11's two periods are here rather than
+    in either part package -- which is the whole reason the setting is injected.
+
+    The twin is inside the test rather than beside it: the SAME producer is asked
+    at a moment past the period and the row carries that answer instead. A row
+    that said "undoable" both times would be reporting a constant, and every
+    assertion about the first half would still pass.
+    """
+    from datetime import timedelta
+
+    from mutation.retention import UndoRetention, undo_offered
+    from mutation.vocabulary import RETENTION_NINETY_DAYS
+
+    plan, _, _ = _applied(seam_conn, landscape, root, clock, ids)
+    action = _completed(seam_conn, plan)
+
+    # `66` §11's recommended choice and what it lasts. Both belong to whoever
+    # composes the product; P12 holds the four NAMES and no duration, and P13
+    # holds neither.
+    retention = UndoRetention(choice=RETENTION_NINETY_DAYS,
+                              period=timedelta(days=90))
+
+    def availability_at(moment):
+        def producer(completed):
+            offered = undo_offered(completed.journal_entry,
+                                   retention=retention, at=moment)
+            return ("You can still take this move back."
+                    if offered else
+                    "The period for taking this move back has passed.")
+        return producer
+
+    within = activity_list([action],
+                           undo_availability_for=availability_at(FIXED))[0]
+    assert within.undo_availability == "You can still take this move back."
+    assert within.undo_availability_absence is None
+    assert within.undo_availability != UNDO_AVAILABILITY_HAS_NO_PRODUCER
+
+    # The same move, the same retention, a moment past the ninety days.
+    expired = activity_list(
+        [action],
+        undo_availability_for=availability_at("2026-12-29T00:00:00Z"))[0]
+    assert expired.undo_availability == (
+        "The period for taking this move back has passed.")
+    assert expired.undo_availability_absence is None
+
+    # It is the ROW that changed and not the story about it: everything else
+    # §9 asks for is identical across the two, so the difference is P12's answer.
+    assert within.entry_id == expired.entry_id
+    assert within.move_time == expired.move_time
+    assert within.status == expired.status
+    # And the attribute that genuinely has no producer is still absent in both.
+    assert within.authorizing_policy is None and expired.authorizing_policy is None
 
 
 def test_an_action_stitched_from_three_different_plans_is_refused(

@@ -21,12 +21,20 @@ module and it is deliberate:
   not a filing authority. Rendering any of them here would answer the person's
   question *"what decided to move this?"* wrongly, which is worse than not
   answering it: a wrong answer ends the enquiry and a named absence continues it.
-* **`undo_availability` has no producer YET.** `66` §11's retention period and
-  its four choices are P12's, and P12's retention module is a later wave. So the
-  answer is injected with no default: what a producer says is shown, and when
-  there is none the row says so. Guessing `66` §11's ninety-day default here
-  would put a number this package has no authority to choose in front of a
-  person as a promise about their files.
+* **`undo_availability` HAS a producer, and it is still injected.** `66` §11's
+  retention period and its four choices are P12's, and `mutation.retention.undo_offered`
+  answers exactly this column. This module still holds no answer of its own:
+  what a producer says is shown, and when there is none the row says so.
+  Guessing `66` §11's ninety-day default here would put a number this package
+  has no authority to choose in front of a person as a promise about their
+  files, and the composition root joining the two is not the same thing as this
+  package knowing one.
+
+  *This paragraph used to read "has no producer YET ... P12's retention module
+  is a later wave". F3 landed one commit before the wave that wrote it, so the
+  reason was expired on arrival and the eighth attribute rendered as "the
+  product cannot say yet" on a product that could. `84` §5.4. The join is
+  exercised end to end by* `test_undo_availability_is_answered_by_p12s_own_retention_module`.
 
 **On the two paths.** `74` §4.3 says P13 renders no resolved filesystem path
 outside §8.3's own apply and undo-conflict fields. `66` §9 requires the source
