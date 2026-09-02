@@ -482,3 +482,35 @@ def test_the_flag_is_named_only_on_the_line_that_is_the_command():
         assert line.strip() == "--show-protected", (
             f"{line.strip()!r} names the flag but is not the command; a person "
             "searching the report for what to type can land on it")
+
+
+@pytest.mark.xfail(strict=True, reason=PENDING_SHOW_PROTECTED)
+def test_showing_a_protected_name_does_not_let_a_freeze_approve_it():
+    """A flag about what is on the SCREEN may not widen what a gesture may MOVE.
+
+    `report` returns the file ids it printed by name, and that set is what a
+    `--freeze` is allowed to approve -- the owner's rule that an approval covers
+    what the person was shown. `--show-protected` prints protected filenames, so
+    the naive merge of the two rulings hands a freeze permission over a passport
+    by way of a display flag. That is the "acts on something other than what the
+    person named" failure in its worst form: the person asked to SEE something
+    and would have granted permission to MOVE it.
+
+    A freeze already refuses protected placements downstream, so this is the
+    second of two independent refusals, which is what "never" means.
+    """
+    run, names = _at_scale()
+    protected = {f"id-{n}" for n in range(100000, 100096)}
+
+    hidden = cli.report(run, names, out=io.StringIO())
+    shown = cli.report(run, names, out=io.StringIO(), show_protected=True)
+
+    assert not protected & set(hidden), "a protected id was approvable by default"
+    assert not protected & set(shown), (
+        "--show-protected put protected files into the set a freeze may "
+        "approve; a flag about the screen has become a permission to move")
+    # The twin: it IS returning the ordinary names, so the assertion above is
+    # not passing because the function returns nothing.
+    assert set(hidden) == set(shown), (
+        "--show-protected changed which ORDINARY files a freeze may approve")
+    assert len(hidden) >= cli.NAMES_LISTED_PER_GROUP, hidden
