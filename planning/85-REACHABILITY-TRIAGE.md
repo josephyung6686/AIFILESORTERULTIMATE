@@ -542,6 +542,21 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
    a second reader could see. That is the general point: the author of a format
    is the last person able to notice that it needs a rule stated.
 
+   **And one step further down, from the role-matcher agent's own instance of
+   this: a GENERATED artifact has two places to fix and only one of them is the
+   right one, so a disambiguation applied to the output is a desync waiting to be
+   applied.** Their `CLI-PATCH.txt` is generated from a script; they fixed the
+   generated file by hand first, which would have handed the lead text nobody had
+   validated. Same shape as `84` §5.5 — the fix looked complete because the
+   visible thing was correct, and the seam was where it wasn't. The cheap
+   defence is to state a fact once and point at it: this file's own hunk count
+   now lives only in `CLI-PATCH.txt`'s header, and the agent handoff that used to
+   repeat it now refers to it instead.
+
+   **This trap has now caught three people in a row**: the author who wrote it,
+   the reader who reported it to the author, and — under that — a layer neither
+   had looked at. Which is the argument for the whole section.
+
 11. **The three verdicts do not cover "the owner has not chosen a number yet."**
    `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
    producers exist, the tests pass, and the only thing missing is three numbers a
