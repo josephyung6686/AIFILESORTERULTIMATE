@@ -113,8 +113,14 @@ def test_a_person_with_three_lives_gets_a_plan_and_not_a_traceback(tmp_path):
     assert "Files: 13 decided" not in printed          # ten files, not thirteen
     assert "Files: 10 decided" in printed, printed
     assert "PHYS1401" in printed and "PHYS2801" in printed, printed
-    # The passport is `68` F4's file. It is named and counted, never opened.
-    assert "Client Passport.txt" in printed, printed
+    # The passport is `68` F4's file. It is counted and reachable, never opened:
+    # the owner ruled on 2026-09-02 that protected FILENAMES are summarised unless
+    # asked for, so "present, not omitted" is now the count plus the command that
+    # prints them, and this asserts both rather than the name.
+    # `planning/93-PROTECTED-DISCLOSURE-RULING.md`.
+    assert "3 protected files, marked and counted" in " ".join(printed.split()), (
+        printed)
+    assert "--show-protected" in printed, printed
     assert "Nothing was moved." in printed, printed
 
 

@@ -130,9 +130,9 @@ def _at_scale(*, sets_count=420, per_set=8, areas=("Review Later",)):
             {**names, **protected_names})
 
 
-def _printed(run, names):
+def _printed(run, names, *, show_protected=False):
     out = io.StringIO()
-    cli.report(run, names, out=out)
+    cli.report(run, names, out=out, show_protected=show_protected)
     return out.getvalue()
 
 
@@ -192,11 +192,11 @@ def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
     printed = _printed(run, names)
     lines = printed.splitlines()
 
-    # 220 and not 60, because about 110 of those lines are the ninety-six
-    # protected filenames and the twelve protected sets, listed in full because
-    # the standing rule says a protected thing is never summarised away. What
-    # the budget bounds is everything the report is free to shorten.
-    assert len(lines) <= 220, (
+    # The budget was 220 while a protected group was listed in full: 96
+    # filenames of the 203 lines. The owner's 2026-09-02 ruling summarises those
+    # by default, so the whole report is now the part that was always free to
+    # shorten, plus a count and a command.
+    assert len(lines) <= 120, (
         f"{len(lines)} lines ({len(lines) / 40:.0f} screens) for 3,456 files:\n"
         + printed[:4000])
     # And the part that IS free to shorten: the ordinary hold, 420 batches and
@@ -376,3 +376,80 @@ def test_a_batch_whose_files_straddle_two_headings_claims_no_total_it_cannot_see
                                   sets=one_sets), one_names).split())
     assert "review sets of it" not in solo, solo
     assert 'Held for review as "Not yet placed (1 of 1)"' in solo, solo
+
+
+def test_the_protected_list_no_longer_decides_how_long_the_report_is():
+    """What the owner's ruling was measured against.
+
+    The collapse fixed the repetition and left one thing growing linearly with
+    the person's disk: the protected group, listed in full. At 5,000 files it was
+    810 lines of 1,113 -- 73 % of the report -- and 710 of them were filenames.
+
+    Summarised, the report no longer has a part that grows with how much
+    protected material a person owns. That is the property, so it is asserted as
+    a property: ninety-six protected files and nine hundred and sixty produce a
+    report of the same length.
+    """
+    small = _printed(*_at_scale())
+    nodes = [_node("node_0", "Coursework"),
+             _node("res_0", "Review Later", role="residual")]
+    sets, decisions, names = _shards(420, 8)
+    # Ten times the protected material, same everything else.
+    big_sets, big_decisions, big_names = _shards(
+        120, 8, base="Protected, and not filed in bulk",
+        reason=PROTECTED_REASON, protected=True, first=100000)
+    large = _printed(_run(nodes=nodes, decisions=decisions + big_decisions,
+                          sets=sets + big_sets), {**names, **big_names})
+
+    protected_lines = len(large.splitlines()) - len(small.splitlines())
+    assert protected_lines <= 110, (
+        f"ten times the protected material added {protected_lines} lines; the "
+        "report is still mostly a list of the person's private filenames")
+    # The twin: the count itself must still grow, or the summary is not counting.
+    assert "960 protected files" in large, large
+    assert "96 protected files" in small, small
+
+
+def test_show_protected_is_the_only_thing_that_expands_the_names():
+    """The negative twin of the summary: asking for it works, and nothing else
+    turns it on by accident. An ordinary group stays shortened either way --
+    `--show-protected` is about protected material, not a verbosity switch."""
+    run, names = _at_scale()
+    shown = _printed(run, names, show_protected=True)
+
+    for index in range(100000, 100096):
+        assert f"note-{index:05d}.txt" in shown, (
+            f"note-{index:05d}.txt is missing from --show-protected; the "
+            "expansion is every one of them")
+    ordinary = [line for line in shown.splitlines()
+                if line.strip().startswith("folder-0/note-")]
+    assert len(ordinary) == NAMES_LISTED, (
+        f"--show-protected also lengthened the ordinary list to {len(ordinary)}; "
+        "it is not a verbosity flag")
+
+
+NAMES_LISTED = 10
+
+
+def test_the_flag_is_named_only_on_the_line_that_is_the_command():
+    """What the screen tells a person to type has to be true, and FINDABLE.
+
+    Caught by running it: the first line of the report containing
+    `--show-protected` was the ordinary group's shortening sentence, which
+    mentioned the flag in prose inside backticks. A person -- or a script --
+    looking for the thing to type found the backticked one first,
+    which a shell reads as three stray words. The command was correct and four
+    lines further down, which is no help to anyone who took the first one.
+
+    So the flag appears on exactly one kind of line: the one that is nothing but
+    the command.
+    """
+    run, names = _at_scale()
+    mentions = [line for line in _printed(run, names).splitlines()
+                if "--show-protected" in line]
+
+    assert mentions, "the way to see protected filenames was not offered at all"
+    for line in mentions:
+        assert line.strip() == "--show-protected", (
+            f"{line.strip()!r} names the flag but is not the command; a person "
+            "searching the report for what to type can land on it")

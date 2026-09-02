@@ -260,22 +260,37 @@ def test_every_decided_file_is_accounted_for_when_the_list_is_shortened():
     listed = [name for name in names.values() if name in printed]
     assert len(listed) < 40, "forty names is the list this shortening exists for"
     assert f"and {40 - len(listed)} more" in printed, printed
-    assert "never summarised away" in printed, printed
+    # The sentence used to promise "none of them is a protected area, which is
+    # never summarised away". Under the owner's 2026-09-02 ruling protected
+    # material IS summarised -- behind `--show-protected`, and never silently --
+    # so the promise it makes about this list is the one that is still true.
+    # Flattened: the report wraps to a terminal's width, and the sentence is the
+    # fact rather than the line it happens to land on.
+    assert "never silently" in " ".join(printed.split()), printed
 
 
-def test_a_protected_group_is_never_the_one_summarised_away():
-    """The negative twin, and the standing rule arriving as a usability change.
+def test_a_protected_group_is_counted_and_reachable_rather_than_listed():
+    """The standing rule, as the owner re-decided it on 2026-09-02.
 
-    Shortening the list is fine. Shortening the part that says what was marked
-    protected and left alone is the exact harm the rule forbids -- so a protected
-    group is listed in full however long it is.
+    THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is his, recorded in
+    `planning/93-PROTECTED-DISCLOSURE-RULING.md`. It read: "a protected group is
+    listed in full however long it is". That was decided when the longest such
+    list anyone had seen was four names in a demo folder. Measured on a corpus
+    the size of a real disk, the full list was 710 filenames -- 73 % of the whole
+    report -- and what a person's screen mostly showed was their own payslips,
+    bank statements, medical notes and passport scans, by name.
 
-    It sorts LAST, and that is a different rule from this one. `00`:201 warns that
-    "a visible list of passport filenames on a shared screen may not be" safe to
-    show, and ranking protected groups first opened every report over a real disk
-    with the person's passport above their homework. Completeness and position are
-    independent: nothing here is elided, and the assertion below now guards the
-    order the owner chose rather than the one this test was first written against.
+    Shown that number, he chose `00`:201's other half: "a summary such as '11
+    protected identity records' may be safe to show, while a visible list of
+    passport filenames on a shared screen may not be."
+
+    "Never silently omitted" is unchanged and is what the three assertions below
+    hold. The word that carries the whole weight is SILENTLY: the count is always
+    on the screen, and the command that prints every name is always printed
+    beside it. A summary with no way out of it would be the concealment the rule
+    forbids; a summary with the command next to it is the person choosing when
+    the names are safe to show. `test_show_protected_lists_every_one` is the
+    other half and asserts the expansion is complete rather than the first N.
     """
     names = {f"ord-{n}": f"note-{n:02d}.txt" for n in range(40)}
     names.update({f"prot-{n}": f"secret-{n:02d}.key" for n in range(40)})
@@ -290,16 +305,92 @@ def test_a_protected_group_is_never_the_one_summarised_away():
                     destinations=["node_0"], decisions=decisions)
     printed = _printed(run, names)
 
+    # Not named -- that is the change.
     for n in range(40):
-        assert f"secret-{n:02d}.key" in printed, (
-            f"secret-{n:02d}.key was summarised away; a protected file is "
-            "marked and counted and never silently omitted")
+        assert f"secret-{n:02d}.key" not in printed, (
+            f"secret-{n:02d}.key is printed by default; the owner ruled on "
+            "2026-09-02 that a list of protected filenames is summarised unless "
+            "it is asked for")
+    # COUNTED, always. A person may never have to ask whether something was set
+    # aside, and this is the half of the rule that did not change.
+    assert "40 protected files" in printed, printed
+    assert "none of them opened" in printed, printed
+    # And REACHABLE, always. Omitting the command is what would turn a summary
+    # into a concealment, so it is printed every time and not only when asked.
+    assert "--show-protected" in printed, printed
     ordinary = [name for name in names.values()
                 if name.startswith("note-") and name in printed]
     assert len(ordinary) < 40, "the ordinary list should still be shortened"
-    assert printed.index("note-00.txt") < printed.index("secret-00.key"), (
+    assert printed.index("note-00.txt") < printed.index("40 protected files"), (
         "the report leads with protected material; ordinary work comes first so a "
         "shared screen does not open with a passport (`00`:201)")
+
+
+def test_show_protected_lists_every_one():
+    """The other half, and the one that keeps the summary honest.
+
+    The expansion is COMPLETE. A `--show-protected` that listed the first ten and
+    counted the rest would be the omission the standing rule forbids, wearing the
+    fix's clothes -- so this asserts all forty and not "more than ten".
+    """
+    names = {f"prot-{n}": f"secret-{n:02d}.key" for n in range(40)}
+    decisions = [_decision(outcome="mark_state", file_id=f"prot-{n}",
+                           marked_state="protected", protected=True,
+                           explanation="this is protected material and was "
+                                       "marked rather than opened")
+                 for n in range(40)]
+    run = _fake_run(nodes=[_node("node_0", "Coursework")],
+                    destinations=["node_0"], decisions=decisions)
+    out = io.StringIO()
+    cli.report(run, names, out=out, show_protected=True)
+    printed = out.getvalue()
+
+    for n in range(40):
+        assert f"secret-{n:02d}.key" in printed, (
+            f"--show-protected did not list secret-{n:02d}.key; the expansion "
+            "is every one of them, not the first few")
+    # And it does not then ALSO tell them to run the command they just ran.
+    assert "--show-protected" not in printed, printed
+
+
+def test_the_show_protected_command_the_report_prints_actually_shows_them(tmp_path):
+    """`84` §6: what the screen tells a person to type has to be true.
+
+    Four defects in this file were all a screen offering a command that did not
+    work -- an unpasteable `--answer`, a `revoke` that needed an invisible id, a
+    `--send-set` on a set that would always refuse it, and a `--send-set` broken
+    across a line by the text wrapper. This is the gesture that decides whether a
+    person can see their own protected files, so a fifth one here does not
+    inconvenience them: it hides their passport behind a command that lies.
+
+    The command is taken from the report VERBATIM, tokenised the way a shell
+    would, and passed straight back in as arguments.
+    """
+    corpus = _mixed_sensitivity_corpus(tmp_path)
+    argv = [str(corpus), "--situation", "academic.coursework", "--label",
+            "Papers", "--user", "jy", "--database", str(tmp_path / "plan.sqlite")]
+
+    first = io.StringIO()
+    assert cli.main(argv, out=first) == 0
+    summarised = first.getvalue()
+    assert "Passport scan.txt" not in summarised, summarised
+    assert "--show-protected" in summarised, summarised
+
+    offered = next(line for line in summarised.splitlines()
+                   if "--show-protected" in line)
+    typed = shell_tokens(offered[offered.index("--show-protected"):])
+    assert typed == ["--show-protected"], (
+        f"the report offers {offered.strip()!r}, which a shell splits into "
+        f"{typed!r}; pasting it would pass stray arguments")
+
+    second = io.StringIO()
+    assert cli.main(argv + typed, out=second) == 0
+    shown = second.getvalue()
+    assert "Passport scan.txt" in shown, (
+        "the report told the person to type --show-protected and typing it did "
+        f"not show them their own protected file:\n{shown}")
+    # The count does not change when the names appear -- one fact, two views.
+    assert "protected material" in shown, shown
 
 
 def test_the_protected_containers_block_survives_the_regrouping():
@@ -1409,21 +1500,33 @@ def test_a_protected_files_own_words_are_never_printed_back_to_the_person(tmp_pa
     (corpus / "Syllabus.txt").write_text(
         "PHYS1401 syllabus. Lecture notes for the semester.\n", encoding="utf-8")
 
+    argv = [str(corpus), "--situation", "academic.coursework", "--label",
+            "Coursework", "--user", "jy",
+            "--database", str(tmp_path / "plan.sqlite")]
     out = io.StringIO()
-    cli.main([str(corpus), "--situation", "academic.coursework", "--label",
-              "Coursework", "--user", "jy",
-              "--database", str(tmp_path / "plan.sqlite")], out=out)
+    cli.main(argv, out=out)
     report = out.getvalue()
+    # BOTH VIEWS, because a passport's own words must not appear in either. The
+    # owner's 2026-09-02 ruling summarises protected FILENAMES by default, and
+    # `--show-protected` prints them -- what it may never do is start printing
+    # what is INSIDE one, which is a different thing and is what this guards.
+    shown = io.StringIO()
+    cli.main(argv + ["--show-protected"], out=shown)
+    expanded = shown.getvalue()
 
-    assert "X12345678" not in report, (
-        "a passport number was printed to the screen; it is protected material")
-    assert "JUN1998" not in report, (
-        "a date of birth read out of a protected file was printed to the screen "
-        "and offered as a folder dimension")
+    for view, text in (("default", report), ("--show-protected", expanded)):
+        assert "X12345678" not in text, (
+            f"a passport number was printed to the screen in the {view} view; "
+            "it is protected material")
+        assert "JUN1998" not in text, (
+            "a date of birth read out of a protected file was printed to the "
+            f"screen in the {view} view and offered as a folder dimension")
     # MARKED AND COUNTED, NEVER SILENTLY OMITTED -- the other half of the rule, and
-    # the one a careless version of this guard would break. The file is still named,
-    # still decided, and still carries its own reason; only its CONTENTS are absent.
-    assert "Passport.txt" in report, (
+    # the one a careless version of this guard would break. The file is still
+    # decided and still carries its own reason; its NAME is behind the command the
+    # default view prints, and only its CONTENTS are absent from both.
+    assert "--show-protected" in report, report
+    assert "Passport.txt" in expanded, (
         "the protected file vanished from the report; it must be marked and "
         "counted, not hidden")
     assert "protected material" in report, report
@@ -2430,10 +2533,15 @@ def test_the_passport_in_the_same_corpus_is_still_marked_and_still_refused(tmp_p
     """
     corpus = _encrypted_container_corpus(tmp_path)
     out = io.StringIO()
+    # `--show-protected`, because this test is addressed to a BLOCK BY FILENAME
+    # and the owner's 2026-09-02 ruling summarises those by default. What is
+    # under test is the mark and the refusal, neither of which the ruling
+    # touched, so the flag restores exactly the view this was written against.
     assert cli.main([str(corpus), "--situation", "academic.coursework",
                      "--label", "Papers", "--user", "jy",
                      "--database", str(tmp_path / "plan.sqlite"),
-                     "--residual", "Review Later"], out=out) == 0
+                     "--residual", "Review Later",
+                     "--show-protected"], out=out) == 0
     printed = out.getvalue()
 
     passport = _block_naming(printed, "passport bio page.txt")
@@ -2478,8 +2586,12 @@ def test_a_review_set_says_truthfully_whether_it_holds_protected_material(tmp_pa
               "--database", str(tmp_path / "plan.sqlite")], out=out)
     printed = out.getvalue()
 
-    # The protected file is still named -- present, not omitted.
-    assert "Passport scan.txt" in printed, printed
+    # Present, not omitted -- which under the owner's 2026-09-02 ruling is the
+    # count and the way to the name, rather than the name. The SET is what this
+    # test is about and it is named either way.
+    flat = " ".join(printed.split())
+    assert "2 protected files, marked and counted" in flat, printed
+    assert "--show-protected" in printed, printed
     # Asserted on the SET NAME and not on how many "Held for review" lines the
     # report prints. Counting lines passes against the defect: the report groups
     # DECISIONS by their reason, so a protected file and an unclassified one
