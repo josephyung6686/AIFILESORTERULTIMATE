@@ -154,6 +154,57 @@ test_the_renaming_overlay_has_a_writer_somewhere_in_the_product = pytest.mark.xf
 )(test_the_renaming_overlay_has_a_writer_somewhere_in_the_product)
 
 
+def test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person():
+    """§13's third consequence -- "resolve role ambiguity" -- is built at both ends
+    and joined at neither.
+
+    Found by walking the journey. `68` F6 is the case: a graduate student who also
+    teaches has her whole disk filed as coursework, "including the material that is
+    `academic.teaching`, a situation the shipped library now carries", because
+    `--situation` takes ONE string for a whole corpus. `75` §2 names the fix and
+    calls it consequence 3; `80` §1.4 (Option 5) says it is the mechanism that
+    catches what a declared role structurally cannot -- "knowing both roles doesn't
+    tell the system which one a specific ambiguous PDF belongs to; the in-context
+    question does."
+
+    Both halves exist. `triggers.question_for_situation` is a finished question --
+    prompt, evidence context, the library's own situation names as options, each
+    carrying `selects_situation`. `store.selected_situation` is its reader, scoped
+    with no default for the reason the docstring gives. `registry.SITUATION_KIND`
+    binds the two, so A1's guard -- every kind names the consequence that reads it
+    -- passes while the whole kind is dark. **A registry entry is not a call site.**
+
+    Compare the two kinds that DO reach a person: `question_for_nesting` and
+    `tied_readings` are both called from `cli.py`, and `activated_schemas` and
+    `gated_template` -- §13's other two live consequences -- are read there. This
+    one is called by nothing and read by nothing, so a person is never asked which
+    of their lives a branch belongs to, and could not be heard if they said.
+
+    BOTH halves in one assertion on purpose. `questions/records.py:46` forbids
+    shipping a consequence with no reader, so the ask and the reader land together
+    or neither does; a marker that came off when half arrived would license exactly
+    the split that rule exists to prevent.
+
+    `xfail(strict=True)`: it turns the suite RED the day either half is wired,
+    which forces this marker off and this comment with it.
+    """
+    assert _sources_calling("question_for_situation"), (
+        "nothing asks which situation a branch is")
+    assert _sources_calling("selected_situation"), (
+        "nothing reads the answer if it were asked")
+
+
+test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person = (
+    pytest.mark.xfail(
+        strict=True,
+        reason="`75` B1/B2: §13's third consequence is built at both ends and "
+               "called at neither. `question_for_situation` is asked by nothing "
+               "and `selected_situation` is read by nothing, so `--situation` "
+               "stays one string for a whole corpus -- `68` F6's defect. XPASSes "
+               "and fails the suite the moment either half is wired.",
+    )(test_the_question_that_asks_which_situation_a_branch_is_reaches_a_person))
+
+
 def test_every_lazily_created_table_is_created_by_the_writer_that_claims_it(tmp_path):
     """The exemption above is proven, not asserted.
 
