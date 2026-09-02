@@ -94,9 +94,61 @@ an earlier ruling of his own without that being pointed out at the moment of cho
 a local model would have to be for the narrowing step to be legal without touching P7
 at all.
 
-**This ruling stands and work proceeds under it.** But if §1 does specify a local model,
-that goes in front of the owner, and §5 is where the next session looks to see whether
-it did.
+### §5 RESOLVED, 2026-09-02, later the same day
+
+It did specify a local model, twice. The role matcher's author produced the citations:
+
+- **`80` §1** rules for Option 2 with **"a LOCAL model proposes a shortlist"** — the
+  mechanism.
+- **`80` §1.1** closes the cloud option **because "revocation cannot retract what has
+  already left the device"** — the reason.
+- **`80` §2** rules the self-description always-local and says **"consent does not
+  unlock it"**.
+- **`80` §8** suspends §2's ENFORCEMENT. It never replaced §1's MECHANISM, and `80` §6
+  leaves *"which local model, and how it is obtained"* open rather than substituting a
+  cloud one.
+
+And the alternative was on the shelf: `src/readers/model_ollama.py` exists, claims
+`locality="local"`, and hardcodes `127.0.0.1:11434` with no host parameter precisely so
+the claim is checkable. It needed **no change to P7's policy at all** — only a ruling on
+whether `privacy/items.py::_refuse_always_local_name` refuses an always-local item
+because of the ITEM or because of the DESTINATION, since a local target keeps it local.
+
+**All of that was put in front of the owner unsoftened, including that choosing cloud
+overturns two of his own rulings and that `80` §8.2 already records the cost as
+unrecoverable. He reaffirmed the cloud path.**
+
+So this is a decision taken TWICE, the second time knowing exactly what it reverses. It
+is not an oversight and it is not to be re-litigated. **`80` §1 and §1.1 are overturned
+deliberately**, and that sentence exists here because without it the next person finds
+§1, sees the cloud path, and assumes a mistake.
+
+## 7. What §2's seal turned out to require: nothing
+
+Recorded because it inverts §2's expectation. `privacy/items.py` has **one frozen
+dataclass per releasable kind** — `Excerpt`, `RedactedIdentifier`, `CandidateLabel`,
+`MetadataField`, `EvidenceReference`, `Filename` — and `kind_of()` maps type to name,
+raising on a foreign type. **It takes no kind parameter.** The eight remaining
+always-local kinds have no type at all, so §2's feared shape — *"a path that takes an
+item kind as a parameter and happens to be called with `user_edits` today"* — was
+already impossible. There is nothing to pass. The narrow door is a seventh dataclass and
+nothing else moves.
+
+Two seals were added on top, and one honest gap named rather than papered over:
+
+- `SelfDescription` carries a **reference, never the sentence** (§6's "references only"),
+  and its `__post_init__` refuses an id that is not `role:<name>`, so the type cannot
+  address any other row in the questions store.
+- `allow_self_description` is its own tier with **no default**, rather than reusing
+  `gate.py`'s hardcoded `allow_unratified`, which would have admitted a self-description
+  everywhere a filename is admitted — the "happens to be called with" failure, avoided.
+- **A type can seal WHICH KIND and WHICH ROW. It cannot seal WHO CONSTRUCTS.** That one
+  is an AST scan pinning a single construction site, and the module says so plainly
+  instead of pretending it is a type.
+
+**Owner approval, 2026-09-02: a seventh `ITEM_KINDS` member**, for the self-description
+REFERENCE and nothing else. `ALWAYS_LOCAL` stays at NINE and is untouched; `80` §2's "no
+tenth member is added" is unaffected and remains true.
 
 ## 6. Order of work
 
