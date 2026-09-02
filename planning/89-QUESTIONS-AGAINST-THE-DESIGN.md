@@ -25,7 +25,7 @@ questions phase. So the sources, in order of authority, are:
 |---|---|---|
 | **Q1** | the sizing question | **DECIDED IN SUBSTANCE.** Ask. Do not widen the pattern the way it was prototyped. Cap the asking and leave a tail unresolved. One piece genuinely open: the SCOPE of an answer. |
 | **Q3** | collision suffix format | **SHAPE DECIDED, STRING OPEN — and not blocking.** The design's own fourth branch is *stop and ask*, which is what an unbound suffix already produces. |
-| **Q5** | locked and open files | **DECIDED.** Excluded by default, with a distinct refusal message. Only the detection mechanism is open, and it is an engineering question, not the owner's. |
+| **Q5** | locked and open files | **DECIDED.** Excluded by default, with a distinct refusal message. Manual apply already detects it through the staleness recheck; a pre-check for automatic filing is a new mechanism, and that is the owner's — but not until automatic filing is built. |
 | **Q6** | the batch bound and halt rule | **DECIDED, AND NOT BLOCKING.** Absent a bound the design says *one action at a time*. The halt rule is stated and is not the engineering default. The number is `cli.py`'s. |
 | **Q7** | the unverified cross-volume copy | **HALF DECIDED.** The source stays, the failure is a logged event, the paths and hashes are shown. Where the copy lives and what it is called is genuinely not decided. |
 | **Q8** | journal lifetime | **DECIDED.** The journal is append-only and does not expire. Undo has a period — 90 days by default. Adopting a new plan version does not end undo. |
@@ -92,34 +92,51 @@ The folder is also, independently, the design's strongest non-file signal:
 
 **But the design does not say the key must be a folder.** §14's own worked example is
 keyed on an entity lifted out of documents — *"We found files connected to Columbia. Which
-describes your relationship to Columbia?"* — which is exactly the shape `87` recommended
-moving away from. Both keys are permitted. The design's only stated constraint on the key
-is that the question be evidence-linked and name the visible context. So: **87's re-key is
-compatible with the design and supported by the folder-as-intent paragraphs; it is not
-required by the design, and the design's one example does the opposite.**
+describes your relationship to Columbia?"* — and it is a good question, because Columbia is
+also a thing the person recognises. `87`'s own phrase is *"a folder (**or another thing the
+person recognises**)"*, so the example is not a counter-case; it is the same test met by a
+different key. What the design settles is the test, not the key: the question must be
+evidence-linked and must name the visible context and the precise consequence. **87's re-key
+is compatible with the design and supported by the folder-as-intent paragraphs; it is not
+required by it, and an entity key that a person recognises is equally permitted.**
 
 ### 1.3 One constraint `87` does not carry, and it bites the hardest corpus
 
-A folder-keyed question is permitted **except where the folder is person-shaped.**
-`66` §15:
+A folder-keyed question is **permitted** about a person-shaped folder. What §15 constrains
+is what may be offered in it and what may be built from it. `66` §15:
 
 > *"The question 'Does anyone else appear in your files?' should not be a general
 > onboarding question. … It must appear only within a deliberate protected-family,
 > household, or similar user-created workflow, **after the user has chosen to design that
 > kind of branch**."*
 
-> *"The user must explicitly identify the relationship category; the system must not infer
-> dependent status from a name or from documents."*
+> *"The user must explicitly identify the relationship category; **the system must not infer
+> dependent status from a name or from documents**."*
 
 `75` C2 states the same rule as an implementation obligation: *"The household question is
 raised by the person, never by the files."*
 
-`87`'s corpus A is Dana — a paralegal, a part-time law student, a single parent with her
-own custody matter and her kid's school. A folder-keyed question asked about a folder named
-for her child, or about `custody/`, is the files raising a household question. **The
-product may not ask it.** Those files stay unclassified until Dana herself opens a family
-or household workflow. This is a real limit on how far option 3 reaches, and it applies to
-precisely the corpus that motivated the recommendation.
+Three separate prohibitions, and it is worth keeping them apart:
+
+| what §15 forbids | what it does not forbid |
+|---|---|
+| the general onboarding question *"does anyone else appear in your files?"* | a narrow, evidence-linked question about one folder |
+| **inferring** a relationship from a name or a document | asking what kind of material is in a folder |
+| a person-named folder **label** outside a protected family or household area (§15's table) | recording the answer as a fact |
+
+So *"What kind of material is in `Emma/`? [coursework · legal · household · skip]"* is
+allowed: it asks for no name, offers no relationship category, and infers nothing. What is
+**not** allowed is offering the relationship categories in the option list — those come only
+from a workflow the person opened — or letting the answer produce `Academics/Emma/…` as a
+proposed label.
+
+There is also a practical tell that the stronger reading is wrong. To decline to ask about
+person-shaped folders, the product would first have to work out that `Emma` is a person's
+name, which is precisely the inference §15 forbids.
+
+`87`'s corpus A is Dana — a paralegal, a part-time law student, a single parent with her own
+custody matter and her kid's school. The folder-keyed question reaches her folders. What it
+may not do is turn her child's name into a branch, or ask her who the child is.
 
 ### 1.4 Widening the pattern: the design constrains how, and 87's prototype broke it
 
@@ -242,10 +259,15 @@ explainable.
 
 ### 2.2 Why this is not blocking
 
-**The suffix string is needed only under the first of the four behaviours.** With no format
-bound, the product takes the fourth — *stop and ask the user* — which is exactly what
-`74`'s "injected, no default, until answered" already produces. Wave D3 refusing is not a
-gap in the product; it is the design's own fourth branch executing. The standing rule
+**The suffix string is needed only under the first of the four behaviours**, and all four
+are built: `src/mutation/vocabulary.py` names `PRESERVE_BOTH_DETERMINISTIC_SUFFIX`,
+`MERGE_ONLY_IF_HASHES_IDENTICAL`, `RETAIN_NEWER_OLDER_TO_VERSION_FAMILY_REVIEW` and
+`STOP_AND_ASK`, and `collision.py` implements each. `suffix_for` and `max_suffix_attempts`
+are injected with no default *only on the first path* (`collision.py:20-23`).
+
+So an unbound suffix does not stall the product; it removes one of four behaviours. The
+design's fourth is the one to select in the meantime, and selecting it is `cli.py`'s —
+which is a wiring check for the lead, not a decision for the owner. The standing rule
 "absent means refuse, never guess" and the design agree here rather than collide.
 
 ### 2.3 Verdict
@@ -305,12 +327,18 @@ order.
 
 ### 3.3 Verdict
 
-**DECIDED.** Nothing here is owed by the owner for P12. If a question is asked at all it is
-narrow and technical:
+**DECIDED for the behaviour. The split on detection is by path, not by seniority.**
 
-> **Owner question Q5 (optional, and probably the lead's rather than the owner's).** *For
-> automatic filing, is the operating system refusing the move sufficient, or must the
-> product detect that a file is open before it tries?*
+- **Manual apply: nothing is owed.** Staleness trigger five — *"if permission is no longer
+  available"* — already is the detection, and it is already built.
+- **Automatic filing: a pre-check is a new MECHANISM**, because `66` §8 requires the
+  exclusion to be stated to the person before the run rather than discovered during it. `84`
+  §1 puts mechanisms with the owner, so this is his after all — just not yet. Automatic
+  filing is last in `66` §22's release order.
+
+> **Owner question Q5, when automatic filing is built and not before.** *Before it files
+> anything automatically, should it check whether a file is open, or is it enough that the
+> move fails when it is?*
 
 ---
 
@@ -326,11 +354,20 @@ narrow and technical:
 > action later."*
 
 The disjunction is the answer to the blocking half. **With no bound supplied, the design's
-own first alternative applies: one action at a time.** A part package that refuses to batch
-is not stalled — it is doing the design's other branch. §8.6 then lists *"Maximum residual
-files in one review batch"* among the configurable ceilings, which is where a number lives
-when there is one; and `66` §8 makes *"approval per batch"* a review-cadence a person picks.
-So the number is user-visible and `cli.py`'s to supply, exactly as `84` §1 requires.
+own first alternative applies: one action at a time.**
+
+Precisely, in the code: `mutation.execute.apply_batch` raises `BatchPolicyRequired` when
+`batch_bound` is `None` (`execute.py:565`), which is right — it refuses rather than guessing.
+But `apply_plan` beside it is the one-at-a-time path and needs no bound at all. So the
+product is not stalled on Q6; it is running the design's first alternative and cannot run
+the second. And `cli.py` may pass `batch_bound=1` today without waiting for anything,
+because **1 is one of the two literals `84` §1 permits**, and 1 is exactly what the design's
+first alternative means.
+
+§8.6 then lists *"Maximum residual files in one review batch"* among the configurable
+ceilings, which is where a number lives when there is one; and `66` §8 makes *"approval per
+batch"* a review cadence a person picks. So a bound above 1 is user-visible and `cli.py`'s
+to supply, exactly as `84` §1 requires.
 
 ### 4.2 The halt rule is stated, and it is not the engineering default
 
@@ -464,9 +501,13 @@ ability to reverse last week's move would be that.
 ### 6.3 The corpus-wide versus per-policy tension `74` raises
 
 `74` Q8 worries that P12 owns a corpus-wide setting a later per-policy setting must reconcile
-with. The plain reading resolves it: `66` §11 calls 90 days *"the recommended **default**"*
-and `66` §8 lists *"Undo period"* as a dimension a named policy binds. A default a policy may
-narrow. Nothing needs adjudicating.
+with. The plain reading resolves it. `66` §11 calls 90 days *"the recommended **default**"*
+and offers a menu of four — 30 days, 90 days, one year, until manually cleared — and `66` §8
+lists *"Undo period"* as a dimension a named policy binds. **A policy chooses from the same
+four**, not necessarily a shorter one: *one year* is on the menu and is longer than the
+default. And because §11 states the menu inside Part II, which is about automatic filing,
+the corpus-wide setting P12 needs for a manual apply is `cli.py` picking from that same menu.
+Nothing needs adjudicating and nothing is invented.
 
 ### 6.4 Verdict
 
@@ -564,8 +605,9 @@ One sentence each. Two of the seven need nothing.
    that folder?*
 2. **Q3, the suffix.** *When you tell it to keep both files, what should the second one be
    called — `name (2).pdf`, `name-2.pdf`, or the content hash's first characters?*
-3. **Q5.** Nothing owed. (Optional and technical: whether automatic filing must detect an
-   open file before trying, or may rely on the move failing.)
+3. **Q5.** Nothing owed now. When automatic filing is built: *Before it files anything
+   automatically, should it check whether a file is open, or is it enough that the move
+   fails when it is?*
 4. **Q6, the batch.** *When it applies a batch, how many moves should it do before it stops
    and shows you — or should it always do one at a time?*
 5. **Q7, the bad copy.** *When it copies a file to another drive and the copy comes out
