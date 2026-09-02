@@ -553,9 +553,15 @@ def test_a_person_refused_a_model_call_is_offered_the_remedy_p7_composed(tmp_pat
     assert decision.remedy_options, (
         "P7 built a denial with no remedy, which `MalformedDenial` exists to "
         "prevent")
+    # Matched by the REMEDY's own action or detail, never by a phrase that
+    # happens to appear. This read `or "local model" in report` and went XPASS
+    # the moment `cli.model_route` quoted §8.4's mode sentence -- "only local
+    # rules and local models may run" -- in the run header. Nothing was
+    # rendered; a disjunct matched English against English, the same collision
+    # that put ` the appli` in the egress scan. A guard a passing sentence can
+    # satisfy is measuring the sentence, not the seam.
     offered = [remedy.action for remedy in decision.remedy_options
-               if remedy.action in report or remedy.detail in report
-               or "local model" in report]
+               if remedy.action in report or remedy.detail in report]
     assert offered, (
         "the person was refused a model call and shown none of the "
         f"{len(decision.remedy_options)} remedies §8.4 composed for exactly "

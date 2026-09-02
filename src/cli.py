@@ -1028,7 +1028,18 @@ def review_and_accept(conn: sqlite3.Connection,
     Recorded as a supersession through P9's own writers rather than as an edit, so
     what P9 proposed and what the user answered are both still on disk.
     """
-    grouped = [result for result in results if result.group is not None]
+    # A halted group is not a proposal. `grouping/pipeline.py:539` returns the
+    # `Group` on a result whose stop rule fired so the caller can say WHY
+    # nothing formed, and deliberately does not record it -- "a group that
+    # cannot form should not cost either one". So `group is not None` is not
+    # the question. Merging one puts its anchor facts and its count into a
+    # group a person is shown, and `supersedes` below then names a row that is
+    # not in `groups`: on `68`'s multi-life corpus that was a `RecordAbsent`
+    # traceback instead of a plan, via SR3 -- "one high-frequency entity acts
+    # as the only bridge", which is what a disk with several lives on it looks
+    # like. The more multi-role the person, the likelier they hit it.
+    grouped = [result for result in results
+               if result.group is not None and result.stop_rule_outcome is None]
     if not grouped:
         return ()
     first = grouped[0].group

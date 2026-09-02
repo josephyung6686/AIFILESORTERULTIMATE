@@ -38,7 +38,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
-from grouping.store import RecordAbsent  # noqa: E402
 
 #: `68` §0's table, reduced to the smallest set that still reproduces. Ten files
 #: from three of `68`'s four corpora: it is not a contrived corpus, it is the
@@ -100,14 +99,6 @@ def _run(corpus: Path) -> str:
     return out.getvalue()
 
 
-@pytest.mark.xfail(strict=True, raises=RecordAbsent, reason=(
-    "`src/cli.py:895` -- `review_and_accept` merges every result whose `group` "
-    "is not None, including one a stop rule halted, and `supersedes` the first "
-    "of them. `grouping.pipeline:539` deliberately does not record a halted "
-    "group, so the supersession names a row that is not in `groups` and the run "
-    "dies with `RecordAbsent`. Fires on `68`'s multi-life corpus via SR3, and on "
-    "no smaller corpus. The fix is one predicate in `src/cli.py`, which is the "
-    "lead's file; the hunk is in `scratchpad/waveG/CLI-PATCH.txt`."))
 def test_a_person_with_three_lives_gets_a_plan_and_not_a_traceback(tmp_path):
     """Found by running the product, which is the only way it could have been.
 
