@@ -1977,6 +1977,86 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     assert readers.ocr_engine is not None
 
 
+def _mortgage_corpus(tmp_path, folder: str):
+    """Two real documents inside a folder the person already made."""
+    corpus = tmp_path / "corpus"
+    theirs = corpus / folder
+    theirs.mkdir(parents=True)
+    (theirs / "agreement in principle.txt").write_text(
+        "NORTHERN COUNTIES BUILDING SOCIETY\n"
+        "MORTGAGE AGREEMENT IN PRINCIPLE\nReference: AIP-2026-778104\n"
+        "Applicant: Mr Marcus Halloran\n"
+        "Property: 8 Wolseley Gardens, Leeds LS6 1TG\n"
+        "Purchase price 285,000 Deposit 42,750\n")
+    (theirs / "statement jan.txt").write_text(
+        "Statement of account\nAccount name M J HALLORAN\n"
+        "Statement period 1 January 2026 to 31 January 2026\n"
+        "Opening balance 4,118.22\nClosing balance 6,121.67\n")
+    return corpus
+
+
+def _top_level_folders(printed: str) -> list[str]:
+    """The folder names the report prints at the first level of the tree."""
+    lines = printed.split("Folders in this plan:", 1)[1].splitlines()[1:]
+    names = []
+    for line in lines:
+        if not line.startswith("  "):
+            break
+        if line.startswith("    "):
+            continue
+        names.append(line.strip().split("   [")[0].strip())
+    return names
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "The proposed top-level folder is allowed to have the same name as one the "
+    "person already has, and the report prints the two as adjacent identical "
+    "lines:\n\n    Mortgage\n    Mortgage   [yours already]\n\nBoth are "
+    "destinations. Scanning a folder that already contains `Mortgage` and "
+    "typing `--label Mortgage` is the most ordinary thing a person does -- it "
+    "is what they would call it, which is why they called it that -- and the "
+    "answer is a second folder of the same name beside their own. The person "
+    "cannot tell the two apart on screen, and every later gesture that names "
+    "the label is ambiguous. The standing ruling is that a gesture acting on "
+    "something other than what the person named is worse than one that stops "
+    "and asks: this should adopt their folder or refuse and say the name is "
+    "taken. Reproduces with two files. Strict, so the suite turns red the day "
+    "it is fixed."))
+def test_the_proposed_folder_does_not_share_a_name_with_one_of_the_persons_own(tmp_path):
+    """`--label Mortgage` over a disk that already has a `Mortgage` folder."""
+    corpus = _mortgage_corpus(tmp_path, "Mortgage")
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "finance.household-property",
+                     "--label", "Mortgage", "--user", "m",
+                     "--database", str(tmp_path / "plan.sqlite")], out=out) == 0
+    printed = out.getvalue()
+
+    names = _top_level_folders(printed)
+    duplicated = [name for name in set(names) if names.count(name) > 1]
+    assert not duplicated, (
+        f"the plan has two top-level folders called {duplicated}:\n{printed}")
+
+
+def test_a_label_that_collides_with_nothing_still_gets_its_folder(tmp_path):
+    """The twin. Refusing to propose any top-level folder would pass the guard.
+
+    The proposed folder is what `--label` is for. A fix that stopped creating
+    it, or that renamed the person's own folder to make room, would make the
+    names unique and take the feature away.
+    """
+    corpus = _mortgage_corpus(tmp_path, "House purchase")
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "finance.household-property",
+                     "--label", "Mortgage", "--user", "m",
+                     "--database", str(tmp_path / "plan.sqlite")], out=out) == 0
+    printed = out.getvalue()
+
+    names = _top_level_folders(printed)
+    assert "Mortgage" in names, (f"the label was not proposed at all: {names}\n{printed}")
+    assert "House purchase" in names, (
+        f"the person's own folder is gone from the picture: {names}\n{printed}")
+
+
 @pytest.mark.xfail(strict=True, reason=(
     "`--reject` succeeds in silence. The run prints its ordinary report and "
     "not one word about the correction -- no confirmation, no 'that claim is "
