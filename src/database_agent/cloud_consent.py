@@ -36,7 +36,7 @@ root it was given for, and to nothing else.
 
 * Not the database. Its default path is relative to the working directory, so one
   database is shared by every folder scanned from one shell -- and a decision made
-  about a coursework folder would silently cover a later scan of a home directory.
+  about one folder would silently cover a later scan of a home directory.
 * Not the situation. `--situation` says what KIND of material this is, not which
   files; two different folders can carry one situation.
 * **Not a path prefix.** Consent for `~/Desktop` would cover `~/Desktop/tax-returns`,

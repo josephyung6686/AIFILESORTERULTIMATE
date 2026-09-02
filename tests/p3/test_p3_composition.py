@@ -112,17 +112,6 @@ def test_every_path_a_rule_set_aside_is_named_on_the_screen(tmp_path: Path):
         f"silently omitted.")
 
 
-test_every_path_a_rule_set_aside_is_named_on_the_screen = pytest.mark.xfail(
-    strict=True,
-    reason="measured 2026-09-02 against a real run: `src/cli.py` prints "
-           "`protected_areas`, which filters to RULE_PROTECTED_CONTAINER, and "
-           "calls `scan_agent.summary.set_aside_paths` nowhere -- so §1.1's other "
-           "three rules reach no screen. XPASSes -- and fails the suite, forcing "
-           "this marker off -- the day the composition root prints them. The "
-           "hunks are in the reachability agent's CLI-PATCH.txt as PATCH A.",
-)(test_every_path_a_rule_set_aside_is_named_on_the_screen)
-
-
 def test_the_rule_that_set_each_path_aside_is_named_beside_it(tmp_path: Path):
     """Naming the folder is half of it; a person also has to know WHY.
 
@@ -136,13 +125,6 @@ def test_the_rule_that_set_each_path_aside_is_named_beside_it(tmp_path: Path):
         assert rule in printed, (
             f"no line of the report says {rule!r}, so a person cannot tell why "
             f"these paths were left out or whether it is something they can change")
-
-
-test_the_rule_that_set_each_path_aside_is_named_beside_it = pytest.mark.xfail(
-    strict=True,
-    reason="the same gap seen from the other side: no set-aside block exists at "
-           "all, so no rule is named. XPASSes with PATCH A.",
-)(test_the_rule_that_set_each_path_aside_is_named_beside_it)
 
 
 def test_this_file_is_really_reading_the_run_and_the_corpus_really_excludes(
