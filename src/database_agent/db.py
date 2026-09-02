@@ -7,6 +7,11 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
+# IMPORTED, not inlined the way `BUDGET_DDL` below is. That one is a copy to avoid
+# a circular import; `cloud_consent` imports nothing from this module, so there is
+# no cycle to avoid and no reason to keep two spellings of one table.
+from database_agent.cloud_consent import CLOUD_CONSENT_DDL
+
 #: 2 added `st_dev`/`st_ino` to `files` (see FILES_DDL). `create_schema` migrates
 #: an existing database in place, so the bump records the change rather than gating it.
 SCHEMA_VERSION = 2
@@ -362,3 +367,8 @@ def create_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(VECTORS_DDL)
     conn.executescript(VECTOR_VERSIONS_DDL)
     conn.executescript(SCAN_USAGE_DDL)
+    # HERE and not in a part's own bootstrap: a person typing the gesture that
+    # turns cloud sending OFF must never be stopped because an earlier run refused
+    # before it reached a bootstrap step. The table that records a withdrawal
+    # exists as soon as the database does.
+    conn.executescript(CLOUD_CONSENT_DDL)
