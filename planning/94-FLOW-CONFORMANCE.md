@@ -654,3 +654,38 @@ layer 3 and F3's missing reason code are independent of the model-wiring work an
 should not wait for it. F5 is a one-line contradiction between two modules that
 somebody has to adjudicate rather than patch. F16 is one branch. F6/F7 and F8 are
 the design's real remaining surface and are somebody's phase, not somebody's patch.
+
+---
+
+## F20 — a folder about ONE thing gets nothing filed, and adding an unrelated file fixes it
+
+Added 2026-09-03 by the lead, measured rather than read. Same command, same situation, same
+label, a fresh `database-agent-plan.sqlite` before each run. Only the corpus changes:
+
+```
+ONE subject, 3 PHYS 1401 files       ->  Nothing was frozen.
+ONE subject + an unrelated passport  ->  Frozen: 3 file(s), Coursework/PHYS1401
+TWO subjects (PHYS + BUSIB)          ->  Frozen: 3 file(s)
+```
+
+**Adding a passport scan to a folder makes three coursework files placeable.** The passport is
+not the mechanism: rows two and three reach the same result by different routes, and what they
+share is that the corpus DIVIDES on `subject`.
+
+The candidate cause is a rule the product states in its own report — *"any level your files did
+not actually divide … is measured and not built. A level your files DO divide is always built."*
+Sound in isolation, and here it means a folder holding one course's material drops the `subject`
+level, never builds a `PHYS1401` node, and leaves every file with one unmatchable candidate:
+`no_supported_destination`, "needed a model". **F20 and the "every file needs a model" complaint
+are one defect seen from two ends.**
+
+Why it outranks its apparent size: *"all my PHYS 1401 stuff is in Downloads"* is the most ordinary
+folder a person has, and the behaviour is inverted against intuition — **the clearer a person's
+folder is about what it holds, the less the product does for them.**
+
+**Not established here, and routed to `fix-q1-sizing` as evidence rather than conclusion:** which
+component drops the level, whether "does not divide" is the predicate or a correlate of it, and
+whether it is the same defect as the `school>term>subject>work_type` template refusing a corpus in
+which no file carries a `school` fact. **The rule must not simply be deleted** — a level holding
+every file, so a person opens one folder to find one folder, is a real defect it exists to
+prevent. The question is what should happen when the only dividing level is the one dropped.
