@@ -138,7 +138,15 @@ REMOVERS = frozenset({"unlink", "remove", "rmtree", "removedirs", "rmdir"})
 #: asserts the bytes survive each. Its second removal is the failed
 #: reservation -- an empty file this package created microseconds earlier that no
 #: person has seen, holding none of anybody's bytes.
+#: `constraints.measure_case_sensitivity` removes the probe DIRECTORY it made a
+#: line earlier, under a `uuid4` name no other process can be holding. It is
+#: `directories.reverse_directories`'s argument exactly: an empty directory
+#: contains no user file, and `rmdir` is used precisely because the kernel
+#: refuses a non-empty one, so "still empty" is guaranteed by the system call
+#: and not only by the code above it. The probe runs in the person's own corpus
+#: root, so leaving it behind was never an option.
 PERMITTED_REMOVALS = {
+    "constraints.py:measure_case_sensitivity": ["rmdir"],
     "cross_volume.py:copy_and_confirm": ["unlink"],
     "directories.py:reverse_directories": ["rmdir"],
     "movement.py:move_onto_free_path": ["unlink"],

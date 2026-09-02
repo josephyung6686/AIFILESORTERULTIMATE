@@ -15,7 +15,10 @@ confused when they do.
 """
 from __future__ import annotations
 
+import os
+import uuid
 from dataclasses import dataclass
+from pathlib import Path
 
 #: The four Unicode normalization forms `unicodedata.normalize` accepts.
 UNICODE_FORMS: tuple[str, ...] = ("NFC", "NFD", "NFKC", "NFKD")
@@ -74,3 +77,52 @@ class FilesystemConstraints:
     def prohibited(self) -> frozenset[str]:
         """Everything that may not appear in a component on this volume."""
         return self.prohibited_characters | ALWAYS_PROHIBITED
+
+
+class VolumeUnmeasurable(ConstraintsRequired):
+    """The volume would not answer, so nothing may be declared about it."""
+
+
+def measure_case_sensitivity(directory: Path) -> bool:
+    """Whether `directory` distinguishes two names differing only in case.
+
+    **`sys.platform` is not a fact about the target volume, and this module's
+    first line says the table is the target volume's rules.** A Linux process
+    reads `sys.platform == "linux"` and declares `case_sensitive=True` while
+    filing onto an exFAT stick, an NTFS partition, an SMB share from a NAS or a
+    `casefold`-enabled ext4 directory -- every one of which folds. That is not an
+    exotic setup; it is what "help me organise my files" looks like when the
+    files are on an external drive.
+
+    So the volume is ASKED. A directory is made under a name nobody else will
+    choose and the same name is looked for in the other case; if the volume
+    hands back the directory that was just made, the two names are one name here.
+
+    **This is a MEASUREMENT, not a policy**, which is why it may live in a part
+    package: it authors no value and offers no default. The composition root
+    still decides to call it and still owns the table it builds from the answer.
+
+    **A probe that cannot run raises.** `VolumeUnmeasurable` rather than a guess,
+    because a guess here is the defect this function exists to remove and the
+    standing rule is that absent means refuse. A read-only destination is a real
+    case and the honest answer is that this run cannot say what the volume does.
+
+    Scope, stated because the limit matters: this measures ONE DIRECTORY.
+    `casefold` on ext4 is a per-directory attribute, so a subdirectory created
+    later under a different setting is not covered. That is the honest argument
+    for why `movement.move_onto_free_path` is the load-bearing fix and this only
+    narrows the miss -- measuring makes the SENTENCE right, the syscall makes the
+    FILE safe.
+    """
+    probe = directory / f".case-probe-{uuid.uuid4().hex}"
+    try:
+        probe.mkdir()
+    except OSError as exc:
+        raise VolumeUnmeasurable(
+            f"the case-sensitivity of {directory} could not be measured "
+            f"({exc}); this run will not declare a rule it has not read"
+        ) from exc
+    try:
+        return not (directory / probe.name.upper()).exists()
+    finally:
+        os.rmdir(probe)

@@ -361,3 +361,32 @@ def test_a_destination_outside_the_destination_root_is_refused_and_nothing_is_cr
     assert list(outside.iterdir()) == [], "nothing was written outside the root"
     assert source.exists(), "the person's file is where it was"
     assert record.directories_created_by_this_action == ()
+
+
+def test_a_measured_table_files_the_file_and_still_catches_the_twin(
+        p12_conn, landscape, ids, fixture_root, clock, truthful_constraints):
+    """The state the composition root now puts a person in: the table was READ
+    off their volume rather than inferred from `sys.platform`.
+
+    Both halves matter. An ordinary move must still work -- a fix that made the
+    product refuse everything would pass every test above -- and a twin the
+    person cannot tell apart must still be caught by the COLLISION branch, where
+    it can be explained, rather than by the system call, where it can only be
+    refused.
+    """
+    plan, source = plan_a_move(p12_conn, landscape, ids,
+                               volume_of=lambda p: "vol-main")
+    record = _apply(p12_conn, plan, source_root=fixture_root,
+                    destination_root=fixture_root, now=clock, mint_id=ids,
+                    constraints=truthful_constraints)
+    assert record.result == v.APPLIED
+    assert Path(record.final_destination_path).read_bytes() == b"PHYS1401 syllabus"
+    assert not source.exists()
+
+    # And the twin, under the same measured table.
+    filed = Path(record.final_destination_path)
+    twin = filed.parent / filed.name.swapcase()
+    assert (find_collision(filed.parent, twin.name,
+                           constraints=truthful_constraints) is not None) is (
+        not truthful_constraints.case_sensitive), (
+        "the measured table and the volume must agree about the twin")

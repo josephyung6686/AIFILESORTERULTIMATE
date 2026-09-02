@@ -87,7 +87,21 @@ from tree_design.records import Node
 
 from mutation.constraints import FilesystemConstraints
 
-#: A case-KEEPING volume. The default for every suite that is not about case.
+#: A volume that DECLARES it keeps case. The default for every suite that is not
+#: about case.
+#:
+#: **This is a declaration and on macOS it is a false one, deliberately.** The
+#: fixture volume folds; this table says it does not. That is right for a name
+#: RESOLUTION test -- resolution is evaluated against constraints precisely so it
+#: does not depend on the machine the suite happens to run on -- and it is what
+#: `case_insensitive_root` exists to let a test say instead.
+#:
+#: It is also why 1,800 green tests never saw AP-01: the suite ran mis-declared
+#: over a folding volume for months, which is the exact state a Linux user with
+#: an exFAT stick is in, and under `os.rename` that state destroyed the
+#: incumbent. `tests/p12/test_p12_file_loss.py` now runs in it ON PURPOSE and
+#: asserts the person's file survives. The lie is kept because the fix has to
+#: hold under it -- not because it went unnoticed.
 CONSTRAINTS = FilesystemConstraints(
     unicode_form="NFC", case_sensitive=True, max_component_bytes=255,
     max_path_bytes=4096, prohibited_characters=frozenset(),
@@ -96,6 +110,20 @@ CONSTRAINTS = FilesystemConstraints(
 #: The same volume with case folding on. `Resume.pdf` and `resume.pdf` are one
 #: path here and two above, which is Done-means 7's whole content.
 FOLDING_CONSTRAINTS = dataclasses.replace(CONSTRAINTS, case_sensitive=False)
+
+
+@pytest.fixture()
+def truthful_constraints(fixture_root) -> FilesystemConstraints:
+    """`CONSTRAINTS`, corrected to what the fixture volume actually does.
+
+    For a test that touches the real disk and wants the state a CORRECTLY
+    configured person is in, rather than the mis-declared one. `CONSTRAINTS`
+    above states an answer; this one reads the volume, which is what the
+    composition root now does.
+    """
+    from mutation.constraints import measure_case_sensitivity
+    return dataclasses.replace(
+        CONSTRAINTS, case_sensitive=measure_case_sensitivity(fixture_root))
 
 #: The composition root names these; `src/mutation/` has no default (A7). P7 is
 #: explicit that a neighbour consumes the `protected` flag rather than inferring
