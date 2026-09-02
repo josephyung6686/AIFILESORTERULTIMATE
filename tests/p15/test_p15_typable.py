@@ -242,11 +242,20 @@ def test_the_rendered_lines_are_still_one_command_each(qconn, question, option_i
                if line.strip().startswith("--answer")]
     assert len(typable) == len(question.options) + 2, (
         f"the renderer offers {len(typable)} typable lines:\n{rendered}")
+    # THE WHOLE ARGUMENT, not a prefix of it. A `startswith` here was the last
+    # residue in this file and it is the shape the role-matcher agent's rule
+    # names: a prefix or a containment is precisely what a truncation survives,
+    # because the surviving half still starts with, and still contains, what the
+    # assertion asked for. Equality against a set the test controls cannot be
+    # satisfied by half a token.
+    expected = {f"{question.question_id}={option.option_id}"
+                for option in question.options}
+    expected |= {f"{question.question_id}=skip", f"{question.question_id}=revoke"}
     for line in typable:
         parts = _shell_tokens(line)
-        assert parts[1].startswith(f"{question.question_id}="), (
-            f"a shell reads {line!r} as {parts}, whose argument is not this "
-            f"question's")
+        assert parts[1] in expected, (
+            f"a shell reads {line!r} as {parts}; {parts[1]!r} is not one of this "
+            f"question's whole arguments {sorted(expected)}")
         assert not (set(parts) & _SHELL_OPERATORS), (
             f"a shell reads {line!r} as {parts}: an operator token survives into "
             f"the command, so the argument reaching `--answer` is the part "

@@ -452,8 +452,35 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
    fixed → 4 red; with the assertion alone reverted → the redirect case passes on
    the same live defect.
 
-   **All three sites are now fixed** — `960467c` here, `b9a608c` for the report's
-   two. One thing to be accurate about on `tests/test_cli.py:2553`: that test is
+   **The rule that catches all of it without knowing the hazard in advance**, and
+   it is the role-matcher agent's, from the third instance — their own, at
+   `test_the_invitation_is_pasteable_too`, which asserted `.startswith("me=")` and
+   was the one of four guards that stayed green when they removed the quoting:
+
+   > Assert the whole argument, or assert the token count. Never a prefix and
+   > never a containment, because those are precisely what a truncation survives.
+
+   Three files, three authors, one shape: `startswith(f"{question_id}=")` here,
+   `"=" in tokens[1]` at `tests/test_cli.py:1740`, `.startswith("me=")` in
+   `role_report`'s tests. Every one is a property the truncated-at-the-hazard
+   token still satisfies. **The lexer decides whether a guard can SEE the split;
+   the assertion decides whether it CARES.** This file's last prefix is now
+   equality against a set the test controls, and it bites on the redirect with
+   the operator check removed entirely — measured, not assumed.
+
+   Their fix also kept a rule this page already had: they did NOT swap to an
+   equality check on the invitation, because that argument is on-screen copy
+   under `80` §6 and a guard anchored to a sentence the owner may revise breaks
+   when he revises it. They counted tokens instead. Same reason §13.8's own proxy
+   is a flag rather than a phrase.
+
+   **A method note, since this section records methods.** The THREE-way sabotage
+   is what separates the halves and neither of us would have found this with two.
+   Sabotaging the subject alone tells you the guard has teeth somewhere; only
+   sabotaging the guard's own instrument tells you which half is holding them.
+
+   **All four sites are now fixed** — `960467c` and `76b6f7c` here, `b9a608c` for
+   the report's two, `dfac97f` for the invitation. One thing to be accurate about on `tests/test_cli.py:2553`: that test is
    a known-gap strict xfail for an unrelated reason (`_review_note`'s command is
    wrapped mid-quote by `_wrapped` and cannot be pasted at all), so the lexer
    there changes no verdict today. It is the defensive half: the day the wrapping
