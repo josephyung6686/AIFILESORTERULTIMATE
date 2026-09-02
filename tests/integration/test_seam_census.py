@@ -374,3 +374,189 @@ def test_the_place_decisions_a_real_run_writes_are_ones_p12_can_plan(tmp_path):
         assert "Reading Inbox" in plan.resolved_destination_path
         # And nothing was created on disk: building a plan is not applying one.
         assert not (corpus.parent / "Reading Inbox").exists()
+
+
+# --- P7 -> P8, the seam the product does not have -----------------------------
+#
+# `02` orders P7 before P8 for one sentence: §8.4's "Privacy policy must be
+# enforced before content reaches any model or external connector." `22` §6
+# writes that down as check 4 and then says of it: *"currently vacuous in the safe
+# direction -- 'no content reaches a model before P7's classification' is
+# trivially satisfied when no file is ever classified."*
+#
+# It is no longer vacuous. `src/recognition/` classifies files on a live run, and
+# the two tests below ask §8.4's door about a file a real run really classified.
+# The door has never been opened on real records: nothing in the product
+# constructs a `Gate`.
+
+
+def _unwrapped(report: str) -> str:
+    """The report as one line. `report()` wraps to the terminal width, so a
+    sentence a person reads whole is split across lines in the string, and a
+    containment check against the sentence would fail for the width rather than
+    for the meaning."""
+    return " ".join(report.split())
+
+
+def _gate_over(conn, plan_version: str):
+    """§8.4's door, built over a database a real run wrote.
+
+    Every argument here is the composition root's to choose and `cli.py` chooses
+    none of them, because it constructs no `Gate` at all -- so this test is
+    standing in for a composition that does not exist yet. What it does NOT stand
+    in for is the data: the policy, the classifications, the files and the
+    observations are all the run's own.
+
+    `classifier` returns `None` (P7 owns no detection rule -- `02` D2) and
+    `transform` is never reached on a denial. `unclassified_permits_local` is
+    Open question 5 and P7 names no winner, so the caller answers, and this
+    caller answers the strict way for the same reason `placement/privacy.py`
+    does.
+    """
+    from privacy.classification_store import ClassificationStore
+    from privacy.gate import Gate
+    return Gate(
+        conn, store=ClassificationStore(conn), plan_version=plan_version,
+        classifier=lambda value, *, context_before=None, context_after=None: None,
+        transform=lambda value, *, identifier_class: "[redacted]",
+        unclassified_permits_local=False,
+        scope_for=lambda file_id: "corpus", files_in_scope=lambda scope: (),
+        component_version="seam-census", now=lambda: "2026-09-02T00:00:00Z",
+        user_id="jy")
+
+
+def _one_classified_file(conn) -> tuple[str, str, object]:
+    """A file the run classified, and one of its real observations.
+
+    Not any file: `classifications` is what P7 actually wrote, so a corpus that
+    classified nothing would make every assertion below vacuous in exactly the
+    way `22` §6 warns about, and this raises instead.
+    """
+    from evidence_shape.store import observations_by_key
+    row = conn.execute(
+        "SELECT file_id FROM classifications LIMIT 1").fetchone()
+    assert row is not None, (
+        "the run classified nothing, so asking §8.4's door about it would be "
+        "the vacuous check `22` §6 says check 4 currently is")
+    file_id = row[0]
+    key = conn.execute(
+        "SELECT observation_key FROM evidence WHERE file_id = ? LIMIT 1",
+        (file_id,)).fetchone()[0]
+    return file_id, key, observations_by_key(conn, key)[0]
+
+
+def _model_call_request(file_id: str, key: str, observation, *, locality: str):
+    """A request in P8's shape, carrying references only.
+
+    `prompt_fingerprint` and `prompt_template_id` are opaque strings to the gate
+    (`P8 SPEC` Contract in), so this needs no prompt text -- which matters,
+    because `84` §1 forbids an agent authoring or adopting any.
+    """
+    from privacy.items import Excerpt
+    from privacy.release import ModelCallRequest, ModelTarget, Target
+    return ModelCallRequest(
+        stage="placement", target=Target(file_ids=(file_id,)),
+        model_target=ModelTarget(locality=locality, model_id="unwired",
+                                 provider="unwired"),
+        requested_items=(Excerpt(observation_key=key,
+                                 span=observation.location.text_span,
+                                 reason="the census asks the door"),),
+        prompt_template_id="none.ratified", prompt_fingerprint="none.ratified",
+        max_dossier_tokens=4000)
+
+
+def test_the_gate_refuses_the_call_the_report_says_was_not_cleared(tmp_path):
+    """P7 -> P8, asked of the records a real run wrote.
+
+    The report tells a person *"§8.4 did not clear this file for a model call"*.
+    That sentence is `placement/pipeline.py`'s, reached through P7's own
+    predicates rather than through the door -- `cli.py` builds no `Gate`, so
+    `Gate.release` has never been called on anything but a fixture. This asks the
+    door the same question about the same file and requires the same answer.
+
+    If P7's door and P11's re-derivation ever diverge, a person is told one thing
+    while §8.4's audit record says another, and nothing else in the suite can see
+    it: every existing gate test builds its own files, its own classifications
+    and its own policy.
+    """
+    from privacy.release import Denied
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    assert cli.main(_argv(corpus, database), out=out) == 0, out.getvalue()
+    assert ("§8.4 did not clear this file for a model call"
+            in _unwrapped(out.getvalue()))
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    plan_version = conn.execute(
+        "SELECT plan_version FROM privacy_policies ORDER BY rowid DESC "
+        "LIMIT 1").fetchone()[0]
+    file_id, key, observation = _one_classified_file(conn)
+    decision = _gate_over(conn, plan_version).release(
+        _model_call_request(file_id, key, observation, locality="cloud"))
+    conn.close()
+
+    assert isinstance(decision, Denied), (
+        f"the run told the person §8.4 did not clear this file, and §8.4's own "
+        f"door answered {type(decision).__name__}")
+    # The mode, not the file. `cli.py` sets `offline`, under which §8.4 says no
+    # content leaves the device -- so the refusal is about egress and says
+    # nothing about the material, which is the distinction
+    # `placement/privacy.py` is written around.
+    assert decision.reason == "mode_forbids_target", decision.explanation
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="§8.6 requires the surface show 'what has been deferred, and why', "
+           "and `privacy/denial.py` refuses to build a denial with no remedy "
+           "because 'a denial with no legitimate alternative is a dead end the "
+           "user cannot act on'. P7 composes two remedies for this refusal from "
+           "the design's own sentences. `remedy_options` has NO consumer "
+           "anywhere in `src/` outside `privacy/`: P8's `Refusal` is specified "
+           "to carry them (P8 SPEC Contract in) and is unwired, P11 re-derives "
+           "the verdict without them, and the person reads a refusal with no "
+           "alternative. XPASSes -- and fails the suite -- the day a surface "
+           "renders one.")
+def test_a_person_refused_a_model_call_is_offered_the_remedy_p7_composed(tmp_path):
+    """P7 -> P8 -> the screen: the half of §8.4 that never arrives.
+
+    The gate's answer to this exact request is `mode_forbids_target` carrying
+    `use_local_model` -- *"§8.4: local rules and local models may run under this
+    mode"*. It is true, it is actionable, and a person running this command is
+    never shown it. They are told what did not happen and given nothing to do
+    about it.
+
+    Written as a strict xfail rather than a fix because the sentence a person
+    reads is authored prose with rulings behind it (`59` §3c, `66` §4), and the
+    part that is specified to carry a remedy across the seam is P8, which has no
+    transport yet.
+    """
+    corpus = _corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    out = io.StringIO()
+    assert cli.main(_argv(corpus, database), out=out) == 0, out.getvalue()
+    report = _unwrapped(out.getvalue())
+    assert "§8.4 did not clear this file for a model call" in report
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    plan_version = conn.execute(
+        "SELECT plan_version FROM privacy_policies ORDER BY rowid DESC "
+        "LIMIT 1").fetchone()[0]
+    file_id, key, observation = _one_classified_file(conn)
+    decision = _gate_over(conn, plan_version).release(
+        _model_call_request(file_id, key, observation, locality="cloud"))
+    conn.close()
+
+    assert decision.remedy_options, (
+        "P7 built a denial with no remedy, which `MalformedDenial` exists to "
+        "prevent")
+    offered = [remedy.action for remedy in decision.remedy_options
+               if remedy.action in report or remedy.detail in report
+               or "local model" in report]
+    assert offered, (
+        "the person was refused a model call and shown none of the "
+        f"{len(decision.remedy_options)} remedies §8.4 composed for exactly "
+        f"this refusal: {[r.action for r in decision.remedy_options]}")
