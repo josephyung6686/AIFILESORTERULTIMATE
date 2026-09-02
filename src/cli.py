@@ -77,6 +77,9 @@ from grouping.vocabulary import (
 )
 from llm_harness.budgets import create_budget_schema
 from llm_harness.schema import create_llm_schema
+from llm_harness.vocabulary import (
+    A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
+)
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
 from placement.pipeline import (
@@ -85,7 +88,9 @@ from placement.pipeline import (
 from placement.residual import ProtectedSetNotReadable
 from placement.schema import create_placement_schema
 from privacy.classification_store import ClassificationStore
+from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
+from privacy.vocabulary import MODE_SEMANTICS
 from questions.records import StructuralAnswer
 from questions.schema import create_questions_schema
 from questions.store import (
@@ -104,6 +109,10 @@ from production import (
     run_production_corpus,
 )
 from readers.deployment import macos_readers
+from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME
+from readers.model_routing import (
+    FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting, deepseek_routing,
+)
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
     SAFETY_DOMAIN_HANDLING, Detector, Handling,
@@ -189,7 +198,133 @@ GROUPING_LIMITS = GroupingLimits(
 #: under which nothing about any file can leave the device, and a first run on
 #: somebody's home directory is not the moment to ask for less. Every other part
 #: reads it through P7's policy and refuses to run without one.
+#:
+#: IT IS ALSO THE REASON NO MODEL RUNS, and that had been invisible.
+#: `privacy.denial.mode_forbids` denies every `locality="cloud"` release under
+#: `offline`, so a file that needed a judgement reported "§8.4 did not clear this
+#: file for a model call" -- a sentence a person reads as a fact about their own
+#: file when it is a fact about this line. `model_route` below says which it is.
 OPERATION_MODE: str = "offline"
+
+#: `83` §3's table, and the only place in the product where it exists. WHICH tier a
+#: call site requires is a judgement about what being wrong COSTS THE PERSON, so it
+#: is chosen here and nowhere else; WHICH model a tier resolves to is a deployment
+#: fact and lives in `.env`. `83` §3's last row -- "anything not listed refuses" --
+#: is `TierRouting`'s behaviour rather than a row here: a site absent from this
+#: mapping gets a refusal naming it, never a tier it did not choose.
+TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
+    # The one that becomes folder structure, and the one a person finds out about
+    # months later. `00` §3.6 already demands the model return `unknown` rather
+    # than guess, and the model most able to decline is the one worth paying for.
+    A_FACT: REASONING,
+    # Bounded, checkable, verification-shaped: each verdict is re-checked against
+    # evidence already extracted, so a cheaper reasoner is not a risk.
+    B_GROUP: LOGIC,
+    C_PLACEMENT: LOGIC,
+    E_TEMPLATE: LOGIC,
+    # High volume by construction -- these are the files nothing else could place
+    # -- and §7.6 makes the person authorise the spend per set beforehand.
+    D_RESIDUAL: FAST,
+})
+
+#: §8.6's response ceiling, in tokens. `00` names the ceiling and states no value,
+#: so this is this deployment's. The cost of it being too small is a REFUSAL that
+#: says so: `readers.model_deepseek` raises on `finish_reason == "length"` rather
+#: than returning half a document for P8 to reject on the model's behalf.
+MAX_RESPONSE_TOKENS: int = 2048
+
+#: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
+ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
+
+
+def _dotenv(path: Path) -> Mapping[str, str]:
+    """`KEY=value` lines from a file, for names the environment has not set.
+
+    Ten lines rather than a dependency. `pyproject.toml`'s `dependencies` is empty
+    on purpose, and the one thing this needs -- read a file of `KEY=value` lines --
+    is not worth a package that also does interpolation, shell quoting and variable
+    expansion that this deployment would then have to reason about. A missing file
+    is the ordinary state of a fresh checkout and is not an error.
+
+    THE REAL ENVIRONMENT WINS. A person who exports a key for one run means it for
+    that run, and a file that quietly overrode them would send their files to a
+    model they did not choose -- a surprise in the one direction that costs money
+    and leaves the device.
+    """
+    values: dict[str, str] = {}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return values
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        name, _, value = stripped.partition("=")
+        values[name.strip()] = value.strip().strip('"').strip("'")
+    return values
+
+
+def model_route(*, out) -> TierRouting | None:
+    """`83`'s three clients, or `None` and a sentence saying why not.
+
+    **`None` is a real answer and not a failure.** P6's direct and rule stages,
+    P4's evidence locations and P7's gate settle files with no model at all, and
+    `83` §5 is explicit that the cheapest saving is not a smaller model but not
+    making the call. A run with no key does every one of those things and then says
+    what it could not do -- which is the opposite of the silence it replaces.
+
+    **What it must never be is a traceback.** No key is the ordinary state of a
+    fresh checkout, and a misspelled model name is an ordinary mistake. Both print
+    one sentence and the run continues without a model.
+
+    **Why it announces even when it succeeds.** Under `OPERATION_MODE = "offline"`
+    P7 denies every cloud target, so a route can be perfectly configured and still
+    never be asked. Saying so at the top is `84` §6's rule -- what the screen tells
+    a person has to be true -- applied to the model the way it was applied to the
+    unpasteable `--answer` line.
+    """
+    from os import environ
+
+    supplied = _dotenv(ENV_FILE)
+
+    def value(name: str) -> str:
+        # The environment first, then the file, then nothing. Never a literal.
+        return (environ.get(name) or supplied.get(name) or "").strip()
+
+    if not value(CREDENTIAL_NAME):
+        print(f"\nNo model was consulted: {CREDENTIAL_NAME} is not set, so this "
+              f"run used only what it could read and decide on this device. Files "
+              f"that needed a judgement are named below and say so. To enable one, "
+              f"copy `.env.example` to `.env` and put a key in it.", file=out)
+        return None
+    try:
+        routing = deepseek_routing(
+            api_key=value(CREDENTIAL_NAME),
+            base_url=value(BASE_URL_NAME),
+            model_id_of_tier={tier: value(name)
+                              for tier, name in MODEL_NAME_OF_TIER.items()},
+            tier_of_call_site=TIER_OF_CALL_SITE,
+            max_response_tokens=MAX_RESPONSE_TOKENS)
+    except (ValueError, RuntimeError) as refusal:
+        # Every refusal `readers/` can raise names what was missing and what to
+        # set. Printed, not raised: a misconfigured model is not a reason to
+        # refuse a scan that needs no model to do most of its work.
+        print(f"\nNo model was consulted, and here is what it needed:\n"
+              f"  {refusal}", file=out)
+        return None
+    print(f"\nModel: {routing.model_id_for(A_FACT)} for facts, "
+          f"{routing.model_id_for(C_PLACEMENT)} for checks, "
+          f"{routing.model_id_for(D_RESIDUAL)} for review sets.", file=out)
+    if OPERATION_MODE in LOCAL_FIRST_MODES:
+        print(_wrapped(
+            f"None of them will be asked on this run. This deployment's operation "
+            f"mode is `{OPERATION_MODE}` -- \"{MODE_SEMANTICS[OPERATION_MODE]}\" "
+            f"-- so a cloud model is refused for every file, and a file below that "
+            f"says a model was not cleared for it is saying that and nothing about "
+            f"itself. Nothing was sent and no key was used.",
+            indent="  "), file=out)
+    return routing
 
 #: P7's handling class for an ordinary file and for a protected area. The set is
 #: P7's vocabulary; which one a node carries is a deployment decision, and the
@@ -2593,6 +2728,11 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\n{refusal}", file=out)
         return 2
     print(f"Plan database: {database}", file=out)
+    # BEFORE the run, and printed whichever way it goes. If this deployment cannot
+    # call a model the person is told once, at the top, in a sentence about the
+    # deployment -- rather than left to infer it from thirty file-level sentences
+    # at the bottom that each read as a statement about one of their files.
+    model_route(out=out)
     try:
         # BEFORE the run, so an answer takes effect on the very invocation that
         # supplies it. A person who has just been asked something and answers it
