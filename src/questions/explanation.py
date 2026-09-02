@@ -24,6 +24,7 @@ instead of being quietly left out of the explanation.
 """
 from __future__ import annotations
 
+import shlex
 import sqlite3
 from dataclasses import dataclass
 
@@ -65,6 +66,15 @@ SETTLEMENT_WORDS: dict[str, str] = {
 }
 
 UNANSWERED: str = "you have not answered it yet"
+
+#: The two short forms `apply_answers` accepts alongside `SKIPPED` and `REVOKED`,
+#: and the ONLY ones a person has been shown: the report prints `--answer <q>=skip`
+#: and `--answer`'s own help text says "Use `=skip` to put it aside". Spelling them
+#: `skipped` and `revoked` here would put a second wording for one gesture on the
+#: screen, which is the defect this instruction was already carrying in another
+#: form. Named rather than inlined so the two places that can disagree are one.
+SET_ASIDE_WORD: str = "skip"
+TAKE_BACK_WORD: str = "revoke"
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,16 +136,44 @@ def consequences_of(option: QuestionOption) -> tuple[str, ...]:
     return tuple(out)
 
 
+def _typable(question: StructuralQuestion, option_id: str) -> str:
+    """One `QUESTION=OPTION` argument the person can actually paste.
+
+    The same computation `cli._typable` does for the report, for the same two
+    reasons and against the same two hazards. A branch scoped to `--label "Legal
+    Matters"` gives `branch:Legal Matters`, and a shell splits that into two
+    arguments -- so the one actionable instruction on the screen fails, looking
+    like the person's mistake rather than ours. Worse, the shipped library's
+    nesting options are spelled `school>term>subject>work_type`, and `>` is the
+    shell's redirect: pasting that line does not fail at all, it silently creates
+    files called `term`, `subject` and `work_type` wherever the person is
+    standing.
+
+    `shlex.quote` leaves an argument that needs no quoting exactly as it was, so
+    the ordinary line is unchanged and only the one that would break is altered.
+    """
+    return shlex.quote(f"{question.question_id}={option_id}")
+
+
 def _how_to_change(question: StructuralQuestion) -> str:
     """The exact words a person types, with their own options in them.
 
     §13 asks for "how to change it" and a person reading "you can change this"
     still cannot. `apply_answers` already accepts all three forms.
+
+    **One whole line per answer, which is the form the report already uses.**
+    This was `--answer <a | b>` -- manual-page notation, where the brackets and
+    the bar are not the person's to type and the option ids are run together. The
+    same product then said the same thing two ways: the report prints
+    `--answer <typable>   <label>` per option and this printed a placeholder. It
+    is one instruction, so it gets one form, and the label rides along so the
+    person can tell which line is the answer they want.
     """
-    offered = " | ".join(option.option_id for option in question.options)
-    return (f"--answer {question.question_id}=<{offered}> to change it, "
-            f"--answer {question.question_id}=skip to put it aside, "
-            f"--answer {question.question_id}=revoke to take it back.")
+    lines = [f"--answer {_typable(question, option.option_id)}   {option.label}"
+             for option in question.options]
+    lines.append(f"--answer {_typable(question, SET_ASIDE_WORD)}   put it aside")
+    lines.append(f"--answer {_typable(question, TAKE_BACK_WORD)}   take it back")
+    return "\n".join(lines)
 
 
 def explain_answer(conn: sqlite3.Connection, *, question_id: str,
@@ -212,5 +250,11 @@ def render_explanation(explanation: AnswerExplanation) -> str:
         f"  When it was supplied: {explanation.supplied_at}"
         if explanation.supplied_at else "  When it was supplied: never")
     lines.append(f"  How it was settled: {explanation.how_it_was_settled}")
-    lines.append(f"  How to change it: {explanation.how_to_change}")
+    # One line per command, indented under the label, because `how_to_change` is
+    # several whole commands and not a sentence: flattened onto one line, the
+    # first thing a person sees is three `--answer`s run together and they have
+    # to find the boundaries themselves.
+    lines.append("  How to change it:")
+    lines.extend(f"    {command}" for command in
+                 explanation.how_to_change.splitlines())
     return "\n".join(lines)
