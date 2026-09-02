@@ -50,6 +50,51 @@ from mutation.vocabulary import (
 CROSS_VOLUME_UNRULED: str = "not_attempted:cross_volume_unruled"
 
 
+def halts(result: str, halt_on: frozenset[str]) -> bool:
+    """Whether a run stops after this result. One decision, in one place.
+
+    It was inline and inside ONE of the two branches: a cross-volume stop
+    appended its outcome and `continue`d, skipping the check entirely, so a run
+    whose plans all crossed a volume reported every one and never halted
+    whatever `halt_on` said. The halt rule therefore had a shape the composition
+    root could not express, which is `74` §8 Q6's own question.
+
+    The kind is the half before the colon, because `halt_on` names KINDS and a
+    result is `<kind>:<detail>`. `CROSS_VOLUME_UNRULED` has its own prefix,
+    `not_attempted`, and is matched the same way -- it is not a member of
+    `RESULT_KINDS`, so `_HALT_ON` cannot name it today, but the shape is now
+    sayable rather than silently unreachable.
+    """
+    return result.partition(":")[0] in halt_on
+
+
+def undo_order(entries: Sequence[JournalEntry]) -> tuple[JournalEntry, ...]:
+    """Newest first, including when the clock cannot tell two entries apart.
+
+    The ordering, and why a plain reverse sort does not give it, is
+    `undo_order`'s -- including what happens when two entries share a timestamp.
+
+    **A plain `sorted(..., reverse=True)` does not have that property.** Python's
+    sort is stable, so entries sharing a `time_of_execution` keep their INPUT
+    order -- and `applied_entries` supplies them `ORDER BY j.time_of_execution,
+    j.record_id` ASCENDING. Ties ran oldest-first: the exact order the paragraph
+    above forbids, in the function whose docstring claims it.
+
+    Reversing the input first is the whole fix. Stability then puts tied entries
+    in the reverse of the order they arrived in, which for `applied_entries`'
+    ascending `(time, record_id)` is descending `record_id` -- newest first
+    within the tie, by the journal's own ordering rather than by a second guess
+    at what "newest" means.
+
+    With the production clock at microsecond resolution a real tie is close to
+    impossible and the consequence is leftover empty directories, not lost data.
+    It becomes real the moment anyone injects a coarser clock, and the suite's
+    own is per-minute.
+    """
+    return tuple(sorted(reversed(tuple(entries)),
+                        key=lambda item: item.time_of_execution, reverse=True))
+
+
 def suffix_refused(stem: str, attempt: int) -> str:
     """`74` §8 Q3 is unruled, so there is no suffix format to compose.
 
@@ -232,12 +277,18 @@ def apply_selected(conn: sqlite3.Connection,
                 component_version=component_version, user_id=user_id,
                 now=now, mint_id=mint_id)
         except UnverifiedCopyDispositionRequired:
+            # Nothing was touched: `apply_plan` demands the disposition before
+            # it inspects anything. The outcome is reported and then falls
+            # through to the SAME halt decision every other outcome reaches --
+            # it used to `continue` past it.
             outcomes.append(MoveOutcome(
                 plan_id=plan.plan_id, file_id=plan.file_id,
                 source_path=plan.expected_source_path,
                 intended_destination_path=plan.resolved_destination_path,
                 final_path=None, result=CROSS_VOLUME_UNRULED,
                 sentence=unruled_cross_volume_sentence, record=None))
+            if halts(CROSS_VOLUME_UNRULED, halt_on):
+                halted_after = plan.plan_id
             continue
         outcomes.append(MoveOutcome(
             plan_id=plan.plan_id, file_id=plan.file_id,
@@ -247,7 +298,7 @@ def apply_selected(conn: sqlite3.Connection,
             sentence=sentence_for(record.result,
                                   cross_volume=unruled_cross_volume_sentence),
             record=record))
-        if record.result.partition(":")[0] in halt_on:
+        if halts(record.result, halt_on):
             halted_after = plan.plan_id
 
     return ApplyOutcome(outcomes=tuple(outcomes), halted_after=halted_after,
@@ -287,18 +338,15 @@ def take_back(conn: sqlite3.Connection,
               mint_id: Callable[[], str]) -> TakeBackOutcome:
     """Reverse each entry, newest first, reporting every one.
 
-    Newest first because a folder made for a later move may sit inside one made
-    for an earlier move, and `mutation.directories` will only remove a folder
-    that nothing else still references. Reversing in the order the moves
-    happened would leave the outer folders behind on the first pass.
+    The ordering, and why a plain reverse sort does not give it, is
+    `undo_order`'s -- including what happens when two entries share a timestamp.
 
     `undo` is called with `unverified_copy_disposition=None` for the same reason
     the apply run does: `74` §8 Q7 is open, and a reversal that crosses a volume
     raises before touching anything rather than leaving a copy behind.
     """
     outcomes: list[UndoOutcome] = []
-    for entry in sorted(entries, key=lambda item: item.time_of_execution,
-                        reverse=True):
+    for entry in undo_order(entries):
         verdict = undo(
             conn, entry.entry_id, constraints=constraints,
             unverified_copy_disposition=None,

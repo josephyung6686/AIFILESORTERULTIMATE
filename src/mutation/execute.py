@@ -50,6 +50,7 @@ import json
 import os
 import sqlite3
 from collections.abc import Callable, Mapping, Sequence
+import dataclasses
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -139,6 +140,25 @@ class ExecutionRecord:
     directories_created_by_this_action: tuple[str, ...]
     started_at: str
     finished_at: str
+    #: What the gate that stopped this move knew, beyond its class. Empty on an
+    #: applied move and on every stop whose class already says everything.
+    #:
+    #: **This exists because `protection_verdict`'s docstring promised it and
+    #: nothing carried it.** Contract out §5 gives ONE refusal class for §8.4 --
+    #: `protected_without_policy` -- and two very different things land on it:
+    #: *"this file is protected and no policy permits it"* and *"nothing has
+    #: looked at this file"*. The reason travelled as far as the event and
+    #: stopped, because this record had nowhere to put it, so a person whose
+    #: file nothing had classified read "This item is protected by your privacy
+    #: policy". On a corpus with no detector that is the ORDINARY state and the
+    #: most confusing possible thing to say about it.
+    #:
+    #: A second refusal CLASS would have been the tidier shape, and it is not
+    #: available: `REFUSAL_CLASSES` is closed and adding a member needs the
+    #: owner's approval recorded at the member. Carrying the detail says the
+    #: same thing without inventing vocabulary, and it is the half
+    #: `apply_run.report` needs to say two sentences.
+    detail: Mapping[str, object] = _NO_DETAIL
 
     def __post_init__(self) -> None:
         kind, _, detail = self.result.partition(":")
@@ -209,7 +229,11 @@ def record_execution(conn: sqlite3.Connection, record: ExecutionRecord, *,
         "VALUES (?,?,?,?,?,?,?,?)",
         (record_id, record.plan_id, plan_version, record.result, record.mode,
          record.final_destination_path, record.finished_at,
-         canonical_json(asdict(record))))
+         # `asdict` deep-copies, and a `mappingproxy` cannot be copied. The
+         # detail is unwrapped to the plain mapping it wraps for the write; the
+         # read side wraps it again, so no caller ever holds a mutable one.
+         canonical_json({**asdict(dataclasses.replace(record, detail={})),
+                         "detail": dict(record.detail)})))
     return record_id
 
 
@@ -404,7 +428,7 @@ def apply_plan(conn: sqlite3.Connection, plan: MovePlan, *,
             destination_confirmed_pre_removal=v4, result=result,
             final_destination_path=final,
             directories_created_by_this_action=created, started_at=started,
-            finished_at=now())
+            finished_at=now(), detail=detail)
         record_execution(conn, record, plan_version=plan.organization_plan_version,
                          record_id=mint_id())
         if announce:
@@ -679,5 +703,9 @@ def executions_for(conn: sqlite3.Connection,
         raw = json.loads(row[0])
         raw["directories_created_by_this_action"] = tuple(
             raw["directories_created_by_this_action"])
+        # A row written before `detail` existed has no key, and one written
+        # after has a plain dict. Both become the same read-only mapping, so a
+        # caller cannot tell which era a record came from and cannot mutate it.
+        raw["detail"] = MappingProxyType(dict(raw.get("detail") or {}))
         out.append(ExecutionRecord(**raw))
     return tuple(out)
