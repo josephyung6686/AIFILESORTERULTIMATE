@@ -152,6 +152,16 @@ def test_the_passport_is_still_held_counted_and_never_named(tmp_path):
     # And it is not in the frozen set: nothing offers to move it.
     assert "Frozen: 3 file(s)" in printed, printed
 
+    # `94` F16, on the same screen. Five files went in; three froze and TWO did
+    # not, and the passport is the second of those. The freeze block used to say
+    # four, because a decision that abstained produced no held row -- right for
+    # an ordinary abstention and wrong for the one category `84` §1 says is
+    # never silently omitted. The count and the protected line are asserted
+    # together: either alone passes for a screen that has one of them.
+    assert "Not frozen, and still exactly where they are -- 2 file(s):" in \
+        printed, printed
+    assert "1 protected file(s), counted here and not named" in printed, printed
+
 
 def test_the_same_corpus_without_the_passport_freezes_the_same_three(tmp_path):
     """The control, and the half that made `94` F1 a causal claim.

@@ -14,8 +14,8 @@ import json
 from mutation.plan import current_plan
 
 from apply_run.freeze import (
-    ALREADY_AT_DESTINATION, NOT_SHOWN, REFUSED_AT_CONSTRUCTION,
-    freeze, frozen_plans,
+    ALREADY_AT_DESTINATION, NOT_SHOWN, PROTECTED_NEEDS_PERMISSION,
+    REFUSED_AT_CONSTRUCTION, freeze, frozen_plans,
 )
 
 from .conftest import COLLISION_POLICY, CONSTRAINTS, LEGAL, NODES, PROTECTED_CLASSES
@@ -169,6 +169,37 @@ def test_only_place_decisions_become_plans(world, ids, clock):
     # Not a refusal and not a hold: `00`:114 makes correct abstention a
     # successful outcome, and it was already reported by the run.
     assert (proposal.plans, proposal.held) == ((), ())
+
+
+def test_a_protected_file_that_abstained_is_still_counted_and_named_as_protected(
+        world, ids, clock):
+    """`94` F16. The rule above is right for an abstention and wrong for a passport.
+
+    Five files in the corpus and the freeze block said *"Not frozen, and still
+    exactly where they are -- 4 file(s)"*: the passport reached an `abstain`, and
+    the skip that keeps a correct abstention out of the withheld list took it
+    with it. `84` §1's standing rule has no exception -- protected material is
+    marked and counted and NEVER silently omitted -- and the freeze block is
+    exactly the screen a person reads to ask what happened to their files.
+
+    The whole held row is asserted, reason and detail and destination together: a
+    row under any other reason is a different sentence on the screen, and a row
+    naming a destination would claim the run had chosen one when it declined to.
+    """
+    from placement.fixtures import CORRECT_ABSTENTION
+
+    passport = next(decision for decision in world.decisions
+                    if decision.privacy.protected)
+    abstained = dataclasses.replace(
+        CORRECT_ABSTENTION, plan_version="plan-under-test",
+        subject=passport.subject, privacy=passport.privacy)
+
+    proposal = _freeze(world, (abstained,), ids=ids, clock=clock)
+    assert proposal.plans == ()
+    assert [(item.file_id, item.reason, item.detail, item.destination_node)
+            for item in proposal.held] == [
+        (passport.subject.file_id, PROTECTED_NEEDS_PERMISSION,
+         "highly_sensitive_credential_bearing", None)]
 
 
 def test_freezing_again_replaces_the_earlier_proposal(world, ids, clock):

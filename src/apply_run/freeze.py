@@ -81,7 +81,10 @@ class Held:
 
     file_id: str
     source_path: str | None
-    destination_node: str
+    #: `None` when the decision named none. A protected file that ABSTAINED is
+    #: held and counted (`84` §1), and it has no destination to name -- writing
+    #: one in would be inventing the answer the run declined to give.
+    destination_node: str | None
     reason: str
     #: The refusal class, the review policy, or whatever narrower fact the
     #: reason needs to be legible. One field because a reason has one detail.
@@ -202,6 +205,16 @@ def freeze(conn: sqlite3.Connection,
     withheld would tell a person that files were kept back when in fact they
     were decided.
 
+    **Protected material is the one exception, and `94` F16 is why.** That rule
+    is right for an ordinary abstention and wrong for a passport: `84` §1 says
+    protected material is marked and counted and NEVER SILENTLY OMITTED, and
+    `93` §4 puts the count on the screen in both views. A five-file corpus whose
+    fifth file was a passport scan reported *"Not frozen, and still exactly where
+    they are -- 4 file(s)"*, and the missing one was the file the standing rule
+    exists for. So a protected subject is held whatever its outcome, under the
+    reason it is already held under when it reaches a `place` decision, and
+    `report` prints it as a count with no name and no command.
+
     **The provenance of every node's NAME is joined here, once, and handed down.**
     P12 refuses to compose a directory out of a label that IS protected material
     (`74` §5.6) and cannot answer that from the tree: `Node.handling_class` is
@@ -227,6 +240,17 @@ def freeze(conn: sqlite3.Connection,
 
     for decision in decisions:
         if decision.outcome != PLACE or decision.destination is None:
+            if decision.privacy.protected:
+                # `94` F16. Counted, named as protected, and NOT named by
+                # filename -- the same row `_withheld` writes for a protected
+                # placement, so the two arrive at `report` as one reason and one
+                # sentence. `destination_node` is `None` because the decision
+                # named none: this is the run declining to move it, not a plan
+                # that failed.
+                held.append(Held(
+                    file_id=decision.subject.file_id, source_path=None,
+                    destination_node=None, reason=PROTECTED_NEEDS_PERMISSION,
+                    detail=decision.privacy.handling_class))
             continue
         node_id = decision.destination.node_id
         withheld = _withheld(decision, shown_file_ids)
