@@ -160,7 +160,6 @@ def _files_section(printed: str) -> list[str]:
 # The measurement, as an assertion
 # ======================================================================================
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_a_hold_split_into_four_hundred_batches_is_one_reason_said_once():
     """§8.6 splits a set over the batch ceiling; it does not split the REASON.
 
@@ -183,7 +182,6 @@ def test_a_hold_split_into_four_hundred_batches_is_one_reason_said_once():
         "times for one reason shared by every one of those files")
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_four_hundred_batches_of_one_hold_are_one_group_and_not_four_hundred():
     """The headings, which is what a person scrolls past."""
     run, names = _at_scale()
@@ -196,7 +194,6 @@ def test_four_hundred_batches_of_one_hold_are_one_group_and_not_four_hundred():
         + "\n".join(headings[:12]))
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
     """236 screens is not a report. The budget is what makes this a test rather
     than an impression: a person's whole disk, on four screens."""
@@ -221,7 +218,6 @@ def test_the_whole_report_fits_in_a_handful_of_screens_at_five_thousand_files():
         f"the first group runs to {second} lines:\n" + "\n".join(section[:second]))
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_everything_a_person_can_type_is_reachable_without_scrolling_past_it():
     """`--send-set` is the gesture this report exists to offer. At 5,000 files the
     first one sat at line 86 and the four-hundredth at line 9,300, with the same
@@ -242,7 +238,6 @@ def test_everything_a_person_can_type_is_reachable_without_scrolling_past_it():
 # Simpler must not mean less true
 # ======================================================================================
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_every_review_set_is_counted_even_when_the_names_are_shortened():
     """Nothing may be dropped to make the output shorter. A set that is not named
     is still counted, and the report says how many were counted rather than
@@ -291,7 +286,6 @@ def test_a_protected_hold_is_still_offered_no_command():
     assert "--send-set" in printed
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_a_printed_send_set_command_is_a_line_a_shell_can_parse():
     """What the screen tells a person to type has to be true.
 
@@ -319,7 +313,6 @@ def test_a_printed_send_set_command_is_a_line_a_shell_can_parse():
             assert tokens[1].endswith(f"={area}"), tokens[1]
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_the_command_names_the_set_it_would_actually_send():
     """A gesture that acts on something other than what the person named is worse
     than one that stops and asks -- and `act_on_residual_sets` refuses a bare
@@ -349,7 +342,6 @@ def test_with_no_area_enabled_the_report_says_how_to_make_one_and_names_the_sets
     assert "Not yet placed (1 of 3)" in printed, printed
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_PATCH)
 def test_a_batch_whose_files_straddle_two_headings_claims_no_total_it_cannot_see():
     """The sentence beside a hold may only say what that heading can see.
 

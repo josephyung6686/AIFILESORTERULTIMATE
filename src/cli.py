@@ -2620,43 +2620,94 @@ def _typable(question, option_id: str) -> str:
     return shlex.quote(f"{question.question_id}={option_id}")
 
 
-def _review_note(item, areas: Sequence[str]) -> str:
-    """Why a set is being held, and the one thing a person can type about it.
+def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
+    """Why these sets are being held, and what a person can type about each one.
+
+    LINES, not one sentence, and a line that begins with a space is printed
+    exactly as it is -- `_role_lines`' convention, for `_role_lines`' reason. A
+    command `textwrap` has broken across two lines is not a command, because the
+    quote never closes: this built `--send-set` into prose and let `report` wrap
+    it, so `Receipts and Confirmations` -- one of §7.3's nine -- printed as
+    `--send-set "Not yet placed=Receipts and` with `Confirmations"` underneath.
+
+    **A hold's reason is one fact however many sets carry it.** §8.6 splits a set
+    over the batch ceiling rather than truncating it, so over a real disk one
+    hold arrives as `Not yet placed (1 of 420)` through `(420 of 420)`: 420 sets,
+    one reason, and the reason was printed 420 times -- 9,460 lines for 4,068
+    files, measured. It is said once here and the batches are named beneath it.
+
+    **The batches are not one fact.** `act_on_residual_sets` addresses a set by
+    the label the report printed and refuses a bare label that names no surfaced
+    set, so one `--send-set` files ONE batch -- and the sentence beside it may
+    not say it files them all, which is what it used to say.
 
     A hold with no command beside it is the product saying it noticed and will do
     nothing. With no residual area enabled the sentence says how to make one
     rather than naming a flag that would refuse.
     """
-    held = f'Held for review as "{item.label}": {item.reason_not_placed}'
-    if item.protected:
-        # No command, because there is no command. `--send-set` files a set in
-        # one gesture with no per-file look, and P11 refuses that over protected
-        # material before it reads any decision. Printing the flag here would
-        # offer an instruction that always fails, and it would contradict the
-        # sentence immediately above it. The set is still shown, named and
-        # counted; what is withheld is a suggestion that was never true.
-        return held
-    if areas:
-        # THE COMMAND GOES ON ITS OWN LINE, and it is `shlex.quote`d rather than
-        # hand-wrapped in double quotes. Both halves are the same defect, and
-        # both were live: `report` runs this sentence through `_wrapped`, so with
-        # `Receipts and Confirmations` -- one of the nine shipped area names --
-        # the line broke as `--send-set "Not yet placed=Receipts and` with
-        # `Confirmations"` beneath it, and a shell reading that raises `No
-        # closing quotation`. Hand-written quotes fail the same way for a label
-        # holding a quote of its own.
-        #
-        # `--answer` was fixed this way and `--send-set` was left inside the
-        # prose (`_typable`, and `84` §6: what the screen tells a person to type
-        # has to be true). The render loop below prints an already-indented line
-        # unchanged, which is the convention `_wrapped`'s own caller uses.
-        return (f'{held} To file them all at once, name a home for them:'
-                f'\n      --send-set {shlex.quote(f"{item.label}={areas[0]}")}'
-                + (f'\n    (this plan also has {", ".join(areas[1:])})'
-                   if areas[1:] else ""))
-    return (f"{held} This plan has nowhere to put them yet: enable an area with "
-            '`--residual "Review Later"` and they can all be sent there in one '
-            "command.")
+    by_reason: dict[tuple[bool, str], list] = {}
+    for item in items:
+        by_reason.setdefault((item.protected, item.reason_not_placed),
+                             []).append(item)
+    lines: list[str] = []
+    for (protected, reason), held in by_reason.items():
+        opening = f'Held for review as "{held[0].label}": {reason}'
+        if len(held) > 1:
+            # Says what this function can SEE, and no more. §8.6's batches do not
+            # respect the boundaries the report groups by, so one batch can hold
+            # files printed under two headings: `items` is the batches touching
+            # THIS group, not the whole hold. "these N files" beside a heading
+            # that just counted a different N points at nothing, and "the hold is
+            # split into N" is simply false when the hold is split into more.
+            opening += (f" {len(held)} review sets of it have files under this "
+                        "heading, and each is addressed by the name beside it.")
+        lines.append(opening)
+        # One batch is already named in the sentence above, so a hold that is one
+        # batch says it once and only a SPLIT hold gets the roll-call. In that
+        # roll-call a PROTECTED set is named however long the list is:
+        # shortening the ordinary list is fine, and shortening the part that
+        # says what was marked protected and left alone is the silent omission
+        # the standing rule exists to forbid.
+        shown = () if len(held) == 1 else (
+            held if protected else held[:NAMES_LISTED_PER_GROUP])
+        for item in shown:
+            if protected:
+                # No command, because there is no command. `--send-set` files a
+                # set in one gesture with no per-file look, and P11 refuses that
+                # over protected material before it reads any decision. Printing
+                # the flag here would offer an instruction that always fails, and
+                # it would contradict the sentence immediately above it. The set
+                # is still shown, named and counted; what is withheld is a
+                # suggestion that was never true.
+                lines.append(f'"{item.label}" -- {item.file_count} file(s)')
+            elif areas:
+                # NOTHING after the command on its line. `--answer` learned this
+                # too: a count appended for readability is pasted along with the
+                # command and arrives at the shell as stray arguments.
+                lines.append(f'      --send-set '
+                             f'{shlex.quote(f"{item.label}={areas[0]}")}')
+            else:
+                lines.append(f'"{item.label}" -- {item.file_count} file(s)')
+        if len(held) == 1 and not protected and areas:
+            lines.append(f'      --send-set '
+                         f'{shlex.quote(f"{held[0].label}={areas[0]}")}')
+        rest = len(held) - len(shown) if shown else 0
+        if rest:
+            lines.append(
+                f"...and {rest} more review sets held for the same reason, "
+                "counted here rather than listed one by one so that the list "
+                "stays shorter than the folder it describes; none of them is "
+                "protected, which is never summarised away")
+        if protected:
+            continue
+        if areas[1:]:
+            lines.append(f'This plan also has {", ".join(areas[1:])}.')
+        elif not areas:
+            lines.append(
+                "This plan has nowhere to put them yet: enable an area with "
+                '`--residual "Review Later"` and each of these sets can be sent '
+                "there with one command.")
+    return tuple(lines)
 
 
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
@@ -2744,6 +2795,20 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     placed = sum(1 for d in decisions
                  if d.outcome == pv.PLACE and d.review_policy == pv.AUTO_ELIGIBLE
                  and _is_move(d))
+    # And the ones the body then heads "Ready for you to approve". Found by
+    # running the product: a run that had just filed a review set printed
+    # "0 ready to file" one line above "Ready for you to approve, then file into
+    # Review Later -- 6 files". The count was right by its own vocabulary and
+    # the screen still contradicted itself -- the number a person reads
+    # disagreeing with the list they read next, which is the same fault
+    # `PLACEMENT_WORDS` fixed in the headlines and this line kept.
+    #
+    # Same three conditions as `placed` so the two can only ever differ about
+    # the policy, and omitted entirely when it is zero, so every run that has no
+    # approvals prints exactly the line it printed before.
+    awaiting = sum(1 for d in decisions
+                   if d.outcome == pv.PLACE
+                   and d.review_policy == pv.REVIEW_REQUIRED and _is_move(d))
     sets_by_file: dict[str, list] = {}
     for item in result.placement.residual_sets:
         for file_id in item.member_file_ids:
@@ -2754,6 +2819,11 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
     # fact the first time it was printed and stayed one fact the other three.
     members: dict[tuple, list[str]] = {}
     shielded: dict[tuple, bool] = {}
+    # The batches holding each group, collected rather than re-derived, so one
+    # batch is named on the screen exactly once however many of its files
+    # reached this group.
+    held_sets: dict[tuple, list] = {}
+    held_seen: dict[tuple, set] = {}
     for decision in decisions:
         # Deduplicated by identity, not by value: two review sets that happen to
         # read alike are still two sets, and folding them would lose one.
@@ -2782,14 +2852,29 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # A file whose decision CAME OUT of residual review is not still being
         # held by the set that surfaced it. Printing the hold anyway would tell
         # someone who has just filed a set that nothing happened to it.
-        review = tuple(_review_note(item, areas)
-                       for item in sets
-                       if getattr(decision, "residual", None) is None)
+        held = tuple(item for item in sets
+                     if getattr(decision, "residual", None) is None)
+        # KEYED ON WHAT THE HOLD MEANS, NOT ON WHICH BATCH IT LANDED IN. §8.6
+        # splits a set over the batch ceiling rather than truncating it, so one
+        # hold over a real disk arrives as 420 sets differing only in the
+        # `(i of n)` in their labels. Keying on the note -- which carries that
+        # label -- made those 420 report groups, each repeating the same reason
+        # and the same file-level explanation: 9,460 lines for 4,068 files, 236
+        # screens, with the one block a person can act on at line 9,317.
+        # `protected` stays in the key, so a protected hold never merges into an
+        # ordinary one; two holds with different reasons still key apart.
+        review = tuple(dict.fromkeys(
+            (item.protected, item.reason_not_placed) for item in held))
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
                settled, same_folder)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or _protected(decision, sets)
+        marks = held_seen.setdefault(key, set())
+        for item in held:
+            if id(item) not in marks:
+                marks.add(id(item))
+                held_sets.setdefault(key, []).append(item)
 
     rank = {outcome: index for index, outcome in enumerate(OUTCOME_WORDS)}
     ordered = sorted(members, key=lambda key: (
@@ -2805,7 +2890,9 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # summarised away are different things, and only the first is changed here.
         shielded[key], rank.get(key[0], len(rank)), key[1] or "", key[2]))
 
-    print(f"\nFiles: {len(decisions)} decided, {placed} ready to file", file=out)
+    print(f"\nFiles: {len(decisions)} decided, {placed} ready to file"
+          + (f", {awaiting} waiting for you to approve" if awaiting else ""),
+          file=out)
     for key in ordered:
         outcome, where, reason, review, policy, settled, same_folder = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
@@ -2838,14 +2925,11 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         if reason:
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
                   file=out)
-        for note in review:
-            # An already-indented line is a command and is printed VERBATIM;
-            # everything else is prose and is wrapped. Same convention as
-            # `_wrapped`'s other caller, and the reason is the same: wrapping a
-            # command is what breaks it.
-            for line in note.split("\n"):
-                print(line if line.startswith(" ")
-                      else _wrapped(line, indent="    "), file=out)
+        # `_role_lines`' convention: a line that begins with a space is a line
+        # the person is meant to paste, and it is printed exactly as it is.
+        for note in _review_note(held_sets.get(key, ()), areas):
+            print(note if note.startswith(" ")
+                  else _wrapped(note, indent="    "), file=out)
 
     # §7.5's sets are printed where the files they cover are printed, so the same
     # four files are never counted twice in two vocabularies. A set covering no
@@ -3229,6 +3313,30 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)
         return 2
+    except ResidualSendRefused as refusal:
+        # P11's own standard, met where it can be. `approved_residual_area`
+        # refuses a send to an area this plan has not enabled, and its docstring
+        # states the rule: "a refusal that does not say what to type is half a
+        # refusal". The branch that fires when the plan has NO residual area
+        # says "enable one first" and cannot say how, because a part package may
+        # not name a flag. The composition root is where the flag exists, so it
+        # is where the sentence is finished.
+        #
+        # Found by running the product. A person enabled `Review Later` in one
+        # run, saw the folder appear, and sent a set to it in the NEXT -- and
+        # lost the whole plan to a refusal that never mentioned the one fact
+        # that explains it: `--residual` enables an area for the run it is typed
+        # in. That is the sentence, and it names the command they can paste.
+        print(f"\nNo plan was made for {directory}, and this is why:\n"
+              f"  {type(refusal).__name__}: {refusal}\n"
+              f"  `--residual` enables an area for the run it is typed in, so "
+              f"it belongs in the same command as the `--send-set` that uses "
+              f"it: "
+              + " ".join(f"--residual {shlex.quote(area)}"
+                         for area in dict.fromkeys(
+                             _parse_sends(args.send_set).values())),
+              file=out)
+        return 1
     except REFUSALS as refusal:
         # A NAMED refusal, printed rather than raised. §5's chain refuses by name
         # -- C1-C8, V1-V6, §5.4's empty branch -- and each refusal says which
