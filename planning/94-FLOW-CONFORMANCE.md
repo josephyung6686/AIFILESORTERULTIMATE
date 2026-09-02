@@ -689,3 +689,31 @@ whether it is the same defect as the `school>term>subject>work_type` template re
 which no file carries a `school` fact. **The rule must not simply be deleted** — a level holding
 every file, so a person opens one folder to find one folder, is a real defect it exists to
 prevent. The question is what should happen when the only dividing level is the one dropped.
+
+### F20, sharpened 2026-09-03 — the boundary checked, and the product says it out loud
+
+`fix-f1-lockout` reported the opposite on its own corpus: *"WITHOUT the passport (4 files): same
+three files freeze, into `Coursework/Review Later`."* Two contradicting reports is a reason to
+measure, not to pick one. Re-run over three corpus shapes, fresh database each time:
+
+```
+mine (3 files, all name-prefixed, flat)      ->  Nothing was frozen.
+theirs (4 files, mixed names, Uni/ subdir)   ->  Nothing was frozen.
+theirs minus the subfolder                   ->  Nothing was frozen.
+```
+
+**F20 reproduces on their corpus too.** Their observation does not reproduce and is not
+explained here — a different flag or leftover database state is the likeliest cause, since
+`Coursework/Review Later` is a residual area and this command enables none.
+
+And the run states the mechanism in its own words. The single nesting option it offers reads:
+
+> `--answer 'branch:Coursework=school>term>subject>work_type'` — This option would create
+> **1 term, and 1 subject. 3 file(s) would stay unresolved and visible.**
+
+So the count is not hidden and the outcome is not a surprise to the product: it has measured that
+the subject level yields ONE subject, dropped it for not dividing, and predicts that every file
+stays unresolved. **The only option it offers is one it has already computed to be useless for
+this corpus, and it offers it anyway without saying so.** That is a second defect beside the
+first, and it is the one a person actually meets: `84` §6 — a screen that tells a person what to
+type has to be true, and an option predicted to resolve nothing is not an offer.
