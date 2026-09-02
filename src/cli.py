@@ -36,7 +36,9 @@ import getpass
 import random
 import hashlib
 import json
+import os
 import re
+import secrets
 import shlex
 import sqlite3
 import sys
@@ -360,6 +362,72 @@ MAX_RESPONSE_TOKENS: int = 2048
 
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
 ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
+
+#: The wire handle key. `llm_harness.wire_handles` digests every identifier that
+#: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
+#: `observation_key`, every `evidence_ref` that is a P4 key -- because an un-keyed
+#: digest of the person's own content is a dictionary attack the recipient can run
+#: in a second, and two of them were run against this product.
+#:
+#: 32 bytes: HMAC-SHA256 hashes any key longer than its 64-byte block down to no
+#: benefit, and a key shorter than its 32-byte output is the weakest part of the
+#: digest. It is the length below which the key, rather than the guess space, is
+#: what an attacker goes after.
+WIRE_HANDLE_KEY_BYTES: int = 32
+
+#: Beside the database and NOT INSIDE IT, which is the whole point of a separate
+#: file. A database is the thing that gets copied -- to a backup, into a support
+#: bundle, alongside a shared corpus snapshot -- and a key stored in a row travels
+#: with every one of those copies, protecting nothing the moment one is shared. The
+#: key is what makes a released handle uninvertible; separating it from the data
+#: whose identifiers it protects is why copying the database leaks no handles.
+#: `open_database` already refuses a database inside a scan root, and the key
+#: follows the database, so it inherits that refusal for free.
+WIRE_HANDLE_KEY_FILENAME: str = ".wire-handle-key"
+
+#: Readable and writable by this user and by nobody else.
+WIRE_HANDLE_KEY_MODE: int = 0o600
+
+
+def wire_handle_key_for(database: Path) -> bytes:
+    """The local-only key, minted once per database and read back ever after.
+
+    It is a CREDENTIAL. It is never printed, never logged, never written to an
+    audit row, never put in an exception message and never sent. Nothing in `src/`
+    outside this function reads the file.
+
+    **Per database, not per run, and that is a trade made here rather than in the
+    package.** `dossier_id` is the content address of the model-visible bytes, and
+    those bytes carry keyed handles -- so a key that changed between runs would give
+    two calls over identical content two different addresses, and
+    `llm_harness.store.record_dossier` would stop recognising the second as the
+    first. Every cross-run replay and every cache lookup leans on that recognition.
+    The cost of keeping it: a handle is stable for as long as the key is, so a
+    provider can still see that two calls named the same observation, even though it
+    can no longer discover WHICH observation. Inversion is closed; linkage is not.
+
+    Rotation costs exactly that recognition and nothing else: the local
+    `observation_key` never changes, so `privacy.resolve`, the audit record, P6's
+    citations and every stored evidence row still address what they always did.
+    """
+    path = database.expanduser().resolve().parent / WIRE_HANDLE_KEY_FILENAME
+    if path.exists():
+        key = path.read_bytes()
+        if len(key) != WIRE_HANDLE_KEY_BYTES:
+            # Never echo the contents. Say where and how long, and stop.
+            raise SystemExit(
+                f"{path} is {len(key)} bytes; a wire handle key is "
+                f"{WIRE_HANDLE_KEY_BYTES}. Refusing rather than digesting "
+                "identifiers under something that is not a key."
+            )
+        return key
+    key = secrets.token_bytes(WIRE_HANDLE_KEY_BYTES)
+    # O_EXCL so two runs racing to mint the first key cannot each write one.
+    descriptor = os.open(
+        path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, WIRE_HANDLE_KEY_MODE)
+    with os.fdopen(descriptor, "wb") as sink:
+        sink.write(key)
+    return key
 
 
 def _dotenv(path: Path) -> Mapping[str, str]:
