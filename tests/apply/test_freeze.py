@@ -13,9 +13,15 @@ import json
 
 from mutation.plan import current_plan
 
+from placement.records import Ask, ReturnTarget
+from placement.vocabulary import (
+    ABSTAIN, ASK_USER, BLOCKED_PENDING_USER, CONFIRMED_DOMAIN_GROUP,
+    MARK_STATE, OUTCOMES, PLACE, RETURN_TO_PLACEMENT, UNSUPPORTED,
+)
+
 from apply_run.freeze import (
-    ALREADY_AT_DESTINATION, NOT_SHOWN, PROTECTED_NEEDS_PERMISSION,
-    REFUSED_AT_CONSTRUCTION, freeze, frozen_plans,
+    ALREADY_AT_DESTINATION, AWAITING_CLASSIFICATION, NOT_A_MOVE, NOT_SHOWN,
+    PROTECTED_NEEDS_PERMISSION, REFUSED_AT_CONSTRUCTION, freeze, frozen_plans,
 )
 
 from .conftest import COLLISION_POLICY, CONSTRAINTS, LEGAL, NODES, PROTECTED_CLASSES
@@ -159,16 +165,114 @@ def test_a_decision_naming_a_node_outside_the_frozen_tree_is_held_with_its_class
     assert proposal.held[0].detail == "node_refuses_placement"
 
 
+#: The one extra field each outcome's RECORD shape requires.
+#: `PlacementDecision` enforces every pairing both ways -- `mark_state` names the
+#: state, `ask_user` carries the question, `return_to_placement` names what it
+#: goes back to -- so this table is the record contract and not decoration, and a
+#: decision built without it does not exist to be dropped.
+_SHAPE = {
+    MARK_STATE: {"marked_state": UNSUPPORTED},
+    ASK_USER: {"ask": Ask(question="Which of these is its home?",
+                          options=("n-phys", "n-read"))},
+    RETURN_TO_PLACEMENT: {"return_target": ReturnTarget(
+        kind=CONFIRMED_DOMAIN_GROUP, id="group-1")},
+}
+
+
+def _outcome_decisions(world):
+    """One decision per outcome P11 publishes that is not `place`.
+
+    Driven off `OUTCOMES` rather than off a list written here, so an outcome P11
+    adds tomorrow is in this test the day it is added rather than the day
+    somebody remembers to add it. `return_to_placement` starts from the residual
+    fixture because §7.9 emits it only on that path and the record says so.
+    """
+    from placement.fixtures import CORRECT_ABSTENTION, RESIDUAL_LEAVE_IN_PLACE
+
+    made = []
+    for index, outcome in enumerate(o for o in OUTCOMES if o != PLACE):
+        base = (RESIDUAL_LEAVE_IN_PLACE if outcome == RETURN_TO_PLACEMENT
+                else CORRECT_ABSTENTION)
+        made.append(dataclasses.replace(
+            base, plan_version="plan-under-test",
+            decision_id=f"decision-{outcome}", outcome=outcome,
+            subject=world.decisions[index % len(world.decisions)].subject,
+            # An abstention names why and no other outcome may (§6.10).
+            abstention_reason=(CORRECT_ABSTENTION.abstention_reason
+                               if outcome == ABSTAIN else None),
+            **_SHAPE.get(outcome, {})))
+    return tuple(made)
+
+
 def test_only_place_decisions_become_plans(world, ids, clock):
+    """Still true of the PLANS, which is the half `00`:114 was ever about.
+
+    A correct abstention is a successful outcome and `00`:112's leave-in-place is
+    a decision not to move, so neither may become a plan in the approved set.
+    Neither may vanish off the screen either -- that is the test below.
+    """
+    proposal = _freeze(world, _outcome_decisions(world), ids=ids, clock=clock)
+    assert proposal.plans == ()
+
+
+def test_every_decision_that_is_not_a_move_is_still_named_with_a_reason(
+        world, ids, clock):
+    """`94` F22, over every outcome at once.
+
+    Four files in one folder: two frozen, one listed as not frozen, and the
+    fourth -- a plain text file with no extension -- named NOWHERE in the block.
+    It had reached a decision (`abstain`, under `blocked_pending_user`) and the
+    skip that kept a correct abstention out of the withheld list took it with it.
+    `84` §1's rule is not only about protected material: marked and counted,
+    never silently omitted. A person counting their files against that block
+    found one missing and had nothing to search for.
+
+    The detail is the outcome itself, so `report` can say what was decided
+    instead of printing one sentence over six different things.
+    """
+    decisions = _outcome_decisions(world)
+    proposal = _freeze(world, decisions, ids=ids, clock=clock)
+
+    assert len(proposal.held) == len(decisions)
+    assert {(item.reason, item.detail) for item in proposal.held} == {
+        (NOT_A_MOVE, decision.outcome) for decision in decisions}
+    # No destination is claimed for a decision that named none.
+    assert {item.destination_node for item in proposal.held} == {None}
+
+
+def test_a_freeze_accounts_for_every_decision_it_was_given(world, ids, clock):
+    """The property, not the number: plans + holds == what went in.
+
+    This is what a person does with the block -- add the two counts and compare
+    them to the size of their folder -- and it is the assertion that holds for
+    any corpus rather than for the four files that happened to find the bug.
+    """
+    decisions = world.decisions + _outcome_decisions(world)
+    proposal = _freeze(world, decisions, ids=ids, clock=clock)
+
+    assert len(proposal.plans) + len(proposal.held) == len(decisions)
+    assert len(proposal.plans) == len(world.decisions)
+
+
+def test_an_unclassified_file_that_never_reached_a_placement_says_so(
+        world, ids, clock):
+    """`blocked_pending_user` is the truer sentence than the outcome's name.
+
+    It is what the file in `94` F22 actually carried. Nothing has looked inside
+    it, which is true whatever the outcome, and it is the same reason -- so the
+    same sentence -- that a `place` decision under that policy is held under.
+    A person reading the block sees one fact, once, for both.
+    """
     from placement.fixtures import CORRECT_ABSTENTION
 
-    abstained = dataclasses.replace(
+    unclassified = dataclasses.replace(
         CORRECT_ABSTENTION, plan_version="plan-under-test",
+        review_policy=BLOCKED_PENDING_USER,
         subject=world.decisions[0].subject)
-    proposal = _freeze(world, (abstained,), ids=ids, clock=clock)
-    # Not a refusal and not a hold: `00`:114 makes correct abstention a
-    # successful outcome, and it was already reported by the run.
-    assert (proposal.plans, proposal.held) == ((), ())
+    proposal = _freeze(world, (unclassified,), ids=ids, clock=clock)
+
+    assert [(item.reason, item.detail) for item in proposal.held] == [
+        (AWAITING_CLASSIFICATION, BLOCKED_PENDING_USER)]
 
 
 def test_a_protected_file_that_abstained_is_still_counted_and_named_as_protected(

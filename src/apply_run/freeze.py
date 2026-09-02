@@ -69,10 +69,17 @@ PROTECTED_NEEDS_PERMISSION: str = "protected_needs_permission"
 ALREADY_AT_DESTINATION: str = "already_at_destination"
 REFUSED_AT_CONSTRUCTION: str = "refused_at_construction"
 NO_SAFE_NAME: str = "no_safe_name"
+#: The run decided, and the decision was never going to be a move. `94` F22:
+#: `84` §1's rule is not about protected material, it is about every file, and
+#: this is the reason that makes the freeze block's accounting total. `detail`
+#: is the OUTCOME itself, so an abstention and a leave-in-place do not arrive at
+#: `report` as one sentence -- and so an outcome P11 adds after this was written
+#: is held under a reason that exists rather than falling through into silence.
+NOT_A_MOVE: str = "not_a_move"
 HOLD_REASONS: tuple[str, ...] = (
     AWAITING_APPROVAL, AWAITING_CLASSIFICATION, NOT_SHOWN,
     PROTECTED_NEEDS_PERMISSION, ALREADY_AT_DESTINATION,
-    REFUSED_AT_CONSTRUCTION, NO_SAFE_NAME)
+    REFUSED_AT_CONSTRUCTION, NO_SAFE_NAME, NOT_A_MOVE)
 
 
 @dataclass(frozen=True)
@@ -176,6 +183,45 @@ def _withheld(decision: PlacementDecision,
     return AWAITING_APPROVAL, decision.review_policy
 
 
+def _not_a_move(decision: PlacementDecision) -> Held:
+    """The hold for a decision that was never going to become a move.
+
+    `94` F22. Four files went in; two were frozen, one was listed as not frozen,
+    and the fourth -- a plain text file with no extension -- was named NOWHERE.
+    It had reached a decision: `abstain`, under `blocked_pending_user`. The skip
+    that kept a correct abstention out of the withheld list took it with it, and
+    a person counting their files against that block finds one missing with
+    nothing to search for. `84` §1's rule has no exception and is not only about
+    protected material: marked and counted, NEVER SILENTLY OMITTED.
+
+    The reasons are ordered the way `_withheld` orders them, and for the same
+    reasons. **Protected first**, because that is the one a mistake costs most,
+    and because `94` F16 already fixed this shape for protected material -- that
+    behaviour is this function's first line and is unchanged. **Unclassified
+    next**: `blocked_pending_user` says nothing has looked inside the file, which
+    is true whatever the outcome, and it is the truer sentence for the person
+    than the outcome's own name. **The outcome last**, as the detail, because by
+    then the honest thing left to say is what the run decided.
+
+    Nothing here names a destination. A decision that did not place named none,
+    and writing one in would claim the run had chosen somewhere when it declined
+    to (`94` F16's held row makes the same point).
+    """
+    if decision.privacy.protected:
+        return Held(
+            file_id=decision.subject.file_id, source_path=None,
+            destination_node=None, reason=PROTECTED_NEEDS_PERMISSION,
+            detail=decision.privacy.handling_class)
+    if decision.review_policy == BLOCKED_PENDING_USER:
+        return Held(
+            file_id=decision.subject.file_id, source_path=None,
+            destination_node=None, reason=AWAITING_CLASSIFICATION,
+            detail=decision.review_policy)
+    return Held(
+        file_id=decision.subject.file_id, source_path=None,
+        destination_node=None, reason=NOT_A_MOVE, detail=decision.outcome)
+
+
 def freeze(conn: sqlite3.Connection,
            decisions: Sequence[PlacementDecision], *,
            nodes: Sequence[Node],
@@ -199,21 +245,25 @@ def freeze(conn: sqlite3.Connection,
     explicit that both are the composition root's, and nothing here has more
     right to pick them than P12 did.
 
-    A decision whose outcome is not `place` produces neither a plan nor a hold.
-    `00`:114 makes correct abstention a successful outcome and `00`:112's
-    leave-in-place is a decision not to move; recording either as something
-    withheld would tell a person that files were kept back when in fact they
-    were decided.
+    **Every decision that goes in comes out named, and `94` F22 is why.** This
+    function used to drop a decision whose outcome was not `place`, on the
+    argument that `00`:114 makes correct abstention a successful outcome and
+    `00`:112's leave-in-place a decision not to move, so calling either one
+    "withheld" would tell a person files were kept back when in fact they were
+    decided. The distinction is real and it is kept -- in the SENTENCE, which
+    says decided rather than kept back -- but it was never a licence to leave the
+    file off the screen. `84` §1's rule is that material is marked and counted
+    and NEVER SILENTLY OMITTED, and the block's own header, *"Not frozen, and
+    still exactly where they are"*, is literally true of an abstention. `94` F16
+    fixed exactly this for protected material and only for protected material;
+    F22 is the same omission arriving through the other outcomes, measured on a
+    four-file corpus that reported two frozen, one not frozen, and said nothing
+    at all about the fourth.
 
-    **Protected material is the one exception, and `94` F16 is why.** That rule
-    is right for an ordinary abstention and wrong for a passport: `84` §1 says
-    protected material is marked and counted and NEVER SILENTLY OMITTED, and
-    `93` §4 puts the count on the screen in both views. A five-file corpus whose
-    fifth file was a passport scan reported *"Not frozen, and still exactly where
-    they are -- 4 file(s)"*, and the missing one was the file the standing rule
-    exists for. So a protected subject is held whatever its outcome, under the
-    reason it is already held under when it reaches a `place` decision, and
-    `report` prints it as a count with no name and no command.
+    So the loop below is TOTAL: every decision handed in appends either a plan or
+    a `Held`, and `_not_a_move` is where the ones that were never going to move
+    get their reason. A person can add `Frozen` to the count under *"still
+    exactly where they are"* and get back the number of files they gave it.
 
     **The provenance of every node's NAME is joined here, once, and handed down.**
     P12 refuses to compose a directory out of a label that IS protected material
@@ -240,17 +290,7 @@ def freeze(conn: sqlite3.Connection,
 
     for decision in decisions:
         if decision.outcome != PLACE or decision.destination is None:
-            if decision.privacy.protected:
-                # `94` F16. Counted, named as protected, and NOT named by
-                # filename -- the same row `_withheld` writes for a protected
-                # placement, so the two arrive at `report` as one reason and one
-                # sentence. `destination_node` is `None` because the decision
-                # named none: this is the run declining to move it, not a plan
-                # that failed.
-                held.append(Held(
-                    file_id=decision.subject.file_id, source_path=None,
-                    destination_node=None, reason=PROTECTED_NEEDS_PERMISSION,
-                    detail=decision.privacy.handling_class))
+            held.append(_not_a_move(decision))
             continue
         node_id = decision.destination.node_id
         withheld = _withheld(decision, shown_file_ids)
@@ -288,6 +328,14 @@ def freeze(conn: sqlite3.Connection,
                 detail=str(refused)))
             continue
         if built is None:
+            # Unreachable as `build_plan` is written -- it returns `None` for
+            # exactly the precondition the branch at the top of this loop has
+            # already excluded. It is a hold rather than a `continue` because
+            # `94` F22 is what a `continue` in this loop costs: no path through
+            # it may drop a decision, whatever a later edit upstream makes of
+            # that precondition, and a file on the screen under a sentence
+            # nobody wrote is better than a file that is not there.
+            held.append(_not_a_move(decision))
             continue
         plan, resolution = built
         if plan.expected_source_path == plan.resolved_destination_path:

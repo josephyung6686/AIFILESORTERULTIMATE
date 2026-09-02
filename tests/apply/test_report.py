@@ -11,9 +11,17 @@ import re
 
 from mutation import vocabulary as v
 
+from placement.vocabulary import OUTCOMES, PLACE
+
 from apply_run.branches import branches_named
-from apply_run.freeze import NOT_SHOWN
-from apply_run.report import apply_lines, freeze_lines, undo_lines
+from apply_run.freeze import (
+    FrozenProposal, HOLD_REASONS, Held, NOT_A_MOVE, NOT_SHOWN,
+    REFUSED_AT_CONSTRUCTION,
+)
+from apply_run.report import (
+    _HOLD_SENTENCES, _NOT_A_MOVE_SENTENCES, _wrap, apply_lines, freeze_lines,
+    undo_lines,
+)
 from apply_run.run import applied_entries, plans_under
 
 from .conftest import NODES
@@ -28,6 +36,106 @@ _FLAG = re.compile(r"(?<![\w-])--[a-z]")
 
 def _names(world):
     return {file_id: path.name for file_id, path in world.sources.items()}
+
+
+#: Every (reason, detail) a hold can carry, and the explanation each is owed.
+#: `not_a_move` expands over the outcomes because that is where its sentence is
+#: keyed; every other reason has one entry and an empty detail.
+def _every_explanation():
+    for reason in HOLD_REASONS:
+        if reason == NOT_A_MOVE:
+            for outcome in OUTCOMES:
+                if outcome != PLACE:
+                    yield reason, outcome, _NOT_A_MOVE_SENTENCES[outcome]
+        elif reason == REFUSED_AT_CONSTRUCTION:
+            yield reason, "node_refuses_placement", _HOLD_SENTENCES[reason]
+        else:
+            yield reason, "", _HOLD_SENTENCES[reason]
+
+
+def _held_block(reason, detail, count):
+    """The lines a freeze prints for `count` files stopped for one reason."""
+    proposal = FrozenProposal(
+        frozen_at="2026-09-03T00:00:00Z", plan_version=None, plans=(),
+        held=tuple(
+            Held(file_id=f"file-{index}", source_path=None,
+                 destination_node=None, reason=reason, detail=detail)
+            for index in range(count)),
+        replaces=None)
+    return freeze_lines(
+        proposal, names={f"file-{index}": f"name {index}.txt"
+                         for index in range(count)},
+        nodes=NODES, apply_command=lambda branch: "cmd",
+        apply_everything_command="all")
+
+
+def test_no_reason_is_glued_into_a_carrying_sentence():
+    """`94` F23. What the screen printed, verbatim, before this was fixed:
+
+        problem set 3.docx
+        This one is nothing has looked inside it yet, so there is nothing
+        here for you to approve.
+
+    A reason phrased as a clause, dropped into `"This one is {reason}"`. Three of
+    the seven reasons were phrased that way, so rewording the one on the screen
+    would have left the other two waiting for a corpus that reached them.
+
+    So the assertion is not that any particular sentence reads well: it is that
+    the line on the screen is EXACTLY the sentence somebody wrote, wrapped, with
+    nothing prepended to it. Under that, no glue is possible. Checked in both
+    numbers, because a plural is where a carrying phrase would hide.
+    """
+    for reason, detail, explanation in _every_explanation():
+        for count, expected in ((1, explanation.one), (2, explanation.many)):
+            lines = _held_block(reason, detail, count)
+            assert _wrap(expected, indent="      ") in lines, (
+                f"{reason}/{detail} at count {count} did not print its own "
+                f"sentence:\n" + "\n".join(lines))
+
+
+def test_every_explanation_is_a_whole_sentence():
+    """The guard against the next fragment, rather than against the last one.
+
+    A half-sentence added to either table would pass the test above -- it would
+    still be printed verbatim -- and would read as nonsense on the screen the
+    moment a carrying phrase came back. Capital in, full stop out: cheap, and it
+    is exactly the shape the three broken reasons failed.
+    """
+    for _, _, explanation in _every_explanation():
+        for sentence in (explanation.one, explanation.many):
+            assert sentence[:1].isupper(), sentence
+            assert sentence.endswith("."), sentence
+
+
+def test_the_two_sentence_tables_cover_every_reason_and_every_outcome():
+    """A reason with no sentence is `94` F22 again, with a traceback on top."""
+    assert set(_HOLD_SENTENCES) == set(HOLD_REASONS)
+    assert set(_NOT_A_MOVE_SENTENCES) == set(OUTCOMES) - {PLACE}
+
+
+def test_two_outcomes_that_are_not_moves_do_not_share_one_sentence():
+    """Grouping keys on the detail, so `abstain` and `leave_in_place` part.
+
+    The accounting fixed and one sentence printed over six different things
+    would be the file back on the screen and the explanation still missing.
+    """
+    proposal = FrozenProposal(
+        frozen_at="2026-09-03T00:00:00Z", plan_version=None, plans=(),
+        held=(Held(file_id="a", source_path=None, destination_node=None,
+                   reason=NOT_A_MOVE, detail="abstain"),
+              Held(file_id="b", source_path=None, destination_node=None,
+                   reason=NOT_A_MOVE, detail="leave_in_place")),
+        replaces=None)
+    text = " ".join("\n".join(freeze_lines(
+        proposal, names={"a": "a.txt", "b": "b.txt"}, nodes=NODES,
+        apply_command=lambda branch: "cmd",
+        apply_everything_command="all")).split())
+
+    assert "declined to place it rather than guess" in text
+    assert "was decided to stay where it is" in text
+    # And the machine word for the outcome is not on the screen: the sentence
+    # above has already said it in the person's words.
+    assert "abstain" not in text and "leave_in_place" not in text
 
 
 def test_freeze_prints_the_command_it_was_given_and_invents_no_flag(

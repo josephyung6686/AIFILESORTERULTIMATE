@@ -20,49 +20,184 @@ from the same tuple the body walks, never recomputed from a second source.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from textwrap import fill
 
 from mutation.vocabulary import APPLIED
+from placement.vocabulary import (
+    ABSTAIN, ASK_USER, LEAVE_IN_PLACE, MARK_REVIEW_LATER, MARK_STATE,
+    RETURN_TO_PLACEMENT,
+)
 from tree_design.records import Node
 
 from apply_run.branches import qualified_path
 from apply_run.freeze import (
     ALREADY_AT_DESTINATION, AWAITING_APPROVAL, AWAITING_CLASSIFICATION,
-    FrozenProposal, NOT_SHOWN, NO_SAFE_NAME, PROTECTED_NEEDS_PERMISSION,
-    REFUSED_AT_CONSTRUCTION,
+    FrozenProposal, NOT_A_MOVE, NOT_SHOWN, NO_SAFE_NAME,
+    PROTECTED_NEEDS_PERMISSION, REFUSED_AT_CONSTRUCTION,
 )
 from apply_run.run import ApplyOutcome, TakeBackOutcome
 
-#: One sentence per hold, in the register `66` §10 sets for a decline: say what
-#: occurred, and say what is available. Held is not refused -- nothing was
+
+@dataclass(frozen=True)
+class _Explanation:
+    """One hold's explanation, whole, in both numbers.
+
+    `94` F23 is why this is a pair of finished sentences rather than a fragment
+    and a carrying phrase. This table used to hold half-sentences that a caller
+    completed with `"This one is "`, and it produced, on the screen a person
+    reads to find out what happened to their files:
+
+        This one is nothing has looked inside it yet, so there is nothing
+        here for you to approve.
+
+    Three of the seven reasons were phrased as clauses rather than as predicates
+    and read like that. Rewording the three would have left the shape intact for
+    the fourth, so the shape is gone: nothing is prepended to these strings, and
+    the sentence on the screen is a sentence somebody wrote and read.
+    """
+
+    #: What is printed when exactly one file stopped for this reason.
+    one: str
+    #: And when more than one did. Not derived from `one`: English plurals of a
+    #: whole sentence are not a suffix, and a rule that guessed would reintroduce
+    #: F23 by another road.
+    many: str
+
+
+#: One explanation per hold, in the register `66` §10 sets for a decline: say
+#: what occurred, and say what is available. Held is not refused -- nothing was
 #: attempted -- so none of these tells the person to try again.
-_HOLD_SENTENCES: Mapping[str, str] = {
+_HOLD_SENTENCES: Mapping[str, _Explanation] = {
     # The sentence this used to carry -- "the review screen is not built" -- was
     # true until the owner ruled that freezing IS the review. What is left under
     # this reason is a `review_policy` P11 adds after this was written, and the
     # honest sentence for that is that nothing was assumed about it.
-    AWAITING_APPROVAL:
-        "waiting on a kind of review this build has no rule for, so nothing "
-        "was assumed on your behalf. It stays where it is.",
-    AWAITING_CLASSIFICATION:
-        "nothing has looked inside it yet, so there is nothing here for you to "
-        "approve. Freezing says where a file goes; it cannot say what a file "
-        "is. It stays where it is.",
-    NOT_SHOWN:
-        "not named on the screen you froze, so freezing did not approve it. "
-        "It stays where it is.",
-    PROTECTED_NEEDS_PERMISSION:
-        "protected, and freezing a proposal is not permission to move it. "
-        "Nothing has been opened, and it stays where it is: this build has no "
-        "gesture yet for granting one protected file a move.",
-    ALREADY_AT_DESTINATION:
-        "already in the folder the plan would put it in, so there is nothing "
-        "to move.",
-    REFUSED_AT_CONSTRUCTION:
-        "no plan could be made for it.",
-    NO_SAFE_NAME:
-        "no filename safe for this filesystem could be made from its name.",
+    AWAITING_APPROVAL: _Explanation(
+        one="This one is waiting on a kind of review this build has no rule "
+            "for, so nothing was assumed on your behalf. It stays where it is.",
+        many="Each of these is waiting on a kind of review this build has no "
+             "rule for, so nothing was assumed on your behalf. They stay where "
+             "they are."),
+    AWAITING_CLASSIFICATION: _Explanation(
+        one="Nothing has looked inside this one yet, so there is nothing here "
+            "for you to approve. Freezing says where a file goes; it cannot say "
+            "what a file is. It stays where it is.",
+        many="Nothing has looked inside these yet, so there is nothing here for "
+             "you to approve. Freezing says where a file goes; it cannot say "
+             "what a file is. They stay where they are."),
+    NOT_SHOWN: _Explanation(
+        one="This one was not named on the screen you froze, so freezing did "
+            "not approve it. It stays where it is.",
+        many="These were not named on the screen you froze, so freezing did not "
+             "approve them. They stay where they are."),
+    PROTECTED_NEEDS_PERMISSION: _Explanation(
+        one="This one is protected, and freezing a proposal is not permission "
+            "to move it. Nothing has been opened, and it stays where it is: "
+            "this build has no gesture yet for granting one protected file a "
+            "move.",
+        many="Each of these is protected, and freezing a proposal is not "
+             "permission to move them. Nothing has been opened, and they stay "
+             "where they are: this build has no gesture yet for granting one "
+             "protected file a move."),
+    ALREADY_AT_DESTINATION: _Explanation(
+        one="This one is already in the folder the plan would put it in, so "
+            "there is nothing to move.",
+        many="Each of these is already in the folder the plan would put it in, "
+             "so there is nothing to move."),
+    REFUSED_AT_CONSTRUCTION: _Explanation(
+        one="No plan could be made for this one.",
+        many="No plan could be made for these."),
+    NO_SAFE_NAME: _Explanation(
+        one="No filename safe for this filesystem could be made from its name.",
+        many="No filename safe for this filesystem could be made from their "
+             "names."),
+    # `not_a_move` never reaches this table: its explanation is keyed on the
+    # OUTCOME below, because that is what the detail carries. The entry is here
+    # so the table still covers `HOLD_REASONS` in full, and it is the sentence a
+    # hold under this reason with an empty detail would get.
+    NOT_A_MOVE: _Explanation(
+        one="Nothing about this one became a move, so there was nothing to "
+            "freeze. It stays where it is.",
+        many="Nothing about these became a move, so there was nothing to "
+             "freeze. They stay where they are."),
 }
+
+#: `94` F22's sentences, keyed on P11's outcome. Six of P11's seven outcomes are
+#: not `place`, and each is a different thing to have happened to somebody's
+#: file: the run declining to guess is not the run being asked a question, and
+#: neither is a note recorded about a file that was always staying put. One
+#: sentence for all six would be the accounting fixed and the explanation still
+#: missing.
+#:
+#: Every one of them says DECIDED rather than kept back, which is the distinction
+#: `freeze`'s docstring used to defend by leaving the file off the screen
+#: altogether.
+_NOT_A_MOVE_SENTENCES: Mapping[str, _Explanation] = {
+    ABSTAIN: _Explanation(
+        one="Nothing here could say where this one belongs, so the run declined "
+            "to place it rather than guess. That is a decision and not a file "
+            "held back, and it stays where it is.",
+        many="Nothing here could say where these belong, so the run declined to "
+             "place them rather than guess. That is a decision and not files "
+             "held back, and they stay where they are."),
+    LEAVE_IN_PLACE: _Explanation(
+        one="This one was decided to stay where it is, so there was never a "
+            "move to freeze.",
+        many="These were decided to stay where they are, so there was never a "
+             "move to freeze."),
+    MARK_REVIEW_LATER: _Explanation(
+        one="This one was marked to review later, so no destination was chosen "
+            "for it and it stays where it is.",
+        many="These were marked to review later, so no destination was chosen "
+             "for them and they stay where they are."),
+    RETURN_TO_PLACEMENT: _Explanation(
+        one="This one went back to be placed again, so this run has no "
+            "destination for it to freeze. It stays where it is.",
+        many="These went back to be placed again, so this run has no "
+             "destination for them to freeze. They stay where they are."),
+    MARK_STATE: _Explanation(
+        one="What was recorded about this one is a note rather than a "
+            "destination, so there is nothing to freeze. It stays where it is.",
+        many="What was recorded about these is a note rather than a "
+             "destination, so there is nothing to freeze. They stay where they "
+             "are."),
+    ASK_USER: _Explanation(
+        one="This one is a question for you rather than a placement, so there "
+            "is nothing here to approve. It stays where it is.",
+        many="These are questions for you rather than placements, so there is "
+             "nothing here to approve. They stay where they are."),
+}
+
+#: The last sentence before silence. Nothing reaches it today -- the two tables
+#: above are pinned against `HOLD_REASONS` and `OUTCOMES` by test -- and it
+#: exists because the alternative to an unlisted reason is a `KeyError` in the
+#: middle of the freeze block, which is `94` F22 again with a traceback on top.
+#: `cli.report` keeps an unknown outcome's own name for the same reason: a gap in
+#: this deployment's vocabulary must never become a file that vanished.
+_UNEXPLAINED: _Explanation = _Explanation(
+    one="This one was not frozen, and this build has no sentence for why. It "
+        "is named here rather than left off the list, and it stays where it is.",
+    many="These were not frozen, and this build has no sentence for why. They "
+         "are named here rather than left off the list, and they stay where "
+         "they are.")
+
+#: The reasons whose DETAIL is part of the fact rather than a footnote, so two
+#: holds under one reason with different details group apart and get their own
+#: sentence. For `refused_at_construction` the detail IS the reason -- two files
+#: refused by different rules have not stopped for the same thing -- and for
+#: `not_a_move` it is the outcome, which is the whole of what happened.
+_KEYED_ON_DETAIL: frozenset[str] = frozenset(
+    {REFUSED_AT_CONSTRUCTION, NOT_A_MOVE})
+
+
+def _explain(reason: str, detail: str, *, count: int) -> str:
+    """The whole sentence for one group of holds. Never a fragment to glue."""
+    if reason == NOT_A_MOVE:
+        explanation = _NOT_A_MOVE_SENTENCES.get(detail, _UNEXPLAINED)
+    else:
+        explanation = _HOLD_SENTENCES.get(reason, _UNEXPLAINED)
+    return explanation.one if count == 1 else explanation.many
 
 
 def _wrap(text: str, *, indent: str = "  ") -> str:
@@ -128,9 +263,10 @@ def freeze_lines(proposal: FrozenProposal, *,
         grouped: dict[tuple[str, str], list[str]] = {}
         for item in proposal.held:
             key = (item.reason,
-                   item.detail if item.reason == REFUSED_AT_CONSTRUCTION else "")
+                   item.detail if item.reason in _KEYED_ON_DETAIL else "")
             grouped.setdefault(key, []).append(_name(names, item.file_id))
         for (reason, detail), held_names in grouped.items():
+            sentence = _explain(reason, detail, count=len(held_names))
             if reason == PROTECTED_NEEDS_PERMISSION:
                 # Counted and explained, and NOT named. The owner ruled on
                 # 2026-09-02 that protected filenames sit behind
@@ -148,16 +284,16 @@ def freeze_lines(proposal: FrozenProposal, *,
                 # type -- and a line that refuses is worse than no line.
                 lines.append(f"    {len(held_names)} protected file(s), counted "
                              f"here and not named")
-                lines.append(_wrap(
-                    f"{'This one is' if len(held_names) == 1 else 'Each of these is'}"
-                    f" {_HOLD_SENTENCES[reason]}", indent="      "))
+                lines.append(_wrap(sentence, indent="      "))
                 continue
             for name in sorted(held_names):
                 lines.append(f"    {name}")
-            lines.append(_wrap(
-                f"{'This one is' if len(held_names) == 1 else 'Each of these is'}"
-                f" {_HOLD_SENTENCES[reason]}", indent="      "))
-            if detail:
+            lines.append(_wrap(sentence, indent="      "))
+            # Only `refused_at_construction` prints its detail. The other reason
+            # keyed on one carries an OUTCOME there, which the sentence above has
+            # already said in the person's words; printing `abstain` under it
+            # would put a machine token on the screen and say nothing new.
+            if reason == REFUSED_AT_CONSTRUCTION and detail:
                 lines.append(_wrap(detail, indent="      "))
 
     if total:
