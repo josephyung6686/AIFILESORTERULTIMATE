@@ -345,3 +345,53 @@ def test_the_ask_cannot_be_rendered_without_consulting_r2():
     assert set(parameters) == {"blocked", "already_declared"}
     for parameter in parameters.values():
         assert parameter.default is inspect.Parameter.empty
+
+
+# --- what a run could not settle, which a role question never is ---------------------
+
+
+def test_a_withdrawn_role_does_not_come_back_as_a_question_about_the_files(qconn):
+    """Found by running the product, not by reading it.
+
+    `--answer role:x=revoke` reopens its question -- that is what revocation means
+    and `store.open_questions` is right to return it. But `report` prints
+    `open_questions` under "Questions only you can answer", so withdrawing a role
+    put a 23-option identity question in the blocking section of a run where no
+    file was blocked on it. `66` §12 permits a question only where a decision is
+    blocked, and `roles.question_for_role_declaration` says in its own docstring
+    that it "is asked of a PERSON who chose to declare a role, never of a corpus".
+
+    `triggers.role_declaration_is_due` already draws exactly this line -- "A blocked
+    ROLE question does not make itself due" -- and the report did not."""
+    import cli
+    from questions.role_report import questions_a_run_could_not_settle
+    from questions.store import open_questions
+
+    _declare(qconn, "thesis=research")
+    cli.apply_answers(qconn, ["role:thesis=revoke"], user_id="jy", recorded_at=T1)
+
+    assert any(q.question_id == "role:thesis" for q in open_questions(qconn)), (
+        "revocation is supposed to reopen the question; if this stops being true "
+        "the filter below is guarding nothing")
+    assert questions_a_run_could_not_settle(open_questions(qconn)) == ()
+
+
+def test_a_question_the_run_actually_raised_is_kept(qconn):
+    """The other direction, so the filter is a distinction and not a mute button."""
+    from questions.role_report import questions_a_run_could_not_settle
+
+    blocked = _blocked("PHYS1401")
+
+    assert questions_a_run_could_not_settle(blocked) == blocked
+
+
+def test_an_unanswered_role_question_is_not_a_blocked_decision_either(qconn):
+    """Not only the revoked ones. A role question exists because the person made a
+    gesture, so it is never the thing a run is stuck on."""
+    from questions.role_report import questions_a_run_could_not_settle
+    from questions.roles import question_for_role_declaration
+
+    asked = question_for_role_declaration(declaration_id="thesis", scope=SCOPE_CORPUS,
+                                          schemas=SCHEMA_IDS)
+
+    assert questions_a_run_could_not_settle((asked,) + _blocked()) == _blocked()

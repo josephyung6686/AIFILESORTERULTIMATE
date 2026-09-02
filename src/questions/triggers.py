@@ -339,8 +339,20 @@ def role_declaration_is_due(*, blocked: Iterable[StructuralQuestion],
 
     A blocked ROLE question does not make itself due. It is already open; treating
     it as the ambiguity would be the moment triggering on its own consequence.
+
+    **AN OFFER IS NOT AN AMBIGUITY**, and this was wrong here until the product was
+    run. A first run over two coursework files raised no blocked reading at all --
+    both came back "needed a model" -- and left one `00`:78 nesting offer open. The
+    moment fired on it and told the person that the decisions above were waiting for
+    them, when nothing was. `src/cli.py` already draws this line for its own report
+    and records the reason: "A blocked reading STOPS something ... A nesting offer
+    stops nothing -- the branch has a shape either way." So a branch-scoped question
+    is settled, R1 puts the moment at "the first genuinely AMBIGUOUS file", and an
+    offer is not one. Discriminated on the scope kind, which already carries the
+    distinction, rather than on a second list somebody has to keep in step.
     """
     if tuple(already_declared):
         return False
     return any(kind_of(question.question_id) is not ROLE_KIND
+               and not question.scope.startswith(f"{SCOPE_BRANCH}:")
                for question in blocked)

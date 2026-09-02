@@ -30,7 +30,8 @@ from questions.roles import (
 from questions.schema import create_questions_schema
 from questions.store import record_question
 from questions.triggers import (
-    question_for_tied_reading, role_declaration_is_due,
+    NestingChoice, question_for_nesting, question_for_tied_reading,
+    role_declaration_is_due,
 )
 
 T0 = "2026-08-31T10:00:00+00:00"
@@ -223,3 +224,42 @@ def test_the_run_still_records_the_ambiguity_it_found(qconn):
 
     assert qconn.execute(
         "SELECT COUNT(*) FROM structural_questions").fetchone()[0] == 1
+
+
+# --- R1 again: an offer is not an ambiguity -----------------------------------------
+
+
+#: `00`:78's nesting question, which cli.py's report deliberately prints under a
+#: SEPARATE heading -- "You can change how this is organised (it is already decided;
+#: this is yours to overrule)" -- with the reason recorded beside it: "A blocked
+#: reading STOPS something ... A nesting offer stops nothing -- the branch has a
+#: shape either way."
+AN_OFFER = question_for_nesting(
+    branch_label="Coursework",
+    choices=(NestingChoice(chain=("school", "term", "subject", "work_type"),
+                           summary="This option would create 1 term, and 1 subject.",
+                           child_counts=(("term", 1), ("subject", 1)),
+                           warnings=()),
+             NestingChoice(chain=("term", "subject"),
+                           summary="This option would create 2 terms.",
+                           child_counts=(("term", 2),), warnings=())),
+    file_count=2)
+
+
+def test_an_offer_to_reshape_a_branch_is_not_a_genuinely_ambiguous_file():
+    """Found by running the product. A first run on two coursework files raised no
+    blocked reading at all -- both files came back "needed a model" -- and left one
+    nesting offer open. The moment fired on it and told the person that "those are
+    the decisions above that are waiting for you", when nothing was waiting.
+
+    Two rulings at once. `80` §3 (R1) puts the moment at "the first genuinely
+    ambiguous file", and a branch with a shape either way is not one; `84` §6 says
+    what the screen tells a person has to be true, and it was not."""
+    assert role_declaration_is_due(blocked=(AN_OFFER,), already_declared=()) is False
+
+
+def test_a_blocked_reading_alongside_an_offer_still_makes_the_moment_due():
+    """The other direction, so this is a distinction and not a way of never
+    asking."""
+    assert role_declaration_is_due(blocked=(AN_OFFER, AMBIGUOUS),
+                                   already_declared=()) is True

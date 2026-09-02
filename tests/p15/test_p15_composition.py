@@ -56,10 +56,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 import cli  # noqa: E402
 
-#: One file the deterministic chain cannot settle, which is what makes the moment
+#: A corpus the deterministic chain cannot settle, which is what makes the moment
 #: due: `role_declaration_is_due` requires at least one open non-role question.
+#:
+#: TWO FILES, and the second one is what makes this measure anything. The single
+#: syllabus this held first left exactly one question open -- `branch:Coursework`,
+#: the `00`:78 nesting OFFER -- and an offer is not an ambiguity: this file's own
+#: command prints it under a separate heading because "a nesting offer stops
+#: nothing -- the branch has a shape either way". `80` §3 (R1) puts the moment at
+#: "the first genuinely AMBIGUOUS file", so `role_declaration_is_due` stopped
+#: counting branch-scoped offers and the guard below caught this corpus at once.
+#:
+#: These two put one subject, CHEM2210, in two readings the detector cannot choose
+#: between, which is what `tied_readings` turns into `reading.organization:CHEM2210`
+#: -- a decision genuinely blocked on the person, and the evidence R1 wants them to
+#: have seen before being asked who they are.
 CORPUS: dict[str, str] = {
-    "PHYS 1401 syllabus.txt": "PHYS 1401 Syllabus\n\nSpring 2026. Instructor.\n",
+    "CHEM 2210 chapter.txt":
+        "CHEM 2210\n\nDissertation chapter. Literature review. Advisor.\n",
+    "CHEM 2210 quiz 2.txt": "CHEM 2210\n\nQuiz 2. Due Friday. Grade.\n",
 }
 
 

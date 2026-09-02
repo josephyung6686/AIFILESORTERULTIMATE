@@ -46,7 +46,8 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 
 from questions.proposal import ProposalRefused, RoleProposal
-from questions.registry import ROLE_KIND
+from questions.records import StructuralQuestion
+from questions.registry import ROLE_KIND, kind_of
 from questions.roles import NOT_LISTED, RoleDeclaration
 from questions.triggers import role_declaration_is_due
 from questions.vocabulary import SKIPPED_ROLE
@@ -63,6 +64,31 @@ DESCRIBE_FLAG: str = "--describe-role"
 #: of its own. The question id is built the way `roles._record` builds it, from
 #: `ROLE_KIND.kind_id`, so a rename moves both together.
 REVOKE_WORD: str = "revoke"
+
+
+def questions_a_run_could_not_settle(
+        questions: Iterable[StructuralQuestion]) -> tuple[StructuralQuestion, ...]:
+    """The blocked decisions, with the person's own role questions taken out.
+
+    Found by running the product. `--answer role:x=revoke` reopens its question --
+    that is what revocation means, and `store.open_questions` is right to return it
+    -- but the report prints `open_questions` under "Questions only you can answer",
+    so withdrawing a role put a 23-option identity question in the blocking section
+    of a run where no file was blocked on anything of the kind.
+
+    `66` §12 permits a question only where a decision is blocked, and
+    `roles.question_for_role_declaration` says in its own docstring that it "is
+    asked of a PERSON who chose to declare a role, never of a corpus". A role
+    question is the record of a gesture somebody made; it is never the thing a run
+    is stuck on. `triggers.role_declaration_is_due` already draws this exact line --
+    "A blocked ROLE question does not make itself due" -- and the report did not.
+
+    Only the BLOCKING list. `store.set_aside_questions` keeps role questions on
+    purpose: a person who skipped one put it aside rather than never having been
+    asked, and §14 requires them to be able to find it again.
+    """
+    return tuple(question for question in questions
+                 if kind_of(question.question_id) is not ROLE_KIND)
 
 
 def _withdraw_command(declaration_id: str) -> str:
