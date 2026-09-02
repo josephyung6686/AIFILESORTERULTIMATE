@@ -1977,6 +1977,138 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     assert readers.ocr_engine is not None
 
 
+def _encrypted_container_corpus(tmp_path):
+    """A password vault, an encrypted disk image, a passport and a holiday snap.
+
+    The bytes are stand-ins -- a KeePass signature, a `koly` trailer, JFIF magic
+    -- because the point is that NOTHING opens them. What identifies them to a
+    person is the name and the extension, which is all the product has too.
+    """
+    corpus = tmp_path / "corpus"
+    private = corpus / "Private"
+    private.mkdir(parents=True)
+    (private / "credentials.kdbx").write_bytes(
+        b"\x03\xd9\xa2\x9agU\xfb\x4b" + b"\x00" * 4096)
+    (private / "backup.dmg").write_bytes(b"\x00" * 512 + b"koly" + b"\x00" * 2048)
+    (private / "passport bio page.txt").write_text(
+        "PASSPORT\nUNITED STATES OF AMERICA\nPassport No. 517204418\n"
+        "Surname ZHANG Given names WEI\nDate of birth 14 NOV 1991\n")
+    (corpus / "holiday.jpg").write_bytes(
+        b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01" + b"\x00" * 400)
+    return corpus
+
+
+def _block_naming(printed: str, filename: str) -> str:
+    """The report block that names one file, blank-line delimited as printed."""
+    blocks = [block for block in printed.split("\n\n") if filename in block]
+    assert len(blocks) == 1, (
+        f"{filename!r} is named in {len(blocks)} blocks, not one:\n{printed}")
+    return blocks[0]
+
+
+def test_nothing_opens_the_vault_the_disk_image_or_the_passport(tmp_path):
+    """The standing rule's hardest clause, checked at the seam that would break it.
+
+    Protected material is marked and counted, NEVER OPENED. This asserts the
+    "never opened" half directly: the only evidence recorded about the vault,
+    the disk image and the passport bytes may come from the filesystem record.
+    An extractor name that is not `filesystem.record` means something read the
+    file, and for a password vault that is the failure no amount of correct
+    reporting afterwards would undo.
+
+    The passport is in the list on purpose. Its TEXT is read -- it is a text
+    file and that is how it is recognised -- so this test is about the two
+    containers, and the passport is here to make the query prove it can tell
+    the difference rather than passing because it found nothing anywhere.
+    """
+    corpus = _encrypted_container_corpus(tmp_path)
+    database = tmp_path / "plan.sqlite"
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Papers", "--user", "jy",
+                     "--database", str(database)], out=io.StringIO()) == 0
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    read_by = {}
+    for row in conn.execute(
+            "SELECT f.filename, e.extractor_name FROM files f "
+            "JOIN evidence e ON e.file_id = f.file_id"):
+        read_by.setdefault(row["filename"], set()).add(row["extractor_name"])
+    conn.close()
+
+    for sealed in ("credentials.kdbx", "backup.dmg"):
+        assert read_by.get(sealed) == {"filesystem.record"}, (
+            f"something read inside {sealed}: {sorted(read_by.get(sealed, ()))}")
+    # The control. The passport IS read, so a query that returned
+    # `{'filesystem.record'}` for everything would be measuring nothing.
+    assert read_by.get("passport bio page.txt", set()) != {"filesystem.record"}, (
+        "the passport's own words were not read either, so the assertion above "
+        "proves nothing about the containers")
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "A KeePass vault and an encrypted disk image are put in an ordinary review "
+    "set whose reason ends 'not marked sensitive and not judged on thin "
+    "evidence', beside a holiday photo -- and that set IS offered `--send-set`, "
+    "so a password vault can be filed in one bulk gesture. The passport in the "
+    "same corpus is marked protected and correctly refused that gesture, so "
+    "the mechanism works; what it has nothing for is a container whose "
+    "sensitivity is in its FORMAT rather than in words it will not open. The "
+    "shipped residual library already carries an area named 'Unsupported or "
+    "Encrypted' and nothing routes to it. Nothing was opened -- "
+    "`test_nothing_opens_the_vault_the_disk_image_or_the_passport` holds -- and "
+    "nothing was omitted; what fails is the MARK, and the sentence a person "
+    "reads about their own password vault is false. Strict, so the suite turns "
+    "red the day it is fixed."))
+def test_a_password_vault_is_not_reported_as_not_marked_sensitive(tmp_path):
+    """What the screen says about the most sensitive file on the disk.
+
+    "It is waiting for you to say what it is, not marked sensitive" is a
+    reasonable sentence about `holiday.jpg` and a false one about
+    `credentials.kdbx`. The two are printed under one heading, with one reason,
+    and one command that files them together.
+    """
+    corpus = _encrypted_container_corpus(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Papers", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     "--residual", "Review Later"], out=out) == 0
+    printed = out.getvalue()
+
+    vault = _block_naming(printed, "credentials.kdbx")
+    assert "not marked sensitive" not in vault, (
+        "the report says the password vault is not marked sensitive:\n" + vault)
+    assert "--send-set" not in vault, (
+        "the report offers to file the password vault in one bulk gesture:\n"
+        + vault)
+
+
+def test_the_passport_in_the_same_corpus_is_still_marked_and_still_refused(tmp_path):
+    """The twin. Marking everything protected would satisfy the guard above.
+
+    A fix that swept every unclassified file into the protected set would pass
+    the vault test and destroy the distinction the set exists to draw, so the
+    passport has to keep being marked for its own reason -- and `holiday.jpg`
+    has to keep NOT being marked.
+    """
+    corpus = _encrypted_container_corpus(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Papers", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite"),
+                     "--residual", "Review Later"], out=out) == 0
+    printed = out.getvalue()
+
+    passport = _block_naming(printed, "passport bio page.txt")
+    assert "protected material" in passport, passport
+    assert "--send-set" not in passport, passport
+    holiday = _block_naming(printed, "holiday.jpg")
+    assert "protected material" not in holiday, (
+        "an ordinary photo is now protected material, so the mark no longer "
+        f"means anything:\n{holiday}")
+
+
 def _mixed_sensitivity_corpus(tmp_path):
     """Ordinary files and protected ones, none of which any template places."""
     corpus = tmp_path / "corpus"
