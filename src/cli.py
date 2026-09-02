@@ -147,6 +147,19 @@ from recognition.detector import (
 )
 from recognition.rules import load_rules
 from scan_agent.corpus_source import FilesystemCorpusSource
+
+# §8.5's replay. `evaluation` is the composition layer's own module, beside
+# `orchestrator` and `production`: the stage adapter it publishes reads P2's
+# bundle and hands the row to P5's mapping, and neither part may import the
+# other -- P5's only run-time dependency is P1, and P2 re-spells P5 rather than
+# importing it. A function that touches both is therefore neither part's.
+from evaluation import (
+    BUNDLE_ADAPTERS, bundle_baseline, record_bundle, recorded_bundles,
+    recorded_lines, replay_lines, resolve_bundle, stage_status,
+)
+from eval_harness.bundle import RecordingNameTaken, bundle_named
+from grouping.acceptance import group_state_as_of
+from scan_agent.replay import CORPUS_FORM_SNAPSHOT, RecordingCorpusSource, snapshot_from
 from scan_agent.exclusion import is_protected_container
 from scan_agent.selection import record_selection
 from scan_agent.summary import scan_run_summary, set_aside_paths
@@ -1343,7 +1356,13 @@ def _usable(facts, unresolved) -> bool:
 
 
 def p1_p7_authorities(*, now, detector,
-                      operation_mode: str = OPERATION_MODE) -> P1P7Authorities:
+                      operation_mode: str = OPERATION_MODE,
+                      source=None) -> P1P7Authorities:
+    # `source` is an ARGUMENT with the live filesystem as its default, because
+    # `--record` needs the scan wrapped in a `RecordingCorpusSource` -- the
+    # listings it serves ARE the corpus snapshot, and they cannot be recovered
+    # afterwards. Not a policy: the default is unchanged and every ordinary run
+    # still reads the disk.
     return P1P7Authorities(
         native_resolver=_resolver(tiers=frozenset(("filesystem", "native")),
                                   cache_key="cli-native-v1"),
@@ -1352,7 +1371,7 @@ def p1_p7_authorities(*, now, detector,
             cache_key="cli-ocr-v1"),
         usable_threshold=_usable,
         classify=classifier(detector, now=now),
-        source=FilesystemCorpusSource(),
+        source=FilesystemCorpusSource() if source is None else source,
         # IMPORTED, never respelled -- and the import is the fix. This wrote the
         # literal `"scanned"`; P9's `_corpus` admits `scan_state = 'included'`
         # and nothing else, so on every live run the neighbourhood of every file
@@ -1858,7 +1877,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         cross_folder_moves: bool = False,
         residuals: Sequence[str] = (),
         sends: Mapping[str, str] = MappingProxyType({}),
-        operation_mode: str = OPERATION_MODE) -> ProductionRun:
+        operation_mode: str = OPERATION_MODE,
+        record: str | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
     `out` is here so the protected-container block can be printed the moment the
@@ -2392,14 +2412,50 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         accepted_ids.extend(ids)
         return ids
 
+    # Wrapped only when a recording was asked for. A `RecordingCorpusSource`
+    # keeps every listing the scan was served, and those listings ARE §8.5's
+    # frozen corpus snapshot -- what a pruned directory never listed stays
+    # unlisted, which is what reproduces the pruning on replay rather than
+    # replaying it as a conclusion. They cannot be recovered after the scan, so
+    # the decision has to be made before it starts.
+    recording = (RecordingCorpusSource(FilesystemCorpusSource())
+                 if record is not None else None)
     result = run_production_corpus(
         conn, selection_id, authorities=p1_p7_authorities(
-            now=now, detector=detector, operation_mode=operation_mode),
+            now=now, detector=detector, operation_mode=operation_mode,
+            source=recording),
         downstream=downstream,
         decisions=CorpusDecisions(
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
             design=design_decisions, approve_plan=approve_plan,
             set_privacy_policy=set_privacy_policy))
+    if record is not None:
+        # AFTER P11, and that is the whole reason a SECOND bundle exists.
+        # `run_p1_p7` sealed the first at the end of P1--P7 and a sealed bundle is
+        # immutable by trigger, so the accepted groups -- the user's decision,
+        # which has only just been made -- and the corpus snapshot have no lawful
+        # moment to be written into it. `record_bundle` opens one that SUPERSEDES
+        # it and carries the first's contents plus those three things.
+        plan_version = result.tree.tree.plan_version_id
+        recorded = record_bundle(
+            conn, from_bundle_id=result.p1_p7.bundle_id, name=record,
+            snapshot=snapshot_from(conn, recording, selection_id=selection_id,
+                                   corpus_form=CORPUS_FORM_SNAPSHOT),
+            # P9's own per-version projection, asked for rather than derived: P2
+            # "does not re-derive acceptance from membership records".
+            accepted=tuple(
+                {"group_id": group_id, "plan_version_id": plan_version,
+                 "acceptance": group_state_as_of(
+                     conn, group_id=group_id, plan_version_id=plan_version)}
+                for group_id in dict.fromkeys(accepted_ids)),
+        )
+        conn.commit()
+        # Recorded here and ANNOUNCED at the end of `main`, after the report.
+        # The recording is done at this point so that a later refusal in
+        # `--send-set` cannot lose it, but the notice is the last thing a person
+        # should read -- it ends in a command to type, and a command printed
+        # above forty lines of report is a command nobody sees.
+
     # AFTER the run, because §7.5's sets do not exist until §6 has finished trying,
     # and IN the same run, because a residual set answer belongs to the plan
     # version it was given in (P11 SPEC, "Plan versioning") and this run has just
@@ -3816,6 +3872,129 @@ def _move_frozen_files(args, *, moving: bool, branches: Sequence[str],
         conn.close()
 
 
+def _replay_bundle(args, *, out) -> int:
+    """§8.5's replay, over a bundle a run already recorded. Reads no folder.
+
+    Its own function for the reason `_record_cloud_decision` is: it shares almost
+    nothing with a run. No situation, no label, no catalogue, no scan roots and
+    no `is_dir` check -- a bundle is evaluable after the folder it came from has
+    been deleted, which is most of the point of sealing one.
+
+    Every policy-bearing value P2 needs is chosen HERE and nowhere below. The
+    ceilings are the set this database was given, snapshotted from P1's budget
+    table rather than restated. The two run disables are what this deployment
+    actually wires: `p8_run_call=None` and `EmbeddingsOff()`, so both are off,
+    and saying so on the manifest is what lets a later comparison tell a run with
+    a model from one without. Four of the six version axes are None because this
+    deployment wires no graph algorithm, no model and no placement scorer
+    version, and a made-up string there would name a version nobody shipped.
+
+    It prints no aggregate and computes none: §8.5, "a single overall 'accuracy'
+    number hides the mechanism that needs repair."
+    """
+    from database_agent.budget import all_ceilings
+    from eval_harness.bundle import extraction_runs
+    from eval_harness.comparison import compare_runs, get_comparison
+    from eval_harness.driver import evaluate_bundle
+    from extractors.stage_output import extractor_versions
+
+    database = args.database or (Path.cwd() / "database-agent-plan.sqlite")
+    # No `scan_roots`: nothing is scanned, so there is no root the database could
+    # be inside of.
+    conn = open_database(database)
+    print(f"Plan database: {database}", file=out)
+    try:
+        _bootstrap(conn)
+        held = recorded_bundles(conn)
+        if not args.replay:
+            print("\n--replay needs the bundle to replay. It is never guessed "
+                  "and never the most recent one: two bundles are two different "
+                  "corpora, and picking one for you would report on files you "
+                  "did not name.", file=out)
+            if not held:
+                print("\nThis plan database has recorded no bundle yet.",
+                      file=out)
+            else:
+                print("\nBundles this plan database holds:", file=out)
+                for record in held:
+                    # The name first when there is one, because it is what a
+                    # person typed and what they will type again. An UNNAMED
+                    # bundle -- every one the ordinary run seals -- is listed
+                    # without a name rather than omitted, so someone hunting for
+                    # their recording can see the other rows exist too.
+                    named = ("--record " + record["name"] if record["name"]
+                             else "not recorded under a name")
+                    print(f"  {record['bundle_id']}   {record['created_at']}"
+                          f"   {named}", file=out)
+            return 2
+        bundle_id = resolve_bundle(conn, args.replay)
+        if bundle_id is None:
+            # Refused rather than ignored, exactly as an unknown `--answer` is.
+            # A name and an id are both accepted and neither is guessed at: there
+            # is no nearest match and no most recent, because two bundles are two
+            # different corpora.
+            print(f"\n{args.replay!r} is not the name or the id of a sealed "
+                  f"bundle in this plan database. Run --replay with nothing "
+                  f"after it to see the ones it holds.", file=out)
+            return 2
+
+        # Derived from what the bundle RECORDED, not from this machine: §8.5
+        # re-processes a bundle, so the tuple must describe the runs inside it.
+        # `extractor_versions` REFUSES a bundle holding one extractor at two
+        # versions rather than resolving it -- its own words are that "a caller
+        # comparing two extractor versions is comparing two runs" -- and that is
+        # a real bundle, produced by re-scanning a corpus after an extractor
+        # upgrade. Caught here so it is a sentence rather than a traceback, and
+        # BEFORE `evaluate_bundle`, so no half-opened run is left behind.
+        try:
+            versions = extractor_versions(extraction_runs(conn, bundle_id))
+        except ValueError as refusal:
+            print(f"\nThis bundle cannot be replayed as one run: {refusal}",
+                  file=out)
+            print(_wrapped(
+                "It records one extractor at two versions, and §8.5's version "
+                "tuple holds one version per extractor -- so what is in it is "
+                "two runs to compare, not one to replay. Recording each version "
+                "into its own bundle is what makes the comparison the thing "
+                "§8.5 asks for.", indent="  "), file=out)
+            return 2
+
+        # AFTER the id and the tuple are both known good, so neither a mistyped
+        # id nor an unreplayable bundle ever opens a run.
+        baseline = bundle_baseline(conn, bundle_id)
+        driven = evaluate_bundle(
+            conn, bundle_id,
+            version_tuple=dict(
+                extractor_versions=versions,
+                graph_algorithm_version=None, prompt_fingerprint=None,
+                model_identifier=None, template_library_version=None,
+                placement_scorer_version=None,
+                # I4's tiers this deployment resolves under: `_resolver` is built
+                # for filesystem+native and for filesystem+native+ocr. `llm` is
+                # absent because no model is wired, which is the same fact the
+                # disable below records.
+                analysis_tiers_enabled=["filesystem", "native", "ocr"]),
+            budget_ceilings=all_ceilings(conn),
+            run_settings={"model_enabled": False, "embeddings_enabled": False},
+            adapters=BUNDLE_ADAPTERS)
+        comparison = None
+        if baseline is not None and baseline != driven.run_id:
+            comparison = get_comparison(
+                conn, compare_runs(conn, baseline, driven.run_id))
+        # Read before the connection closes. Which of the ten stages ran, which
+        # were absent and which FAILED: a stage that raised attributes nothing
+        # and would otherwise be printed at zero, which reads exactly like a
+        # stage that ran cleanly and found nothing wrong.
+        stages = stage_status(conn, driven.run_id)
+        conn.commit()
+    finally:
+        conn.close()
+    print("", file=out)
+    for line in replay_lines(driven, stages=stages, comparison=comparison):
+        print(line, file=out)
+    return 0
+
+
 def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # Bound at CALL time, not as a default: a default argument is evaluated when
     # this module is imported, which pins the stream that existed then.
@@ -3992,6 +4171,26 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     parser.add_argument(
         "--undo-everything", action="store_true",
         help="put back every file this product has moved and not yet put back.")
+    parser.add_argument(
+        # `nargs="?"` with a `const` and NOT a bare flag: `--replay` on its own
+        # must be a refusal that names the bundles this database holds, not
+        # argparse's "expected one argument". A person cannot type an id they
+        # have never been shown, and a discovery flag that requires the answer
+        # it supplies is the closed door `--list-situations` exists to open.
+        # Absent stays absent: `default=None` means the flag was not passed and
+        # nothing is replayed.
+        "--record", nargs="?", const="", default=None, metavar="NAME",
+        help="record this run as a replay bundle you can come back to, e.g. "
+             "--record before-upgrade. It runs exactly as it would anyway and "
+             "moves nothing; what it adds is a frozen copy of what was read, "
+             "which --replay re-reads without touching your folder again. The "
+             "name is yours and must not already be taken.")
+    parser.add_argument(
+        "--replay", nargs="?", const="", default=None, metavar="BUNDLE",
+        help="re-evaluate one recorded bundle without touching the files: it "
+             "reads what the run recorded, never the folder. Pass the bundle "
+             "id; --replay on its own prints the ones this plan database "
+             "holds. Never guesses, and never picks the latest.")
     args = parser.parse_args(argv)
 
     if args.list_residuals:
@@ -4067,6 +4266,22 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
             everything=(args.apply_everything if moving
                         else args.undo_everything),
             out=out)
+
+    # BEFORE the required-argument check, for the reason `--disable-cloud` and
+    # `--apply` are: replaying a bundle needs no folder, no situation and no
+    # label. It reads what a run already recorded, and re-running the pipeline to
+    # get at it would scan a person's disk to answer a question about a snapshot.
+    if args.replay is not None:
+        return _replay_bundle(args, out=out)
+
+    # Absent means refuse, never guess. `--record` with no name would have to
+    # invent one, and a recording called something the person did not choose is
+    # one they will not find again -- which is the whole of what a name is for.
+    if args.record is not None and not args.record:
+        parser.error("--record needs a name to record under, e.g. --record "
+                     "before-upgrade. It is never invented: a recording named "
+                     "something you did not choose is one you will not find "
+                     "again.")
 
     # The requirement argparse could not express. Same message and same exit code
     # it would have produced, so a run that forgets one reads no differently.
@@ -4191,13 +4406,43 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                 else:
                     print("", file=out)
                     print(render_explanation(explanation), file=out)
+        if args.record:
+            # BEFORE the scan, and that ordering is the whole point. The writer
+            # refuses a taken name too, but by then the person has waited out a
+            # full run over their corpus to be told something that was knowable
+            # from the argument and the database alone. `_bootstrap` is
+            # idempotent and `run` calls it again in a moment.
+            _bootstrap(conn)
+            held = bundle_named(conn, args.record)
+            if held is not None:
+                print(f"\nThis run was not started, because the name is taken:"
+                      f"\n  {args.record!r} already names bundle {held}.",
+                      file=out)
+                print(_wrapped(
+                    "Two recordings under one name make a replay of that name a "
+                    "question with two answers, so it is refused rather than "
+                    "guessed. Pick another name. The recording that holds this "
+                    "one is kept, never overwritten, and `--replay` with nothing "
+                    "after it lists every recording this plan database has.",
+                    indent="  "), file=out)
+                return 2
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      also_read=also_read, candidate_roots=candidate_roots,
                      cross_folder_moves=args.may_cross_folders,
                      residuals=_validate_residuals(args.residual),
                      sends=_parse_sends(args.send_set),
-                     operation_mode=operation_mode_for(consent))
+                     operation_mode=operation_mode_for(consent),
+                     record=args.record)
+    except RecordingNameTaken as refusal:
+        # Belt and braces behind hunk 13. The name is checked before the scan, so
+        # this is reachable only if a second process recorded that name while
+        # this run was going -- and a traceback would be the person's reward for
+        # a race they did not cause. The scan's own bundle is sealed and kept
+        # either way (§8.2); what did not happen is the recording.
+        print(f"\nThe run finished, and the recording was refused:\n  {refusal}",
+              file=out)
+        return 2
     except (AnswerNotPermitted, NotConfigured, ConfigurationRequired) as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)
@@ -4243,6 +4488,17 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    not_carried=prior_set_decisions(
                        conn,
                        plan_version=result.tree.tree.plan_version_id))
+    if args.record:
+        # AFTER the report, because it ends in a command to type and a command
+        # printed above forty lines of report is a command nobody sees. The
+        # bundle is looked up by the name the person just chose, and the group
+        # count is read back off the recording rather than carried down here --
+        # what is reported is then what was actually stored.
+        from eval_harness.bundle import accepted_groups
+        recorded = resolve_bundle(conn, args.record)
+        for line in recorded_lines(args.record, recorded,
+                                   count=len(accepted_groups(conn, recorded))):
+            print(line, file=out)
     if not args.freeze:
         return 0
 
