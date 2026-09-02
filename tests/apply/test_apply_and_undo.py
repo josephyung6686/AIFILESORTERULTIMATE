@@ -6,7 +6,6 @@ standing in for `src/cli.py`.
 """
 from __future__ import annotations
 
-import pytest
 from mutation import vocabulary as v
 
 from apply_run.branches import branches_named
@@ -15,7 +14,7 @@ from apply_run.run import (
     plans_under, sentence_for, take_back,
 )
 
-from conftest import COLLISION_POLICY, CONSTRAINTS, LEGAL, NODES, PROTECTED_CLASSES
+from conftest import CONSTRAINTS, LEGAL, NODES
 from test_freeze import _freeze
 
 #: `74` §8 Q7 is unruled, so the composition root supplies the sentence rather

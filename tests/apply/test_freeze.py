@@ -11,7 +11,6 @@ from __future__ import annotations
 import dataclasses
 import json
 
-import pytest
 from mutation.plan import current_plan
 
 from apply_run.freeze import (
