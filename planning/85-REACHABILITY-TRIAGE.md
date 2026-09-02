@@ -601,3 +601,168 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
   started.** It is `68` F6's measured defect — the graduate student who also teaches,
   filing her teaching as coursework — and it is the one entry in §10 whose fix is a
   new producer rather than a call. If P15 gets more time, this is where it goes.
+
+---
+
+# Third slice — the connect-or-delete sweep, 2026-09-02
+
+The owner's instruction changed the job: *"make all the mechanisms connected and
+if it's not essential, not needed, discard those."* **Deletion is now a preferred
+outcome, not a last resort**, and §2's "correctly dormant" no longer means *leave
+it alone* — it means *decide whether it should exist at all*.
+
+**Measured with §1's snippet: 323 unreachable across 117 modules, population
+1,556** at the start of this slice; **319 / 116 / 1,555** at the end. The
+population moves hourly under other agents. Re-measure; never quote this.
+
+## 15. Four reasons in this file had EXPIRED. Do not carry them forward.
+
+§13's own §6.3 warns that a stale REASON on a live instrument is the real hazard.
+Four were found in one afternoon, all in the two slices above.
+
+1. **§10: `facts.states.is_stronger` — "nothing needs the general form".**
+   FALSE. `src/facts/llm_seam.py:213` calls it. It is not a delete and it is not
+   independently dormant: it is dormant **with `llm_seam`**, and should be
+   triaged with it.
+
+2. **§9's cause six, "No model transport".** EXPIRED. DeepSeek is wired
+   (`cli.py:138`, `--enable-cloud`). Every symbol filed under it needs a NEW
+   reason, and the real one is different: **no prompt is ratified** (`82` is
+   still the owner's). Re-verdict them as **prompt-gated**, with the date being
+   the day `82` is ratified — not transport-gated.
+
+3. **§9's cause five, "P14 Find is NOT being built", and the ~14 filed under it.**
+   **MISATTRIBUTED.** Their docstrings do not name P14. `facts/read_surface.py`
+   opens: *"P6's read surface — the only shape P9, P10, P11, P13, P2 and the
+   review UI see"*, and `evidence_chain` is addressed by `fact_id` alone because
+   *"a reviewer clicking a citation has the fact id and nothing else"*. These are
+   **P13's** declared consumers, and P13 is in flight. Acting on §9's grouping
+   would have deleted the review surface's read side while it was being built.
+   `p13-eighteen-actions` has been asked which of the eleven their 18 actions
+   call; anything they will not call is a deletion candidate **after** their wave.
+
+4. **§4.2 / §11 on `orchestrator.run_wave2`.** Not a delete. `src/orchestrator.py`
+   cites `02-segmentation-map.md`: the Wave-2 walking skeleton *"stays in the
+   repository as the integration test every later part must keep green"*. It is
+   not intended to be reachable from `cli.main` at all, which is what `EXEMPT` is
+   for. `facts/usable.py:16`'s "legacy" is about not WIRING new work into it.
+
+**The general lesson, and it is this file's own §6.3 turned on this file.** A
+triage document is an instrument too. Its verdicts decay exactly the way a test's
+`reason=` string decays, and faster, because nothing runs it. **Re-derive a
+verdict before acting on it, especially a DELETE verdict** — three of the four
+above would have destroyed working or in-flight code.
+
+## 16. Deleted (5). `af071be`.
+
+Each was already convicted in its own prose; `00` asks for none of them.
+
+| Symbol | Why the design does not ask for it |
+|---|---|
+| `placement.store.placed_node_ids` | §4.3's entry, acted on. One line in the repository — its own definition. Its promised consumer ("Task 17 diffs this against the tree") was never written and the diff it would feed operates on node records, not placement outcomes. |
+| `facts.plan_versions.create_plan_version_tables` | "NO LONGER OWED" by its own docstring; `create_facts_schema` creates `value_renderings`. |
+| `facts.usable.create_fact_passes` | The same. §11 said it survives only if "a test that wants the one table without the rest" exists. It did — but both such tests were **idempotency** cases, and the property they guard belongs to the creator that actually runs on every open of an existing database. Both now call `create_facts_schema` twice, which is the real production sequence, so the property is asserted against the code that has to hold it. |
+| `extractors.events.extraction_event`, `ocr_event` | §11's entry, acted on. The module header already recorded, in capitals, that nothing in `src/` calls either, and that `ocr_event()`'s claim to "describe a shape the database will produce" is FALSE because `record_run_event` leaves `prompt_fingerprint` NULL by design. The one stated reason to keep them — "the guard that P5 authors none of P3's event types" — is `authorship.event_defaults`'s own refusal, which is LIVE; `tests/p5/test_p5_events.py` now asserts it there, proved by sabotaging that refusal. |
+
+## 17. Wired (1), and it is the one worth reading. `3b31c4e`.
+
+**`facts.values.add_raw_variant` — §2.8's first rendering did not exist in any
+shipped database.**
+
+`00` §2.8: *"If a document says U Chicago, the raw observation remains exactly
+that wording, while a resolver may normalize it to University of Chicago and the
+user may later choose to display it as UChicago."* Three renderings, three
+columns. `ensure_value` writes `raw_variants` as `[]` and never appends;
+`add_raw_variant` is that column's only writer and nothing in `src/` called it.
+
+**The canonicaliser is what makes this a loss rather than a redundancy.**
+`cli.py:716-721` collapses `PHYS 1401`, `PHYS-1401` and `PHYS1401` into one value
+ON PURPOSE, and says why: `65` §4.2 measured four files from one course becoming
+four one-file groups and an empty course folder. That collapse is correct — and
+once it has happened, the canonical form was the only surviving evidence of what
+any document actually printed.
+
+Wired at `facts/direct.py`'s live `ensure_value` call site, over every reading in
+the group. **Imported UNALIASED, deliberately**: §13.5 — the census matches read
+names, so `import f as _f` hides a live call, and `direct.py` is the very module
+where that trap has already bitten once (§12's `is_suppressed`).
+
+**The sabotage took three corpora to make bite, and that is the finding.**
+
+| sabotage | verdict |
+|---|---|
+| drop the call | red |
+| keep only the first sighting | **GREEN** — `direct_facts` groups PER FILE, so with one spelling per file every group has a single member and a first-sighting-only writer is indistinguishable from a correct one |
+| ...still green with a fourth file printing PHYS both ways | the other three files supply those same two spellings, so the SET comes out complete anyway — §13.8's masking exactly: the louder case hides the quieter |
+| ...red only once a SECOND code (`CHEM 2100`/`CHEM-2100`) is printed twice inside ONE file and by no other file | red |
+| break the collapse itself | the premise test goes red, so a corpus that stopped exercising the collapse cannot pass silently |
+
+**Generalising §13.8's rule one step: a corpus is an instrument too.** "Assert the
+whole argument, never a prefix" governs the ASSERTION. This governs the FIXTURE: a
+fixture in which several inputs supply the same evidence cannot distinguish a
+writer that reads all of them from one that reads the first. The property was
+right and un-provable for two rounds.
+
+## 18. Found, evidenced, NOT wired — `grouping.store.record_stop_rule_outcome`
+
+`grouping/pipeline.py:531-541` calls `evaluate_stop_rules` on the live path, and
+when a rule fires it returns the `StopRuleOutcome` straight up to the caller and
+**never calls `record_stop_rule_outcome`**, its own sibling — in a module that
+already writes through `record_group`, `record_edges` and `record_membership`.
+P9's schema has a `stop_rule_outcomes` table with `no_delete` and
+`never_overwritten` triggers on it, and no run has ever put a row in it.
+
+**Not wired here because I could not make one fire through `cli.main`**, which is
+the bar. Measured on a four-file corpus: zero outcomes. SR1 needs a group with no
+anchors (groups form from anchored seeds); SR2 needs embedding-only edges and
+`cli.py:1697` passes `EmbeddingsOff()`; SR3 needs a suppressed hub and no live
+edge; SR4 needs a seed conflict. **SR6 is the reachable one and its writer is
+P13's** — `_standing_reject` reads a `GROUP_PROPOSAL_CLASS` reject, and `--reject`
+writes fact-level rejections, not group ones.
+
+So: **wire owed, blocked on P13's group-reject gesture.** Whoever builds that
+gesture should land this write with it — otherwise the first thing the product
+does with a person's rejection of a grouping is compute the consequence and
+discard it.
+
+## 19. Held for the composition root's owner — `scratchpad/sweep/CLI-PATCH.txt`
+
+Five hunks, D1–D5, with `scratchpad/sweep/apply.py` as their executable twin
+(§13.10). They wire **`tree_design.config.tree_limits`** — §4.1's entry, open
+since 08-31 — by seeding P10's two ceilings in `_bootstrap`, and they settle
+§4.1's contradiction by giving `model.max_dossier_tokens_per_call` one value.
+
+Measured both directions on a real run:
+
+```
+BEFORE  tree_limits REFUSED: ConfigurationRequired
+        "tree.max_folder_proposals is None; P10 needs a positive limit and
+         ships no fallback"
+AFTER   tree_limits OK: 4 5 4000
+```
+
+Applied to the real `src/cli.py` and reverted clean: **3 failed, 1958 passed**
+over `tests/p10 tests/p11 tests/integration tests/test_cli.py`. **All three
+failures are the strict xfails from `90c6767` XPASSing**, which is what they were
+written to do; their markers come off in the commit that applies the patch.
+
+## 20. Open, for whoever picks this up
+
+- **P2 is one owner decision worth ~45 mechanisms** — `eval_harness.*` (31), the
+  four stage-emitter modules, `scan_agent.replay.*` (5) and
+  `SnapshotCorpusSource`, all dormant because `cli.py:1105` passes
+  `evaluation=None` and `cli.py:826` passes `FilesystemCorpusSource()`. `00` §8.5
+  asks for replay, so this is not an agent's to delete. Raised with the lead:
+  build the `--replay` driver, or drop P2. It is ~14% of the whole backlog.
+- **CUT 7 is unratified and lives only in a module docstring.**
+  `src/facts/read_surface.py`: *"CUT 7 is unratified and this module is its target
+  (preamble §2, D13)."* That is an open owner decision about whether P6's read
+  surface exists at all, it is the same KIND of item as `74` §8's Q3/Q5/Q6, and
+  `84` §3's outstanding list does not carry it. P13 may depend on it.
+- **`extractors.budgets.extraction_counts` is still the highest-value wire left**
+  — §8.6's *"89 scanned PDFs deferred after the OCR limit; 18 files remain
+  unreadable"*, the one line that tells a person why their files did not move.
+  §14 left it because the reader needs P4's schema and `cli.py` may not hold it.
+  **It does not have to**: the corpus-wide `SELECT` over `extraction_runs` belongs
+  in `extractors/budgets.py`, and then `cli.py` calls one function. That is the
+  next slice's first task.
