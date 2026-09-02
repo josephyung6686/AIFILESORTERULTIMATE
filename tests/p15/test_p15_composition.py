@@ -113,17 +113,6 @@ def test_a_person_can_say_what_this_material_is_for_them(tmp_path: Path):
     assert roles[0].activates_schema == "academic"
 
 
-test_a_person_can_say_what_this_material_is_for_them = pytest.mark.xfail(
-    strict=True, raises=SystemExit,
-    reason="measured 2026-09-02: `cli.main` defines no `--declare-role`, so "
-           "argparse exits 2 before the run starts. `questions.roles` is imported "
-           "by nothing in `src/`, and `roles._split` refuses with \"The form is "
-           "`--declare-role <name>=<what>`\" -- a command that does not exist. "
-           "XPASSes -- and fails the suite, forcing this marker off -- with "
-           "PATCH B in the reachability agent's CLI-PATCH.txt.",
-)(test_a_person_can_say_what_this_material_is_for_them)
-
-
 def test_a_person_can_say_it_in_their_own_words_and_the_words_survive(
         tmp_path: Path):
     """`80` §4 (R5): "the raw sentence stays recorded and visible".
@@ -143,13 +132,6 @@ def test_a_person_can_say_it_in_their_own_words_and_the_words_survive(
     assert roles[0].activates_schema is None, (
         "§16:547 -- an unmatched answer must remain unmatched; a sentence may "
         "turn nothing on")
-
-
-test_a_person_can_say_it_in_their_own_words_and_the_words_survive = (
-    pytest.mark.xfail(
-        strict=True, raises=SystemExit,
-        reason="`cli.main` defines no `--describe-role`. XPASSes with PATCH B.",
-    )(test_a_person_can_say_it_in_their_own_words_and_the_words_survive))
 
 
 def test_the_run_invites_the_declaration_at_the_moment_r1_names(tmp_path: Path):
@@ -178,13 +160,6 @@ def test_the_run_invites_the_declaration_at_the_moment_r1_names(tmp_path: Path):
     assert "--describe-role" in printed
 
 
-test_the_run_invites_the_declaration_at_the_moment_r1_names = pytest.mark.xfail(
-    strict=True,
-    reason="`triggers.role_declaration_is_due` has no caller in `src/`, so the "
-           "moment `80` §3 defines never arrives. XPASSes with PATCH B.",
-)(test_the_run_invites_the_declaration_at_the_moment_r1_names)
-
-
 def test_the_invitation_is_spent_once_and_does_not_come_back(tmp_path: Path):
     """`80` §4 (R2), which is the ruling that constrains this most.
 
@@ -208,13 +183,6 @@ def test_the_invitation_is_spent_once_and_does_not_come_back(tmp_path: Path):
         "the invitation came back after the person had already answered it")
 
 
-test_the_invitation_is_spent_once_and_does_not_come_back = pytest.mark.xfail(
-    strict=True, raises=SystemExit,
-    reason="the first run cannot record a declaration, so this cannot yet "
-           "measure the second. XPASSes with PATCH B.",
-)(test_the_invitation_is_spent_once_and_does_not_come_back)
-
-
 def test_a_person_can_ask_what_one_of_their_answers_controls(tmp_path: Path):
     """§13:453's five things, reached from the command line.
 
@@ -229,14 +197,6 @@ def test_a_person_can_ask_what_one_of_their_answers_controls(tmp_path: Path):
     for label in ("What it controls", "Where it applies", "When it was supplied",
                   "How it was settled", "How to change it"):
         assert label in printed, f"§13's {label!r} is not on the screen"
-
-
-test_a_person_can_ask_what_one_of_their_answers_controls = pytest.mark.xfail(
-    strict=True, raises=SystemExit,
-    reason="`cli.main` defines no `--explain` and imports "
-           "`questions.explanation` not at all, so §13:453's inspection has no "
-           "surface. XPASSes with PATCH B.",
-)(test_a_person_can_ask_what_one_of_their_answers_controls)
 
 
 def test_this_file_is_really_driving_the_command_and_the_moment_is_really_due(

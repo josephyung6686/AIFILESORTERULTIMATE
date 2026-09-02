@@ -103,15 +103,6 @@ def test_correcting_an_answer_says_what_the_correction_did(tmp_path: Path):
         "neither the shape being left nor the one being taken is named")
 
 
-test_correcting_an_answer_says_what_the_correction_did = pytest.mark.xfail(
-    strict=True,
-    reason="measured 2026-09-02: `src/cli.py` imports `questions.effects` not at "
-           "all, so `--answer` supersedes a row and the run simply comes out "
-           "different. XPASSes -- and fails the suite, forcing this marker off -- "
-           "with PATCH C in the reachability agent's CLI-PATCH.txt.",
-)(test_correcting_an_answer_says_what_the_correction_did)
-
-
 def test_the_three_questions_p15_cannot_answer_are_named_and_not_dropped(
         tmp_path: Path):
     """The half that makes the diff honest rather than merely present.
@@ -129,14 +120,6 @@ def test_the_three_questions_p15_cannot_answer_are_named_and_not_dropped(
         assert name in printed, (
             f"§17's {name!r} is neither computed nor named, so the diff reads as "
             f"a complete list of what the correction did")
-
-
-test_the_three_questions_p15_cannot_answer_are_named_and_not_dropped = (
-    pytest.mark.xfail(
-        strict=True,
-        reason="no diff is printed at all, so nothing names them. XPASSes with "
-               "PATCH C.",
-    )(test_the_three_questions_p15_cannot_answer_are_named_and_not_dropped))
 
 
 def test_this_file_is_really_correcting_an_answer_and_the_diff_really_sees_it(

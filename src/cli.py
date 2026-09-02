@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import getpass
+import random
 import hashlib
 import json
 import re
@@ -91,7 +92,27 @@ from privacy.classification_store import ClassificationStore
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import MODE_SEMANTICS
+from questions.explanation import explain_question, render_explanation
+from questions.effects import changed_answer, diff_for_answer_change
+from questions.explanation import explain_question, render_explanation
+from questions.proposal import propose_roles
+# TWO `questions.records` LINES, DELIBERATELY, AND THIS IS THE WHOLE REASON.
+# `../reach/CLI-PATCH.txt`'s PATCH C1 anchors on `from questions.records import
+# StructuralAnswer` verbatim. Merging `AnswerNotPermitted` into that line would
+# consume their anchor, so applying this patch first would make C1 fail to
+# match -- measured, not assumed. Leaving the line untouched makes the two patch
+# files independent in BOTH directions rather than in one, which is a property
+# instead of an ordering rule somebody has to remember. Once both have landed,
+# the two lines may be merged into one.
+from questions.records import AnswerNotPermitted
 from questions.records import StructuralAnswer
+from questions.role_report import (
+    questions_a_run_could_not_settle, role_moment_lines, role_panel_lines,
+    shortlist_lines,
+)
+from questions.roles import (
+    apply_declarations, apply_descriptions, described_sentences, live_roles,
+)
 from questions.schema import create_questions_schema
 from questions.store import (
     activated_schemas, gated_template, live_answer, live_answer_id, open_questions,
@@ -121,6 +142,7 @@ from recognition.rules import load_rules
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.exclusion import is_protected_container
 from scan_agent.selection import record_selection
+from scan_agent.summary import scan_run_summary, set_aside_paths
 from tree_design.catalogue import TemplateCatalogue
 from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FreezeRefused
@@ -205,6 +227,34 @@ GROUPING_LIMITS = GroupingLimits(
 #: file for a model call" -- a sentence a person reads as a fact about their own
 #: file when it is a fact about this line. `model_route` below says which it is.
 OPERATION_MODE: str = "offline"
+
+
+def _unranked(candidates: frozenset[str]) -> tuple[str, ...]:
+    """`80` §5 (R7): the order a person sees, chosen where policy is chosen.
+
+    > Shortlist ORDER itself is information the person will use whether or not you
+    > intend it to be. Even "unordered" presentation isn't neutral if the UI renders
+    > a list top-to-bottom -- position seven versus position one still reads as
+    > ranked to a human, regardless of your intent.
+
+    and the mitigation "must be stronger than 'do not sort by confidence'". The data
+    already refuses to carry an order -- `RoleProposal.candidates` is a `frozenset`,
+    which cannot be indexed -- so the only place left for a ranking to reappear is
+    the geometry of the render, and this is that place.
+
+    Every alternative available here is a ranking. Sorted ranks by an irrelevance and
+    puts `academic` first for everybody forever; set iteration is an order nobody
+    chose, which is worse because it looks deliberate; the model's own order is the
+    one R7 exists to remove. `80` §7 names randomising per render as acceptable, so
+    that is what this is.
+
+    UNSEEDED, deliberately. A seed makes the order stable between renders, and an
+    order that is stable is an order a person learns, which is the ranking again.
+    The cost is that this function is the one thing in the report a test cannot
+    assert the exact output of; asserting the SET is what a test of an unranked
+    list should be doing anyway.
+    """
+    return tuple(random.sample(sorted(candidates), len(candidates)))
 
 #: `83` §3's table, and the only place in the product where it exists. WHICH tier a
 #: call site requires is a judgement about what being wrong COSTS THE PERSON, so it
@@ -1379,6 +1429,47 @@ def _print_protected_areas(areas, out) -> None:
               "none of them is a place anything can be filed.", file=out)
 
 
+def _print_set_aside(summary: Mapping[str, object], aside, out) -> None:
+    """§1.1's OTHER three rules, said out loud. The other half of the block above.
+
+    "Marked and counted, never silently omitted" has no exception for the three
+    rules that are not `protected container`, and until this printed, a person
+    whose `Library/` or `node_modules/` was skipped was told nothing at all. That
+    is `summary.py`'s own complaint about itself: "a person cannot ask for a
+    folder back that they were never told was left behind."
+
+    Deliberately a SECOND block and not an extension of the first. A protected
+    container is never openable by any policy, approval or gesture; a folder
+    excluded by name is a rule this product chose and could be asked to revisit.
+    Printing them in one list in one voice is how a person comes to believe the
+    same thing happened to both.
+
+    The count and the names are both printed because they answer different
+    questions -- `paths_excluded_by_rule` says how many, `set_aside_paths` says
+    which -- and a count with no names is the omission this fixes.
+    """
+    out = out if out is not None else sys.stdout
+    if not aside:
+        return
+    print(f"\nSet aside by rule: {len(aside)}, not read and not in this plan",
+          file=out)
+    for entry in aside:
+        print(f"  {entry.display_label}  ({entry.rule}"
+              f"{f': {entry.rule_subject}' if entry.rule_subject else ''})",
+              file=out)
+        print(f"    {entry.path}", file=out)
+    print("  These were skipped before anything was read. If one of them is "
+          "material you want organised, it has to be scanned on its own.",
+          file=out)
+    # §8.6's counters, and only where there is a set-aside block for them to
+    # qualify. On a corpus nothing was excluded from they would be a bare
+    # statistics line, which is not a question anybody asked.
+    print(f"  Files indexed: {summary['files_indexed']}. "
+          f"Reused from the last scan: {summary['files_reused_from_stat_cache']}. "
+          f"Re-read: {summary['files_recomputed']}. "
+          f"Deferred: {summary['files_deferred']}.", file=out)
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
         residuals: Sequence[str] = (),
@@ -1831,7 +1922,21 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # soon as it is known.
         _print_protected_areas(
             protected_areas(conn, scan_run_id=p1_p7.scan_run_id), out)
+        # HERE for the reason above it, one rule further out. Every argument that
+        # comment makes for the protected block is an argument for §1.1's other
+        # three rules: the verdict is in `exclusion_verdicts` by now, a stage
+        # after this may refuse, and a refused run that never said what it had
+        # skipped is the silent omission the standing rule forbids.
+        _print_set_aside(
+            scan_run_summary(conn, p1_p7.scan_run_id),
+            set_aside_paths(conn, scan_run_id=p1_p7.scan_run_id), out)
         return CorpusAuthorities(
+
+
+# NOTE for A2: `Mapping` is already imported in cli.py (`from typing import ...`
+# / `collections.abc`) — confirmed in use at `sends: Mapping[str, str]` on `run`.
+# If the annotation is inconvenient, dropping it to a bare `summary` parameter
+# changes nothing.
             catalogue=catalogue, design_authorities=design_authorities,
             grouping_limits=GROUPING_LIMITS,
             grouping_knowledge=GroupingKnowledge(
@@ -2016,7 +2121,7 @@ class AnswerRefused(NotConfigured):
 
 
 def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
-                  user_id: str, recorded_at: str) -> None:
+                  user_id: str, recorded_at: str) -> tuple[tuple[str, str], ...]:
     """Record what the person typed at `--answer`, before the run reads anything.
 
     Applied FIRST so an answer takes effect on the very run that supplies it. A
@@ -2027,6 +2132,11 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
     ignored: the person believes they have told the product something, and a
     silently dropped answer is the worst of both -- no effect, and no way to tell.
     """
+    # WHAT WAS SETTLED, not how many. §17's diff is per question and per scope,
+    # and the scope is read from the question here already -- a second SELECT in
+    # the printer would be a second home for P15's schema in the one file that is
+    # supposed to hold none.
+    settled: list[tuple[str, str]] = []
     for raw in answers:
         question_id, _, option_id = raw.partition("=")
         if not question_id or not option_id:
@@ -2076,6 +2186,49 @@ def apply_answers(conn: sqlite3.Connection, answers: Sequence[str], *,
             supersede_reason=("the user withdrew this answer" if revoked else
                               "the user answered this again"
                               if previous_id is not None else None)))
+        settled.append((question_id, row[0]))
+    return tuple(settled)
+
+
+def _print_answer_effects(conn: sqlite3.Connection, settled, out) -> None:
+    """§17:577's diff, for the answers this invocation actually changed.
+
+    `changed_answer` returns `None` for a FIRST answer, which is why this prints
+    nothing for one: §17's trigger is "edits or re-runs", and a first answer is
+    the ordinary case the rest of P15 already handles.
+
+    The three questions P15 cannot produce are PRINTED with their reasons rather
+    than left out. A diff naming the three it can would read as a complete account
+    of what the correction did, and that is the one a person acts on --
+    `PlanEffectDiff.is_empty` refuses to be read as "the answer had no effect" for
+    the same reason, in its own docstring.
+    """
+    out = out if out is not None else sys.stdout
+    for question_id, scope in settled:
+        change = changed_answer(conn, question_id=question_id, scope=scope)
+        if change is None:
+            continue
+        diff = diff_for_answer_change(change)
+        print(f"\nWhat changing {question_id} does to this plan:", file=out)
+        if diff.is_empty:
+            print("  Nothing this can see. Your answer was recorded and the "
+                  "shape of the plan is unchanged.", file=out)
+        for schema in diff.schemas_activated:
+            print(f"  Turns on the `{schema}` schema.", file=out)
+        for schema in diff.schemas_deactivated:
+            print(f"  Turns off the `{schema}` schema.", file=out)
+        if diff.templates_affected:
+            # §17:577's own phrase, and no direction claimed: `templates_affected`
+            # is a symmetric difference, so which of these you are leaving and
+            # which you are taking is not in the data. Saying "was X, now Y" would
+            # be the report deciding it.
+            print("  Templates affected: "
+                  + ", ".join(diff.templates_affected), file=out)
+        for branch in diff.branches_needing_review:
+            print(f"  {branch} may need looking at again.", file=out)
+        print("  Not worked out here, and why:", file=out)
+        for name, reason in diff.why_not_computed.items():
+            print(f"    {name}: {reason}", file=out)
 
 
 # ======================================================================================
@@ -2307,6 +2460,19 @@ def _wrapped(text: str, *, indent: str, first: str | None = None) -> str:
                          subsequent_indent=indent)
 
 
+def _role_lines(lines: Sequence[str], *, out) -> None:
+    """Prose wrapped; a line a person is meant to paste printed exactly as it is.
+
+    `textwrap` breaking a command across two lines produces a command that does not
+    work, which is `84` §6's recurring defect: what the screen tells a person to
+    type has to be true. `role_report` indents its own pasteable lines, so the
+    leading space is the mark, and it is the same mark `ask()` uses above.
+    """
+    for line in lines:
+        print(line if line.startswith(" ") else _wrapped(line, indent="  "),
+              file=out)
+
+
 def _files_of(decision) -> tuple[str, ...]:
     """The files one decision is about: a file version, or a group's members."""
     subject = decision.subject
@@ -2371,7 +2537,9 @@ def _review_note(item, areas: Sequence[str]) -> str:
 
 
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
-           questions: Sequence = (), set_aside: Sequence = ()) -> None:
+           questions: Sequence = (), set_aside: Sequence = (),
+           role_moment: Sequence[str] = (),
+           roles_held: Sequence[str] = ()) -> None:
     """The run, in the order a person would ask about it.
 
     Four questions, in this order: what was left alone, what folders are being
@@ -2606,6 +2774,26 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             for question in offers:
                 ask(question)
 
+    if role_moment:
+        # `80` §3 (R1): the self-description question is "triggered by the first
+        # genuinely ambiguous file", never by first run -- so it belongs directly
+        # under the decisions this run could not settle, which are the evidence
+        # that it is needed. Nothing here decides whether to print it:
+        # `role_moment_lines` returns nothing unless `role_declaration_is_due`
+        # says the moment has arrived, and R2's once-only friction budget lives
+        # inside that call rather than in a condition this file could forget.
+        print("", file=out)
+        _role_lines(role_moment, out=out)
+
+    if roles_held:
+        # `80` §4 (R6): "a light, editable settings panel the person can glance at
+        # and adjust anytime, not a one-time gate they went through and now can't
+        # see again." AFTER the set-aside block and before the defaults, because
+        # this is the one part of the report that is about the person rather than
+        # about their files, and it is where they look to change something.
+        print("", file=out)
+        _role_lines(roles_held, out=out)
+
     if set_aside:
         # NOT the question again. §14 makes "skip for now" first-class and §12
         # forbids the pressure of re-asking, so the prompt, the evidence and the
@@ -2669,6 +2857,22 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "`=skip` to put it aside. Answers are remembered between runs and "
              "can be given more than once.")
     parser.add_argument(
+        "--describe-role", action="append", default=[], metavar="NAME=WORDS",
+        help="say what this material is for you, in your own words, e.g. "
+             "--describe-role me=\"I teach one course and I am doing my own "
+             "PhD\". The name before the = is yours to choose and is how you "
+             "change or withdraw it later. Your words are kept and turn nothing "
+             "on by themselves; what prints next is the layouts you can choose "
+             "from. Can be given more than once, and holding several at once is "
+             "normal.")
+    parser.add_argument(
+        "--declare-role", action="append", default=[], metavar="NAME=LAYOUT",
+        help="turn on one of the layouts this product knows, for this material, "
+             "e.g. --declare-role teaching=research. `=not_listed` says none of "
+             "them fits, which is a real answer that turns nothing on, and "
+             "`=skip` puts it aside. Using a name again changes that role and "
+             "leaves your others alone.")
+    parser.add_argument(
         "--reject", action="append", default=[], metavar="FILE:FIELD=VALUE",
         help="tell the product that something it concluded about one of your "
              "files is wrong, e.g. --reject 'week 3.pdf:subject=PHYS1401'. The "
@@ -2689,6 +2893,10 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "set exactly as the report printed it. No model is consulted -- "
              "the answer names the destination -- and it applies to the run "
              "that prints it, because a plan version's review sets are its own.")
+    parser.add_argument(
+        "--explain", action="append", default=[], metavar="QUESTION",
+        help="print what one answer controls, where it applies, when it was "
+             "given, how it was settled and how to change it.")
     parser.add_argument(
         "--list-residuals", action="store_true",
         help="print the residual areas `--residual` accepts, and stop.")
@@ -2764,18 +2972,55 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         # should not have to run the command a third time to see what it did.
         if args.answer:
             _bootstrap(conn)
-            apply_answers(conn, args.answer, user_id=args.user,
-                          recorded_at=now())
-        # After the answers and before the run, for the same reason.
+            _print_answer_effects(
+                conn,
+                apply_answers(conn, args.answer, user_id=args.user,
+                              recorded_at=now()), out)
+        # After the answers and before the run, for the same reason, and in
+        # this order: describing then confirming under one name is a correction
+        # that supersedes, so the confirmation must be the later write.
+        if args.describe_role or args.declare_role:
+            _bootstrap(conn)
+        if args.describe_role:
+            apply_descriptions(conn, args.describe_role, schemas=SCHEMA_IDS,
+                               user_id=args.user, recorded_at=now())
+            for name, sentence in described_sentences(args.describe_role):
+                # `propose=None` is `80` §1's Option 1 and not a gap: no local
+                # model is configured, so the closed list arrives unnarrowed and
+                # the person picks from all of it. `sending` is absent, which
+                # is `80` §8.3's condition C1: sending a person's own sentence
+                # to a provider is an explicit act, never what happens by not
+                # choosing.
+                _role_lines(shortlist_lines(
+                    propose_roles(sentence, offered=SCHEMA_IDS, propose=None,
+                                  mode=OPERATION_MODE),
+                    name=name, order=_unranked), out=out)
+        if args.declare_role:
+            apply_declarations(conn, args.declare_role, schemas=SCHEMA_IDS,
+                               user_id=args.user, recorded_at=now())
         if args.reject:
             _bootstrap(conn)
             apply_rejections(conn, args.reject, user_id=args.user,
                              observed_at=now())
+        if args.explain:
+            _bootstrap(conn)
+            for question_id in args.explain:
+                explanation = explain_question(conn, question_id)
+                if explanation is None:
+                    # Refused rather than ignored, exactly as an unknown
+                    # `--answer` is: a person who mistyped believes they were
+                    # shown an explanation of the thing they meant.
+                    print(f"\n{question_id!r} is not a question this plan has "
+                          f"raised. The report prints the ones that are open.",
+                          file=out)
+                else:
+                    print("", file=out)
+                    print(render_explanation(explanation), file=out)
         result = run(conn, directory, situation=args.situation, label=args.label,
                      user_id=args.user, now=now, out=out,
                      residuals=_validate_residuals(args.residual),
                      sends=_parse_sends(args.send_set))
-    except (NotConfigured, ConfigurationRequired) as refusal:
+    except (AnswerNotPermitted, NotConfigured, ConfigurationRequired) as refusal:
         print(f"\nThis run was refused, and here is what it needed:\n  {refusal}",
               file=out)
         return 2
@@ -2787,9 +3032,22 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         print(f"\nNo plan was made for {directory}, and this is why:\n"
               f"  {type(refusal).__name__}: {refusal}", file=out)
         return 1
+    # `questions_a_run_could_not_settle` and not `open_questions` raw. A revoked
+    # role question REOPENS -- that is what revocation means -- and printing it
+    # under "Questions only you can answer" put a 23-option identity question in
+    # the blocking section of a run where no file was blocked on anything of the
+    # kind. Found by running this, not by reading it.
+    open_now = questions_a_run_could_not_settle(open_questions(conn))
+    # Read here and passed IN, for the reason `report`'s own docstring gives: it
+    # takes a finished run and a naming table and holds no connection, and giving
+    # it one so it could ask a second part a question would make the report a
+    # place where new facts are discovered.
+    held = live_roles(conn)
     report(result, file_names(conn, directory), out=out,
-           questions=open_questions(conn),
-           set_aside=set_aside_questions(conn))
+           questions=open_now,
+           set_aside=set_aside_questions(conn),
+           role_moment=role_moment_lines(blocked=open_now, already_declared=held),
+           roles_held=role_panel_lines(held))
     return 0
 
 
