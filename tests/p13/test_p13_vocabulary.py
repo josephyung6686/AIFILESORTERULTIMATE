@@ -33,7 +33,13 @@ def test_the_twelve_surfaces_are_the_spec_s_twelve():
     )
 
 
-def test_the_eighteen_actions_are_the_spec_s_eighteen():
+def test_the_twenty_four_actions_are_the_spec_s_twenty_four():
+    """Eighteen until 2026-09-02, when the owner approved six of §8.7's gestures.
+
+    The name of this test carries the count deliberately: it was
+    `test_the_eighteen_actions_are_the_spec_s_eighteen` and would have been a lie
+    the moment there were twenty-four.
+    """
     assert v.ACTIONS == (
         "accept", "accept_bulk", "change_destination",
         "return_to_accepted_group", "create_custom_folder", "mark_private",
@@ -41,6 +47,8 @@ def test_the_eighteen_actions_are_the_spec_s_eighteen():
         "disable_suggestion_type", "refresh_plan", "approve_for_apply",
         "select_consent_option", "set_redaction", "adopt_version",
         "restore_version", "reset_learning",
+        "exclude_from_packet", "rename", "merge", "split", "reorder",
+        "set_refinement_disposition",
     )
 
 
@@ -51,8 +59,9 @@ def test_every_action_the_spec_prints_is_present():
                  "edit_recommendation", "disable_suggestion_type",
                  "refresh_plan", "approve_for_apply", "select_consent_option",
                  "set_redaction", "adopt_version", "restore_version",
-                 "reset_learning"):
-        assert name in v.ACTIONS, f"{name} is one of P13 SPEC:264-270's actions"
+                 "reset_learning", "exclude_from_packet", "rename", "merge",
+                 "split", "reorder", "set_refinement_disposition"):
+        assert name in v.ACTIONS, f"{name} is one of P13 SPEC's printed actions"
 
 
 def test_the_four_approval_verdicts():

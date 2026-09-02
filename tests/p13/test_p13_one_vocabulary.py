@@ -60,8 +60,18 @@ def p13_members() -> frozenset[str]:
 #:   class. A plan version is a thing a correction is ABOUT, not a screen.
 #: * `grouping/graph.py` `_REJECT` -- the same polarity again, read back out of
 #:   P1's store to decide what "already rejected" means.
+#: * `tree_design/vocabulary.py` `RENAME_RESIDUAL` / `MERGE_RESIDUAL` -- §7.4's
+#:   residual LIBRARY actions: what a person does to a residual TEMPLATE before
+#:   freeze, which `81` §10 records as P10-internal and explicitly not a
+#:   `review_action`. **`81` §10 also says these "should be re-checked" if the
+#:   canvas turns out to be a `review_action` surface, and on 2026-09-02 the
+#:   owner ruled that it is.** That re-check has NOT been done and is not this
+#:   guard's to make: exempting them here keeps today's behaviour truthful and
+#:   does not settle the question. Raised with the lead 2026-09-02.
 DIFFERENT_AXIS: frozenset[tuple[str, str]] = frozenset({
     ("graph.py", "_REJECT"),
+    ("vocabulary.py", "RENAME_RESIDUAL"),
+    ("vocabulary.py", "MERGE_RESIDUAL"),
     ("vocabulary.py", "PLACEMENT"),
     ("vocabulary.py", "DIMENSION_PLACEMENT"),
     ("vocabulary.py", "POLARITY_ACCEPT"),

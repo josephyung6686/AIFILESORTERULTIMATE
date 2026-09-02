@@ -29,21 +29,20 @@ import pytest
 
 from review_surface import vocabulary as v
 
-#: **PROPOSED SPELLINGS, NOT APPROVED, AND NOT PUBLISHED ANYWHERE IN `src/`.**
+#: **ONE PROPOSED SPELLING, NOT APPROVED, AND NOT PUBLISHED ANYWHERE IN `src/`.**
 #:
-#: The six §8.7 gestures P13 cannot name (`81` §4.4's table). A checker needs
-#: something to look for, so each carries the name this file would expect P13 to
-#: publish; `review_surface.vocabulary.check` refuses every one of them today and
-#: no module under `src/` spells any of them. **The spelling is the owner's to
-#: rule** -- when he does, replace these with what he ruled, add the members with
-#: his approval recorded at them, and delete the marker below.
-PROPOSED_EXCLUDE_FROM_PACKET: str = "exclude_from_packet"
-PROPOSED_RENAME: str = "rename"
-PROPOSED_MERGE: str = "merge"
-PROPOSED_SPLIT: str = "split"
-PROPOSED_REORDER: str = "reorder"
+#: Five of §8.7's six unhomed gestures were homed on 2026-09-02 -- the owner
+#: approved six members for them, recorded at `ACTIONS` in
+#: `review_surface/vocabulary.py`. Those five now point at real `v.ACTION_*`
+#: constants below.
+#:
+#: **"Creating a custom template" is the one still unhomed.** The owner ruled it
+#: DISTINCT from `create_custom_folder` on 2026-09-02 -- a template is a reusable
+#: shape, a folder is one actual folder -- so it needs its own member; but its
+#: spelling was not among the six he was shown, so no member exists and none is
+#: minted here. `review_surface.vocabulary.check` refuses the name below and no
+#: module under `src/` spells it. **The spelling is the owner's to rule.**
 PROPOSED_CREATE_CUSTOM_TEMPLATE: str = "create_custom_template"
-PROPOSED_SET_REFINEMENT_DISPOSITION: str = "set_refinement_disposition"
 
 #: §8.7's own sentence, `planning/01-product-design-structured.md`:1842-1845, split
 #: into the eleven gestures it names and mapped to the P13 action(s) that record
@@ -54,29 +53,23 @@ PROPOSED_SET_REFINEMENT_DISPOSITION: str = "set_refinement_disposition"
 #: have, not a member.
 SECTION_8_7_GESTURES: dict[str, tuple[str, ...]] = {
     "accepting or rejecting a group": (v.ACTION_ACCEPT, v.ACTION_REJECT),
-    "excluding one member from a packet": (PROPOSED_EXCLUDE_FROM_PACKET,),
-    "renaming a branch": (PROPOSED_RENAME,),
-    "merging or splitting groups": (PROPOSED_MERGE, PROPOSED_SPLIT),
-    "changing template order": (PROPOSED_REORDER,),
+    "excluding one member from a packet": (v.ACTION_EXCLUDE_FROM_PACKET,),
+    "renaming a branch": (v.ACTION_RENAME,),
+    "merging or splitting groups": (v.ACTION_MERGE, v.ACTION_SPLIT),
+    "changing template order": (v.ACTION_REORDER,),
     "creating a custom template": (PROPOSED_CREATE_CUSTOM_TEMPLATE,),
     "moving a residual file to a custom location": (
         v.ACTION_CHANGE_DESTINATION, v.ACTION_CREATE_CUSTOM_FOLDER),
-    "choosing a shallow fallback": (PROPOSED_SET_REFINEMENT_DISPOSITION,),
+    "choosing a shallow fallback": (v.ACTION_SET_REFINEMENT_DISPOSITION,),
     "keeping a file in place": (v.ACTION_LEAVE_UNTOUCHED,),
     "marking a file private": (v.ACTION_MARK_PRIVATE,),
     "disabling a type of suggestion": (v.ACTION_DISABLE_SUGGESTION_TYPE,),
 }
 
-#: The six with no member of `ACTIONS` behind them today. Named rather than
+#: The one with no member of `ACTIONS` behind it today. Named rather than
 #: re-derived at the call site so the xfail's reason and the guard cannot disagree.
-UNHOMED: tuple[str, ...] = (
-    "excluding one member from a packet",
-    "renaming a branch",
-    "merging or splitting groups",
-    "changing template order",
-    "creating a custom template",
-    "choosing a shallow fallback",
-)
+#: It was six until 2026-09-02.
+UNHOMED: tuple[str, ...] = ("creating a custom template",)
 
 
 def unhomed_gestures(actions: tuple[str, ...]) -> tuple[str, ...]:
@@ -104,17 +97,22 @@ def test_the_five_homed_gestures_name_actions_p13_actually_publishes():
                 "publishes")
 
 
-def test_no_proposed_name_is_in_p13s_closed_vocabulary_yet():
-    """The proposals above are proposals. `check` refuses every one, which is what
-    "not minted" means concretely -- an action carrying one of these names cannot
-    be collected today."""
-    for proposed in (PROPOSED_EXCLUDE_FROM_PACKET, PROPOSED_RENAME,
-                     PROPOSED_MERGE, PROPOSED_SPLIT, PROPOSED_REORDER,
-                     PROPOSED_CREATE_CUSTOM_TEMPLATE,
-                     PROPOSED_SET_REFINEMENT_DISPOSITION):
-        assert proposed not in v.ACTIONS
-        with pytest.raises(v.OutOfVocabulary):
-            v.check(proposed, v.ACTIONS, name="action")
+def test_the_one_proposed_name_is_not_in_p13s_closed_vocabulary_yet():
+    """The proposal above is a proposal. `check` refuses it, which is what "not
+    minted" means concretely -- an action carrying this name cannot be collected."""
+    assert PROPOSED_CREATE_CUSTOM_TEMPLATE not in v.ACTIONS
+    with pytest.raises(v.OutOfVocabulary):
+        v.check(PROPOSED_CREATE_CUSTOM_TEMPLATE, v.ACTIONS, name="action")
+
+
+def test_the_six_the_owner_approved_are_all_published():
+    """The live half of the 2026-09-02 approval. If any of the six he was shown
+    verbatim is respelled or dropped, this names it."""
+    for approved in ("exclude_from_packet", "rename", "merge", "split",
+                     "reorder", "set_refinement_disposition"):
+        assert approved in v.ACTIONS, (
+            f"{approved!r} was approved by the owner on 2026-09-02 and recorded "
+            "at the member; it is no longer published")
 
 
 def test_the_report_can_tell_a_homed_gesture_from_an_unhomed_one():
@@ -137,19 +135,20 @@ def test_the_report_can_tell_a_homed_gesture_from_an_unhomed_one():
 
 
 @pytest.mark.xfail(strict=True, reason=(
-    "`81` §14's ruling: P13 owns the name of a gesture, so P13's eighteen must "
-    "grow to cover the six §8.7 gestures with no home -- excluding one member "
-    "from a packet, renaming a branch, merging or splitting groups, changing "
-    "template order, creating a custom template, choosing a shallow fallback. "
-    "OWNER APPROVAL IS OWED AND HAS NOT BEEN GIVEN: adding a member to a closed "
-    "vocabulary requires the owner's approval recorded AT THE MEMBER "
-    "(`src/review_surface/move_permission.py:33-34`), and the ruling says in its "
-    "own words that these 'are not minted by whoever notices the gap'. What is "
-    "owed is recorded at the member, in the block above `ACTIONS` in "
-    "`src/review_surface/vocabulary.py`. The spellings this file proposes are "
-    "placeholders and the owner's ruling replaces them. When the six are approved "
-    "and added this test XPASSES and the suite goes RED -- delete the marker "
-    "then, and not before."))
+    "ONE §8.7 gesture is still unhomed: creating a custom template. On "
+    "2026-09-02 the owner homed the other five -- he was shown six spellings "
+    "verbatim and answered 'Approve, these names' -- and separately ruled that "
+    "creating a custom template is NOT the same gesture as create_custom_folder "
+    "(a template is a reusable shape, a folder is one actual folder), so it "
+    "needs its own member. But its spelling was NOT among the six he was shown, "
+    "and adding a member to a closed vocabulary requires the owner's approval "
+    "recorded AT THE MEMBER (`src/review_surface/move_permission.py:33-34`); "
+    "`81` §14.1: they 'are not minted by whoever notices the gap'. So no member "
+    "is minted for it. The record is at the member, in the block above `ACTIONS` "
+    "in `src/review_surface/vocabulary.py`. The spelling this file proposes is a "
+    "placeholder and the owner's ruling replaces it. When it is approved and "
+    "added this test XPASSES and the suite goes RED -- delete the marker then, "
+    "and not before."))
 def test_every_gesture_section_8_7_names_has_a_p13_action():
     """§8.7 says every one of these *"should become local learning records with
     scope"*. A gesture P13 cannot name is a gesture that becomes no record at

@@ -73,6 +73,25 @@ ACTION_ADOPT_VERSION: str = "adopt_version"
 ACTION_RESTORE_VERSION: str = "restore_version"
 ACTION_RESET_LEARNING: str = "reset_learning"
 
+# --- §8.7's gestures, homed 2026-09-02 -------------------------------------
+#: Five of §8.7's six unhomed gestures, in six members -- *"merging or splitting
+#: groups"* is one phrase and two gestures. Every spelling is the receiving part's
+#: own existing word, ADOPTED rather than coined, so P13 takes the word the part
+#: that applies the gesture already uses (`81` §3.3 traces each to a design
+#: sentence). The approval block below records who approved these exact strings.
+ACTION_EXCLUDE_FROM_PACKET: str = "exclude_from_packet"
+ACTION_RENAME: str = "rename"
+ACTION_MERGE: str = "merge"
+ACTION_SPLIT: str = "split"
+ACTION_REORDER: str = "reorder"
+
+#: The one coined name, and it is coined from the sentence recording its own
+#: absence: `tree_design/pipeline.py:460-472` says outright *"there is no
+#: `set-refinement-disposition` review action"*. §5.8's shallow-by-choice is a
+#: deliberate answer and `refine-later` is a different one; collapsing them would
+#: make a design look like unfinished work, which is why the gesture needs a name.
+ACTION_SET_REFINEMENT_DISPOSITION: str = "set_refinement_disposition"
+
 #: RULING 2026-08-31 (`81` §14), recorded here because a closed vocabulary carries
 #: its own approval at the member. **P13 owns the name of a gesture.** `74` §8 Q2 --
 #: four rival `review_action` vocabularies for one record -- is closed as reading
@@ -81,28 +100,42 @@ ACTION_RESET_LEARNING: str = "reset_learning"
 #: this tuple would grow whenever P10 edited a tuple of its own, and a vocabulary
 #: that can grow without anyone approving it is not closed.
 #:
-#: **AND THIS TUPLE IS THEREFORE INCOMPLETE. SIX GESTURES THE DESIGN NAMES IN ITS
-#: OWN WORDS HAVE NO MEMBER HERE TO BE RECORDED AS.** §8.7 (`01`:1842-1845) lists
-#: eleven things a person does that *"should become local learning records with
-#: scope"*, and the eighteen below cover five of them. Missing: excluding one
-#: member from a packet; renaming a branch; merging or splitting groups; changing
-#: template order; creating a custom template; choosing a shallow fallback. The
-#: eighteen are §7.10's residual-review sentence plus the §8.3/§8.4/§8.8 machinery
-#: actions -- a faithful reading of one paragraph, and the design has three others.
+#: **THE TUPLE GREW ON 2026-09-02, AND THIS IS THAT APPROVAL.** §8.7
+#: (`01`:1842-1845) lists eleven things a person does that *"should become local
+#: learning records with scope"*, and the original eighteen covered five of them;
+#: `81` §4.4 tabulated the six with no home. The eighteen were §7.10's
+#: residual-review sentence plus the §8.3/§8.4/§8.8 machinery actions -- a
+#: faithful reading of one paragraph, where the design has four.
 #:
-#: **OWNER APPROVAL FOR THE SIX IS OWED AND HAS NOT BEEN GIVEN.** Adding a member
-#: to a closed vocabulary requires it recorded at the member
-#: (`move_permission.py:33-34`), and `81` §14.1 says the six *"are not minted by
-#: whoever notices the gap"*. So no member is added and no constant is declared:
-#: a constant this file's own `check` refuses would be a second home for a name
-#: nobody approved. What is owed is the SPELLING of each of the six and the
-#: approval line to sit beside it, in the form the ruling above takes.
+#: **APPROVED BY: the owner (Joseph), ON: 2026-09-02.** Relayed by the team lead,
+#: whose message is the transport and not the authority. **He was shown these six
+#: strings verbatim, as a tuple, beside this approval line, and answered "Approve,
+#: these names" -- he approved SPELLINGS, not a category:**
 #:
-#: APPROVED BY: ____________________  ON: ____________
+#:     "exclude_from_packet", "rename", "merge", "split", "reorder",
+#:     "set_refinement_disposition"
 #:
-#: `tests/p13/test_p13_unhomed_gestures.py` reports the gap as a strict xfail and
-#: turns the suite RED the day the six are added, so they cannot land without this
-#: block being filled in.
+#: An earlier delegated approval for the same members was offered and REFUSED,
+#: because `81` §14.1 reserves it: *"Each addition is a closed-vocabulary member
+#: and needs the owner's approval recorded at the member. They are not minted by
+#: whoever notices the gap."* The refusal is why this line names him.
+#:
+#: **ONE §8.7 GESTURE IS STILL UNHOMED: "creating a custom template".** `81` §7
+#: asked whether it and `create_custom_folder` are one gesture or two; the owner
+#: ruled on 2026-09-02 that they are **two** -- *a template is a reusable shape, a
+#: folder is one actual folder* -- so it needs its own member. **Its spelling was
+#: NOT among the six shown to him**, so no member is minted for it here and the
+#: strict xfail in `tests/p13/test_p13_unhomed_gestures.py` stays on, naming that
+#: one gesture. It comes off when that spelling is approved the same way these
+#: six were.
+#:
+#: Also settled 2026-09-02, recorded here because a member outlives the
+#: conversation: **a canvas gesture DOES travel as a `review_action`** (`81`
+#: §13.1's Q5', and with it `74` §8 Q4) -- *"every edit a person makes to the
+#: proposed structure is recorded in the same audit trail as accepting or
+#: rejecting a file, so one history explains every change"*. `rename`, `merge`,
+#: `split` and `reorder` stand on that answer. §14.1 had ASSUMED it; it is now
+#: answered.
 ACTIONS: tuple[str, ...] = (
     ACTION_ACCEPT, ACTION_ACCEPT_BULK, ACTION_CHANGE_DESTINATION,
     ACTION_RETURN_TO_ACCEPTED_GROUP, ACTION_CREATE_CUSTOM_FOLDER,
@@ -111,6 +144,9 @@ ACTIONS: tuple[str, ...] = (
     ACTION_REFRESH_PLAN, ACTION_APPROVE_FOR_APPLY,
     ACTION_SELECT_CONSENT_OPTION, ACTION_SET_REDACTION, ACTION_ADOPT_VERSION,
     ACTION_RESTORE_VERSION, ACTION_RESET_LEARNING,
+    # §8.7's, homed 2026-09-02 on the owner's approval recorded above.
+    ACTION_EXCLUDE_FROM_PACKET, ACTION_RENAME, ACTION_MERGE, ACTION_SPLIT,
+    ACTION_REORDER, ACTION_SET_REFINEMENT_DISPOSITION,
 )
 
 # --- approval verdicts (P13 SPEC, `review_approval.verdict`) --------------

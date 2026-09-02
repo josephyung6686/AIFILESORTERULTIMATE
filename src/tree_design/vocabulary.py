@@ -52,7 +52,11 @@ from review_surface.vocabulary import (
     ACTION_ADOPT_VERSION as _P13_ADOPT_VERSION,
     ACTION_DEFER as _P13_DEFER,
     ACTION_LEAVE_UNTOUCHED as _P13_LEAVE_UNTOUCHED,
+    ACTION_MERGE as _P13_MERGE,
+    ACTION_RENAME as _P13_RENAME,
+    ACTION_REORDER as _P13_REORDER,
     ACTION_RESTORE_VERSION as _P13_RESTORE_VERSION,
+    ACTION_SPLIT as _P13_SPLIT,
     SURFACE_CANVAS as _P13_SURFACE_CANVAS,
     SURFACE_PLAN_VERSION as _P13_SURFACE_PLAN_VERSION,
 )
@@ -388,20 +392,23 @@ BRANCH_BEARING_SHARED_POLICIES: tuple[str, ...] = (
 ACCEPT: str = _P13_ACCEPT
 DEFER: str = _P13_DEFER
 
-#: The rest of §5.1's branch gestures. **P13 has no name for any of them**, which
-#: is the gap `81` §14 left open and `tests/p13/test_p13_unhomed_gestures.py`
-#: reports: under the ruling these are P13's to name, and until the owner approves
-#: the members they stay here, spelled by P10, because deleting them would remove
-#: functions `01`:856-857 promises rather than rename them.
-RENAME: str = "rename"
-MERGE: str = "merge"
+#: Carried from P13 as of 2026-09-02, when the owner approved them as members of
+#: P13's closed vocabulary. This block used to say "P13 has no name for any of
+#: them"; four of them now have one, and a name P13 owns is carried, never
+#: respelled. `rename`, `merge` and `split` reach P10 or P9 depending on the
+#: SURFACE the gesture was collected on -- one vocabulary, two receivers.
+RENAME: str = _P13_RENAME
+MERGE: str = _P13_MERGE
+
+#: Still P10's own. §8.7 does not name them, so they were not part of the
+#: 2026-09-02 approval and homing them is a question nobody has asked.
 MOVE_UNDER_ROOT: str = "move-under-root"
 CREATE_MANUALLY: str = "create-manually"
 ADD: str = "add"
 REMOVE: str = "remove"
-SPLIT: str = "split"
+SPLIT: str = _P13_SPLIT
 NEST: str = "nest"
-REORDER: str = "reorder"
+REORDER: str = _P13_REORDER
 IGNORE: str = "ignore"
 DRAG_GROUP_INTO_BRANCH: str = "drag-group-into-branch"
 DELETE_SUGGESTED_AREA: str = "delete-suggested-area"

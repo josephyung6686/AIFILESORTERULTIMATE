@@ -267,7 +267,17 @@ review_action
                        | edit_recommendation | disable_suggestion_type
                        | refresh_plan | approve_for_apply | select_consent_option
                        | set_redaction | adopt_version | restore_version
-                       | reset_learning                                          §7.10, §8.3, §8.4, §8.7, §8.8
+                       | reset_learning
+                       | exclude_from_packet | rename | merge | split
+                       | reorder | set_refinement_disposition                    §7.10, §8.3, §8.4, §8.7, §8.8
+                       The last six were added 2026-09-02 on the owner's approval,
+                       recorded at the member in `src/review_surface/vocabulary.py`.
+                       They home five of the six §8.7 gestures `81` §4.4 found with
+                       nowhere to be recorded. "Creating a custom template" is the
+                       sixth and is STILL UNHOMED: the owner ruled it distinct from
+                       `create_custom_folder` (a template is a reusable shape, a
+                       folder is one actual folder) but its spelling has not been
+                       approved. `tests/p13/test_p13_unhomed_gestures.py` reports it.
   bulk_member_refs[]   present only when action = accept_bulk; every member
                        enumerated, never a filter expression                     §7.10
   bulk_basis           the evidence pattern the user was shown as the reason
@@ -292,10 +302,10 @@ needs one row of this table plus the field list above; no part is asked to chang
 | Part | Surfaces routed to it | What it accepts from P13 |
 |---|---|---|
 | P11 | `placement`, `group_plan`, `residual_set`, `residual_file` | `review_action` in full; `subject_ref` is a `decision_id`, `group_plan_id` or `set_id` |
-| P10 | `canvas`, `plan_version`, and a custom folder created during residual review | `review_action` in full; `subject_ref` is a `node_id`; §8.8's compare, restore and adopt arrive as `action = adopt_version \| restore_version` |
+| P10 | `canvas`, `plan_version`, and a custom folder created during residual review | `review_action` in full; `subject_ref` is a `node_id`; §8.8's compare, restore and adopt arrive as `action = adopt_version \| restore_version`; §5.1/§5.2's canvas edits arrive as `rename \| merge \| split \| reorder \| set_refinement_disposition` (2026-09-02: a canvas gesture DOES travel as a `review_action`, closing `74` §8 Q4) |
 | P7 | `consent`, `privacy_settings` | `review_action` in full; `subject_ref` is a `consent_request_id`; `action = select_consent_option \| set_redaction \| mark_private` |
 | P12 | `apply`, `undo_conflict` | `review_action` with `action = refresh_plan \| approve_for_apply`, **and** `review_approval` in full — the record that satisfies §8.3's `Required review policy` |
-| P9 | group changes collected on `group_plan` | `review_action` in full |
+| P9 | group changes collected on `group_plan` | `review_action` in full; §8.7's group gestures arrive as `rename \| merge \| split \| exclude_from_packet`. `rename`, `merge` and `split` appear on P10's row too and that is correct, not a duplication: one vocabulary, disambiguated by SURFACE — `merge` on `group_plan` routes to P9, `merge` on `canvas` routes to P10 |
 | P6 | a reclassification to private, jointly with P7 | `review_action` with `action = mark_private` |
 | P1 | `learning` | `review_action` with `action = reset_learning`, and P13's three registered event types (see Provenance) |
 
