@@ -495,7 +495,32 @@ def test_every_candidate_on_the_shortlist_is_pasteable(qconn):
 
 def test_the_invitation_is_pasteable_too(qconn):
     """The one line a person is most likely to copy, since it is the first one they
-    are ever shown."""
+    are ever shown.
+
+    COUNTED, not prefixed, and the prefix is the trap. `.startswith("me=")` was what
+    this asserted, and it passes on the broken line: unquoted, `--describe-role
+    me=whatever you would say...` hands the shell `me=whatever` and then six stray
+    arguments, and `me=whatever` starts with `me=` perfectly happily. Proven by
+    sabotage -- with the quoting removed this test was the one of four that stayed
+    green.
+
+    The same residue the reachability agent found in `test_p15_typable.py` and I
+    found in `tests/test_cli.py`: swapping in a shell-accurate lexer is half the
+    fix, and an assertion the truncated token still satisfies keeps the guard
+    toothless. Counting the tokens is the property -- one flag, one argument, nothing
+    stray -- and unlike an equality check it does not anchor to the sentence itself,
+    which is on-screen copy the owner may revise.
+    """
     lines = role_moment_lines(blocked=_blocked(), already_declared=())
 
-    assert _argument_after(lines, "--describe-role").startswith("me=")
+    for line in lines:
+        tokens = _shell_tokens(line)
+        if not tokens or not tokens[0].startswith("--"):
+            continue
+        assert len(tokens) == 2, (
+            f"{line!r} splits into {tokens!r}: pasting it would pass {tokens[1]!r} "
+            "and leave the rest as stray arguments")
+        assert tokens[1].startswith("me=")
+        break
+    else:
+        raise AssertionError(f"the invitation offers no command: {lines}")
