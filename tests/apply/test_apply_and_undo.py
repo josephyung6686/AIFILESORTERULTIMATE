@@ -14,8 +14,8 @@ from apply_run.run import (
     plans_under, sentence_for, take_back,
 )
 
-from conftest import CONSTRAINTS, LEGAL, NODES
-from test_freeze import _freeze
+from .conftest import CONSTRAINTS, LEGAL, NODES
+from .test_freeze import _freeze
 
 #: `74` §8 Q7 is unruled, so the composition root supplies the sentence rather
 #: than a default living inside the package. This is the test's copy of it.

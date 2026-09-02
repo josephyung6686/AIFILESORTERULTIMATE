@@ -123,7 +123,23 @@ must then decline, which reads as a product that keeps failing rather than one
 waiting for a screen it does not have. So such a placement is **held and named**,
 with the sentence saying why. See §6 for what this costs today.
 
-### 3.6 A plan that already ran is read from the journal, not retried.
+### 3.6 `--undo-everything` ignores branches entirely.
+
+`--undo BRANCH` resolves against the current frozen version's tree.
+`--undo-everything` does not resolve anything: it takes every applied journal
+entry not yet reversed. The reason is a sentence the freeze report prints --
+*"Anything from that plan you had already filed stays filed and can still be
+taken back"* -- and the real pipeline mints a NEW plan version on every run. An
+entry from a superseded proposal has node ids that are in no current branch, so
+filtering by them would silently skip exactly the files that sentence was about.
+Measured: apply one branch, re-freeze a different proposal under a new plan
+version, `--undo-everything` -- the earlier move comes back, byte-identical.
+
+Resolving a label across every version a database has ever held was the
+alternative, and it is worse: every label would be ambiguous with its own older
+self, so the refusal rule would fire on every ordinary undo.
+
+### 3.7 A plan that already ran is read from the journal, not retried.
 
 A frozen plan stays in the approved set after it runs, so typing the same
 `--apply` twice is an ordinary thing for a person to do. Handing an
@@ -169,6 +185,23 @@ Corpus before, by sha256:
 - **Sabotage:** editing one file between freeze and apply left that file exactly
   where it was — *"This file changed after the preview."* — while the others
   still moved.
+- `--apply` and `--undo` in one invocation refused before anything opened:
+  *"--apply and --undo say opposite things about the same files; pass one."*
+- `--apply` against a database with no frozen plan refused, exit 2, and printed
+  **no command** — freezing needs a `--situation` and a `--label` this
+  invocation was never given, so any line printed would carry a placeholder, and
+  a line with a placeholder is not a line a person can paste.
+- The seam was checked rather than assumed: after a plain run,
+  `nodes_for_version(conn, "<the Plan version the report printed>")` reads back
+  the pipeline's own `Coursework` node. `--apply` depends on that and nothing
+  else proved it.
+
+**One hazard found and NOT fixed, because the fix is the lead's.** argparse's
+`allow_abbrev` defaults True, so `--apply-` — a stray trailing dash, no branch
+name — is a unique prefix of `--apply-everything` and moves the whole plan.
+Measured; `--apply-`, `--apply-e` and `--undo-` all fire. That contradicts
+`--apply-everything`'s own help text. The fix is one word, `allow_abbrev=False`,
+and it changes how every flag in `src/cli.py` parses.
 
 ## 6. The one thing that is still wrong, and it is not this
 
@@ -188,7 +221,10 @@ Two things would open it, and both are somebody else's:
    match becomes reachable.
 2. **Rule that `--freeze` IS P13's review surface.** It is a deliberate, typed,
    once-per-proposal gesture given after a full report — which is exactly what
-   `ReviewApproval.presented_state_ref` describes. If the owner rules that way,
+   `ReviewApproval.presented_state_ref` describes. Note what it would and would
+   not be: the pipeline already freezes the **tree** internally on every run, so
+   this gesture is the person's approval of the **placements**, layered on the
+   design's freeze rather than replacing it. If the owner rules that way,
    `--freeze` would write a `ReviewApproval` and `review_required` plans would
    become applicable. **This needs a `review_approvals` table in
    `mutation/schema.py` and is P13's Wave B9. It is not decided here.**

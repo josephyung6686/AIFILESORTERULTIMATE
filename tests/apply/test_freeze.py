@@ -18,7 +18,7 @@ from apply_run.freeze import (
     freeze, frozen_plans,
 )
 
-from conftest import COLLISION_POLICY, CONSTRAINTS, LEGAL, NODES, PROTECTED_CLASSES
+from .conftest import COLLISION_POLICY, CONSTRAINTS, LEGAL, NODES, PROTECTED_CLASSES
 
 
 def _freeze(world, decisions, *, ids, clock, volume=lambda path: "vol-main"):

@@ -15,9 +15,9 @@ from apply_run.freeze import AWAITING_APPROVAL
 from apply_run.report import apply_lines, freeze_lines, undo_lines
 from apply_run.run import applied_entries, plans_under
 
-from conftest import NODES
-from test_apply_and_undo import _apply, _selected, _take_back
-from test_freeze import _freeze
+from .conftest import NODES
+from .test_apply_and_undo import _apply, _selected, _take_back
+from .test_freeze import _freeze
 
 #: A flag spelled inside a part package is a flag the package can be wrong
 #: about, so the composition root passes finished command strings in. This is
