@@ -517,7 +517,32 @@ overstated by one. Recorded here and in §13 so nobody spends an afternoon on it
    Worth its own line: the claim was mine, it was confidently worded, and the one
    direction I ran was the one that passed.
 
-10. **The three verdicts do not cover "the owner has not chosen a number yet."**
+10. **When an instrument YOU wrote reports a defect in someone else's work,
+   sabotage the instrument before you send the finding.** The mirror of §13.8's
+   three-way sabotage, and it nearly cost a false report in both directions. The
+   role-matcher agent's first two extractors for this file's `CLI-PATCH.txt` both
+   produced a combined `src/cli.py` that raised `SyntaxError: unmatched ')'` —
+   which reads exactly like a defect in the patch and was twice a defect in the
+   parser. One terminated a `NEW:` block at its first blank-blank line, which
+   truncates any hunk inserting a `def` with a docstring; the other ran `NEW:` to
+   the end of the section, which collapsed three edits into one. They measured
+   twice and caught it; the first measurement was confident and wrong.
+
+   **The shape of the file invited it, so the file was fixed rather than only the
+   parser.** `CLI-PATCH.txt` had ELEVEN `OLD:` blocks under NINE labels, because
+   `C2` carried three edits to one function under one heading. A person applying
+   by hand could apply the first and move on; a script counting labels gets nine.
+   It is now A1-A3, B1-B3, C1, C2a-C2c, C3 — one `OLD:`/`NEW:` pair each — with
+   the count stated in the header as a checksum and the termination rule spelled
+   out (a `NEW:` ends at the next `OLD:` or the next `---` label). Verified by
+   parsing and applying all eleven against `src/cli.py`: each anchor matches
+   exactly once and the combined result parses.
+
+   **A patch file is an instrument too**, and this one was ambiguous in a way only
+   a second reader could see. That is the general point: the author of a format
+   is the last person able to notice that it needs a rule stated.
+
+11. **The three verdicts do not cover "the owner has not chosen a number yet."**
    `bounded_sessions` and `photo_events` are not dormant in the sense §2 means — the
    producers exist, the tests pass, and the only thing missing is three numbers a
    person has to decide. Calling that "correctly dormant" files an owner decision as
