@@ -18,11 +18,15 @@ missing was the person's answer reaching it.
 
 **`src/cli.py` is the composition root and belongs to the lead**, so this file
 names the gestures rather than editing them in. The hunks are written out in
-`scratchpad/onboarding/CLI-PATCH.txt` against `34b563eb` (`b0f2b4b`). Strict
-xfail, for the reason this repo already uses strict: a dozen sessions share this
-suite, so red tests here would be a dozen false alarms, while an XPASS the moment
-the hunks land is the signal to strip these markers. **Applying the patch means
-deleting every `PENDING_SELECTION` marker in this file.**
+`scratchpad/onboarding/cli.diff` — apply with `git apply -p1`; `CLI-PATCH.txt`
+is its cover note and carries the base and patched sha256s. No commit is named
+here on purpose: `src/cli.py` moved three times while this was being written, so
+a blob id in a docstring would be stale within the hour and would send a reader
+to check the wrong file. Strict xfail, for the reason this repo already uses
+strict: a dozen sessions share this suite, so red tests here would be a dozen
+false alarms, while an XPASS the moment the hunks land is the signal to strip
+these markers. **Applying the patch means deleting every `PENDING_SELECTION`
+marker in this file.**
 
 The three gestures proposed to the owner, whose names are the owner's under
 `84` §1:
@@ -57,8 +61,9 @@ from scan_agent.selection import (  # noqa: E402
 
 PENDING_SELECTION = pytest.mark.xfail(
     strict=True,
-    reason="awaiting scratchpad/onboarding/CLI-PATCH.txt on src/cli.py; "
-           "`00`:20-21's three choices are hardcoded at cli.py:1679",
+    reason="awaiting scratchpad/onboarding/cli.diff on src/cli.py; "
+           "`00`:20-21's three choices are the three literals passed to "
+           "`record_selection` in `cli.run`",
 )
 
 DOWNLOADS = {
