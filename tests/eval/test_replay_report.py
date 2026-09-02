@@ -29,6 +29,7 @@ from eval_harness.stage_output import DimensionValue
 from eval_harness.store import create_eval_schema
 from eval_harness.vocabulary import DIMENSIONS, STAGE_IDS, VERDICTS
 
+import evaluation
 from evaluation import (
     NOT_MEASURED, bundle_baseline, replay_lines, stage_status,
 )
@@ -390,3 +391,52 @@ def test_a_stage_that_measured_something_says_so(eval_conn, labelled):
 
     line = next(l for l in lines if l.strip().startswith("factual_validation --"))
     assert line == "  factual_validation -- ran"
+
+
+# ======================================================================================
+# One home for one vocabulary
+# ======================================================================================
+
+def test_the_composition_module_carries_p2s_outcomes_and_respells_none():
+    """`test_p13_one_vocabulary.py`'s move, applied to the module this work added.
+
+    That guard scans exactly three packages -- `grouping`, `placement`,
+    `tree_design` -- so a new top-level composition module is not read by it, and
+    a bare string constant here would be a second home for a vocabulary P2 owns.
+    It is not added to that scan, because it carries no P13 gesture: what it
+    carries is P2's Contract out §4 outcomes.
+
+    Source-level for the reason that guard gives: Python interns short
+    identifier-like strings, so an identity assertion would pass whether the name
+    was imported or respelled. What distinguishes carrying from respelling is the
+    ASSIGNMENT, and that is visible only in the source.
+    """
+    import ast
+    import pathlib
+
+    from eval_harness.vocabulary import OUTCOMES
+
+    source = pathlib.Path(evaluation.__file__).read_text()
+    literals = {
+        node.value for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        # A docstring may name an outcome in prose; what is forbidden is a
+        # comparison or an assignment against a respelt one.
+        and not isinstance(getattr(node, "parent", None), ast.Expr)
+    }
+    respelt = literals & set(OUTCOMES)
+    assert respelt == set(), (
+        f"{sorted(respelt)} are P2's Contract out §4 outcomes, respelt here "
+        "rather than imported from eval_harness.vocabulary")
+
+
+def test_p2_names_each_of_its_five_outcomes_so_a_reader_can_carry_one():
+    """A tuple alone cannot be carried: there is no name to import for one
+    member, so every reader that needs a single outcome respells it. Naming the
+    five is what makes the guard above satisfiable."""
+    from eval_harness import vocabulary
+
+    named = (vocabulary.OUTCOME_PRODUCED, vocabulary.OUTCOME_ABSTAINED,
+             vocabulary.OUTCOME_DEFERRED, vocabulary.OUTCOME_NOT_IMPLEMENTED,
+             vocabulary.OUTCOME_ERROR)
+    assert named == vocabulary.OUTCOMES

@@ -173,7 +173,10 @@ def test_every_bundle_table_is_sealed_against_all_three_writes(eval_conn):
     bundle_id = _bundle(eval_conn)
     children = [t for t in EVAL_TABLES
                 if t.startswith("bundle_") and t != "bundle_manifest"]
-    assert len(children) == 7, children
+    # 8 since `bundle_recording` (§8.5's corpus snapshot and the recording's
+    # name). The count is here so a table added without its three triggers
+    # fails loudly rather than being enumerated silently past.
+    assert len(children) == 8, children
     # One row each while the bundle is still open, so UPDATE and DELETE have
     # something to match — a trigger no statement reaches proves nothing.
     for table in children:

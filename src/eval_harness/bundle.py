@@ -188,6 +188,41 @@ CREATE TRIGGER IF NOT EXISTS bundle_learning_record_sealed_no_delete
 BEFORE DELETE ON bundle_learning_record
 WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
 BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+-- §8.5's "a frozen corpus snapshot or a metadata-safe representation of one", and
+-- the name a person calls this recording by. `corpus_form` on the manifest names
+-- WHICH of the two forms; until this table nothing stored the payload, so no bundle
+-- could build a `scan_agent.corpus_source.SnapshotCorpusSource` and §8.5's
+-- "without touching a live filesystem" was unreachable from a real recording.
+--
+-- The snapshot is P3's own payload, stored verbatim and never parsed here: P3
+-- publishes `snapshot_from`, and a second reading of its shape in P2 would be a
+-- second home for it. NULL is legal -- a bundle may be named without one.
+--
+-- `name` is UNIQUE. Two bundles sharing a name make a replay of that name a
+-- question with two answers, and the standing rule is that ambiguous refuses
+-- exactly as absent does.
+CREATE TABLE IF NOT EXISTS bundle_recording (
+    bundle_id TEXT PRIMARY KEY REFERENCES bundle_manifest (bundle_id),
+    name      TEXT NOT NULL,
+    snapshot  TEXT               -- P3's `snapshot_from` payload, canonical JSON
+);
+CREATE UNIQUE INDEX IF NOT EXISTS bundle_recording_name
+    ON bundle_recording (name);
+
+CREATE TRIGGER IF NOT EXISTS bundle_recording_sealed_no_insert
+BEFORE INSERT ON bundle_recording
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = NEW.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_recording_sealed_no_update
+BEFORE UPDATE ON bundle_recording
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
+
+CREATE TRIGGER IF NOT EXISTS bundle_recording_sealed_no_delete
+BEFORE DELETE ON bundle_recording
+WHEN (SELECT sealed_at FROM bundle_manifest WHERE bundle_id = OLD.bundle_id) IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)'); END;
 CREATE TABLE IF NOT EXISTS bundle_accepted_group (
     bundle_id TEXT NOT NULL REFERENCES bundle_manifest (bundle_id),
     group_id  TEXT NOT NULL,
@@ -238,6 +273,10 @@ BEGIN SELECT RAISE(ABORT, 'bundle is immutable once sealed (P2 Contract out 3)')
 
 class BundleSealed(Exception):
     """A sealed bundle was written to. Rebuild instead — it supersedes (§8.2)."""
+
+
+class RecordingNameTaken(Exception):
+    """Another bundle already carries this name (§8.5's recording, named)."""
 
 
 class BodyMismatch(Exception):
@@ -499,6 +538,60 @@ def bundle_learning_records(conn: sqlite3.Connection, bundle_id: str, *,
         record["row"] = json.loads(r["row"])
         out.append(record)
     return out
+
+
+def name_recording(conn: sqlite3.Connection, bundle_id: str, *, name: str,
+                   snapshot: dict | None) -> None:
+    """Name this recording and store §8.5's corpus snapshot on it.
+
+    Refused if the name is taken, and refused BEFORE anything is written: a
+    refusal that half-wrote would leave a recording nobody asked for. The message
+    names the bundle already holding it, because the person's next move is to
+    pick a different name and they need to know which recording they collided
+    with.
+
+    `snapshot` is P3's payload, stored verbatim. P2 reads no field of it -- P3
+    publishes `snapshot_from` and a second reading of its shape here would be a
+    second home for it.
+    """
+    _require_open(conn, bundle_id)
+    held = bundle_named(conn, name)
+    if held is not None:
+        raise RecordingNameTaken(
+            f"{name!r} already names bundle {held}. Two bundles sharing a name "
+            "make a replay of that name a question with two answers, and the "
+            "standing rule is that ambiguous refuses exactly as absent does. "
+            "Pick another name; the recording that holds this one is kept (§8.2)."
+        )
+    conn.execute(
+        "INSERT INTO bundle_recording (bundle_id, name, snapshot) VALUES (?, ?, ?)",
+        (bundle_id, name, None if snapshot is None else canonical_json(snapshot)),
+    )
+
+
+def recording_for(conn: sqlite3.Connection, bundle_id: str) -> dict | None:
+    """This bundle's name and snapshot, or None.
+
+    None is a real state and not an error: every bundle P1--P7 has ever sealed is
+    unnamed, because the ordinary run records one on every scan and nobody named
+    it. Raising here would make every caller handle the common case as a failure.
+    """
+    import json
+    row = conn.execute(
+        "SELECT name, snapshot FROM bundle_recording WHERE bundle_id = ?",
+        (bundle_id,)).fetchone()
+    if row is None:
+        return None
+    return {"name": row["name"],
+            "snapshot": None if row["snapshot"] is None
+            else json.loads(row["snapshot"])}
+
+
+def bundle_named(conn: sqlite3.Connection, name: str) -> str | None:
+    """The bundle this name identifies, or None. Never more than one: UNIQUE."""
+    row = conn.execute(
+        "SELECT bundle_id FROM bundle_recording WHERE name = ?", (name,)).fetchone()
+    return None if row is None else row["bundle_id"]
 
 
 def add_accepted_group(conn: sqlite3.Connection, bundle_id: str, *, group_id: str,

@@ -10,7 +10,13 @@ import hashlib
 import json
 import sqlite3
 
-EVAL_SCHEMA_VERSION = 1
+#: 2 added `bundle_recording` -- §8.5's corpus snapshot and the name a person
+#: calls a recording by (see BUNDLE_DDL). `create_eval_schema` creates it with
+#: `CREATE TABLE IF NOT EXISTS`, so an existing database gains it in place and the
+#: bump records the change rather than gating it. Nothing reads this value to
+#: decide what to do; P1's `SCHEMA_VERSION` carries the same comment for the same
+#: reason.
+EVAL_SCHEMA_VERSION = 2
 
 EVAL_TABLES: tuple[str, ...] = (
     "eval_schema_meta",
@@ -19,6 +25,7 @@ EVAL_TABLES: tuple[str, ...] = (
     "bundle_extraction_output",
     "bundle_extraction_run",
     "bundle_text_unit",
+    "bundle_recording",
     "bundle_learning_record",
     "bundle_accepted_group",
     "bundle_expectation",

@@ -46,7 +46,10 @@ from eval_harness.bundle import extraction_runs
 from eval_harness.driver import EvaluationRun
 from eval_harness.replay import ReplayContext, StageResult
 from eval_harness.store import canonical_json
-from eval_harness.vocabulary import DIMENSIONS, STAGE_IDS, VERDICTS
+from eval_harness.vocabulary import (
+    DIMENSIONS, OUTCOME_ERROR, OUTCOME_NOT_IMPLEMENTED, STAGE_IDS, VERDICTS,
+)
+from scan_agent.replay import CORPUS_FORM_METADATA_SAFE
 from extractors.stage_output import STAGE_ID, extraction_stage_output
 
 
@@ -171,6 +174,103 @@ COUNT_LINES: tuple[tuple[str, str], ...] = (
 NOT_MEASURED = "not measured (P8's count, and P2 does not guess it)"
 
 
+# ======================================================================================
+# Recording a bundle
+# ======================================================================================
+
+def record_bundle(conn, *, from_bundle_id: str, name: str, snapshot: dict | None,
+                  accepted: Sequence[Mapping[str, Any]]) -> str:
+    """The second bundle: `from_bundle_id`'s contents plus what P9--P11 produced.
+
+    `run_p1_p7` seals a bundle at the end of P1--P7 and a sealed bundle is
+    immutable by trigger, so two things §8.5 lists among a bundle's contents have
+    no lawful moment to be written: the accepted groups, which are the user's
+    decision at P9--P11, and the corpus snapshot, which exists only once the scan
+    has finished serving listings. That is why `bundle.add_accepted_group` had no
+    caller anywhere in `src/`.
+
+    Path (B), ratified 2026-09-02. `rebuild_bundle` opens a bundle that
+    SUPERSEDES the first and this re-adds the first's contents beside the three
+    new things. The link is explicit on the manifest so a reader can see the
+    second is the first plus P9--P11's output, rather than a second recording of
+    the same corpus. The alternative was moving the seal, which means
+    `run_p1_p7`'s signature and a restructure of when a bundle becomes immutable;
+    this respects §8.2's supersede-never-overwrite instead.
+
+    **It authors no expectation and takes no argument through which one could be
+    passed.** P2 SPEC's Deferred table: "the corpus selection, the labelling, and
+    the per-subject expected values are hand work. P2 publishes
+    `bundle_expectation`; it does not fill it." A harness that labelled its own
+    runs would score itself against its own answers. The first bundle's
+    hand-authored labels ARE carried forward -- copying is not authoring, and a
+    rebuild that dropped them would silently turn a reference corpus back into a
+    corpus snapshot.
+
+    `accepted` is P9's already-resolved acceptance, the caller's: P2 "does not
+    re-derive acceptance from membership records", and the per-version projection
+    is `grouping.acceptance.group_state_as_of`'s. Each mapping names its own
+    `group_id`.
+    """
+    from eval_harness.bundle import (
+        add_accepted_group, add_expectation, add_extraction_output,
+        add_extraction_run, add_file_entry, add_text_unit, bundle_files,
+        bundle_named, expectations, extraction_outputs, extraction_runs,
+        get_bundle, name_recording, rebuild_bundle, seal_bundle, text_units,
+    )
+
+    old = get_bundle(conn, from_bundle_id)
+    if old is None:
+        raise KeyError(f"no bundle {from_bundle_id!r}")
+    held = bundle_named(conn, name)
+    if held is not None:
+        # BEFORE the rebuild, and that ordering is the whole of this check's
+        # value. A refusal raised after `rebuild_bundle` would leave a DRAFT
+        # bundle behind -- unsealed, so nothing ever makes it immutable, and P2
+        # deletes nothing, so nothing ever removes it either.
+        from eval_harness.bundle import RecordingNameTaken
+        raise RecordingNameTaken(
+            f"{name!r} already names bundle {held}. Two bundles sharing a name "
+            "make a replay of that name a question with two answers, and the "
+            "standing rule is that ambiguous refuses exactly as absent does. "
+            "Pick another name; the recording that holds this one is kept (§8.2)."
+        )
+
+    recorded = rebuild_bundle(conn, from_bundle_id)
+    for row in bundle_files(conn, from_bundle_id):
+        add_file_entry(
+            conn, recorded, file_id=row["file_id"],
+            content_hash=row["content_hash"], hash_algorithm=row["hash_algorithm"],
+            handling_class=row["handling_class"], payload_ref=row["payload_ref"],
+            metadata_only=row["metadata_only"])
+    for row in extraction_runs(conn, from_bundle_id):
+        add_extraction_run(conn, recorded, row=row)
+    if old["corpus_form"] != CORPUS_FORM_METADATA_SAFE:
+        # Whether a metadata_safe bundle may carry text units is SPEC Open
+        # question 5, and `add_text_unit` refuses to answer it. A rebuild must not
+        # answer it either by copying text into a form that may not hold it --
+        # §8.4 requires full extracted text to remain local.
+        for row in text_units(conn, from_bundle_id):
+            add_text_unit(conn, recorded, row=row)
+    for row in extraction_outputs(conn, from_bundle_id):
+        add_extraction_output(
+            conn, recorded, content_hash=row["content_hash"],
+            extractor_version=row["extractor_version"],
+            observation_key=row["observation_key"], payload=row["payload"])
+    for row in expectations(conn, from_bundle_id):
+        add_expectation(
+            conn, recorded, dimension=row["dimension"],
+            subject_ref=row["subject_ref"], expected_value=row["expected_value"],
+            expected_outcome_kind=row["expected_outcome_kind"],
+            source=row["source"])
+
+    for acceptance in accepted:
+        add_accepted_group(conn, recorded, group_id=acceptance["group_id"],
+                           acceptance_row=dict(acceptance))
+    name_recording(conn, recorded, name=name, snapshot=snapshot)
+    seal_bundle(conn, recorded)
+    return recorded
+
+
 #: What a stage with no adapter gets. Nine of the ten get it today.
 ABSENT = "absent: no adapter, so its dimension could not be measured"
 
@@ -204,7 +304,7 @@ def stage_status(conn, run_id: str) -> Mapping[str, str]:
             "SELECT stage_id, outcome, payload FROM stage_output WHERE run_id = ?",
             (run_id,)):
         outcomes.setdefault(row["stage_id"], set()).add(row["outcome"])
-        if row["outcome"] == "error" and row["stage_id"] not in errors:
+        if row["outcome"] == OUTCOME_ERROR and row["stage_id"] not in errors:
             # `traceback.format_exc()`'s last non-empty line is the exception
             # line: the type and its message, which is what names the refusal.
             lines = [line for line in (row["payload"] or "").splitlines() if line]
@@ -218,7 +318,7 @@ def stage_status(conn, run_id: str) -> Mapping[str, str]:
         seen = outcomes.get(stage_id, set())
         if stage_id in errors:
             status[stage_id] = f"failed: {errors[stage_id]}"
-        elif seen == {"not_implemented"}:
+        elif seen == {OUTCOME_NOT_IMPLEMENTED}:
             status[stage_id] = ABSENT
         elif stage_id in measured:
             status[stage_id] = "ran"

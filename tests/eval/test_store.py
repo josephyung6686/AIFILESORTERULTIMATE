@@ -18,7 +18,8 @@ def test_eval_tables_names_every_table_p2_will_own(eval_conn):
     # EVAL_TABLES is the manifest of P2's surface. Tasks 3-15 each add the DDL
     # for one or more of these names; this list is what Task 16's column guard
     # walks, so a table missing from it escapes the no-aggregate scan.
-    assert len(EVAL_TABLES) == len(set(EVAL_TABLES)) == 18
+    # 19 since `bundle_recording`, added with EVAL_SCHEMA_VERSION 2.
+    assert len(EVAL_TABLES) == len(set(EVAL_TABLES)) == 19
     assert EVAL_TABLES[0] == "eval_schema_meta"
 
 

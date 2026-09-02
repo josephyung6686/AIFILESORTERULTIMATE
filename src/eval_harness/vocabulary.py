@@ -47,9 +47,24 @@ DIMENSIONS: tuple[str, ...] = (
 PLAN_SCOPED_DIMENSIONS = frozenset({"grouping", "template", "tree", "placement", "residual"})
 SHARED_EVIDENCE_DIMENSIONS = frozenset({"extraction", "fact", "retrieval", "graph", "llm_grounding"})
 
-#: Contract out §4. `not_implemented` is what makes the harness runnable before the
-#: stages exist (02-segmentation-map.md, Order).
-OUTCOMES: tuple[str, ...] = ("produced", "abstained", "deferred", "not_implemented", "error")
+#: Contract out §4, one name each. A tuple alone cannot be CARRIED: there is no
+#: name to import for one member, so every reader needing a single outcome
+#: respells it, and a respelling is the second home MINOR 6 forbids. P5 is the one
+#: deliberate exception and says so in its own docstring -- it imports no part of
+#: P2, so it re-spells all five under a stated reason.
+OUTCOME_PRODUCED = "produced"
+OUTCOME_ABSTAINED = "abstained"
+OUTCOME_DEFERRED = "deferred"
+#: What makes the harness runnable before the stages exist (02-segmentation-map.md,
+#: Order): a stage with no adapter reports this and its dimension scores `not_run`.
+OUTCOME_NOT_IMPLEMENTED = "not_implemented"
+#: A crash. Distinct from an abstention and from a deferral, and never either.
+OUTCOME_ERROR = "error"
+
+#: Contract out §4, closed. Built from the five above so the names and the tuple
+#: cannot drift apart.
+OUTCOMES: tuple[str, ...] = (OUTCOME_PRODUCED, OUTCOME_ABSTAINED, OUTCOME_DEFERRED,
+                             OUTCOME_NOT_IMPLEMENTED, OUTCOME_ERROR)
 BUDGET_STATES: tuple[str, ...] = ("within_ceiling", "ceiling_reached")
 
 #: Contract out §6. Seven, exactly. `abstained_correctly` is a PASS (§6.10);
