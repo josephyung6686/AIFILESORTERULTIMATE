@@ -75,9 +75,38 @@ its report:
 > finds modules that declare themselves.
 
 **A guard that only catches the honest is not a guard.** Because this ruling
-deliberately opens a door, the scan that catches *undeclared* doors is what makes doing
-so safe, and it lands BEFORE the release path — so the path lands into a repo where an
-undeclared `invoke` is already impossible.
+deliberately opens a door, the scan that catches *undeclared* doors lands BEFORE the
+release path.
+
+### §4 CORRECTED, 2026-09-02. This paragraph was stronger than the instrument.
+
+The sentence above originally read that the scan is *"what makes doing so safe"*, and
+that the path lands into a repo where an undeclared `invoke` *"is already impossible"*.
+**Both were overstated, and the two agents who built and audited the scan said so
+independently.** It is corrected here rather than quietly softened, because the owner is
+being asked to ratify prompt text partly on this paragraph.
+
+What the scan is: **an allowlist of NAMED exits**, and it is a good one. Five bypasses
+were found and closed — an aliased `.invoke`, `getattr(c, 'invoke')`, an
+attribute-qualified construction, the type spelled as a string, and a part importing
+`readers.model_*` directly, which is CR-02's shape in four ordinary lines with no exotic
+syntax in it. Eleven sabotages, each red.
+
+What it cannot see, in the module's own words: `os.system` / `os.popen` / `os.exec*`
+(`os` is imported across the tree for `os.path`, so that family stays open and
+`subprocess` closes only the common spelling); `ctypes` reaching libc; `pty`;
+`asyncio.open_connection`; a program assembled at runtime and handed to `eval`; and
+anything outside `src/**.py` — not tests, not a root script, not `sitecustomize`, not a
+`.pth`, not a C extension. And any exit shape nobody has named, **which is the class all
+five closed bypasses came from.**
+
+It also keeps one hole deliberately: `partial(SelfDescription)` is syntactically
+identical to `isinstance(x, SelfDescription)`, which must stay legal or the door cannot
+be wired at all.
+
+**So the honest sentence is: this file raises the cost of a second door. It does not
+make one impossible.** That is worth having, and it is not the same claim. A ruling that
+rests on the stronger sentence rests on something that is not true.
 
 Repo-wide AST over `src/`: any `.invoke(` or provider-client construction in a module
 not declaring `IS_MODEL_TRANSPORT`, with `src/readers/model_*.py` the only permitted
