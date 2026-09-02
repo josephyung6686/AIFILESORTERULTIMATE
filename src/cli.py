@@ -1535,13 +1535,31 @@ def choose_option(candidate, options) -> str:
 
     Stated rather than hidden, because it IS a choice and a person at a review
     screen would make a different one. The options carry their counts, their
-    warnings and their validation report; this takes the first that passes and has
-    children, and falls back to the last option -- which is always `no-split` --
-    rather than raising, because a branch nobody could nest is still a branch.
+    warnings and their validation report; this takes the first that passes and
+    would BUILD something, and falls back to the last option -- which is always
+    `no-split` -- rather than raising, because a branch nobody could nest is
+    still a branch.
+
+    "Would build something" is not the same as "has children". A composition
+    every level of which divides nothing creates no folder and is not empty: it
+    populates the BRANCH with the values its files share, which is what makes the
+    branch a destination P11's `direct_fact` channel can reach. Skipping it left
+    a corpus that agrees on everything -- three files, one course, one term --
+    with a branch that stated nothing, one candidate scored on group membership
+    alone at 2/7, and "deciding this file needed a model" printed against facts
+    P6 had already settled. `tree_design.materialise.branch_expectations` is
+    where those values come from, and `VerticalOption.branch_expectations` is
+    what carries them here.
+
+    It is still a CHOICE, and still one this function makes without asking. The
+    option beside it -- `keep-as-it-is` -- produces the same folders (none) and
+    leaves the branch stating nothing, so a person who wants that can still say
+    so and the question is still printed.
     """
     for option in options:
         report = option.validation
-        if option.total_child_branches and (report is None or report.accepted):
+        if ((option.total_child_branches or option.branch_expectations)
+                and (report is None or report.accepted)):
             return option.option_id
     return options[-1].option_id
 

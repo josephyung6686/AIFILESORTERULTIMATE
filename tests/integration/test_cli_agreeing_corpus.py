@@ -263,18 +263,6 @@ def test_two_folders_that_both_claim_the_value_still_have_to_ask(tmp_path):
     assert "needed a model" in printed, printed
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`cli.choose_option` takes the first option that passes its checks AND has "
-    "CHILDREN, so the option that populates the branch itself -- no children, "
-    "one rewritten node -- is skipped and `keep-as-it-is` is taken instead. The "
-    "package can file these files and the composition root never asks it to. "
-    "`src/cli.py` is the lead's; the hunk is scratchpad/q1/cli.diff, and "
-    "CLI-PATCH.txt beside it carries the measurement. It WAS applied to the "
-    "working tree on 2026-09-03 and this mark was removed for it; it is no "
-    "longer in `src/cli.py`, so the mark is back. Nothing else in the suite "
-    "depends on which way that goes -- test_cli_orphaned_send.py's corpus was "
-    "re-cut to hold either -- so the hunk can land or not without dragging "
-    "anything with it. UNMARK when it lands, do not delete."))
 def test_the_first_run_files_them_without_being_answered(tmp_path):
     """`80` R2: the friction budget is spent once. A person whose files agree on
     everything should not have to answer a question to be told what the product
