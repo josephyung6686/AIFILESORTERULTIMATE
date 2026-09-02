@@ -363,6 +363,25 @@ MAX_RESPONSE_TOKENS: int = 2048
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
 ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
 
+#: Whether any call site in this run can actually reach a model.
+#:
+#: A ROUTE IS NOT A CALL SITE, and conflating them put an untruth on the one screen
+#: that must not carry one. `model_route` builds a client and this file announced
+#: that files "may be sent to" three named models -- while `p8_run_call`,
+#: `model_client`, `gate`, `prompt` and `call_dependencies` are `None` at every
+#: injection point below, so nothing in `src/` can construct a model request at all.
+#: A person who read that sentence and turned sending off was acting on a fear the
+#: product had given them about something that could not happen; a person who read
+#: it and left it on believed they had been told the truth about their files.
+#:
+#: FALSE until the sites are wired AND a prompt is ratified. `run_call` refuses
+#: without a `PromptDefinition` (`llm_harness/records.py:89`), so a route plus a key
+#: plus a wired site still sends nothing until the owner ratifies one -- which means
+#: flipping this on the strength of the wiring alone would restore the same untruth
+#: one step later. `tests/integration/test_cli_cloud_announcement.py` asserts this
+#: against the injections themselves, so it cannot drift from what is true.
+MODEL_CALL_SITES_WIRED: bool = False
+
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
 #: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
 #: `observation_key`, every `evidence_ref` that is a P4 key -- because an un-keyed
@@ -556,6 +575,18 @@ def announce_cloud_posture(routing: TierRouting | None,
                 "Nothing was sent and nothing could have been: no model is "
                 "configured for this run. Turn sending off with:",
                 indent="  "), file=out)
+        elif not MODEL_CALL_SITES_WIRED:
+            # A CONFIGURED MODEL IS NOT A REACHABLE ONE. The route exists and the
+            # key works; no call site does. Saying "may be sent" here would be the
+            # product frightening a person about something it cannot do, on the one
+            # screen where being believed is the whole point.
+            print(_wrapped(
+                f"Nothing was sent and nothing could have been. A model is "
+                f"configured ({routing.model_id_for(A_FACT)}), but no part of this "
+                f"run can call one yet, so every file was judged on this device. "
+                f"You do not need to turn sending off for this run -- but it stays "
+                f"on for the next one, and you can turn it off with:",
+                indent="  "), file=out)
         else:
             print(_wrapped(
                 f"Files that need a judgement may be sent to "
@@ -569,6 +600,13 @@ def announce_cloud_posture(routing: TierRouting | None,
     if routing is None:
         # `model_route` has already said no model is configured. A second sentence
         # about consent would answer a question the person cannot yet be asking.
+        return
+    if not MODEL_CALL_SITES_WIRED:
+        # Same untruth in the quieter half of the branch. Naming three models under
+        # the word "Model:" reads as a statement about what this run will do.
+        print(f"\nModel: {routing.model_id_for(A_FACT)} is configured, but no part "
+              f"of this run can call one yet. Every file is judged on this device.",
+              file=out)
         return
     print(f"\nModel: {routing.model_id_for(A_FACT)} for facts, "
           f"{routing.model_id_for(C_PLACEMENT)} for checks, "
