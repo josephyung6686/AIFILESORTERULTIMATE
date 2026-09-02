@@ -440,3 +440,55 @@ def test_p2_names_each_of_its_five_outcomes_so_a_reader_can_carry_one():
              vocabulary.OUTCOME_DEFERRED, vocabulary.OUTCOME_NOT_IMPLEMENTED,
              vocabulary.OUTCOME_ERROR)
     assert named == vocabulary.OUTCOMES
+
+
+# ======================================================================================
+# What --record says on screen
+# ======================================================================================
+
+def test_the_recording_says_it_carries_no_expectations(eval_conn):
+    """Ruling B, 2026-09-02: the sentence IS the deliverable, not a caveat on it.
+
+    `--record` produces an unlabelled bundle, because P2 SPEC's Deferred table
+    makes the labelling hand work and a harness that wrote its own labels would
+    score itself against its own answers. A person who is told "recorded" and
+    nothing else will reasonably expect the replay to grade something, and then
+    read a screen of zeroes as a clean run. So the recording says what it is."""
+    from evaluation import recorded_lines
+
+    lines = recorded_lines("before-upgrade", "bundle-1", count=3)
+    text = "\n".join(lines)
+
+    assert "before-upgrade" in text
+    assert "bundle-1" in text
+    assert "carries no expectations" in text
+    assert "nothing measured against a label" in text
+    assert "--replay before-upgrade" in text
+    assert _forbidden_in(text) == set()
+
+
+def test_the_recording_names_the_gesture_that_replays_it_by_name_not_by_id():
+    """A person who has just named a recording should be shown the name in the
+    command, not the uuid4 they would otherwise copy. The id is printed too --
+    it is what survives if the name is ever ambiguous to them -- but the line
+    they are invited to type carries the name."""
+    from evaluation import recorded_lines
+
+    lines = recorded_lines("before-upgrade", "bundle-1", count=0)
+
+    typed = next(line for line in lines if "--replay" in line)
+    assert "bundle-1" not in typed
+    assert typed.strip() == "database-agent --replay before-upgrade"
+
+
+def test_the_accepted_group_count_is_reported_including_zero(eval_conn):
+    """A recording made before anything was accepted carries no groups, and §8.5
+    lists accepted groups among a bundle's contents. Printing the count only when
+    it is non-zero would make an empty recording look like a full one."""
+    from evaluation import recorded_lines
+
+    none_accepted = "\n".join(recorded_lines("a", "b", count=0))
+    some_accepted = "\n".join(recorded_lines("a", "b", count=3))
+
+    assert "0 accepted group(s)" in none_accepted
+    assert "3 accepted group(s)" in some_accepted

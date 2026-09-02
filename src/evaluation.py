@@ -271,6 +271,46 @@ def record_bundle(conn, *, from_bundle_id: str, name: str, snapshot: dict | None
     return recorded
 
 
+def recorded_lines(name: str, bundle_id: str, *, count: int) -> tuple[str, ...]:
+    """What `--record` says when it has finished. The sentence IS the deliverable.
+
+    Ruling B, 2026-09-02: a recording is an UNLABELLED bundle, because P2 SPEC's
+    Deferred table makes the labelling hand work -- "P2 publishes
+    `bundle_expectation`; it does not fill it" -- and a harness that authored its
+    own labels would score itself against its own answers.
+
+    A person told only "recorded" will reasonably expect the replay to grade
+    something, and will then read a screen of zeroes as a clean run. That is the
+    exact misreading §8.6 exists to prevent, so the recording says plainly what it
+    holds and what it does not.
+
+    The command offered back carries the NAME, not the id: someone who has just
+    chosen a name should not be asked to copy a uuid4. The id is printed as well,
+    because it is what still works if the name ever becomes ambiguous to them.
+
+    The accepted-group count is printed at zero too. §8.5 lists accepted groups
+    among a bundle's contents, and showing the count only when it is non-zero
+    would let an empty recording read as a full one.
+    """
+    return (
+        "",
+        f"Recorded as {name!r} (bundle {bundle_id}).",
+        f"  It holds a frozen copy of what this run read, and {count} accepted "
+        "group(s).",
+        "  Replay it without touching your folder again:",
+        "",
+        f"    database-agent --replay {name}",
+        "",
+        "  It carries no expectations, so a replay of it reports what was read "
+        "and",
+        "  has nothing measured against a label. Saying which answers are the "
+        "right",
+        "  ones is hand work, and this command does not invent them: a harness "
+        "that",
+        "  wrote its own labels would be marking its own homework.",
+    )
+
+
 #: What a stage with no adapter gets. Nine of the ten get it today.
 ABSENT = "absent: no adapter, so its dimension could not be measured"
 
