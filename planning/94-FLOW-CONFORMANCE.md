@@ -881,3 +881,39 @@ sentence is unreadable, and it is on the screen a person reads to find out what 
 files. Cheap to fix and worth doing before anyone runs this on a real folder: the surrounding
 sentences are careful and well-judged, which makes the broken one read as a bug in the product
 rather than a bug in one string.
+
+---
+
+## F24 — the site of the remaining which-reason-wins question, located but NOT ruled
+
+Traced 2026-09-03 by the lead. Recorded rather than decided, deliberately.
+
+`placement/pipeline.py:502-504`:
+
+```python
+if needs_model_call(assessment):
+    if not may_assemble_dossier(privacy):
+        return _abstention(conn, context, reason=PRIVACY_BLOCKED)
+```
+
+`may_assemble_dossier` is consulted **before** the assessment's own §6.10 reason is ever read. So a
+file that has two supported homes AND is not cleared for a model is told *"Deciding this file needed
+a model, and §8.4 did not clear this file for a model call"* — while
+`_abstention_explanation`'s sentence written for its actual situation, *"…each cleared §6.10's
+support threshold and nothing in the evidence separates them… which one is its home is a choice
+about your material, not a gap in the evidence"*, is unreachable for it.
+
+**The second sentence is the one a person can act on.** The first describes a machine that did not
+run; the second describes their own material and hands them the decision.
+
+**Why this is NOT being ruled here.** `87` §4.3 measured that narrowing this in front of the privacy
+check leaks a protected file, so **the privacy check stays first** — that constraint is not in
+question. `9cab5db` has since made protected outrank every other sentence explicitly, which shrinks
+the remaining question to: *a NON-protected file, privacy-blocked for another reason, that also has
+two supported homes — which sentence?* Both are true. One is actionable.
+
+That is a real judgement about P11's reporting policy, it changes no outcome (the file abstains
+either way, nothing moves, the evidence is retained), and it is being written down at the end of a
+long day rather than decided in one. **A policy call made on a privacy-adjacent ordering because it
+was the last thing left is how the careful ordering above it got there in the first place.** The
+mechanism is located; the ruling is owed.
