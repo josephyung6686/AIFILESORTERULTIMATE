@@ -4172,13 +4172,14 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         "--undo-everything", action="store_true",
         help="put back every file this product has moved and not yet put back.")
     parser.add_argument(
-        # `nargs="?"` with a `const` and NOT a bare flag: `--replay` on its own
-        # must be a refusal that names the bundles this database holds, not
-        # argparse's "expected one argument". A person cannot type an id they
-        # have never been shown, and a discovery flag that requires the answer
-        # it supplies is the closed door `--list-situations` exists to open.
-        # Absent stays absent: `default=None` means the flag was not passed and
-        # nothing is replayed.
+        # `nargs="?"` with a `const` and NOT a bare flag, for BOTH of these two:
+        # each on its own must be a refusal this file writes -- naming the
+        # bundles the database holds, or saying a recording needs a name --
+        # rather than argparse's "expected one argument". A person cannot type
+        # an id they have never been shown, and a discovery flag that requires
+        # the answer it supplies is the closed door `--list-situations` exists
+        # to open. Absent stays absent: `default=None` means the flag was not
+        # passed, so nothing is recorded and nothing is replayed.
         "--record", nargs="?", const="", default=None, metavar="NAME",
         help="record this run as a replay bundle you can come back to, e.g. "
              "--record before-upgrade. It runs exactly as it would anyway and "
