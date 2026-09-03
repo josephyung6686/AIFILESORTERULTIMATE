@@ -389,8 +389,9 @@ achieves that separation is a judgement call — §7.5.
 Repeated plainly because hiding them behind wording is the specific failure mode to avoid here.
 
 1. **Check 3 bounds a value for two fields and for no others** (`76` §9.1, as amended by
-   `d2249bd` — see §8.4). Re-verified live against `cli.normalize_for_model` (`src/cli.py:1285`) on
-   2026-09-04:
+   `d2249bd` — see §8.4). Re-verified live against `cli.normalize_for_model` — cited by symbol
+   rather than by line, because the line moved from 1285 to 1299 during the writing of this
+   amendment — on 2026-09-04:
    `normalize_for_model('subject','PHYS1401 Problem Set 4')` → **`None`**;
    `('subject','PHYS 1401')` → `'PHYS1401'`; `('subject','Spring 2026')` → `None`;
    `('term','PHYS1401')` → `None`; `('purpose','university application')` → unchanged;
@@ -401,6 +402,21 @@ Repeated plainly because hiding them behind wording is the specific failure mode
    this deployment has authored no rule for it and inventing one at the model's boundary is exactly
    what §3.5 forbids."* **Rule 4 is enforced where the deployment has authored a rule for the field
    and prompt-only everywhere else.**
+
+   **And where it is enforced, the mechanism is `fullmatch`, which is rule 4 restated in code.** The
+   deterministic producer and the model seam read the same patterns differently, and the asymmetry is
+   intentional rather than an inconsistency waiting to be tidied. `facts.dates.date_matches`
+   (`src/facts/dates.py:185`) uses `pattern.finditer(observation.raw_value)`, so the producer pulls
+   `Spring 2026` out of a longer body string. Both seam branches use `fullmatch` on the
+   whitespace-collapsed value — the `term` branch over `DATE_PATTERNS`, and `subject` through
+   `cli._is_an_identifier`, which is `_STRUCTURED.fullmatch(" ".join(raw.split()))`. So
+   `('term','Spring 2026 Semester')` is refused where the producer would have found the term inside
+   it. **That is the right asymmetry**: the producer is reading a SPAN out of text it was given,
+   while the seam is judging a VALUE somebody proposed, and a proposal carrying extra words is not a
+   near-miss — it is the wrong value. Rule 4 asks the model for *"the smallest run of characters that
+   identifies the thing, not the phrase that contains it"*; `fullmatch` is that sentence as a
+   predicate. For these two fields the prompt and the check say the same thing in two languages,
+   which is why S1 moved. For the other fifty-four only the prompt says it at all.
 2. **The model's spelling becomes the stored value identity** (`76` §9.2). Rule 5 asks; the writer at
    `facts/llm_seam.py:272-274` ignores `normalize_for_model` and stores the raw string. Ratifying
    rule 5 does not close `65` §4.2's identity split.
@@ -767,4 +783,7 @@ tightening the slot tightened §3.6 check 3 with it.
 3. **The direction of travel is the argument for ratifying late.** Two of this document's load-bearing
    claims have been overtaken by code in four days: `_body` gained a key on 2026-09-02 and check 3
    gained teeth on 2026-09-03. The bytes cannot be revised after ratification; the code around them
-   is being revised weekly. §6.7.
+   is being revised weekly. §6.7. **The smallest possible illustration**: `normalize_for_model` moved
+   from `cli.py:1285` to `cli.py:1299` between the two halves of writing this very section, which is
+   why §5.5 now cites it by symbol. A line number is a citation that decays; the prompt's bytes are a
+   citation that cannot be updated at all.
