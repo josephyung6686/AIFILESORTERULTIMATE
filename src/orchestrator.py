@@ -222,7 +222,8 @@ def _assemble_bundle(
         corpus_form: str, policy_settings: Mapping[str, Any],
         file_entry_body: Callable[[Mapping[str, Any]], Mapping[str, str]],
         handling_class_for: Callable[[Mapping[str, Any]], str | None] | None,
-        expectations: Sequence[Mapping[str, Any]] = ()) -> str:
+        expectations: Sequence[Mapping[str, Any]] = (),
+        content: bool = True) -> str:
     """Build P2's immutable envelope from the current selected corpus.
 
     `expectations` is the hand-authored expected side of §8.5's assertions, applied
@@ -270,6 +271,10 @@ def _assemble_bundle(
                 "SELECT * FROM extraction_runs WHERE run_id = ?", (run.run_id,)
             ).fetchone()
             add_extraction_run(conn, bundle_id, row=dict(row))
+            if not content:
+                # The manifest, the file entries and the runs are the audit half
+                # and are cheap. What is skipped is the second copy of the text.
+                continue
             for unit in text_units_for_run(conn, run.run_id):
                 add_text_unit(conn, bundle_id, row=unit.to_mapping())
             for observation in observations_for_run(conn, run.run_id):
@@ -529,7 +534,8 @@ def run_p1_p7(
         classify: ClassificationProducer,
         classification_store: ClassificationStore,
         p7_component_version: str,
-        bundle_expectations: Sequence[Mapping[str, Any]] = ()) -> P1P7Run:
+        bundle_expectations: Sequence[Mapping[str, Any]] = (),
+        bundle_content: bool = True) -> P1P7Run:
     """Run the live local pipeline without inventing any domain authority.
 
     The caller supplies both fact passes, the persisted targeted-OCR predicate and
@@ -732,12 +738,27 @@ def run_p1_p7(
                 conn, candidate, store=classification_store,
                 component_version=p7_component_version)
 
+    # THE ENVELOPE ALWAYS; ITS BULK ONLY WHEN SOMETHING WILL READ IT.
+    #
+    # `bundle_manifest` is an AUDIT RECORD, not an optimisation: it carries
+    # `policy_settings`, and `tests/test_cli_cloud_consent.py` calls it one of "the
+    # two places a later reader can learn what this run was permitted to do". It is
+    # one row. It is always written.
+    #
+    # `bundle_text_unit` and `bundle_extraction_output` are the bulk, and on an
+    # ordinary run they are dead weight: measured on a real 413-file folder they
+    # held 192,221 rows and 230 MB -- half a 466 MB database -- duplicating
+    # `text_units` and `evidence` row for row. Only `evaluate_bundle` reads them,
+    # and `run_production_p1_p7` calls it just when an evaluation is declared;
+    # `--record` is the other consumer. A run that is neither built the whole copy
+    # and never opened it, and could not have: `--replay` resolves a bundle by NAME
+    # and only `--record` gives it one.
     bundle_id = _assemble_bundle(
         conn, scan_run_id=scan_run_id, roster=roster, corpus_form=corpus_form,
         policy_settings=policy_settings, file_entry_body=file_entry_body,
         handling_class_for=lambda row: resolve_class(classification_store.current(
             row["file_id"], row["content_hash"])),
-        expectations=bundle_expectations)
+        expectations=bundle_expectations, content=bundle_content)
     return P1P7Run(
         scan_run_id=scan_run_id, bundle_id=bundle_id,
         run_ids=tuple(written), fact_results=tuple(fact_results),

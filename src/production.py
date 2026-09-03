@@ -94,6 +94,23 @@ class P1P7Authorities:
     #: fill it" -- and neither does this module.
     bundle_expectations: Sequence[Mapping[str, Any]] = ()
 
+    #: WHETHER §8.5's ENVELOPE IS BUILT AT ALL. `evaluate_bundle` is the only thing
+    #: that reads a bundle, and `run_production_p1_p7` runs it only when
+    #: `evaluation is not None`. A run that declares no evaluation and records no
+    #: name assembled the whole envelope and then never opened it: measured on a
+    #: real 413-file folder, `bundle_text_unit` and `bundle_extraction_output` held
+    #: 192,221 rows and 230 MB -- half the database -- duplicating `text_units` and
+    #: `evidence` row for row.
+    #:
+    #: Such a bundle is also UNREACHABLE. `--replay` resolves one by NAME and only
+    #: `--record` gives it a name, so it was not merely unread; nothing could have
+    #: asked for it.
+    #:
+    #: Defaults TRUE, so every caller that has always got a bundle still gets one.
+    #: `cli.py` is the file that decides, and it decides on whether anything in the
+    #: run will actually use it.
+    bundle_content: bool = True
+
     def __post_init__(self) -> None:
         if self.classify is None:
             raise MissingClassificationAuthority(
@@ -380,7 +397,8 @@ def compose_p1_p7(
             classify=authorities.classify,
             classification_store=classification_store,
             p7_component_version=authorities.p7_component_version,
-            bundle_expectations=authorities.bundle_expectations)
+            bundle_expectations=authorities.bundle_expectations,
+            bundle_content=authorities.bundle_content)
 
     return run
 

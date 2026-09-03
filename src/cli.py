@@ -1393,7 +1393,14 @@ def _usable(facts, unresolved) -> bool:
 
 def p1_p7_authorities(*, now, detector,
                       operation_mode: str = OPERATION_MODE,
-                      source=None) -> P1P7Authorities:
+                      source=None, bundle_content: bool = False) -> P1P7Authorities:
+    # `assemble_bundle` DEFAULTS OFF HERE, and only here. §8.5's envelope is read by
+    # `evaluate_bundle` and named by `--record`; this command declares no evaluation
+    # (see `evaluation=None` below, and the note beside it) and most runs record no
+    # name, so the bundle was assembled in full and never opened. Measured on a real
+    # 413-file folder: 192,221 rows and 230 MB, half the database, duplicating
+    # `text_units` and `evidence` row for row. `--record` turns it back on, because
+    # that is the gesture whose whole purpose is to keep the run.
     # `source` is an ARGUMENT with the live filesystem as its default, because
     # `--record` needs the scan wrapped in a `RecordingCorpusSource` -- the
     # listings it serves ARE the corpus snapshot, and they cannot be recovered
@@ -1407,6 +1414,7 @@ def p1_p7_authorities(*, now, detector,
             cache_key="cli-ocr-v1"),
         usable_threshold=_usable,
         classify=classifier(detector, now=now),
+        bundle_content=bundle_content,
         source=FilesystemCorpusSource() if source is None else source,
         # IMPORTED, never respelled -- and the import is the fix. This wrote the
         # literal `"scanned"`; P9's `_corpus` admits `scan_state = 'included'`
@@ -2479,7 +2487,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     result = run_production_corpus(
         conn, selection_id, authorities=p1_p7_authorities(
             now=now, detector=detector, operation_mode=operation_mode,
-            source=recording),
+            source=recording,
+            # THE ONE CONDITION, and it is the same one that decides `recording`
+            # two lines up: §8.5's envelope is built when the person asked to keep
+            # this run. `record_bundle` below reads `result.p1_p7.bundle_id`, so
+            # the bundle has to exist by the time it is called and cannot be
+            # assembled afterwards -- a sealed bundle is immutable by trigger.
+            bundle_content=record is not None),
         downstream=downstream,
         decisions=CorpusDecisions(
             plan_version_id=PLAN_VERSION, accept_groups=accept_and_remember,
