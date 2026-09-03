@@ -266,3 +266,101 @@ def test_a_dataless_archive_is_never_materialized():
                         read_manifest=lambda target: pytest.fail("reader reached"),
                         recognize_markers=no_markers, now=FIXED_CLOCK,
                         context_window=20)
+
+
+# --- two members of one name -----------------------------------------------------
+
+def test_two_members_with_the_same_path_yield_one_text_unit(sink):
+    """A ZIP may legally hold two entries of the same name, and one did.
+
+    Found by running the product over a real Desktop: 5,760 files scanned, 480
+    seconds of work, and then
+
+        sqlite3.IntegrityError: UNIQUE constraint failed:
+            text_units.run_id, text_units.unit_locator
+
+    from `/Users/jy/Desktop/.../libzip/regress/filename_duplicate.zip`, whose two
+    members are both called `test1`. `text_units` is keyed `(run_id, unit_locator)`,
+    the locator is the canonical form of the container path, and the container path
+    for a member is `segment("entry", label=member.path)` -- the PATH and nothing
+    else. Two members of one name are one address, so the second insert collided and
+    the whole run died. Every file in it was lost.
+
+    THE ADDRESS IS RIGHT AND THE DUPLICATE IS THE BUG. `entry` is one of P4's
+    label-addressed kinds and rule 2 says such a kind takes no index, so making the
+    two units distinct by numbering them is not available -- and would be wrong:
+    under P4's scheme they ARE one address.
+
+    `_collapse` has always done this for observations -- "one observation per (run,
+    exact raw value, zone); `location` addresses the first occurrence in manifest
+    order" -- and the text-unit path simply had no equivalent. This is that rule,
+    applied where it was missing.
+    """
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="test1", uncompressed_size=10),
+                 ArchiveMember(path="test1", uncompressed_size=20)),
+        uncompressed_size=30, inspected=2, total=2)
+
+    result, _ = run_it(manifest=manifest)
+
+    # The ADDRESS is the container path; `unit_locator` is its canonical string,
+    # computed at write time. Comparing the addresses is comparing what the UNIQUE
+    # constraint compares.
+    addresses = [tuple((seg["kind"], seg["index"], seg["label"])
+                       for seg in unit["container_path"])
+                 for unit in result.text_units]
+    assert len(addresses) == len(set(addresses)), (
+        f"two text units share an address and the insert will raise: {addresses}")
+    assert len(result.text_units) == 1
+
+
+def test_a_duplicate_member_survives_a_real_write(sink):
+    """The end-to-end half: the archive actually goes into the database.
+
+    The unit test above compares locators in memory and would still pass if the
+    real UNIQUE constraint disagreed with it about what a locator is. This performs
+    the insert that crashed.
+    """
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="test1", uncompressed_size=10),
+                 ArchiveMember(path="test1", uncompressed_size=20)),
+        uncompressed_size=30, inspected=2, total=2)
+
+    # A REAL database, not the in-memory `sink` fixture. `RecordingSink` keeps rows
+    # in a list and has no UNIQUE constraint, so the first version of this test
+    # passed while the product still crashed -- it was asserting nothing.
+    import sqlite3
+
+    from database_agent.db import create_schema
+    from evidence_shape.schema import create_evidence_schema
+    from evidence_shape.store import RunWriter
+    from extractors.schema import create_extraction_schema
+
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    create_schema(conn)
+    create_evidence_schema(conn)
+    create_extraction_schema(conn)
+
+    result, _ = run_it(manifest=manifest)
+    RunWriter(conn, author="P5").write(result)   # sqlite3.IntegrityError before
+
+
+def test_members_with_DIFFERENT_paths_still_each_get_a_unit(sink):
+    """The negative twin. Collapsing by address must not collapse distinct members.
+
+    Without this, "one text unit" is satisfied by an extractor that emits one unit
+    per archive, and a fifty-file zip would be recorded as holding one thing.
+    """
+    manifest = ArchiveManifest(
+        archive_type="ZIP",
+        members=(ArchiveMember(path="a.txt", uncompressed_size=10),
+                 ArchiveMember(path="b.txt", uncompressed_size=20),
+                 ArchiveMember(path="c.txt", uncompressed_size=30)),
+        uncompressed_size=60, inspected=3, total=3)
+
+    result, _ = run_it(manifest=manifest)
+    assert len(result.text_units) == 3
+    assert {unit["text"] for unit in result.text_units} == {"a.txt", "b.txt", "c.txt"}

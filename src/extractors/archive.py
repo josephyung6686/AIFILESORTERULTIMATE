@@ -141,9 +141,33 @@ def extract_archive(*, file_row: Mapping[str, Any], path: Path,
                            (segment("field", label=UNCOMPRESSED_SIZE_FIELD),), None,
                            None, "direct"))
 
+    # ONE UNIT PER ADDRESS. A ZIP may legally hold two entries of the same name,
+    # and `filename_duplicate.zip` -- a libzip regression fixture sitting in a real
+    # corpus -- holds two called `test1`. `text_units` is keyed
+    # `(run_id, unit_locator)`, the locator is the canonical form of the container
+    # path, and an `entry` segment is addressed by its label. So the second member
+    # collided with the first and the INSERT raised, taking the whole run with it:
+    # measured on a real Desktop, 5,760 files scanned and 480 seconds of work lost
+    # to one adversarial archive.
+    #
+    # Numbering them is not the fix and would not be right. `entry` is one of P4's
+    # label-addressed kinds and rule 2 says such a kind carries no index; under P4's
+    # addressing two members of one name ARE one address.
+    #
+    # `_collapse` below has always applied exactly this rule to observations -- "one
+    # observation per (run, exact raw value, zone); `location` addresses the first
+    # occurrence in manifest order". The text-unit path had no equivalent. The
+    # manifest still REPORTS both members: `inspected` and `total` are the
+    # manifest's own counts and are untouched, so nothing about the archive is
+    # hidden -- what is deduplicated is the address, not the contents.
+    addressed: set[str] = set()
     for member in manifest.members:
         container = (segment("entry", label=member.path),)
-        units.append(text_unit(text=member.path, container_path=container))
+        if member.path not in addressed:
+            # The label IS the address for an `entry` segment, so the member path
+            # is exactly the key the locator would collide on.
+            addressed.add(member.path)
+            units.append(text_unit(text=member.path, container_path=container))
         for start, end in _name_spans(member.path,
                                       is_directory=member.is_directory):
             candidates.append(("manifest", member.path[start:end], container,
