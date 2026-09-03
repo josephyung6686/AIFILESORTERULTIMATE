@@ -1,6 +1,7 @@
 # 82 — The A_fact prompt, drafted for ratification
 
-Date: 2026-08-31. **Revised 2026-09-02 — v3.** Companion to
+Date: 2026-08-31. **Revised 2026-09-02 — v3; amended 2026-09-04 — v3.1, which changes no byte of
+§2 and corrects six claims that code overtook (§8.4).** Companion to
 [`76-PROMPT-RESEARCH.md`](76-PROMPT-RESEARCH.md), which is the requirements half. This is the text
 half. Revised on 2026-08-31 for [`83-MODEL-ROUTING.md`](83-MODEL-ROUTING.md) §3, and again on
 2026-09-02 because **the owner ruled on `76` §10.1 and the field glossary has since shipped**
@@ -219,7 +220,7 @@ All 21 from `76` §6. "Draft line" quotes the governing text.
 | R8 | At most one claim per field. | Rule 8, with the consequence stated. | Yes |
 | R9 | `claims` non-empty; silence is an `unknown` claim, never `[]`. | Rule 9. | Yes |
 | R10 | `payload.value` must be a JSON string. | Rule 3. No example anywhere shows a non-string value. | Yes |
-| R11 | The value must be the **minimal identifying substring**, not the containing phrase. | Rule 4, with the `"A B C"` → `"A"` counter-example. | **Stated, never enforced.** `76` §9.1 is verified live (§5.5 below): `normalize_for_model('subject','PHYS1401 Problem Set 4')` returns the string unchanged. The prompt is the only defence and remains so after ratification. |
+| R11 | The value must be the **minimal identifying substring**, not the containing phrase. | Rule 4, with the `"A B C"` → `"A"` counter-example. | **Half enforced, as of `d2249bd` (§8.4).** `normalize_for_model('subject','PHYS1401 Problem Set 4')` now returns `None`, so the case this requirement was written for is `VALUE_NOT_NORMALIZABLE` and writes no fact. The bound exists for the two fields this deployment has authored a rule for (`subject`, `term`) and for none of the other fifty-four — `('instructor','a'*300)` still returns 300 characters. **The prompt is still the only defence for fifty-four of fifty-six fields**, and that is a deployment gap rather than a missing check (§5.5). |
 | R12 | The value's spelling becomes the stored value identity. | Rule 5. | **Mitigated, not fixed.** `apply_verdict` stores `proposal.value` raw (`facts/llm_seam.py:272-274`), so two spellings still make two value rows. `76` §9.2. Wording cannot close it. |
 | R13 | An `unknown` claim names its field, carries `insufficiency_statement`, carries no value and no citations. | The decline shape, plus rule 10's last sentence. | Yes |
 | R14 | `"unknown"` present or absent; `"unknown": false` destroys the response. | Rule 10, explicitly, including `null`. | Yes |
@@ -282,15 +283,17 @@ From `76` §7. What this draft produces, and whether that is correct.
 **All fifteen have since been run against the real validator** — `86`, suite
 `tests/p8/test_p8_prompt_stress_cases.py`, 22 tests passing, no `PromptDefinition` constructed and
 no model called. It answers a different and sharper question than this table does: not *what does the
-draft direct*, but *if the model disobeys, does the machine catch it*. The answer is **twelve
+draft direct*, but *if the model disobeys, does the machine catch it*. `86` recorded **twelve
 machine, two prompt-only (S1, S2), one neither (S6)**, and every reason `76` §7 predicted was the
-reason observed. Read the two tables together: this one says what the text asks for, `86` says what
+reason observed. **`d2249bd` has since moved S1 across**, so the live split is **thirteen machine,
+one prompt-only (S2), one neither (S6)** — the suite counts it in
+`test_the_split_between_machine_defended_and_prompt_defended_cases`, and §8.4 records what changed. Read the two tables together: this one says what the text asks for, `86` says what
 happens when the text is ignored. Where they touch, `86`'s "Defence" column is quoted into the rows
 below.
 
 | # | Input | What the draft directs | Correct? |
 |---|---|---|---|
-| S1 | Released value `"PHYS1401 Problem Set 4"`; the wanted value is `PHYS1401`. The observed `qwen2.5:3b` failure. | Rule 4: the smallest run of characters that identifies the thing. Value `"PHYS1401"`, span `"PHYS1401"`. | Correct — **and unverifiable.** Nothing downstream checks it. If the model ignores rule 4, the answer is `ACCEPT_DIRECT` and becomes a folder name. This case is the reason the draft exists and it remains the draft's weakest point, and at the routed tier it is now the **first**-ranked risk rather than the second (§5.7). *"A value you worked out is not a value you found"* was added for it. **`86` confirms it is not merely unchecked but indiscriminable: the correct minimal answer and the over-quoted one produce the identical `(outcome, reasons)` pair,** so S1 is the one case of the fifteen whose test cannot be made to fail by swapping its expectations. **The glossary helps here and does not solve it.** *"the course or study subject the material belongs to"* tells the model which part of `"PHYS1401 Problem Set 4"` the field is about — the course, not the exercise — which is more than it had. It does not say whether a course *code* or a course *name* is wanted, and rule 4 remains the only line that bounds how much of the line comes across. |
+| S1 | Released value `"PHYS1401 Problem Set 4"`; the wanted value is `PHYS1401`. The observed `qwen2.5:3b` failure. | Rule 4: the smallest run of characters that identifies the thing. Value `"PHYS1401"`, span `"PHYS1401"`. | **Correct, and — since `d2249bd` — checked.** This row was *"correct and unverifiable"* through v3; `86` had found it worse than unchecked, since the correct minimal answer and the over-quoted one produced an identical `(outcome, reasons)` pair. `d2249bd` tightened the `subject` slot's `matches` predicate to require an identifier, `normalize_for_model` reuses that same predicate, and the over-quotation is now `VALUE_NOT_NORMALIZABLE` at check 3 — no fact, no folder name, verified against P6's table and not only against the verdict. **What this does not do is generalise.** The bound belongs to `subject` because this deployment authored a rule for `subject`; the identical over-quotation in `instructor`, `purpose`, `project` or any of the other fifty-three passes untouched. Rule 4 is still the whole defence there, and *"a value you worked out is not a value you found"* is still what carries it. **The glossary helps and does not solve it either** — *"the course or study subject the material belongs to"* says which part of the line the field is about, not whether a course *code* or a course *name* is wanted. §8.4. |
 | S2 | Prose supporting nothing in `allowed_vocabulary`. | Rule 9 and the two-moves section: one declining claim per field considered, each with a statement. **v3 changes the weighting here.** Rule 2 used to carry part of this case — a model that could not read a key declined it, and prose supporting nothing was declined partly by accident. Now the model knows what every key means, so the only thing standing between it and a plausible invention is *"if you cannot cite evidence that already exists in `released_evidence`, you must decline"* and rule 7's last clause. | Correct, and **prompt-only** (`86`): the invented pair is `accept_direct` with no reasons. |
 | S3 | Two released items support two different values for one field. | Rule 8: pick the better-supported one and cite it, or decline naming the ambiguity. Never two claims. | Correct |
 | S4 | The wanted value is in the store but not inside any released `value`. | *"Text that is not inside one of those `value` strings does not exist for you"* plus *"If you cannot cite evidence that already exists in `released_evidence`, you must decline."* | Correct |
@@ -306,8 +309,9 @@ below.
 | S14 | The evidence is a metadata/EXIF observation, not body text. | Rule 6 second bullet: `metadata_field_name` equal to `address`, character for character, and the other key left out. | Correct |
 | S15 | `"value": 2026` — a number. | Rule 3, naming every wrong JSON type. | Correct |
 
-**Survives all fifteen by wording.** Two carry a caveat that is not the wording's: **S1** is directed
-correctly and checked by nothing, and **S6** is answered correctly and then stored wrongly. Both are
+**Survives all fifteen by wording.** One carries a caveat that is not the wording's: **S6** is
+answered correctly and then stored wrongly. **S1 carried one until `d2249bd`** and no longer does
+for `subject`, though it still does for the fifty-four fields with no authored rule (§5.5). Both are
 `76` §9 findings, named here rather than hidden, and `86` §3 confirmed and measured both —
 `test_s6_one_course_becomes_two_value_rows` reads `["PHYS 1401", "PHYS1401"]` back out of the
 `values` table for one field. **Rule 5 asking for the evidence's spelling is what produces the split
@@ -384,13 +388,19 @@ achieves that separation is a judgement call — §7.5.
 
 Repeated plainly because hiding them behind wording is the specific failure mode to avoid here.
 
-1. **Check 3 does not bound a value** (`76` §9.1). Re-verified live against `src/cli.py:558`:
-   `normalize_for_model('subject','PHYS1401 Problem Set 4')` → `'PHYS1401 Problem Set 4'`;
+1. **Check 3 bounds a value for two fields and for no others** (`76` §9.1, as amended by
+   `d2249bd` — see §8.4). Re-verified live against `cli.normalize_for_model` (`src/cli.py:1285`) on
+   2026-09-04:
+   `normalize_for_model('subject','PHYS1401 Problem Set 4')` → **`None`**;
    `('subject','PHYS 1401')` → `'PHYS1401'`; `('subject','Spring 2026')` → `None`;
    `('term','PHYS1401')` → `None`; `('purpose','university application')` → unchanged;
-   `('subject', 'a'*300)` → unchanged. Two slots exist in this deployment. For every other field the
-   check rejects only the empty string and the non-string. **Rule 4 is prompt-only and stays
-   prompt-only after ratification.**
+   `('subject', 'a'*300)` → **`None`**; `('instructor', 'a'*300)` → 300 characters, unchanged.
+   `subject` is the only `DirectSlot`; `term` is bounded through a separate `DATE_PATTERNS` branch
+   in the same function. **Two fields are bounded and fifty-four are not**, and `cli.py` states why
+   the fifty-four are not: *"a field with no slot gets whitespace collapsed and nothing else, because
+   this deployment has authored no rule for it and inventing one at the model's boundary is exactly
+   what §3.5 forbids."* **Rule 4 is enforced where the deployment has authored a rule for the field
+   and prompt-only everywhere else.**
 2. **The model's spelling becomes the stored value identity** (`76` §9.2). Rule 5 asks; the writer at
    `facts/llm_seam.py:272-274` ignores `normalize_for_model` and stores the raw string. Ratifying
    rule 5 does not close `65` §4.2's identity split.
@@ -433,7 +443,7 @@ inverts:
 |---|---|---|
 | **S12** — fence or preamble | most likely | unlikely; still catastrophic when it happens, so the bookends stay |
 | **S11 / S13** — declining in a malformed shape | joint second | unlikely; the shapes are shown, which is cheap |
-| **S1** — the containing phrase as the value | second | **first, and by a distance.** It is a judgement about scope, not about formatting, and capability does not help — a better model produces a *more convincing* over-quotation with a *better-written* `why_it_supports`. Nothing downstream checks it (§5.5). |
+| **S1** — the containing phrase as the value | second | **still first, and for a narrower reason than in v3.** It is a judgement about scope, not about formatting, and capability does not help — a better model produces a *more convincing* over-quotation with a *better-written* `why_it_supports`. `d2249bd` put a check under it **for `subject` only**; for the fifty-four fields this deployment has authored no rule for, nothing downstream checks it (§5.5), and those are most of the fields most files will use. |
 
 The practical consequence: the draft's defences against formatting failure are now cheap insurance,
 and its defences against confident over-reach are the ones carrying the weight. That is why the three
@@ -485,9 +495,13 @@ Stated plainly, because these are one-way doors.
    (`dossier.py:190-193`). If they describe a different shape from `THE SHAPE` above, the model sees
    two schemas and picks one. Ratifying this template obliges authoring those two to agree with it —
    and they are the owner's text on the same grounds.
-6. **R11 stays unenforced.** Ratifying rule 4 does not make anything check rule 4. If check 3 is
-   later given teeth (`76` §10.2), that is a code change, not a prompt change, and this prompt
-   survives it unchanged.
+6. **R11 is now half enforced, and rule 4 is unaffected either way.** `76` §10.2 asked whether
+   check 3 should be given teeth; `d2249bd` gave it teeth for `subject`, and the prompt survived
+   that unchanged — which is the point. Ratifying rule 4 does not make anything check rule 4, and a
+   later check does not make rule 4 redundant: fifty-four fields still have no bound, and for them
+   rule 4 remains the whole defence. **The asymmetry to notice is that code can be tightened after
+   ratification and these bytes cannot**, so the prompt should be written for the weakest field, not
+   the best-defended one. It is.
 7. **The bytes become coupled to `_body`'s key set, one-way.** The draft says *"The dossier has these
    keys and no others"* and then names fourteen, and it names `field_glossary` as a thing the model
    should read. If `_body` later gains a fifteenth key, the prompt is asserting something false to
@@ -538,6 +552,14 @@ you found."* **Three things about that are worth the owner's doubt:**
 
 **There is no stress case for this and no test.** §4's closing note says one could be written
 without a model, and it should be, before ratification.
+
+**`d2249bd` does not touch this and promotes it.** That commit bounds a value's **shape** for
+`subject`, which is a different question from whether the value has any relationship to the evidence
+cited for it — `normalize_for_model('media_type','screenshot')` returns `'screenshot'`, because
+`media_type` has no authored rule and because no check anywhere asks where the characters came from.
+Meanwhile S1 moving to machine-defended leaves **S2 as the only stress case with no machine behind
+it**, and the value-lifted-from-the-glossary failure is an S2 in a new costume. This section was the
+hardest thing to look at in v3; it is more so now, because it lost the company.
 
 **7.2 — Rule 4's abstract example.** `"A B C"` → `"A"` is schema-neutral, which R18 requires, and it
 is also the least vivid way to teach the one failure that no check catches. A concrete example
@@ -609,17 +631,20 @@ reason `76` predicted was the reason observed; fourteen of the fifteen are discr
 deliberately mutated expectations all failed, so the suite is not fifteen assertions that would pass
 against anything.
 
-**What it establishes is the machine's half, not this document's.** It says that if the model
-disobeys, twelve of the fifteen are caught and two are not. It says nothing about whether a model
+**What it establishes is the machine's half, not this document's.** It said that if the model
+disobeys, twelve of the fifteen were caught and two were not; `d2249bd` has since made it thirteen
+and one (§8.4). It says nothing about whether a model
 obeys. **The honest reading of §4 above is still "what the draft directs", not "what a model was
 observed to do"** — and it will stay that way until a `PromptDefinition` exists, which is the line
 this draft does not cross.
 
 What `86` adds to the ratification decision is a sharper statement of where the bytes are
-load-bearing: **S1 and S2 are the only two cases with no machine behind them**, and `86` §2 quotes
-the exact lines of §2 that stand alone there. Those are the lines to read hardest and the ones a
-future revision must not lose. `86` §4's finding — the value is never compared to anything — widens
-that from two cases to a class.
+load-bearing: it named **S1 and S2 as the only two cases with no machine behind them** and quoted
+the exact lines of §2 that stand alone there. **S2 is now the only one**, which makes those lines
+more load-bearing rather than less — there is one case left and one set of sentences holding it.
+`86` §4's finding — the value is never compared to anything — widens that from one case to a class,
+and `d2249bd` does not touch it: check 3 bounds a value's **shape**, never its relationship to the
+evidence cited for it. Those are the lines a future revision must not lose.
 
 ---
 
@@ -700,3 +725,46 @@ Net: **+96 words, +532 bytes** (6,757 → 7,289; 1,130 → 1,226). Nothing was r
   does not exist yet (§7.1).
 - **It does not ratify anything.** An agent may not author or adopt prompt text. This is a document
   prepared for the owner to accept, amend or reject.
+
+### 8.4 v3.1 — check 3 grew teeth for `subject`, hours after v3 was written
+
+**No byte of §2 changed.** This entry exists because v3 asserted, in six places, that nothing
+downstream bounds a value, and for one field that stopped being true.
+
+`d2249bd` (2026-09-03) tightened the `subject` direct slot's `matches` predicate to require an
+identifier, after measuring the old one on 54 of the owner's real files: `subject` held 196 distinct
+values across 18 files — about eleven "subjects" per document — and the values included `!`, `&`,
+`(i)` and `#corre 1 . 4 - 1 : 4 . 10 - 4`. A probability lecture was stating punctuation as what it
+is about, in `direct`, and that value was a candidate folder name. **`normalize_for_model` reuses the
+slot's own predicate deliberately, so that one field cannot mean two things on two paths**, and
+tightening the slot tightened §3.6 check 3 with it.
+
+| Where | v3 said | v3.1 says |
+|---|---|---|
+| §3 R11 | *"Stated, never enforced."* | Half enforced. `('subject','PHYS1401 Problem Set 4')` → `None`. Two fields bounded, fifty-four not. |
+| §4 preamble | twelve machine / two prompt-only / one neither | thirteen / one / one |
+| §4 S1 | *"correct — and unverifiable"* | Correct and checked, for `subject`. Still unchecked for the other fifty-four. |
+| §4 closing | *"Two carry a caveat"* | One does (S6). |
+| §5.5 item 1 | *"Check 3 does not bound a value"* | Bounds two fields; oracle output re-run 2026-09-04 and quoted. |
+| §5.7 ranking | S1 first, *"nothing downstream checks it"* | S1 still first, for a narrower reason. |
+| §6 item 6 | *"R11 stays unenforced."* | Half enforced, and rule 4 is unaffected either way. |
+| §7.1 | the top risk | **the top risk, promoted** — S1 left, S2 did not. |
+| §7.7 | twelve caught, two not | thirteen caught, one not. |
+
+**Three things not to over-read in this.**
+
+1. **It is one field, and not because fifty-four were forgotten.** `cli.py` states the rule: a field
+   with no slot gets whitespace collapsed and nothing else, *"because this deployment has authored no
+   rule for it and inventing one at the model's boundary is exactly what §3.5 forbids."* A bound for
+   `instructor` is a rule the owner has not authored, not a check somebody missed.
+2. **It cuts against the glossary in one place, and that is worth a look before ratifying.** The
+   glossary tells the model `subject` is *"the course or study subject the material belongs to"*, and
+   check 3 now accepts only an identifier: `normalize_for_model('subject','Organic Chemistry')`
+   returns `None`, as does `'Intro to Physics'`. **A model that obeys the glossary literally on a
+   file whose evidence names a course in words rather than in a code will be rejected.** That is
+   arguably correct — this deployment files by course code — but the glossary sentence does not say
+   so, and the glossary is the owner's to amend, not this document's.
+3. **The direction of travel is the argument for ratifying late.** Two of this document's load-bearing
+   claims have been overtaken by code in four days: `_body` gained a key on 2026-09-02 and check 3
+   gained teeth on 2026-09-03. The bytes cannot be revised after ratification; the code around them
+   is being revised weekly. §6.7.
