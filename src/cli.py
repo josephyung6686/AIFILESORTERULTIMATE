@@ -426,12 +426,21 @@ MODEL_CALL_SITES_WIRED: bool = False
 #: analysis is per page and unbounded, so a single vendored datasheet cost a person
 #: half their run while 638 of their own files waited behind it.
 #:
-#: WHY TWENTY. The first 20 pages of that same document take 1.3 seconds and yield
-#: 93,531 characters -- a 255x saving for text nobody was going to read past. What
-#: this product does with a PDF is decide what KIND of material it is and where it
-#: belongs; 24 of this corpus's 41 PDFs are ten pages or shorter and are untouched by
-#: any ceiling at all, and the three that are not are a datasheet and two exam
-#: syllabi whose first pages say what they are more plainly than their hundredth.
+#: WHY FIFTY, AND NOT TWENTY. Twenty was the first value tried, and it was wrong:
+#: measured over the same folder it classified 115 files where an uncapped run
+#: classified 118, losing three PDFs of nine. A ceiling that reads fewer headings
+#: recognises fewer documents, and buying 22 seconds with three files is not a
+#: trade this product gets to make quietly.
+#:
+#: Fifty is the smallest ceiling measured that costs NOTHING. Whole-folder runs:
+#:
+#:      no ceiling   705.0s   118 files classified   9 of 41 PDFs
+#:      50           306.4s   118 files classified   9 of 41 PDFs
+#:      20           284.6s   115 files classified   6 of 41 PDFs
+#:
+#: 120 was also measured and classified the same 118 for 30 seconds more, so fifty
+#: is where the curve flattens rather than a guess between two numbers. 24 of this
+#: corpus's 41 PDFs are ten pages or shorter and no ceiling touches them at all.
 #:
 #: WHAT IT COSTS, STATED RATHER THAN HIDDEN. A capped read is recorded
 #: `completeness="capped"` with `coverage {"processed": 20, "total": 642}` -- P4's
@@ -439,7 +448,7 @@ MODEL_CALL_SITES_WIRED: bool = False
 #: forbids a partial read that calls itself complete, so the ceiling had to arrive
 #: with the sentence that says it was reached. A ceiling that reported `complete`
 #: would be a worse product than a slow one.
-PDF_PAGE_CEILING: int = 20
+PDF_PAGE_CEILING: int = 50
 
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
 #: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
