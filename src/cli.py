@@ -137,6 +137,7 @@ from production import (
     run_production_corpus,
 )
 from readers.deployment import macos_readers
+from readers.pdf_pdfminer import pdfminer_reader
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME
 from readers.model_routing import (
     FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting, deepseek_routing,
@@ -413,6 +414,32 @@ ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
 #: one step later. `tests/integration/test_cli_cloud_announcement.py` asserts this
 #: against the injections themselves, so it cannot drift from what is true.
 MODEL_CALL_SITES_WIRED: bool = False
+
+#: §8.6's page cap for PDFs, and the only place the NUMBER is chosen. `pdfminer_reader`
+#: takes `max_pages=None` -- read everything -- and this file hands it a ceiling
+#: through `macos_readers(read_pdf=...)`, the override seam that module's docstring
+#: exists to offer.
+#:
+#: WHY THERE IS A CEILING AT ALL. Measured 2026-09-03 over a real 639-file
+#: `~/Documents`: the run took 705 seconds, and 332 of them were ONE file --
+#: `rp2040-datasheet.pdf`, 642 pages, vendored inside `Arduino/libraries/`. Layout
+#: analysis is per page and unbounded, so a single vendored datasheet cost a person
+#: half their run while 638 of their own files waited behind it.
+#:
+#: WHY TWENTY. The first 20 pages of that same document take 1.3 seconds and yield
+#: 93,531 characters -- a 255x saving for text nobody was going to read past. What
+#: this product does with a PDF is decide what KIND of material it is and where it
+#: belongs; 24 of this corpus's 41 PDFs are ten pages or shorter and are untouched by
+#: any ceiling at all, and the three that are not are a datasheet and two exam
+#: syllabi whose first pages say what they are more plainly than their hundredth.
+#:
+#: WHAT IT COSTS, STATED RATHER THAN HIDDEN. A capped read is recorded
+#: `completeness="capped"` with `coverage {"processed": 20, "total": 642}` -- P4's
+#: own vocabulary, the shape `extractors/ocr.py` has used since it was written. §2.4
+#: forbids a partial read that calls itself complete, so the ceiling had to arrive
+#: with the sentence that says it was reached. A ceiling that reported `complete`
+#: would be a worse product than a slow one.
+PDF_PAGE_CEILING: int = 20
 
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
 #: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
@@ -1389,7 +1416,9 @@ def p1_p7_authorities(*, now, detector,
         # and nothing downstream can read one.
         policy=SafetyPolicy(is_protected_container=is_protected_container,
                             is_dataless=lambda path: False),
-        readers=macos_readers(find_structured_strings=find_structured_strings),
+        readers=macos_readers(find_structured_strings=find_structured_strings,
+                              read_pdf=pdfminer_reader(
+                                  max_pages=PDF_PAGE_CEILING)),
         now=now,
         # §2.6's excerpt window, in characters. `00` states none.
         context_window=240,

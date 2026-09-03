@@ -27,6 +27,7 @@ from typing import Any, Callable
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LAParams, LTChar, LTTextContainer, LTTextLine
 from pdfminer.pdfdocument import PDFDocument
+from pdfminer.pdfpage import PDFPage
 from pdfminer.pdfparser import PDFParser
 
 from extractors.pdf import PdfDocument as P5PdfDocument
@@ -123,13 +124,37 @@ def _dominant_size(lines) -> float:
     return sizes.most_common(1)[0][0]
 
 
+def _page_count(path: Path) -> int:
+    """How long the document is, without laying a single page out.
+
+    The count a capped run reports as its `total`. Walking the page tree is the
+    cheap half of what `extract_pages` does; the expensive half is the layout
+    analysis a ceiling exists to skip.
+    """
+    with open(path, "rb") as handle:
+        return sum(1 for _ in PDFPage.get_pages(handle))
+
+
 def pdfminer_reader(*, heading_ratio: float = 1.15,
                     margin_fraction: float = 0.08,
+                    max_pages: int | None = None,
                     laparams: LAParams | None = None) -> Callable[[Path], P5PdfDocument]:
     """Build the `read_pdf` callable `extractors.dispatch.Readers` takes.
 
     A factory rather than a bare function so a deployment can tune the two adapter
     policies without editing the module, and so nothing here holds process state.
+
+    `max_pages` is §8.6's page cap. `None` -- the default -- reads the whole
+    document, which is what every caller written before the ceiling existed means.
+    The NUMBER is not chosen here: `cli.py` is the only file that picks one, and it
+    passes this reader in through `macos_readers(read_pdf=...)`, which is the
+    override seam that module's docstring exists to offer.
+
+    Layout analysis is the cost, and it is per page. Measured 2026-09-03 on
+    `rp2040-datasheet.pdf` (642 pages, vendored inside a user's Arduino libraries):
+    the whole document takes 332 seconds, its first 20 pages take 1.3 and yield
+    93,531 characters. A ceiling is not a degradation of that read, it is the
+    difference between reading a document and re-typesetting a datasheet.
     """
     params = laparams or LAParams()
 
@@ -141,7 +166,14 @@ def pdfminer_reader(*, heading_ratio: float = 1.15,
         metadata, iso_dates = _metadata(Path(path))
         pages: list[PdfPage] = []
 
-        for number, page in enumerate(extract_pages(str(path), laparams=params), 1):
+        # pdfminer spells "no limit" as 0, and `None` is this module's spelling of
+        # the same thing. Translated here rather than at the boundary so no caller
+        # has to know that 0 is a sentinel in one vocabulary and a real count in
+        # the other.
+        ceiling = 0 if max_pages is None else max_pages
+
+        for number, page in enumerate(
+                extract_pages(str(path), laparams=params, maxpages=ceiling), 1):
             lines = _lines(page)
             body_size = _dominant_size(lines)
             height = (page.bbox[3] - page.bbox[1]) or 1.0
@@ -190,7 +222,14 @@ def pdfminer_reader(*, heading_ratio: float = 1.15,
             pages.append(PdfPage(number=number, text="".join(text_parts),
                                  regions=tuple(regions)))
 
+        # Counted only when a ceiling was set. Without one the read is exhaustive,
+        # so the pages produced ARE the total and a second pass over the file would
+        # buy a number already in hand. `get_pages` walks the page tree without
+        # laying any page out, which is why this is affordable at all.
+        total = _page_count(Path(path)) if max_pages is not None else len(pages)
+
         return P5PdfDocument(metadata=metadata, pages=tuple(pages),
-                             iso_dates=iso_dates)
+                             iso_dates=iso_dates, pages_total=total,
+                             capped=len(pages) < total)
 
     return read_pdf

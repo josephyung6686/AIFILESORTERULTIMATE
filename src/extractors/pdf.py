@@ -67,6 +67,18 @@ class PdfDocument:
     pages: tuple[PdfPage, ...]
     iso_dates: Mapping[str, str] = dataclass_field(default_factory=dict)
 
+    #: §8.6's page cap, in the shape `OcrOutput` has carried since it was written.
+    #: `pages` is what was READ; `pages_total` is how long the document is. They
+    #: differ only when the reader stopped at a ceiling, and `capped` says so
+    #: outright rather than leaving it to be inferred from the two numbers.
+    #:
+    #: `None` means the reader did not report a total, which is the honest reading
+    #: of every reader written before there was a ceiling to report: it read the
+    #: whole document, so the count it produced IS the total. A default of `0`
+    #: would have made `coverage` claim a document had no pages.
+    pages_total: int | None = None
+    capped: bool = False
+
 
 @dataclass(frozen=True)
 class _Candidate:
@@ -168,14 +180,20 @@ def extract_pdf(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
 
     observations = _collapse(candidates, file_row=file_row, now=now,
                              context_window=context_window)
+    # Both numbers used to be read off `len(document.pages)`, so a partial read had
+    # no shape to be stated in and every run was `complete` by construction. §2.4
+    # forbids exactly that: a document read to page 20 of 642 and recorded as
+    # `complete` is the silent-empty-document lie wearing a full page count.
     pages = len(document.pages)
+    pages_total = document.pages_total if document.pages_total is not None else pages
     return ExtractionResult(
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],
                 extractor_name=EXTRACTOR_NAME, extractor_version=VERSION,
                 source_type=SOURCE_TYPE, analysis_tier=ANALYSIS_TIER,
                 config={"reader": "injected",
                         "context_window": context_window},
-                completeness="complete", coverage=coverage("pages", pages, pages),
+                completeness="capped" if document.capped else "complete",
+                coverage=coverage("pages", pages, pages_total),
                 observation_count=len(observations), started_at=now, finished_at=now),
         observations=observations,
         text_units=tuple(units),
