@@ -94,7 +94,11 @@ def db(conn):
 def a_file(db, tmp_path, filename: str, *, body: str | None = None,
            source_type: str = "text_document", extension: str = ".pdf",
            subdirectory: str = "", identifier: str | None = None,
-           abspath: str | None = None):
+           abspath: str | None = None,
+           heading: str | None = None, heading_page: int | None = 1):
+    # `heading` writes the zone SPEC 2.2 ranks beside a filename, and
+    # `heading_page` is which page it sits on -- `None` for a format with no
+    # pagination, which is a `.docx` and not an absence of evidence.
     """One `files` row and its real P4 observations, through the real writers."""
     directory = tmp_path / subdirectory if subdirectory else tmp_path
     directory.mkdir(parents=True, exist_ok=True)
@@ -132,6 +136,17 @@ def a_file(db, tmp_path, filename: str, *, body: str | None = None,
             extractor_name="pdf.text", extractor_version="0.1.0",
             source_type=source_type, raw_value=body,
             location=location(zone="body"),
+            observed_at=CLOCK, reliability="possible"))
+    if heading:
+        container = [{"index": heading_page, "kind": "page"}] if heading_page else []
+        observations.append(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="pdf.text", extractor_version="0.1.0",
+            source_type=source_type, raw_value=heading,
+            location=location(zone="heading",
+                              container_path=[*container,
+                                              {"index": 1, "kind": "heading",
+                                               "label": heading}]),
             observed_at=CLOCK, reliability="possible"))
     if identifier:
         # A structured string is its OWN observation, spanned inside the body --

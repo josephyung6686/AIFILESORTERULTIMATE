@@ -122,6 +122,44 @@ SAFETY_DOMAIN_HANDLING: Mapping[str, Handling] = MappingProxyType({
 })
 
 
+#: WHERE A DOCUMENT NAMES ITSELF. SPEC 2.2 ranks "a filename, title, or page-one
+#: heading" as meaningful evidence, and `_matches` already quotes that ranking for a
+#: different purpose. These are those three, plus the two that are one of them under
+#: another name: `header_footer` is a running head -- a page-one heading, on page two
+#: -- and `metadata` is the format's own title slot, a document naming itself in its
+#: own words.
+#:
+#: `body`, `table`, `ocr`, `notes`, `annotation` and `reference_list` are deliberately
+#: absent. They are where a document mentions OTHER documents, and the whole of this
+#: constant's job is to keep a mention from becoming a claim.
+NAMING_ZONES: frozenset[str] = frozenset(
+    {"filename", "title", "heading", "header_footer", "metadata"})
+
+#: SPEC 2.2's phrase is "page-ONE heading", and the page is the half that does the
+#: work on a long document. `pdf.text` calls a line a heading when its type is
+#: larger than the page's body size, which is a typographic guess and not a semantic
+#: one: measured on a real corpus, `rp2040-datasheet.pdf` was locked
+#: `sensitive_personal` on a page-2 "heading" reading "The next attempt to claim the
+#: l...", and a World History textbook on "dispensation. Are you ready to receive
+#: it? Will you". Both are body prose that happens to be set large.
+#:
+#: `Statement.pdf`'s heading -- "Statement of assets as of 09.01.2025" -- is on page
+#: one, which is what the phrase is for.
+FIRST_PAGE: int = 1
+
+
+def _names_the_file(match: "TermMatch") -> bool:
+    """Is this match somewhere the document NAMES ITSELF, in SPEC 2.2's sense?
+
+    A page of `None` passes. That is not a missing page, it is a format that does
+    not paginate -- a `.docx` heading and a filename both have no page, and reading
+    absence as failure would quietly stop protecting every unpaginated format.
+    """
+    if match.zone not in NAMING_ZONES:
+        return False
+    return match.page is None or match.page == FIRST_PAGE
+
+
 @dataclass(frozen=True, slots=True)
 class TermMatch:
     """One authored term, found in one observation, owned by one schema."""
@@ -129,6 +167,15 @@ class TermMatch:
     schema_id: str
     term: str
     observation_key: str
+    #: P4's zone for the observation this term was found in. Recognition does not
+    #: read it -- a term is a term wherever it sits, and narrowing THAT would
+    #: narrow what the detector can recognise at all. Protection reads it, because
+    #: protection is a claim about what the file IS. See `NAMING_ZONES`.
+    zone: str | None = None
+    #: Which page the observation sits on, from `container_path`'s `page` entry.
+    #: `None` for a format that does not paginate -- a `.docx` heading is still a
+    #: heading -- and for zones that have no page, like a filename.
+    page: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,9 +358,14 @@ class Detector:
             # that named it, so this is read before the refusal below: narrowing
             # which words count must not narrow `file_kind_plausible` as well.
             source_types.add(row["source_type"])
-            if _json.loads(row["location"]).get("locator") == "path":
+            where = _json.loads(row["location"])
+            if where.get("locator") == "path":
                 continue
             key = row["observation_key"]
+            zone = where.get("zone")
+            page = next((step.get("index")
+                         for step in where.get("container_path") or ()
+                         if step.get("kind") == "page"), None)
             for text in (row["raw_value"], row["normalized_value"]):
                 if not text:
                     continue
@@ -323,7 +375,8 @@ class Detector:
                             continue
                         seen.add((schema_id, term))
                         found.append(TermMatch(schema_id=schema_id, term=term,
-                                               observation_key=key))
+                                               observation_key=key, zone=zone,
+                                               page=page))
         return found, source_types
 
     def _terms_in(self, text: str) -> Iterable[tuple[str, tuple[str, ...]]]:
@@ -669,6 +722,54 @@ class Detector:
                              if match.schema_id in SAFETY_DOMAIN_IDS
                              and says_what_the_file_is(match)}))
 
+    def _safety_readings_naming_the_file(
+            self, conn: sqlite3.Connection, file_id: str,
+            content_hash: str) -> tuple[str, ...]:
+        """The same question, asked where a MENTION must not become a claim.
+
+        `_safety_readings_in_evidence` refuses a term that SURROUNDS a document.
+        It cannot refuse a work type that is also ordinary English, and five of
+        them are: `will`, `statement`, `receipt`, `invoice`, `passport`. Measured
+        over a real 639-file corpus, one of those in body prose locked 33 files
+        `sensitive_personal, protected=1` and withheld every one from placement --
+        an Arduino `LICENSE.txt` on "receipt, statement, will", a 642-page chip
+        datasheet on "will", and the owner's own design notes for THIS PRODUCT on
+        the phrase "discharge summary".
+
+        ARITY WAS TRIED FIRST AND IS THE WRONG CUT. Requiring two distinct work
+        types keeps `LICENSE.txt` -- three generic words corroborate each other --
+        and releases `Statement.pdf`, a real brokerage statement. Wrong in both
+        directions. Of those 33 files exactly ONE carries its work type in a naming
+        zone, and it is `Statement.pdf`. Zone separates them; count does not.
+
+        `NAMING_ZONES` is SPEC 2.2's own ranking, which `_matches` already quotes
+        for a different purpose, so this is the design's own rule read on the path
+        that needed it -- not a threshold invented to fit one corpus.
+
+        WHY ONLY THIS PATH, and this is the whole of the narrowing. The two other
+        callers of the lenient question are asking something else:
+
+        - `_precaution` reads an abstention's TIED LEADERS, so the safety domain
+          already stood level with every other reading on the file's own terms.
+          Its docstring says it gets `never_alone`'s discipline for free that way.
+        - the corroboration gate in `_decide` uses it to keep a schema-agnostic
+          identifier from seconding a word that merely accompanies a safety
+          document. A passport scan whose OCR body reads "Passport. X12345678."
+          must still be RECOGNISED, and narrowing that would buy an
+          over-protection cure by making the safety domains unrecognisable --
+          the trade `00` and this suite both forbid outright.
+
+        The winning-schema override has neither of those. Its own comment says it
+        "has no leaders to lean on and must say what it means directly." This is
+        what it means directly.
+        """
+        return tuple(sorted({
+            reading for reading in
+            self._safety_readings_in_evidence(conn, file_id, content_hash)
+            if any(match.schema_id == reading and _names_the_file(match)
+                   and match.term in self._work_types.get(reading, frozenset())
+                   for match in self._matches(conn, file_id, content_hash)[0])}))
+
     def _protect_as(self, conn: sqlite3.Connection, readings: Iterable[str], *,
                     file_id: str, content_hash: str) -> ClassificationRecord | None:
         """The safety domain's own handling, cited to the terms that raised it."""
@@ -724,7 +825,8 @@ class Detector:
         if outcome.schema_id not in SAFETY_DOMAIN_IDS:
             protection = self._protect_as(
                 conn,
-                self._safety_readings_in_evidence(conn, file_id, content_hash),
+                self._safety_readings_naming_the_file(
+                    conn, file_id, content_hash),
                 file_id=file_id, content_hash=content_hash)
             if protection is not None:
                 return protection
