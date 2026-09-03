@@ -12,21 +12,23 @@ what it is about.
 whose zone is `body` or `heading` and which carries a `#` span. Its docstring states
 the invariant that bound is meant to rest on: "A structured string always carries a
 span because it is a substring the pass located; a whole zone never does." That
-sentence is FALSE for one emitter. `extractors/pdf.py:156-159` emits every heading
-REGION as an observation of the whole region, with an explicit
-`span={"start": 0, "end": len(heading_text)}` -- so a whole heading arrives looking
-exactly like a located substring, while a whole page (`extractors/pdf.py:143`) does
-not. Of the 158 heading-zone observations in that run, all 158 were whole regions;
-of the 77 body-zone spans, 76 were located substrings. The zone list was not the
-defect and narrowing it is not the fix: `extractors/pdf.py:164` gives an identifier
-FOUND INSIDE a heading `zone="heading"` too, so dropping the zone would throw away
-the course code printed in a slide title -- `00`:78's own worked example.
+sentence is FALSE for one emitter. `extractors.pdf.extract_pdf` builds its heading
+`_Candidate` with an explicit `span={"start": 0, "end": len(heading_text)}` -- every
+heading REGION is emitted as an observation of the whole region -- so a whole heading
+arrives looking exactly like a located substring, while the whole-page `text_unit`
+built two statements earlier carries no span at all. Of the 158 heading-zone
+observations in that run, all 158 were whole regions; of the 77 body-zone spans, 76
+were located substrings. The zone list was not the defect and narrowing it is not the
+fix: the same function's `zone = ZONE_BY_STRUCTURED_KIND.get(found.kind, region.zone
+...)` gives an identifier FOUND INSIDE a heading `zone="heading"` too, so dropping the
+zone would throw away the course code printed in a slide title -- `00`:78's own worked
+example.
 
 **So the refusal belongs to the slot's `matches` predicate, over the READING.** The
 slot is `cli.text.identifier` and its declared claim is "the identifier the
 structured-string pass found in the document's text". This deployment authors exactly
 one definition of an identifier, `cli._STRUCTURED`, and a located structured string's
-raw value IS its match (`extractors/pdf.py:171`, `raw = unit_text[start:end]`). A
+raw value IS its match -- `extract_pdf` slices it, `raw = unit_text[start:end]`. A
 reading that the deployment's own pattern would not have produced is not an
 identifier, and a slot that stores it is claiming a reading it never made. No
 threshold is invented here and no vocabulary is added: the test asks the shipped
@@ -85,7 +87,7 @@ def _file(conn, tmp_path, *, name="lecture.pdf", body=b"a probability lecture"):
 
 
 def _whole_heading(conn, *, run_id, file_id, content_hash, raw, page, ordinal):
-    """P4's heading-region observation, in `extractors/pdf.py:156-159`'s own shape.
+    """P4's heading-region observation, in `extractors.pdf.extract_pdf`'s own shape.
 
     The span is `0 .. len(raw)` because that is what the emitter writes, and it is
     the whole reason this reading reaches a slot that believes it only sees
@@ -193,7 +195,8 @@ def test_an_identifier_printed_inside_a_heading_survives_the_refusal(
         p6_conn, tmp_path):
     """Why the refusal is not "drop the `heading` zone", stated as a test.
 
-    `extractors/pdf.py:162-176`: a structured string found inside a heading region
+    `extractors.pdf.extract_pdf`'s `for found in find_structured_strings(page.text)`
+    loop: a structured string found inside a heading region
     keeps the heading's container AND takes the heading's zone, because
     `ZONE_BY_STRUCTURED_KIND` names no zone for an `identifier` and the fallback is
     the region's own. So `heading:page=1/heading=3#9-18` is a LOCATED SUBSTRING in
