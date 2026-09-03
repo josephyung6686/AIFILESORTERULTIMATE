@@ -88,9 +88,22 @@ def test_every_format_in_the_table_is_one_2_9_or_2_6_names():
         "webp", "gif", "tiff", "tif", "bmp", "heif", "avif",   # §2.6 names only HEIC and PNG
         "mp3", "m4a", "wav", "mp4", "mov",                     # §2.9 names the family and no format
     }
+    # The same reason as the audio row above -- §2.9 names "code/structured" as a
+    # family and spells nine formats, which are a web-and-Python selection. These
+    # thirteen were each COUNTED on the owner's real disk (cpp 449, hpp 322,
+    # tsx 300, swift 299, h 199, c 162, ts 143, ino 79, sh 43, kt 37, css 33,
+    # cmake 32, jsx 27) -- 2,125 files that had no extractor at all. Declared here
+    # as well as in the table, so the next addition still cannot arrive silently.
+    code_formats_the_owner_actually_writes = {
+        "c", "cpp", "h", "hpp", "ino",          # C, C++, Arduino
+        "swift", "kt",                          # Swift, Kotlin
+        "ts", "tsx", "jsx",                     # TypeScript and React
+        "css", "sh", "cmake",                   # stylesheets, shell, build
+    }
     assert set(SOURCE_TYPE_BY_FORMAT) == (named_by_2_9
                                           | named_by_2_6_or_the_spec_fixtures
-                                          | added_by_b6_and_not_by_a_design_sentence)
+                                          | added_by_b6_and_not_by_a_design_sentence
+                                          | code_formats_the_owner_actually_writes)
 
 
 def test_every_source_type_the_table_names_is_in_p4s_closed_vocabulary():

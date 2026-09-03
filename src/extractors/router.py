@@ -76,6 +76,37 @@ SOURCE_TYPE_BY_FORMAT: dict[str, tuple[str, ...]] = {
     "yml": ("code_structured",),
     "toml": ("code_structured",),
     "xml": ("code_structured",),
+    # THE SAME FAMILY, FOR THE LANGUAGES A REAL DISK HOLDS. §2.9 names the family
+    # "code/structured" and spells nine formats, and those nine are a web-and-Python
+    # selection. Measured across the owner's real ~/Desktop and ~/Documents, the
+    # files they do not reach: cpp 449, hpp 322, tsx 300, swift 299, h 199, c 162,
+    # ts 143, ino 79, sh 43, kt 37, css 33, cmake 32, jsx 27.
+    #
+    # 2,125 files -- 40% of that Desktop -- arrived as `unrouted / unsupported`: no
+    # extractor, no text, nothing to classify and nowhere to file. The owner is an
+    # embedded and application developer, and the product read his `.py` and `.js`
+    # perfectly while not reading one line of his C, C++, Swift, TypeScript or
+    # Arduino.
+    #
+    # Added the way the eleven image and audio formats below were: on ratification,
+    # because §2.9 names the family and no format. Each is declared in the guard in
+    # `tests/p5/test_p5_router.py` as well as here, so a later addition still cannot
+    # arrive silently. Each was COUNTED on that disk -- nothing is here for a
+    # language the owner does not write, and `.exe`, also counted, is deliberately
+    # absent.
+    "c": ("code_structured",),
+    "cpp": ("code_structured",),
+    "h": ("code_structured",),
+    "hpp": ("code_structured",),
+    "ino": ("code_structured",),      # Arduino sketches
+    "swift": ("code_structured",),
+    "kt": ("code_structured",),
+    "ts": ("code_structured",),
+    "tsx": ("code_structured",),
+    "jsx": ("code_structured",),
+    "css": ("code_structured",),
+    "sh": ("code_structured",),
+    "cmake": ("code_structured",),
     # Design and creative - "PSD, AI, SVG, Figma exports, CAD files, 3D files".
     # Figma exports, CAD and 3D name no single format token, so none is invented.
     "psd": ("design_creative",),
