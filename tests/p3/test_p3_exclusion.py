@@ -55,16 +55,22 @@ def test_an_ordinary_directory_is_not_excluded(tmp_path: Path):
                          applies_to=APPLIES_TO_SCANNED_SOURCE) is None
 
 
-def test_the_five_categories_are_named_and_have_no_members():
+def test_the_five_categories_are_named_and_no_sixth_is_invented():
     # SPEC Deferred: §1.1 names the categories and enumerates no member of any of
-    # them. The rule is wired and empty; guessing a member would be P3 authoring a
-    # gazetteer the design does not supply.
+    # them, so P3 may not GUESS one -- that would be the gazetteer the design
+    # declines to supply. It was never a rule that the lists stay empty: the module
+    # says the opposite, that "authoring the list is a data change, not a code one".
+    #
+    # The members are now authored, each measured on the owner's own disk (see
+    # `CATEGORY_MEMBERS` and tests/p3/test_p3_authored_categories.py). What this
+    # test still guards is the half that is P3's: the KEYS are §1.1's five, in
+    # §1.1's order, and authoring members may not invent a sixth category to put
+    # them in.
     assert EXCLUSION_CATEGORIES == (
         "build artifacts", "caches", "auto-save folders", "previews",
         "generated dependency trees",
     )
     assert set(CATEGORY_MEMBERS) == set(EXCLUSION_CATEGORIES)
-    assert all(members == () for members in CATEGORY_MEMBERS.values())
 
 
 def test_the_category_rule_fires_the_day_a_member_is_authored(tmp_path: Path, monkeypatch):
@@ -125,8 +131,13 @@ from scan_agent.exclusion import (
 )
 
 
-def test_the_four_markers_are_1_1s_four_verbatim():
-    assert PROJECT_ROOT_MARKERS == (
+def test_the_four_markers_are_1_1s_four_verbatim_and_come_first():
+    # §1.1's four, verbatim and in the design's order. Anything after them is
+    # hand-authored under §1.1's own "files such as", which the module's note
+    # already called an extensible set -- today that is `library.properties`,
+    # Arduino's manifest, which 226 of the owner's 228 Arduino files sit under.
+    # The design's four may not be reordered or edited to make room for it.
+    assert PROJECT_ROOT_MARKERS[:4] == (
         "package.json", "requirements.txt", "Cargo.toml", "go.mod",
     )
 

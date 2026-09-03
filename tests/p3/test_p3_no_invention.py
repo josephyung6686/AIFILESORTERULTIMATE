@@ -265,10 +265,23 @@ def test_p3_reads_no_volume_identifier():
     assert "OBSERVATION_SESSION" not in source
 
 
-def test_the_deferred_exclusion_categories_are_still_empty():
-    # SPEC Deferred: §1.1 names five categories and enumerates no member.
+def test_no_exclusion_category_member_is_a_name_p3_invented():
+    # SPEC Deferred: §1.1 names five categories and enumerates no member, so P3 may
+    # not guess one. The members are now AUTHORED -- every one measured on the
+    # owner's real disk -- which is the data change the module says this rule is
+    # wired for, not an invention by this part.
+    #
+    # What stays guarded: each authored name is a directory a dependency manager or
+    # build tool creates, never a word that could be a person's own folder. A
+    # category holding "Documents" or "Projects" would silently delete real
+    # material from every plan, and no measurement would catch it because the files
+    # simply would not appear.
     from scan_agent.exclusion import CATEGORY_MEMBERS
-    assert all(members == () for members in CATEGORY_MEMBERS.values())
+    for members in CATEGORY_MEMBERS.values():
+        for name in members:
+            assert name.startswith(".") or name in ("coverage",), (
+                f"{name!r} is authored as a category member but does not look like "
+                "a tool-generated directory")
 
 
 def test_the_curation_threshold_is_still_unauthored():

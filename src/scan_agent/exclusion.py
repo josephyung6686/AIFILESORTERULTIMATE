@@ -34,13 +34,46 @@ EXCLUSION_CATEGORIES: tuple[str, ...] = (
     "generated dependency trees",
 )
 
-#: §1.1's four literal software-project-root markers, verbatim and in order.
-#: §1.1's "files such as" signals an extensible set and names no other member, so
-#: any extension is hand-authored (SPEC Deferred). Four, and no fifth.
-PROJECT_ROOT_MARKERS: tuple[str, str, str, str] = (
+#: §1.1's four literal software-project-root markers, verbatim and in order, plus
+#: one hand-authored fifth. §1.1's "files such as" signals an extensible set and
+#: names no other member, so any extension is hand-authored (SPEC Deferred).
+#:
+#: `library.properties` is Arduino's and PlatformIO's manifest -- the same kind of
+#: thing as the four above: the file a dependency manager writes into a library it
+#: installed. Authored on evidence: on the owner's disk, 226 of 228 files under
+#: `~/Documents/Arduino` sit inside a directory carrying one, and every one of them
+#: was being read, extracted and offered a home as if it were their own writing.
+#: The design's four could not reach them -- an Arduino library has no
+#: `package.json`.
+PROJECT_ROOT_MARKERS: tuple[str, ...] = (
     "package.json", "requirements.txt", "Cargo.toml", "go.mod",
+    "library.properties",
 )
-CATEGORY_MEMBERS = MappingProxyType({name: () for name in EXCLUSION_CATEGORIES})
+
+#: THE FIVE CATEGORIES, AUTHORED. Each member below was measured on a real disk
+#: rather than recalled from what package managers generally produce, which is what
+#: keeps this a list of observations instead of a gazetteer:
+#:
+#:     .venv           23,372 files in 4 directories
+#:     .next            1,241 files in 1 directory
+#:     coverage            75 files in 1 directory
+#:     .pytest_cache       33 files in 6 directories
+#:     .cache               0 files in 1 directory
+#:
+#: `.venv` is the one that matters. The literal list carries `venv`, and a literal
+#: list cannot reach `.venv` because the name differs by a dot -- 23,372 files, more
+#: than twice the real material on that Desktop, read as the person's own work.
+#:
+#: A name is added here when a real directory carries it. Nothing is added for a
+#: tool the owner does not use: an unmet name costs nothing to omit and a wrong one
+#: silently deletes a folder from their plan.
+CATEGORY_MEMBERS = MappingProxyType({
+    "build artifacts": (".next", "coverage"),
+    "caches": (".pytest_cache", ".cache"),
+    "auto-save folders": (),
+    "previews": (),
+    "generated dependency trees": (".venv",),
+})
 
 #: R3's `rule` — which §1.1 rule fired. §1.1 states three rule kinds and no fourth.
 RULE_LITERAL_DIRECTORY_NAME = "literal directory name"
