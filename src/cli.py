@@ -882,6 +882,43 @@ def _is_term(raw: str) -> bool:
     return _TERM.fullmatch(raw.strip()) is not None
 
 
+def _is_an_identifier(raw: str) -> bool:
+    """Whether a reading is one of the things `_STRUCTURED` above describes.
+
+    **This is the refusal the `subject` slot did not have, and the measurement that
+    demanded it.** 54 files of the owner's real Downloads, run `academic.coursework`:
+    the catalogue declares 56 fields, two ever took a value, and `subject` took 196
+    DISTINCT values across 18 files -- eleven "subjects" per document. They were `!`,
+    `&`, `-`, `(i)`, `* DIEI ==outcomes in E` and `#corre 1 . 4 - 1 : 4 . 10 - 4`. A
+    probability lecture reported punctuation as what it is about.
+
+    **They arrived because one stated invariant is false for one emitter.**
+    `reads_a_structured_string` below admits a `body`/`heading` locator carrying a
+    span, and rests that bound on "a structured string always carries a span because
+    it is a substring the pass located; a whole zone never does". `extractors/pdf.py:
+    156-159` emits every heading REGION with an explicit `span={"start": 0, "end":
+    len(heading_text)}` -- so a whole heading is addressed exactly like a located
+    substring, while a whole page (`extractors/pdf.py:143`) is not. All 158
+    heading-zone observations in that run were whole regions. That is P4's shape and
+    not this file's to change; what this file can do is stop claiming them.
+
+    **It is a predicate over the READING, not the locator, because the locator cannot
+    answer it.** `extractors/pdf.py:162-176` gives an identifier found INSIDE a
+    heading the heading's own zone (`ZONE_BY_STRUCTURED_KIND` names none for an
+    `identifier` and the fallback is the region's), so `PHYS 1401` in a slide title
+    is `heading:page=1/heading=3#9-18` -- `00`:78's own worked tree. Narrowing
+    `_TEXT_ZONES` would have cleaned the noise and thrown that away with it.
+
+    **Nothing is authored here.** The slot is `cli.text.identifier`; this deployment
+    already spells what an identifier is, once, in `_STRUCTURED`, and a located
+    structured string's raw value IS its match (`extractors/pdf.py:171`). So the test
+    is the pattern the reading would have had to satisfy to be produced by the pass
+    the slot claims to read. Whitespace is collapsed first, for the same reason the
+    canonicaliser collapses it: `PHYS  1401` off a two-column page is one identifier.
+    """
+    return _STRUCTURED.fullmatch(" ".join(raw.split())) is not None
+
+
 #: ONE VALUE PER TERM, WHATEVER IT WAS WRITTEN AS. `Spring 2026`, `Spring2026` and
 #: `2026-Spring` are one semester, and a semester that reaches §3.7 as several
 #: values reaches it as several candidates, which tie, which the margin refuses.
@@ -985,11 +1022,20 @@ DIRECT_SLOTS = DirectSlots(slots=(
     DirectSlot(
         slot_id="cli.text.identifier", field_key="subject",
         names=reads_a_structured_string,
-        # Everything the term slot does not claim. Without this the two slots
-        # would each take the other's readings -- they share every locator there
-        # is -- which is why only one of them could ship before `DirectSlot`
-        # gained a predicate over the reading itself.
-        matches=lambda raw: not _is_term(raw),
+        # An identifier, and not the one the term slot would have claimed.
+        #
+        # `not _is_term` is the older half: without it the two slots would each
+        # take the other's readings -- they share every locator there is -- which
+        # is why only one of them could ship before `DirectSlot` gained a
+        # predicate over the reading itself. `SPRING2026` satisfies `_STRUCTURED`
+        # as well, so removing this clause would put a semester in `subject`.
+        #
+        # `_is_an_identifier` is the newer half and its reason is measured above:
+        # `names` admits a whole PDF heading because P4 gives one a span, so
+        # without a test on the reading this slot stated `!` as a `direct` fact
+        # about what a lecture is about. The slot claims the identifier the
+        # structured-string pass found; this asks whether the reading is one.
+        matches=lambda raw: not _is_term(raw) and _is_an_identifier(raw),
         # Whitespace collapsed, THEN the identifier's own separator removed, so
         # the two spellings of one course code canonicalise to one value.
         canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),

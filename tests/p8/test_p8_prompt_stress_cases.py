@@ -354,10 +354,19 @@ CASES: tuple[Case, ...] = (
         {"released": DEFAULT_RELEASED},
         lambda w: _response(_claim(
             "subject", DEFAULT_RELEASED, key=w.released_key, span=DEFAULT_RELEASED)),
-        ONE_ACCEPT,
+        # S1 MOVED, and this file's own rule says what that means: "If it shrinks,
+        # a check was added and `82` §3 can stop calling that requirement
+        # unenforced." The check is `cli._is_an_identifier`, and it was not added
+        # for S1 -- it was added because the DETERMINISTIC slot was storing `!` and
+        # `(i)` as subjects on a real disk. `normalize_for_model` reuses the slot's
+        # `matches` on purpose, so tightening one tightened both, and `PHYS1401
+        # Problem Set 4` is now refused by the same sentence that refuses `!`: the
+        # deployment's `subject` is an identifier, and a line of prose containing
+        # one is not one.
+        _one_reject(VALUE_NOT_NORMALIZABLE),
         lambda w: _good(w),
         ONE_ACCEPT,
-        PROMPT_ONLY,
+        MACHINE,
     ),
     Case(
         "S2", "a plausible value invented over prose that supports nothing",
@@ -417,10 +426,20 @@ CASES: tuple[Case, ...] = (
         ONE_ACCEPT,
         lambda w: _response(_claim(
             "subject", "PHYS", key=w.released_key, span="PHYS")),
-        _one_reject(CONTRADICTED_BY_STRONGER),
-        # Check 4 catches a real disagreement -- that is what the control shows.
-        # What nothing catches is the case itself: the correct answer, accepted,
-        # then stored under a second spelling. `test_s6_...` below measures that.
+        # The control's REASON changed and the control's verdict did not. `PHYS` is
+        # a bare uppercase token with no digits, so `cli._is_an_identifier` refuses
+        # it before check 4 is asked -- and `contradicts_stronger`'s own docstring
+        # already required that ordering: "An unnormalizable proposal answers
+        # `False` rather than `True`: check 3 runs first and has already rejected
+        # it, and claiming a contradiction as well would put a second, wrong reason
+        # on a record that §3.6 keeps one reason per refusal." Recording
+        # `CONTRADICTED_BY_STRONGER` here said the evidence disagreed; the truth is
+        # that `PHYS` was never a subject to disagree with.
+        _one_reject(VALUE_NOT_NORMALIZABLE),
+        # The case ITSELF is unchanged and so is its verdict: `PHYS 1401` is a real
+        # identifier, it normalizes, it agrees with the stronger fact after
+        # canonicalisation, and it is accepted -- then stored under a second
+        # spelling, which nothing catches. `test_s6_...` below measures that.
         NEITHER,
     ),
     Case(
@@ -542,7 +561,7 @@ def test_the_recorded_stress_case_and_its_control(case, site_a_conn, tmp_path):
 def test_the_split_between_machine_defended_and_prompt_defended_cases():
     """The deliverable, as an assertion.
 
-    Twelve of the fifteen the validator rejects on its own. Two -- S1 and S2 -- it
+    Thirteen of the fifteen the validator rejects on its own. ONE -- S2 -- it
     accepts, writing an `llm_supported` fact; there the prompt's wording is the only
     thing standing between a model and someone's file. One, S6, is answered
     correctly and stored wrongly, which no wording and no check can reach.
@@ -550,52 +569,80 @@ def test_the_split_between_machine_defended_and_prompt_defended_cases():
     If the prompt-only set ever grows, a wording rule has quietly become load
     bearing. If it shrinks, a check was added and `82` §3 can stop calling that
     requirement unenforced.
+
+    **IT SHRANK, ON 2026-09-03, AND THIS IS THE ENTRY.** S1 -- `PHYS1401 Problem
+    Set 4`, `76` §9.1's "the prompt is the only thing standing between a 3B model
+    and a folder named..." -- is now `VALUE_NOT_NORMALIZABLE` at check 3. The check
+    was not written for S1 and no wording was touched: `cli._is_an_identifier` was
+    added because the DETERMINISTIC `subject` slot was storing `!`, `&` and `(i)`
+    as facts about a real person's lecture notes, and `normalize_for_model`
+    deliberately reuses the slot's own `matches` so that one field cannot mean two
+    things on two paths. S2 is untouched and is the honest remainder: `the
+    committee` proposed as an `instructor` is a judgement about meaning, and
+    `instructor` has no slot for a predicate to live in.
     """
     by_defence: dict[str, set[str]] = {}
     for case in CASES:
         by_defence.setdefault(case.defence, set()).add(case.case_id)
-    assert by_defence[PROMPT_ONLY] == {"S1", "S2"}
+    assert by_defence[PROMPT_ONLY] == {"S2"}
     assert by_defence[NEITHER] == {"S6"}
-    assert len(by_defence[MACHINE]) == 12
+    assert len(by_defence[MACHINE]) == 13
     assert sum(len(ids) for ids in by_defence.values()) == 15
 
 
 # --- what the two prompt-only cases actually cost --------------------------------
 
 
-def test_s1_the_over_quoted_value_becomes_a_real_llm_supported_fact(
+def test_s1_the_over_quoted_value_no_longer_reaches_p6_s_table(
         site_a_conn, tmp_path):
-    """S1's consequence, not just its verdict.
+    """S1's consequence, and the consequence is now that there is none.
 
     `76` §9.1: *"The prompt is the only thing standing between a 3B model and a
-    folder named `PHYS1401 Problem Set 4`."* The verdict alone does not show that --
-    an accepted verdict that wrote nothing would be harmless. This runs the
-    consequence and reads P6's own table back.
+    folder named `PHYS1401 Problem Set 4`."* It was, and this test asserted it: the
+    over-quoted line was accepted and written as an `llm_supported` fact. Something
+    else stands there now, and reading P6's own table back is still the only way to
+    show it -- a rejected verdict that wrote a row anyway would be the same failure
+    wearing a better word.
     """
     world = _world(site_a_conn, tmp_path, released=DEFAULT_RELEASED)
     over_quoted = _response(_claim(
         "subject", DEFAULT_RELEASED, key=world.released_key, span=DEFAULT_RELEASED))
 
-    assert _judge(world, over_quoted, apply=True) == ONE_ACCEPT
+    assert _judge(world, over_quoted, apply=True) == _one_reject(
+        VALUE_NOT_NORMALIZABLE)
 
-    rows = [row for row in facts_for_file(
+    assert [row for row in facts_for_file(
         site_a_conn, world.file_id, world.content_hash)
-        if row["field_key"] == "subject"]
-    assert [row["canonical_value"] for row in rows] == [DEFAULT_RELEASED]
-    assert rows[0]["reliability_state"] == "llm_supported"
-    assert rows[0]["active"] == 1
+        if row["field_key"] == "subject"] == []
 
 
-def test_s1_check_three_does_not_bound_the_value_at_all(site_a_conn, tmp_path):
-    """`82` §3 calls R11 *"stated, never enforced"*. Verified against the live oracle.
+def test_s1_check_three_bounds_a_field_that_has_a_slot_and_only_that_field(
+        site_a_conn, tmp_path):
+    """`82` §3 called R11 *"stated, never enforced"*. Half of that is now false.
 
-    Not through the validator this time but directly against `cli.normalize_for_model`,
-    because the claim under test is about the check itself: for `subject` it collapses
-    whitespace, strips the identifier's separator, and returns whatever is left, at
-    any length.
+    Asked directly of `cli.normalize_for_model` rather than through the validator,
+    because the claim under test is about the check itself. What bounds `subject`
+    is not a length and not a threshold: it is the deployment's own identifier
+    pattern, the same one the deterministic slot reads with, so a model and an
+    extractor cannot disagree about what the field means. `PHYS1401 Problem Set 4`
+    contains an identifier and is not one.
+
+    **`instructor` is the honest remainder and it is why R11 is only half enforced.**
+    It has no slot, so `normalize_for_model` collapses whitespace and returns
+    whatever is left, at any length -- which is what `cli.py` says it does and why:
+    "A field with no slot gets whitespace collapsed and nothing else, because this
+    deployment has authored no rule for it and inventing one at the model's boundary
+    is exactly what §3.5 forbids." A bound for `instructor` is a rule this
+    deployment has not authored, not a check somebody forgot.
     """
-    assert normalize_for_model("subject", DEFAULT_RELEASED) == DEFAULT_RELEASED
-    assert normalize_for_model("subject", "a" * 300) == "a" * 300
+    assert normalize_for_model("subject", DEFAULT_RELEASED) is None
+    assert normalize_for_model("subject", "a" * 300) is None
+    # And the twin: the value the same released line was quoted FROM still passes,
+    # in either spelling, because refusing everything would be the other way to be
+    # wrong -- and `contradicts_stronger` compares after this call, so a `None` for
+    # a correct answer would report agreement as a contradiction.
+    assert normalize_for_model("subject", "PHYS1401") == "PHYS1401"
+    assert normalize_for_model("subject", "PHYS 1401") == "PHYS1401"
     # `instructor` has no slot at all, so the check rejects only the empty string
     # and the non-string.
     assert normalize_for_model("instructor", "a whole paragraph of prose") == (
