@@ -262,6 +262,37 @@ def test_an_observation_whose_run_was_never_recorded_raises(p6_conn):
         analysis_tier_for_observation(p6_conn, observation)
 
 
+def test_a_run_recorded_under_a_DIFFERENT_content_version_is_not_this_ones(p6_conn):
+    """The subtle half, and the one a faster lookup could silently drop.
+
+    The tier is read by asking for the runs of THIS observation's `content_hash`
+    and finding its `run_id` among them. A lookup that went straight to the
+    `run_id` -- which is the primary key, so it is the obvious way to make this
+    fast -- would happily return the tier of a run belonging to a different
+    version of the file. §3.4 keys its cache on the content hash, and a tier
+    borrowed across versions is a fact that never invalidates.
+
+    Fixture 1's run is recorded under its own hash; this asks for it under
+    `SECOND_HASH`, which is the same file after an edit.
+    """
+    fixture = by_number(1)
+    record_run(p6_conn, fixture.run)
+    borrowed = fixture.observations[0]
+    assert borrowed.run_id == fixture.run.run_id
+    assert borrowed.content_hash != SECOND_HASH
+
+    observation = Observation(
+        file_id=borrowed.file_id, content_hash=SECOND_HASH,
+        extractor_name=borrowed.extractor_name,
+        extractor_version=borrowed.extractor_version,
+        source_type=borrowed.source_type, raw_value=borrowed.raw_value,
+        location=borrowed.location, occurrence_count=1, observed_at=CLOCK,
+        reliability="possible", run_id=borrowed.run_id)
+
+    with pytest.raises(UnknownRun):
+        analysis_tier_for_observation(p6_conn, observation)
+
+
 # --- Done-means 6: no per-format branching ------------------------------------
 
 def test_p6_reads_an_observation_whose_source_type_it_has_never_seen(p6_conn):

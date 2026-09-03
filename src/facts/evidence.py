@@ -95,10 +95,28 @@ def context_pair(observation: Observation) -> tuple[str, str, bool]:
 
 def analysis_tier_for_observation(conn: sqlite3.Connection,
                                   observation: Observation) -> str:
-    """I4's tier, read from P4's run. Never inferred from the extractor or the zone."""
-    for run in runs_for_content(conn, observation.content_hash):
-        if run.run_id == observation.run_id:
-            return run.analysis_tier
+    """I4's tier, read from P4's run. Never inferred from the extractor or the zone.
+
+    ONE INDEXED ROW, not every run of the content version. This asked P4 for all the
+    runs of `content_hash`, built an `ExtractionRun` for each, and then scanned the
+    list for one `run_id`. It is called once per OBSERVATION: measured on a real
+    413-file folder, 441,386 calls -- 1,069 per file -- building 892,064 run objects
+    to read 441,386 strings, and a large share of the 909,924 SQL statements that
+    run executed.
+
+    BOTH COLUMNS ARE IN THE WHERE CLAUSE, and the second one is not tidiness.
+    `run_id` is the primary key, so matching on it alone is the obvious way to make
+    this fast -- and it would return the tier of a run belonging to a DIFFERENT
+    version of the same file. §3.4 keys its cache on the content hash, and a tier
+    borrowed across versions is a fact that never invalidates. The pairing is what
+    the old list-scan was doing implicitly by asking for one hash's runs first.
+    """
+    row = conn.execute(
+        "SELECT analysis_tier FROM extraction_runs "
+        "WHERE run_id = ? AND content_hash = ?",
+        (observation.run_id, observation.content_hash)).fetchone()
+    if row is not None:
+        return row["analysis_tier"]
     raise UnknownRun(
         f"observation {observation.observation_key} names run "
         f"{observation.run_id!r}, which has no extraction_runs row; P6 reads "
