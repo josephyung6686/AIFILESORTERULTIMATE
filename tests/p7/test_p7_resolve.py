@@ -471,3 +471,84 @@ def test_resolve_is_the_only_module_under_src_privacy_that_binds_one():
         f"{sorted(offenders)} bind a P4 materialiser; resolve.py is the only module "
         "under src/privacy/ that may, and release.py is the only one that may import "
         "resolve")
+
+
+# --- two files that are byte-identical -----------------------------------------
+
+@pytest.fixture()
+def one_key_two_files(evidence):
+    """The ordinary corpus, not a corner case: the same document saved twice.
+
+    `observation_key` is CONTENT-addressed. Two byte-identical files therefore
+    produce the same key at the same location, and both rows are live -- neither
+    supersedes the other, because neither is a newer reading of the other. A
+    person's Downloads folder is full of this shape (`report.pdf`, `report (1).pdf`).
+    """
+    location = Location(zone="body", container_path=PAGE, text_span=TextSpan(16, 27))
+    a_run(evidence, "run-1", "1.0.0", FIXED_CLOCK)
+    record_text_unit(evidence, TextUnit(run_id="run-1", container_path=PAGE, text=BODY))
+    an_observation(evidence, run_id="run-1", version="1.0.0", location=location)
+    record_run(evidence, ExtractionRun(
+        run_id="run-copy", file_id="file-2", content_hash=CONTENT_HASH,
+        extractor_name="pdf_text", extractor_version="1.0.0",
+        source_type="text_document", analysis_tier="native", config={},
+        completeness="complete", started_at=FIXED_CLOCK, observation_count=1))
+    record_text_unit(evidence, TextUnit(run_id="run-copy", container_path=PAGE,
+                                        text=BODY))
+    record_observation(evidence, Observation(
+        file_id="file-2", content_hash=CONTENT_HASH, extractor_name="pdf_text",
+        extractor_version="1.0.0", source_type="text_document", raw_value=VALUE,
+        location=location, occurrence_count=1, observed_at=FIXED_CLOCK,
+        reliability="direct", run_id="run-copy", context_before=BEFORE,
+        context_after=AFTER, context_truncated=False))
+    return key_for(location)
+
+
+def test_a_duplicate_file_does_not_make_the_key_unresolvable(
+        evidence, one_key_two_files):
+    """The crash that killed every real cloud run, and the reason it is not a
+    genuine ambiguity.
+
+    `current_location` asked "where does this key live?" and refused when two live
+    rows answered. But the CALLER always knows which file it is acting for --
+    `gate._consent_reference` takes `target_file_ids` and checks membership on the
+    very next line -- so the question it needed answered was never "where does this
+    key live?" but "where does it live IN THIS FILE?". Unscoped, that question has
+    no answer for a duplicate, and duplicates are the ordinary case: measured on a
+    34-file sample of the owner's own files, three duplicate pairs poisoned 28 of
+    1,428 keys and `--enable-cloud` exited with a traceback instead of a plan.
+
+    Scoping is not a relaxation. The key still resolves to exactly one row, the
+    caller still gets a single canonical address, and no content is read to find it.
+    """
+    key = one_key_two_files
+    assert current_location(evidence, key, within_file_ids=("file-1",)).file_id == \
+        "file-1"
+    assert current_location(evidence, key, within_file_ids=("file-2",)).file_id == \
+        "file-2"
+
+
+def test_scoping_to_both_duplicates_is_still_ambiguous_and_still_refuses(
+        evidence, one_key_two_files):
+    """Scoping answers "which file", and refuses when the caller has not said.
+
+    A request naming both copies is asking for one canonical address across two
+    files that both hold the value, and there is no basis to pick. This is the
+    original refusal, still standing where it is the right answer.
+    """
+    with pytest.raises(AmbiguousObservationKey):
+        current_location(evidence, one_key_two_files,
+                         within_file_ids=("file-1", "file-2"))
+
+
+def test_two_live_rows_inside_ONE_file_still_refuse(evidence, two_versions):
+    """The invariant this fix must not buy its way past.
+
+    Two live rows for one key in one file is P4's retraction shape, and
+    `test_two_unsuperseded_rows_raise_rather_than_picking_one` says releasing the
+    wrong one is "a silent release of retracted text". Scoping by file must not
+    make that case resolvable, so it is asserted again WITH the scope applied.
+    """
+    key, _, _ = two_versions
+    with pytest.raises(AmbiguousObservationKey):
+        current_location(evidence, key, within_file_ids=("file-1",))

@@ -35,7 +35,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 
@@ -88,13 +88,36 @@ class CurrentLocation:
     location: Location
 
 
-def current_location(conn: sqlite3.Connection,
-                     observation_key: str) -> CurrentLocation:
+def current_location(conn: sqlite3.Connection, observation_key: str, *,
+                     within_file_ids: Sequence[str] | None = None,
+                     ) -> CurrentLocation:
     """Return the sole live location for a key without selecting content.
 
     Consent needs a canonical address before it may read protected text. Keep this
     query explicit: adding ``raw_value`` or context columns here would move content
     access in front of the consent decision.
+
+    **`within_file_ids` is which FILE is being acted for, and without it a duplicate
+    has no answer.** `observation_key` is CONTENT-addressed, so two byte-identical
+    files carry the same key at the same location and both rows are live -- neither
+    supersedes the other, because neither is a newer reading of the other. Asked
+    "where does this key live?" across a corpus, a duplicated document has two
+    honest answers and this function refused. Measured on 34 of the owner's real
+    files: three duplicate pairs poisoned 28 of 1,428 keys and `--enable-cloud`
+    exited with a traceback and no plan, while `report.pdf` beside `report (1).pdf`
+    is the ordinary contents of a downloads folder rather than a corner case.
+
+    The caller always knew. `gate._consent_reference` takes `target_file_ids` and
+    checks membership on the line after this call, so the question it needed
+    answered was never "where does this key live?" but "where does it live in THIS
+    file?" -- and only the unscoped spelling of that question is unanswerable.
+
+    **This is a narrowing, not a relaxation, and the distinction is the whole
+    safety argument.** The scope can only remove candidate rows. One live row still
+    means one canonical address; two live rows still refuse, whether they are two
+    files the caller named together or P4's retraction shape inside a single file --
+    and releasing the wrong one of THOSE is the silent release of retracted text
+    that the refusal exists to prevent. Nothing is picked, guessed or preferred.
     """
     rows = conn.execute(
         "SELECT observation_id, observation_key, file_id, location, superseded_by "
@@ -107,6 +130,14 @@ def current_location(conn: sqlite3.Connection,
             "is the content-addressed `observation_key`, not a per-row id"
         )
     live = [row for row in rows if row["superseded_by"] is None]
+    if within_file_ids is not None:
+        wanted = frozenset(within_file_ids)
+        scoped = [row for row in live if row["file_id"] in wanted]
+        # An empty scope is NOT this function's refusal to make. `_consent_reference`
+        # answers "belongs to a file outside the request" with `UnresolvableSpan` and
+        # names the owning file in it; narrowing to nothing here would replace that
+        # sentence with a less informative one.
+        live = scoped if scoped else live
     if len(live) != 1:
         raise AmbiguousObservationKey(
             f"key {observation_key!r} has {len(live)} live rows among {len(rows)} "

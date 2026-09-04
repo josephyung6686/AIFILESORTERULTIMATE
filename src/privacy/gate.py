@@ -635,7 +635,11 @@ class Gate:
             self, item: object, target_file_ids: Sequence[str]
             ) -> tuple[str, tuple[str, str]]:
         """Return the live canonical reference without reading protected text."""
-        current = current_location(self._conn, item.observation_key)
+        # SCOPED to the files this request is about. The membership check on the
+        # next line is why it can be: the caller already knows, and the unscoped
+        # question has no answer for a file the person happens to own twice.
+        current = current_location(self._conn, item.observation_key,
+                                   within_file_ids=target_file_ids)
         if current.file_id not in target_file_ids:
             raise UnresolvableSpan(
                 f"observation {item.observation_key!r} belongs to file "
