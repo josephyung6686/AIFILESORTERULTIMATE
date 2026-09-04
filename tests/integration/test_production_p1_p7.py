@@ -21,6 +21,7 @@ from facts.usable import record_pass
 from facts.values import ensure_value
 from privacy.classification import ClassificationRecord
 from privacy.authorship import CLASSIFICATION_ASSIGNED
+from extraction_pool import ExtractionContext, InlinePool
 from production import (
     MissingClassificationAuthority,
     P1P7Authorities,
@@ -90,6 +91,8 @@ def _resolver(*, tiers, cache_key):
 
 
 def _authorities(*, readers, classify):
+    policy = SafetyPolicy(is_protected_container=lambda path: False,
+                          is_dataless=lambda path: False)
     return P1P7Authorities(
         native_resolver=_resolver(
             tiers=frozenset(("filesystem", "native")), cache_key="native-v1"),
@@ -101,10 +104,18 @@ def _authorities(*, readers, classify):
         mime_type_for=lambda path: "application/pdf", scan_state="scanned",
         scan_budget_exhausted=lambda: False,
         detect_format=lambda path: "pdf",
-        policy=SafetyPolicy(
-            is_protected_container=lambda path: False,
-            is_dataless=lambda path: False),
-        readers=readers, now=lambda: CLOCK, context_window=40,
+        policy=policy,
+        readers=readers,
+        # WHERE `extract_initial` runs, and there is no default: `run_p1_p7` takes
+        # a pool or it refuses. `InlinePool` is this thread, which is what every
+        # one of these tests measured before the seam existed -- and it is handed
+        # the SAME policy and the SAME readers this record carries, because a pool
+        # wired from a second copy of "the same" authorities is exactly the drift
+        # `extraction_pool`'s context factory exists to prevent.
+        pool=InlinePool(ExtractionContext(
+            policy=policy, readers=readers,
+            transcription_authorized=lambda: False)),
+        now=lambda: CLOCK, context_window=40,
         transcription_authorized=lambda: False, corpus_form="snapshot",
         policy_settings={}, file_entry_body=lambda row: {"payload_ref": "blob"},
         p7_component_version="0.1.0")

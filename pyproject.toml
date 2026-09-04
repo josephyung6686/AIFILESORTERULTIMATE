@@ -24,6 +24,19 @@ dev = ["pytest>=8", "pytest-randomly>=3.15"]
 # by a deployment that chose them, never by the part that consumes their output.
 # pyobjc pins are macOS-only, which is where §2.7 puts Apple Vision.
 readers = [
+    # BOTH PDF libraries, and the reason is in `readers/pdf_pdfium.py`: pdfium reads
+    # the pages and pdfminer still parses the Info dictionary, because pdfium's
+    # `FPDF_GetMetaText` answers a key it is handed and cannot enumerate one. Measured
+    # over 91 real PDFs, fifteen carry a slot outside the nine standard ones --
+    # `Company`, `SourceModified`, `PTEX.Fullbanner`, and on one file six
+    # `MSIP_Label_*` keys, which is a Microsoft sensitivity label.
+    #
+    # ADDED 2026-09-04, and it is a NEW third-party dependency: pypdfium2 wraps
+    # Google's pdfium and is Apache-2.0 OR BSD-3-Clause, so it carries no copyleft
+    # obligation, and it ships a prebuilt binary wheel rather than a build toolchain.
+    # PyMuPDF was measured beside it and is NOT here: it is AGPL-3.0 and it was also
+    # the slower of the two (47.0 against 87.0 pages/s), so there was no trade.
+    "pypdfium2>=5",
     "pdfminer.six>=20231228",
     "pyobjc-framework-Vision>=10.0; sys_platform == 'darwin'",
     "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",

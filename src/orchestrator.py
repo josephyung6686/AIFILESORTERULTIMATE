@@ -29,9 +29,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, NamedTuple, Sequence
 
 from database_agent.files_table import get_file as _get_file_row, set_extraction_status
 
@@ -50,6 +51,7 @@ from extractors import ocr, pdf
 from extractors.dispatch import (
     current_versions, extract, extract_initial, extract_targeted_ocr,
 )
+from extraction_pool import CONTRACT, DATALESS, PROTECTED, ExtractionRequest
 from extractors.failure import ContractViolation, failed_result
 from extractors.filesystem import dataless_result, extract_filesystem
 from extractors.long_tail import record_sensitivity_signals
@@ -519,6 +521,26 @@ def run_wave2(conn: sqlite3.Connection, selection_id: str, *,
                  run_ids=tuple(written))
 
 
+class _Submitted(NamedTuple):
+    """One file, between the moment its extraction was asked for and the moment its
+    rows are written.
+
+    It carries `stamp` and `decision` because both were computed on the caller's
+    thread BEFORE the request existed and both are wanted after it comes back -- and
+    recomputing either on the way out would make a run's timestamps depend on how
+    long a worker took. `refusal` is set only for a file `extract_filesystem` refused
+    as dataless: it never became a request, and it still has to be written in roster
+    order, so it waits in the same queue.
+    """
+    file_id: str
+    file_row: Mapping[str, Any]
+    decision: Any
+    stamp: str
+    filesystem: tuple
+    handle: Any
+    refusal: Exception | None
+
+
 def run_p1_p7(
         conn: sqlite3.Connection, selection_id: str, *,
         source, mime_type_for: Callable[[Path], str | None], scan_state: str,
@@ -534,6 +556,7 @@ def run_p1_p7(
         classify: ClassificationProducer,
         classification_store: ClassificationStore,
         p7_component_version: str,
+        pool,
         bundle_expectations: Sequence[Mapping[str, Any]] = (),
         bundle_content: bool = True) -> P1P7Run:
     """Run the live local pipeline without inventing any domain authority.
@@ -543,6 +566,12 @@ def run_p1_p7(
     resolved and classified from stored evidence. Targeted OCR may use either this
     invocation's native result or P4's sole exact current authoritative result;
     historical ambiguity is refused rather than resolved by guessing "latest".
+
+    `pool` is WHERE `extract_initial` runs, and it has no default: a pool is chosen
+    by the composition root or it is not chosen at all. `extraction_pool.InlinePool`
+    runs it on this thread and is the serial behaviour this function has always had;
+    `ProcessPool` runs it in worker processes. Neither changes WHEN a row is written
+    -- every database write stays here, on this thread, in roster order.
     """
     scan_run_id = scan(
         conn, selection_id, source=source, mime_type_for=mime_type_for,
@@ -558,65 +587,54 @@ def run_p1_p7(
     reused: set[str] = set()
     evicted = {row["path"] for row in dataless_detections(conn, scan_run_id)}
 
-    for verdict in cache_verdicts(conn, scan_run_id):
-        file_id = verdict["file_id"]
-        if file_id is None:
-            continue
-        roster.append(file_id)
-        file_row = get_file(conn, file_id)
-        path = Path(file_row["current_path"])
-        if str(path) in evicted:
-            continue
-        if verdict["verdict"] != VERDICT_RECOMPUTE and not _extraction_is_stale(
-                conn, file_row["content_hash"], versions):
-            reused.add(file_id)
-            continue
-        decision = route(
-            file_id=file_id, content_hash=file_row["content_hash"], path=path,
-            extension=file_row["extension"], detect_format=detect_format)
-        stamp = now()
-        try:
-            results = [extract_filesystem(
-                file_row=file_row, path=path, policy=policy, now=stamp,
-                context_window=context_window)]
-            try:
-                dispatched = extract_initial(
-                    file_row=file_row, decision=decision, path=path, policy=policy,
-                    readers=readers, now=stamp, context_window=context_window,
-                    transcription_authorized=transcription_authorized)
-                routed = list(dispatched.results)
-                signals = dispatched.sensitivity
-                signal_index = dispatched.sensitivity_target
-            except (ProtectedContainerRefused, DatalessRefused, ContractViolation):
-                raise
-            except Exception as error:                 # noqa: BLE001
-                routed = [failed_result(
-                    file_row=file_row, error=error,
-                    extractor_name=decision.extractor_name,
-                    extractor_version=_failed_version(decision, versions),
+    def _consume(entry: _Submitted) -> None:
+        """Write one file's extraction, in the order the roster asked for it.
+
+        Everything here ran on THIS thread before `extraction_pool` existed and still
+        does; what changed is only that `extract_initial` may have run somewhere else
+        and finished at some other time. The write order is the SUBMISSION order,
+        because §3.4's caching and §8.5's replay both need a stable one --
+        `evidence_shape/store.py`'s `_ordered` exists because P4's `rowid` order
+        reverses when the same runs are written in the opposite sequence.
+        """
+        file_id, file_row, decision, stamp, filesystem, handle, refusal = entry
+        signals: Any = ()
+        signal_target = None
+        if refusal is not None:
+            # `extract_filesystem` refused on this thread, before any request
+            # existed. The filesystem result it did NOT return is discarded here for
+            # the same reason the serial path discarded it: a dataless item's one run
+            # is the `dataless` run.
+            results = [dataless_result(file_row=file_row, error=refusal,
+                                       source_type=decision.source_type, now=stamp)]
+        else:
+            outcome = pool.result(handle)
+            if outcome.kind == PROTECTED:
+                # Unreachable by construction -- `extract_filesystem` runs `admit()`
+                # on this thread and a protected path is never submitted -- and kept
+                # because "unreachable" is a claim about today's call order.
+                protected_refused.add(file_id)
+                return
+            if outcome.kind == DATALESS:
+                results = [dataless_result(
+                    file_row=file_row, error=DatalessRefused(outcome.message),
                     source_type=decision.source_type, now=stamp)]
-                signals = ()
-                signal_index = 0
-            signal_target = routed[signal_index] if routed else None
-            results.extend(routed)
-            for result in routed:
-                tier = result.run["analysis_tier"]
-                if tier == pdf.ANALYSIS_TIER:
-                    native_results[file_id] = (decision, result)
-                elif (tier == ocr.ANALYSIS_TIER
-                      and result.run.get("finished_at") is not None
-                      and result.run.get("failure_reason") is None):
-                    initial_ocr_completed.add(file_id)
-        except ProtectedContainerRefused:
-            protected_refused.add(file_id)
-            continue
-        except DatalessRefused as refusal:
-            results = [dataless_result(
-                file_row=file_row, error=refusal,
-                source_type=decision.source_type, now=stamp)]
-            signals, signal_target = (), None
-        except ContractViolation:
-            raise
+            elif outcome.kind == CONTRACT:
+                raise ContractViolation(outcome.message)
+            else:
+                routed = list(outcome.dispatched.results)
+                signals = outcome.dispatched.sensitivity
+                signal_target = (routed[outcome.dispatched.sensitivity_target]
+                                 if routed else None)
+                results = list(filesystem) + routed
+                for result in routed:
+                    tier = result.run["analysis_tier"]
+                    if tier == pdf.ANALYSIS_TIER:
+                        native_results[file_id] = (decision, result)
+                    elif (tier == ocr.ANALYSIS_TIER
+                          and result.run.get("finished_at") is not None
+                          and result.run.get("failure_reason") is None):
+                        initial_ocr_completed.add(file_id)
 
         record_routing_decision(conn, decision)
         for result in results:
@@ -631,6 +649,60 @@ def run_p1_p7(
             conn, file_id,
             status_by_tier=extraction_status_by_tier([r.run for r in results]),
             author=SUBSYSTEM, component_version=COMPONENT_VERSION)
+
+    window: deque[_Submitted] = deque()
+    try:
+        for verdict in cache_verdicts(conn, scan_run_id):
+            file_id = verdict["file_id"]
+            if file_id is None:
+                continue
+            roster.append(file_id)
+            file_row = get_file(conn, file_id)
+            path = Path(file_row["current_path"])
+            if str(path) in evicted:
+                continue
+            if verdict["verdict"] != VERDICT_RECOMPUTE and not _extraction_is_stale(
+                    conn, file_row["content_hash"], versions):
+                reused.add(file_id)
+                continue
+            decision = route(
+                file_id=file_id, content_hash=file_row["content_hash"], path=path,
+                extension=file_row["extension"], detect_format=detect_format)
+            stamp = now()
+            # `extract_filesystem` FIRST, and on this thread, because its first
+            # statement is `admit()`. A path inside a protected container refuses
+            # here and is therefore never submitted to anything: no worker is ever
+            # handed it, which is a property of the call order rather than a check
+            # somebody remembered to write. `stamp` is taken on this thread too, so
+            # the timestamps stay in roster order however the work is distributed.
+            try:
+                filesystem = (extract_filesystem(
+                    file_row=file_row, path=path, policy=policy, now=stamp,
+                    context_window=context_window),)
+            except ProtectedContainerRefused:
+                protected_refused.add(file_id)
+                continue
+            except DatalessRefused as refusal:
+                window.append(_Submitted(file_id, file_row, decision, stamp,
+                                         (), None, refusal))
+                continue
+            window.append(_Submitted(
+                file_id, file_row, decision, stamp, filesystem,
+                pool.submit(ExtractionRequest(
+                    file_id=file_id, file_row=dict(file_row), decision=decision,
+                    path=path, now=stamp, context_window=context_window,
+                    versions=versions)),
+                None))
+            # A bounded look-ahead, not an unbounded one: a 5,760-file run holds a
+            # handful of extraction batches in memory rather than all of them.
+            while len(window) >= pool.lookahead:
+                _consume(window.popleft())
+        while window:
+            _consume(window.popleft())
+    finally:
+        # INCLUDING the way out through a `ContractViolation`: without this the raise
+        # would wait on every in-flight extraction before surfacing.
+        pool.close()
 
     # Preserve the dataless state transition even when P3's stat cache says REUSE.
     for detection in dataless_detections(conn, scan_run_id):

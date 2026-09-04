@@ -109,10 +109,14 @@ class PlacementCallAuthorities:
 
 def releasable_excerpts(conn: sqlite3.Connection, *,
                         evidence_refs: Sequence[str]) -> tuple[Excerpt, ...]:
-    """The observations a placement call may ask P7 to release. Four exclusions.
+    """The observations a placement call may ask P7 to release. Five exclusions.
 
     Each is one of the gate's own refusals applied a step early, so the request is
-    never BUILT rather than built and denied:
+    never BUILT rather than built and denied. The count is FIVE and not four
+    because the fifth -- P5's per-value signal -- was missing when this module was
+    first written, and neither of the rules that look like they would catch it
+    can: a flagged card number sits in an ordinary zone and is a fraction of its
+    unit, so the zone test and the whole-unit test both pass it through.
 
       * `ALWAYS_LOCAL_ZONES` -- `path` and `filename`. This is the one that
         matters most at this site and it is the reason this function exists:

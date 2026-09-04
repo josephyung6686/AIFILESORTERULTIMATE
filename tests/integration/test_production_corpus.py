@@ -81,6 +81,7 @@ from tree_design.vocabulary import (
 )
 
 from cli import AcceptedGroupEnumeration
+from extraction_pool import ExtractionContext, InlinePool
 from production import (
     LIBRARY_FILES,
     CorpusAuthorities,
@@ -291,6 +292,9 @@ def _classify_passport_protected(conn, file_id, content_hash):
 
 
 def _p1_p7(fields, *, classify=_classify) -> P1P7Authorities:
+    policy = SafetyPolicy(is_protected_container=is_protected_container,
+                          is_dataless=lambda path: False)
+    readers = _readers()
     return P1P7Authorities(
         native_resolver=_resolver(fields,
                                   tiers=frozenset(("filesystem", "native")),
@@ -310,9 +314,18 @@ def _p1_p7(fields, *, classify=_classify) -> P1P7Authorities:
             "pdf" if Path(path).suffix == ".pdf" else None),
         # THE real predicate, not a stand-in. P3 writes an exclusion verdict for
         # the bundle and never walks inside it.
-        policy=SafetyPolicy(is_protected_container=is_protected_container,
-                            is_dataless=lambda path: False),
-        readers=_readers(), now=lambda: CLOCK, context_window=64,
+        policy=policy,
+        readers=readers,
+        # WHERE `extract_initial` runs, and there is no default: `run_p1_p7` takes
+        # a pool or it refuses. `InlinePool` is this thread, which is what every
+        # one of these tests measured before the seam existed -- and it is handed
+        # the SAME policy and the SAME readers this record carries, because a pool
+        # wired from a second copy of "the same" authorities is exactly the drift
+        # `extraction_pool`'s context factory exists to prevent.
+        pool=InlinePool(ExtractionContext(
+            policy=policy, readers=readers,
+            transcription_authorized=lambda: False)),
+        now=lambda: CLOCK, context_window=64,
         transcription_authorized=lambda: False, corpus_form="snapshot",
         policy_settings={}, file_entry_body=lambda row: {"payload_ref": "blob"},
         p7_component_version=COMPONENT)

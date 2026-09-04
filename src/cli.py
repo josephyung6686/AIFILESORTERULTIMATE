@@ -149,7 +149,8 @@ from production import (
     run_production_corpus,
 )
 from readers.deployment import macos_readers
-from readers.pdf_pdfminer import pdfminer_reader
+from readers.pdf_pdfium import pdfium_reader
+from extraction_pool import ExtractionContext, InlinePool, ProcessPool
 from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME
 from readers.model_routing import (
     FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting, deepseek_routing,
@@ -544,10 +545,13 @@ FACT_CALL_COST: Decimal = Decimal("1")
 #: count printed at the end of it.
 FACT_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 
-#: §8.6's page cap for PDFs, and the only place the NUMBER is chosen. `pdfminer_reader`
+#: §8.6's page cap for PDFs, and the only place the NUMBER is chosen. The reader
 #: takes `max_pages=None` -- read everything -- and this file hands it a ceiling
 #: through `macos_readers(read_pdf=...)`, the override seam that module's docstring
-#: exists to offer.
+#: exists to offer. The measurements below were taken with pdfminer, which was the
+#: reader at the time; `extraction_context()` says why they are pdfium's now. A
+#: ceiling that costs nothing under the slower parser costs nothing under the faster
+#: one, and the three files it was chosen to protect are the same three files.
 #:
 #: WHY THERE IS A CEILING AT ALL. Measured 2026-09-03 over a real 639-file
 #: `~/Documents`: the run took 705 seconds, and 332 of them were ONE file --
@@ -578,6 +582,60 @@ FACT_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 #: with the sentence that says it was reached. A ceiling that reported `complete`
 #: would be a worse product than a slow one.
 PDF_PAGE_CEILING: int = 50
+
+#: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
+#: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
+#: in this product refuses to default: absent means refuse, never guess.
+#:
+#: WHY THERE IS A POOL AT ALL. `grep -rn "multiprocessing\|concurrent" src/` returned
+#: nothing, on a machine with eight cores, while a whole-run profile of eighteen real
+#: files put 64.6 of 72.0 seconds inside `extract_initial`. Reading a file is the only
+#: part of a run that is embarrassingly parallel: every database write stays on the
+#: calling thread in roster order, and sqlite is a serial writer anyway.
+#:
+#: WHY SEVEN AND NOT EIGHT. The calling thread is not idle while the workers read --
+#: it writes every row, runs P4's resolution and P6's detector, and holds the only
+#: connection. Taking all eight cores for readers makes the thread that consumes
+#: their output compete with them for the last one.
+EXTRACTION_WORKERS: int = 7
+
+#: HOW FAR THE CALLER READS AHEAD, per worker. Deep enough that a worker is never
+#: idle waiting for the next submit -- one request each would leave every worker
+#: blocked whenever the caller stopped to write a row -- and shallow enough that a
+#: 5,760-file run holds a handful of extraction batches in memory rather than all of
+#: them. Two is the smallest depth that keeps a worker busy across one write.
+EXTRACTION_LOOKAHEAD_PER_WORKER: int = 2
+
+#: HOW MANY FILES A RUN MUST WANT TO READ before seven interpreters are worth
+#: starting. Below it `ProcessPool` reads on the calling thread; above it the pool is
+#: built. Measured on the owner's real files on an idle machine, wall seconds:
+#:
+#:      LIGHT files (notes, json, source)     HEAVY files (PDF)
+#:      files   workers=1  workers=7          files   workers=1  workers=7
+#:          4      1.0        3.4                 8    65.5       61.0
+#:         12      2.7        8.2                16    95.4       89.2
+#:         24      5.5        6.7                32   152.8      145.0
+#:
+#: The two columns disagree, and that disagreement is why this number is 32 and not
+#: 8. On heavy files the pool already wins at eight. On light files it is THREE TIMES
+#: SLOWER at twelve and still behind at twenty-four. The harm is asymmetric -- the win
+#: on PDFs is 7 per cent, the loss on a folder of notes is 200 -- so the floor sits
+#: above the highest count where the pool was MEASURED TO LOSE, rather than at the
+#: lowest where it was measured to win.
+#:
+#: A count is the wrong axis, and it is the only axis available. What decides the
+#: crossover is the WEIGHT of what is about to be read, and a run cannot know that
+#: until it has read it. Thirty-two is where the two answers stop disagreeing.
+#:
+#: A spawned worker re-imports this file and Apple's Vision framework, about five
+#: seconds of CPU each, so seven of them cost thirty-five CPU-seconds before one file
+#: is read. Small folders are the owner's ORDINARY case -- one course's material, the
+#: loose files at the top of Documents -- so paying that to read four files is wrong
+#: for the product, not merely wasteful.
+#:
+#: It counts SUBMISSIONS and not files in the folder: a ten-thousand-file corpus that
+#: is entirely cached submits nothing and stays inline, which is the right answer.
+EXTRACTION_POOL_FLOOR: int = 32
 
 #: The wire handle key. `llm_harness.wire_handles` digests every identifier that
 #: leaves this device under it -- `subject_ref`, every `conflict_id`, every released
@@ -1825,6 +1883,67 @@ def _usable(facts, unresolved) -> bool:
                               for row in unresolved)
 
 
+def extraction_context() -> ExtractionContext:
+    """The three authorities `extract_initial` needs, wired once and named here.
+
+    **A module-level function, and that is the whole design.** A worker process is
+    spawned, not forked, so it cannot inherit `readers`: `pdfium_reader()` and
+    `vision_ocr()` RETURN the functions they wire and a closure has no name for
+    `pickle` to write down. What crosses the boundary is this function's NAME, and
+    the worker calls it to build its own. Both halves of a run are therefore wired by
+    one function rather than by two that happen to agree today -- which matters
+    because `readers` is folded into §3.4's cache key by way of the extractor
+    versions, and a worker with a different PDF reader from its caller would write
+    rows the caller could never reproduce.
+
+    It is also what `p1_p7_authorities` uses for the serial path, so there is exactly
+    one place in this product where the deployment's readers are chosen.
+    """
+    return ExtractionContext(
+        # THE standing rule, at its first enforcement point. `is_protected_container`
+        # is P3's own predicate; P3 writes an exclusion verdict for the container and
+        # never walks inside it, so no `files` row for its interior is ever created
+        # and nothing downstream can read one.
+        policy=SafetyPolicy(is_protected_container=is_protected_container,
+                            is_dataless=lambda path: False),
+        # `read_pdf` IS pdfium's and no longer pdfminer's, and that swap is the
+        # single largest measured change in this product's speed. Over eighteen of
+        # the owner's real files, 55.0 of 72.0 profiled seconds were inside
+        # `read_pdf`, essentially all of it in `pdfminer.psparser.nexttoken` --
+        # pdfminer.six is a pure-Python parser and that IS the cost. On the same
+        # seventeen PDFs under this same 50-page ceiling: pdfminer 30.98s, pypdf
+        # 16.23s, PyMuPDF 3.74s, pdfium 2.02s.
+        #
+        # THE LICENCE, because it is the reason this is pdfium and not MuPDF. pdfium
+        # is BSD-3-Clause and pypdfium2 is Apache-2.0 OR BSD-3-Clause; PyMuPDF is
+        # AGPL-3.0, which for a product that may ship is a real constraint. The
+        # faster library is also the permissive one, so there was no trade to put to
+        # anybody. `readers/pdf_pdfium.py` carries the fidelity comparison that
+        # earns the swap: zones and heading labels, not prose similarity.
+        readers=macos_readers(find_structured_strings=find_structured_strings,
+                              read_pdf=pdfium_reader(
+                                  max_pages=PDF_PAGE_CEILING)),
+        # Transcription opens audio and video. Not authorised, and saying so is
+        # what keeps it off rather than the absence of a transcriber.
+        transcription_authorized=lambda: False)
+
+
+def extraction_pool(*, workers: int):
+    """WHERE `extract_initial` runs, given how many processes may run it.
+
+    One worker is not a pool of one: it is `InlinePool`, the same thread, the same
+    call order, no spawn and no seven-second interpreter start for a run of three
+    text files. That is the behaviour this product had before the module existed and
+    it stays reachable by asking for it, rather than by an option nobody can find.
+    """
+    if workers == 1:
+        return InlinePool(extraction_context())
+    return ProcessPool(
+        workers=workers, context_factory=extraction_context,
+        lookahead_per_worker=EXTRACTION_LOOKAHEAD_PER_WORKER,
+        floor=EXTRACTION_POOL_FLOOR)
+
+
 def p1_p7_authorities(*, now, detector,
                       operation_mode: str = OPERATION_MODE,
                       source=None, bundle_content: bool = False) -> P1P7Authorities:
@@ -1840,6 +1959,7 @@ def p1_p7_authorities(*, now, detector,
     # listings it serves ARE the corpus snapshot, and they cannot be recovered
     # afterwards. Not a policy: the default is unchanged and every ordinary run
     # still reads the disk.
+    context = extraction_context()
     return P1P7Authorities(
         native_resolver=_resolver(tiers=frozenset(("filesystem", "native")),
                                   cache_key="cli-native-v1"),
@@ -1861,21 +1981,17 @@ def p1_p7_authorities(*, now, detector,
         # write the word its readers read, from their constant.
         mime_type_for=_mime_type_for, scan_state=P1_INCLUDED_SCAN_STATE,
         scan_budget_exhausted=lambda: False, detect_format=_detect_format,
-        # THE standing rule, at its first enforcement point. `is_protected_container`
-        # is P3's own predicate; P3 writes an exclusion verdict for the container and
-        # never walks inside it, so no `files` row for its interior is ever created
-        # and nothing downstream can read one.
-        policy=SafetyPolicy(is_protected_container=is_protected_container,
-                            is_dataless=lambda path: False),
-        readers=macos_readers(find_structured_strings=find_structured_strings,
-                              read_pdf=pdfminer_reader(
-                                  max_pages=PDF_PAGE_CEILING)),
+        # All three come from `extraction_context()` and are not respelled here: the
+        # caller's `readers` and the workers' `readers` have to be the same wiring,
+        # and two constructions of "the same" wiring is exactly how they would drift.
+        # `policy` matters most -- it carries `is_protected_container`.
+        policy=context.policy,
+        readers=context.readers,
+        transcription_authorized=context.transcription_authorized,
+        pool=extraction_pool(workers=EXTRACTION_WORKERS),
         now=now,
         # §2.6's excerpt window, in characters. `00` states none.
         context_window=240,
-        # Transcription opens audio and video. Not authorised, and saying so is
-        # what keeps it off rather than the absence of a transcriber.
-        transcription_authorized=lambda: False,
         corpus_form="snapshot", policy_settings={"operation_mode": operation_mode},
         file_entry_body=lambda row: {"payload_ref": row["content_hash"]},
         p7_component_version=COMPONENT_VERSION)
@@ -3180,11 +3296,42 @@ def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
             "                WHERE c.file_id = f.file_id AND c.protected = 1 "
             "                  AND c.superseded_by IS NULL)"):
         subject_of.setdefault(row[0], row[1])
-    files = [(row[0], row[1]) for row in conn.execute(
-        "SELECT DISTINCT file_id, content_hash FROM evidence")]
-    for question in tied_readings(conn, explain=detector.explain, files=files,
+    for question in tied_readings(conn, explain=detector.explain,
+                                  files=files_with_observations(conn),
                                   subject_of=subject_of):
         record_question(conn, question, asked_at=asked_at)
+
+
+def files_with_observations(
+        conn: sqlite3.Connection) -> list[tuple[str, str]]:
+    """Every `(file_id, content_hash)` that has at least one observation.
+
+    **This was `SELECT DISTINCT file_id, content_hash FROM evidence`, and that one
+    line was the largest single cost in a real run.** It reads 365,690 rows to
+    produce 200 -- one per file -- because `DISTINCT` over two columns with no
+    covering index means a full pass plus a temporary B-tree. Measured on a real
+    200-file database: 2.34 seconds warm and committed. IN SITU it is far worse than
+    that, and the difference is the reason it went unnoticed for so long: the whole
+    of P1--P7 runs inside ONE uncommitted transaction, so this scan reads a 725 MB
+    table through a 256 MB write-ahead log, paying a WAL frame lookup per page. A
+    whole-run sample attributed 97 % of stacks to this single `execute`, and the
+    200-file run spent about fifteen of its twenty-three minutes inside it.
+
+    `extraction_runs` holds the same pairs and is 425 rows rather than 365,690:
+    every observation belongs to a run, `RunWriter` writes both from one record, and
+    `observation_count` is how many that run wrote. So a run with observations is
+    exactly a pair with evidence. Verified on three real databases -- the owner's
+    18-file corpus twice and the 200-file corpus -- as identical SETS, not merely
+    equal counts. 2.34s becomes 0.0025s.
+
+    It is a function rather than a line in `_raise_questions` so that
+    `tests/integration/test_questions_query.py` can hold the two formulations
+    against each other on a database a real run produced. An equivalence that only a
+    comment asserts is an equivalence that stops being true.
+    """
+    return [(row[0], row[1]) for row in conn.execute(
+        "SELECT DISTINCT file_id, content_hash FROM extraction_runs "
+        "WHERE observation_count > 0")]
 
 
 class RejectionRefused(NotConfigured):

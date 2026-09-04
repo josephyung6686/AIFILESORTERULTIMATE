@@ -48,11 +48,37 @@ def _read_pdf_argument(call: ast.Call) -> ast.Call:
         "642-page datasheet is back.")
 
 
+#: The readers this composition root is allowed to build for PDFs. A SET, because
+#: the deployment's choice of library is a deployment fact and this guard is about
+#: the CEILING rather than about the library -- but a closed set rather than "any
+#: call", because the whole point below is that a BARE NAME here is the
+#: un-ceilinged module default and the 642-page datasheet comes back.
+#:
+#: `pdfium_reader` joined `pdfminer_reader` on 2026-09-04, measured: 87.0 pages/s
+#: against pdfminer's 5.7 on the owner's own PDFs, identical metadata and page
+#: counts on 91 real files, and Apache-2.0 OR BSD-3-Clause where the other fast
+#: option was AGPL. pdfminer.six STAYS in the tree and is still built here for the
+#: Info dictionary, which pdfium cannot enumerate.
+PDF_READERS: frozenset[str] = frozenset({"pdfminer_reader", "pdfium_reader"})
+
+
 def test_the_composition_root_builds_the_pdf_reader_itself():
-    """Not the default reader: one this file configures."""
+    """Not the default reader: one this file configures.
+
+    The assertion is a SET rather than a single name, and the reason is worth
+    stating because loosening a guard is usually the wrong move. What this test
+    exists to catch is `read_pdf=some_name` -- a bare reference to the module
+    default, which carries no page ceiling. Naming one library made it ALSO a
+    guard on which library ships, which it was never written to be, and it went
+    red the day a faster reader landed while the ceiling it actually guards was
+    never in doubt. `test_the_pdf_reader_is_given_a_page_ceiling` below is the
+    one that does the real work, and it is untouched.
+    """
     built = _read_pdf_argument(_macos_readers_call())
     assert isinstance(built.func, ast.Name)
-    assert built.func.id == "pdfminer_reader"
+    assert built.func.id in PDF_READERS, (
+        f"cli.py builds {built.func.id!r} for PDFs, which is not one of the "
+        f"readers this deployment ships: {sorted(PDF_READERS)}")
 
 
 def test_the_pdf_reader_is_given_a_page_ceiling():

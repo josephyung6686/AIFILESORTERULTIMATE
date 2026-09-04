@@ -83,6 +83,7 @@ from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.release import ModelCallRequest, ModelTarget, Released, Target
 from privacy.transport_guard import assert_single_egress
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
+from extraction_pool import ExtractionContext, InlinePool
 from production import P1P7Authorities, bootstrap_p1_p7, run_production_p1_p7
 from readers.deployment import macos_readers
 from scan_agent.corpus_source import FilesystemCorpusSource
@@ -209,6 +210,10 @@ def _classify(conn, file_id: str, content_hash: str) -> ClassificationRecord | N
 
 
 def _authorities(bundle_expectations=()) -> P1P7Authorities:
+    # The real protected-container predicate, built once and shared with the pool.
+    policy = SafetyPolicy(is_protected_container=is_protected_container,
+                          is_dataless=lambda path: False)
+    readers = macos_readers(find_structured_strings=_find_structured_strings)
     return P1P7Authorities(
         bundle_expectations=bundle_expectations,
         native_resolver=_resolver(
@@ -229,10 +234,17 @@ def _authorities(bundle_expectations=()) -> P1P7Authorities:
         # The line no live test has ever run: the REAL protected-container
         # predicate, through the real pipeline. `test_production_p1_p7.py` passes
         # `lambda path: False` here.
-        policy=SafetyPolicy(
-            is_protected_container=is_protected_container,
-            is_dataless=lambda path: False),
-        readers=macos_readers(find_structured_strings=_find_structured_strings),
+        policy=policy,
+        readers=readers,
+        # WHERE `extract_initial` runs, and there is no default: `run_p1_p7` takes
+        # a pool or it refuses. `InlinePool` is this thread, which is what every
+        # one of these tests measured before the seam existed -- and it is handed
+        # the SAME policy and the SAME readers this record carries, because a pool
+        # wired from a second copy of "the same" authorities is exactly the drift
+        # `extraction_pool`'s context factory exists to prevent.
+        pool=InlinePool(ExtractionContext(
+            policy=policy, readers=readers,
+            transcription_authorized=lambda: False)),
         now=lambda: CLOCK, context_window=40,
         transcription_authorized=lambda: False, corpus_form="snapshot",
         policy_settings={}, file_entry_body=lambda row: {"payload_ref": "blob"},

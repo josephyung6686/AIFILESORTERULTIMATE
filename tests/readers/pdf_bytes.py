@@ -21,7 +21,7 @@ _BODY = "This syllabus covers the spring term for BUSIB 4300."
 
 
 def build_pdf(path: Path, *, title: str = "BUSIB 4300 Syllabus",
-              pages: int = 1) -> Path:
+              pages: int = 1, matrix_scaled: bool = False) -> Path:
     """A valid PDF with correct xref offsets, `pages` pages long.
 
     Object numbering, which is the whole difficulty here: 1 catalog, 2 page tree,
@@ -47,11 +47,25 @@ def build_pdf(path: Path, *, title: str = "BUSIB 4300 Syllabus",
             f"/Resources << /Font << /F1 {font_bold} 0 R /F2 {font_plain} 0 R >> >> "
             f"/Contents {contents_first + i} 0 R >>".encode())
     for i in range(pages):
-        stream = (
-            f"BT /F1 24 Tf 72 700 Td ({_HEADING}) Tj ET\n"
-            f"BT /F2 11 Tf 72 650 Td ({_BODY}) Tj ET\n"
-            f"BT /F2 9 Tf 72 40 Td (page {i + 1} of {pages}) Tj ET\n"
-        ).encode()
+        # `matrix_scaled` writes THE SAME PAGE a different legal way: a 1-point font
+        # with the size in the text matrix, which is what every PDF LaTeX produces.
+        # It looks identical and reads identical, and a library that reports the
+        # DECLARED size sees three lines of 1pt type with no heading among them.
+        # `readers/pdf_pdfium.py` needs a document in this shape to be tested at all;
+        # `Tm` replaces `Tf`+`Td` because the matrix carries both the scale and the
+        # position.
+        if matrix_scaled:
+            stream = (
+                f"BT /F1 1 Tf 24 0 0 24 72 700 Tm ({_HEADING}) Tj ET\n"
+                f"BT /F2 1 Tf 11 0 0 11 72 650 Tm ({_BODY}) Tj ET\n"
+                f"BT /F2 1 Tf 9 0 0 9 72 40 Tm (page {i + 1} of {pages}) Tj ET\n"
+            ).encode()
+        else:
+            stream = (
+                f"BT /F1 24 Tf 72 700 Td ({_HEADING}) Tj ET\n"
+                f"BT /F2 11 Tf 72 650 Td ({_BODY}) Tj ET\n"
+                f"BT /F2 9 Tf 72 40 Td (page {i + 1} of {pages}) Tj ET\n"
+            ).encode()
         objs.append(b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n"
                     + stream + b"endstream")
     objs.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
