@@ -195,9 +195,25 @@ def _live_observation_ids(conn: sqlite3.Connection,
         (observation_key,))]
 
 
-def current_observation(conn: sqlite3.Connection,
-                        observation_key: str) -> Observation:
-    """The one live row for a key, or a refusal."""
+def current_observation(conn: sqlite3.Connection, observation_key: str, *,
+                        within_file_ids: Sequence[str] | None = None,
+                        ) -> Observation:
+    """The one live row for a key, or a refusal.
+
+    `within_file_ids` narrows to the files the caller is acting for, for the reason
+    `current_location` gives above: a document a person owns twice carries one
+    content-addressed key in two live rows, and neither supersedes the other.
+
+    **Scoping is safe HERE, where text is released, and the key itself is why.**
+    `observation_key` is `sha256(content_hash | extractor_name | locator |
+    raw_value)`, so two rows sharing a key hold a byte-identical `raw_value`, read by
+    the same extractor at the same locator out of identical content. There is no
+    wrong one to pick: either releases the same characters. The refusal below argues
+    the RETRACTION case -- "picking one of two would release text an upgrade may
+    already have retracted" -- and that case is supersession, a DIFFERENT reading of
+    the same place, which `_live_observation_ids` has already excluded. Two live rows
+    left inside one file still refuse, and the test says so.
+    """
     candidates = observations_by_key(conn, observation_key)
     if not candidates:
         raise UnresolvableSpan(
@@ -205,6 +221,11 @@ def current_observation(conn: sqlite3.Connection,
             "the content-addressed `observation_key`, not the per-row "
             "`observation_id`, which dies on extractor upgrade (M14)")
     live = _live_observation_ids(conn, observation_key)
+    if within_file_ids is not None and live:
+        wanted = frozenset(within_file_ids)
+        scoped = [oid for oid in live
+                  if get_observation(conn, oid).file_id in wanted]
+        live = scoped if scoped else live
     if not live:
         raise AmbiguousObservationKey(
             f"key {observation_key!r} has {len(candidates)} rows and every one is "
@@ -218,13 +239,15 @@ def current_observation(conn: sqlite3.Connection,
     return get_observation(conn, live[0])
 
 
-def materialise(conn: sqlite3.Connection, item) -> Materialised:
+def materialise(conn: sqlite3.Connection, item, *,
+                within_file_ids: Sequence[str] | None = None) -> Materialised:
     """Resolve one requested item against local storage.
 
     `item` is Task 7's `Excerpt` or `RedactedIdentifier`: it needs an
     `observation_key` and a `span` of `TextSpan | None`, and nothing else is read.
     """
-    observation = current_observation(conn, item.observation_key)
+    observation = current_observation(conn, item.observation_key,
+                                      within_file_ids=within_file_ids)
     location = observation.location
     address = span_address(location)  # refuses a region (C3) and a time span
     text_span = location.text_span

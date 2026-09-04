@@ -552,3 +552,40 @@ def test_two_live_rows_inside_ONE_file_still_refuse(evidence, two_versions):
     key, _, _ = two_versions
     with pytest.raises(AmbiguousObservationKey):
         current_location(evidence, key, within_file_ids=("file-1",))
+
+
+def test_materialise_resolves_a_duplicated_file_when_told_which_one(
+        evidence, one_key_two_files):
+    """The SECOND ambiguity site, and the one that releases text rather than an
+    address.
+
+    `current_location` was scoped first and the cloud run got one function further
+    before dying here: `gate._materialise` -> `resolve.materialise` ->
+    `current_observation`, inside the same `release()`. The refusal here argues the
+    RETRACTION case -- "picking one of two would release text an upgrade may already
+    have retracted" -- which is a stronger claim than the one scoping answers, so it
+    is worth saying why scoping is safe at this site specifically.
+
+    THE KEY IS ADDRESSED OVER THE TEXT. `observation_key` is
+    `sha256(content_hash | extractor_name | locator | raw_value)`, so two rows
+    sharing a key hold a byte-identical `raw_value` read by the same extractor at the
+    same locator out of identical content. Releasing either releases the same
+    characters; there is no wrong one to pick. Retraction is a different shape --
+    supersession, where an upgrade produced a DIFFERENT reading -- and
+    `_live_observation_ids` already excludes superseded rows, so the case the message
+    describes is untouched by this and still refuses below.
+    """
+    key = one_key_two_files
+    for owner in ("file-1", "file-2"):
+        got = materialise(evidence, Item(key, TextSpan(16, 27)),
+                          within_file_ids=(owner,))
+        assert got.value == VALUE
+
+
+def test_materialise_still_refuses_two_live_rows_in_one_file(evidence, two_versions):
+    """The retraction guard, asserted WITH a scope applied so the fix cannot buy its
+    way past the case its own error message is about."""
+    key, _, _ = two_versions
+    with pytest.raises(AmbiguousObservationKey):
+        materialise(evidence, Item(key, TextSpan(16, 27)),
+                    within_file_ids=("file-1",))

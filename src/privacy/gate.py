@@ -348,7 +348,7 @@ class Gate:
                 component_version=self._component_version, observed_at=observed_at)
 
         # 3 -- the only content read in the part.
-        resolved, manifest = self._materialise(text_items)
+        resolved, manifest = self._materialise(text_items, file_ids)
 
         # 4 -- the two reasons that needed the resolved text.
         late: dict[str, Callable[[], Denied]] = {}
@@ -547,7 +547,8 @@ class Gate:
         """
         return SELF_DESCRIPTION_KIND in policy.suspended_item_kinds
 
-    def _located_zone(self, item: object) -> str | None:
+    def _located_zone(self, item: object, file_ids: Sequence[str] = ()
+                      ) -> str | None:
         """The document zone an item addresses, WITHOUT reading its text.
 
         `current_location` selects `observation_id, observation_key, file_id,
@@ -573,7 +574,12 @@ class Gate:
         if key is None:
             return None
         try:
-            return current_location(self._conn, key).location.zone
+            # SCOPED for the reason `current_location` gives: without it a file the
+            # person owns twice returns `None` here, and `None` means the
+            # always-local zone refusal is never taken for exactly those files.
+            return current_location(
+                self._conn, key,
+                within_file_ids=file_ids or None).location.zone
         except (UnresolvableSpan, AmbiguousObservationKey):
             return None
 
@@ -594,7 +600,9 @@ class Gate:
         """
         for item in request.requested_items:
             try:
-                check_item(item, unit_length=None, zone=self._located_zone(item),
+                check_item(item, unit_length=None,
+                           zone=self._located_zone(
+                               item, request.target.file_ids),
                            protected=protected,
                            sensitive_keys=sensitive_keys, allow_unratified=True,
                            suspension_permits_self_description=self._suspends(policy))
@@ -655,7 +663,8 @@ class Gate:
             )
         return current.file_id, (item.observation_key, span_address(location))
 
-    def _materialise(self, text_items: Sequence[object]
+    def _materialise(self, text_items: Sequence[object],
+                     file_ids: Sequence[str] = ()
                      ) -> tuple[tuple[ReleasedItem, ...], RedactionManifest]:
         """(observation_key, span) -> text -> redacted text. `resolve` is the only
         module under `src/privacy/` that binds a P4 text materialiser (L2).
@@ -670,7 +679,8 @@ class Gate:
         resolved: list[ReleasedItem] = []
         entries = []
         for item in text_items:
-            found = materialise(self._conn, item)
+            found = materialise(self._conn, item,
+                                within_file_ids=file_ids or None)
             value, entry = apply_redaction(
                 found.value, observation_key=found.observation_key,
                 span=found.span, context_before=found.context_before,
