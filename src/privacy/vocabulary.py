@@ -194,7 +194,24 @@ ALWAYS_LOCAL: tuple[str, ...] = (
 #: fifteen zones are places in a document, and no member-by-member correspondence
 #: exists between them (`"gps"` and `"image_exif"` both live in `metadata`, which is
 #: releasable). Two names, chosen because §8.4 and §7.7 name exactly these two.
-ALWAYS_LOCAL_ZONES: frozenset[str] = frozenset({"path", "filename"})
+#:
+#: **`ocr` ADDED 2026-09-04, AND IT IS THE SAME DEFECT ONE MEMBER ALONG.** CR-01
+#: mapped member 1 (`paths`) to the `path` zone and §7.7's filename kind to
+#: `filename`, and stopped. Member 3 is `ocr_output`, `extractors/ocr.py` writes
+#: every recognised region into `zone="ocr"`, and nothing refused one -- so text
+#: Apple Vision read off a scanned identity document was an ordinary releasable
+#: excerpt. Measured on the owner's own disk the same night: a scanned HKID and a
+#: vaccination record were both OCR'd, and a card number recognised in either was
+#: a `Excerpt` the gate would have released.
+#:
+#: The paragraph above is exactly why it was missed, and it is worth reading twice:
+#: "no member-by-member correspondence exists between them". The mapping is made BY
+#: HAND, one member at a time, so a member with a zone nobody thought about has no
+#: check anywhere. Three of nine are mapped now. THE OTHER SIX HAVE NOT BEEN
+#: AUDITED, and whoever does that audit should treat this comment as the reason to.
+#:
+#: Still a mapping and still no tenth member: `ALWAYS_LOCAL` stays at nine.
+ALWAYS_LOCAL_ZONES: frozenset[str] = frozenset({"path", "filename", "ocr"})
 
 # --- §8.4: the compact dossier -----------------------------------------------
 

@@ -518,13 +518,32 @@ def test_the_p5_signal_is_what_the_gate_reads(p7_conn, tmp_path):
         fixture.sensitive_keys)
 
 
-def test_without_the_p5_signal_the_always_local_fixture_releases(p7_conn, tmp_path):
-    # The silent failure the fixture was rewritten to avoid, reproduced on purpose:
-    # strip the signal and the same request resolves and is RELEASED. A fixture for
-    # `always_local_item` that never reaches the denial proves the opposite of its name.
+def test_without_the_p5_signal_the_always_local_fixture_is_still_denied(p7_conn,
+                                                                       tmp_path):
+    """This test USED to assert `Released`, and the change is a real strengthening
+    rather than a weakened assertion, so here is exactly what moved.
+
+    Fixture 7 exercises `always_local_item` through P5's per-value signal, and the
+    observation it does it with happens to be the OCR one (`"ocr" in
+    p4(8).observations[0].locator`). Stripping the signal used to release it, which
+    proved the signal was load-bearing rather than the denial arriving by accident.
+
+    `ocr` joined `ALWAYS_LOCAL_ZONES` on 2026-09-04, because `ocr_output` is member 3
+    of §8.4's nine and `zone="ocr"` is the door it leaves by. So this request now has
+    TWO independent reasons to be refused, and removing one of them no longer
+    releases it. That is the product being right, not the test being loosened: an
+    excerpt of text read off a scanned identity document should not become
+    releasable because a P5 signal was absent.
+
+    The original claim -- that the P5 signal is genuinely what the gate reads -- is
+    not lost. `test_the_p5_signal_is_what_the_gate_reads` above asserts it directly,
+    against `sensitive_observation_keys`, without going through a release at all.
+    """
     fixture = dataclasses.replace(by_number(7), sensitive_keys=())
     decision, _ = replay(p7_conn, fixture, tmp_path)
-    assert isinstance(decision, Released)
+    assert isinstance(decision, Denied), (
+        "the P5 signal was the only thing refusing an OCR excerpt")
+    assert decision.reason == "always_local_item"
 
 
 # --- the mode sweep ---------------------------------------------------------

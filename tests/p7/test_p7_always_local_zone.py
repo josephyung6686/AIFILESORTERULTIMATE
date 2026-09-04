@@ -74,6 +74,7 @@ MAX_DOSSIER_TOKENS = 4000
 
 #: The directory the reviewer's probe carried onto the wire, in the shape
 #: `extractors/filesystem.py` writes it: the parent folder of a scanned file.
+CARD_NUMBER = "K123456(7)"
 PRIVATE_DIRECTORY = "/Users/joseph/Documents/Legal/Divorce"
 #: What a span-less non-path observation looks like: §2.8's EXIF-style metadata field
 #: and a document title. Bounded values, and they must keep being released.
@@ -205,7 +206,7 @@ def test_the_zone_set_maps_onto_always_local_and_adds_no_member():
     """
     assert len(ALWAYS_LOCAL) == 9
     assert ALWAYS_LOCAL[0] == "paths"
-    assert ALWAYS_LOCAL_ZONES == frozenset({"path", "filename"})
+    assert ALWAYS_LOCAL_ZONES >= frozenset({"path", "filename"})
     assert not ALWAYS_LOCAL_ZONES & set(ALWAYS_LOCAL)
 
 
@@ -501,3 +502,46 @@ def test_a_span_less_bounded_field_is_still_released(zone_conn, zone):
         f"a span-less {zone} field is a bounded value, not a document")
     assert decision.materialised_items[0].value == A_TITLE
     assert decision.materialised_items[0].unit_length is None
+
+
+# ================================================================================
+# The third zone, and the member nobody mapped
+# ================================================================================
+
+def test_an_ocr_zone_excerpt_is_denied_because_ocr_output_is_always_local(zone_conn):
+    """`ocr_output` is member THREE of the nine, and `ocr` is the zone it leaves by.
+
+    CR-01 mapped `paths` to the `path` zone and §7.7's filename kind to `filename`,
+    and stopped there. The comment beside `ALWAYS_LOCAL_ZONES` says why the gap was
+    invisible: "the nine are kinds of DATA and the fifteen zones are places in a
+    document, and no member-by-member correspondence exists between them". So the
+    mapping is made by hand, one member at a time, and member three was never made.
+
+    `extractors/ocr.py` writes every recognised region into `zone="ocr"`, and until
+    this test nothing refused one. A card number Apple Vision read off a scanned
+    identity document was an ordinary releasable excerpt -- the same shape as the
+    absolute directory CR-01 caught, one member along.
+
+    THIS IS A NARROWING AND ADDS NO TENTH MEMBER. `ALWAYS_LOCAL` stays at nine. What
+    changes is that a third document zone is recognised as a route out of one of
+    them, which is what the CR-01 comment already describes doing for the first.
+    """
+    file_id, key = _seed(zone_conn, zone="ocr", raw_value=CARD_NUMBER)
+    decision = _gate(zone_conn).release(_request(
+        items=(Excerpt(observation_key=key, span=None, reason="ocr"),),
+        file_id=file_id))
+
+    assert isinstance(decision, Denied), (
+        f"an `ocr`-zone excerpt was {type(decision).__name__}; `ocr_output` is "
+        f"member three of §8.4's nine always-local kinds")
+    assert decision.reason == "always_local_item"
+    assert CARD_NUMBER not in decision.explanation, (
+        "the refusal must not quote the value it refused to release")
+
+
+def test_the_zone_set_now_maps_three_members_and_still_adds_no_tenth():
+    """The guard on the set itself, updated with the member it was missing."""
+    assert len(ALWAYS_LOCAL) == 9
+    assert "ocr_output" in ALWAYS_LOCAL
+    assert ALWAYS_LOCAL_ZONES == frozenset({"path", "filename", "ocr"})
+    assert not ALWAYS_LOCAL_ZONES & set(ALWAYS_LOCAL)
