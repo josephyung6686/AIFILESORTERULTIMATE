@@ -133,10 +133,18 @@ def _request(conn, subject_file) -> FactRequest:
                          normalizers=NORMALIZERS)
 
 
-def _apply(conn, request, proposal, verdict, *, state=LLM_STATES[0]):
+def _apply(conn, request, proposal, verdict, *, state=LLM_STATES[0],
+           canonical_value=None):
+    # `canonical_value` is check 3's output and is now what gets STORED. These tests
+    # are about the CONSEQUENCE of a verdict, not about canonicalisation, so the
+    # default carries the proposal's own value through unchanged -- which is what
+    # every one of them asserted before the value stopped being `proposal.value`.
     return apply_verdict(conn, request=request, proposal=proposal, verdict=verdict,
                          proposal_state=state, model_identifier=MODEL,
-                         prompt_fingerprint=PROMPT)
+                         prompt_fingerprint=PROMPT,
+                         canonical_value=(proposal.value
+                                          if canonical_value is None
+                                          else canonical_value))
 
 
 def _reasons(conn, request, field_key=None):

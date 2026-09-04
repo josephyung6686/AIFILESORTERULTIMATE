@@ -562,16 +562,18 @@ def test_mapped_p6_verdict_uses_four_checks_members_not_copied_strings(
     captured: dict[str, object] = {}
 
     def capture(conn, *, request, proposal, verdict, proposal_state,
-                model_identifier, prompt_fingerprint):
+                model_identifier, prompt_fingerprint, canonical_value):
         captured["verdict"] = verdict
         captured["proposal_state"] = proposal_state
         captured["model_identifier"] = model_identifier
         captured["prompt_fingerprint"] = prompt_fingerprint
+        captured["canonical_value"] = canonical_value
         return apply_verdict(
             conn, request=request, proposal=proposal, verdict=verdict,
             proposal_state=proposal_state,
             model_identifier=model_identifier,
-            prompt_fingerprint=prompt_fingerprint)
+            prompt_fingerprint=prompt_fingerprint,
+            canonical_value=canonical_value)
 
     monkeypatch.setattr(
         "llm_harness.fact_validation.apply_verdict", capture)
@@ -660,7 +662,8 @@ def test_weak_mapping_writes_possible_not_a_duplicate_writer(
         p6_conn, request=request, proposal=_proposal(subject_file),
         verdict=p6_verdict_from_p8(weak),
         proposal_state=proposal_state_from_p8(weak),
-        model_identifier=MODEL, prompt_fingerprint=PROMPT)
+        model_identifier=MODEL, prompt_fingerprint=PROMPT,
+        canonical_value="BUSIB 4300")
     rows = facts_for_file(p6_conn, request.file_id, request.content_hash)
     assert [row["reliability_state"] for row in rows] == [POSSIBLE]
 
@@ -1371,3 +1374,76 @@ def test_a_response_with_no_claims_at_all_is_schema_invalid(p6_conn, two_observa
         p6_conn, dossier, _claims_bytes(), request)
     assert len(verdicts) == 1
     assert SCHEMA_INVALID in verdicts[0].reasons
+
+
+def test_the_written_value_is_the_normalized_one_not_the_models_spelling(
+        subject_file, p6_conn):
+    """§3.6 check 3 canonicalises to DECIDE; the write must canonicalise to STORE.
+
+    Measured on a real run, 2026-09-04: `PHYS1401_Lecture08_Template.pdf` came out of
+    the pipeline carrying TWO active `subject` facts — `PHYS1401` from the direct slot
+    and `PHYS 1401` from the model — and a level dividing on `subject` builds two
+    folders for one course. That is `65` §4.2's failure re-created across the seam
+    instead of inside one stage, and it is the exact thing `cli.normalize_for_model`'s
+    docstring promises cannot happen: "the model's value is canonicalised by the SAME
+    rule the deterministic slot uses for that field, so `PHYS 1401` proposed by a model
+    and `PHYS1401` read from a heading cannot become two courses."
+
+    The promise was true of the CHECK and false of the WRITE. `_run_checks` computes
+    `normalized`, spends it on check 3 and on grounding, and drops it; `apply_verdict`
+    then stored `proposal.value`, the model's raw string.
+
+    Asserted through `validate_fact_proposal` — the shipped write path — and not at the
+    normalizer, because the normalizer was always correct. The defect only exists
+    between the check and the write, so only a test that spans both can see it.
+    """
+    request = _request(p6_conn, subject_file)
+    proposal = _proposal(subject_file, value="BUSIB 4300")
+
+    def collapse(field, raw):
+        # The deterministic slot's own rule, in miniature: one identity, one spelling.
+        return raw.replace(" ", "")
+
+    result = _validate(p6_conn, request, proposal,
+                       dependencies=_deps(normalize=collapse))
+    assert result.outcome == ACCEPT_DIRECT
+
+    rows = [row for row in facts_for_file(
+        p6_conn, request.file_id, request.content_hash)
+        if row["field_key"] == "subject"]
+    assert len(rows) == 1
+    assert rows[0]["canonical_value"] == "BUSIB4300"
+
+
+def test_the_model_agreeing_in_another_spelling_adds_no_second_course(
+        subject_file, p6_conn):
+    """The consequence, at the seam the owner actually sees.
+
+    A `direct` fact already says `BUSIB4300`. The model proposes `BUSIB 4300` — the
+    SAME course, differently printed — and check 4 correctly reads that as agreement
+    rather than contradiction, because `contradicts_stronger` compares after
+    canonicalisation. So the proposal is accepted, and the accepted write must not
+    then introduce the second spelling check 4 just decided was not a second value.
+
+    One course, one value, whichever producer got there first.
+    """
+    file_id, content_hash, key = subject_file
+    value_id = ensure_value(
+        p6_conn, field_key="subject", canonical_value="BUSIB4300",
+        first_evidence_ref=key, origin=VALUE_ORIGINS[0])
+    write_fact(
+        p6_conn, file_id=file_id, content_hash=content_hash,
+        field_key="subject", value_id=value_id,
+        reliability_state=VALIDATED, origin="rule",
+        evidence_refs=(key,), cache_key="sha256:the-native-pass-slot", active=True)
+
+    request = _request(p6_conn, subject_file)
+    proposal = _proposal(subject_file, value="BUSIB 4300")
+    result = _validate(
+        p6_conn, request, proposal,
+        dependencies=_deps(normalize=lambda field, raw: raw.replace(" ", "")))
+    assert result.outcome == ACCEPT_DIRECT
+
+    spellings = {row["canonical_value"] for row in facts_for_file(
+        p6_conn, file_id, content_hash) if row["field_key"] == "subject"}
+    assert spellings == {"BUSIB4300"}

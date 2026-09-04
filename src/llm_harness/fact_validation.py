@@ -332,11 +332,30 @@ def validate_fact_proposal(
             return p8
 
     if apply_consequence:
+        # CHECK 3'S OWN ANSWER, carried to the write instead of being dropped.
+        # `_run_checks` normalises to decide whether the proposal is storable and
+        # to ground it; what P6 must STORE is that canonical form, or one course
+        # arrives from two producers as two spellings and becomes two folders. The
+        # normalizer is a pure function of these two arguments, so calling it here
+        # is the same answer and not a second one -- and it is called only on the
+        # path that writes, because a rejected proposal has no canonical form (a
+        # `None` from check 3 IS the rejection).
+        p6 = p6_verdict_from_p8(p8)
+        # ONLY ON THE PATH THAT WRITES. A rejected proposal has no canonical form,
+        # and normalising one here would call the deployment's normalizer for a
+        # value no check asked about -- including after checks 1 and 2, which are
+        # ordered BEFORE check 3 precisely so a bad field or a bad citation is
+        # refused without the value ever being canonicalised. Three tests in
+        # `tests/p8/test_p8_fact_validation.py` count those calls and caught it.
+        canonical = None
+        if p6.passed and not proposal.unknown and isinstance(proposal.value, str):
+            canonical = dependencies.normalize(proposal.field_key, proposal.value)
         apply_verdict(
             conn, request=request, proposal=proposal,
-            verdict=p6_verdict_from_p8(p8),
+            verdict=p6,
             proposal_state=proposal_state_from_p8(p8),
             model_identifier=model_identifier,
             prompt_fingerprint=prompt_fingerprint,
+            canonical_value=canonical if isinstance(canonical, str) else None,
         )
     return p8

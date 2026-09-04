@@ -695,12 +695,23 @@ def test_the_value_is_now_compared_to_the_evidence_it_cites_and_s2_survives_it(
 
 
 def test_s6_one_course_becomes_two_value_rows(site_a_conn, tmp_path):
-    """`76` §9.2, measured: check 4 canonicalises and the writer does not.
+    """`76` §9.2, FIXED 2026-09-04. One course, one value row.
 
     The model answers correctly -- it copied the evidence's spelling, which is
     exactly what R12 and the draft's rule 5 ask for -- and check 4 correctly does
-    not fire, because `contradicts_stronger` canonicalises both sides. Then
-    `apply_verdict` stores `proposal.value` raw. Two rows, one course.
+    not fire, because `contradicts_stronger` canonicalises both sides.
+
+    **This test used to assert `["PHYS 1401", "PHYS1401"]` and it was pinning a
+    defect, not a contract.** Its own docstring named the cause: "check 4
+    canonicalises and the writer does not... `apply_verdict` stores
+    `proposal.value` raw. Two rows, one course." It was right about the mechanism
+    and the mechanism has been removed -- `validate_fact_proposal` now carries check
+    3's canonical form to the write instead of dropping it. The name is kept because
+    `76` §9.2 refers to it by that name; what it proves is now the opposite.
+
+    Measured on the real corpus before the fix: `PHYS1401_Lecture08_Template.pdf`
+    carried both spellings as two active `subject` facts, and `subject` is the field
+    the folder tree divides on.
     """
     world = _world(
         site_a_conn, tmp_path, released="PHYS 1401",
@@ -713,7 +724,7 @@ def test_s6_one_course_becomes_two_value_rows(site_a_conn, tmp_path):
     stored = [row["canonical_value"] for row in site_a_conn.execute(
         'SELECT canonical_value FROM "values" WHERE field_key = ? '
         "ORDER BY canonical_value", ("subject",))]
-    assert stored == ["PHYS 1401", "PHYS1401"]
+    assert stored == ["PHYS1401"]
 
 
 # --- two orderings the fifteen do not settle -------------------------------------

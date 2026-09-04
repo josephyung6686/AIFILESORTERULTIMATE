@@ -225,8 +225,31 @@ def build_request(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
 
 def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
                   proposal: Proposal, verdict: Verdict, proposal_state: str,
-                  model_identifier: str, prompt_fingerprint: str) -> str | None:
+                  model_identifier: str, prompt_fingerprint: str,
+                  canonical_value: str | None) -> str | None:
     """Done-means 11 and 12. The consequence of one verdict, and never the check.
+
+    **`canonical_value` is what gets STORED, and it is required with no default.**
+    It is check 3's own output -- the caller ran the deployment's normalizer to decide
+    whether this proposal was normalizable at all, and this is that answer rather than
+    a second computation of it. `proposal.value` stays the model's raw string, because
+    check 2's grounding has to match the text the model actually quoted; what the
+    `values` table records is the identity, not the printing.
+
+    Until 2026-09-04 this wrote `proposal.value` and the normalized form was computed,
+    spent on check 3, and dropped. Measured consequence on a real run:
+    `PHYS1401_Lecture08_Template.pdf` carried TWO active `subject` facts, `PHYS1401`
+    from the direct slot and `PHYS 1401` from the model, and a level dividing on
+    `subject` builds two folders for one course. Worse, check 4 had already recognised
+    the two as one value -- `contradicts_stronger` compares after canonicalisation, so
+    the model was seen to AGREE -- and the write then introduced the second spelling
+    the check had just decided was not a second value. That is `65` §4.2's failure
+    re-created across the seam instead of inside one stage.
+
+    `None` is accepted because a REJECT carries no canonical form (check 3 failing IS
+    `normalized is None`), and every such path refuses above without reaching the
+    write. A `None` arriving on a passing verdict would be a caller defect, and the
+    `ensure_value` below would raise on it rather than store it.
 
     Returns the new `fact_id`, or `None` when nothing was written -- in which case an
     `unresolved` row names the field and the reason (B7). Five outcomes, five reasons,
@@ -270,7 +293,7 @@ def apply_verdict(conn: sqlite3.Connection, *, request: FactRequest,
     # value row behind either.
     reliability_state = require_llm_state(proposal_state)
     value_id = ensure_value(
-        conn, field_key=proposal.field_key, canonical_value=proposal.value,
+        conn, field_key=proposal.field_key, canonical_value=canonical_value,
         first_evidence_ref=proposal.citations[0] if proposal.citations else None,
         origin=VALUE_ORIGINS[0])
     return write_fact(
