@@ -48,6 +48,19 @@ until it answers; a file that kills a pool it is alone in becomes a `failed` run
 the run continues. `tests/integration/test_extraction_pool_recovery.py` calls
 `os._exit(1)` inside a real worker to prove it.
 
+**And a worker must not outlive the run that started it.** The paragraph above is
+about a worker dying; this one is about one that refuses to. `close()` used to call
+`shutdown(wait=False)`, which returns before any worker has been told to stop, and a
+run that ends without reaching `close()` at all -- a segfault, a signal -- left them
+with nobody to tell. A worker waiting for work blocks in `sem_wait` for ever and goes
+on holding the descriptors it inherited, so a caller reading the run's output through
+a pipe waits for an end-of-file its dead run's children are holding open. That is a
+silent forty-minute hang with no error message, and forty-seven such orphans were
+counted on the owner's machine. `_shutdown` now waits, and `_watch_the_parent` covers
+the exits that never get there; both are proved by
+`tests/integration/test_extraction_pool_lifecycle.py`, which counts operating-system
+processes rather than method calls.
+
 The first draft of that recovery resubmitted the whole window together with every
 request's retry count bumped, and it was wrong in the direction that matters: the
 next death landed on whichever request the caller happened to be waiting on, so a
@@ -58,6 +71,7 @@ inferred from position, and the sabotage that restores the old shape fails with
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -396,13 +410,27 @@ class ProcessPool:
 
     def _shutdown(self) -> None:
         if self._pool is not None:
-            self._pool.shutdown(wait=False, cancel_futures=True)
+            # `wait=True`, and the two arguments do different jobs. `cancel_futures`
+            # drops the QUEUED window, which is what keeps a raise prompt; `wait`
+            # governs whether the worker PROCESSES are still running when this
+            # returns. It was False, and False meant `shutdown` returned before a
+            # single stop-sentinel had been sent -- leaving the reaping to
+            # `concurrent.futures.process._python_exit`, an interpreter-shutdown hook
+            # that a run killed by a signal never reaches. So what is waited for here
+            # is at most one extraction per worker, the ones already in a reader,
+            # never the queued window.
+            self._pool.shutdown(wait=True, cancel_futures=True)
             self._pool = None
 
     def close(self) -> None:
-        """Cancel the window and stop. Called on the way out, INCLUDING the way out
-        through a `ContractViolation`: without `cancel_futures` the caller's raise
-        would wait on every in-flight extraction before surfacing."""
+        """Cancel the window and stop, and BE STOPPED when this returns.
+
+        Called on the way out, INCLUDING the way out through a `ContractViolation`:
+        without `cancel_futures` the caller's raise would wait on every in-flight
+        extraction before surfacing. It waits for the handful still inside a reader,
+        because a worker this run has finished with must not still be alive when the
+        run ends -- see `_watch_the_parent` for what a surviving one costs.
+        """
         self._shutdown()
         self._outstanding = {}
         self._replaced = {}
@@ -433,7 +461,56 @@ _CONTEXT: ExtractionContext | None = None
 
 def _install_context(factory: Callable[[], ExtractionContext]) -> None:
     global _CONTEXT
+    _watch_the_parent()
     _CONTEXT = factory()
+
+
+def _watch_the_parent() -> None:
+    """Die when the run does, however the run goes.
+
+    **A worker outliving its parent is not untidy, it is a hang.** `close()` shuts
+    the pool down properly now, but `close()` is only reached by a run that gets to
+    the end of a `try`. A run killed by a signal does not, and neither does one whose
+    interpreter is gone: `pdfium` segfaulted the product on a real 199-file corpus
+    (`FPDF_LoadPage` -> `CPDF_ColorSpace::CreateBufAndSetDefaultColor`, on a file read
+    below the floor and therefore on the calling thread), and the workers already
+    spawned for the requests above the floor were left with nobody to stop them.
+
+    What they then do is the part that turns a leak into a deadlock. A worker waiting
+    for work blocks in `sem_wait` on the call queue for ever -- every sibling holds
+    that queue's writer, so the queue never reaches end-of-file the way a pipe would.
+    Meanwhile it still holds the file descriptors it inherited, and descriptors 1 and
+    2 are the run's stdout and stderr. When those are pipes -- `tools/groundtruth`
+    reads its runs through `subprocess.run(capture_output=True)`, and so does every
+    caller who captures output -- the reader waits for an end-of-file that a dead
+    run's surviving children are still holding open. Observed: a parent at 0.0 % CPU
+    with no child of its own, stalled forty minutes, released INSTANTLY when the
+    orphans were killed by hand. Forty-seven of them had accumulated on the machine.
+
+    So each worker watches for its parent's death directly. `parent_process()` in a
+    spawned child carries the read end of the pipe the parent alone holds the writer
+    for -- not the call queue, which every sibling can write, and not `getppid()`,
+    which has to be polled on an interval nobody chose. `join()` blocks on that
+    descriptor and returns the moment the parent stops existing, by exit, by
+    exception, by `SIGKILL` or by segmentation fault alike. Then `os._exit`, which is
+    the only correct ending here: `sys.exit` would unwind one daemon thread and leave
+    the process running, and a normal exit would run handlers that flush queues whose
+    other end is dead.
+    """
+    import multiprocessing
+    import threading
+
+    parent = multiprocessing.parent_process()
+    if parent is None:                               # pragma: no cover -- not spawned
+        # Not a spawned child, so there is no parent to outlive. `perform` runs on
+        # the calling thread below the floor and must not install anything.
+        return
+
+    def until_the_parent_is_gone() -> None:
+        parent.join()
+        os._exit(1)
+
+    threading.Thread(target=until_the_parent_is_gone, daemon=True).start()
 
 
 def _perform_in_worker(request: ExtractionRequest) -> ExtractionOutcome:

@@ -2952,16 +2952,26 @@ def _ready_to_file_blocks(printed: str) -> list[str]:
 #:    expecting `term + work_type` scored exactly what the person's own `Fall
 #:    2026` scored expecting `term` alone, the margin came out 0.0, and every file
 #:    was routed to a model that was not there. `placement.scoring` now resolves
-#:    that tie in favour of the folder the file is ALREADY IN and does not ask a
-#:    model whether a file should stay where its owner put it.
+#:    that tie in favour of the folder the file is ALREADY IN -- but ONLY when no
+#:    other tied candidate is also a folder the person made, because that case is
+#:    §6.9's real question and is still asked.
 #:
-#: Measured on this corpus, all five files, after both parts:
-#:     5 decided, 0 ready to file, and every one of them named where it already is
-#:     3x "Already in Fall 2026"  (the law student's own coursework, recognised)
-#:     2x "Already in Kid"        (the child's report cards, left alone)
-#: So this test passes because the report cards are recognised as belonging in
-#: `Kid`, not because the product stopped answering. The twin is what holds that
-#: distinction and it passes in the same run.
+#: MEASURED ON THIS CORPUS, ALL FIVE FILES, AFTER BOTH PARTS:
+#:     5 decided, 0 ready to file
+#:     3x "Already in Fall 2026"   the law student's own coursework, recognised
+#:     1x "Already in Kid"         `report card spring 2026.txt`; its only rival
+#:                                 is a folder this run would CREATE, so the
+#:                                 status quo wins and nothing moves
+#:     1x "needed a model"         `report card fall 2026.txt`, and this is the
+#:                                 north star's own file. Its term is Fall2026,
+#:                                 so the parent's own `Fall 2026` ties with
+#:                                 `Kid` -- two folders the person actually has.
+#:                                 The product declines to choose and holds it
+#:                                 for her, which is exactly what §6.9 asks.
+#: So this test passes for two different right reasons and neither is silence:
+#: one report card is left where it is, and the one that genuinely reads two ways
+#: is not guessed at. The twin holds the other half -- the law student's own
+#: coursework is still recognised -- and passes in the same run.
 def test_a_childs_report_card_is_not_filed_into_the_law_school_semester(tmp_path):
     """Two lives, one word, and the product moves the wrong one.
 

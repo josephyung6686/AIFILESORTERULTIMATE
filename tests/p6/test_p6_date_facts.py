@@ -105,6 +105,10 @@ ZONE_WEIGHT = {"filename": 3.0, "title": 3.0, "heading": 2.0, "body": 1.0,
 TIER_WEIGHT = {1: 4.0, 2: 2.0, 3: 1.0}
 MINIMUM_SCORE = 1.0
 MINIMUM_MARGIN = 0.5
+#: P7's own constant, injected here the way the composition root injects it. The
+#: page a document names itself on -- see `test_a_term_deep_inside_the_document_is_
+#: a_date_the_document_mentions` for what it is doing in a DATE producer.
+FIRST_PAGE = 1
 
 
 def _record(conn, tmp_path, *, name, body):
@@ -120,7 +124,8 @@ def _record(conn, tmp_path, *, name, body):
     return file_id, get_file(conn, file_id)["content_hash"]
 
 
-def _observe(conn, *, run_id, file_id, content_hash, raw, zone="body"):
+def _observe(conn, *, run_id, file_id, content_hash, raw, zone="body",
+             container_path=(Segment("page", 1),)):
     if conn.execute("SELECT 1 FROM extraction_runs WHERE run_id = ?",
                     (run_id,)).fetchone() is None:
         record_run(conn, ExtractionRun(
@@ -131,7 +136,7 @@ def _observe(conn, *, run_id, file_id, content_hash, raw, zone="body"):
     observation = Observation(
         file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
         extractor_version="1.0.0", source_type="text_document", raw_value=raw,
-        location=Location(zone, (Segment("page", 1),)), occurrence_count=1,
+        location=Location(zone, container_path), occurrence_count=1,
         observed_at=CLOCK, reliability="possible", run_id=run_id)
     record_observation(conn, observation)
     return observation
@@ -146,6 +151,7 @@ def _run(conn, tmp_path, *, name, texts, field_key="term"):
                  content_hash=content_hash, raw=text)
     written = date_facts(conn, file_id=file_id, content_hash=content_hash,
                          field_key=field_key, patterns=PATTERNS,
+                         first_page=FIRST_PAGE,
                          zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
                          minimum_score=MINIMUM_SCORE,
                          minimum_margin=MINIMUM_MARGIN)
@@ -196,7 +202,8 @@ def test_a_term_fact_cites_the_observation_the_span_came_from(p6_conn, tmp_path)
     observation = _observe(p6_conn, run_id="r-cite", file_id=file_id,
                            content_hash=content_hash, raw="Michaelmas Term 2024")
     date_facts(p6_conn, file_id=file_id, content_hash=content_hash,
-               field_key="term", patterns=PATTERNS, zone_weight=ZONE_WEIGHT,
+               field_key="term", patterns=PATTERNS, first_page=FIRST_PAGE,
+               zone_weight=ZONE_WEIGHT,
                tier_weight=TIER_WEIGHT, minimum_score=MINIMUM_SCORE,
                minimum_margin=MINIMUM_MARGIN)
     row = facts_for_file(p6_conn, file_id, content_hash)[0]
@@ -333,3 +340,74 @@ def test_no_direct_slot_claims_a_field_the_date_producer_fills():
     # (file_id, content_hash, field_key), so nothing below this line would catch it.
     import cli
     assert "term" not in {slot.field_key for slot in cli.DIRECT_SLOTS.slots}
+
+
+# --- a term is a claim about THIS document (§3.10 read where it names itself) ---
+
+def test_a_term_deep_inside_the_document_is_a_date_the_document_mentions(
+        p6_conn, tmp_path):
+    """THE DEFECT, byte-exact from the owner's own essay.
+
+    `Downloads/Essay 2 Final Draft.pdf` is a Fall 2025 essay for a course called
+    University Writing. On page 2 it cites a magazine: *"published in The New York
+    Times Magazine Fall 2014 issue"*. `Fall 2014` was the only season-and-year the
+    document printed, so it won §3.7's ranking unopposed and the product proposed a
+    term folder eleven years wrong -- on three files, the whole `Essay 2 Final
+    Draft` family.
+
+    **This is a general defect and not one essay's.** Every essay with a
+    bibliography cites dated work, and a producer that reads any season-year
+    anywhere will prefer the citation whenever the document does not restate its own
+    term in the body -- which is most documents, because the term is on the cover.
+
+    THE DISCRIMINATOR IS THE ONE `facts.kind` ALREADY USES, and only half of it. A
+    term is a CLAIM ABOUT THIS FILE, exactly as a `work_type` is, so it is read
+    where the document names itself: `names_the_file` is a zone test AND a page
+    test, and the page test alone is what applies here. The zone half must NOT be
+    borrowed -- see the test below, where the one correct term in the whole corpus
+    is in `body`.
+    """
+    file_id, content_hash = _record(p6_conn, tmp_path, name="essay.pdf",
+                                    body=b"an essay with a works-cited list")
+    _observe(p6_conn, run_id="run-cited", file_id=file_id,
+             content_hash=content_hash,
+             raw="published in The New York Times Magazine Fall 2014 issue",
+             container_path=(Segment("page", 2),))
+    date_facts(p6_conn, file_id=file_id, content_hash=content_hash,
+               field_key="term", patterns=PATTERNS, first_page=FIRST_PAGE,
+               zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
+               minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+
+    assert _values(p6_conn, file_id, content_hash) == []
+
+
+def test_the_documents_own_term_in_its_own_body_still_fills_the_field(p6_conn,
+                                                                     tmp_path):
+    """THE HALF THAT MUST NOT BREAK, also byte-exact from the owner's disk.
+
+    `Downloads/Essay 2 Prompt as Text - 628 + 633.docx` opens *"University Writing
+    - Readings in Medical Humanities / Fall 2025 - Dr. Sarah Wingerter"*. That is
+    the ONE `term` fact the whole 215-file corpus gets right, and it is in `body`,
+    in a `.docx`, in a paragraph -- so a producer narrowed to `NAMING_ZONES` the way
+    `work_type` is would have deleted the only correct answer to buy the refusal
+    above.
+
+    A `.docx` paragraph has no page, and `facts.kind.page_of` returns `None` for it.
+    That is not a missing page, it is a format that does not paginate, and reading
+    absence as failure would stop this producer working on every unpaginated format
+    -- `names_the_file` says so in its own words and this test is why it matters
+    here too.
+    """
+    file_id, content_hash = _record(p6_conn, tmp_path, name="prompt.docx",
+                                    body=b"an assignment prompt")
+    _observe(p6_conn, run_id="run-own", file_id=file_id,
+             content_hash=content_hash,
+             raw="University Writing - Readings in Medical Humanities\n"
+                 "Fall 2025 - Dr. Sarah Wingerter",
+             container_path=(Segment("paragraph", 2),))
+    date_facts(p6_conn, file_id=file_id, content_hash=content_hash,
+               field_key="term", patterns=PATTERNS, first_page=FIRST_PAGE,
+               zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
+               minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+
+    assert _values(p6_conn, file_id, content_hash) == ["Fall2025"]

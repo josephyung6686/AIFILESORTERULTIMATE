@@ -70,7 +70,16 @@ WHOLE_HEADINGS: tuple[str, ...] = (
 
 #: Readings the same run produced that ARE identifiers, from `body` spans. These must
 #: survive: refusing the noise by refusing everything would be the other failure.
-IDENTIFIERS: tuple[str, ...] = ("UARF470911", "UA872", "BOEING 777", "I 1403")
+#:
+#: `I 1403` WAS A FOURTH ROW AND LEFT ON 2026-09-05. It is still an identifier by
+#: SHAPE -- `cli._STRUCTURED` reads it, which is what this file is about, and
+#: `test_the_deployment_still_reads_every_identifier_it_ever_read` holds that shut
+#: -- but the `subject` RULE now refuses a lone leading capital as a fragment of
+#: something longer (`General Chemistry I 1403`), so it can no longer stand here as
+#: a reading the pass turns into a fact. `BOEING 777` carries the canonicaliser
+#: half of the row's job unchanged. See
+#: `tests/p6/test_p6_subject_rule.py::test_a_partial_identifier_is_refused_rather_than_stored`.
+IDENTIFIERS: tuple[str, ...] = ("UARF470911", "UA872", "BOEING 777")
 
 
 def _file(conn, tmp_path, *, name="lecture.pdf", body=b"a probability lecture"):
@@ -219,9 +228,9 @@ def test_the_identifiers_the_pass_located_are_not_subjects_by_being_identifiers(
 def test_refusing_them_is_not_refusing_everything(p6_conn, tmp_path):
     """The negative twin, kept, with the half of it that was always true.
 
-    The same four readings, in a document that describes a course instead of a
-    flight. They still become subjects, and `BOEING 777` and `I 1403` still prove
-    the canonicaliser runs: `65` §4.2 is the recorded failure where one identity
+    The same three readings, in a document that describes a course instead of a
+    flight. They still become subjects, and `BOEING 777` still proves the
+    canonicaliser runs: `65` §4.2 is the recorded failure where one identity
     arriving as several spellings split one course into four one-file groups.
 
     **And this states the limit of the fix honestly.** `BOEING777` under the word
@@ -242,7 +251,7 @@ def test_refusing_them_is_not_refusing_everything(p6_conn, tmp_path):
                 before="Syllabus - ", after=", 3 credits.")
 
     assert _subjects(p6_conn, file_id, content_hash) == {
-        "UARF470911", "UA872", "BOEING777", "I1403"}
+        "UARF470911", "UA872", "BOEING777"}
 
 
 def test_an_identifier_printed_inside_a_heading_survives_the_refusal(

@@ -1365,7 +1365,53 @@ SUBJECT_FIELD = "subject"
 #: shipped run then wrote 158 refusal rows over 51 files -- 89 `context_truncated`,
 #: 69 `context_check_failed`.
 #:
-#: **The lookahead is `not _is_term`, which `Rule` has no other place to keep.**
+#: **THE SECOND LOOKAHEAD REFUSES A CONCATENATION ACROSS A SPACE.** Two capitals, OR
+#: one capital GLUED TO A DIGIT -- and the difference between those two is the whole
+#: rule, so it is worth saying what it is about rather than what it matches.
+#:
+#: `_STRUCTURED` admits one optional separator: `[A-Z][A-Z0-9]*[ -]?[0-9]{3,}`. When
+#: that separator is PRESENT, the letters before it are a standalone word of the
+#: running text, and a one-letter word before a number is not a department -- it is a
+#: roman numeral or a list marker that the pattern then glues onto the number beside
+#: it. Byte-exact from the owner's disk:
+#:
+#:     General Chemistry I 1403        Dr. Beer
+#:     Sample Exam 1 - No. 2
+#:
+#: `I 1403` is "General Chemistry **I**" plus "1403" concatenated across the space,
+#: and the product filed three of the owner's chemistry exams under a course called
+#: `I1403`. The same shape claims `Music Theory A 2150` and `Organic Chemistry B
+#: 4100`; the refusal is about the trailing capital of a COURSE TITLE, not about one
+#: document, and `TRUNCATIONS` in `tests/p6/test_p6_subject_rule.py` holds all three.
+#:
+#: **WHEN THERE IS NO SEPARATOR THE READING IS ONE TOKEN AND IT STAYS.** `E1006` in
+#: `# ENGI E1006: Introduction to Computing` is a single word that nothing else in
+#: the sentence claims -- Columbia's own spelling, where the school letter leads the
+#: number. It IS a truncation of `ENGI E1006`, and it is a truncation this rule
+#: cannot repair: `apply_rules` searches `observation.raw_value`, which P4 already
+#: cut down to `E1006`, and `ENGI` survives only in `context_before`. So the choice
+#: on a glued reading is the token or nothing, and MEASURED it is worth keeping: the
+#: five notebooks of that course match their own folder on it, and refusing it took
+#: `right parent` from 6 to 2 and `not placed` from 73.2% to 82.9% over the
+#: ground-truth corpus while removing no value the labels call correct.
+#:
+#: THE LABELS DISAGREE WITH BOTH READINGS AND THAT IS RECORDED, NOT RESOLVED. They
+#: want `PYTHON1006` -- the person's own FOLDER name, which appears in the corpus 22
+#: times but only in `path` and `filename` zones, never in a form this shape reads --
+#: and `PHYS1403` for a document that is plainly General Chemistry. Reaching either
+#: is a producer this file does not have; inventing one to match a label is not a fix.
+#:
+#: IT CANNOT BE EXPRESSED BY TIGHTENING `_STRUCTURED`, AND THAT IS DELIBERATE TWICE
+#: OVER. The shape's `[A-Z][A-Z0-9]*` lets digits into its own "prefix" -- `E1006`
+#: matches as `E` + `1` + `006` -- so the shape has no notion of a letter RUN to
+#: tighten. And `_STRUCTURED` is what the product SEES: it feeds P4's extraction and
+#: `recognition`'s identifier observations, and narrowing it there would silently
+#: stop the product reading an identifier it has always read.
+#: `tests/p6/test_p6_subject_rule.py` states that separation as an invariant -- what
+#: the product sees and what it ASSERTS are two knobs, and only the second one moves
+#: here.
+#:
+#: **The other lookahead is `not _is_term`, which `Rule` has no other place to keep.**
 #: `DirectSlot` carries a `matches` predicate over the reading and `Rule` carries a
 #: pattern, a context list and a field -- so the term refusal, which the slot held,
 #: has to move into the pattern or be lost. Losing it re-arms the incident recorded
@@ -1373,7 +1419,8 @@ SUBJECT_FIELD = "subject"
 #: by that name. `SPRING 2026` beside the word `semester` is precisely the reading
 #: that would otherwise walk through the context check.
 _SUBJECT_IDENTIFIER = re.compile(
-    rf"\A\s*(?!(?i:{_TERM.pattern})\s*\Z)(?:{_STRUCTURED.pattern})\s*\Z")
+    rf"\A\s*(?=[A-Z]{{2}}|[A-Z][0-9])(?!(?i:{_TERM.pattern})\s*\Z)"
+    rf"(?:{_STRUCTURED.pattern})\s*\Z")
 
 #: §3.5's rule for `subject`, quoted: *"Rules create validated facts when a candidate
 #: passes strict context checks. For example, BUSIB 4300 becomes a course fact only
@@ -1891,8 +1938,16 @@ def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
     """
     written = apply_rules(conn, file_id=file_id, content_hash=content_hash,
                           rules=(SUBJECT_RULE,), screen=METADATA_SCREEN)
+    # `FIRST_PAGE` is P7's, and it reaches BOTH producers below for one reason
+    # stated once: a term and a work type are the same kind of claim -- about what
+    # THIS file is -- and a reading deep inside a document is the document talking
+    # about something else. `date_facts` takes the page half of that test only; its
+    # docstring records the measurement, and `WORK_TYPE_NAMING_ZONES` below is where
+    # the zone half applies. The one correct `term` in the ground-truth corpus is in
+    # `body`, so the zone half must not reach this call.
     written += date_facts(conn, file_id=file_id, content_hash=content_hash,
                           field_key=TERM_FIELD, patterns=DATE_PATTERNS,
+                          first_page=FIRST_PAGE,
                           zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
                           minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
     # `artifact_kind`, the recipe's OTHER required level. `NAMING_ZONES` and

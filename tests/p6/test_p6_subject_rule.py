@@ -132,12 +132,19 @@ JUNK: tuple[tuple[str, str, str], ...] = (
 #: The right column of `99` §3: readings that ARE what their document is about,
 #: printed the way people print them, beside the words a course is described with.
 #:
-#: The last three are BYTE-EXACT from the owner's own files, and they are the
-#: reason the context vocabulary is not §3.5's five words alone. Each is a real
-#: course this product must keep -- the lead measured that silencing them costs
-#: four of the five working placements -- and NONE of the five literal terms
-#: appears beside any of them. `I1403` sits next to "Sample Exam", `ELTU3017`
-#: next to a URL containing "courses", and `E1006` next to "Lecture".
+#: The last is BYTE-EXACT from the owner's own files, and it is the reason the
+#: context vocabulary is not §3.5's five words alone -- none of the five literal
+#: terms appears anywhere near it; `ELTU3017` sits next to a URL containing
+#: "courses".
+#:
+#: **TWO ROWS LEFT THIS TUPLE ON 2026-09-05 AND THE CLAIM THEY CARRIED WAS FALSE.**
+#: `E1006` and `I 1403` were listed here as real courses the product "must keep",
+#: on a measurement that silencing them costs four of five working placements. The
+#: ground-truth labels were then scored against the values themselves: the rule
+#: produced eleven `subject` facts over the 215-file corpus and ALL ELEVEN are
+#: wrong, these two among them. They are fragments, not courses -- see
+#: `TRUNCATIONS` below -- and the placements they were propping up were placements
+#: into a folder named after half a token.
 COURSES: tuple[tuple[str, str, str, str], ...] = (
     ("PHYS 1401", "Syllabus - ", " Introductory Physics", "PHYS1401"),
     ("BUSIB 4300", "Course ", " meets Tuesdays; the instructor is Dr. Ramirez.",
@@ -146,13 +153,37 @@ COURSES: tuple[tuple[str, str, str, str], ...] = (
      ", 3 credits. Prerequisite: COMS 3134.", "COMS4995"),
     ("E1006", "# ENGI ",
      ": Introduction to Computing\n## Lecture 1: Course Overview", "E1006"),
-    ("I 1403", "General Chemistry ",
-     " Dr. Beer\nSample Exam 2\nProvide the best possible answer to the question.",
-     "I1403"),
     ("ELTU3017", "The Chinese University of Hong Kong. ",
      ": Medicine in the Humanities. English\nLanguage Teaching Unit, "
      "eltu.cuhk.edu.hk/courses/eltu3017/.", "ELTU3017"),
 )
+
+#: THE THIRD REFUSAL: A SINGLE CAPITAL BEFORE THE NUMBER IS NOT A DEPARTMENT.
+#: Both readings are byte-exact from the owner's disk, both were `COURSES` rows
+#: until 2026-09-05, and both are FRAGMENTS of something longer that the shape cut
+#: in half. Read the neighbourhood, which is the whole argument:
+#:
+#: * `E1006` is preceded by `ENGI ` -- the course is `ENGI E1006`, Columbia's own
+#:   spelling, and the letter the shape kept is the SUFFIX of a prefix it dropped;
+#: * `I 1403` is preceded by `General Chemistry ` -- the `I` is the roman numeral
+#:   that ends "General Chemistry I", a word of the sentence and not a code at all.
+#:
+#: MEASURED, AND IT IS WHY THIS IS NOT A JUDGEMENT CALL. Over the owner's 215-file
+#: ground-truth corpus the rule produced ELEVEN `subject` facts and the labels score
+#: ALL ELEVEN wrong; eight of the eleven are these two values (`E1006` on 5 files,
+#: `I1403` on 3). Neither truncation is recoverable either: the labels want
+#: `PYTHON1006` and `PHYS1403`, and no document in the corpus prints either string,
+#: so there is no better value to reach for. "Absent means refuse, never guess."
+TRUNCATIONS: tuple[tuple[str, str, str], ...] = (
+    ("I 1403", "General Chemistry ",
+     " Dr. Beer\nSample Exam 2\nProvide the best possible answer to the question."),
+    # The same defect wherever a title ends in a capital. Neither is on the owner's
+    # disk; both are what the refusal is FOR, and a fix that only knew `Chemistry I`
+    # would be a fix for one document.
+    ("A 2150", "Music Theory ", " Prof. Vaughan\nMidterm exam, 3 credits."),
+    ("B 4100", "Organic Chemistry ", "\nProblem set 2. Instructor: Dr. Lin."),
+)
+
 
 #: THE TWO EXCLUSIONS THE VOCABULARY MAKES, each with the real reading that made
 #: the case. Neither may become a `subject`, and neither is refused by the shape.
@@ -283,6 +314,30 @@ def test_a_code_beside_the_words_a_course_is_described_with_is_a_subject(
     assert _subjects(p6_conn, file_id, content_hash) == {
         (expected, VALIDATED, RULE)}
 
+@pytest.mark.parametrize("raw,before,after", TRUNCATIONS,
+                         ids=[one[0] for one in TRUNCATIONS])
+def test_a_partial_identifier_is_refused_rather_than_stored(
+        p6_conn, tmp_path, raw, before, after):
+    """A rule that emits half a token is worse than one that declines.
+
+    Both of these clear the context check outright -- `Lecture` sits beside one and
+    `Sample Exam` beside the other -- so the vocabulary cannot refuse them and only
+    the shape can. What it refuses is the SINGLE LEADING CAPITAL: a department
+    abbreviation is two letters or more in every catalogue this product will meet,
+    and a lone capital before a number is either a word of the surrounding sentence
+    (`Chemistry I`) or the tail of a prefix the match dropped (`ENGI E1006`).
+
+    THE COST OF NOT REFUSING IS NOT THE FIELD, IT IS THE FOLDERS. A wrong `subject`
+    is conflicting evidence for every other file that shares its neighbourhood, and
+    `planning/101` measured the mechanism on this same corpus: junk identifier
+    values suppressed 258 destination nodes. A refusal costs one file its leaf; a
+    confident fragment costs a whole branch.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path)
+    _located(p6_conn, file_id=file_id, content_hash=content_hash,
+             raw=raw, before=before, after=after)
+
+    assert _subjects(p6_conn, file_id, content_hash) == set()
 
 @pytest.mark.parametrize("raw,before,after", AMBIGUOUS_NEIGHBOURS,
                          ids=[one[0] for one in AMBIGUOUS_NEIGHBOURS])
@@ -290,8 +345,8 @@ def test_a_word_whose_commonest_sense_is_not_teaching_admits_nothing(
         p6_conn, tmp_path, raw, before, after):
     """THE COST OF EVERY WORD IN THE VOCABULARY, PAID BY THESE TWO.
 
-    Widening §3.5's five terms is the only thing that recovers `I1403` and
-    `ELTU3017`, and every word added is a way back in for something that is not a
+    Widening §3.5's five terms is the only thing that recovers `ELTU3017`,
+    and every word added is a way back in for something that is not a
     course. These two are what "grade" and "quarter" let through when the list was
     first drawn, and they are kept here as the boundary: a term earns its place by
     naming an act of TEACHING, not by appearing in academic documents.
