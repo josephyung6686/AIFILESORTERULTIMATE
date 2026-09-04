@@ -20,7 +20,8 @@ import pytest
 
 from extractors.long_tail import LongTailFile
 from readers.long_tail_stdlib import (
-    MAX_PART_BYTES, PartTooLarge, UnsafeXml, stdlib_long_tail_reader,
+    MAX_PART_BYTES, NotAWaveFile, PartTooLarge, UnsafeXml,
+    stdlib_long_tail_reader,
 )
 
 read = stdlib_long_tail_reader()
@@ -566,17 +567,178 @@ def test_an_mp4_yields_duration_codec_and_creation_time(tmp_path):
                                  "modification_time": "2026-03-04T13:33:20+00:00"}
 
 
-def test_a_wav_yields_its_container_metadata(tmp_path):
-    import wave
-    path = tmp_path / "interview.wav"
-    with wave.open(str(path), "wb") as handle:
-        handle.setnchannels(2)
-        handle.setsampwidth(2)
-        handle.setframerate(44100)
-        handle.writeframes(b"\x00" * 44100 * 4)
+# --------------------------------------------------------------------------- #
+# RIFF/WAVE -- the container, not the PCM decoder
+# --------------------------------------------------------------------------- #
 
-    assert values(read(path)) == [("channels", "2"), ("sample_rate", "44100"),
-                                  ("sample_width", "2"), ("duration", "1.000")]
+def chunk(identifier: bytes, payload: bytes, *, big: bool = False) -> bytes:
+    """One RIFF chunk, padded to an even length as the format requires."""
+    order = ">" if big else "<"
+    return (identifier + struct.pack(order + "I", len(payload)) + payload
+            + (b"\x00" if len(payload) % 2 else b""))
+
+
+def riff(*chunks: bytes, big: bool = False, form: bytes = b"WAVE") -> bytes:
+    body = form + b"".join(chunks)
+    return (b"RIFX" if big else b"RIFF") + struct.pack(
+        ">I" if big else "<I", len(body)) + body
+
+
+def fmt_chunk(*, tag: int = 1, channels: int = 2, rate: int = 44100,
+              bits: int = 16, extension: bytes = b"", big: bool = False) -> bytes:
+    """A `fmt ` chunk as ECMA / RFC 2361 lays it out: PCMWAVEFORMAT, plus whatever
+    extension the tag carries."""
+    order = ">" if big else "<"
+    block_align = channels * (bits // 8) or 1
+    payload = struct.pack(order + "HHIIHH", tag, channels, rate,
+                          rate * block_align, block_align, bits) + extension
+    return chunk(b"fmt ", payload, big=big)
+
+
+def wav(path: Path, *chunks: bytes, big: bool = False) -> Path:
+    path.write_bytes(riff(*chunks, big=big))
+    return path
+
+
+def test_a_wav_yields_its_container_metadata(tmp_path):
+    """The four the `wave` module could reach, plus the two §2.9 asks for by name
+    and the PCM decoder could not give: "container and codec metadata"."""
+    path = wav(tmp_path / "interview.wav", fmt_chunk(),
+               chunk(b"data", b"\x00" * 44100 * 4))
+
+    assert values(read(path)) == [
+        ("container", "WAVE"), ("format_tag", "1"), ("codec", "PCM"),
+        ("channels", "2"), ("sample_rate", "44100"), ("bits_per_sample", "16"),
+        ("duration", "1.000"),
+    ]
+
+
+@pytest.mark.parametrize("tag,codec", [(7, "MULAW"), (6, "ALAW"),
+                                       (3, "IEEE_FLOAT"), (0x11, "IMA_ADPCM")])
+def test_a_wav_that_is_not_pcm_is_read_rather_than_recorded_as_a_failure(
+        tmp_path, tag, codec):
+    """Python's `wave` is a PCM DECODER front-end: it raises `unknown format: 7` on a
+    perfectly good mu-law file, and P5 wrote that down as §2.4's `failed` -- a
+    statement that the bytes are corrupt, about a file nothing is wrong with. Every
+    field §2.9's audio bullet names lives in the `fmt ` chunk whatever the codec is."""
+    path = wav(tmp_path / "call.wav", fmt_chunk(tag=tag, channels=1, rate=8000,
+                                                bits=8),
+               chunk(b"data", b"\x00" * 16000))
+
+    assert values(read(path)) == [
+        ("container", "WAVE"), ("format_tag", str(tag)), ("codec", codec),
+        ("channels", "1"), ("sample_rate", "8000"), ("bits_per_sample", "8"),
+        ("duration", "2.000"),
+    ]
+
+
+def test_an_unregistered_format_tag_keeps_the_number_and_claims_no_codec(tmp_path):
+    """Nothing is guessed. The container's own number is emitted verbatim and the
+    `codec` slot is simply absent, which is different from naming it wrongly."""
+    path = wav(tmp_path / "odd.wav", fmt_chunk(tag=0x7abc),
+               chunk(b"data", b"\x00" * 176400))
+
+    assert [name for name, _ in values(read(path))] == [
+        "container", "format_tag", "channels", "sample_rate", "bits_per_sample",
+        "duration"]
+
+
+def test_wave_format_extensible_reports_the_subformat_it_actually_holds(tmp_path):
+    """Tag 65534 is a wrapper: the real format is the first two bytes of the
+    SubFormat GUID (RFC 2361 / Microsoft's WAVEFORMATEXTENSIBLE). Reporting
+    `format_tag` 65534 and nothing else would name the wrapper and not the audio."""
+    guid = struct.pack("<H", 3) + b"\x00\x00" + bytes.fromhex(
+        "00001000800000aa00389b71")
+    extension = struct.pack("<HHI", 22, 32, 0x3) + guid
+    path = wav(tmp_path / "float.wav",
+               fmt_chunk(tag=0xFFFE, bits=32, extension=extension),
+               chunk(b"data", b"\x00" * 705600))
+
+    assert dict(values(read(path)))["format_tag"] == "65534"
+    assert dict(values(read(path)))["codec"] == "IEEE_FLOAT"
+
+
+def test_the_subformat_guid_is_read_as_a_four_byte_field_not_a_two_byte_one(tmp_path):
+    """A GUID's `Data1` is FOUR bytes wide, stored in the container's byte order.
+
+    Reading only its first two works on `RIFF` by accident -- the low half of a
+    little-endian word comes first -- and reads `0` on `RIFX`, where the high half
+    does. Measured: scipy's `test-44100Hz-be-1ch-4bytes.wav` carries the GUID
+    `00000001-...`, which is PCM, and the two-byte read called it format `0` and
+    named no codec at all. The wrapper was unwrapped to nothing.
+    """
+    guid = struct.pack(">I", 1) + bytes.fromhex("00001000800000aa00389b71")
+    extension = struct.pack(">HHI", 22, 32, 0x3) + guid
+    path = wav(tmp_path / "be-wavex.wav",
+               fmt_chunk(tag=0xFFFE, channels=1, rate=44100, bits=32,
+                         extension=extension, big=True),
+               chunk(b"data", b"\x00" * 176400, big=True), big=True)
+
+    assert dict(values(read(path)))["codec"] == "PCM"
+
+
+def test_a_big_endian_rifx_file_is_read_as_the_same_container(tmp_path):
+    """`RIFX` is RIFF with every field big-endian. The `wave` module answers "not a
+    WAVE file" and the run recorded `failed` for a file that is exactly a WAVE
+    file."""
+    path = wav(tmp_path / "be.wav", fmt_chunk(channels=1, rate=44100, bits=32,
+                                              big=True),
+               chunk(b"data", b"\x00" * 176400, big=True), big=True)
+
+    assert dict(values(read(path))) == {
+        "container": "WAVE", "format_tag": "1", "codec": "PCM", "channels": "1",
+        "sample_rate": "44100", "bits_per_sample": "32", "duration": "1.000"}
+
+
+def test_the_list_info_chunk_becomes_the_embedded_tags_2_9_asks_for(tmp_path):
+    """§2.9's audio bullet: "duration, container and codec metadata, creation time,
+    embedded tags". `LIST`/`INFO` is where a WAVE file keeps all three of the last
+    ones, and the tag names are the format's own four-character codes."""
+    info = b"INFO" + chunk(b"INAM", b"Lecture 4\x00") + chunk(
+        b"IART", b"J Yung\x00") + chunk(b"ICRD", b"2026-02-14\x00")
+    path = wav(tmp_path / "tagged.wav", fmt_chunk(),
+               chunk(b"LIST", info), chunk(b"data", b"\x00" * 176400))
+
+    read_values = dict(values(read(path)))
+    assert read_values["INAM"] == "Lecture 4"
+    assert read_values["IART"] == "J Yung"
+    assert read_values["ICRD"] == "2026-02-14"
+
+
+def test_a_riff_wave_with_no_fmt_chunk_raises_rather_than_returning_nothing(tmp_path):
+    """704 of the 804 `.wav` files on the owner's disk are these: `RIFF`, `WAVE`, then
+    the literal bytes `fake-pcm-bytes` and nothing else. §2.4 keeps the two words
+    apart and `failed` is the right one -- a reader ran and the bytes really are not a
+    WAVE file. Returning `None` here would say the opposite: that this deployment
+    ships no reader for `.wav`."""
+    path = tmp_path / "stub.wav"
+    path.write_bytes(b"RIFF" + b"\x00" * 4 + b"WAVEfake-pcm-bytes")
+
+    with pytest.raises(NotAWaveFile):
+        read(path)
+
+
+def test_bytes_that_are_not_riff_at_all_raise(tmp_path):
+    path = tmp_path / "mislabelled.wav"
+    path.write_bytes(b"\x00\x01\x02\x03 not a riff container at all")
+
+    with pytest.raises(NotAWaveFile):
+        read(path)
+
+
+def test_a_riff_file_that_is_not_a_wave_form_raises(tmp_path):
+    """A `.webp` renamed `.wav` is a RIFF file whose form is `WEBP`. Reading its
+    chunks as audio would put invented numbers on a picture.
+
+    The fixture carries a `fmt ` chunk ON PURPOSE. Without one the file is refused
+    for the other reason -- no `fmt ` -- and deleting the form check entirely leaves
+    every test green, which is what the first version of this test did.
+    """
+    path = tmp_path / "picture.wav"
+    path.write_bytes(riff(fmt_chunk(), chunk(b"VP8 ", b"\x00" * 16), form=b"WEBP"))
+
+    with pytest.raises(NotAWaveFile, match="WEBP"):
+        read(path)
 
 
 def test_a_transcript_is_never_returned_whatever_the_authorization_says(tmp_path):

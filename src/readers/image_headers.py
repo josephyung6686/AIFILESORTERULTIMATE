@@ -26,6 +26,7 @@ put a number nothing measured into `raw_value`.
 """
 from __future__ import annotations
 
+import re
 import struct
 from pathlib import Path
 from typing import Callable
@@ -35,7 +36,7 @@ from extractors.image import ImageRecord
 #: The format tokens this reader answers with. §2.6 names "PNG format" as a tier-3
 #: signal and `extract_image` folds case on that one word, so the token has to be the
 #: format's customary name and not a MIME type.
-PNG, JPEG, GIF, WEBP = "PNG", "JPEG", "GIF", "WEBP"
+PNG, JPEG, GIF, WEBP, SVG = "PNG", "JPEG", "GIF", "WEBP", "SVG"
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 _GIF_SIGNATURES = (b"GIF87a", b"GIF89a")
@@ -118,6 +119,70 @@ def _jpeg(data: bytes) -> ImageRecord | None:
     raise _Truncated("a JPEG with no start-of-frame marker in the first 64 KiB")
 
 
+#: The root element of an SVG document, with whatever a real editor puts in front of
+#: it -- an XML declaration, comments, a DOCTYPE -- skipped. Anchored at the START of
+#: that run, so a `<svg>` buried inside some other XML document does not make that
+#: document an SVG.
+_SVG_ROOT = re.compile(
+    rb"\A(?:\s|<\?[^>]*\?>|<!--.*?-->|<!DOCTYPE[^\[>]*(?:\[.*?\])?[^>]*>)*"
+    rb"<svg(?P<attributes>\s[^>]*)?>", re.DOTALL | re.IGNORECASE)
+
+#: One attribute of that root element. XML allows space either side of the equals and
+#: either quote character, and every one of those spellings is on a real disk.
+_SVG_ATTRIBUTE = re.compile(
+    rb"""(?P<name>[A-Za-z:_][-A-Za-z0-9:_.]*)\s*=\s*(?P<quote>["'])"""
+    rb"(?P<value>[\s\S]*?)(?P=quote)")
+
+#: A length SVG states in pixels. `px` is the only unit that is already a pixel count
+#: -- `pt`, `mm`, `em` and `%` all need a rendering context this reader does not have,
+#: and converting one with an assumed DPI would put a number nothing measured into
+#: `raw_value`. Those fall through to the `viewBox`.
+_SVG_PIXELS = re.compile(rb"\A\s*([0-9]+(?:\.[0-9]+)?)\s*(?:px)?\s*\Z",
+                         re.IGNORECASE)
+
+
+def _svg_lengths(attributes: bytes) -> tuple[int, int] | None:
+    """The canvas, from `width`/`height` and falling back to `viewBox`.
+
+    §2.9's design-and-creative bullet asks for "dimensions **or canvas properties**",
+    and an SVG is the format that has both: `width` and `height` are how large it
+    should be drawn, `viewBox` is the coordinate space it is drawn in. A percentage
+    width is a fraction of a container nothing here can see, so the viewBox answers
+    for it -- and when neither states a size, the answer is `None` rather than a zero.
+    """
+    found = {match.group("name").lower(): match.group("value")
+             for match in _SVG_ATTRIBUTE.finditer(attributes)}
+    width, height = found.get(b"width"), found.get(b"height")
+    if width is not None and height is not None:
+        pair = (_SVG_PIXELS.match(width), _SVG_PIXELS.match(height))
+        if all(pair):
+            return int(float(pair[0].group(1))), int(float(pair[1].group(1)))
+    box = found.get(b"viewbox")
+    if box is not None:
+        numbers = box.replace(b",", b" ").split()
+        if len(numbers) == 4:
+            try:
+                return int(float(numbers[2])), int(float(numbers[3]))
+            except ValueError:
+                return None
+    return None
+
+
+def _svg(data: bytes) -> ImageRecord | None:
+    """An SVG's canvas, read out of the root element's own attributes.
+
+    NO XML PARSER. `xml.etree.ElementTree` is documented as not secure against
+    maliciously constructed data and this module's whole contract is that it reads a
+    header -- so the root element is matched in the head of the file and an entity
+    declaration is bytes walked past, not something a parser expands.
+    """
+    match = _SVG_ROOT.match(data)
+    if match is None:
+        return None
+    size = _svg_lengths(match.group("attributes") or b"")
+    return None if size is None else _record(SVG, *size)
+
+
 def header_image_reader() -> Callable[[Path], ImageRecord | None]:
     """The injected `read_image`. Returns `None` for anything it has no branch for."""
 
@@ -133,6 +198,12 @@ def header_image_reader() -> Callable[[Path], ImageRecord | None]:
                 return _webp(data)
             if data[:2] == b"\xff\xd8":
                 return _jpeg(data)
+            # LAST, because it is the one test that is not a magic number: an SVG is
+            # XML text and only its ROOT ELEMENT identifies it. `.psd` and `.ai` are
+            # not routed here at all -- `router.IMAGE_CAPABLE_DESIGN_FORMATS` names
+            # svg alone, and this is the branch that makes that routing true.
+            if _SVG_ROOT.match(data) is not None:
+                return _svg(data)
         except (_Truncated, struct.error):
             # §2.4: the bytes stopped being a header this reader can read. That is
             # the same answer as "no library ships for this format" -- nothing was

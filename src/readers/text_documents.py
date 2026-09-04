@@ -50,8 +50,18 @@ from readers.long_tail_stdlib import MAX_PART_BYTES, PartTooLarge, UnsafeXml
 #: contents are dropped rather than emitted: a `<script>` body stored as the
 #: document's prose is the recogniser reading a page's tracking snippet as if the
 #: author had written it.
+#:
+#: `head` IS NOT ONE OF THEM, and used to be. Suppressing it wholesale threw away
+#: `<title>` -- the page's own name, the line a browser shows in the tab and saves in
+#: a bookmark. Measured on the owner's disk: of 207 `.html` files outside vendor
+#: directories, 130 yielded not one character, and twenty of those are
+#: single-page-application shells whose body is an empty mount point and whose title
+#: is the only prose they have. Dropping `head` from this set puts no markup back
+#: into the text: `script`, `style` and `noscript` are suppressed by their own
+#: entries wherever they sit, and `meta`, `link` and `base` are void elements with no
+#: content to emit.
 _INVISIBLE_ELEMENTS: frozenset[str] = frozenset(
-    {"script", "style", "noscript", "template", "svg", "head"})
+    {"script", "style", "noscript", "template", "svg"})
 
 #: Elements after which running text starts a new line. Without them `<td>A</td>
 #: <td>B</td>` reads as `AB`, which invents a word that is in no document.

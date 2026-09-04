@@ -108,6 +108,45 @@ def test_a_real_pdf_produces_real_observations(db, corpus):
     assert "BUSIB 4300" in values
 
 
+def test_a_pdf_pages_prose_becomes_evidence_and_not_only_a_text_unit(db, corpus):
+    """The largest measured hole in the product, and the twin of E2's.
+
+    Measured over the owner's 199-file baseline: 20,819 text units, and 150
+    observations in the `body` zone. 134 of those 150 carry a SPAN -- they are
+    `find_structured_strings` matches averaging 8 characters ("MD 20852",
+    "Fall 2024"), which is the selectivity the design intends and is working. The
+    other 16 are whole-document prose, and they are exactly the 10 `.txt`, 5 `.html`
+    and 1 `.md` -- every file of those three formats, and NOT ONE of the 71 PDFs or
+    33 `.docx`. Those 104 files hold ~2M characters of prose in `text_units` and
+    contributed about a thousand characters of body evidence between them.
+
+    §2.4's prose-as-evidence path was built in E3 and never in E1 or E2. The
+    recogniser scans observations only, so on a corpus that is mostly PDF the
+    product read everything about a document except what it says.
+
+    CONTAINER, NO SPAN. The page path is kept because §2.2's ranking argument is
+    about WHERE a value sat -- "a reference list on page eighteen" -- and a locator
+    of `body:page=1` carries no `#`, so `cli.reads_a_structured_string` does not
+    admit it and no page of prose can become a folder name. Span-less for E3's
+    reason: an excerpt P7 can locate is an excerpt P7 can release.
+    """
+    import json
+
+    go(db, corpus)
+    rows = [dict(r) for r in db.execute(
+        "SELECT raw_value, location FROM evidence WHERE extractor_name = 'pdf.text'")]
+    prose = [r for r in rows
+             if "This syllabus covers the spring term" in r["raw_value"]]
+
+    assert prose, (
+        "the page's prose never became evidence; it is in text_units and the "
+        f"recogniser cannot reach it: {sorted(r['raw_value'] for r in rows)}")
+    location = json.loads(prose[0]["location"])
+    assert location["zone"] == "body", location
+    assert location["text_span"] is None, location
+    assert location["container_path"], "the page locator was dropped"
+
+
 def test_the_observation_carries_the_zone_the_library_reported(db, corpus):
     """§2.2: *"A course code or university name found in a filename, title, or
     page-one heading is more meaningful than the same text appearing once in a
@@ -203,6 +242,52 @@ def test_a_real_docx_becomes_evidence_with_the_zone_word_recorded(db, tmp_path):
     zones = {json.loads(row["location"])["zone"] for row in rows}
     assert "heading" in zones, (
         f"Word's own heading style was not reported as P4's heading zone; {zones}")
+
+
+def test_a_docx_bodys_prose_becomes_evidence_and_not_only_a_text_unit(db, tmp_path):
+    """The measured defect, on `Rivooo_K12_Hong_Kong_Market_Analysis_Final.docx`.
+
+    E2 appended every BODY paragraph to `text_units` and emitted an observation only
+    for a `heading` or a `header_footer`. On that real 6 MB document that is 179 text
+    units carrying 29,395 characters, and 109 observations carrying 5,354 -- none of
+    them in the `body` zone. The recogniser scans OBSERVATIONS only, on purpose
+    (`recognition/detector.py`), so the dossier reached the model with the document's
+    headings and its `last_modified_by` and not one sentence of what the document
+    SAYS, and the model honestly declined nearly every field.
+
+    E3 already had this fix and E2 never got it -- `structured_text.py` emits the
+    prose addressed `body` with NO container and NO span, and this is deliberately
+    the same shape rather than one observation per paragraph. A span-carrying
+    excerpt is model-RELEASABLE (P7 releases what it can locate), and 67 separately
+    located paragraphs of a market analysis would widen what leaves the device.
+    This observation exists to be read by the recogniser ON THIS DEVICE.
+    """
+    import json
+
+    docx_lib = pytest.importorskip("docx")
+    root = tmp_path / "Documents"
+    root.mkdir()
+    document = docx_lib.Document()
+    document.add_heading("Market Analysis", level=1)
+    document.add_paragraph(
+        "Hong Kong is an attractive tutoring market because paid academic support "
+        "is deeply embedded in student life.")
+    document.save(root / "analysis.docx")
+
+    go(db, root)
+    rows = [dict(row) for row in db.execute(
+        "SELECT raw_value, location FROM evidence "
+        "WHERE extractor_name = 'docx.structure'")]
+
+    assert any("deeply embedded in student life" in row["raw_value"]
+               for row in rows), (
+        "the document's body prose never became evidence; the recogniser reads "
+        f"observations only and would never see it: {[r['raw_value'] for r in rows]}")
+    body = [json.loads(r["location"]) for r in rows
+            if "deeply embedded in student life" in r["raw_value"]]
+    assert body[0]["zone"] == "body", body[0]
+    # Span-less and container-less, exactly as E3 emits prose.
+    assert body[0].get("text_span") is None, body[0]
 
 
 def test_every_run_is_complete_and_the_status_column_agrees(db, corpus):

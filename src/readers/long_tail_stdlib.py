@@ -52,7 +52,6 @@ import csv
 import email.utils
 import mailbox
 import struct
-import wave
 import zipfile
 from datetime import datetime, timedelta, timezone
 from email import policy as email_policy
@@ -138,6 +137,18 @@ class PartTooLarge(Exception):
 
     A statement about the bytes, so it becomes P5's one `failed` run and the scan
     continues -- not a `ContractViolation`, which is a statement about the caller.
+    """
+
+
+class NotAWaveFile(Exception):
+    """The bytes are not a RIFF/WAVE container, or are one with no `fmt ` chunk.
+
+    §2.4's `failed`, deliberately, and not `unsupported`: a reader ran, opened the
+    bytes and found they are not what the extension claims. Measured on the owner's
+    disk, 704 of 804 `.wav` files are `RIFF`, `WAVE`, then the literal ASCII
+    `fake-pcm-bytes` -- a test fixture some tool wrote, with no `fmt ` chunk and no
+    audio in it. Recording those `unsupported` would say this deployment ships no
+    reader for `.wav`, which is the opposite of true.
     """
 
 
@@ -879,17 +890,158 @@ def _read_mp4(path: Path) -> LongTailFile | None:
     return LongTailFile(values=tuple(values), iso_dates=iso_dates)
 
 
+#: WAVE format tags, by the name the registry gives them (RFC 2361; Microsoft's
+#: `mmreg.h`). Only the tags a real disk holds are here, because a tag this table
+#: does not carry is emitted as its NUMBER and given no `codec` name at all -- an
+#: unnamed codec costs a word, and a wrongly named one is a false statement about
+#: the file. `0xFFFE` is not audio at all: it is a wrapper, resolved below.
+_WAVE_CODECS: dict[int, str] = {
+    0x0001: "PCM",
+    0x0002: "ADPCM",
+    0x0003: "IEEE_FLOAT",
+    0x0006: "ALAW",
+    0x0007: "MULAW",
+    0x0011: "IMA_ADPCM",
+    0x0031: "GSM610",
+    0x0050: "MPEG",
+    0x0055: "MPEGLAYER3",
+    0x2000: "DOLBY_AC3_SPDIF",
+}
+
+#: `WAVE_FORMAT_EXTENSIBLE`. Its `fmt ` chunk holds a 16-byte SubFormat GUID whose
+#: first two bytes ARE the real format tag, which is why the tag alone identifies
+#: nothing: four of the owner's files carry it and every one of them is ordinary PCM
+#: or float audio wearing the wrapper a multichannel-capable encoder puts on.
+_WAVE_FORMAT_EXTENSIBLE = 0xFFFE
+
+#: `LIST`/`INFO` four-character codes, RIFF's own tag block (IBM/Microsoft
+#: Multimedia Programming Interface 1.0, §2). §2.9 asks audio for "creation time,
+#: embedded tags"; this is where a WAVE file keeps them. Restricted to the codes
+#: that name a thing a person would recognise -- the rest of the registry is
+#: encoder bookkeeping.
+_INFO_TAGS: frozenset[bytes] = frozenset({
+    b"INAM", b"IART", b"IPRD", b"ICMT", b"ICRD", b"ISFT", b"IGNR", b"ICOP",
+    b"IENG", b"ISBJ", b"ITRK", b"ILNG",
+})
+
+
+def _riff_chunks(payload: bytes, start: int, end: int, *, big: bool
+                 ) -> Iterator[tuple[bytes, int, int]]:
+    """RIFF chunks at one level: `(four-character code, body start, body end)`.
+
+    The same shape as `_atoms` above and for the same reason -- a container is read
+    as a container. A chunk whose declared size runs past the end of the file ends
+    the walk rather than raising: what was already read is real, and a truncated tail
+    is not a reason to discard a `fmt ` chunk that parsed.
+    """
+    order = ">" if big else "<"
+    cursor = start
+    while cursor + 8 <= end:
+        identifier = payload[cursor:cursor + 8][:4]
+        size = struct.unpack(order + "I", payload[cursor + 4:cursor + 8])[0]
+        body = cursor + 8
+        if body + size > end:
+            return
+        yield identifier, body, body + size
+        cursor = body + size + (size % 2)          # chunks are word-aligned
+
+
+def _wave_format(payload: bytes, start: int, end: int, *, big: bool
+                 ) -> tuple[list[LongTailValue], float]:
+    """The `fmt ` chunk's own fields, and the bytes-per-second needed for duration.
+
+    PCMWAVEFORMAT is the first sixteen bytes and every WAVE file has them whatever
+    its codec is -- which is the whole point: Python's `wave` module refuses to open
+    anything but PCM, so a mu-law recording was recorded as a corrupt file.
+    """
+    order = ">" if big else "<"
+    if end - start < 16:
+        raise NotAWaveFile("a `fmt ` chunk shorter than PCMWAVEFORMAT's 16 bytes")
+    tag, channels, rate, byte_rate, _align, bits = struct.unpack(
+        order + "HHIIHH", payload[start:start + 16])
+
+    codec_tag = tag
+    if tag == _WAVE_FORMAT_EXTENSIBLE and end - start >= 40:
+        # The SubFormat GUID begins at offset 24 of the chunk and its `Data1` field
+        # -- FOUR bytes, stored in the container's own byte order -- is the format
+        # tag the wrapper stands for. Reading two bytes instead works on `RIFF` by
+        # accident, because the low half of a little-endian word comes first, and
+        # reads `0` on `RIFX`, where the high half does.
+        codec_tag = struct.unpack(order + "I", payload[start + 24:start + 28])[0]
+
+    values = [LongTailValue(name="format_tag", value=str(tag))]
+    codec = _WAVE_CODECS.get(codec_tag)
+    if codec is not None:
+        values.append(LongTailValue(name="codec", value=codec))
+    if channels:
+        values.append(LongTailValue(name="channels", value=str(channels)))
+    if rate:
+        values.append(LongTailValue(name="sample_rate", value=str(rate)))
+    if bits:
+        values.append(LongTailValue(name="bits_per_sample", value=str(bits)))
+    return values, float(byte_rate)
+
+
+def _info_tags(payload: bytes, start: int, end: int, *, big: bool
+               ) -> list[LongTailValue]:
+    if payload[start:start + 4] != b"INFO":
+        return []                       # a LIST of something else -- `adtl`, `wavl`
+    values = []
+    for identifier, body, stop in _riff_chunks(payload, start + 4, end, big=big):
+        if identifier not in _INFO_TAGS:
+            continue
+        # An INFO value is a NUL-terminated string. Decoded latin-1 rather than
+        # utf-8: the block is defined as bytes and this is the one decoding that
+        # cannot raise on a tag some encoder wrote in its own code page.
+        text = payload[body:stop].split(b"\x00")[0].decode(
+            "latin-1", errors="replace").strip()
+        if text:
+            values.append(LongTailValue(name=identifier.decode("ascii"), value=text))
+    return values
+
+
 def _read_wav(path: Path) -> LongTailFile:
-    with wave.open(str(path), "rb") as handle:
-        rate = handle.getframerate()
-        values = [
-            LongTailValue(name="channels", value=str(handle.getnchannels())),
-            LongTailValue(name="sample_rate", value=str(rate)),
-            LongTailValue(name="sample_width", value=str(handle.getsampwidth())),
-        ]
-        if rate:
-            values.append(LongTailValue(
-                name="duration", value=f"{handle.getnframes() / rate:.3f}"))
+    """The RIFF container, read as a container.
+
+    WAS `wave.open`, which is a PCM DECODER front-end and refuses every other
+    encoding -- `unknown format: 7` on a mu-law file, `not a WAVE file` on a
+    big-endian `RIFX`. P5 wrote both down as §2.4's `failed`: a statement that the
+    bytes are corrupt, about files nothing is wrong with. Every field §2.9's audio
+    bullet names -- "duration, container and codec metadata, creation time, embedded
+    tags" -- lives in the `fmt `, `data` and `LIST`/`INFO` chunks, and none of them
+    needs the samples decoded.
+    """
+    payload = path.read_bytes()
+    if len(payload) < 12 or payload[:4] not in (b"RIFF", b"RIFX"):
+        raise NotAWaveFile(f"{path.name} does not begin with a RIFF header")
+    big = payload[:4] == b"RIFX"
+    if payload[8:12] != b"WAVE":
+        raise NotAWaveFile(
+            f"{path.name} is a RIFF container whose form is "
+            f"{payload[8:12].decode('ascii', errors='replace')!r}, not WAVE")
+
+    values = [LongTailValue(name="container", value="WAVE")]
+    format_values: list[LongTailValue] = []
+    tag_values: list[LongTailValue] = []
+    byte_rate = 0.0
+    data_bytes: int | None = None
+    for identifier, start, end in _riff_chunks(payload, 12, len(payload), big=big):
+        if identifier == b"fmt " and not format_values:
+            format_values, byte_rate = _wave_format(payload, start, end, big=big)
+        elif identifier == b"data" and data_bytes is None:
+            data_bytes = end - start
+        elif identifier == b"LIST":
+            tag_values.extend(_info_tags(payload, start, end, big=big))
+    if not format_values:
+        raise NotAWaveFile(
+            f"{path.name} declares a WAVE form and carries no `fmt ` chunk; there "
+            "is no channel count, sample rate or codec in it to read")
+
+    values.extend(format_values)
+    if data_bytes is not None and byte_rate:
+        values.append(LongTailValue(name="duration",
+                                    value=f"{data_bytes / byte_rate:.3f}"))
+    values.extend(tag_values)
     return LongTailFile(values=tuple(values))
 
 

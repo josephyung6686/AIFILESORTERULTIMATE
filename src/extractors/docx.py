@@ -156,12 +156,31 @@ def extract_docx(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolic
              unit_text=None, reliability="direct",
              normalized=document.iso_dates.get(name))
 
+    #: §2.3 asks a Word document for its text, and E2 stored every BODY paragraph in
+    #: `text_units` and emitted an observation for NONE of them -- only a `heading` or
+    #: a `header_footer` below became one. Measured on the owner's
+    #: `Rivooo_K12_Hong_Kong_Market_Analysis_Final.docx`: 179 text units carrying
+    #: 29,395 characters, 109 observations carrying 5,354, and not one in the `body`
+    #: zone. The recogniser scans OBSERVATIONS only, on purpose
+    #: (`recognition/detector.py`: "a detector that pulled whole text units would be a
+    #: second materialisation locus"), so the dossier reached the model with the
+    #: document's headings and its `last_modified_by` and nothing the document SAYS.
+    #: The run was `complete` throughout, and truthfully: the reader returned a
+    #: document and all of it was read. What never happened is that the prose became
+    #: EVIDENCE.
+    #:
+    #: `structured_text.py` already carried this fix for E3 and E2 never got it. The
+    #: shape here is deliberately E3's, not one observation per paragraph.
+    prose: list[str] = []
+
     for paragraph in document.paragraphs:
         if not paragraph.text:
             continue
         container = _paragraph_path(paragraph)
         units.append(text_unit(text=paragraph.text, container_path=container))
         whole = {"start": 0, "end": len(paragraph.text)}
+        if paragraph.zone == "body":
+            prose.append(paragraph.text)
         if paragraph.zone in ("heading", "header_footer"):
             # A heading and a running footer are short, labelled positions and are
             # values in their own right (section 2.3; section 3.7 weights "a footer").
@@ -173,6 +192,23 @@ def extract_docx(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolic
                  raw=raw, container_path=container,
                  span={"start": found.start, "end": found.end},
                  unit_text=paragraph.text, reliability="possible")
+
+    if prose:
+        # Addressed `body`, with NO container and NO span, and both halves are
+        # load-bearing for the reasons `structured_text.py` sets out at length.
+        #
+        # No container, because P4 rule 10 anchors a span-carrying observation to a
+        # text unit at exactly its path; this is the whole body, which is a unit at
+        # no path.
+        #
+        # No span, because a span-carrying excerpt is model-RELEASABLE -- P7 releases
+        # what it can locate -- and 67 separately located paragraphs of a market
+        # analysis would widen what leaves the device. This observation exists to be
+        # READ BY THE RECOGNISER ON THIS DEVICE, which scans raw values and needs no
+        # span. The heading, table and annotation rows keep their spans and stay
+        # releasable exactly as before; nothing below this line changed.
+        emit(zone="body", raw="\n".join(prose), container_path=(), span=None,
+             unit_text=None, reliability="possible")
 
     for cell in document.cells:
         if not cell.text:

@@ -117,12 +117,66 @@ def test_every_cell_and_paragraph_has_its_own_addressable_unit(sink):
     assert not [u for u in sink.units_for(run_id) if u["container_path"] == ()]
 
 
-def test_a_body_paragraph_is_a_unit_and_not_an_observation(sink):
-    # G1's reasoning, applied to §2.3: a paragraph of body text is not a located value.
+def test_a_body_paragraph_is_not_a_located_value(sink):
+    """G1's reasoning, applied to §2.3: a paragraph of body text is not a LOCATED value.
+
+    NARROWED to what that sentence actually says, on the owner's ruling, after the
+    measured defect below. It used to assert that no observation carried the
+    paragraph's text AT ALL, and on a one-paragraph fixture those two statements are
+    indistinguishable -- so it also forbade the document's prose from being evidence
+    anywhere, which is not what G1 says and not what the design wants.
+
+    Measured over the owner's 199-file baseline: 20,819 text units and 150 `body`
+    observations, of which 134 were `find_structured_strings` matches averaging eight
+    characters. The other 16 were whole documents from E3 -- every `.txt`, `.html`
+    and `.md`, and not one of the 33 `.docx`. The recogniser scans observations only
+    (`recognition/detector.py`), so a Word document reached the model with its
+    headings and its `last_modified_by` and nothing it said.
+
+    `structured_text.py` had carried the fix since E3's ratification here
+    (`test_p5_structured_text.py`: "The document's own words are evidence. This makes
+    them evidence.") and E2 never got it. What G1 forbids is a paragraph becoming an
+    ADDRESSABLE value -- one a citation points at, and one a folder could be named
+    after. So that is what is asserted: no observation is located AT a paragraph
+    path. The prose observation beside it has `container_path=()` and no span, and
+    `test_the_prose_observation_is_not_addressable` is the other half.
+    """
     run_id = sink.write(run_it())
     body_text = "I want to study economics at Wash U."
     assert any(u["text"] == body_text for u in sink.units_for(run_id))
-    assert not [o for o in sink.observations if o["raw_value"] == body_text]
+
+    # A value FOUND INSIDE a paragraph is located there and should be -- that is
+    # `find_structured_strings` doing its job, and the test below this one asserts
+    # it. What G1 forbids is the paragraph ITSELF becoming the addressable value.
+    whole_paragraph_as_a_value = [
+        o for o in sink.observations
+        if any(s["kind"] == "paragraph" for s in o["location"]["container_path"])
+        and o["raw_value"] == body_text
+    ]
+    assert not whole_paragraph_as_a_value, whole_paragraph_as_a_value
+
+
+def test_the_prose_observation_is_not_addressable(sink):
+    """The other half, and the reason the first half is safe to narrow.
+
+    A deployment turns an observation into a FACT by claiming its locator, and a fact
+    is what a folder is named after. This one is addressed `body` with NO container
+    and NO span, so its locator is bare `body` -- and `cli.reads_a_structured_string`
+    admits a text-zone locator only when it carries a `#`. So the recogniser can read
+    the document while nothing in it can name a folder.
+
+    The span is also not merely a preference: P4 rule 10 anchors a span-carrying
+    observation to a text unit at exactly its path, and the whole body is a unit at
+    no path -- giving this one a span raises `NonConforming`.
+    """
+    run_id = sink.write(run_it())
+    prose = [o for o in sink.observations
+             if o["location"]["zone"] == "body"
+             and o["location"]["container_path"] == ()]
+
+    assert len(prose) == 1, [o["raw_value"] for o in sink.observations]
+    assert prose[0]["location"]["text_span"] is None
+    assert "I want to study economics at Wash U." in prose[0]["raw_value"]
 
 
 def test_a_value_inside_body_text_arrives_through_the_injected_finder(sink):

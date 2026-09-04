@@ -96,13 +96,22 @@ def test_skeleton_p5_step(conn, tmp_path: Path):
     run_id = RunWriter(conn, author=SUBSYSTEM).write(result)
 
     observations = observations_for_run(conn, run_id)
-    assert len(observations) == 1
-    only = observations[0]
+    # TWO, and the second one is §2.4's prose-as-evidence: E1 now emits the page's
+    # own text addressed `body:page=1`, span-less, so the recogniser can read the
+    # document. It used to emit the heading alone, and this assertion said `== 1`.
+    # The ADDRESSABLE observation is still exactly one -- a locator becomes claimable
+    # by carrying a `#`, which it gets from a span, and the prose carries none.
+    addressable = [o for o in observations if "#" in o.locator]
+    assert len(addressable) == 1, [o.locator for o in observations]
+    only = addressable[0]
     assert only.raw_value == HEADING
     assert only.locator == "heading:page=1/heading=1#0-19"
     assert only.reliability in EXTRACTOR_RELIABILITY
     assert only.file_id == file_id
     assert only.content_hash == file_row["content_hash"]
+
+    prose = [o for o in observations if "#" not in o.locator]
+    assert [o.locator for o in prose] == ["body:page=1"], [o.locator for o in prose]
 
     # It validates against P4's frozen shape, through P4's own conformance rules.
     # This was `p4_stub.validate_observation` + `validate_run` over the double's
@@ -114,12 +123,16 @@ def test_skeleton_p5_step(conn, tmp_path: Path):
     # The stub's `validate_run(run, 1)` asserted this and P4's rules do not: the count
     # is DERIVED from the rows by `record_observation`, and a stored count that
     # disagrees with them is a fact nobody downstream can use.
-    assert stored.observation_count == 1
+    assert stored.observation_count == 2
 
-    # Page-one text is a `text_units` row, not an observation (G1).
+    # Page-one text is a `text_units` row AND, since §2.4's prose-as-evidence
+    # reached E1, a span-less `body:page=1` observation beside it. The unit is what
+    # a citation resolves against; the observation is what the recogniser can read.
     page = text_unit_at(conn, run_id, (Segment("page", 1),))
     assert page is not None and page.text == PAGE_ONE
-    assert all(o.raw_value != PAGE_ONE for o in observations)
+    # G1, narrowed: the page's text is never an ADDRESSABLE value. It is evidence
+    # the recogniser can read, and it is not something a locator can be claimed on.
+    assert all(o.raw_value != PAGE_ONE or "#" not in o.locator for o in observations)
 
     # Deterministic: the native tier, no model, no network.
     assert stored.analysis_tier == "native"

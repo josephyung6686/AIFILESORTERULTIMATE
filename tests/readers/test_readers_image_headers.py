@@ -102,3 +102,96 @@ def test_the_reader_reads_no_exif_and_claims_none(tmp_path):
     assert record.exif == ()
     assert record.software == {}
     assert record.perceptual_hash is None
+
+
+# --------------------------------------------------------------------------- #
+# SVG -- the one design/creative format the router sends here
+# --------------------------------------------------------------------------- #
+
+read = header_image_reader()
+
+
+def svg(path, attributes: str, *, prologue: str = ""):
+    path.write_bytes(f'{prologue}<svg xmlns="http://www.w3.org/2000/svg" '
+                     f'{attributes}><rect/></svg>'.encode())
+    return path
+
+
+def test_an_svg_yields_its_canvas_size(tmp_path):
+    """The router sends `.svg` here -- P5's SPEC routing table reads "E5
+    (raster/SVG)" -- and this reader had no branch for it, so every SVG on the disk
+    recorded `unsupported` and then had OCR run at it. §2.9's design-and-creative
+    bullet asks for "dimensions or canvas properties" and an SVG carries both on its
+    root element."""
+    record = read(svg(tmp_path / "logo.svg", 'width="240" height="120"'))
+
+    assert record == ImageRecord(image_format="SVG", dimensions="240x120",
+                                 width=240, height=120)
+
+
+@pytest.mark.parametrize("attributes", [
+    'width="240px" height="120px"',            # CSS pixels, the customary spelling
+    'width="240.0" height="120.0"',            # a number an editor rounded
+    'width = "240"  height =\n"120"',          # XML permits space around the equals
+    "width='240' height='120'",                # and either quote
+])
+def test_the_customary_spellings_of_a_pixel_size_are_all_read(tmp_path, attributes):
+    record = read(svg(tmp_path / "logo.svg", attributes))
+    assert (record.width, record.height) == (240, 120)
+
+
+def test_a_percentage_size_falls_back_to_the_viewbox(tmp_path):
+    """`width="100%"` is not a number of pixels -- it is a fraction of whatever
+    contains the picture, which this reader cannot see. The `viewBox` is the canvas
+    the design's own word names, so it answers instead."""
+    record = read(svg(tmp_path / "icon.svg",
+                      'width="100%" height="100%" viewBox="0 0 24 24"'))
+
+    assert (record.width, record.height) == (24, 24)
+
+
+def test_a_viewbox_only_svg_is_read(tmp_path):
+    record = read(svg(tmp_path / "icon.svg", 'viewBox="0 0 16 16"'))
+    assert (record.width, record.height) == (16, 16)
+
+
+def test_an_svg_with_no_size_anywhere_is_unsupported_and_never_a_zero(tmp_path):
+    """§2.4 again: nothing is invented. An SVG that states no size has none to
+    report, and `0x0` would be a number nothing measured."""
+    assert read(svg(tmp_path / "sizeless.svg", 'fill="red"')) is None
+
+
+def test_an_xml_declaration_and_a_doctype_before_the_root_are_skipped(tmp_path):
+    """Every SVG an editor writes begins with a declaration, a comment or both. A
+    reader that only recognised a file starting `<svg` would answer `unsupported`
+    for the ordinary case and `SVG` for the hand-written one."""
+    prologue = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+                '<!-- Generator: some editor -->\n'
+                '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "x.dtd">\n')
+    record = read(svg(tmp_path / "export.svg", 'width="64" height="64"',
+                      prologue=prologue))
+
+    assert (record.image_format, record.width, record.height) == ("SVG", 64, 64)
+
+
+def test_xml_that_is_not_an_svg_is_not_claimed(tmp_path):
+    """An `.xml`, a `.plist` and an Illustrator file all begin with angle brackets.
+    Only a document whose ROOT element is `svg` is one."""
+    path = tmp_path / "settings.svg"
+    path.write_bytes(b'<?xml version="1.0"?><plist width="10" height="10"/>')
+    assert read(path) is None
+
+
+def test_the_svg_branch_reads_no_exif_and_no_entity(tmp_path):
+    """No XML parser is built here at all. The root element's own attributes are
+    read out of the head of the file, so an entity declaration is bytes this reader
+    walks past rather than something a parser expands."""
+    path = tmp_path / "bomb.svg"
+    path.write_bytes(b'<?xml version="1.0"?>'
+                     b'<!DOCTYPE svg [<!ENTITY a "aaaaaaaaaa">]>'
+                     b'<svg width="8" height="8">&a;</svg>')
+
+    record = read(path)
+
+    assert (record.width, record.height) == (8, 8)
+    assert record.exif == () and record.software == {}

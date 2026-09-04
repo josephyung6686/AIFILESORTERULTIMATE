@@ -143,6 +143,32 @@ def extract_pdf(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
         page_path = (segment("page", index=page.number),)
         units.append(text_unit(text=page.text, container_path=page_path))
 
+        # §2.4's prose-as-evidence, which was built in E3 and never here. Measured
+        # over the owner's 199-file baseline: 20,819 text units and 150 `body`
+        # observations, of which 134 are `find_structured_strings` matches averaging
+        # EIGHT characters and the other 16 are whole documents from E3 -- exactly
+        # the 10 `.txt`, 5 `.html` and 1 `.md`, and not one of the 71 PDFs. Those
+        # PDFs hold ~2M characters of prose in `text_units` and contributed about a
+        # thousand characters of evidence between them. The recogniser scans
+        # OBSERVATIONS only (`recognition/detector.py`), so on a corpus that is
+        # mostly PDF the product read everything about a document except what it
+        # says, and then abstained for want of corroboration that was in the file.
+        #
+        # THE PAGE PATH IS KEPT AND THE SPAN IS NOT, and both halves are deliberate.
+        # The path, because §2.2 ranks on WHERE a value sat -- "the same text
+        # appearing once in a reference list on page eighteen" -- and that argument
+        # needs the page. It is safe because a locator of `body:page=18` carries no
+        # `#`, so `cli.reads_a_structured_string` does not admit it and no page of
+        # prose can be claimed by the direct slot and become a folder name.
+        # The span, because an excerpt P7 can locate is an excerpt P7 can release,
+        # and P4 rule 10 refuses a span that does not anchor to a unit at exactly
+        # its path. This exists to be READ BY THE RECOGNISER ON THIS DEVICE.
+        if page.text.strip():
+            candidates.append(_Candidate(
+                zone="body", raw=page.text, container_path=page_path, span=None,
+                unit_text=None, reliability="possible",
+                normalized=normalize_mechanical(page.text)))
+
         heading_paths: dict[int, tuple] = {}
         for region in page.regions:
             if region.zone != "heading":

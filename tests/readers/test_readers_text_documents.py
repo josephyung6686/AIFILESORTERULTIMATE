@@ -132,6 +132,37 @@ def test_a_script_and_a_style_block_never_reach_the_documents_text(tmp_path):
     assert "tracking" not in text
 
 
+def test_a_pages_title_is_the_one_line_of_it_a_person_always_sees(tmp_path):
+    """`head` was suppressed WHOLESALE, and `<title>` is inside it.
+
+    Measured on the owner's disk: of 207 `.html` files outside vendor directories,
+    130 yielded not one character. Twenty of those are single-page-application
+    shells whose body is an empty mount point and whose ONLY prose is the title --
+    verbatim below, from `~/Desktop/Devfest/index.html`. The page's own name is what
+    a browser puts in the tab and a bookmark, and it was the one thing thrown away.
+
+    `script`, `style` and `noscript` stay suppressed by their OWN entries, which is
+    why dropping `head` does not put a tracking snippet back into the prose --
+    `test_a_script_and_a_style_block_never_reach_the_documents_text` is the guard.
+    """
+    path = tmp_path / "index.html"
+    path.write_text(
+        '<!doctype html>\n<html lang="en" class="dark">\n  <head>\n'
+        '    <meta charset="UTF-8" />\n'
+        '    <title>Third Eye - AI-Powered Learning Assistant</title>\n'
+        '    <script src="https://cdn.example/three.min.js"></script>\n'
+        '  </head>\n  <body>\n'
+        '    <div id="root"><!-- React will mount here --></div>\n'
+        '    <script type="module" src="/src/main.tsx"></script>\n'
+        '  </body>\n</html>\n')
+
+    text = read(path).text
+
+    assert "Third Eye - AI-Powered Learning Assistant" in text
+    assert "three.min.js" not in text          # the head's <script> is still dropped
+    assert "charset" not in text               # and <meta> is void, so it says nothing
+
+
 def test_html_headings_are_its_h_elements_with_spans_over_the_real_text(tmp_path):
     path = tmp_path / "registration.html"
     path.write_text(PAGE)

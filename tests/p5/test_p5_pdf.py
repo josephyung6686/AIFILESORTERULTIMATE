@@ -77,13 +77,48 @@ def test_every_observation_conforms_to_p4s_shape(sink):
 
 
 def test_the_complete_text_is_stored_by_page(sink):
-    # §2.2: "extract the complete document rather than only a first-page preview";
-    # G1: page text is a text_units row, not an observation.
+    """§2.2: "extract the complete document rather than only a first-page preview".
+
+    G1, NARROWED on the owner's ruling: page text is a text_units row and not an
+    ADDRESSABLE value. It used to assert that no observation carried the page's text
+    at all, which also forbade the page's prose from being evidence anywhere — and
+    measured over the owner's 199-file baseline that is what had happened: 20,819
+    text units, and of 150 `body` observations 134 were `find_structured_strings`
+    matches averaging eight characters. Not one of the 71 PDFs contributed prose. The
+    recogniser scans observations only, so a PDF reached the model with an identifier
+    and some metadata while the identical `.txt` reached it with the document's words.
+    `tests/test_cli.py`'s strict xfail had already recorded that as "the largest
+    single cause of 'nobody got a file filed'".
+
+    ADDRESSABILITY IS THE SPAN, not the container. A deployment claims a locator to
+    turn an observation into a fact, and `cli.reads_a_structured_string` admits a
+    text-zone locator only when it carries a `#` — which a locator gets from a SPAN.
+    The prose observation keeps the page path, because §2.2 ranks on where a value
+    sat ("a reference list on page eighteen"), and its locator is `body:page=1` with
+    no `#`. So the page can be READ without any page of prose being NAMEABLE.
+    """
     run_id = sink.write(run_it())
     pages = {u["container_path"][0]["index"]: u["text"]
              for u in sink.units_for(run_id) if len(u["container_path"]) == 1}
     assert pages == {1: PAGE_1, 18: PAGE_18}
-    assert not [o for o in sink.observations if o["raw_value"] == PAGE_1]
+
+    addressable = [o for o in sink.observations
+                   if o["raw_value"] == PAGE_1
+                   and o["location"]["text_span"] is not None]
+    assert not addressable, addressable
+
+
+def test_the_pages_prose_is_evidence_but_is_not_addressable(sink):
+    """The other half, and the reason the first half is safe to narrow."""
+    run_id = sink.write(run_it())
+    prose = [o for o in sink.observations if o["raw_value"] == PAGE_1]
+
+    assert len(prose) == 1, [o["raw_value"][:40] for o in sink.observations]
+    assert prose[0]["location"]["zone"] == "body"
+    assert prose[0]["location"]["text_span"] is None
+    # The page path survives, so §2.2's page-eighteen ranking still has its input.
+    assert prose[0]["location"]["container_path"] == (
+        {"kind": "page", "index": 1, "label": None},)
 
 
 def test_the_page_count_is_the_runs_coverage(sink):

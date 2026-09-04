@@ -2394,25 +2394,29 @@ def _run_two_formats(tmp_path):
     return out.getvalue()
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "The same court filing gets two different answers depending on whether it "
-    "was saved as .txt or as PDF. The PDF is READ -- pdfminer runs and the page "
-    "text lands in `text_units` -- and the person is then told 'This file has "
-    "not been classified, nothing has yet said what kind of material it is', "
-    "while the identical .txt is told 'Deciding this file needed a model'. "
-    "Measured at the seam: `text.structured` writes TWO evidence rows for a "
-    "text file, the whole `body` and the identifier span inside it; `pdf.text` "
-    "writes only the span, `body:page=1#124-134`. The detector matches against "
-    "evidence values, so a text file always reaches it with the document's "
-    "words and a PDF reaches it with an identifier and some metadata. The "
-    "consequence is not a weaker answer for PDFs, it is NO answer: every "
-    "readable .txt in these runs got a classification from the detector -- "
-    "including a bland one that got `personal_non_sensitive` -- and no PDF got "
-    "one at all. Most documents on a real disk are PDFs, so this is the "
-    "largest single cause of 'nobody got a file filed', and it sits UPSTREAM "
-    "of the model: no amount of model wiring reaches a file the detector never "
-    "classified. Verified to go green when the detector is given the PDF's "
-    "words. Strict, so the suite turns red the day it is fixed."))
+# THE XFAIL THAT USED TO STAND HERE IS GONE BECAUSE THE DEFECT IS FIXED.
+#
+# It was `strict`, and its author wrote the whole diagnosis into the reason:
+# `text.structured` wrote TWO evidence rows for a text file -- the whole `body`
+# and the identifier span inside it -- while `pdf.text` wrote only the span. The
+# detector matches against evidence values, so a .txt reached it with the
+# document's words and a PDF reached it with an identifier and some metadata.
+# "The consequence is not a weaker answer for PDFs, it is NO answer ... Most
+# documents on a real disk are PDFs, so this is the largest single cause of
+# 'nobody got a file filed', and it sits UPSTREAM of the model: no amount of
+# model wiring reaches a file the detector never classified."
+#
+# It also predicted its own end -- "Verified to go green when the detector is
+# given the PDF's words. Strict, so the suite turns red the day it is fixed" --
+# and that is exactly how the fix was found: `src/extractors/pdf.py` learned to
+# emit a page of prose as a span-less `body` observation, and this test turned
+# the suite red by PASSING. The tripwire caught its own repair.
+#
+# Measured on the owner's real files at the same time: prose-carrying files went
+# from 16 of 199 to 120 of 199, because E1 (pdf) and E2 (docx) had never had
+# §2.4's prose-as-evidence path that E3 (structured_text) was given.
+#
+# The assertion below is unchanged. Only the marker is gone.
 def test_a_pdf_and_a_txt_of_the_same_document_get_the_same_answer(tmp_path):
     """One document, two files, two sentences on the same screen.
 
