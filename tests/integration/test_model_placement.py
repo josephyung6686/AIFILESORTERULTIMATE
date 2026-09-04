@@ -29,6 +29,7 @@ from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
 from evidence_shape.runs import ExtractionRun
 from evidence_shape.schema import create_evidence_schema
+from extractors.schema import create_extraction_schema
 from evidence_shape.store import record_observation, record_run, record_text_unit
 from evidence_shape.text_units import TextUnit
 from llm_harness.budgets import ScanBudget
@@ -57,6 +58,9 @@ TARGET = ModelTarget(locality="cloud", model_id="deepseek-chat",
 def db(conn):
     create_schema(conn)
     create_evidence_schema(conn)
+    # P5's tables, because `releasable_excerpts` reads P5's per-value sensitivity
+    # signal. A read against an absent table proves nothing about the read.
+    create_extraction_schema(conn)
     record_run(conn, ExtractionRun(
         run_id=RUN, file_id=FILE, content_hash=HASH, extractor_name="fixture",
         extractor_version="1", source_type="text_document",
@@ -311,10 +315,8 @@ def test_a_value_p5_signalled_sensitive_is_never_offered_to_a_placement_model(db
     the request is never BUILT — the same argument the zone exclusions rest on.
     """
     from extractors.long_tail import (
-        POTENTIALLY_SENSITIVE, SENSITIVITY_DDL, SensitivitySignal,
-        record_sensitivity_signals,
+        POTENTIALLY_SENSITIVE, SensitivitySignal, record_sensitivity_signals,
     )
-    db.executescript(SENSITIVITY_DDL)
 
     flagged = _observation(db, key="k-card", zone="body", value="4111 1111 1111 1111",
                            span=TextSpan(start=6, end=25),
