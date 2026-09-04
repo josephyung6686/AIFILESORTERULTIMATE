@@ -760,3 +760,76 @@ the classification rate cannot rise above the extraction rate: a file the detect
 handed nothing about is a file it must abstain on, correctly.
 
 **This is owed to whoever owns extraction, not to the owner as authoring work.**
+
+
+---
+
+## 19. THE RE-BASELINE: my §17 prediction is HALF WRONG, and a new exposure appears
+
+Measured against `.groundtruth/rebaseline-coursework/academic_coursework.sqlite`,
+199 files, 90 classified (45%).
+
+### My prediction was that more prose would not change the picture. It changed for half.
+
+| file | observations | safety terms now | verdict |
+|---|---|---|---|
+| `joseph Yung Vaccination Records.pdf` | 83 | `medical:immunization record`, `medical:immunization` @body | **NOW PROTECTED** |
+| `148268M000 FUND Trading OTC…pdf` | 15 | `finance:statement`, `declaration`, `return`, `shares`, `subscription`, `total`, `transaction` @body | **NOW PROTECTED** |
+| `2025209423_Joseph_Yung_HKID.pdf` | 21 | **STILL NONE** | released |
+| `Covid -19 vaccination record (1).pdf` | 23 | **STILL NONE** | released |
+
+**Two of four were starvation, not vocabulary, and I was wrong about them.** The
+vaccination record was saved because its text happens to use the American spelling
+`immunization`, which IS authored — luck, not coverage: the sibling
+`Covid -19 vaccination record` says "vaccination" and matches nothing. The OTC trading
+authorisation was saved by generic finance words in body prose, which is the same
+mechanism that produces §5's false locks.
+
+**Two of four confirm the vocabulary gap and are the harder cases.** A Hong Kong
+identity card, fully read at 21 observations, matches **no safety term at all**.
+
+### The new exposure, which is larger than the four files
+
+Classification rose to 45%, and the safety half did not come with it:
+
+| | files |
+|---|---|
+| `personal_non_sensitive`, `protected=0` | **78** |
+| — of those, matched **NO safety work type at all** | **41** |
+| — of those, matched a safety work type and were released anyway | 37 |
+| `sensitive_personal`, `protected=1` | 12 |
+
+**41 of 199 files (21%) are positively marked "not sensitive" on no safety evidence
+whatsoever.** Before tonight they had no classification row, and §8.4 makes a handling
+class a precondition of any model call — so being unclassified was accidentally
+holding the door shut. It is now open for all 41, the HKID among them.
+
+**A wrong confident answer is worse than a question, and this converted 41 questions
+into answers without gaining the evidence to answer them.**
+
+## 20. CAN THE DETECTOR SAY "ORDINARY, BUT I SAW NO SAFETY EVIDENCE"?
+
+**It can KNOW it. It cannot currently SAY it. Both halves matter.**
+
+**Knows it:** `_safety_readings_in_evidence` already returns exactly that set, is
+already computed on the classify path (`_precaution` calls it), and returns `()` for
+precisely the 41 files above. The distinction between *"I checked and it is fine"* and
+*"I concluded ordinary and matched no safety word at all"* is one empty-tuple test away
+and costs nothing.
+
+**Cannot say it:** the only field carrying that meaning is `ClassificationRecord.basis`,
+validated against `privacy.vocabulary.CLASSIFICATION_BASES`, which is
+`("detector", "safety_domain", "user")` — a **closed vocabulary**, and in
+`src/privacy/`, which is not this package's. A fourth member is needed to express it,
+and adding one is the owner's call.
+
+**Recommendation, for the owner rather than for an implementer.** The weaker claim
+deserves a weaker word. A basis meaning *"an ordinary classification reached without
+any safety evidence being seen"* would let the §8.4 gate refuse to treat it as a
+cleared file, which is the property that actually matters: the precondition would
+then be satisfied by *evidence of having looked*, not merely by *a class existing*.
+Two facts support it being a gate change rather than a detector one — the detector
+already knows, and 41 of 78 is too many to treat as an edge case.
+
+**Not implemented.** It needs a closed-vocabulary member and it touches
+`src/privacy/` and the gate, neither of which is this package's.
