@@ -24,3 +24,9 @@ graphify-out/
 .env
 .env.*
 !.env.example
+
+# The ground-truth corpus and its labels: 215 of the owner every one of whose
+# paths is a real path, and `paths` is the first entry in ALWAYS_LOCAL. This
+# repo has a remote, so committing them would be egress. Kept here rather than
+# in a session scratchpad so the instrument outlives the session that built it.
+.groundtruth/
