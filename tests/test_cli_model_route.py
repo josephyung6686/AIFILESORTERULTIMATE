@@ -39,6 +39,15 @@ def _route(monkeypatch, env=None, file_text=None, tmp_path=None):
     for name, value in (env or {}).items():
         monkeypatch.setenv(name, value)
     if file_text is not None:
+        # THIS FILE TESTS THE `.env` READER ITSELF, so it is the one place that
+        # opts back into reading one. `tests/conftest.py` sets
+        # `GRAPH_AGENT_NO_DOTENV` for the whole suite -- otherwise every test
+        # inherits the developer's real credential and a `--enable-cloud` test
+        # spends the owner's money on a paid API. A test about the parser must
+        # switch that off deliberately, which is exactly the opt-in the
+        # conftest note describes, and it points at a file under `tmp_path`
+        # rather than the repository's own.
+        monkeypatch.delenv("GRAPH_AGENT_NO_DOTENV", raising=False)
         path = tmp_path / ".env"
         path.write_text(file_text, encoding="utf-8")
         monkeypatch.setattr(cli, "ENV_FILE", path)

@@ -128,7 +128,7 @@ class NoAnswerFromModel(RuntimeError):
 
 
 def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
-          prompt: str) -> object:
+          prompt: str, timeout_seconds: float) -> object:
     """The one place this module touches a socket, so a test can replace it.
 
     Two statements, and they are the two this project cannot exercise without
@@ -137,7 +137,23 @@ def _send(*, api_key: str, base_url: str, model_id: str, max_tokens: int,
     """
     import openai
 
-    return openai.OpenAI(api_key=api_key, base_url=base_url).chat.completions.create(
+    # TIMEOUT AND RETRIES ARE BOTH SET, and neither has a default here. The
+    # library's own are ten minutes PER ATTEMPT with retries on top, so an
+    # unanswered request holds a scan open long past the point a person is still
+    # watching -- measured: the test suite stopped dead for ten minutes, twice,
+    # with no output, the first time a real client reached a `--enable-cloud`
+    # test. §8.6 bounds model SPEND and says nothing about a socket that never
+    # answers, so a hung call is not a budget event, not a `budget_deferred` and
+    # not a refusal: it is a run over ten thousand files that never finishes.
+    #
+    # `max_retries=0` because a retry multiplies the wait by a number the caller
+    # never chose, and because P8 already owns what happens to a failed call --
+    # retrying inside the transport would spend a second call the budget never
+    # reserved.
+    return openai.OpenAI(
+        api_key=api_key, base_url=base_url,
+        timeout=timeout_seconds, max_retries=0,
+    ).chat.completions.create(
         model=model_id,
         max_tokens=max_tokens,
         messages=[{"role": "user", "content": prompt}],
@@ -239,6 +255,7 @@ def _require_target(model_target: ModelTarget) -> None:
 
 def deepseek_invoke(*, api_key: str | None, base_url: str | None,
                     model_target: ModelTarget, max_response_tokens: int,
+                    timeout_seconds: float | None = None,
                     send: Callable[..., object] = _send,
                     ) -> Callable[[bytes], bytes]:
     """A `ModelClient.invoke`: the model-visible bytes in, the model's answer out.
@@ -256,6 +273,15 @@ def deepseek_invoke(*, api_key: str | None, base_url: str | None,
             "names its ceilings configurable and gives no values, and a value below "
             "one is not an echo of any ceiling"
         )
+    if not isinstance(timeout_seconds, (int, float)) or isinstance(
+            timeout_seconds, bool) or timeout_seconds <= 0:
+        raise ValueError(
+            "timeout_seconds is injected and is the deployment's patience; a "
+            "client built without one can hold a scan open for ever, and zero "
+            "is not patience but a different bug wearing a number. `cli.py` is "
+            "the only file that picks it, the same way it picks every other "
+            "number this module refuses to invent."
+        )
     model_id = model_target.model_id
 
     def invoke(payload: bytes) -> bytes:
@@ -272,6 +298,7 @@ def deepseek_invoke(*, api_key: str | None, base_url: str | None,
         return response_text(send(
             api_key=key, base_url=endpoint, model_id=model_id,
             max_tokens=max_response_tokens, prompt=prompt,
+            timeout_seconds=timeout_seconds,
         )).encode("utf-8")
 
     return invoke

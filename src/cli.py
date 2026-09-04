@@ -393,6 +393,26 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
 #: than returning half a document for P8 to reject on the model's behalf.
 MAX_RESPONSE_TOKENS: int = 2048
 
+#: HOW LONG ONE MODEL CALL MAY TAKE BEFORE THE RUN GIVES UP ON IT, in seconds, and
+#: the only place the number is chosen -- `deepseek_invoke` refuses to be built
+#: without one.
+#:
+#: WHY IT EXISTS. The transport built its client with no timeout and no retry
+#: ceiling, and the library's own defaults are ten minutes PER ATTEMPT with retries
+#: on top. Measured the day the A_fact site was first wired: the whole test suite
+#: stopped dead for ten minutes with no output, twice, and could not be run at all.
+#: In a person's ten-thousand-file scan the same silence is a run that never ends.
+#:
+#: WHY NINETY. Measured against the live API on this owner's account: a ten-file
+#: batch answered in 3.4 seconds on a non-reasoning model and 16.5 seconds on a
+#: reasoning tier that spends its budget thinking before it writes. Ninety is about
+#: five times the slowest answer observed -- long enough that a slow but healthy
+#: call is never cut off, short enough that a dead socket is not mistaken for
+#: patience. §8.6 bounds model SPEND and says nothing about a call that never
+#: returns, so this is not a budget ceiling and a call that hits it is not
+#: `budget_deferred`: it is a failed call, and P8 records it as one.
+MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
+
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
 ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
 
@@ -565,7 +585,19 @@ def model_route(*, out) -> TierRouting | None:
     """
     from os import environ
 
-    supplied = _dotenv(ENV_FILE)
+    # THE ENVIRONMENT MAY WITHHOLD THE KEY, and until now it could not. `ENV_FILE`
+    # is the repository's own `.env`, read unconditionally, so a process that set
+    # no credential still got one -- including every test in this suite. Measured
+    # the day the A_fact site was first wired: a `--enable-cloud` test found a real
+    # key, built a real client, called a paid API, and stopped the suite for ten
+    # minutes with no output.
+    #
+    # A test that spends the owner's money is a defect whatever it asserts, and a
+    # deployment with no way to say "not this run" has no way to be tested at all.
+    # `GRAPH_AGENT_NO_DOTENV` is that way. The environment still wins over the file
+    # when it is not set, which is unchanged.
+    supplied = ({} if environ.get("GRAPH_AGENT_NO_DOTENV")
+                else _dotenv(ENV_FILE))
 
     def value(name: str) -> str:
         # The environment first, then the file, then nothing. Never a literal.
@@ -584,7 +616,8 @@ def model_route(*, out) -> TierRouting | None:
             model_id_of_tier={tier: value(name)
                               for tier, name in MODEL_NAME_OF_TIER.items()},
             tier_of_call_site=TIER_OF_CALL_SITE,
-            max_response_tokens=MAX_RESPONSE_TOKENS)
+            max_response_tokens=MAX_RESPONSE_TOKENS,
+            timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS)
     except (ValueError, RuntimeError) as refusal:
         # Every refusal `readers/` can raise names what was missing and what to
         # set. Printed, not raised: a misconfigured model is not a reason to

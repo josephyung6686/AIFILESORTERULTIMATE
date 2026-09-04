@@ -71,7 +71,8 @@ class _Response:
 
 
 def _answering(text: str, captured: dict | None = None):
-    def send(*, api_key, base_url, model_id, max_tokens, prompt):
+    def send(*, api_key, base_url, model_id, max_tokens, prompt,
+             timeout_seconds=None):
         if captured is not None:
             captured.update(api_key=api_key, base_url=base_url, model_id=model_id,
                             max_tokens=max_tokens, prompt=prompt)
@@ -84,7 +85,7 @@ def _built(**overrides):
     arguments = dict(api_key="k", base_url=ENDPOINT, model_target=TARGET,
                      max_response_tokens=ONE_TOKEN, send=_answering("{}"))
     arguments.update(overrides)
-    return deepseek_invoke(**arguments)
+    return deepseek_invoke(**arguments, timeout_seconds=30)
 
 
 # --- absent means refuse, and refuse is not "carry on without a model" ----------
@@ -129,7 +130,7 @@ def test_the_refusal_happens_before_a_run_can_start():
     above would record as a schema-invalid model answer that no model gave."""
     with pytest.raises(ModelCredentialMissing):
         deepseek_invoke(api_key=None, base_url=ENDPOINT, model_target=TARGET,
-                        max_response_tokens=ONE_TOKEN)
+                        max_response_tokens=ONE_TOKEN, timeout_seconds=30)
 
 
 def test_a_ceiling_below_one_is_not_a_ceiling():

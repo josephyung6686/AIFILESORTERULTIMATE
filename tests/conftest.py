@@ -1,8 +1,24 @@
+import os
 from pathlib import Path
 
 import pytest
 
 from database_agent.db import open_database
+
+#: NO TEST MAY SPEND THE OWNER'S MONEY, and until this line existed every one of
+#: them could. `cli.py` read the repository's own `.env` unconditionally, so any
+#: test passing `--enable-cloud` found a real credential, built a real client and
+#: called a paid API. Measured the day the A_fact site was wired:
+#: `test_a_second_source_does_not_send_under_the_first_ones_consent` stopped the
+#: whole suite dead for ten minutes with no output, twice, and the suite could not
+#: be run at all until this was set.
+#:
+#: Set at IMPORT, before any test or fixture runs, because `cli.py` reads the file
+#: inside the run rather than at import and a fixture would be too late for a test
+#: that builds its client first. A test that genuinely wants a live model must
+#: unset it deliberately and say why -- which is the point: sending is now a thing
+#: a test opts INTO, not something it inherits from the developer's own machine.
+os.environ.setdefault("GRAPH_AGENT_NO_DOTENV", "1")
 
 #: The repository root, which is also pytest's working directory.
 _ROOT: Path = Path(__file__).resolve().parents[1]

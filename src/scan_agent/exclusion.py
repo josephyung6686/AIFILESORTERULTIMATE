@@ -45,9 +45,27 @@ EXCLUSION_CATEGORIES: tuple[str, ...] = (
 #: was being read, extracted and offered a home as if it were their own writing.
 #: The design's four could not reach them -- an Arduino library has no
 #: `package.json`.
+#: `pyproject.toml`, `setup.py` and `CMakeLists.txt` are the same KIND of thing as
+#: §1.1's four -- the manifest that marks the root of a source tree -- and §1.1's
+#: four simply do not reach the languages this owner writes. Measured on his disk:
+#: 5 directories carry `pyproject.toml`, 3 carry `setup.py`, 18 carry
+#: `CMakeLists.txt`, and between them they hold 71,517 FILES that were being read
+#: as his own writing:
+#:
+#:     36,409  Desktop/podcast-code/podcast-generator
+#:     31,269  Desktop/Database agent/_archive/filemind-backburner/filemind
+#:        907  .../ai-file-sorter/external/libzip      (vendored C library)
+#:        575  .../ai-file-sorter/external/Catch2      (vendored C++ test framework)
+#:         83  .../ai-file-sorter/external/pugixml     (vendored XML parser)
+#:
+#: `requirements.txt` reaches a Python project of 2015 and not one of today;
+#: nothing in §1.1's four reaches C or C++ at all. The libzip tree is also where
+#: `filename_duplicate.zip` lives -- the adversarial archive that unwound an entire
+#: 5,760-file run before `446d7f3` -- so this exclusion removes a whole class of
+#: hostile input along with the noise.
 PROJECT_ROOT_MARKERS: tuple[str, ...] = (
     "package.json", "requirements.txt", "Cargo.toml", "go.mod",
-    "library.properties",
+    "library.properties", "pyproject.toml", "setup.py", "CMakeLists.txt",
 )
 
 #: THE FIVE CATEGORIES, AUTHORED. Each member below was measured on a real disk

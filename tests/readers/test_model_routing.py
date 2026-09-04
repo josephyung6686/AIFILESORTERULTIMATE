@@ -52,7 +52,7 @@ ONE_TOKEN = 1
 def _routing(table=None, **overrides):
     arguments = dict(api_key="k", base_url=ENDPOINT, model_id_of_tier=IDS,
                      tier_of_call_site=TABLE if table is None else table,
-                     max_response_tokens=ONE_TOKEN)
+                     max_response_tokens=ONE_TOKEN, timeout_seconds=30)
     arguments.update(overrides)
     return deepseek_routing(**arguments)
 
@@ -237,7 +237,7 @@ def test_the_ceiling_reaches_every_tier():
     the high-volume one -- if the loop had been written per-site."""
     for bad in (0, -1, None):
         with pytest.raises(ValueError, match="max_response_tokens"):
-            _routing(max_response_tokens=bad)
+            _routing(max_response_tokens=bad, timeout_seconds=30)
 
 
 # --- the shape of the module itself -------------------------------------------

@@ -126,3 +126,52 @@ def test_a_file_under_an_arduino_library_is_excluded_as_a_descendant(tmp_path):
     assert verdict is not None
     assert verdict.rule == RULE_PROJECT_ROOT_DESCENDANT
     assert verdict.rule_subject == "library.properties"
+
+
+# --------------------------------------------------------------------------
+# The markers §1.1's four do not reach.
+# --------------------------------------------------------------------------
+
+def test_a_python_project_root_is_recognised_by_pyproject_toml():
+    """§1.1 names `requirements.txt`; modern Python projects ship `pyproject.toml`.
+
+    Measured on the owner's disk: 5 directories carry one, 3 carry `setup.py`,
+    18 carry `CMakeLists.txt`. Between them they hold 71,517 files -- vendored C++
+    libraries (libzip 907, Catch2 575, pugixml 83) and two large project trees
+    (a podcast generator at 36,409 files, an archived app at 31,269) -- every one
+    of them read as the owner's own writing because the four markers §1.1 spells
+    happen not to appear at their roots.
+
+    §1.1's list is "files such as `package.json`, `requirements.txt`,
+    `Cargo.toml`, or `go.mod`" and the module's own note calls "such as" an
+    extensible set whose extensions are hand-authored. These three are the same
+    KIND of thing as the four: the manifest that marks the root of a source tree.
+    """
+    for marker in ("pyproject.toml", "setup.py", "CMakeLists.txt"):
+        assert marker in PROJECT_ROOT_MARKERS, marker
+        assert project_root_markers_in(
+            [("README.md", False), (marker, False), ("src", True)]) == (marker,)
+
+
+def test_the_designs_four_still_come_first_and_unedited():
+    """Authoring a fifth, sixth or seventh may not reorder or edit §1.1's own."""
+    assert PROJECT_ROOT_MARKERS[:4] == (
+        "package.json", "requirements.txt", "Cargo.toml", "go.mod")
+
+
+def test_a_source_file_under_a_cmake_tree_is_excluded_as_a_descendant(tmp_path):
+    """The libzip case: 907 files, including the `filename_duplicate.zip` that
+    crashed a whole 5,760-file run before commit 446d7f3."""
+    verdict = exclusion_for(tmp_path / "libzip" / "regress" / "add_from_zip.c",
+                            is_dir=False, applies_to="scanned",
+                            project_root_markers=("CMakeLists.txt",))
+    assert verdict is not None
+    assert verdict.rule == RULE_PROJECT_ROOT_DESCENDANT
+
+
+def test_a_folder_of_the_persons_own_documents_is_not_a_project_root():
+    """The negative twin. A marker is a FILE at the root of a source tree; a
+    folder of essays that happens to contain a text file is not one."""
+    assert project_root_markers_in(
+        [("Additional information.docx", False), ("CU Activities list.xlsx", False),
+         ("notes.txt", False), ("Essays", True)]) == ()
