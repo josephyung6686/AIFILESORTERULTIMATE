@@ -86,6 +86,11 @@ from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 from extraction_pool import ExtractionContext, InlinePool
 from production import P1P7Authorities, bootstrap_p1_p7, run_production_p1_p7
 from readers.deployment import macos_readers
+
+#: A cell ceiling high enough that no fixture here reaches it. `macos_readers`
+#: refuses to pick one -- it is a policy and `cli.SPREADSHEET_CELL_CEILING` is
+#: where the product picks it -- so every caller states the one it means.
+CELL_CEILING_UNREACHED = 1_000_000
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.exclusion import is_protected_container
 from scan_agent.selection import record_selection
@@ -213,7 +218,9 @@ def _authorities(bundle_expectations=()) -> P1P7Authorities:
     # The real protected-container predicate, built once and shared with the pool.
     policy = SafetyPolicy(is_protected_container=is_protected_container,
                           is_dataless=lambda path: False)
-    readers = macos_readers(find_structured_strings=_find_structured_strings)
+    readers = macos_readers(
+        find_structured_strings=_find_structured_strings,
+        spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED)
     return P1P7Authorities(
         bundle_expectations=bundle_expectations,
         native_resolver=_resolver(
@@ -451,7 +458,7 @@ def _call_dependencies(live: LiveRun) -> CallDependencies:
             max_calls_per_1000_files=5, max_estimated_cost=Decimal("10"),
             min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
-        allowed_vocabulary=("coherent",),
+        allowed_vocabulary=("coherent",), folder_levels=(),
         policy_version=live.policy.policy_version, wire_handle_key=FIXTURE_HANDLE_KEY)
 
 

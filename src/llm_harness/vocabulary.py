@@ -120,6 +120,22 @@ REDUCTION_RUNGS: tuple[str, ...] = (
 )
 
 # ---------------------------------------------------------------------------
+# How strongly the template library grades one folder level
+# ---------------------------------------------------------------------------
+
+#: The template library's own two words for a dimension, copied rather than
+#: imported: `tests/p8/test_p8_architecture.py` forbids every P8 module from
+#: importing `tree_design`, so the shared spelling cannot be read off
+#: `tree_design.vocabulary.DIMENSION_REQUIREMENTS` the way `RELIABILITY_STATES` is
+#: read off P4. `tests/integration/test_template_levels_wiring.py` asserts the two
+#: lists are equal, so a library that renames a word is a red test rather than a
+#: dossier carrying a word P8 alone believes in.
+LEVEL_REQUIRED: str = "required"
+LEVEL_OPTIONAL: str = "optional"
+
+LEVEL_REQUIREMENTS: tuple[str, ...] = (LEVEL_REQUIRED, LEVEL_OPTIONAL)
+
+# ---------------------------------------------------------------------------
 # Closed eligibility reasons, per site
 # ---------------------------------------------------------------------------
 

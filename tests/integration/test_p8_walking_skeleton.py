@@ -230,7 +230,7 @@ def walk(skeleton_conn, monkeypatch):
         ),
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),
-        allowed_vocabulary=("subject",),
+        allowed_vocabulary=("subject",), folder_levels=(),
         policy_version=policy.policy_version, wire_handle_key=FIXTURE_HANDLE_KEY,
     )
     return conn, file_id, key, digest, prompt, fingerprint, policy, request, dependencies
@@ -396,7 +396,8 @@ def test_replay_of_the_walk_uses_the_same_dispatcher_and_calls_no_model(walk):
     released = egress._gate(conn).release(request.model_call_request)
     dossier = build_dossier(
         request, released, reduction_rung=REDUCTION_NONE,
-        allowed_vocabulary=("subject",), prompt=prompt, handle_key=FIXTURE_HANDLE_KEY,
+        allowed_vocabulary=("subject",), folder_levels=(), prompt=prompt,
+        handle_key=FIXTURE_HANDLE_KEY,
     )
     assert released.release_id != dossier_id
     assert dossier.dossier_id == dossier_id, (

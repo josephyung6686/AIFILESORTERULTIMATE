@@ -90,8 +90,10 @@ import cli  # noqa: E402
 #: precisely the fact `80` §3 (R1) says only the person can supply.
 CORPUS: dict[str, str] = {
     "CHEM 2210 reference letter.txt":
-        "CHEM 2210\n\nReference letter. To whom it may concern.\n",
-    "CHEM 2210 quiz 2.txt": "CHEM 2210\n\nQuiz 2. Due Friday. Grade.\n",
+        "CHEM 2210\n\nReference letter. To whom it may concern.\n"
+        "Instructor: Dr. Ramirez.\n",
+    "CHEM 2210 quiz 2.txt":
+        "CHEM 2210\n\nQuiz 2. Due Friday. Grade.\nInstructor: Dr. Ramirez.\n",
 }
 
 

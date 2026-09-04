@@ -88,6 +88,7 @@ from llm_harness.dossier import field_glossary
 from llm_harness.records import (
     Conflict,
     EvidenceItem,
+    FolderLevel,
     MalformedRecord,
     PromptDefinition,
 )
@@ -95,6 +96,7 @@ from llm_harness.vocabulary import (
     CALL_SITES,
     ELIGIBILITY_BY_SITE,
     EVIDENCE_BASES,
+    LEVEL_REQUIREMENTS,
     REDUCTION_RUNGS,
 )
 # P4's, not P8's: `EvidenceItem.__post_init__` checks `reliability_state` against
@@ -108,10 +110,17 @@ from privacy.release import RELEASED_EVIDENCE_FIELDS
 #: Every top-level key `dossier._body` writes into the model-visible dossier.
 DOSSIER_BODY_KEYS: frozenset[str] = frozenset({
     "allowed_vocabulary", "call_site", "conflicts", "eligibility_reason",
-    "evidence_items", "field_glossary", "max_dossier_tokens", "plan_version",
-    "policy_version", "reduction_rung", "released_evidence", "response_schema",
-    "shaping_policy", "subject_ref",
+    "evidence_items", "field_glossary", "folder_levels", "max_dossier_tokens",
+    "plan_version", "policy_version", "reduction_rung", "released_evidence",
+    "response_schema", "shaping_policy", "subject_ref",
 })
+
+#: The three keys one `folder_levels` entry carries, READ from the record so a
+#: field added to `FolderLevel` is a door that refuses until somebody looks. A
+#: fourth key is how an example drawn from the person's corpus would travel beside
+#: a library constant.
+FOLDER_LEVEL_FIELDS: frozenset[str] = frozenset(
+    f.name for f in dataclasses.fields(FolderLevel))
 
 #: The one key inside it the release authorized.
 RELEASED_EVIDENCE_KEY: str = "released_evidence"
@@ -227,6 +236,22 @@ def released_content_digest(canonical_dossier_bytes: bytes, *,
             "field_glossary is not what this call's allowed_vocabulary produces. "
             "`_body` builds it from the vocabulary and nothing else, so a glossary "
             "that disagrees carries text no authored meaning put there")
+
+    # A PROJECTION of the vocabulary above it, recomputed here for the same reason
+    # the glossary is: a level naming a field the vocabulary does not carry is the
+    # model instructed to fill a key its answer will be rejected for proposing, and
+    # the ledger should refuse those bytes rather than pay for them.
+    vocabulary = set(body["allowed_vocabulary"])
+    for level in _require_entries(body["folder_levels"], FOLDER_LEVEL_FIELDS,
+                                  slot="folder_levels"):
+        _require_member(level["requirement"], LEVEL_REQUIREMENTS,
+                        slot="folder_levels[].requirement")
+        if level["field"] not in vocabulary:
+            _refuse(
+                f"folder level {level['field']!r} is not in this call's "
+                "allowed_vocabulary. The two are one computation, and a model told "
+                "to fill a field outside the closed vocabulary is rejected under "
+                "check 1 for obeying its instructions")
 
     for item in _require_entries(body["evidence_items"], EVIDENCE_ITEM_FIELDS,
                                  slot="evidence_items"):

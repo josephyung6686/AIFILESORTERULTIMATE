@@ -48,7 +48,7 @@ from facts.facets import word_boundary_match
 from facts.file_facts import FACT_ORIGINS, write_fact, RULE
 from facts.states import VALIDATED
 from facts.unresolved import ATTEMPTED_PRODUCERS, write_unresolved
-from facts.values import VALUE_ORIGINS, ensure_value
+from facts.values import VALUE_ORIGINS, add_raw_variant, ensure_value
 
 #: §3.5's five academic context terms, quoted from the design and complete. This is
 #: the ONLY context vocabulary `facts` authors; everything else is injected on a
@@ -181,6 +181,23 @@ def apply_rules(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
                                                      else rule.canonical(matched)),
                                     first_evidence_ref=cite(observation),
                                     origin=VALUE_ORIGINS[0])
+            # §2.8's FIRST rendering, the same one `facts.direct` keeps and for the
+            # same reason: "the raw observation remains exactly that wording".
+            #
+            # IT IS HERE BECAUSE A FIELD MOVED. `subject` was a DIRECT slot until
+            # 2026-09-04 and `direct_facts` has kept its raw variants since the
+            # column gained its first caller; moving the field to a rule moved it to
+            # the one producer that dropped them, and `PHYS 1401`, `PHYS-1401` and
+            # `PHYS1401` would have collapsed to one value with no surviving record
+            # that any document printed a space. `rule.canonical` is exactly what
+            # makes that a loss rather than a redundancy -- it exists to collapse
+            # spellings, and once it has, the canonical form is the only evidence
+            # left of what was on the page.
+            #
+            # The MATCH, not the whole reading: `pattern.search` may claim a
+            # substring, and the wording this column promises is the wording of the
+            # value, not of the paragraph it was found in.
+            add_raw_variant(conn, value_id, matched)
             written.append(write_fact(
                 conn, file_id=file_id, content_hash=content_hash,
                 field_key=rule.field_key, value_id=value_id,

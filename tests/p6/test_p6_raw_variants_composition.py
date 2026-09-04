@@ -54,9 +54,19 @@ Meets Tuesday and Thursday.
 #:
 #: Measured, not assumed: sabotaging the loop down to `[0]` stayed green through both
 #: earlier corpora and goes red on this one.
+#: `Instructor:` IS LOAD-BEARING AND WAS ADDED ON 2026-09-04. `subject` stopped being
+#: a DIRECT slot over a bare shape that day and became `cli.SUBJECT_RULE`, which is
+#: §3.5's rule: a course-code pattern is a fact only "together with academic context
+#: such as 'syllabus,' 'lecture,' 'credits,' 'instructor,' or 'semester'". `BODY`
+#: above always said `Syllabus` and `Instructor` and needed no change; this fixture
+#: said neither, so under the shipped producer it now yields no `subject` at all and
+#: the two tests below lost their subject. That is the rule working -- the same
+#: refusal stops a ZIP code and a flight number naming a folder -- and a real problem
+#: set names its instructor, so the fixture says what such a document says. Nothing
+#: about the raw-wording question these tests ask has changed.
 SECOND_CODE = """CHEM 2100 Problem Set 3
 
-Submit to the CHEM-2100 dropbox by Friday.
+Instructor: R. Feynman. Submit to the CHEM-2100 dropbox by Friday.
 """
 
 

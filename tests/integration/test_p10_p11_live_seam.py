@@ -201,7 +201,12 @@ def _inputs(corpus, result, **over):
         ask_or_abstain=lambda ids: v.ABSTAIN, max_return_cycles=1, gate=None,
         model_client=None, prompt=None, call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
-        sensitivity_policy=None, p2=None)
+        sensitivity_policy=None,
+        # Nothing to ask about and nothing already answered. Both are
+        # required with no default, so a fixture states its position
+        # rather than inheriting one.
+        ask_about_file=lambda subject: None,
+        chosen_by_user=lambda subject: None, p2=None)
     values.update(over)
     return PipelineInputs(**values)
 

@@ -286,6 +286,10 @@ def _call_dependencies(authorities: PlacementCallAuthorities) -> CallDependencie
         estimated_cost=authorities.estimated_cost,
         actual_cost=authorities.actual_cost,
         allowed_vocabulary=None,
+        # C and D place a file inside a tree that is already designed. They propose
+        # no field and build no level, so the truthful list is empty -- not `None`,
+        # which `run_call` reads as a caller who never answered.
+        folder_levels=(),
         policy_version=authorities.policy_version,
         wire_handle_key=authorities.wire_handle_key)
 

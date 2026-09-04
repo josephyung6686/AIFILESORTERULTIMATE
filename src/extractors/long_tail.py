@@ -124,6 +124,17 @@ class LongTailFile:
     texts: tuple[LongTailText, ...] = ()
     iso_dates: Mapping[str, str] = dataclass_field(default_factory=dict)
 
+    #: §8.6's ceiling, in the shape `PdfDocument` has carried since it was written.
+    #: `texts` is what was STORED; `cells_total` is how many the file holds. They
+    #: differ only when the reader stopped at a ceiling, and `capped` says so outright
+    #: rather than leaving it to be inferred from two numbers.
+    #:
+    #: `None` means this format has no cells to count -- an email, a calendar, a
+    #: contact card -- and such a run keeps counting ENTRIES, which is what it always
+    #: counted. A default of `0` would make `coverage` claim a spreadsheet was empty.
+    cells_total: int | None = None
+    capped: bool = False
+
 
 @dataclass(frozen=True)
 class SensitivitySignal:
@@ -318,6 +329,19 @@ def extract_long_tail(
                  sensitive_basis=found_basis, time_span=text.time_span)
 
     entries = len(document.entries) or 1
+    # A spreadsheet counts CELLS and everything else counts ENTRIES, and the reader
+    # says which by reporting a cell total or not. Both numbers used to be read off
+    # `len(document.entries)`, so a sheet read to its ceiling had no shape to state
+    # that in and every run was `complete` by construction -- §2.4 forbids exactly
+    # that. `cells_read` is counted from the texts that ARRIVED rather than taken
+    # from the reader, so the processed half of the coverage is a fact this function
+    # verified; the total is the reader's, because it is the only thing that saw the
+    # rest of the file.
+    if document.cells_total is None:
+        cover = coverage("entries", entries, entries)
+    else:
+        cells_read = sum(1 for text in document.texts if text.row is not None)
+        cover = coverage("cells", cells_read, document.cells_total)
     extraction = ExtractionResult(
         run=run(file_id=file_row["file_id"],
                 content_hash=file_row["content_hash"],
@@ -325,8 +349,8 @@ def extract_long_tail(
                 source_type=source_type, analysis_tier=ANALYSIS_TIER,
                 config={"reader": "injected", "transcribe": transcribe,
                         "context_window": context_window},
-                completeness="complete",
-                coverage=coverage("entries", entries, entries),
+                completeness="capped" if document.capped else "complete",
+                coverage=cover,
                 observation_count=len(observations), started_at=now,
                 finished_at=now),
         observations=tuple(observations),

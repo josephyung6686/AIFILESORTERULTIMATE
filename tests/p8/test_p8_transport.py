@@ -143,6 +143,9 @@ def _body(released: Released, *, call_site: str = A_FACT,
         "eligibility_reason": ELIGIBILITY_BY_SITE[call_site][0],
         "evidence_items": [],
         "field_glossary": {},
+        # This site designs no folder tree, so the truthful list is empty -- and it
+        # is PRESENT, because the door reads the body's key set by equality.
+        "folder_levels": [],
         "max_dossier_tokens": 0,
         "plan_version": None,
         "policy_version": released.policy_version,

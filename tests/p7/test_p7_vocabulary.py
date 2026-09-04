@@ -217,10 +217,19 @@ def test_an_out_of_vocabulary_item_kind_is_refused():
 
 # --- the eight denial reasons and the five protected spellings ---------------
 
-def test_the_eight_denial_reasons_are_the_specs_eight_in_order():
+def test_the_denial_reasons_are_the_specs_eight_in_order_and_the_one_added_since():
+    """SPEC §6's eight, in the SPEC's order, plus `no_safety_evidence`.
+
+    The ninth arrived 2026-09-04 with `CLASSIFICATION_BASES`' fourth member, and it
+    sits beside `unclassified` because it is the same §8.4 precondition read one step
+    further in. It could not borrow `unclassified`: that reason's explanation says
+    "no classification record exists", and the file it would be answering for HAS
+    one. `96` §19's complaint is about a confident sentence that is not true, and
+    reusing the eighth reason would have moved that sentence rather than removing it.
+    """
     assert DENIAL_REASONS == (
-        "protected_cloud_target", "unclassified", "policy_revoked",
-        "protected_records_template", "whole_document_requested",
+        "protected_cloud_target", "unclassified", "no_safety_evidence",
+        "policy_revoked", "protected_records_template", "whole_document_requested",
         "dossier_over_budget", "always_local_item", "mode_forbids_target",
     )
     assert check_denial_reason("unclassified") == "unclassified"
@@ -299,8 +308,17 @@ def test_the_five_display_facets_are_the_designs_own_words():
         "names", "previews", "thumbnails", "ocr_text", "location_data")
 
 
-def test_three_classification_bases_and_three_audit_outcomes():
-    assert CLASSIFICATION_BASES == ("detector", "safety_domain", "user")
+def test_four_classification_bases_and_three_audit_outcomes():
+    """SPEC §2 names three bases; the fourth is a SPLIT of the first, added 2026-09-04.
+
+    Both detector members are the detector concluding from the file's own terms. What
+    separates them is whether any safety domain's own work type was among those terms
+    -- `96` §19 measured 41 of 78 released files where none was, and every one of them
+    was saying `detector`, the same word as a file whose safety evidence had been
+    examined and weighed.
+    """
+    assert CLASSIFICATION_BASES == (
+        "detector", "detector_no_safety_evidence", "safety_domain", "user")
     assert AUDIT_OUTCOMES == ("released", "denied", "consent_requested")
 
 

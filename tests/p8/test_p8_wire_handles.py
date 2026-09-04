@@ -149,7 +149,7 @@ def _build(*, handle_key: bytes = KEY_A, subject_ref: str = GROUP_ID,
     return build_dossier(
         _request(subject_ref=subject_ref, obs=obs), _released(obs=obs),
         reduction_rung=REDUCTION_NONE, allowed_vocabulary=VOCABULARY,
-        prompt=_prompt(), handle_key=handle_key)
+        folder_levels=(), prompt=_prompt(), handle_key=handle_key)
 
 
 def _wire(*, handle_key: bytes = KEY_A, **kwargs) -> dict:

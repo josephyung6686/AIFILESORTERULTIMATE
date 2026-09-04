@@ -118,13 +118,31 @@ def test_the_ordinary_files_beside_a_passport_scan_still_freeze(tmp_path):
     """
     printed = _run(_corpus(tmp_path, with_passport=True))
 
-    assert "Frozen: 3 file(s) are ready to move, in 1 branch(es)." in printed, \
+    # THE BRANCH COUNT CHANGED 2026-09-04 AND THE FILE COUNT DELIBERATELY DID
+    # NOT. This read `in 1 branch(es)` while `work_type` had no producer: the
+    # recipe's fourth level resolved to nothing, so all three files froze into
+    # one branch. `facts.kind` now reads the shipped vocabulary and these three
+    # files are three different kinds of work, so they freeze into three. What
+    # this test is about is the COUNT -- "the person's complaint was about a
+    # count" -- and it is still three, over the same three names asserted below.
+    assert "Frozen: 3 file(s) are ready to move, in 3 branch(es)." in printed, \
         printed
     for name in ("homework 3.txt", "reading list.txt",
                  "Uni/PHYS 1401 lecture 08.txt"):
         assert name in printed, (name, printed)
     # The gesture that moves them is offered. `94` F1's screen offered none.
-    assert "--apply Coursework/PHYS1401" in printed, printed
+    #
+    # The branch it names changed 2026-09-04 with the same cause as the count
+    # above. It was `Coursework/PHYS1401`, the course level. These four files are
+    # one course, so `subject` resolves to one value, does not divide, and is not
+    # built -- it always was flattened, and while `work_type` had no producer
+    # there was nothing under it, so the branch was the course's own name. Now
+    # `work_type` divides and the branches are the kinds of work. What this line
+    # asserts is unchanged and is the whole of `94` F1: a gesture that moves
+    # these files is on the screen, where before there was none.
+    for branch in ("Coursework/homework", "Coursework/lecture",
+                   "Coursework/reading"):
+        assert f"--apply {branch}" in printed, (branch, printed)
 
     # And the sentence the person was owed and did not get: nothing in this run
     # tells them their coursework is protected.
@@ -175,6 +193,12 @@ def test_the_same_corpus_without_the_passport_freezes_the_same_three(tmp_path):
     """
     printed = _run(_corpus(tmp_path, with_passport=False))
 
-    assert "Frozen: 3 file(s) are ready to move, in 1 branch(es)." in printed, \
+    # Same 2026-09-04 change as its twin above, and it lands identically here --
+    # which is the point of a control. The causal claim this test exists to make
+    # is that BOTH runs freeze the same three files, and both still do. This
+    # docstring already holds that the destination varies with what a level
+    # divides and that this "is P10 doing its job and not this guard doing
+    # anything"; a third dividing level is the same sentence, one level down.
+    assert "Frozen: 3 file(s) are ready to move, in 3 branch(es)." in printed, \
         printed
     assert REFUSAL_CLASS not in printed, printed

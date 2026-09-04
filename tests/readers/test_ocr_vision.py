@@ -176,14 +176,66 @@ def test_configuration_reaches_the_run_and_therefore_the_cache_key():
             f"{setting} is not read from config, so it never reaches the run")
 
 
-def test_an_unreadable_file_raises_rather_than_returning_empty(tmp_path):
-    """The §2.4 rule again: empty output would become a `complete` OCR run with no
+def test_an_unreadable_file_never_comes_back_as_an_empty_reading(tmp_path):
+    """The §2.4 rule: empty output would become a `complete` OCR run with no
     observations, which says the image contained no text rather than that it could
-    not be read."""
+    not be read.
+
+    It may come back as `None` -- §2.4's OTHER outcome, "no reader exists for this
+    format in this deployment" -- and the two tests below say which is which. What it
+    may never be is an `OcrOutput` with no regions.
+    """
     junk = tmp_path / "not-an-image.png"
     junk.write_bytes(b"nope")
+    try:
+        out = vision_ocr()(junk, config=dict(ACCURATE))
+    except Exception:
+        return
+    assert out is None, (
+        "an unreadable file came back as a reading. An OcrOutput with no regions "
+        "becomes a `complete` run carrying nothing, which is the one outcome §2.4 "
+        "rules out absolutely")
+
+
+def test_a_format_the_image_stack_cannot_decode_is_no_reader_not_a_failure(tmp_path):
+    """§2.4's two words, and the line between them.
+
+    > `unsupported` -- no reader exists for this format in this deployment
+    > `failed`      -- a reader RAN and raised; a fact about the bytes
+
+    An SVG is a perfectly valid, undamaged document that ImageIO ships no decoder
+    for: `CGImageSourceGetType` returns NULL because no image format was recognised
+    in the bytes at all. Raising there recorded seven undamaged vector logos as
+    `ocr · failed · "no image could be decoded"` -- a statement that those files are
+    corrupt, which is false, in a column every later stage trusts.
+
+    `None` is how every other reader in this deployment says "no library for this"
+    (`readers/deployment.py`: *"A format with no library returns `None`, never an
+    exception"*), and the OCR engine is a reader like the rest.
+
+    NOT AN SVG SPECIAL CASE, and deliberately not: the question asked is whether the
+    IMAGE STACK recognised a format, so a `.psd`, an `.ai`, an `.eps` or any future
+    vector container answers it the same way without a line being added.
+    """
+    vector = tmp_path / "logo.svg"
+    vector.write_bytes(
+        b'<svg xmlns="http://www.w3.org/2000/svg" width="62" height="32">'
+        b'<title>VISA</title></svg>')
+    assert vision_ocr()(vector, config=dict(ACCURATE)) is None
+
+
+def test_a_damaged_file_of_a_format_it_does_decode_still_raises(tmp_path):
+    """The other side of the same line, so the fix above cannot swallow real damage.
+
+    A truncated PNG carries a PNG signature and an IHDR, so ImageIO identifies the
+    format (`public.png`) and then cannot build an image from what follows. That IS
+    a fact about the bytes, and it stays `failed`.
+    """
+    broken = tmp_path / "half.png"
+    broken.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00\x00\x00\x0dIHDR"
+                       + b"\x00" * 13)
     with pytest.raises(Exception):
-        vision_ocr()(junk, config=dict(ACCURATE))
+        vision_ocr()(broken, config=dict(ACCURATE))
 
 
 def test_the_adapter_holds_no_product_vocabulary():

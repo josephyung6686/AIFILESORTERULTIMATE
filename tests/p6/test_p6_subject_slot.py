@@ -108,7 +108,15 @@ def _located_string(conn, *, run_id, file_id, content_hash, raw, page, start):
                    span=TextSpan(start, start + len(raw)))
 
 
-def _record(conn, *, run_id, file_id, content_hash, raw, zone, container_path, span):
+def _record(conn, *, run_id, file_id, content_hash, raw, zone, container_path, span,
+            before="", after=""):
+    """P4's observation. `before`/`after` are §2.8's context pair, empty by default.
+
+    They gained a default rather than a caller on every call site: a reading with no
+    context is what most of this file is about, and §3.5's rule refuses one -- which
+    is the same answer the removed slot's `matches` predicate gave for the readings
+    that mattered here, reached by a producer that says WHY in an `unresolved` row.
+    """
     record_run(conn, ExtractionRun(
         run_id=run_id, file_id=file_id, content_hash=content_hash,
         extractor_name="pdf.text", extractor_version="0.1.0",
@@ -118,14 +126,26 @@ def _record(conn, *, run_id, file_id, content_hash, raw, zone, container_path, s
         file_id=file_id, content_hash=content_hash, extractor_name="pdf.text",
         extractor_version="0.1.0", source_type="text_document", raw_value=raw,
         location=Location(zone, container_path, text_span=span),
-        occurrence_count=1, observed_at=CLOCK, reliability="possible", run_id=run_id)
+        occurrence_count=1, observed_at=CLOCK, reliability="possible", run_id=run_id,
+        context_before=before, context_after=after)
     record_observation(conn, observation)
     return observation
 
 
 def _subjects(conn, file_id, content_hash) -> set[str]:
-    """What the shipped deterministic direct pass put in `subject`, as values."""
+    """What the shipped deterministic pass put in `subject`, as values.
+
+    BOTH stages, since 2026-09-04. The slot this file is named after is gone --
+    `cli.DIRECT_SLOTS` is empty and `subject` is filled by `cli.SUBJECT_RULE`
+    through §3.5's context check -- so a helper that ran only the direct stage
+    would now answer "nothing" for every case here and prove nothing at all.
+    `tests/p6/test_p6_subject_rule.py` holds the reason the slot was removed; what
+    this file still proves is that the READINGS a real disk produces are handled
+    the way its measurements say they must be, and that the model seam agrees with
+    whichever producer is shipped.
+    """
     cli._direct_stage(conn, file_id=file_id, content_hash=content_hash)
+    cli._rule_stage(conn, file_id=file_id, content_hash=content_hash)
     by_id = {row["value_id"]: row["canonical_value"]
              for row in values_in_field(conn, "subject")}
     return {by_id[row["value_id"]]
@@ -172,20 +192,54 @@ def test_a_whole_heading_is_not_a_subject_even_when_it_reads_as_prose(
     assert _subjects(p6_conn, file_id, content_hash) == set()
 
 
-def test_the_identifiers_the_pass_located_are_still_subjects(p6_conn, tmp_path):
-    """The negative twin. Refusing everything would be the other way to be wrong.
+def test_the_identifiers_the_pass_located_are_not_subjects_by_being_identifiers(
+        p6_conn, tmp_path):
+    """THIS TEST ASSERTED THE DEFECT, and the file it belongs to is why.
 
-    All four are values the same measured run produced from `body` spans -- readings
-    the structured-string finder located, which is what the slot claims to read.
-    `BOEING 777` and `I 1403` also prove the canonicaliser still runs: `65` §4.2 is
-    the recorded failure where one identity arriving as several spellings split one
-    course into four one-file groups.
+    It used to require that all four of these become `subject` facts, on the
+    argument that "refusing everything would be the other way to be wrong". The
+    argument is right and the example was the bug: these four came off a FLIGHT
+    MANIFEST. `UARF470911` is a United booking reference, `UA872` a flight number
+    and `BOEING 777` an aircraft type, and the run that produced them proposed
+    folders named after all three. Measured against the hand-made labels, the
+    producer that claimed them was 0 correct and 14 wrong.
+
+    The shape cannot separate them and this test no longer pretends it can. What
+    separates them is the document they sit in, so that is what is asked here.
     """
     file_id, content_hash = _file(p6_conn, tmp_path, name="manifest.pdf",
                                   body=b"a flight manifest")
     for index, raw in enumerate(IDENTIFIERS):
         _located_string(p6_conn, run_id=f"run-id-{index}", file_id=file_id,
                         content_hash=content_hash, raw=raw, page=1, start=index * 40)
+
+    assert _subjects(p6_conn, file_id, content_hash) == set()
+
+
+def test_refusing_them_is_not_refusing_everything(p6_conn, tmp_path):
+    """The negative twin, kept, with the half of it that was always true.
+
+    The same four readings, in a document that describes a course instead of a
+    flight. They still become subjects, and `BOEING 777` and `I 1403` still prove
+    the canonicaliser runs: `65` §4.2 is the recorded failure where one identity
+    arriving as several spellings split one course into four one-file groups.
+
+    **And this states the limit of the fix honestly.** `BOEING777` under the word
+    `syllabus` IS a subject here. The rule has no vocabulary of plausible course
+    codes -- a curated department list was rejected twice and could not answer for
+    a university nobody told it about -- so it cannot know an aircraft from a
+    course by looking at it. What it can do is refuse both when the neighbourhood
+    is an itinerary, which is the test above, and that is what moved the measured
+    number.
+    """
+    file_id, content_hash = _file(p6_conn, tmp_path, name="outline.pdf",
+                                  body=b"a course outline")
+    for index, raw in enumerate(IDENTIFIERS):
+        _record(p6_conn, run_id=f"run-ctx-{index}", file_id=file_id,
+                content_hash=content_hash, raw=raw, zone="body",
+                container_path=(Segment("page", index=1),),
+                span=TextSpan(index * 40, index * 40 + len(raw)),
+                before="Syllabus - ", after=", 3 credits.")
 
     assert _subjects(p6_conn, file_id, content_hash) == {
         "UARF470911", "UA872", "BOEING777", "I1403"}
@@ -208,13 +262,14 @@ def test_an_identifier_printed_inside_a_heading_survives_the_refusal(
     """
     file_id, content_hash = _file(p6_conn, tmp_path, name="syllabus.pdf",
                                   body=b"a syllabus")
-    heading = "Homework: PHYS 1401, week 3"
+    heading = "Homework: PHYS 1401, week 3 -- lecture slides"
     start = heading.index("PHYS 1401")
     _record(p6_conn, run_id="run-in-heading", file_id=file_id,
             content_hash=content_hash, raw="PHYS 1401", zone="heading",
             container_path=(Segment("page", index=1),
                             Segment("heading", index=3, label=heading)),
-            span=TextSpan(start, start + len("PHYS 1401")))
+            span=TextSpan(start, start + len("PHYS 1401")),
+            before=heading[:start], after=heading[start + len("PHYS 1401"):])
 
     assert _subjects(p6_conn, file_id, content_hash) == {"PHYS1401"}
 

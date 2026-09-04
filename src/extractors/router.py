@@ -29,8 +29,9 @@ from typing import Callable
 #: The router's own version, part of the routing decision's identity. Bumped when the
 #: table changes: eleven formats that were `unsupported` under 0.1.0 now route, and two
 #: tables both stamping "0.1.0" into `extraction_routing.router_version` is exactly the
-#: ambiguity section 3.4's cache key exists to prevent.
-VERSION = "0.2.0"
+#: ambiguity section 3.4's cache key exists to prevent. 0.3.0 adds the seven formats
+#: that recovered no text at all on the owner's measured corpus.
+VERSION = "0.3.0"
 
 #: Section 2.9's eleven bullets and section 2.6's images, as (format token ->
 #: source_type candidates). The value is a TUPLE because section 2.9 lists two
@@ -47,6 +48,23 @@ SOURCE_TYPE_BY_FORMAT: dict[str, tuple[str, ...]] = {
     "html": ("text_document",),
     "epub": ("text_document",),
     "odt": ("text_document",),
+    # THE SAME FAMILY, FOR THE TEXT DOCUMENTS A REAL DISK HOLDS. Both were measured
+    # at 0.0% text recovery over the owner's 199-file corpus and both were recorded
+    # `unsupported`, which was true and was true for a reason nobody had looked at:
+    # there was no key, so nothing ever tried.
+    #
+    # `ris` is a bibliography citation record - `TY  - JOUR`, `AU  - ...`,
+    # `AB  - <the abstract>` - and it is plain ASCII text. One on this disk, exported
+    # from a journal page; it carries a 1,194-character abstract that says what the
+    # paper is about, which is precisely the prose the recogniser was starved of.
+    #
+    # `doc` is the legacy Word binary `.docx` replaced, and it is NOT `docx`: an OLE
+    # compound file, so E2's zip-based reader cannot open it and it needs its own.
+    # Two on this disk, 1,290 words each. Same ratification grounds as the code and
+    # image blocks below: §2.9's text-document bullet spells eight formats and this
+    # is the ninth a person actually has.
+    "ris": ("text_document",),
+    "doc": ("text_document",),
     # Spreadsheets - "XLSX, XLS, CSV, TSV, ODS, Numbers exports"
     "xlsx": ("spreadsheet",),
     "xls": ("spreadsheet",),
@@ -54,6 +72,22 @@ SOURCE_TYPE_BY_FORMAT: dict[str, tuple[str, ...]] = {
     "tsv": ("spreadsheet",),
     "ods": ("spreadsheet",),
     "numbers": ("spreadsheet",),
+    # Instron's own tensile-test export extensions. Three on this disk, all three
+    # quoted CSV by signature - `"Test Type","Manual"` CRLF, a key/value header block
+    # naming the specimen, the operator and the test date, then the force-extension
+    # table. The owner is a bioengineering researcher and these ARE his lab results.
+    #
+    # `raw` IS AMBIGUOUS and the ambiguity is answered in the reader, not here. A
+    # camera raw carries the same extension and is not text, so
+    # `readers/long_tail_stdlib.py` decodes these two strictly and returns None when
+    # the bytes are not text - §2.4's `unsupported`, "no reader exists for this
+    # format in this deployment". Deciding it at the extension level instead would
+    # have recorded a photograph as a spreadsheet of mojibake cells and called it
+    # `complete`, which is the failure §2.4's two-outcome rule exists to prevent.
+    # RAISED FOR RULING: on a photographer's disk this key would be wrong more often
+    # than right, and the router cannot tell the two apart without opening the file.
+    "rlt": ("spreadsheet",),
+    "raw": ("spreadsheet",),
     # Presentations - "PPTX, PPT, ODP, PDF slide decks"
     "pptx": ("presentation",),
     "ppt": ("presentation",),
@@ -107,6 +141,23 @@ SOURCE_TYPE_BY_FORMAT: dict[str, tuple[str, ...]] = {
     "css": ("code_structured",),
     "sh": ("code_structured",),
     "cmake": ("code_structured",),
+    # The same family again, for three more the measured corpus holds. A
+    # `.code-workspace` is a VS Code workspace: JSON, and the file that says which
+    # folders a project is. `dockerfile` and `makefile` are tokens NO EXTENSION
+    # produces - the files are named `Dockerfile` and `Makefile` with nothing after
+    # a dot - so they arrive only from a detector that keys on the whole filename,
+    # which is `cli._detect_format`'s job and is why they are format tokens here
+    # rather than extensions.
+    #
+    # CODE, NOT PROSE, and that is the honest half of this. §2.4 keeps code out of
+    # the body-prose path - structural evidence "rather than forcing semantic
+    # analysis to infer a project from arbitrary code text" - so these three store
+    # their full text and emit no `body` observation, exactly as every `.py` on the
+    # disk already does. They move the TEXT line and not the PROSE line, and saying
+    # so is better than routing a build recipe as a document to make a number move.
+    "code-workspace": ("code_structured",),
+    "dockerfile": ("code_structured",),
+    "makefile": ("code_structured",),
     # Design and creative - "PSD, AI, SVG, Figma exports, CAD files, 3D files".
     # Figma exports, CAD and 3D name no single format token, so none is invented.
     "psd": ("design_creative",),
@@ -243,7 +294,15 @@ def route(*, file_id: str, content_hash: str, path: Path, extension: str,
     detected = detect_format(path)
     declared = extension.lower().lstrip(".")
     operative = detected if detected is not None else declared
-    disagree = detected is not None and detected != declared
+    # `bool(declared)`: a file with NO extension declares nothing, and nothing cannot
+    # be contradicted. Nine files on the measured corpus have no extension at all -
+    # `LICENSE`, `NOTICE`, `Dockerfile`, `Makefile`, `AUTHORS`, `THANKS` - and once a
+    # detector answers for them on their filename, the old form recorded every one as
+    # "the detected format disagrees with the declared extension". That is a false
+    # statement about the FILE ("this file is misnamed") in a column that exists to
+    # record a real conflict, and §2.9 keeps the disagreement precisely so it is not
+    # discarded - which is worth nothing if it is also manufactured.
+    disagree = detected is not None and bool(declared) and detected != declared
 
     candidates = SOURCE_TYPE_BY_FORMAT.get(operative, ())
     source_type = candidates[0] if candidates else None
@@ -257,7 +316,12 @@ def route(*, file_id: str, content_hash: str, path: Path, extension: str,
 
     unrouted = None
     if handler is None:
-        unrouted = UNROUTED_COMPLETENESS.get(source_type, "unsupported")
+        # `source_type is None` is the no-candidates case a few lines up, and
+        # §2.4 already names it: no family, so no extractor, so `unsupported`.
+        # Spelled out rather than left to `.get(None, ...)`, which happened to
+        # give the same answer for a reason nothing stated.
+        unrouted = ("unsupported" if source_type is None
+                    else UNROUTED_COMPLETENESS.get(source_type, "unsupported"))
 
     return RoutingDecision(
         file_id=file_id,
@@ -307,7 +371,17 @@ def record_routing_decision(conn: sqlite3.Connection,
          decision.router_version, decision.unrouted_completeness,
          datetime.now(timezone.utc).isoformat()),
     )
-    return cursor.lastrowid
+    routing_id = cursor.lastrowid
+    if routing_id is None:
+        # `sqlite3` types this `int | None` because it is None after a statement
+        # that inserted nothing. This one is an INSERT, so the branch is a
+        # statement about the driver rather than a case to handle -- and a
+        # silent None here would become a routing decision no row can be cited
+        # by, which §2.9's "exactly one routing decision" forbids.
+        raise RuntimeError(
+            'the INSERT into extraction_routing reported no row id; the routing '
+            'decision would be uncitable')
+    return routing_id
 
 
 def routing_decisions(conn: sqlite3.Connection, file_id: str,

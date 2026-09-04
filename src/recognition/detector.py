@@ -52,7 +52,9 @@ from facts.domains import SCHEMA_IDS, UnknownSchema
 
 from privacy.classification import UNREADABLE_UNCLASSIFIED, ClassificationRecord
 from privacy.classification import UnbackedClassification
-from privacy.vocabulary import CLASSIFICATION_BASES, OutOfVocabulary
+from privacy.vocabulary import (
+    CLASSIFICATION_BASES, DETECTOR_NO_SAFETY_EVIDENCE, OutOfVocabulary,
+)
 from privacy.vocabulary import check_handling_class
 
 from scan_agent.exclusion import is_protected_container
@@ -810,9 +812,16 @@ class Detector:
                              and says_what_the_file_is(match)}))
 
     def _safety_readings_naming_the_file(
-            self, conn: sqlite3.Connection, file_id: str,
-            content_hash: str) -> tuple[str, ...]:
+            self, conn: sqlite3.Connection, file_id: str, content_hash: str, *,
+            in_evidence: tuple[str, ...]) -> tuple[str, ...]:
         """The same question, asked where a MENTION must not become a claim.
+
+        `in_evidence` is the lenient answer, SUPPLIED rather than recomputed. It used
+        to be asked for here, which meant `__call__` could not see it -- and seeing
+        it is the whole of what `96` §20 asks for: *"the precondition would then be
+        satisfied by evidence of having LOOKED"*. Passing it in also removes a scan
+        rather than adding one; this method reads the file's matches once now, where
+        it read them twice before.
 
         `_safety_readings_in_evidence` refuses a term that SURROUNDS a document.
         It cannot refuse a work type that is also ordinary English, and five of
@@ -850,12 +859,12 @@ class Detector:
         "has no leaders to lean on and must say what it means directly." This is
         what it means directly.
         """
+        matches, _ = self._matches(conn, file_id, content_hash)
         return tuple(sorted({
-            reading for reading in
-            self._safety_readings_in_evidence(conn, file_id, content_hash)
+            reading for reading in in_evidence
             if any(match.schema_id == reading and _names_the_file(match)
                    and match.term in self._work_types.get(reading, frozenset())
-                   for match in self._matches(conn, file_id, content_hash)[0])}))
+                   for match in matches)}))
 
     def _protect_as(self, conn: sqlite3.Connection, readings: Iterable[str], *,
                     file_id: str, content_hash: str) -> ClassificationRecord | None:
@@ -909,17 +918,47 @@ class Detector:
         #
         # A safety domain that WON needs nothing here -- its own handling is already
         # the one below -- so this asks only about the domains that lost.
+        handling = self._handling[outcome.schema_id]
+        basis = handling.basis
         if outcome.schema_id not in SAFETY_DOMAIN_IDS:
+            in_evidence = self._safety_readings_in_evidence(
+                conn, file_id, content_hash)
             protection = self._protect_as(
                 conn,
                 self._safety_readings_naming_the_file(
-                    conn, file_id, content_hash),
+                    conn, file_id, content_hash, in_evidence=in_evidence),
                 file_id=file_id, content_hash=content_hash)
             if protection is not None:
                 return protection
-        handling = self._handling[outcome.schema_id]
+            # NOTHING SAFETY-RELATED WAS FOUND, AND SAYING SO IS THE POINT. `96` §19
+            # measured what the previous line's silence cost: of 78 files stored
+            # `personal_non_sensitive, protected=0`, 41 had matched no safety work
+            # type at all -- among them a Hong Kong identity card read to 21
+            # observations -- and every one of them left here carrying `detector`,
+            # the same word as a file whose safety terms were examined and weighed.
+            # §8.4 makes a handling class a precondition of a model call, so those
+            # 41 went from "no class, door shut" to "ordinary class, door open"
+            # without a single piece of evidence being gained.
+            #
+            # `96` §20's remedy, and its exact words: the precondition should be
+            # satisfied by "evidence of having LOOKED, not merely by a class
+            # existing". This is that distinction, which the detector could already
+            # make and had no word for.
+            #
+            # THE RECOGNITION IS NOT IN DOUBT and nothing else moves. The schema won
+            # on the file's own terms, the class is the deployment's, the protected
+            # flag stays `False`, the evidence refs are the same. One field changes,
+            # and it is SPEC §2's field for where a conclusion came from.
+            #
+            # An EMPTY tuple, not a falsy one: `in_evidence` is the lenient reading
+            # -- any safety domain whose own WORK TYPE the file carries anywhere,
+            # which is deliberately wider than the naming-zone rule two lines up. A
+            # file that reaches here with a non-empty one was examined and released,
+            # and that is a judgement worth the strong word.
+            if not in_evidence:
+                basis = DETECTOR_NO_SAFETY_EVIDENCE
         return ClassificationRecord(
             file_id=file_id, content_hash=content_hash,
             handling_class=handling.handling_class, protected=handling.protected,
-            basis=handling.basis, evidence_refs=outcome.evidence_refs,
+            basis=basis, evidence_refs=outcome.evidence_refs,
             reliability_state=RELIABILITY, observed_at=self._now())

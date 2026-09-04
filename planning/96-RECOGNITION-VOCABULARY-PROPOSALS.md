@@ -831,5 +831,18 @@ then be satisfied by *evidence of having looked*, not merely by *a class existin
 Two facts support it being a gate change rather than a detector one — the detector
 already knows, and 41 of 78 is too many to treat as an edge case.
 
-**Not implemented.** It needs a closed-vocabulary member and it touches
-`src/privacy/` and the gate, neither of which is this package's.
+**~~Not implemented.~~ LANDED 2026-09-04, in the shape recommended above.**
+`privacy.vocabulary.CLASSIFICATION_BASES` gained a fourth member,
+`detector_no_safety_evidence`; `recognition.detector.__call__` emits it where
+`_safety_readings_in_evidence` comes back empty; and `privacy.gate` refuses a CLOUD
+release standing on it, under a ninth `DENIAL_REASONS` member, `no_safety_evidence`.
+A LOCAL model call is still permitted — §8.4's four modes are about what leaves the
+device, and denying local reads too would withhold from the on-device model exactly
+the files §2.7 and §7.8 want it to look at.
+
+Measured on the same corpus the counts above come from: the 78 released files split
+**39 `detector_no_safety_evidence` / 37 `detector`**, and the missing two are the HKID
+and `Covid -19 vaccination record (1).pdf`, which §14's vocabulary additions landed in
+the same pass moved to `sensitive_personal, protected=1`. §19's 41/37 split is
+therefore reproduced exactly, and the 41 that were the problem now say so in the
+column SPEC §2 provides for it.

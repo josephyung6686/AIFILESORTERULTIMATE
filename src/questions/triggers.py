@@ -36,9 +36,11 @@ from privacy.vocabulary import check_handling_class
 
 from questions.records import QuestionOption, StructuralQuestion
 from questions.registry import (
-    NESTING_KIND, READING_KIND, ROLE_KIND, SITUATION_KIND, kind_of,
+    HOME_KIND, NESTING_KIND, READING_KIND, ROLE_KIND, SITUATION_KIND, kind_of,
 )
-from questions.vocabulary import SCOPE_BRANCH, SCOPE_ORGANIZATION, STRUCTURAL
+from questions.vocabulary import (
+    SCOPE_BRANCH, SCOPE_FOLDER, SCOPE_ORGANIZATION, STRUCTURAL,
+)
 
 #: `66` §14 keeps these two answers first-class, so every derived question carries
 #: them and no caller may drop them. "Not about me" is a real answer about whose
@@ -291,6 +293,102 @@ def question_for_situation(*, branch_label: str, situations: Iterable[str],
                                      selects_situation=situation)
                       for situation in offered),
         evidence_refs=(f"{SCOPE_BRANCH}:{branch_label}",))
+
+
+@dataclass(frozen=True)
+class DestinationChoice:
+    """One folder the person could name, as they would see it.
+
+    A projection of P10's index entry rather than that record, for `NestingChoice`'s
+    reason: this module must not import P10, and what a question needs is the two
+    things a person reads -- the id the answer records, and the path they recognise.
+    """
+
+    node_id: str
+    display_path: str
+
+    def __post_init__(self) -> None:
+        for name in ("node_id", "display_path"):
+            if not getattr(self, name):
+                raise ValueError(f"a destination choice needs a {name}")
+
+
+def question_for_unreadable_folder(*, folder: str,
+                                   choices: Iterable[DestinationChoice],
+                                   file_count: int,
+                                   protected_count: int) -> StructuralQuestion:
+    """The product opened these and read nothing. Only the person knows what they are.
+
+    **Why this is a question and 73% of a corpus going unplaced is not.** §12
+    permits a question "only when a specific decision is blocked", and most unplaced
+    files are not blocked on the person -- they are blocked on evidence the product
+    has and has not yet used well. These are different: every text-producing
+    extractor ran and recovered nothing, so there is no evidence to use better and
+    no reading for the product to be wrong about. Measured against a hand-labelled
+    corpus, 76% of the files this describes are ones a human labeller independently
+    marked "the right answer is ask the person", against a 41% base rate.
+
+    **Why the FOLDER and not the file.** §14 asks for a question on a "repeated
+    ambiguity", and `tied_readings` above reads that as "four files of one course
+    tying the same way is one ambiguity, asked once". Seven unreadable assets in one
+    folder are one ambiguity for the same reason: a person who has to answer seven
+    identical questions about one folder learns that nothing is listening.
+
+    **`protected_count` is carried and the names are not.** §8.4 marks protected
+    material so it is not assembled for anything, and `00`:201 says a visible list of
+    protected specifics "may not be" safe to show. A protected file in this folder is
+    therefore counted here and asked about nowhere -- but it is COUNTED, because
+    dropping it silently would make the question claim the folder holds fewer files
+    than it does, and "marked and counted, never opened, never silently omitted" is
+    the whole rule rather than its first two thirds.
+    """
+    offered = tuple(choices)
+    if len(offered) < 2:
+        raise ValueError(
+            "a question offers the person somewhere to choose BETWEEN; one "
+            "destination is a placement wearing a question mark, and offering it "
+            "as a choice would make the engine's own decision look like theirs")
+    if file_count < 1:
+        raise ValueError(
+            "a question about no file is the profile interview §12 rejects, "
+            "asked about a folder instead of about a person")
+    files = "file" if file_count == 1 else "files"
+    were = "was" if file_count == 1 else "were"
+    them = "it" if file_count == 1 else "them"
+    what = "what it is" if file_count == 1 else "what they are"
+    held = ("" if not protected_count else
+            f" {protected_count} more {'is' if protected_count == 1 else 'are'} "
+            "protected material: counted here, not opened, and not named.")
+    return StructuralQuestion(
+        question_id=f"{HOME_KIND.kind_id}:{folder}",
+        answer_class=STRUCTURAL,
+        prompt=f"Where should the files in {folder} go?",
+        evidence_context=(
+            f"{file_count} {files} in {folder} {were} opened and nothing readable "
+            f"came out of {them}, so nothing but you can say {what}.{held}"),
+        unlocks=(
+            f"This decides where that {file_count} {files} is filed. Until it is "
+            f"answered {them} stays where {them} is, unfiled." if file_count == 1
+            else
+            f"This decides where those {file_count} {files} are filed. Until it is "
+            "answered they stay where they are, unfiled."),
+        # NOT `WILL_NOT_DO`, and this is the one place in the module where that
+        # shared sentence would be a lie. It promises the answer "changes which
+        # folders this run is allowed to propose, and nothing else" -- true of a
+        # nesting, a situation and a reading, and false of this one, which changes
+        # where a file goes and no folder at all. §12 requires a question to "state
+        # what it will not affect", and a promise that names the wrong thing is
+        # worse than none: it is the product being trusted about the wrong risk.
+        will_not_do=(
+            "Answering will not move, rename or delete anything, and creates no "
+            "folder. It records where you want these filed, in a plan you still "
+            "have to approve, and it can be changed by answering again."),
+        handling_class=SUBJECT_DRAWN_FROM_THE_CORPUS,
+        scope=f"{SCOPE_FOLDER}:{folder}",
+        options=tuple(QuestionOption(choice.display_path, choice.display_path,
+                                     chooses_destination=choice.display_path)
+                      for choice in offered),
+        evidence_refs=(f"{SCOPE_FOLDER}:{folder}",))
 
 
 def role_declaration_is_due(*, blocked: Iterable[StructuralQuestion],

@@ -304,6 +304,32 @@ def selected_situation(conn: sqlite3.Connection, *, scope: str) -> str | None:
     return chosen[0] if chosen else None
 
 
+def chosen_destination(conn: sqlite3.Connection, *,
+                       scope: str) -> str | None:
+    """The destination the person named for ONE folder, or `None` if they have not.
+
+    `66` §13's fourth consequence, in one place, for the same reason the three
+    above it are each in one place: a reader can see every destination the user
+    chose and where it came from, and a second path to the same effect would
+    falsify that sentence.
+
+    Scoped, and required to be. `gated_template` records why a nesting answer may
+    not be read corpus-wide; this is the same rule with more at stake, because the
+    thing being reused outside its scope would be an instruction about where files
+    go. A person who says a folder of unreadable scans belongs under `Vaccine
+    records` has said that about THOSE files.
+
+    `None` for unanswered, for skipped and for revoked -- `answered_options`
+    already draws that line. All three mean the same thing to placement: nobody
+    named a destination, so the run decides exactly as it did before, which is
+    what makes asking free.
+    """
+    named = [option.chooses_destination
+             for option in answered_options(conn, scope=scope)
+             if option.chooses_destination]
+    return named[0] if named else None
+
+
 def questions_for(conn: sqlite3.Connection,
                   question_ids: Sequence[str]) -> tuple[StructuralQuestion, ...]:
     """The named questions, for a caller that already knows which it wants."""

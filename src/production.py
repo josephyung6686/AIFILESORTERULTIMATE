@@ -42,6 +42,7 @@ from orchestrator import ClassificationProducer, P1P7Run, run_p1_p7
 from privacy.classification_store import ClassificationStore
 from privacy.schema import create_privacy_schema
 from grouping.config import GroupingLimits
+from llm_harness.records import FolderLevel
 from grouping.pipeline import GroupingKnowledge, GroupingResult, group_subject
 from placement.index import build_destination_index
 from placement.pipeline import CorpusResult, PipelineInputs, run_corpus
@@ -295,6 +296,65 @@ def schema_for_situation(catalogue: TemplateCatalogue, situation: str) -> str:
             "material these files are is the person's answer to give rather than "
             "this module's to pick")
     return schemas[0]
+
+
+def folder_levels_for(catalogue: TemplateCatalogue,
+                      situation: str) -> tuple[FolderLevel, ...]:
+    """The folder levels this situation would build, ASKED of the library.
+
+    The two halves the shipped release already carries, and which nothing joined
+    until now:
+
+      * the applicability row's `role_bindings` -- role -> P6 field key -> the label
+        whoever ratified the row wrote for a person to read ("My school",
+        "Semester", "Course", "Kind of work");
+      * the template definition's `default_order.dimensions` -- the ORDER the levels
+        nest in, and `required` or `optional` for each.
+
+    `shipped_situations` below takes the labels alone, for a menu. This is the same
+    data with the two things a model needs to answer usefully kept on it: which of
+    the nineteen keys in its flat vocabulary actually build this person's folders,
+    and which of those the tree cannot be built without.
+
+    **The order is the DEFINITION's, not the row's.** They agree for 206 of the 208
+    situations and disagree for two -- `construction_property.snagging-defects` and
+    `photos.family-archive` -- and `order_index` is the half that says which folder
+    sits above which.
+
+    A role the row does not bind is skipped rather than guessed at: 125 of the
+    definitions' dimensions across the release have no binding, because a definition
+    is generic and an applicability row binds the subset its situation uses. A role
+    with no field is not a level this situation builds.
+
+    Refused rather than resolved when no row carries the situation and when two do,
+    which is `schema_for_situation`'s posture a few lines up and for the same
+    reason: picking between two rows would be this module deciding what kind of
+    material somebody's files are.
+    """
+    ref = f"recognition:{situation}"
+    rows = [row for row in catalogue.applicabilities.values()
+            if ref in row.detection_signal_refs]
+    if not rows:
+        raise ConfigurationRequired(
+            f"{situation!r} names no situation in template release "
+            f"{catalogue.release_id}, so there is no row to read folder levels from")
+    if len(rows) > 1:
+        raise ConfigurationRequired(
+            f"{situation!r} is carried by {len(rows)} applicability rows, and which "
+            "folders these files should be filed under is the person's answer to "
+            "give rather than this module's to pick")
+    row = rows[0]
+    binding = {item.role_ref: item for item in row.role_bindings}
+    definition = catalogue.definitions[(row.template_id, row.template_version)]
+    levels = []
+    for dimension in sorted(definition.default_order.dimensions,
+                            key=lambda item: item.order_index):
+        bound = binding.get(dimension.role_ref)
+        if bound is None:
+            continue
+        levels.append(FolderLevel(field=bound.field_ref, label=bound.label,
+                                  requirement=dimension.requirement))
+    return tuple(levels)
 
 
 @dataclass(frozen=True)

@@ -95,7 +95,8 @@ def _call_dependencies(conn, *, plan_version):
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
         allowed_vocabulary=tuple(sorted(
             legal_node_ids(conn, plan_version=plan_version))),
-        policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
+        folder_levels=(), policy_version="policy-1",
+        wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 #: A real P7 release request. `DossierRequest` refuses anything else, which is

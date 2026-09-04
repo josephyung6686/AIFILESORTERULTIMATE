@@ -467,7 +467,8 @@ def test_a_run_without_a_support_policy_or_limits_refuses(p11_conn):
         ask_or_abstain=None, max_return_cycles=None, gate=None,
         model_client=None, prompt=None, call_dependencies=None,
         model_call_request=None, chosen_node_of=None, residual_action_of=None,
-        sensitivity_policy=None, p2=None)
+        sensitivity_policy=None, ask_about_file=lambda subject: None,
+        chosen_by_user=lambda subject: None, p2=None)
     PipelineInputs(**good)                     # the control: this one builds
     with _pytest.raises(ConfigurationRequired):
         PipelineInputs(**{**good, "policy": None})

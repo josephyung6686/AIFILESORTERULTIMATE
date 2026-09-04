@@ -356,3 +356,84 @@ def test_one_located_value_gets_one_row_whatever_two_reasons_it_had(conn):
     rows = sensitivity_signals_for(conn, "run-1")
     assert stored == len(rows)
     assert len({r["observation_key"] for r in rows}) == len(rows)
+
+
+# --------------------------------------------------------------------------- #
+# §8.6's ceiling on a spreadsheet, and the word that has to follow it
+# --------------------------------------------------------------------------- #
+
+def test_a_spreadsheet_that_was_not_capped_still_reads_complete():
+    """The ordinary case, pinned first so the change below cannot quietly widen.
+
+    A workbook the reader finished is `complete`, and its coverage is now in CELLS
+    rather than entries -- which is a truer statement about a spreadsheet than "1 of
+    1 entries" ever was.
+    """
+    document = LongTailFile(
+        entries=(LongTailEntry(kind="sheet", index=1, label="Data"),),
+        texts=(LongTailText(zone="table", text="A", entry_ordinal=1, row=1, column=1),
+               LongTailText(zone="table", text="B", entry_ordinal=1, row=1, column=2)),
+        cells_total=2)
+    result, _ = run_it(document, "spreadsheet")
+    assert result.extraction.run["completeness"] == "complete"
+    assert result.extraction.run["coverage"] == {
+        "units": "cells", "processed": 2, "total": 2}
+
+
+def test_a_capped_spreadsheet_says_capped_and_not_complete():
+    """§2.4's rule, on the one family that had no way to obey it.
+
+    Every long-tail run was `completeness="complete"` with
+    `coverage("entries", n, n)` -- a literal, unconditional word. A `.csv` of a
+    million cells read to its first ten thousand recorded exactly what a `.csv` of
+    ten thousand cells recorded, and nothing downstream could tell them apart. §8.6's
+    "89 scanned PDFs deferred after the OCR limit" is computed off this column, and a
+    truncated read hiding inside `complete` is the "silently an empty document"
+    defect wearing a full count.
+    """
+    document = LongTailFile(
+        entries=(LongTailEntry(kind="sheet", index=1, label="Data"),),
+        texts=(LongTailText(zone="table", text="A", entry_ordinal=1, row=1, column=1),),
+        cells_total=5000, capped=True)
+    result, _ = run_it(document, "spreadsheet")
+    assert result.extraction.run["completeness"] == "capped"
+    assert result.extraction.run["coverage"] == {
+        "units": "cells", "processed": 1, "total": 5000}
+
+
+def test_the_capped_run_is_counted_as_unfinished_work():
+    """§8.6 needs unfinished work to stay VISIBLE as unfinished, and P5 publishes
+    exactly one place that decides which runs those are."""
+    from extractors.budgets import DEFERRED_COMPLETENESS, UNREADABLE_COMPLETENESS
+
+    document = LongTailFile(
+        entries=(LongTailEntry(kind="sheet", index=1),),
+        texts=(LongTailText(zone="table", text="A", entry_ordinal=1, row=1, column=1),),
+        cells_total=99, capped=True)
+    word = run_it(document, "spreadsheet")[0].extraction.run["completeness"]
+    assert word in DEFERRED_COMPLETENESS
+    assert word not in UNREADABLE_COMPLETENESS, (
+        "a ceiling is not damage; §8.6 keeps the two counts disjoint")
+
+
+def test_a_family_with_no_cells_keeps_counting_entries():
+    """An email, a calendar and a contact card have no cells and must not be given
+    a cell coverage. The reader says so by reporting no cell total; nothing here
+    guesses from the source type, so a format that grows cells later needs no edit."""
+    result, _ = run_it(a_deck(), "presentation")
+    assert result.extraction.run["coverage"]["units"] == "entries"
+    assert result.extraction.run["completeness"] == "complete"
+
+
+def test_the_processed_count_is_the_texts_that_arrived_not_the_readers_word():
+    """The processed half of a coverage is a fact this extractor can check, so it
+    checks it. Taking both numbers from the reader would let a reader that stored
+    ten cells claim it stored a thousand, and `coverage` would accept it as long as
+    the total was larger."""
+    document = LongTailFile(
+        entries=(LongTailEntry(kind="sheet", index=1),),
+        texts=tuple(LongTailText(zone="table", text=f"c{n}", entry_ordinal=1,
+                                 row=1, column=n) for n in range(1, 4)),
+        cells_total=900, capped=True)
+    result, _ = run_it(document, "spreadsheet")
+    assert result.extraction.run["coverage"]["processed"] == 3

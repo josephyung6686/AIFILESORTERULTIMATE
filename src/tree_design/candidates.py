@@ -385,8 +385,32 @@ def _summarise(counts: Mapping[str, int]) -> str:
     named four levels where the tree has two. This is the sentence a person reads
     before choosing a shape, and it must not offer folders the shape will not
     build.
+
+    BOTH HALVES OF THAT SENTENCE ARE NOW APPLIED, AND ONLY ONE WAS. `if count`
+    drops a level with NO values; it kept every level with exactly one, which is
+    the other half -- "V2 skips one that does not divide". One value is one
+    folder, and one folder separates nothing.
+
+    It stayed invisible because the only branch that reached it was the branch
+    where NOTHING divides, and that one is answered earlier by the caller's
+    `stated` sentence ("would create no folders: every file here names the
+    same..."). The moment ONE level divides, `stated` is empty, this sentence
+    speaks, and the degenerate levels ride along in it. Measured on `00`:78's own
+    recommended path -- one school, one term, one course, three kinds of work --
+    the option said "1 school, 1 term, 1 course, and 3 work_type" and built
+    exactly three folders, `Academics/Homework`, `Academics/Lectures`,
+    `Academics/Syllabus`. Three folders promised that are never built, on the
+    design's own example.
+
+    NOT A THRESHOLD, WHICH IS WHY THE NUMBER IS HERE AND NOT IN `cli.py`. V2's
+    test "needs no threshold: either some file disagrees or none does"
+    (`upstream.py`), and this is that test counted: more than one distinct value
+    IS some file disagreeing. `resulting_child_counts` keeps every level,
+    untouched -- `cli._nesting_key` derives a recorded ANSWER's durable identity
+    from its keys, so emptying it would rename the shape a person answered for.
+    The sentence is what was wrong, so the sentence is what changes.
     """
-    parts = [f"{count} {role}" for role, count in counts.items() if count]
+    parts = [f"{count} {role}" for role, count in counts.items() if count > 1]
     if not parts:
         return "no child branches"
     if len(parts) == 1:

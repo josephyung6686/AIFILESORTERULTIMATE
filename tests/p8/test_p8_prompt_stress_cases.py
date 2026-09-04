@@ -764,3 +764,61 @@ def test_declining_costs_exactly_one_unresolved_row(site_a_conn, tmp_path):
     assert [(row["field_key"], row["reason"]) for row in rows] == [
         ("subject", "model_returned_unknown")]
     assert facts_for_file(site_a_conn, world.file_id, world.content_hash) == []
+
+
+def test_a_supporting_claim_with_no_value_is_schema_invalid_and_not_a_crash(
+        site_a_conn, tmp_path):
+    """The sixteenth shape, found by a live model rather than by `76` §7.
+
+    A real DeepSeek response carried a claim with `citations` and no `"value"`: the
+    model naming a field it had evidence for and forgetting to say what it read.
+    The ratified schema forbids it -- the `support` branch requires
+    `payload.required: ["field", "value"]` -- and at site A nothing enforced the
+    schema, because `sites._proposal` IS the parser. It built
+    `Proposal(value=None, unknown=False)`, and `facts.llm_seam.Proposal` refuses
+    that pair with a bare `ValueError`, which is not a verdict.
+
+    It escaped `run_call` and ended the whole corpus run: 25 of 40 files judged,
+    no tree designed, 41 files with `no decision`. One malformed answer from a
+    model this product does not control took down the pass.
+
+    Every other bad shape `_proposal` meets returns `None` and becomes one
+    `schema_invalid` verdict -- a missing field, a non-Mapping `unknown`, a
+    citation list that is not a list. This shape now does too, and the control
+    below is the same claim WITH its value, which must still be accepted.
+    """
+    world = _world(site_a_conn, tmp_path)
+    valueless = _response({
+        "claim_ref": "c1",
+        "payload": {"field": "subject"},
+        "citations": [{"evidence_ref": world.released_key,
+                       "cited_span": "PHYS1401",
+                       "why_it_supports": "the heading names it"}],
+    })
+
+    assert _judge(world, valueless) == WHOLE_RESPONSE_DEAD
+    assert _judge(world, _good(world)) == ONE_ACCEPT
+
+
+def test_an_explicit_null_value_is_the_same_refusal_and_a_number_is_not(
+        site_a_conn, tmp_path):
+    """The other spelling of the same hole, and the bound on the repair.
+
+    Rule 3 is *"`value` must be a JSON string, in quotes. Never a number, a list,
+    an object, true, false or null"*. `null` reaches `_proposal` as the same `None`
+    the missing key does, so it takes the same refusal.
+
+    A NUMBER must not. S15 in the table above is exactly that case and its recorded
+    expectation is `VALUE_NOT_NORMALIZABLE` -- one claim rejected, the rest of the
+    response still judged. Refusing every non-string here would have moved that
+    verdict to `SCHEMA_INVALID` and rewritten a row `76` §7 records, so the check is
+    `value is None` and this is what holds it there.
+    """
+    world = _world(site_a_conn, tmp_path)
+    nulled = _response(_claim("subject", None, key=world.released_key,
+                              span="PHYS1401"))
+    assert _judge(world, nulled) == WHOLE_RESPONSE_DEAD
+
+    numbered = _response(_claim("creation_date", 2026, key=world.released_key,
+                                span="PHYS1401"))
+    assert _judge(world, numbered) == _one_reject(VALUE_NOT_NORMALIZABLE)

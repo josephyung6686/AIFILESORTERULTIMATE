@@ -22,6 +22,11 @@ pytest.importorskip("Quartz", reason="pyobjc-framework-Quartz is a `readers` ext
 from orchestrator import TARGETED_OCR_UNAVAILABLE, run_wave2
 from pdf_bytes import build_pdf
 from readers.deployment import macos_readers
+
+#: A cell ceiling high enough that no fixture here reaches it. `macos_readers`
+#: refuses to pick one -- it is a policy and `cli.SPREADSHEET_CELL_CEILING` is
+#: where the product picks it -- so every caller states the one it means.
+CELL_CEILING_UNREACHED = 1_000_000
 from scan_agent.corpus_source import FilesystemCorpusSource
 from scan_agent.selection import record_selection
 
@@ -85,7 +90,8 @@ def go(db, corpus):                                          # noqa: F811
         detect_format=lambda p: p.suffix.lstrip(".") or None,
         policy=SafetyPolicy(is_protected_container=is_protected_container,
                             is_dataless=lambda path: False),
-        readers=macos_readers(find_structured_strings=find_course_codes),
+        readers=macos_readers(find_structured_strings=find_course_codes,
+                              spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED),
         sink=RunWriter(db, author="P5"),
         now=lambda: "2026-08-21T12:00:00+00:00", context_window=40,
         no_usable_facts=TARGETED_OCR_UNAVAILABLE,
@@ -472,10 +478,18 @@ def test_a_real_csv_becomes_cell_evidence_addressed_by_row_and_column(db, tmp_pa
         ("sheet", 1, None), ("row", 2, None), ("column", 2, "course")]
 
 
-def test_a_spreadsheet_run_reports_the_sheets_it_processed(db, tmp_path):
+def test_a_spreadsheet_run_reports_the_cells_it_processed(db, tmp_path):
     """§8.6 needs the difference between completed and deferred work legible, and
     `coverage` is where a run says it. This one used to read `{"processed": 0,
-    "total": 1}` on every spreadsheet in every corpus."""
+    "total": 1}` on every spreadsheet in every corpus.
+
+    IT NOW COUNTS CELLS, and that is a stronger version of the same requirement.
+    "entries 1 of 1" is true of a one-sheet workbook whatever happened inside it: a
+    sheet read in full and a sheet read to a ceiling both reported it, so the one
+    column §8.6's sentence is computed from could not tell them apart. A cell count
+    can, and does -- `test_a_capped_spreadsheet_says_capped_and_not_complete` is the
+    other half. The five families with no cells still count entries.
+    """
     import json
 
     root = tmp_path / "Documents"
@@ -486,8 +500,8 @@ def test_a_spreadsheet_run_reports_the_sheets_it_processed(db, tmp_path):
     row = db.execute("SELECT completeness, coverage FROM extraction_runs "
                      "WHERE source_type = 'spreadsheet'").fetchone()
     assert row["completeness"] == "complete"
-    assert json.loads(row["coverage"]) == {"units": "entries", "processed": 1,
-                                           "total": 1}
+    assert json.loads(row["coverage"]) == {"units": "cells", "processed": 2,
+                                           "total": 2}
 
 
 def test_every_value_of_a_contact_card_is_marked_potentially_sensitive(db, tmp_path):

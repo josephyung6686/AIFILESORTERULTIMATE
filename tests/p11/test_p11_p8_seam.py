@@ -145,7 +145,8 @@ def test_the_bundle_is_accepted_by_p8s_own_call_dependencies(indexed):
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
         allowed_vocabulary=tuple(sorted(
             legal_node_ids(indexed, plan_version="plan-1"))),
-        policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
+        folder_levels=(), policy_version="policy-1",
+        wire_handle_key=FIXTURE_HANDLE_KEY)
     assert deps.site_dependencies.placement is not None
     assert _legal_node_id() in deps.allowed_vocabulary
 

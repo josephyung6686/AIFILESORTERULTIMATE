@@ -46,7 +46,7 @@ from privacy.classification import ClassificationRecord, resolve_class
 from privacy.items import AlwaysLocalRequested, WholeDocumentRequested
 from privacy.policy import Policy
 from privacy.release import Denied
-from privacy.vocabulary import check_denial_reason
+from privacy.vocabulary import DETECTOR_NO_SAFETY_EVIDENCE, check_denial_reason
 
 #: §7.3's literal template name, the one residual-library name P7 uses.
 PROTECTED_RECORDS_TEMPLATE: str = "Protected Records"
@@ -65,19 +65,27 @@ DENIAL_ORDER: tuple[str, ...] = (
     "policy_revoked",
     "always_local_item",
     "unclassified",
+    # DIRECTLY BEHIND `unclassified`, because it is the same precondition read one
+    # step further in. `unclassified` is "no class exists"; this is "a class exists
+    # and rests on nothing about safety". A file can only be one of the two, so the
+    # adjacency is about where a reader looks for the rule rather than about a
+    # contest -- but the ORDER still matters, because a file with no record at all
+    # must keep answering `unclassified` and never the weaker sentence.
+    "no_safety_evidence",
     "protected_records_template",
     "protected_cloud_target",
     "whole_document_requested",
     "dossier_over_budget",
 )
 
-#: The six decidable from the request, the policy and a row lookup. The other two need
-#: the resolved text, and every member of this set precedes both of them.
+#: The seven decidable from the request, the policy and a row lookup. The other two
+#: need the resolved text, and every member of this set precedes both of them.
 DECIDABLE_FROM_REQUEST: frozenset[str] = frozenset({
     "mode_forbids_target",
     "policy_revoked",
     "always_local_item",
     "unclassified",
+    "no_safety_evidence",
     "protected_records_template",
     "protected_cloud_target",
 })
@@ -186,6 +194,33 @@ def unclassified_denies(*, locality: str, local_calls_on_unclassified: bool) -> 
     if locality == "cloud":
         return True
     return not local_calls_on_unclassified
+
+
+def no_safety_evidence_denies(*, locality: str) -> bool:
+    """§8.4's precondition, satisfied by evidence of having LOOKED (`96` §20).
+
+    A classification on `detector_no_safety_evidence` says the detector concluded an
+    ordinary class while matching NO safety work type at all. The class is not in
+    doubt and the file is not being called sensitive; what is missing is any basis
+    for the negative half of the sentence, and a cloud call is precisely the act
+    that would depend on it.
+
+    **No knob, unlike `unclassified_denies`, and that asymmetry is deliberate.**
+    That function takes `local_calls_on_unclassified` because P7 SPEC Open question 5
+    ASKS it -- "Does `unreadable_unclassified` permit a LOCAL model call?" -- and P7
+    names no winner where the design leaves a question open. Nothing in the design
+    asks this one, so inventing a second knob would manufacture an open question and
+    push a decision to a caller who was never asked to make it.
+
+    LOCAL IS PERMITTED, and that is the half that keeps this from being a coverage
+    regression wearing a safety fix's name. §8.4's `local_model` is "Local extraction
+    plus a user-installed local LLM for eligible dossiers" and `hybrid` promises that
+    "Sensitive files remain LOCAL" -- the whole distinction the four modes draw is
+    about what leaves the device, not about what may be read on it. `96` §19's 41
+    files are mostly ordinary coursework, and a file nobody has established anything
+    about is exactly what §2.7 and §7.8 want an on-device model to look at.
+    """
+    return locality == "cloud"
 
 
 def is_protected_records(template_name: str | None) -> bool:
@@ -335,6 +370,51 @@ def deny_unclassified(*, file_ids: Sequence[str], locality: str,
             RemedyOption("review",
                          "§8.6: the user 'should be able to see what is running, what "
                          "has been deferred, and why'"),
+        ),
+        evidence_refs=(),
+    )
+
+
+def deny_no_safety_evidence(*, file_ids: Sequence[str], locality: str,
+                            handling_class: str) -> Denied:
+    """The class exists and rests on nothing about safety (`96` §20).
+
+    The explanation is written to be READ BY THE OWNER, and the hard part is saying
+    a true thing about a negative. "We found no safety evidence" and "there is no
+    safety evidence" are different sentences and the product only knows the first,
+    so the first is what it says. `96` §19's own words for why: *"A wrong confident
+    answer is worse than a question."*
+
+    The class is NAMED rather than described. A person told their file was judged
+    "not sensitive" has been told an outcome; a person told it was stored
+    `personal_non_sensitive` has been told what to look for in the report.
+    """
+    return deny(
+        "no_safety_evidence",
+        explanation=(
+            f"{len(tuple(file_ids))} file(s) carry the handling class "
+            f"{handling_class!r} on a basis of "
+            f"{DETECTOR_NO_SAFETY_EVIDENCE!r}: the detector recognised the file "
+            "from its own words and matched no term for finance, identity, medical "
+            "or legal material anywhere in it. Finding no safety evidence is not the "
+            "same as establishing that there is none, and §8.4 makes classification "
+            f"a precondition of escalation, so this has not met it for a {locality} "
+            "model call. The file is not being treated as sensitive: its class and "
+            "its protected flag are unchanged and it remains available to everything "
+            "that runs on this device."
+        ),
+        remedy_options=(
+            RemedyOption("use_local_model",
+                         "§8.4: `local_model` is 'local extraction plus a "
+                         "user-installed local LLM'; nothing leaves the device, so "
+                         "the precondition this denial rests on does not arise"),
+            RemedyOption("classify",
+                         "§8.4: the classification 'is itself evidence-backed and "
+                         "can be revised by the user'; a class the user sets carries "
+                         "basis 'user' and this denial does not fire on it"),
+            RemedyOption("review",
+                         "§8.6: the user 'should be able to see what is running, "
+                         "what has been deferred, and why'"),
         ),
         evidence_refs=(),
     )

@@ -326,6 +326,7 @@ def _deps(**overrides):
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),
         allowed_vocabulary=("school",),
+        folder_levels=(),
         policy_version=POLICY_VERSION,
     )
     values.update(overrides)
@@ -469,7 +470,7 @@ def test_released_issues_once_validates_and_persists(harness_conn, subject):
     dossier = build_dossier(
         request, granted,
         reduction_rung=REDUCTION_NONE,
-        allowed_vocabulary=("school",),
+        allowed_vocabulary=("school",), folder_levels=(),
         prompt=prompt, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert recorder.calls == [

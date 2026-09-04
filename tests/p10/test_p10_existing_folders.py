@@ -357,9 +357,31 @@ def test_a_level_that_makes_no_folder_is_not_counted_in_the_summary():
     skips a level with no values, and V2 skips one that does not divide -- so the
     sentence offered four levels where the tree has two, and a person choosing
     between shapes was reading about folders neither shape contains.
+
+    THE EXPECTATION BELOW CHANGED 2026-09-04, AND THE DOCSTRING ABOVE IS WHY.
+    It used to be `"1 term, and 3 subject"`, which applied only the FIRST of the
+    two rules this docstring names: it dropped the zero-value levels and kept
+    `term`, a level with exactly one value. One value is one folder and one
+    folder divides nothing, so V2 does not build it -- the second rule, stated
+    here from the beginning and not implemented until now.
+
+    Verified against the built tree rather than argued: on `00`:78's own path
+    (school 1, term 1, course 1, work_type 3) the option's children are
+    `Academics/Homework`, `Academics/Lectures`, `Academics/Syllabus` -- three
+    folders under one level, while the sentence promised four levels. So `term`
+    here is a folder that is not built, exactly like `school` and `work_type` at
+    zero.
+
+    This is NOT a relaxation to accommodate a new producer. `work_type` gaining a
+    producer is only what made the case REACHABLE: until a third level could
+    divide, every branch arriving here had nothing dividing at all, and the
+    caller answered those earlier with its own "would create no folders"
+    sentence, so this one never spoke for a mixed branch.
     """
     from tree_design.candidates import _summarise
 
     assert _summarise({"school": 0, "term": 1, "subject": 3, "work_type": 0}) == (
-        "1 term, and 3 subject")
+        "3 subject")
+    # A level with one value is dropped for the same reason a level with none is.
+    assert _summarise({"school": 0, "term": 1}) == "no child branches"
     assert _summarise({"school": 0}) == "no child branches"

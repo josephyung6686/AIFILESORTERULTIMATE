@@ -79,6 +79,36 @@ A_FACT_TEMPLATE_SHA256: str = (
 #: (`llm_harness/fingerprint.py:43`), so one changed character is a different prompt
 #: and every fact row already written under the old fingerprint points at text that
 #: would no longer exist. The pin makes an edit loud.
+#: **THE REVISION, AND IT IS NOT RATIFIED. THIS COMMENT IS WHERE THAT IS SAID.**
+#: The module docstring above names the only sane form of a revision -- "a second
+#: file with its own `template_id` alongside this one, and the old kept readable for
+#: the records that point at it" -- and this is that second file. The ratified bytes
+#: above are untouched, still loaded by `a_fact_template_bytes`, and still verified
+#: against the digest the owner's text hashes to.
+#:
+#: What it adds is four lines, and `tests/p8/test_p8_a_fact_prompt_folder_levels.py`
+#: re-derives them from the ratified file rather than pinning them by digest alone:
+#: `folder_levels` in the key list, `Five` -> `Six`, and two paragraphs saying what
+#: that key is. It adds no description of any FIELD -- meanings live in
+#: `library/field_glossary.json`, transcribed and never authored -- and the two
+#: sentences that keep a `required` level from being filled with a guess are quoted
+#: from the ratified text itself: "Declining is a correct answer and it is recorded
+#: as one" and "A field you get wrong becomes a permanent property of someone's
+#: file."
+#:
+#: The `template_id` the composition root gives it says `unratified` out loud, so
+#: every audit row, fact row and cache key written under it tells the owner that the
+#: prompt in force is not one they read. Ratifying it means recording the text and
+#: renaming the id, and nothing here may do either.
+A_FACT_TEMPLATE_FOLDER_LEVELS_FILE = (
+    Path(__file__).resolve().parent / "library"
+    / "a_fact_template_folder_levels.txt")
+
+#: sha256 of the file above. 8,219 bytes, 1,395 words.
+A_FACT_TEMPLATE_FOLDER_LEVELS_SHA256: str = (
+    "7101b8e4c9a9f10e2dd074900e05ea2e1e87645fc1e60d0ceeaf26c6bc7900dd")
+
+
 A_FACT_RESPONSE_SCHEMA_FILE = (
     Path(__file__).resolve().parent / "library" / "a_fact_response_schema.json")
 
@@ -127,6 +157,16 @@ def _read(path: Path, expected_sha256: str) -> bytes:
 def a_fact_template_bytes() -> bytes:
     """The ratified A_fact template, verified against its digest on first read."""
     return _read(A_FACT_TEMPLATE_FILE, A_FACT_TEMPLATE_SHA256)
+
+
+@lru_cache(maxsize=1)
+def a_fact_template_folder_levels_bytes() -> bytes:
+    """The revision that describes `folder_levels`, verified against its digest.
+
+    Same loader, same refusal, same reason: a prompt's identity is its bytes.
+    """
+    return _read(A_FACT_TEMPLATE_FOLDER_LEVELS_FILE,
+                 A_FACT_TEMPLATE_FOLDER_LEVELS_SHA256)
 
 
 @lru_cache(maxsize=1)

@@ -221,9 +221,23 @@ EXACT_FACT_MATCH: str = "exact fact match"
 CONTEXT_SUPPORTED_GROUP_MATCH: str = "context-supported group match"
 SHARED_MATERIAL_DECISION: str = "shared-material decision"
 ABSTAIN_NO_SUPPORTED_DESTINATION: str = "abstain: no supported destination"
+#: The person answered `ask_user`. **JOSEPH HAS NOT RATIFIED THIS MEMBER**; it is
+#: added because the work that needed it could not be done without it, and named
+#: here rather than slipped in.
+#:
+#: Why none of the four above will do, and why this is not cosmetic. The three
+#: positive classes each name EVIDENCE the engine weighed -- a fact matched, a
+#: group's context, §6.9's shared branch above two packets. A destination the
+#: person named was weighed by nobody: the whole reason they were asked is that
+#: every extractor came back empty, so there is no support score behind it and no
+#: alternatives it beat. Recording it as `exact fact match` would put a fact in the
+#: record that does not exist, and P13 shows a confidence class back to the person
+#: as the reason their file went where it did -- so the wrong one here is the
+#: product telling somebody it found something when what it did was ask them.
+USER_CHOSE_DESTINATION: str = "user chose the destination"
 CONFIDENCE_CLASSES: tuple[str, ...] = (
     EXACT_FACT_MATCH, CONTEXT_SUPPORTED_GROUP_MATCH, SHARED_MATERIAL_DECISION,
-    ABSTAIN_NO_SUPPORTED_DESTINATION,
+    ABSTAIN_NO_SUPPORTED_DESTINATION, USER_CHOSE_DESTINATION,
 )
 
 # --- the two-condition rule ------------------------------------------------------

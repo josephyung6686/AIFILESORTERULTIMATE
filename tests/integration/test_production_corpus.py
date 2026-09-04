@@ -527,7 +527,12 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             ask_or_abstain=lambda node_ids: pv.ABSTAIN, max_return_cycles=1,
             gate=None, model_client=None, prompt=None, call_dependencies=None,
             model_call_request=None, chosen_node_of=None,
-            residual_action_of=None, sensitivity_policy=None, p2=None)
+            residual_action_of=None, sensitivity_policy=None,
+            # Nothing to ask about and nothing already answered. Both are
+            # required with no default, so a fixture states its position
+            # rather than inheriting one.
+            ask_about_file=lambda subject: None,
+            chosen_by_user=lambda subject: None, p2=None)
 
     def downstream(p1_p7):
         scan_run_id[0] = p1_p7.scan_run_id
@@ -1472,7 +1477,7 @@ def test_the_report_says_where_an_unconfirmed_file_would_go_rather_than_hiding_i
     corpus.mkdir()
     for name, code_text in (("a.txt", "QQQ1111"), ("b.txt", "QQQ1111"),
                             ("c.txt", "QQQ2222"), ("d.txt", "QQQ2222")):
-        (corpus / name).write_text(code_text + "\n")
+        (corpus / name).write_text(code_text + " Syllabus\nInstructor: Dr. Ramirez\n")
 
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",

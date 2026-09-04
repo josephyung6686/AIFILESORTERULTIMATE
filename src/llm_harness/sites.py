@@ -165,6 +165,36 @@ def _proposal(
         return Proposal(
             field_key=field_key, value=None, citations=(), unknown=True,
         ), ()
+    value = payload.get("value")
+    if value is None:
+        # A SUPPORTING claim that never says what it read -- the key absent, or
+        # present and `null`. The ratified schema forbids both: the `support`
+        # branch requires `payload.required: ["field", "value"]`, and rule 3 is
+        # *"`value` must be a JSON string ... Never a number, a list, an object,
+        # true, false or null"*. At site A this function IS that check, because
+        # nothing validates the response bytes against
+        # `a_fact_response_schema.json` before they are parsed.
+        #
+        # **Only `None`, and the narrowness is the point.** Rule 3's other
+        # forbidden types are already answered a layer down, per claim: `76` §7's
+        # S15 is a number and its recorded expectation is
+        # `VALUE_NOT_NORMALIZABLE`, one rejected claim rather than a destroyed
+        # response. Widening this to every non-string moved S15's verdict and
+        # rewrote a row the owner ratified. `None` is the one spelling that has no
+        # verdict below, because it is the one `Proposal` will not hold.
+        #
+        # Left unchecked it built `Proposal(value=None, unknown=False)`, which
+        # `facts.llm_seam.Proposal` refuses with a bare `ValueError` -- not a
+        # verdict, not a refusal, and not catchable by anything between here and
+        # `FactResolver`. A live model produced exactly that shape on a real
+        # corpus: the exception left `run_call`, ended the pass at 25 of 40 files,
+        # and the run designed no tree at all.
+        #
+        # `None` is the answer every other bad shape here gets: one
+        # `schema_invalid` verdict for the whole response, which is the refusal
+        # this seam already has for a model that did not answer in the shape it was
+        # given.
+        return None
     raw = claim.get("citations")
     if not isinstance(raw, list):
         return None
@@ -177,7 +207,7 @@ def _proposal(
             parsed,
             evidence_ref=local_ref(parsed.evidence_ref, handles=handles)))
     return Proposal(
-        field_key=field_key, value=payload.get("value"),
+        field_key=field_key, value=value,
         citations=tuple(item.evidence_ref for item in citations), unknown=False,
     ), tuple(citations)
 

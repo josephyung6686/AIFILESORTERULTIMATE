@@ -31,6 +31,7 @@ from llm_harness.records import (
     Dossier,
     DossierRequest,
     EvidenceItem,
+    FolderLevel,
     MalformedRecord,
     PromptDefinition,
     ReleasedEvidence,
@@ -144,6 +145,52 @@ def _released_body(item: ReleasedEvidence, *, handle_key: bytes) -> dict:
     }
 
 
+def _folder_levels_body(
+    folder_levels: Sequence[FolderLevel],
+    allowed_vocabulary: Sequence[str],
+) -> list[dict]:
+    """The situation's own folder levels, and the check that they are a projection.
+
+    `allowed_vocabulary` is the FLAT closed list §3.5 turns on -- the universal
+    fields plus every active schema's field set -- and it says nothing about which
+    of those fields the person's chosen situation actually builds folders out of.
+    Measured on 199 real files, the model answered accordingly: 59 `file_type`, 34
+    `authored_by`, 19 `creation_date`, and one `work_type`, which is a REQUIRED
+    level and decides where the file goes. It was answering the question it was
+    asked.
+
+    **Every value here is the library's, in the library's order.** The field key is
+    P6's, the label is the shipped applicability row's own `RoleBinding.label`, and
+    `required`/`optional` is the template definition's own word for that dimension.
+    Order is list position, which is `default_order`'s `order_index` -- the order
+    the folders would actually nest in.
+
+    **The projection is enforced, not declared.** A level naming a field outside
+    `allowed_vocabulary` would be the model instructed to fill a key the validator
+    rejects under check 1 for not being in the active schema:
+    `model_facts.pending_fields_for` names that failure exactly -- "a model measured
+    against one list and validated against another can be rejected for obeying its
+    instructions". So it refuses here, before the release is spent, rather than
+    manufacturing a rejection later.
+
+    **Nothing about the file reaches this.** The two arguments are a library
+    constant and a closed vocabulary, so no entry can differ between two files in
+    one corpus and §8.4's always-local set has no route in -- the same bound
+    `field_glossary` above stands on.
+    """
+    allowed = set(allowed_vocabulary)
+    outside = [level.field for level in folder_levels if level.field not in allowed]
+    if outside:
+        raise MalformedRecord(
+            f"folder levels {sorted(outside)} name fields this call's "
+            "allowed_vocabulary does not carry. The vocabulary and the levels are "
+            "one computation: a level outside it is the model told to fill a field "
+            "its answer will be rejected for proposing"
+        )
+    return [{"field": level.field, "label": level.label,
+             "requirement": level.requirement} for level in folder_levels]
+
+
 def _as_text(raw: bytes, *, name: str) -> str:
     """An injected authority, as the model sees it.
 
@@ -172,6 +219,7 @@ def _body(
     max_dossier_tokens: int,
     reduction_rung: str,
     allowed_vocabulary: Sequence[str],
+    folder_levels: Sequence[FolderLevel],
     evidence_items: Sequence[EvidenceItem],
     conflicts: Sequence,
     released_evidence: Sequence[ReleasedEvidence],
@@ -207,6 +255,9 @@ def _body(
         # Built from `allowed_vocabulary` and nothing else, deliberately: it is the
         # one key here whose content is the same on every file in every corpus.
         "field_glossary": field_glossary(allowed_vocabulary),
+        # The template library's answer for the situation the person named, and a
+        # projection of the key above it. Empty at every site that designs no tree.
+        "folder_levels": _folder_levels_body(folder_levels, allowed_vocabulary),
         "max_dossier_tokens": max_dossier_tokens,
         "plan_version": plan_version,
         "policy_version": policy_version,
@@ -243,6 +294,7 @@ def canonical_dossier_bytes(
         max_dossier_tokens=dossier.max_dossier_tokens,
         reduction_rung=dossier.reduction_rung,
         allowed_vocabulary=dossier.allowed_vocabulary,
+        folder_levels=dossier.folder_levels,
         evidence_items=dossier.evidence_items,
         conflicts=dossier.conflicts,
         released_evidence=dossier.released_evidence,
@@ -268,6 +320,7 @@ def build_dossier(
     *,
     reduction_rung: str,
     allowed_vocabulary: Sequence[str],
+    folder_levels: Sequence[FolderLevel],
     prompt: PromptDefinition,
     handle_key: bytes,
 ) -> Dossier | ValidationUnavailable:
@@ -305,6 +358,7 @@ def build_dossier(
         max_dossier_tokens=request.model_call_request.max_dossier_tokens,
         reduction_rung=reduction_rung,
         allowed_vocabulary=allowed_vocabulary,
+        folder_levels=folder_levels,
         evidence_items=request.evidence_items,
         conflicts=request.conflicts,
         released_evidence=released_evidence,
@@ -323,6 +377,7 @@ def build_dossier(
         plan_version=request.plan_version,
         policy_version=released.policy_version,
         allowed_vocabulary=tuple(allowed_vocabulary),
+        folder_levels=tuple(folder_levels),
         evidence_items=request.evidence_items,
         conflicts=request.conflicts,
         released_evidence=released_evidence,

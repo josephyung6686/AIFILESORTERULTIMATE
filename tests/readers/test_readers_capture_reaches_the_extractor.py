@@ -24,13 +24,19 @@ from extractors.image import extract_image
 from extractors.safety import ProtectedContainerRefused, SafetyPolicy
 from readers.deployment import macos_readers
 
+#: A cell ceiling high enough that no fixture here reaches it. `macos_readers`
+#: refuses to pick one -- it is a policy and `cli.SPREADSHEET_CELL_CEILING` is
+#: where the product picks it -- so every caller states the one it means.
+CELL_CEILING_UNREACHED = 1_000_000
+
 OPEN_POLICY = SafetyPolicy(is_protected_container=lambda path: False,
                            is_dataless=lambda path: False)
 
 
 @pytest.fixture
 def readers():
-    return macos_readers(find_structured_strings=lambda text: ())
+    return macos_readers(find_structured_strings=lambda text: (),
+                         spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED)
 
 
 def png(path, width, height):
@@ -119,6 +125,7 @@ def test_a_protected_container_is_never_asked_what_its_filename_looks_like(
     asked: list[str] = []
     readers = macos_readers(
         find_structured_strings=lambda text: (),
+        spreadsheet_cell_ceiling=CELL_CEILING_UNREACHED,
         filename_pattern=lambda name: asked.append(name))
     path = png(tmp_path / "Photos.photoslibrary"
                / "Screenshot 2026-08-14 at 11.03.47.png", 2560, 1600)

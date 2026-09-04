@@ -24,7 +24,14 @@ from readers.long_tail_stdlib import (
     stdlib_long_tail_reader,
 )
 
-read = stdlib_long_tail_reader()
+#: A ceiling high enough that no fixture below reaches it. Every test in this file
+#: except the ceiling block itself is about what a reader RECOVERS, and a cap that
+#: bit into one of them would turn a recovery test into a cap test without saying so.
+#: The number is a test fixture's, not a deployment's: `cli.SPREADSHEET_CELL_CEILING`
+#: is the one the product runs under.
+NO_CEILING_IN_PRACTICE = 1_000_000
+
+read = stdlib_long_tail_reader(max_cells=NO_CEILING_IN_PRACTICE)
 
 
 def cells(document: LongTailFile) -> dict[tuple[int, int, int], str]:
@@ -804,3 +811,309 @@ def test_a_corrupt_container_raises_rather_than_reading_as_empty(tmp_path):
 
     with pytest.raises(zipfile.BadZipFile):
         read(path)
+
+
+# --------------------------------------------------------------------------- #
+# the instrument exports: CSV under an extension that does not promise text
+# --------------------------------------------------------------------------- #
+
+#: The first thirteen lines of `192K - allen.rlt`, verbatim from the corpus, CRLF
+#: and all. Three files on the owner's disk are shaped exactly like this and all
+#: three recovered 0.0% of their text.
+INSTRON_EXPORT = (
+    b'"Test Type","Manual"\r\n'
+    b'"Method Name:","C:\\INSTRON\\user\\template\\Xianghao.mtM"\r\n'
+    b'"Name:","80PMMA20PBAT"\r\n'
+    b'"Operator ID:","kai"\r\n'
+    b'"Test date:","7/3/24"\r\n'
+    b'"Geometry:","Rectangular"\r\n'
+    b'"Extension","Load"\r\n'
+    b'"(mm)","(N)"\r\n'
+    b'0.00000,0.01526\r\n'
+)
+
+
+@pytest.mark.parametrize("extension", [".rlt", ".raw"])
+def test_an_instrument_export_is_read_as_the_csv_it_is(tmp_path, extension):
+    """`.rlt` and `.raw` are Instron's export extensions and the bytes are CSV.
+
+    Before this the router had no key for either, so all three files on the owner's
+    disk recorded `unsupported`: the specimen name, the operator, the test date and
+    every force-extension pair were on disk and unreachable. The header block is
+    what a person filing these actually needs -- `80PMMA20PBAT` and `7/3/24` say
+    which experiment this is.
+    """
+    path = tmp_path / f"192K - allen{extension}"
+    path.write_bytes(INSTRON_EXPORT)
+
+    document = read(path)
+
+    assert document is not None, f"{extension} still has no reader"
+    grid = cells(document)
+    assert grid[(1, 1, 1)] == "Test Type"
+    assert grid[(1, 3, 2)] == "80PMMA20PBAT"
+    assert grid[(1, 5, 2)] == "7/3/24"
+    assert grid[(1, 9, 2)] == "0.01526"
+
+
+@pytest.mark.parametrize("extension", [".rlt", ".raw"])
+def test_bytes_that_are_not_text_under_those_extensions_are_unsupported_not_mojibake(
+        tmp_path, extension):
+    """`.raw` is also a camera raw, and THAT is why this test exists.
+
+    `_read_delimited` opens with `errors="replace"`, which is right for a `.csv`
+    that declares itself as text and catastrophic for an extension that does not: a
+    photograph would have become a spreadsheet of replacement characters, recorded
+    `complete`, with nothing anywhere saying the product had not read it. §2.4 keeps
+    `unsupported` and `complete` apart for exactly this, so these two extensions
+    decode strictly and answer None when the bytes are not text.
+    """
+    path = tmp_path / f"IMG_0042{extension}"
+    path.write_bytes(b"II*\x00\x08\x00\x00\x00\xff\xd8\xff\xe1\x80\x81\x82\x83\xfe")
+
+    assert read(path) is None
+
+
+# --------------------------------------------------------------------------- #
+# OOXML attributes a real file always has and a damaged one may not
+# --------------------------------------------------------------------------- #
+
+MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+PKGREL = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+
+def test_a_relationship_with_no_id_is_skipped_rather_than_keyed_on_none(tmp_path):
+    """`ElementTree.Element.get` returns `str | None` and every OOXML reader here
+    calls it on an attribute a valid file always carries.
+
+    A relationship with no `Id` used to become the dictionary key `None`, which no
+    lookup can ever hit -- so a damaged part silently shifted every later sheet's
+    name onto the wrong target instead of being ignored. Pyright named the type; the
+    behaviour is what this pins. The good relationship beside it must still resolve.
+    """
+    path = tmp_path / "damaged.xlsx"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("xl/workbook.xml",
+            f'<workbook xmlns="{MAIN}" xmlns:r="http://schemas.openxmlformats.org/'
+            'officeDocument/2006/relationships"><sheets>'
+            '<sheet name="Grades" r:id="rId1"/></sheets></workbook>')
+        archive.writestr("xl/_rels/workbook.xml.rels",
+            f'<Relationships xmlns="{PKGREL}">'
+            '<Relationship Target="worksheets/sheet1.xml"/>'          # no Id at all
+            '<Relationship Id="rId1" Target="worksheets/sheet1.xml"/>'
+            '</Relationships>')
+        archive.writestr("xl/worksheets/sheet1.xml",
+            f'<worksheet xmlns="{MAIN}"><sheetData><row r="1">'
+            '<c r="A1" t="inlineStr"><is><t>PHYS 1403</t></is></c>'
+            '</row></sheetData></worksheet>')
+
+    document = read(path)
+
+    assert document is not None
+    assert "PHYS 1403" in [text.text for text in document.texts]
+
+
+def test_a_sheet_reference_with_no_relationship_id_is_skipped(tmp_path):
+    """The other half: the `<sheet>` element, not the `<Relationship>`."""
+    path = tmp_path / "damaged2.xlsx"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("xl/workbook.xml",
+            f'<workbook xmlns="{MAIN}" xmlns:r="http://schemas.openxmlformats.org/'
+            'officeDocument/2006/relationships"><sheets>'
+            '<sheet name="Orphan"/>'                       # no r:id
+            '<sheet name="Grades" r:id="rId1"/></sheets></workbook>')
+        archive.writestr("xl/_rels/workbook.xml.rels",
+            f'<Relationships xmlns="{PKGREL}">'
+            '<Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>')
+        archive.writestr("xl/worksheets/sheet1.xml",
+            f'<worksheet xmlns="{MAIN}"><sheetData><row r="1">'
+            '<c r="A1" t="inlineStr"><is><t>PHYS 1403</t></is></c>'
+            '</row></sheetData></worksheet>')
+
+    document = read(path)
+
+    assert document is not None
+    assert "PHYS 1403" in [text.text for text in document.texts]
+    assert [entry.label for entry in document.entries] == ["Grades"]
+
+
+def test_a_number_format_with_no_id_does_not_stop_the_sheet(tmp_path):
+    """`int(node.get("numFmtId"))` on a `numFmt` that declares none. The `TypeError`
+    was already caught, so this was never a crash -- it is here so the guard that
+    replaces the catch is held to the same behaviour."""
+    path = tmp_path / "styles.xlsx"
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr("xl/workbook.xml",
+            f'<workbook xmlns="{MAIN}" xmlns:r="http://schemas.openxmlformats.org/'
+            'officeDocument/2006/relationships"><sheets>'
+            '<sheet name="Grades" r:id="rId1"/></sheets></workbook>')
+        archive.writestr("xl/_rels/workbook.xml.rels",
+            f'<Relationships xmlns="{PKGREL}">'
+            '<Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>')
+        archive.writestr("xl/styles.xml",
+            f'<styleSheet xmlns="{MAIN}"><numFmts>'
+            '<numFmt formatCode="yyyy-mm-dd"/>'            # no numFmtId
+            '</numFmts></styleSheet>')
+        archive.writestr("xl/worksheets/sheet1.xml",
+            f'<worksheet xmlns="{MAIN}"><sheetData><row r="1">'
+            '<c r="A1" t="inlineStr"><is><t>PHYS 1403</t></is></c>'
+            '</row></sheetData></worksheet>')
+
+    document = read(path)
+
+    assert document is not None
+    assert "PHYS 1403" in [text.text for text in document.texts]
+
+
+# --------------------------------------------------------------------------- #
+# the cell ceiling
+# --------------------------------------------------------------------------- #
+#
+# §2.9 asks a spreadsheet for "visible cell values" and names no ceiling, and this
+# reader honoured that literally: every non-empty cell of every sheet became one
+# `text_units` row AND one `evidence` row. Measured on the owner's 199-file corpus,
+# 2026-09-04: 13,994 of 23,983 text units -- 58% of everything the product had read
+# -- were spreadsheet cells carrying 82,428 characters, 3.5% of the text. Two rows
+# per cell at a locator apiece is roughly 300 bytes, so a data export of a million
+# cells is a third of a gigabyte of database for one file, and a person's own
+# documents queue behind it.
+#
+# The ceiling is a POLICY and lives in `cli.py`. What lives here is the mechanism and
+# the honesty: a capped read counts what it did not store, so §2.4's `capped` can
+# carry a real coverage rather than a claim that the sheet was that small.
+
+def a_csv(path: Path, rows: int, columns: int) -> Path:
+    header = ",".join(f"col{n}" for n in range(1, columns + 1))
+    body = "\n".join(",".join(f"r{r}c{c}" for c in range(1, columns + 1))
+                      for r in range(1, rows + 1))
+    path.write_text(f"{header}\n{body}\n", encoding="utf-8")
+    return path
+
+
+def test_a_spreadsheet_inside_the_ceiling_is_not_capped_and_counts_itself(tmp_path):
+    """The ordinary case has to stay ordinary. `capped` is False and `cells_total`
+    equals what was recovered -- so a run built from it says `complete` and its
+    coverage is the sheet's real size, not the ceiling."""
+    document = stdlib_long_tail_reader(max_cells=100)(a_csv(tmp_path / "s.csv", 3, 3))
+    assert document.capped is False
+    assert len(cells(document)) == 12          # 3 body rows + the header row, x3
+    assert document.cells_total == 12
+
+
+def test_a_csv_past_the_ceiling_stops_storing_and_keeps_counting(tmp_path):
+    """The whole mechanism, in one assertion pair.
+
+    STOPS STORING is the point of the ceiling. KEEPS COUNTING is what makes the
+    resulting run honest: P4's `coverage {units, processed, total}` may not claim
+    more progress than the work it was given, and a reader that stopped without
+    counting could only report `12 of 12` -- a truncated read wearing a full count,
+    which is precisely the "silently an empty document" defect §2.4 forbids, in its
+    larger form.
+
+    Counting costs nothing: `csv.reader` is already streaming the rows and the cells
+    past the ceiling are counted and dropped rather than held.
+    """
+    document = stdlib_long_tail_reader(max_cells=10)(a_csv(tmp_path / "s.csv", 9, 3))
+    assert document.capped is True
+    assert len(cells(document)) == 10
+    assert document.cells_total == 30          # 9 body rows + the header row, x3
+
+
+def test_the_header_row_survives_the_ceiling(tmp_path):
+    """§2.9 names "column headers" separately from "visible cell values", and the
+    header row is what says what a sheet IS. It is row 1, so it is stored first and
+    no special case is needed -- this test exists so that stays true if the
+    traversal order is ever changed."""
+    document = stdlib_long_tail_reader(max_cells=3)(a_csv(tmp_path / "s.csv", 40, 3))
+    assert sorted(cells(document).values()) == ["col1", "col2", "col3"]
+
+
+def test_an_xlsx_past_the_ceiling_stops_storing_and_keeps_counting(tmp_path):
+    """The same mechanism on the other spreadsheet format. A `.xlsx` is where the
+    large ones actually are -- a `.csv` a person keeps is usually an export."""
+    path = tmp_path / "book.xlsx"
+    rows = "".join(
+        f'<row r="{r}">'
+        + "".join(f'<c r="{chr(64 + c)}{r}" t="inlineStr"><is><t>r{r}c{c}</t></is></c>'
+                  for c in range(1, 4))
+        + "</row>" for r in range(1, 11))
+    xlsx(path, sheets=[("Data", rows)])
+    document = stdlib_long_tail_reader(max_cells=7)(path)
+    assert document.capped is True
+    assert len(cells(document)) == 7
+    assert document.cells_total == 30
+
+
+def test_the_ceiling_counts_the_whole_workbook_and_not_each_sheet(tmp_path):
+    """The database grows per FILE, so the ceiling that bounds it is per file. A
+    per-sheet ceiling would let a workbook of forty sheets spend forty times it."""
+    path = tmp_path / "two.xlsx"
+    rows = "".join(
+        f'<row r="{r}"><c r="A{r}" t="inlineStr"><is><t>v{r}</t></is></c></row>'
+        for r in range(1, 5))
+    xlsx(path, sheets=[("First", rows), ("Second", rows)])
+    document = stdlib_long_tail_reader(max_cells=6)(path)
+    assert document.capped is True
+    assert len(cells(document)) == 6           # 4 from sheet 1, 2 from sheet 2
+    assert document.cells_total == 8
+    # Both sheets are still NAMED. §2.9 asks for "sheet names" and they cost one row
+    # each, so the ceiling never takes them away.
+    assert len(document.entries) == 2
+
+
+def test_the_ceiling_is_required_and_this_reader_picks_no_number(tmp_path):
+    """"Absent means refuse, never guess." A default here would be a second ceiling
+    nobody tuned, sitting below the one `cli.py` documents."""
+    with pytest.raises(TypeError):
+        stdlib_long_tail_reader()
+
+
+def test_a_format_with_no_cells_reports_no_cell_count(tmp_path):
+    """A calendar has no cells, so it has no cell coverage to report and must not
+    invent one. `cells_total` stays None and the run keeps counting entries."""
+    path = tmp_path / "c.ics"
+    path.write_text("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:1\r\n"
+                    "SUMMARY:Lab\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+    document = read(path)
+    assert document.cells_total is None
+    assert document.capped is False
+
+
+def test_a_utf16_csv_is_read_as_cells_and_not_as_interleaved_nulls(tmp_path):
+    """The same byte-order-mark fix as `readers/text_documents.py`, on the format
+    that meets it most often.
+
+    "Unicode Text (*.txt)" is one of Excel's own save formats and it is UTF-16LE
+    with a BOM; so are a great many `.tsv` exports. `utf-8-sig` strips a UTF-8 mark
+    and reads a UTF-16 file as NUL-interleaved mojibake -- one cell coming back
+    `'��c\\x00o\\x00u\\x00r\\x00s\\x00e\\x00'`, stored `complete`.
+
+    A BOM is the document's own statement about its bytes, not a guess: nothing here
+    counts NULs or scores a codec, and a file with no mark is decoded exactly as
+    before.
+    """
+    path = tmp_path / "grades.csv"
+    path.write_bytes("course,grade\nPHYS 1403,A\n".encode("utf-16"))
+    assert list(cells(read(path)).values()) == ["course", "grade", "PHYS 1403", "A"]
+
+
+def test_a_big_endian_utf16_tsv_reads_the_same(tmp_path):
+    path = tmp_path / "grades.tsv"
+    path.write_bytes(b"\xfe\xff" + "course\tgrade\n".encode("utf-16-be"))
+    assert list(cells(read(path)).values()) == ["course", "grade"]
+
+
+def test_a_csv_with_no_mark_is_decoded_exactly_as_before(tmp_path):
+    """The guard on the fix. A plain UTF-8 `.csv` -- CJK included -- is untouched."""
+    path = tmp_path / "cjk.csv"
+    path.write_bytes("課程,成績\n外泌體,A\n".encode("utf-8"))
+    assert list(cells(read(path)).values()) == ["課程", "成績", "外泌體", "A"]
+
+
+def test_a_camera_raw_is_still_not_a_spreadsheet(tmp_path):
+    """`.raw` decodes STRICTLY -- §2.4's `unsupported` rather than a sheet of
+    mojibake -- and adding a byte-order-mark sniff must not open a door for binary.
+    A JPEG's first bytes are `FF D8 FF`, which is not any BOM."""
+    path = tmp_path / "IMG_0001.raw"
+    path.write_bytes(b"\xff\xd8\xff\xe0" + bytes(range(256)) * 4)
+    assert read(path) is None

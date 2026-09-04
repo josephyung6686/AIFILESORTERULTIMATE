@@ -115,12 +115,26 @@ def test_the_ocr_specific_fields_are_never_on_the_observation():
             assert name not in observation, name
 
 
-def test_raw_recognized_text_is_a_unit_and_lives_nowhere_else(sink):
-    # G1: one home for bulk text.
+def test_raw_recognized_text_is_a_unit_and_reaches_evidence_exactly_once(sink):
+    """G1's "one home for bulk text" -- and the ONE deliberate exception §2.4 forces.
+
+    The unit is still the home: `text_units` carries the recognised text and every
+    span-carrying observation indexes into it. What changed on 2026-09-04 is that a
+    SECOND, span-less copy is emitted as evidence, because the recogniser scans
+    observations and never text units (`recognition/detector.py`: "a detector that
+    pulled whole text units would be a second materialisation locus"). Without it,
+    everything Apple Vision read off a screenshot was stored and unreachable.
+
+    `pdf.py` and `docx.py` made this same exception first and for the same reason.
+    Exactly one such row, so the exception cannot quietly become the rule.
+    """
     result, _ = run_it()
     run_id = sink.write(result)
     assert [u["text"] for u in sink.units_for(run_id)] == [RECOGNIZED]
-    assert all(o["raw_value"] != RECOGNIZED for o in sink.observations_for(run_id))
+    whole = [o for o in sink.observations_for(run_id) if o["raw_value"] == RECOGNIZED]
+    assert len(whole) == 1, "the recognised text reaches evidence once, or not at all"
+    assert whole[0]["location"]["text_span"] is None
+    assert whole[0]["location"]["container_path"] == ()
 
 
 def test_the_span_indexes_into_the_unit_its_container_names(sink):
@@ -144,13 +158,93 @@ def test_an_image_region_addresses_by_region_when_there_is_no_page(sink):
         {"kind": "region", "index": 2, "label": None},)
 
 
-def test_a_screenshot_with_no_structured_strings_is_complete_with_zero_rows(sink):
+def test_a_screenshot_with_no_structured_strings_still_yields_what_it_says(sink):
+    """THE MEASURED DEFECT, and this test used to assert it as correct behaviour.
+
+    Its old name was `..._is_complete_with_zero_rows` and it passed: a screenshot
+    whose recognised text held no URL, no email and no DOI produced a `complete` run,
+    a text unit, and NO EVIDENCE AT ALL. §2.7 calls OCR "the main way screenshots and
+    opaque loose images become understandable to the pre-sorting engine", and the
+    engine reads evidence.
+
+    Measured over the owner's 199-file corpus on 2026-09-04: OCR ran on 52 files and
+    produced 2,192 text units for one PDF alone against 17 observations. Eleven image
+    files -- regression-line charts, WhatsApp saves, screen captures -- carried 14 to
+    27 recognised text units EACH and emitted zero prose. The text was read off the
+    pixels, stored, and thrown away.
+    """
     result, _ = run_it(finder=lambda text: ())
     run_id = sink.write(result)
-    assert sink.observations_for(run_id) == []
+    rows = sink.observations_for(run_id)
+
+    assert rows, "OCR read this screenshot and emitted nothing a reader can reach"
+    assert [r["raw_value"] for r in rows] == [RECOGNIZED]
     assert sink.run_for(run_id)["completeness"] == "complete"
     assert sink.units_for(run_id)[0]["text"] == RECOGNIZED
     sink.conforms()
+
+
+def test_the_recognised_text_stays_in_the_always_local_ocr_zone(sink):
+    """§8.4 member 3 is `ocr_output` and it NEVER leaves the device.
+
+    `privacy.vocabulary.ALWAYS_LOCAL_ZONES` gained `"ocr"` on 2026-09-04 for exactly
+    this data, and every release door reads the zone: `privacy/items.py` refuses to
+    construct an excerpt addressing one, and `model_facts.py` and `model_placement.py`
+    both check before sending. Emitting the whole recognised text as `body` -- the
+    zone `pdf.py` and `docx.py` use for their own prose -- would have handed a scanned
+    identity document to a cloud dossier through a door that was already closed.
+
+    Asserted at the emitter as well as at the gate, because the gate cannot refuse a
+    zone the emitter never wrote.
+    """
+    from privacy.vocabulary import ALWAYS_LOCAL_ZONES
+
+    result, _ = run_it(finder=lambda text: ())
+    run_id = sink.write(result)
+
+    for row in sink.observations_for(run_id):
+        assert row["location"]["zone"] == "ocr", row
+        assert row["location"]["zone"] in ALWAYS_LOCAL_ZONES
+
+
+def test_several_lines_arrive_as_one_readable_passage(sink):
+    """Apple Vision returns ONE REGION PER LINE, and that is why this is one row.
+
+    A term the recogniser holds -- `vaccination record`, `medical record` -- routinely
+    straddles a line break on a scanned form. Emitting one observation per region
+    would give the detector twenty one-line strings and no passage in which those two
+    words are ever adjacent, which is the same starvation in a new shape.
+    """
+    output = an_output(regions=(a_page(number=1, text="COVID-19"),
+                                OcrRegion(page=1, region=2, text="Vaccination"),
+                                OcrRegion(page=1, region=3, text="Record")),
+                       pages_processed=1, pages_total=1)
+    result, _ = run_it(output=output, finder=lambda text: ())
+    run_id = sink.write(result)
+
+    rows = [r["raw_value"] for r in sink.observations_for(run_id)]
+    assert len(rows) == 1, f"one passage per file, got {len(rows)}"
+    assert "Vaccination\nRecord" in rows[0], rows
+
+
+def test_an_engine_that_recognised_nothing_still_emits_nothing(sink):
+    """§2.4: an empty result and a missing extractor are different facts. A photo of
+    a wall has no text, and a row saying so would be an observation about an
+    absence -- which P5 does not write."""
+    result, _ = run_it(output=an_output(regions=(), pages_processed=1, pages_total=1),
+                       finder=lambda text: ())
+    run_id = sink.write(result)
+
+    assert sink.observations_for(run_id) == []
+    assert sink.run_for(run_id)["completeness"] == "complete"
+
+
+def test_whitespace_only_recognition_is_not_a_passage(sink):
+    output = an_output(regions=(OcrRegion(page=1, region=1, text="   \n  "),))
+    result, _ = run_it(output=output, finder=lambda text: ())
+    run_id = sink.write(result)
+
+    assert sink.observations_for(run_id) == []
 
 
 def test_the_provider_is_the_engines_and_p5_spells_none():
@@ -341,7 +435,103 @@ def test_an_observations_span_indexes_into_its_own_region():
 
     units = {str(unit["container_path"]): unit["text"]
              for unit in result.text_units}
-    for observed in result.observations:
+    # SPAN-CARRYING ROWS ONLY, which is what rule 5 is about and what this test has
+    # always been about -- `check_span_anchor` itself opens "rule 10 applies to an
+    # observation with a non-null text_span". The whole-passage row added on
+    # 2026-09-04 carries no span and no container by design, so there is no unit for
+    # it to index into and no anchor for rule 5 to check; asserting one here would
+    # be this test claiming a rule the conformance layer does not make.
+    anchored = [o for o in result.observations
+                if o["location"]["text_span"] is not None]
+    assert anchored, "no span-carrying observation left to check the anchor on"
+    for observed in anchored:
         text = units[str(observed["location"]["container_path"])]
         span = observed["location"]["text_span"]
         assert text[span["start"]:span["end"]] == observed["raw_value"]
+
+    span_less = [o for o in result.observations
+                 if o["location"]["text_span"] is None]
+    assert [o["location"]["container_path"] for o in span_less] == [()], (
+        "a span-less OCR observation that is NOT the whole passage has appeared; "
+        "it would be an unanchored excerpt with a container nobody checks")
+
+
+def test_the_passage_collapses_into_a_match_it_duplicates(sink):
+    """P4 D10 applied to the new row, pinned because it is not obvious.
+
+    "One observation per (run, exact raw value, zone)", applied in
+    `ExtractionResult.__post_init__` for every extractor. When a region holds
+    nothing but a found string, the whole-passage row and the structured-string row
+    are the same value in the same `ocr` zone and become one -- the FIRST in
+    document order, which is the span-carrying match that existed before this row
+    did. The passage therefore costs a row only when it carries words the matches
+    did not, which is the case it was added for.
+
+    Nothing about release changes either way: every OCR row is `zone="ocr"`, which
+    `ALWAYS_LOCAL_ZONES` refuses whatever its span says.
+    """
+    output = an_output(regions=(OcrRegion(page=1, region=1, text="BUSIB 4300",
+                                          confidence=0.9),))
+    result, _ = run_it(output=output)
+    run_id = sink.write(result)
+
+    rows = sink.observations_for(run_id)
+    assert [r["raw_value"] for r in rows] == ["BUSIB 4300"]
+    assert rows[0]["location"]["text_span"] is not None
+    assert rows[0]["location"]["zone"] == "ocr"
+
+
+# ----------------------------------------------------- §2.4's other outcome, here
+def test_an_engine_with_no_decoder_records_unsupported_and_not_failed():
+    """§2.4's two words, at the seam every other extractor already has.
+
+    `extract_pdf`, `extract_docx`, `extract_structured_text`, `extract_long_tail` and
+    `extract_image` all begin the same way: a reader that returns `None` means *"no
+    reader exists for this format in this deployment"* and the run is `unsupported`.
+    E6 was the one extractor with no such branch, so an engine that could not decode
+    a format had only one way to say so -- raise -- and the dispatcher's catch turned
+    every one of them into `failed`, which asserts the file is damaged.
+
+    Measured on the owner's 199-file corpus, 2026-09-04: seven undamaged SVG logos
+    recorded `ocr · failed · "no image could be decoded from ..."`. Seven false
+    statements about a person's files, in the column §8.6's "18 files remain
+    unreadable" sentence is computed from.
+    """
+    result = extract_ocr(
+        file_row=FILE_ROW, path=Path("/corpus/logo.svg"), policy=OPEN_POLICY,
+        ocr_engine=lambda target, *, config: None, config=FIXTURE_CONFIG,
+        find_structured_strings=find_course_code, now=FIXED_CLOCK,
+        context_window=20)
+
+    assert result.run["completeness"] == "unsupported"
+    assert result.run["analysis_tier"] == ANALYSIS_TIER
+    # P4 conformance rule 9: `unsupported` carries zero observations. A text unit
+    # would be worse -- it would put a reading in `text_units` for a file nothing read.
+    assert result.observations == ()
+    assert result.text_units == ()
+    assert result.run["observation_count"] == 0
+    # No `failure_reason`: nothing failed. A reason here would read as a failure,
+    # which is exactly the confusion the two words exist to prevent.
+    assert not result.run.get("failure_reason")
+
+
+def test_the_unsupported_run_names_no_provider_it_never_heard_from():
+    """§2.7's first two persisted fields are the PROVIDER's own name and version.
+
+    An engine that declined reported neither, so neither may be invented. The run
+    carries the family name with the provider left off -- `UNREPORTED_PROVIDER_NAME`,
+    which already exists for the engine that raised before reporting -- and P5's own
+    adapter version, which is the code that actually ran.
+    """
+    from extractors.ocr import UNREPORTED_PROVIDER_NAME, VERSION
+
+    result = extract_ocr(
+        file_row=FILE_ROW, path=Path("/corpus/logo.svg"), policy=OPEN_POLICY,
+        ocr_engine=lambda target, *, config: None, config=FIXTURE_CONFIG,
+        find_structured_strings=find_course_code, now=FIXED_CLOCK,
+        context_window=20)
+
+    assert result.run["extractor_name"] == UNREPORTED_PROVIDER_NAME
+    assert result.run["extractor_version"] == VERSION
+    assert "." not in UNREPORTED_PROVIDER_NAME, (
+        "the family name must not collide with any real `ocr.<provider>`")

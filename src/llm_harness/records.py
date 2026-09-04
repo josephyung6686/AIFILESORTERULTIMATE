@@ -20,6 +20,7 @@ from llm_harness.vocabulary import (
     DISPOSITIONS,
     ELIGIBILITY_BY_SITE,
     EVIDENCE_BASES,
+    LEVEL_REQUIREMENTS,
     OUTCOMES,
     PRE_CALL_REASON_CODES,
     PRIVACY_GATE_REFUSED,
@@ -238,6 +239,48 @@ class EvidenceItem:
 
 
 @dataclass(frozen=True, slots=True)
+class FolderLevel:
+    """One level of the folder tree the person's chosen situation would build.
+
+    Three values, and **P8 authors none of them**. `field` is a P6 field key,
+    `label` is the shipped applicability row's own `RoleBinding.label` -- "My
+    school", "Semester", "Course", "Kind of work" -- and `requirement` is the
+    template definition's own word for that dimension, `required` or `optional`.
+    The composition root reads all three off the template library and hands them in;
+    nothing here mints a label, a word or an order.
+
+    **Why it is a record and not a bare string.** `dossier._body` writes these into
+    the model-visible bytes, and `canonical_dossier_bytes` re-derives those bytes
+    from the `Dossier` RECORD, so a level that lived only in the body would not
+    survive the round trip the transport actually makes.
+
+    **Why nothing about the file may be added to it.** A level is the same on every
+    file in the situation -- that is the whole reason it is safe to send. An example
+    value, a matching excerpt or a per-file hint would make this key a channel for
+    §8.4's always-local set, so the shape is closed at these three and
+    `released_content` refuses any entry carrying a fourth.
+    """
+
+    field: str
+    label: str
+    requirement: str
+
+    def __post_init__(self) -> None:
+        if not self.field or not self.label:
+            raise MalformedRecord(
+                "FolderLevel requires a field key and the library's own label; a "
+                "level with neither tells the model nothing it did not already have"
+            )
+        if self.requirement not in LEVEL_REQUIREMENTS:
+            raise MalformedRecord(
+                f"{self.requirement!r} is not one of the template library's own "
+                f"words for a dimension {sorted(LEVEL_REQUIREMENTS)}. P8 does not "
+                "translate the library's vocabulary and must not invent a third "
+                "strength for a level nobody graded that way"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class ReleasedEvidence:
     """One P7 `ReleasedItem` as the model saw it.
 
@@ -339,6 +382,17 @@ class Dossier:
     max_dossier_tokens: int
     reduction_rung: str
     release_id: str
+    #: The folder levels the person's chosen situation would build, in the template
+    #: library's own order. A PROJECTION of `allowed_vocabulary` and never a second
+    #: vocabulary -- `dossier._body` refuses a level naming a field the vocabulary
+    #: does not carry, because a model told to fill a key the validator will reject
+    #: for not being in the active schema is rejected for obeying its instructions.
+    #:
+    #: Empty at B, C and D, which design no tree, and that is a truthful answer
+    #: rather than a default: the site that DOES design one refuses an empty list at
+    #: composition (`model_facts.require_folder_levels`), where the deployment that
+    #: forgot to read the library is a `TypeError` and not a quiet dossier.
+    folder_levels: tuple[FolderLevel, ...] = ()
 
     def __post_init__(self) -> None:
         _require(self.call_site, CALL_SITES, name="call_site")
@@ -362,6 +416,12 @@ class Dossier:
         _freeze_sequence(self, "evidence_items")
         _freeze_sequence(self, "conflicts")
         _freeze_sequence(self, "released_evidence")
+        _freeze_sequence(self, "folder_levels")
+        if any(not isinstance(item, FolderLevel) for item in self.folder_levels):
+            raise MalformedRecord(
+                "folder_levels must be FolderLevel records read off the shipped "
+                "template library; a mapping here is a caller authoring a level"
+            )
         if any(not isinstance(item, EvidenceItem) for item in self.evidence_items):
             raise MalformedRecord("evidence_items must be EvidenceItem records")
         if any(not isinstance(item, Conflict) for item in self.conflicts):

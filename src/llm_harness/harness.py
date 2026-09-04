@@ -82,7 +82,12 @@ _SCOPE_BY_SITE = {
 }
 
 _BOOL_FLAGS = frozenset({"unreduced_fits", "summarized_fits", "anchors_fit"})
-_NONE_OK = frozenset({"split_shard_fits", "split_shards", "estimated_cost", "actual_cost"})
+#: `folder_levels` joins these because EMPTY is a truthful answer at B, C and D --
+#: they design no folder tree -- while `None` is a caller who never read the
+#: template library. The site that does design one refuses an empty list at
+#: composition, where the mistake is legible.
+_NONE_OK = frozenset({"split_shard_fits", "split_shards", "estimated_cost",
+                      "actual_cost", "folder_levels"})
 _CALLABLES = frozenset({"evidence_resolver", "contradicts"})
 _TYPED = {"site_dependencies": SiteDependencies}
 
@@ -114,6 +119,19 @@ class CallDependencies:
     #: wire, and an absent one is reported missing rather than replaced by an
     #: un-keyed digest a recipient can reverse.
     wire_handle_key: bytes | None
+    #: The folder levels of the situation the person named, in the template
+    #: library's order. A projection of `allowed_vocabulary` above it and never a
+    #: second vocabulary.
+    #:
+    #: **No default, like every other field here**, which
+    #: `test_p8_no_invention.py::test_configurable_callbacks_thresholds_and_prompts
+    #: _have_no_defaults` enforces over this whole class: absent means refuse, never
+    #: guess. `()` is a legal VALUE and it is the truthful one at B, C and D, which
+    #: design no folder tree -- so it is in `_NONE_OK` above, where an empty list
+    #: passes and a `None` is reported missing. Site A does design one, and the
+    #: emptiness it must not have is refused a layer up, at
+    #: `model_facts.require_folder_levels`.
+    folder_levels: Sequence[object] | None
 
 
 def _missing_from_deps(deps: object) -> tuple[str, ...]:
@@ -283,6 +301,7 @@ def _issue_and_validate(
         request, released,
         reduction_rung=reduction_rung,
         allowed_vocabulary=deps.allowed_vocabulary,
+        folder_levels=deps.folder_levels,
         prompt=prompt,
         handle_key=deps.wire_handle_key,
     )

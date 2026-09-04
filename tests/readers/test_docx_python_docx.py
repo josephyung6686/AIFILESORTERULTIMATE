@@ -93,3 +93,119 @@ def test_paragraph_indexes_are_the_order_they_appear_in(written):
     assert min(indexes) == 1, (
         "P4 D3 refuses a container-path index of 0, and a 0 here made the whole "
         "extraction `failed` -- a real document reported as a damaged one")
+
+
+# --------------------------------------------------------------------------- #
+# headers, footers and comments
+# --------------------------------------------------------------------------- #
+#
+# §2.3's list, in full: *"core properties, all paragraphs in order, heading levels,
+# tables and table-cell text, HEADERS AND FOOTERS WHERE FEASIBLE, hyperlinks, document
+# relationships, and AVAILABLE REVISION OR COMMENT METADATA."* This reader's own
+# docstring named headers and footers as the *"honest next increment"*, and the module
+# it feeds has carried the `header_footer` zone and `DocxAnnotation` all along -- both
+# reachable and both permanently empty, because nothing produced them.
+#
+# Measured on the owner's 199-file corpus, 2026-09-05, counting `<w:t>` characters:
+# 371,345 live in `word/document.xml` and this reader recovers 100% of them; 3,913
+# live in `word/header*.xml`, `word/footer*.xml` and `word/comments.xml` and it
+# recovered none. Small in characters and not small in content -- the header of every
+# résumé in that corpus is the person's name, address and telephone number, and one
+# essay carries 1,189 characters of a supervisor's comments.
+
+@pytest.fixture
+def with_running_matter(tmp_path):
+    """A document whose header, footer and comment each say something the body
+    does not."""
+    document = docx_lib.Document()
+    section = document.sections[0]
+    section.header.paragraphs[0].text = "Joseph Yung — Curriculum Vitae"
+    section.footer.paragraphs[0].text = "Page 1 of 2"
+    body = document.add_paragraph("Bioengineering, PHYS 1401.")
+    document.add_comment(runs=[body.runs[0]] if body.runs else [],
+                         text="Add the vascular graft result here.",
+                         author="Mara Ellison", initials="ME")
+    path = tmp_path / "cv.docx"
+    document.save(path)
+    return path
+
+
+def test_a_running_header_and_footer_are_recovered(with_running_matter):
+    """The header of a résumé is who it is about, and it was thrown away.
+
+    `zone` is read from WHERE the paragraph sits -- a header part is a header part --
+    which is library knowledge exactly as `Region`'s contract requires, and not a
+    guess about the text.
+    """
+    document = python_docx_reader()(with_running_matter)
+    running = [p.text for p in document.paragraphs if p.zone == "header_footer"]
+    assert "Joseph Yung — Curriculum Vitae" in running
+    assert "Page 1 of 2" in running
+
+
+def test_the_running_matter_does_not_renumber_the_body(with_running_matter):
+    """Paragraph ordinals are ADDRESSES -- P4 D3 -- and every stored citation into a
+    body paragraph names one. Header and footer paragraphs are numbered after the
+    body, so adding them moves no existing address."""
+    document = python_docx_reader()(with_running_matter)
+    body = [p for p in document.paragraphs if p.zone == "body"]
+    assert [p.index for p in body] == list(range(1, len(body) + 1))
+    running = [p for p in document.paragraphs if p.zone == "header_footer"]
+    assert min(p.index for p in running) > max(p.index for p in body)
+
+
+def test_a_header_inherited_from_a_previous_section_is_not_stored_twice(tmp_path):
+    """Word LINKS a section's header to the previous one unless it is overridden, so
+    a walk over sections reports the same running head once per section. Two
+    identical `header_footer` paragraphs would be two observations of one value and,
+    worse, two `text_units` under different addresses for one piece of text."""
+    document = docx_lib.Document()
+    document.sections[0].header.paragraphs[0].text = "One running head"
+    document.add_paragraph("Body.")
+    document.add_section()
+    path = tmp_path / "two-sections.docx"
+    document.save(path)
+
+    read = python_docx_reader()(path)
+    running = [p.text for p in read.paragraphs if p.zone == "header_footer"]
+    assert running.count("One running head") == 1
+
+
+def test_comments_arrive_as_annotations(with_running_matter):
+    """§2.3's "available revision or comment metadata". `DocxAnnotation` existed and
+    nothing ever built one, so `extract_docx`'s `annotation` branch was dead code."""
+    document = python_docx_reader()(with_running_matter)
+    assert [a.text for a in document.annotations] == [
+        "Add the vascular graft result here."]
+
+
+def test_the_annotation_name_is_a_slot_word_and_never_the_authors_name():
+    """`name` is a SLOT NAME, and putting a value there would put a person into a
+    locator.
+
+    `extract_docx` renders it as `segment("field", label=annotation.name)`, and P4 D7
+    defines a field label as *"the format's own slot name, verbatim"* -- which is
+    what E2's own fixture says too (`tests/p5/test_p5_docx.py`:
+    `DocxAnnotation(name="comment", ...)`). `w:comment/@w:author` is the slot; "Mara
+    Ellison" is its value. Filling `name` with the author would have produced the
+    locator `annotation:field[Mara Ellison]` -- a person's name inside a citation
+    string that the review surface renders.
+
+    THE AUTHOR IS THEREFORE DROPPED, and that is a stated limit rather than a
+    silence: `DocxAnnotation` has three fields and none of them is an author, so
+    carrying one would mean changing an extractor contract, which is not a reader's
+    to change. §2.3's clause is served in part -- the comment TEXT arrives -- and the
+    rest is the honest next increment, exactly as links and relationships are.
+    """
+    from readers.docx_python_docx import _ANNOTATION_SLOT
+
+    assert _ANNOTATION_SLOT == "comment"
+
+
+def test_a_document_with_no_running_matter_gains_nothing(written):
+    """The guard. A plain document must not acquire an empty header paragraph, an
+    empty footer or a phantom annotation: an empty tuple from a reader that looked
+    and an empty tuple from a document that has none must stay the same value."""
+    document = python_docx_reader()(written)
+    assert [p for p in document.paragraphs if p.zone == "header_footer"] == []
+    assert document.annotations == ()

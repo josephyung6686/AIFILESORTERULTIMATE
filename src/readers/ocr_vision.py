@@ -60,13 +60,56 @@ def _provider_version() -> str:
     return platform.mac_ver()[0]
 
 
+class _NoDecoder(Exception):
+    """The image stack recognised no image format in these bytes at all.
+
+    A statement about THIS DEPLOYMENT -- ImageIO ships 61 decoders and none of them
+    reads this -- and never about the file, which may be a perfectly valid SVG, PSD,
+    EPS or anything else nobody wrote a decoder for. `ocr_engine` turns it into
+    §2.4's `None`, the same answer every other reader here gives for a format it has
+    no library for.
+    """
+
+
 def _cg_image_from_file(path: Path):
+    """The first page of an image file, or a refusal that says WHICH KIND it is.
+
+    §2.4 gives two names to two different facts, and this function is where they are
+    told apart:
+
+        `unsupported`  no reader exists for this format in this deployment
+        `failed`       a reader RAN and raised -- a fact about the bytes
+
+    `CGImageSourceGetType` is the discriminator, and it is the framework's own
+    answer to exactly this question: it returns the recognised type identifier, or
+    NULL when the bytes match no format ImageIO knows. Measured: an SVG and a file
+    of random bytes both give NULL (with status `kCGImageStatusUnknownType`); a
+    TRUNCATED PNG gives `public.png` and then fails to produce an image. So a format
+    with no decoder and a damaged file of a decodable format are distinguishable
+    here, and only here -- one step later they are both just a missing image.
+
+    NOTHING BELOW NAMES A FORMAT. The question asked is whether the image stack
+    recognised one, so a `.psd`, an `.ai`, an `.eps` or a vector container invented
+    next year is answered without a line being added. Before this, seven undamaged
+    SVG logos on the owner's disk were recorded `ocr · failed`, which says a person's
+    files are corrupt when they are not.
+
+    UNIDENTIFIABLE BYTES GO TO `unsupported` TOO, and that is the deliberate half.
+    A file whose format ImageIO cannot name might be a vector document or might be
+    garbage, and this seam cannot tell. Of the two words, *"this deployment has no
+    reader for whatever this is"* is true either way; *"a reader ran and the bytes
+    are bad"* is true only in one. The word that is true in both cases is the one
+    that gets recorded.
+    """
     source = Quartz.CGImageSourceCreateWithURL(
         NSURL.fileURLWithPath_(str(path)), None)
-    image = (Quartz.CGImageSourceCreateImageAtIndex(source, 0, None)
-             if source is not None else None)
+    if source is None or Quartz.CGImageSourceGetType(source) is None:
+        raise _NoDecoder(
+            f"the image stack recognises no image format in {path}")
+    image = Quartz.CGImageSourceCreateImageAtIndex(source, 0, None)
     if image is None:
-        # §2.4: never silently an empty document. The raise becomes P5's `failed` run.
+        # A format it DOES decode, and could not. §2.4: never silently an empty
+        # document -- the raise becomes P5's `failed` run, which here is true.
         raise ValueError(f"no image could be decoded from {path}")
     return image
 
@@ -143,7 +186,8 @@ def _box(rect) -> dict[str, Any]:
 def vision_ocr() -> Callable[..., OcrOutput]:
     """Build the `ocr_engine` callable `extractors.dispatch.Readers` takes."""
 
-    def ocr_engine(path: Path, config: Mapping[str, Any] | None = None) -> OcrOutput:
+    def ocr_engine(path: Path,
+                   config: Mapping[str, Any] | None = None) -> OcrOutput | None:
         settings = dict(config or {})
         languages = settings.get("languages") or ["en-US"]
         dpi = float(settings.get("dpi") or 200)
@@ -168,9 +212,17 @@ def vision_ocr() -> Callable[..., OcrOutput]:
             # A loose image: one image reference, no page. §2.7's "page or image
             # reference" is one field with two cases, and reporting page 1 here
             # would make a screenshot indistinguishable from a one-page scan.
+            try:
+                image = _cg_image_from_file(path)
+            except _NoDecoder:
+                # §2.4's `unsupported`, in the shape `readers/deployment.py` sets
+                # for every reader in this deployment: *"A format with no library
+                # returns `None`, never an exception."* The OCR engine is a reader
+                # like the rest. `extract_ocr` reads this the way `extract_pdf`
+                # reads a `None` document.
+                return None
             for index, (text, confidence, rect) in enumerate(
-                    _recognise(_cg_image_from_file(path),
-                               languages=languages, level=level), 1):
+                    _recognise(image, languages=languages, level=level), 1):
                 regions.append(OcrRegion(page=None, region=index, text=text,
                                          box=_box(rect), confidence=confidence))
             return OcrOutput(provider=PROVIDER, provider_version=_provider_version(),

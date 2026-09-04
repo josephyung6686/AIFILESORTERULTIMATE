@@ -193,7 +193,8 @@ def _call_dependencies():
                                max_estimated_cost=Decimal("10"),
                                min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
-        allowed_vocabulary=None, policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
+        allowed_vocabulary=None, folder_levels=(), policy_version="policy-1",
+        wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _model_call_request(*, subject_ref, evidence_items, max_dossier_tokens):
@@ -232,7 +233,12 @@ def _inputs(conn, **overrides):
         model_call_request=_model_call_request,
         chosen_node_of=lambda _verdict: "n-course-shared",
         residual_action_of=None,
-        sensitivity_policy=lambda *_a, **_k: True, p2=None)
+        sensitivity_policy=lambda *_a, **_k: True,
+        # Nothing to ask about and nothing already answered. Both are
+        # required with no default, so a fixture states its position
+        # rather than inheriting one.
+        ask_about_file=lambda subject: None,
+        chosen_by_user=lambda subject: None, p2=None)
     values.update(overrides)
     return PipelineInputs(**values)
 

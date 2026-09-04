@@ -481,8 +481,11 @@ def test_protected_does_not_refuse_the_other_five_kinds_here():
 def test_unratified_maps_to_no_denial_reason():
     # A caller naming an unratified kind has a BUILD defect, not a policy problem.
     # It must propagate to the developer rather than reach a user as a `Denied` they
-    # could try to consent around. Task 13's eight builders are complete without a
-    # ninth.
+    # could try to consent around. The builders are complete without one for it.
+    #
+    # The COUNT moved to nine on 2026-09-04 (`no_safety_evidence`) and this test is
+    # not about the count: what it pins is that no reason mentions `unratified`, so
+    # a build defect can never arrive at a user wearing a policy verdict.
     from privacy.vocabulary import DENIAL_REASONS
     assert not any("unratified" in reason for reason in DENIAL_REASONS)
-    assert len(DENIAL_REASONS) == 8
+    assert len(DENIAL_REASONS) == 9

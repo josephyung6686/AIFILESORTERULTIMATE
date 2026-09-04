@@ -255,7 +255,7 @@ def _payload(released: Released, prompt: PromptDefinition, dossier: bytes):
 def _honest_bytes(released, prompt, request) -> bytes:
     dossier = build_dossier(
         request, released, reduction_rung=REDUCTION_NONE,
-        allowed_vocabulary=ALLOWED, prompt=prompt,
+        allowed_vocabulary=ALLOWED, folder_levels=(), prompt=prompt,
         handle_key=FIXTURE_HANDLE_KEY)
     return canonical_dossier_bytes(dossier, prompt, handle_key=FIXTURE_HANDLE_KEY)
 

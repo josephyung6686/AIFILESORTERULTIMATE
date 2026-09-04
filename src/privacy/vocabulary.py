@@ -294,9 +294,17 @@ def check_item_kind(value: object) -> str:
 #: which "should normally remain local-only and must not cause filenames or content
 #: to be exposed in model prompts". Collapsing either onto `protected` would produce
 #: a denial that cannot say which rule fired.
+#:
+#: **A NINTH REASON, ADDED 2026-09-04 beside `CLASSIFICATION_BASES`' fourth member,
+#: and it exists because the eighth would have to lie.** `denial.deny_unclassified`
+#: says, in the sentence a person reads, *"no classification record exists"*. A file
+#: on `detector_no_safety_evidence` HAS one; answering it with `unclassified` would
+#: put `96` §19's untruth into a different column -- telling the owner the product
+#: never looked, when what happened is that it looked and found no safety word. The
+#: paragraph above is the same argument for `protected`, one reason along.
 DENIAL_REASONS: tuple[str, ...] = (
-    "protected_cloud_target", "unclassified", "policy_revoked",
-    "protected_records_template", "whole_document_requested",
+    "protected_cloud_target", "unclassified", "no_safety_evidence",
+    "policy_revoked", "protected_records_template", "whole_document_requested",
     "dossier_over_budget", "always_local_item", "mode_forbids_target",
 )
 
@@ -341,7 +349,25 @@ REDACTION_VALUES: tuple[str, str] = (SHOWN, REDACTED)
 #: first as safety domains, "meaning the system detects and protects them before any
 #: cloud or automated placement decision is allowed". This is NOT P6's five-value
 #: `origin` vocabulary (§3.1) and the two are never mapped onto one another here.
-CLASSIFICATION_BASES: tuple[str, ...] = ("detector", "safety_domain", "user")
+#:
+#: **A FOURTH MEMBER, ADDED 2026-09-04, and SPEC §2 names three.** It is a SPLIT of
+#: `detector` and not a new kind of authority: both are the detector concluding from
+#: the file's own terms, and the split records whether the conclusion rests on
+#: anything about SAFETY. `96` §19 is why. Measured over the owner's 199 read files,
+#: 78 were stored `personal_non_sensitive, protected=0` and **41 of those matched no
+#: safety work type at all** -- among them a Hong Kong identity card read to 21
+#: observations. §8.4 makes a handling class a precondition of a model call, so those
+#: 41 had been held back by having no class; giving them one turned 41 silences into
+#: 41 confident negatives and gained no evidence for any of them.
+#:
+#: `96` §20 states the property rather than a mechanism: the precondition should be
+#: satisfied by *"evidence of having LOOKED, not merely by a class existing"*. The
+#: weaker claim needs the weaker word, because `basis` is the only field in SPEC §2's
+#: record that can carry it -- `handling_class` would have to lie about the class and
+#: `protected` would have to lie about the flag.
+CLASSIFICATION_BASES: tuple[str, ...] = (
+    "detector", "detector_no_safety_evidence", "safety_domain", "user",
+)
 
 #: The one basis P7 itself writes: Task 16's reclassification records the user's own
 #: act. Named rather than spelled at the call site -- brief §11, "never a bare string,
@@ -379,6 +405,24 @@ if REJECTED not in RELIABILITY_STATES:
 #: The one basis a detector writes. Named so `classification.py` does not respell
 #: `"detector"` beside `USER`.
 DETECTOR: str = "detector"
+
+#: The same detector, on a file where NOTHING SAFETY-RELATED WAS FOUND. Not a doubt
+#: about the schema that won -- a physics syllabus recognised on ten academic terms
+#: is still a physics syllabus -- but a refusal to let that recognition stand in for
+#: an examination it never performed.
+#:
+#: The distinction is one empty-tuple test wide and the detector already computes it:
+#: `recognition.detector._safety_readings_in_evidence` returns the safety domains
+#: whose OWN WORK TYPES appear in the file's evidence, and it is already on the
+#: classify path. `()` from it is the whole of the claim this word makes.
+#:
+#: WHAT IT IS NOT. It is not a sensitivity finding, so it marks nothing protected,
+#: weakens no handling class, and withholds no file from local placement. `96` §19's
+#: 41 files stay `personal_non_sensitive, protected=0` and stay placeable. The one
+#: thing it does is stop a CLOUD model call standing on it -- see
+#: `denial.no_safety_evidence_denies`, which is where the consequence lives, because
+#: a vocabulary member that also decided things would be a rule with two homes.
+DETECTOR_NO_SAFETY_EVIDENCE: str = "detector_no_safety_evidence"
 
 #: SPEC §7's audit record: "outcome  released | denied | consent_requested". Every
 #: model call is recorded -- §8.4 says "Every model call" with no exemption for a

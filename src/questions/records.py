@@ -86,6 +86,28 @@ class QuestionOption:
     #: role. §13's "role ambiguity" is the USER's role -- student or teacher. Two
     #: different nouns, and joining them would be a category error that typechecks.
     selects_situation: str | None = None
+    #: §13's FOURTH consequence, and the one that reaches a file rather than a
+    #: template: the destination the person named for material the product opened
+    #: and could read nothing out of. §13 permits a structural answer to "require
+    #: review", and a file the person has said where to put is a file whose
+    #: placement is theirs and not the engine's.
+    #:
+    #: The folder CHAIN (`Coursework/PHYS1401`) and never P10's node id, for exactly
+    #: the reason `gates_template` above gives and this field learned the hard way:
+    #: "an answer has to outlive the run that asked, and a position shifts the
+    #: moment the corpus does". A node id is such a position. Every run freezes a
+    #: new plan version and mints new ids for the same folders, so the second run
+    #: after an answer refused it as a destination from a tree that no longer
+    #: exists -- the person's answer silently stopped meaning anything, which is
+    #: the failure this whole field exists to prevent.
+    #:
+    #: Unchecked here, exactly as `gates_template` and `selects_situation` are: the
+    #: tree is P10's, and this module must not import P10 to hold a second copy of
+    #: which folders exist. The composition root resolves the chain against the
+    #: current plan version, and `placement.index.legal_node_ids` refuses whatever
+    #: it resolves to if that is not a destination -- which is the right place for
+    #: the check, because it moves when the tree does.
+    chooses_destination: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("option_id", "label"):
@@ -193,6 +215,15 @@ class StructuralQuestion:
                     "decides which folders exist -- so §13's ban on a contextual "
                     "answer that may 'create, remove, hide, or rename folders' "
                     "reaches it exactly as it reaches the two above")
+            choosing = [option.option_id for option in self.options
+                        if option.chooses_destination]
+            if choosing:
+                raise AnswerNotPermitted(
+                    f"a contextual question's options {choosing} would choose a "
+                    "destination. §13 is explicit that a contextual answer which "
+                    "'ever determines ... WHERE A FILE IS PLACED' is a defect "
+                    "rather than a feature, and this consequence is that sentence "
+                    "exactly -- it names the node a file is filed into")
 
 
 @dataclass(frozen=True, slots=True)

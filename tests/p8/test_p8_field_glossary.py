@@ -106,7 +106,8 @@ def _build(*, subject_ref: str = "file-1", value: str = "Columbia University",
         model_target=CLOUD,
     )
     return build_dossier(request, released, reduction_rung=REDUCTION_NONE,
-                         allowed_vocabulary=allowed_vocabulary, prompt=_prompt(), handle_key=FIXTURE_HANDLE_KEY)
+                         allowed_vocabulary=allowed_vocabulary, folder_levels=(),
+                         prompt=_prompt(), handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _body(**overrides) -> dict:

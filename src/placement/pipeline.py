@@ -91,7 +91,7 @@ from placement.vocabulary import (
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
     RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
-    SHARED_MATERIAL_DECISION, WEAK,
+    SHARED_MATERIAL_DECISION, USER_CHOSE_DESTINATION, USER_CONFIRMED, WEAK,
 )
 
 #: §6.12's nine, in §6.12's order. Steps 1-2 are P10's and step 8 is P8's; naming
@@ -302,6 +302,42 @@ class PipelineInputs:
     chosen_node_of: object
     residual_action_of: object
     sensitivity_policy: object
+    #: The question to put to the person about ONE file, or `None` for the files
+    #: there is nothing to ask about. Called with the subject; answered with a
+    #: `(question, node ids)` PAIR and never with an `Ask`.
+    #:
+    #: **The pair, not the record, and the distinction is load-bearing.** `Ask` is
+    #: P11's, and `tests/integration/test_ambiguity_cases.py` asserts that
+    #: `pipeline.py` is its only builder -- the guard that was written when §6.9's
+    #: question had a shape and no producer. A composition root minting one would
+    #: put the record's invariants (at least two options, a non-empty question) in a
+    #: second place, and the review surface reads `Ask` as P11's account of what it
+    #: asked. So the caller supplies the WORDS and the DESTINATIONS, which are
+    #: policy, and this package builds the record, which is not.
+    #:
+    #: WHICH files are worth a person's attention stays entirely the caller's: §6.10
+    #: records the cost of getting that wrong from the other side -- 73% of a real
+    #: corpus goes unplaced, and a run that asked about all of it would be worse than
+    #: the silence it replaced, because nobody answers a hundred and forty-five
+    #: questions.
+    #:
+    #: Required, with no default, exactly as `ask_or_abstain` is and for the same
+    #: sentence: absent means refuse, never guess. A caller with nothing to ask
+    #: passes a callable that answers `None`, which is a decision it has made rather
+    #: than one this dataclass made for it.
+    ask_about_file: object
+    #: The destination the person already named for this file, or `None`. Read
+    #: BEFORE retrieval, because a file whose home the person has given is not a
+    #: file the engine is still deciding about -- scoring it again and hoping the
+    #: numbers agree is how an answer comes to be quietly overruled by the evidence
+    #: it was asked to settle.
+    #:
+    #: P15's `store.chosen_node` is what a caller passes, injected rather than
+    #: imported for the reason every authority here arrives from the caller: P11
+    #: does not read another part's tables, and a package that read the answer store
+    #: directly would be the place where a placement started depending on a question
+    #: having been asked.
+    chosen_by_user: object
     p2: P2Run | None
 
     def __post_init__(self) -> None:
@@ -412,6 +448,26 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     privacy = privacy_state_for(conn, file_id=subject.file_id,
                                 content_hash=subject.content_hash,
                                 plan_version=inputs.plan_version)
+    # §13's fourth consequence, read BEFORE step 3. A file whose destination the
+    # person has already named is not a file this pipeline is still deciding about,
+    # and running retrieval and scoring over it anyway would leave the answer
+    # standing beside a support score that could disagree with it -- which is how a
+    # correction comes to be silently overruled by the evidence it was asked to
+    # settle. `66` §12 makes an answer something that outlives the run; an answer
+    # the next run re-argues has not outlived anything.
+    #
+    # The node is still checked against the index, exactly as a model-chosen one is
+    # three steps below and for the identical reason: `legal_node_ids` is the one
+    # authority on what this plan version contains, and a destination that is not in
+    # it is a typo, a stale answer from a tree that has been rebuilt, or a node the
+    # person's answer named before it was superseded. None of those is a placement.
+    named = inputs.chosen_by_user(subject)
+    if named is not None:
+        return _user_chose(conn, subject=subject, inputs=inputs, node_id=named,
+                           privacy=privacy, group_plan_id=group_plan_id,
+                           returned_from=returned_from,
+                           component_version=component_version,
+                           observed_at=observed_at)
     # Design:185 -- protected material "should not be moved automatically without a
     # user policy that explicitly permits it". P7 publishes the predicate and P11
     # asks it; asking only for protected material is not an optimisation, it is the
@@ -484,7 +540,17 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         conn, retrieval, plan_version=inputs.plan_version)
     graphs = {node_id: graph for node_id, graph in graphs.items()
               if node_id in {c.node_id for c in retrieval.candidates}}
-    assessment = assess(retrieval, graphs, policy=inputs.policy)
+    # WHICH CANDIDATES ARE FOLDERS THE PERSON ALREADY HAS. `existing_path` is set
+    # only on an adopted node and is the same fact P10's report reads to print
+    # "[yours already]", so this is not a second opinion about it. §6.10's margin
+    # needs it to tell a tie between two of somebody's own folders -- which is
+    # §6.9's question and is asked -- from a tie between where a file already sits
+    # and a folder this run would like to create, which is not a question at all.
+    assessment = assess(
+        retrieval, graphs, policy=inputs.policy,
+        their_own_folder_node_ids=frozenset(
+            node.node_id for node in inputs.tree.nodes
+            if node.existing_path is not None))
 
     context = _Context(subject=subject, subject_ref=subject_ref, inputs=inputs,
                        privacy=privacy, retrieval=retrieval,
@@ -768,6 +834,30 @@ def _abstention(conn: sqlite3.Connection, context: _Context, *, reason: str,
             "budget deferral has one (§8.6)"
         )
     inputs = context.inputs
+    # **THE ONE PLACE "this file was not placed" IS DECIDED, AND SO THE ONE PLACE
+    # "...and here is the question instead" BELONGS.** It was tried at step 9
+    # first, on the reasoning that a question replaces §6.10's abstention. On a
+    # real 199-file corpus that branch was reached four times: 181 of the 186
+    # abstentions are `privacy_blocked`, raised at step 7 before step 9 exists.
+    # A hook that fires on 2% of the case it was written for is a hook that is
+    # not wired, and it looked wired.
+    #
+    # WHICH files are worth a person's attention is the caller's, not this
+    # package's: `ask_about_file` answers `None` for everything it has nothing to
+    # ask about, which on that corpus is 175 of the 179 unprotected abstentions.
+    # §6.9 already takes its policy from the caller the same way.
+    #
+    # A BUDGET DEFERRAL IS NEVER A QUESTION. §8.6 requires a ceiling-truncated run
+    # to render differently from "I looked and could not tell", and a question is
+    # the strongest possible claim that the product looked. The person's answer
+    # would also be wasted: the run stopped early, so the next one resumes and
+    # decides it without them.
+    if reason != BUDGET_DEFERRED:
+        asked = inputs.ask_about_file(context.subject)
+        if asked is not None:
+            question, options = asked
+            return _asking(conn, context,
+                           ask=Ask(question=question, options=tuple(options)))
     decision_id, supersedes = _identity(
         conn, plan_version=inputs.plan_version, subject_ref=context.subject_ref,
         observed_at=context.observed_at)
@@ -798,6 +888,77 @@ def _abstention(conn: sqlite3.Connection, context: _Context, *, reason: str,
     return _write(conn, decision, inputs=inputs,
                   reason="a later decision about the same file version "
                          "supersedes this abstention (§8.2)",
+                  component_version=context.component_version,
+                  observed_at=context.observed_at)
+
+
+def _asking(conn: sqlite3.Connection, context: _Context, *,
+            ask: Ask) -> PlacementDecision:
+    """The abstention this run turned into a question. §6.10's third answer.
+
+    **What this changes and what it does not.** Nothing about the file moves, and
+    nothing about the evidence is claimed: the two-condition figures, the
+    alternatives and the conflicts are the assessment's own, carried through
+    unaltered, because asking is not a second opinion about the evidence -- it is
+    the admission that the evidence ran out. `requires_review` was already true on
+    every record that reaches here.
+
+    What it changes is that the person can see it and answer it. An abstention says
+    "I could not tell" to a report; `ask_user` says "I could not tell, and here is
+    the question" to a person, and `00`'s standing complaint about this product was
+    that it had the first and not the second.
+
+    `abstention_reason` is deliberately absent, and the record enforces that: an
+    `ask_user` carrying one would be two outcomes in one row, and the reason a file
+    was not placed would read as the reason it was asked about.
+    """
+    if context.privacy.protected:
+        raise ProtectedMaterialIsNotAQuestion(
+            "P7 marked this file protected, and an `ask_user` decision is a "
+            "REQUEST FOR ATTENTION: a review surface lists what it holds, and "
+            "`00`:201 says a visible list of protected specifics may not be safe "
+            "to have on a screen somebody else can see. The caller's policy is "
+            "expected to exclude protected material before it gets here; this is "
+            "the second lock, because the first one is a lambda in the "
+            "composition root and the cost of it being wrong is a passport on a "
+            "screen. Refused rather than downgraded to an abstention: a policy "
+            "that reaches here is broken and has to be found, not worked around"
+        )
+    inputs = context.inputs
+    decision_id, supersedes = _identity(
+        conn, plan_version=inputs.plan_version, subject_ref=context.subject_ref,
+        observed_at=context.observed_at)
+    decision = PlacementDecision(
+        decision_id=decision_id, plan_version=inputs.plan_version,
+        supersedes=supersedes, superseded_by=None, supersede_reason=None,
+        created_at=context.observed_at, origin_stage=PLACEMENT,
+        returned_from=context.returned_from, subject=context.subject,
+        group_plan_id=context.group_plan_id, outcome=ASK_USER,
+        destination=None, return_target=None, marked_state=None, ask=ask,
+        decision_depth=DecisionDepth(node_depth=0, supported_depth=0,
+                                     unsupported_levels=()),
+        evidence_type=CONTEXT_SUPPORTED,
+        confidence_class=ABSTAIN_NO_SUPPORTED_DESTINATION,
+        matching_facts=(), group_support=None, graph_anchors=(),
+        conflicts_considered=context.retrieval.conflicts,
+        alternatives=context.assessment.alternatives,
+        two_condition=context.assessment.two_condition, abstention_reason=None,
+        deferred_stage=None, privacy=context.privacy,
+        review_policy=review_policy_for(
+            privacy_state=context.privacy,
+            two_condition=context.assessment.two_condition, group_support=None,
+            unique_direct_match=False, destination_disposition=None,
+            automatic_move_permitted=context.automatic_move_permitted),
+        explanation=(
+            "No destination in this plan was supported well enough to decide, and "
+            "nothing this run could read says what this file is. That is a "
+            "question for you rather than a judgement to make on thin evidence; "
+            "nothing has moved and the evidence is retained."),
+        residual=None,
+    )
+    return _write(conn, decision, inputs=inputs,
+                  reason="a later decision about the same file version "
+                         "supersedes this question (§8.2)",
                   component_version=context.component_version,
                   observed_at=context.observed_at)
 
@@ -1143,6 +1304,87 @@ def _multi_home_decision(conn, *, subject, inputs: PipelineInputs, outcome,
     )
     return _write(conn, decision, inputs=inputs,
                   reason="§6.9 resolved this file's multiple homes (§8.2)",
+                  component_version=component_version, observed_at=observed_at)
+
+
+class DestinationTheUserNamedIsNotInThisPlan(ValueError):
+    """The person's answer names a node this plan version does not contain."""
+
+
+class ProtectedMaterialIsNotAQuestion(RuntimeError):
+    """Something tried to raise a per-file question about protected material."""
+
+
+def _user_chose(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
+                node_id: str, privacy, group_plan_id: str | None,
+                returned_from: str | None, component_version: str,
+                observed_at: str) -> PlacementDecision:
+    """The person answered `ask_user`, and this is that answer as a decision.
+
+    **Every figure on this record says the person decided, and none of them
+    imitates a measurement.** `support_score` is zero, `meets_margin` is vacuous and
+    `verdict` is `weak`, because that is what `_flat_two_condition` already means
+    and it is TRUE here: no candidate was scored, none was beaten, and nothing about
+    the evidence changed when the person spoke. Filling those in with numbers that
+    made the record look confident is the failure §6.10 exists to prevent, arriving
+    from the one direction §6.10 does not watch.
+
+    `requires_review` therefore stays true and `review_policy_for` is asked exactly
+    as it is on every other path. A destination the person named is not a move they
+    authorised: `00` keeps those two apart everywhere else, and P12's freeze is
+    still the gesture that files anything.
+
+    **The evidence type is `user_confirmed`**, which P6 publishes and P11 has never
+    had a producer for. It is the one line on this record that is a fact about where
+    the answer came from rather than about what was read.
+    """
+    if node_id not in legal_node_ids(conn, plan_version=inputs.plan_version):
+        raise DestinationTheUserNamedIsNotInThisPlan(
+            f"{node_id!r} is not a legal destination of {inputs.plan_version!r}. "
+            "An answer names a node in the tree it was asked about, and a tree "
+            "that has been rebuilt since is a different tree -- placing on a stale "
+            "id would file a person's material somewhere they never saw"
+        )
+    entry = entry_for(conn, plan_version=inputs.plan_version, node_id=node_id)
+    two = _flat_two_condition(inputs)
+    automatic_move_permitted = (
+        automatic_move_permitted_for(conn, file_id=subject.file_id,
+                                     plan_version=inputs.plan_version)
+        if privacy.protected else False
+    )
+    decision_id, supersedes = _identity(
+        conn, plan_version=inputs.plan_version,
+        subject_ref=subject_ref_of(subject), observed_at=observed_at)
+    decision = PlacementDecision(
+        decision_id=decision_id, plan_version=inputs.plan_version,
+        supersedes=supersedes, superseded_by=None, supersede_reason=None,
+        created_at=observed_at, origin_stage=PLACEMENT,
+        returned_from=returned_from, subject=subject,
+        group_plan_id=group_plan_id, outcome=PLACE,
+        destination=Destination(node_id=entry.node_id, node_role=entry.node_role),
+        return_target=None, marked_state=None, ask=None,
+        decision_depth=DecisionDepth(node_depth=entry.depth,
+                                     supported_depth=entry.depth,
+                                     unsupported_levels=()),
+        evidence_type=USER_CONFIRMED,
+        confidence_class=USER_CHOSE_DESTINATION,
+        matching_facts=(), group_support=None, graph_anchors=(),
+        conflicts_considered=(), alternatives=(), two_condition=two,
+        abstention_reason=None, deferred_stage=None, privacy=privacy,
+        review_policy=review_policy_for(
+            privacy_state=privacy, two_condition=two, group_support=None,
+            unique_direct_match=False,
+            destination_disposition=entry.disposition,
+            automatic_move_permitted=automatic_move_permitted),
+        explanation=(
+            "You said where this file goes. Nothing this run could read said what "
+            "it is, so this destination is yours and not a judgement the engine "
+            "made -- it can be changed by answering the question again."),
+        residual=None,
+    )
+    return _write(conn, decision, inputs=inputs,
+                  reason="a later answer about the same file version supersedes "
+                         "this one (§8.2)",
                   component_version=component_version, observed_at=observed_at)
 
 

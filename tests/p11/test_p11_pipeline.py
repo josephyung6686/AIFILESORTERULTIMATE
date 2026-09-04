@@ -153,7 +153,12 @@ def _inputs(conn, **overrides):
         partition=None, ask_or_abstain=lambda ids: v.ABSTAIN,
         max_return_cycles=1, gate=None, model_client=None, prompt=None,
         call_dependencies=None, model_call_request=None, chosen_node_of=None,
-        residual_action_of=None, sensitivity_policy=None, p2=None,
+        residual_action_of=None, sensitivity_policy=None,
+        # Nothing to ask about and nothing already answered. Both are
+        # required with no default, so a fixture states its position
+        # rather than inheriting one.
+        ask_about_file=lambda subject: None,
+        chosen_by_user=lambda subject: None, p2=None,
     )
     values.update(overrides)
     return PipelineInputs(**values)
@@ -505,7 +510,8 @@ def _call_dependencies():
                                max_estimated_cost=Decimal("10"),
                                min_calls_per_scan=0),
         estimated_cost=Decimal("1"), actual_cost=Decimal("1"),
-        allowed_vocabulary=None, policy_version="policy-1", wire_handle_key=FIXTURE_HANDLE_KEY)
+        allowed_vocabulary=None, folder_levels=(), policy_version="policy-1",
+        wire_handle_key=FIXTURE_HANDLE_KEY)
 
 
 def _model_inputs(conn, **overrides):

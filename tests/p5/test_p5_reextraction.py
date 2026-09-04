@@ -61,9 +61,24 @@ def test_section_8_2s_own_example_both_records_remain_available(sink):
     # The first pass's unreadable text is still reachable.
     assert sink.units_for(first)[0]["text"] == GARBLED
     assert sink.units_for(second)[0]["text"] == RECOVERED
-    # And the recovered university name exists only on the second.
-    assert [o["raw_value"] for o in sink.observations_for(first)] == []
-    assert [o["raw_value"] for o in sink.observations_for(second)] == [RECOVERED]
+    # And the recovered university name exists only on the second. The FIRST pass
+    # now carries its own garbled text as evidence, which is §8.2's point rather
+    # than a break in it: "both records remain available", and until 2026-09-04 the
+    # unreadable pass was available only as a text unit no reader reaches. What must
+    # stay true is that the garbled run never claims the recovered name.
+    first_rows = [o["raw_value"] for o in sink.observations_for(first)]
+    assert first_rows == [GARBLED], first_rows
+    assert RECOVERED not in first_rows
+    second_rows = [o["raw_value"] for o in sink.observations_for(second)]
+    assert second_rows == [RECOVERED], second_rows
+    # ONE row, not two, and P4 D10 is why: "one observation per (run, exact raw
+    # value, zone)". Here the whole recognised passage IS the found string -- one
+    # region holding exactly `University of Chicago` -- so the span-carrying match
+    # and the span-less passage are the same value in the same `ocr` zone and
+    # `ExtractionResult.__post_init__` collapses them. The survivor is the FIRST in
+    # document order, which is the span-carrying row that existed before 2026-09-04.
+    # So the passage adds a row only when it says something the matches did not.
+    assert sink.observations_for(second)[0]["location"]["text_span"] is not None
     sink.conforms()
 
 

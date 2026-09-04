@@ -25,7 +25,8 @@ from placement.config import SupportPolicy, require_policy
 from placement.graph import is_typed_support
 from placement.records import Alternative, TwoCondition
 from placement.retrieval import (
-    ACCEPTED_GROUP, DIRECT_FACT, GRAPH_RELATIONSHIP, STRUCTURAL_RELATIONSHIP,
+    ACCEPTED_GROUP, CURATED_FOLDER, DIRECT_FACT, GRAPH_RELATIONSHIP,
+    STRUCTURAL_RELATIONSHIP,
 )
 from placement.vocabulary import (
     ABSTAIN_NO_SUPPORTED_DESTINATION, ABSTAIN_VERDICT, ACCEPT_CONTEXT_SUPPORTED,
@@ -55,6 +56,11 @@ class Scored:
     typed_support: bool
     semantic_only: bool
     generic_hub: bool
+    #: Whether this candidate IS the folder the file is already sitting in.
+    #: Carried, never weighted -- `_CHANNEL_WEIGHT` has no entry for
+    #: `CURATED_FOLDER` and must not gain one. `assess` reads this only to
+    #: decline to move a file, never to support moving one.
+    already_there: bool = False
 
 
 @dataclass(frozen=True)
@@ -65,6 +71,11 @@ class Assessment:
     unique_direct_match: bool
     abstention_reason: str | None
     confidence_class: str
+    #: True only when `_staying_put_wins_a_tie` actually resolved a tie in favour
+    #: of the folder the file is ALREADY IN. `needs_model_call` reads this and
+    #: nothing else, so a caller that did not say which folders are the person's
+    #: own gets exactly the behaviour it got before the rule existed.
+    stays_put: bool = False
 
 
 def score_candidates(retrieval, graphs, *, policy: SupportPolicy) -> tuple[Scored, ...]:
@@ -80,6 +91,7 @@ def score_candidates(retrieval, graphs, *, policy: SupportPolicy) -> tuple[Score
             node_id=candidate.node_id,
             support_score=policy.support_scale_max * weight / _MAX_WEIGHT,
             typed_support=typed, semantic_only=semantic_only, generic_hub=hub,
+            already_there=CURATED_FOLDER in candidate.channels,
         ))
     return tuple(sorted(scored, key=lambda s: (-s.support_score, s.node_id)))
 
@@ -117,14 +129,100 @@ def _reason(best: Scored | None, retrieval, meets_threshold: bool,
     return NO_SUPPORTED_DESTINATION
 
 
-def assess(retrieval, graphs, *, policy: SupportPolicy) -> Assessment:
+def _staying_put_wins_a_tie(
+        scored: tuple[Scored, ...],
+        their_own_folder_node_ids: frozenset[str] | None,
+) -> tuple[tuple[Scored, ...], Scored | None, Scored | None, bool]:
+    """THE FOLDER A FILE IS ALREADY IN IS NOT A RIVAL HOME; IT IS THE STATUS QUO.
+
+    Returns the candidates in decision order, the best, the runner-up the margin
+    is measured against, and whether this rule is what chose the best.
+
+    `their_own_folder_node_ids` is `None` when the caller did not say which nodes
+    are folders the person already has, and then this rule DOES NOT RUN. It is a
+    rule about telling a proposal from a home, so without that it has nothing to
+    tell apart, and guessing would be the over-refusal's mirror image. Every
+    caller that does not supply it gets exactly the behaviour it had before this
+    function existed.
+
+    §6.9 abstains when a file has two homes, because choosing one institution
+    over another is the failure it exists to prevent. That is a rule about two
+    places a file could be MOVED to. When one of the tied candidates is the
+    folder the file is ALREADY SITTING IN, the choice is not between two
+    institutions -- it is between moving the file and leaving it alone, and a tie
+    is not a reason to move somebody's file. So a candidate that merely ties with
+    where the file already is is not a rival, and the margin is measured against
+    the best candidate that actually scores LOWER.
+
+    AND ONLY THEN. If ANOTHER tied candidate is also a folder the person MADE,
+    this is §6.9 exactly as written -- material that belongs to two folders they
+    actually have -- and it goes back to being asked. A syllabus in `Uni` that
+    `Saved` claims just as strongly is a real question about two of their homes;
+    the same syllabus against a `Coursework/PHYS1401/syllabus` this run would
+    like to create is not, because a proposal is not a home yet.
+    `tests/integration/test_cli_agreeing_corpus.py::test_two_folders_that_both_
+    claim_the_value_still_have_to_ask` is that control and it stays green: "a fix
+    that files everything is as wrong as one that files nothing".
+
+    WHY THIS BECAME NECESSARY ON 2026-09-05. `_CHANNEL_WEIGHT` sums DEDUPLICATED
+    channels, so a node expecting `term` and `work_type` scores exactly what a
+    node expecting `term` alone scores. Until `work_type` gained a producer no
+    node had ever expected two fields, and the tie could not arise. The day it
+    could, a law student's own `Fall 2026` folder tied with a proposed
+    `Coursework/Fall2026/syllabus`, the margin came out 0.0, and all five files
+    in `_two_lives_one_semester_corpus` abstained -- the product stopped placing
+    ANYTHING rather than place the wrong thing. That is the over-refusal failure
+    mode: measured on the real 199-file corpus, silencing a producer cut wrong
+    fields 17 -> 3 and pushed "not placed" from 85.4% to 97.6%.
+
+    THIS IS NOT A WEIGHT AND MUST NOT BECOME ONE. §6.5 forbids a destination
+    reached ONLY by generic similarity or a curated name, and `retrieval` already
+    drops any candidate whose channels are all non-deciding -- so a curated
+    folder can never BE a destination on its own, and this function never lets it
+    become one. Every candidate here has already cleared the support threshold on
+    §6.3's deciding channels. All this adds is which of two equals a person would
+    rather the product chose, and the answer is the one that moves nothing.
+    `tests/p11/test_p11_no_invention.py` pins `CURATED_FOLDER` out of
+    `_CHANNEL_WEIGHT` and stays green, which is the point: the score is
+    unchanged and only the tie is broken.
+
+    Exact float equality is the right comparison and not a hazard: two tied
+    candidates reach `support_score` through the identical expression on the
+    identical weight, so they are the same float or they are not tied at all.
+    """
+    if not scored:
+        return scored, None, None, False
+    best = scored[0]
+    runner_up = scored[1] if len(scored) > 1 else None
+    if their_own_folder_node_ids is None:
+        return scored, best, runner_up, False
+    tied = tuple(item for item in scored
+                 if item.support_score == best.support_score)
+    staying = next((item for item in tied if item.already_there), None)
+    rival_home = staying is not None and any(
+        item.node_id in their_own_folder_node_ids
+        and item.node_id != staying.node_id
+        for item in tied)
+    if staying is None or len(tied) == 1 or rival_home:
+        return scored, best, runner_up, False
+    # Recorded in decision order, so `alternatives` on the stored decision names
+    # the chosen destination first and a replay can see why.
+    lower = tuple(item for item in scored
+                  if item.support_score < staying.support_score)
+    others = tuple(item for item in tied if item.node_id != staying.node_id)
+    return ((staying,) + others + lower, staying,
+            (lower[0] if lower else None), True)
+
+
+def assess(retrieval, graphs, *, policy: SupportPolicy,
+           their_own_folder_node_ids: frozenset[str] | None = None) -> Assessment:
     # `score_candidates` is the one place the policy is required, and `assess`
     # calls it before reading a single threshold. A second `require_policy` here
     # would be a guard that cannot fail -- the first line already refused -- and
     # would read as a rule this function enforces when it enforces nothing.
     scored = score_candidates(retrieval, graphs, policy=policy)
-    best = scored[0] if scored else None
-    runner_up = scored[1] if len(scored) > 1 else None
+    scored, best, runner_up, stays_put = _staying_put_wins_a_tie(
+        scored, their_own_folder_node_ids)
 
     meets_threshold = bool(best and best.support_score >= policy.minimum_support_threshold)
     if runner_up is None:
@@ -223,7 +321,7 @@ def assess(retrieval, graphs, *, policy: SupportPolicy) -> Assessment:
     return Assessment(
         scored=scored, two_condition=two_condition, alternatives=alternatives,
         unique_direct_match=unique_direct, abstention_reason=reason,
-        confidence_class=confidence,
+        confidence_class=confidence, stays_put=stays_put,
     )
 
 
@@ -232,7 +330,26 @@ def needs_model_call(assessment: Assessment) -> bool:
 
     An assessment with no candidate at all also needs no call: there is nothing
     for a model to choose between, and asking one would be inviting it to invent.
+
+    NEITHER IS A FILE THAT IS ALREADY WHERE THE ANSWER SAYS IT BELONGS. When both
+    §6.10 conditions are met (`abstention_reason is None`) and the destination the
+    assessment chose is the folder the file is ALREADY SITTING IN, the decision
+    moves nothing. The only question a model could be asked is "should this file
+    stay where it is?", which this assessment has just answered deterministically,
+    and asking it anyway is what turned five files into five abstentions on
+    `_two_lives_one_semester_corpus`: three of a law student's own coursework
+    stopped being recognised as already filed, and the run placed NOTHING. A
+    model call that cannot change the outcome is not a bounded ambiguity; it is a
+    round trip whose only possible effects are cost, delay, and -- when no model
+    is reachable, which is the offline default -- a refusal.
+
+    `unique_direct_match` stays the first clause and is untouched. This adds the
+    one case §6.6's "bounded ambiguity" was never about: there is no ambiguity
+    between moving a file and leaving it exactly where its owner put it.
+    `_staying_put_wins_a_tie` above is what makes `scored[0]` the answer here.
     """
     if assessment.unique_direct_match or not assessment.scored:
+        return False
+    if assessment.stays_put and assessment.abstention_reason is None:
         return False
     return True

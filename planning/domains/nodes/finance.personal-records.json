@@ -55,6 +55,8 @@
   },
   "work_types": [
     "statement",
+    "bank statement",
+    "credit card",
     "account agreement or opening disclosure",
     "account closure notice",
     "terms or rate change notice",

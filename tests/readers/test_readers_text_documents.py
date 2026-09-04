@@ -461,3 +461,170 @@ def test_a_file_that_is_neither_a_marker_nor_a_language_carries_neither(tmp_path
     assert document.markers == ()
     assert document.language is None
     assert document.headings == ()
+
+
+# --------------------------------------------------------------------------- #
+# the format this reader does not read by itself
+# --------------------------------------------------------------------------- #
+
+def test_a_legacy_doc_is_unsupported_when_no_doc_reader_is_wired(tmp_path):
+    """§2.4's `unsupported`, and the first time this reader has ever returned None.
+
+    Its contract used to be "It never returns `None`", which was true while every
+    extension the router sent here had text for bytes. `.doc` does not: it is an OLE
+    compound document, and a deployment without a converter for it has no reader --
+    which is a statement about the deployment and is what `None` says. The bytes
+    below are the OLE signature, so this is not "the file was broken".
+    """
+    path = tmp_path / "1403.Sample.Exam.doc"
+    path.write_bytes(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 32)
+
+    assert stdlib_text_document_reader()(path) is None
+
+
+def test_a_wired_doc_reader_is_the_one_that_answers(tmp_path):
+    """The socket, not the converter. `readers/doc_cocoa.py` has its own file of
+    tests; this one proves the reader is REACHED, which is the half that was missing
+    when `read_long_tail` sat wired to `_no_reader` and nobody noticed for a week."""
+    path = tmp_path / "1403.Sample.Exam.doc"
+    path.write_bytes(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
+    from extractors.structured_text import TextDocument
+
+    read_it = stdlib_text_document_reader(
+        read_doc=lambda p: TextDocument(text="General Chemistry I 1403"))
+
+    assert read_it(path).text == "General Chemistry I 1403"
+
+
+def test_wiring_a_doc_reader_changes_nothing_for_any_other_format(tmp_path):
+    """A socket that swallowed `.txt` would be worse than an empty one."""
+    path = tmp_path / "syllabus.txt"
+    path.write_text("PHYS 1403\n")
+
+    read_it = stdlib_text_document_reader(read_doc=lambda p: None)
+
+    assert read_it(path).text == "PHYS 1403\n"
+
+
+# --------------------------------------------------------------------------- #
+# byte-order marks
+# --------------------------------------------------------------------------- #
+#
+# The same defect this whole module was written to fix, one layer down. A `.rtf`
+# arriving as its own control words is false information stored as `complete`; a
+# UTF-16 `.txt` arriving as NUL-interleaved mojibake is the identical failure and was
+# still here. Windows Notepad's "Unicode" save and Excel's "Unicode Text (*.txt)"
+# export both write UTF-16LE with a BOM, and both came back as
+# `'��C\x00o\x00u\x00r\x00s\x00e\x00'` -- recorded `complete`, handed to
+# the recogniser as the document's prose.
+#
+# A BOM IS NOT A GUESS. `_decode`'s docstring rules out inferring Windows-1252 from
+# bytes that failed as UTF-8, and that reasoning is kept exactly: a byte-order mark
+# is the document's OWN statement about its encoding, in the same class as HTML's
+# `<meta charset>` and RTF's `\ansicpg`, which this reader already honours. Nothing
+# below sniffs statistics, counts NULs or scores a codec.
+
+def test_a_utf16_text_file_is_read_as_text_and_not_as_interleaved_nulls(tmp_path):
+    """The measured failure, pinned. Notepad's "Unicode" and Excel's "Unicode Text"
+    are both this."""
+    path = tmp_path / "grades.txt"
+    path.write_bytes("Course: PHYS 1403\nGrade: A\n".encode("utf-16"))  # BOM + LE
+    assert read(path).text == "Course: PHYS 1403\nGrade: A\n"
+
+
+def test_a_big_endian_utf16_text_file_reads_the_same(tmp_path):
+    """Both byte orders, because the BOM is what says which and reading only one
+    would leave the other broken in a way nothing distinguishes."""
+    path = tmp_path / "grades.txt"
+    path.write_bytes(b"\xfe\xff" + "Course: PHYS 1403\n".encode("utf-16-be"))
+    assert read(path).text == "Course: PHYS 1403\n"
+
+
+def test_a_utf32_text_file_is_not_mistaken_for_utf16(tmp_path):
+    """`FF FE 00 00` starts UTF-32LE and also starts with UTF-16LE's `FF FE`, so the
+    longer mark has to be tested first. Read as UTF-16 this file would be a string of
+    NULs between the letters -- the very failure above, wearing the fix."""
+    path = tmp_path / "notes.txt"
+    path.write_bytes("Lab 4\n".encode("utf-32"))
+    assert read(path).text == "Lab 4\n"
+
+
+def test_the_utf8_mark_does_not_survive_into_the_text(tmp_path):
+    """A `\\ufeff` left on the front is invisible in a viewer and is a character in
+    every match. It sat in front of the first word of every BOM-marked `.txt` -- and
+    of every Markdown heading, where `_markdown_headings` reads the line's first
+    character to decide whether it is a heading at all."""
+    path = tmp_path / "syllabus.txt"
+    path.write_bytes(b"\xef\xbb\xbf" + "PHYS 1403\n".encode("utf-8"))
+    text = read(path).text
+    assert text == "PHYS 1403\n"
+    assert "﻿" not in text
+
+
+def test_a_bom_marked_markdown_file_still_finds_its_first_heading(tmp_path):
+    """Why the mark mattered beyond tidiness: `# Lab 4` behind a BOM is
+    `\\ufeff# Lab 4`, and CommonMark's ATX rule anchors at the start of the line."""
+    path = tmp_path / "lab.md"
+    path.write_bytes(b"\xef\xbb\xbf" + "# Lab 4\n\nAir track.\n".encode("utf-8"))
+    document = read(path)
+    assert [region.label for region in document.headings] == ["Lab 4"]
+
+
+def test_plain_utf8_is_untouched_and_cjk_still_arrives_whole(tmp_path):
+    """The ordinary file has no mark and must not be changed by the sniff. CJK is
+    here because it is the case a byte-counting fix would break -- and because it is
+    what a real corpus holds; nothing in this reader is keyed to a script."""
+    path = tmp_path / "report.txt"
+    path.write_bytes("外泌體 exosome report\n".encode("utf-8"))
+    assert read(path).text == "外泌體 exosome report\n"
+
+
+def test_bytes_that_declare_nothing_still_get_the_honest_replacement(tmp_path):
+    """`_decode`'s standing rule, unchanged: no BOM and not UTF-8 means a replacement
+    character, never a guessed codepage. Guessing Windows-1252 would turn an
+    unreadable byte into a WRONG letter with nothing to mark it."""
+    path = tmp_path / "old.txt"
+    path.write_bytes("Café\n".encode("cp1252"))
+    assert read(path).text == "Caf�\n"
+
+
+def test_a_utf16_html_page_is_read_as_a_page_and_not_as_interleaved_nulls(tmp_path):
+    """HTML needed the byte-order mark MORE than plain text did, and was the one
+    format the first version of this fix could not reach.
+
+    `_html_encoding` answers `"utf-8"` when it finds no `<meta charset>`, never
+    `None` -- so `_decode(payload, encoding or _html_encoding(payload))` always
+    arrived with an encoding already chosen and the mark was never consulted. And the
+    meta tag CANNOT be found in a UTF-16 document: the regex runs over bytes, and
+    `<meta charset=...>` in UTF-16 is NUL-interleaved. So a UTF-16 page was
+    guaranteed to fall through to UTF-8 and arrive as mojibake, `<title>` included.
+
+    HTML5's own precedence is BOM, then `<meta charset>`, then the default -- so the
+    mark winning here is the standard's order, not a preference of this reader's.
+    """
+    path = tmp_path / "confirmation.html"
+    path.write_bytes(
+        "<html><head><title>Registration confirmed</title></head>"
+        "<body><h1>PHYS 1403</h1><p>Seat 12.</p></body></html>".encode("utf-16"))
+    text = read(path).text
+    assert "Registration confirmed" in text
+    assert "PHYS 1403" in text
+    assert "\x00" not in text
+
+
+def test_a_bom_marked_html_page_does_not_emit_the_mark_as_its_first_character(tmp_path):
+    """A `\\ufeff` ahead of the page's own first word is a character in every match
+    and is invisible to whoever is reading the output."""
+    path = tmp_path / "page.html"
+    path.write_bytes(b"\xef\xbb\xbf"
+                     + "<html><body><p>Air track lab.</p></body></html>".encode())
+    assert read(path).text.strip().startswith("Air track")
+
+
+def test_a_declared_charset_still_wins_over_the_default(tmp_path):
+    """The guard: an ordinary page with no mark and a real `<meta charset>` is
+    decoded by its declaration exactly as before."""
+    path = tmp_path / "old.html"
+    path.write_bytes(b'<html><head><meta charset="windows-1252"></head>'
+                     + "<body><p>Caf\xe9 list</p></body></html>".encode("cp1252"))
+    assert "Café list" in read(path).text

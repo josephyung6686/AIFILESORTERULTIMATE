@@ -28,6 +28,7 @@ from extractors.structured_text import TextDocument
 
 from readers.archive_zipfile import zipfile_reader
 from readers.capture import make_dimension_signal, make_filename_pattern
+from readers.doc_cocoa import cocoa_doc_reader
 from readers.docx_python_docx import python_docx_reader
 from readers.image_headers import header_image_reader
 from readers.long_tail_stdlib import stdlib_long_tail_reader
@@ -73,12 +74,26 @@ def read_text_file(path: Path) -> TextDocument:
 
 
 def macos_readers(*, find_structured_strings: Callable[[str], tuple],
-                  **overrides: Any) -> Readers:
+                  spreadsheet_cell_ceiling: int, **overrides: Any) -> Readers:
     """The wired `Readers`. Pass `**overrides` to swap any single reader.
 
     `overrides` is how the PDF library gets swapped without touching this module --
     `macos_readers(find_structured_strings=..., read_pdf=other_reader())` -- which is
     the seam the injected-reader design exists to provide.
+
+    **`spreadsheet_cell_ceiling` is REQUIRED and has no default.** It is §8.6's kind
+    of number -- a ceiling that trades completeness for cost -- and this deployment
+    is not where such a number is chosen. `cli.py` is the sole composition root and
+    holds every one of them beside the measurement that earned it; a default here
+    would be a second ceiling nobody tuned, quietly governing behaviour while the
+    documented one governed nothing. Absent means refuse, never guess.
+
+    It is a plain argument rather than an override of `read_long_tail` because the
+    reader it configures is THIS module's choice: swapping the whole reader out is
+    what `overrides` is for, and handing a ceiling to the one already wired is not
+    the same act. `SENSOR_RATIO_TOLERANCE` above is the shape this deliberately does
+    NOT take -- a number living in `readers/` with a comment explaining that it
+    should not.
     """
     # Imported HERE and not at module scope. `readers.ocr_vision` pulls in
     # Apple's Vision and Quartz frameworks, which cost 4.6s of `import cli`'s
@@ -98,7 +113,20 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # bodies, and a `.md` yielded no headings at all. `readers/text_documents.py`
         # reads each format as the format it is; `read_text_file` below is kept
         # because it is still the whole of the plain-text answer.
-        "read_text_document": stdlib_text_document_reader(),
+        # `read_doc` WAS EMPTY, and §2.4's `unsupported` is a statement about this
+        # module: "no extractor exists for this format in this deployment". A `.doc`
+        # is an OLE compound document -- the format `.docx` replaced -- so
+        # `text_documents.py` cannot open one and neither can `python_docx_reader`
+        # above, which opens a ZIP of XML parts. Measured over the owner's 199-file
+        # corpus on 2026-09-04: `.doc  0 of 2  0.0%`, two General Chemistry practice
+        # exams of 1,290 words each, recorded `unsupported` while AppKit -- already
+        # linked here for Vision and Quartz -- reads the format.
+        #
+        # `readers/doc_cocoa.py` says why it is Cocoa and not `/usr/bin/textutil`:
+        # `subprocess` is on `test_single_egress.NETWORK_MODULES` and a reader is not
+        # a provider module. The in-process route is also the stricter one.
+        "read_text_document": stdlib_text_document_reader(
+            read_doc=cocoa_doc_reader()),
         "ocr_engine": vision_ocr(),
         "ocr_config": dict(VISION_CONFIG),
         "read_docx": python_docx_reader(),
@@ -119,7 +147,15 @@ def macos_readers(*, find_structured_strings: Callable[[str], tuple],
         # standard library and returns `None` for the rest, which keeps §2.4's
         # `unsupported` meaning what it says for `.xls`, `.ppt`, `.msg`, `.ods`,
         # `.odp`, `.numbers` and `.mp3`.
-        "read_long_tail": stdlib_long_tail_reader(),
+        #
+        # AND IT NOW ARRIVES WITH A CEILING. Reading every spreadsheet was the fix;
+        # reading every CELL of every spreadsheet without a limit was the cost of it.
+        # Measured on the owner's 199-file corpus, 2026-09-04: spreadsheet cells were
+        # 58% of all text units and 3.5% of all text. A cell is two database rows, so
+        # a data export outweighs everything a person has written. `max_cells` bounds
+        # that, and the run says `capped` when it bites.
+        "read_long_tail": stdlib_long_tail_reader(
+            max_cells=spreadsheet_cell_ceiling),
         # §2.6's container header, from the standard library. Wired 2026-08-31: it
         # was `_no_reader`, so `extract_image` returned `unsupported` on its second
         # line and the two catalogue-fed keywords below were never called at all.

@@ -73,11 +73,30 @@ from placement import vocabulary as pv  # noqa: E402
 #: to reject. The name now says what the file is, which is what a real syllabus
 #: on a real disk does, and `subject=PHYS1401` -- the claim the gesture retracts
 #: -- is unchanged and still comes from the course code in the body.
+#: THE SECOND COURSE ARRIVED 2026-09-04, AND IT IS WHAT KEEPS `PHYS1401` A FOLDER.
+#: `work_type` gained its first producer that day, so the tree finally builds the
+#: level it always promised -- and the moment a second level exists, the rule that
+#: was already written starts biting the first one: "any level your files did not
+#: actually divide ... is measured and not built". One course means `subject` has
+#: one value, so `PHYS1401` stopped being built at all and the corpus filed into
+#: `Coursework/syllabus` and `Coursework/notes` with no course anywhere. That takes
+#: the rejected claim off the screen entirely, and a claim the person cannot see is
+#: a claim this file cannot prove was retracted. A fourth file of a DIFFERENT course
+#: divides `subject` again, and the gesture below is unchanged.
+#:
+#: Its work_type is `problem set` and not `syllabus` on purpose. With a second
+#: `syllabus` in the corpus, retracting `subject=PHYS1401` leaves the file matching
+#: the OTHER course's syllabus folder on `work_type` alone, and the product offers
+#: to file it there -- a correction that moves a file into a course the person never
+#: named. That is a real defect and it is reported to the lead separately; it is not
+#: this file's subject, and a corpus that walked into it would test the wrong thing.
 CORPUS = {
     "week 3 syllabus.pdf.txt":
         "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr. Ross.\n",
     "notes.txt":
         "PHYS 1401 lecture notes, week 3.\n",
+    "COMS 4995 problem set 1.txt":
+        "COMS 4995 Problem Set 1\n\nSpring 2026. Instructor: Dr. Okafor.\n",
     "invoice 20261.txt":
         "Invoice INV20261\n\nAmount due 400.00 on 2026-03-01.\n",
 }
@@ -110,12 +129,37 @@ def _run(corpus: Path, *extra: str) -> str:
     return out.getvalue()
 
 
+def _folder_parent(printed: str, label: str) -> str:
+    """The folder the named one is nested under, read off "Folders in this plan".
+
+    THE HEADING ONLY CARRIES THE LEAF. `report` formats "Ready to file into
+    {where}" from the destination's display label, so once `work_type` became a
+    level the sentence a person reads is "Ready to file into syllabus" -- and
+    `syllabus` under the WRONG course reads exactly the same. Asserting the leaf
+    alone would have let a file be filed into another student's course and called
+    it a pass, so every assertion on a heading in this file is paired with one on
+    this, and the pair says the whole path.
+    """
+    tree = printed.split("Folders in this plan:", 1)[1].split("\nFiles:", 1)[0]
+    stack: dict[int, str] = {}
+    for line in tree.splitlines()[1:]:
+        if not line.strip():
+            continue
+        depth = (len(line) - len(line.lstrip())) // 2
+        name = line.strip().split("   [", 1)[0]
+        stack[depth] = name
+        if name == label:
+            return stack.get(depth - 1, "ROOT")
+    return "ABSENT"
+
+
 def _section_holding(printed: str, filename: str) -> str:
     """The heading of the block this file is listed under, in the words on screen.
 
     The report groups files under sentences a person reads, not under ids, so the
-    heading IS the outcome: "Ready to file into PHYS1401" and "Waiting for you to
+    heading IS the outcome: "Ready to file into syllabus" and "Waiting for you to
     say what these are" are the two different answers this whole file is about.
+    Pair it with `_folder_parent` -- the heading names the leaf and nothing above it.
     """
     heading = "ABSENT"
     for line in printed.splitlines():
@@ -137,9 +181,15 @@ def test_a_rejected_conclusion_is_gone_from_the_next_run_and_the_one_after(tmp_p
     """
     corpus = _corpus(tmp_path)
 
+    # "Ready to file into PHYS1401" until 2026-09-04, and the folder is still
+    # PHYS1401's -- `work_type` now builds a level inside it, so the destination
+    # is `PHYS1401/syllabus` and the heading names its leaf. The parent is
+    # asserted beside it precisely so the deeper tree cannot smuggle in a
+    # `syllabus` folder belonging to some other course.
     first = _run(corpus)
     assert _section_holding(first, "week 3 syllabus.pdf.txt").startswith(
-        "Ready to file into PHYS1401"), first
+        "Ready to file into syllabus"), first
+    assert _folder_parent(first, "syllabus") == "PHYS1401", first
 
     second = _run(corpus, "--reject", GESTURE)
     assert _section_holding(second, "week 3 syllabus.pdf.txt").startswith(
@@ -170,8 +220,14 @@ def test_the_other_file_that_carries_the_same_value_is_left_exactly_where_it_was
 
     after = _run(corpus, "--reject", GESTURE)
 
+    # Same change as the test above, and the same reason: the destination is
+    # `PHYS1401/notes` now that `work_type` builds a level, and the heading
+    # carries only the leaf. `notes` under `PHYS1401` is the assertion this test
+    # has always made -- "it must still be filed under PHYS1401 afterwards" --
+    # and the second line is what still holds it to the course.
     assert _section_holding(after, "notes.txt").startswith(
-        "Ready to file into PHYS1401"), after
+        "Ready to file into notes"), after
+    assert _folder_parent(after, "notes") == "PHYS1401", after
 
 
 def test_the_correction_is_stored_even_though_the_run_does_not_yet_honour_it(

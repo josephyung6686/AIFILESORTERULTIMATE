@@ -175,7 +175,18 @@ def test_a_corpus_that_agrees_on_everything_is_filed_from_its_own_facts(tmp_path
     second = _run(corpus, "PHYS 1401", "--answer", answer)
 
     assert _headline(second) == "Files: 3 decided, 3 ready to file", second
-    assert "Ready to file into PHYS 1401 -- 3 files" in second, second
+    # THE DESTINATION CHANGED 2026-09-04 AND THE COUNT DELIBERATELY DID NOT.
+    # This used to be `Ready to file into PHYS 1401 -- 3 files`: `work_type` had
+    # no producer, so the recipe's fourth level resolved to nothing and all three
+    # files landed in the branch itself. `facts.kind` now reads the shipped
+    # `work_type_terms` vocabulary and these three files ARE three different
+    # kinds of work, so they land one level deeper, in the leaf each one names.
+    # The headline above is the assertion that matters and it is untouched: the
+    # same three files are still decided and still ready, on the same direct
+    # facts, with no model. Only where they go moved.
+    for leaf in ("lecture", "problem set", "syllabus"):
+        assert f"Ready to file into {leaf} -- 1 file" in second, second
+    assert "PHYS 1401" in second, second
     # And no file was sent anywhere, asked for, or held for a model.
     assert "needed a model" not in second, second
 
@@ -236,8 +247,27 @@ def test_the_option_that_files_them_does_not_promise_folders_it_will_not_build(
                if line.strip().startswith("--answer 'branch:")
                and "keep-as-it-is" not in line]
     assert offered, printed
-    assert "would create no folders" in offered[0], offered
-    assert "PHYS1401" in offered[0] and "Fall2024" in offered[0], offered
+    # THE SENTENCE CHANGED 2026-09-04 AND THE PRINCIPLE DID NOT.
+    #
+    # It used to be `would create no folders`, because with no `work_type`
+    # producer NOTHING here divided: term and subject each hold one value, so
+    # the option built nothing and the caller replaced the whole sentence.
+    # `facts.kind` now makes `work_type` resolve, and these three files are three
+    # different kinds of work -- so the option DOES build folders and the
+    # no-folders sentence would be the lie instead.
+    #
+    # What this test is actually about is unchanged and is asserted below: the
+    # sentence must not promise a level that will not be built. `term` and
+    # `subject` still hold one value each, V2 still does not build a level the
+    # files do not divide, and so they must still not be counted. Before the fix
+    # to `_summarise` this line read "would create 1 term, 1 subject, and 3
+    # work_type" -- the same broken promise this test was written for, reaching
+    # the sentence by a route that did not exist while nothing could divide.
+    assert "would create 3 work_type" in offered[0], offered
+    assert "1 term" not in offered[0], offered
+    assert "1 subject" not in offered[0], offered
+    # The folders it does promise are the ones it builds.
+    assert "lecture" in offered[0] and "syllabus" in offered[0], offered
 
 
 def test_two_folders_that_both_claim_the_value_still_have_to_ask(tmp_path):

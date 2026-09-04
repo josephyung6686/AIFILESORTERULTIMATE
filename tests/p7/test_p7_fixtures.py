@@ -238,19 +238,25 @@ def test_there_is_one_fixture_per_denial_reason():
         assert reached, reason
 
 
-def test_the_denial_reasons_are_all_eight_and_no_ninth():
+def test_the_denial_reasons_are_all_nine_and_no_tenth():
     reasons = {f.decision.reason for f in FIXTURES if isinstance(f.decision, Denied)}
     assert reasons == set(DENIAL_REASONS)
-    assert len(DENIAL_REASONS) == 8
+    # Nine since 2026-09-04. `no_safety_evidence` is fixture 19's, and it had to be
+    # its own reason: `unclassified` says "no classification record exists" in the
+    # sentence a person reads, and the file it would answer for HAS one.
+    assert len(DENIAL_REASONS) == 9
 
 
-def test_fixture_numbers_are_dense_unique_and_eighteen():
+def test_fixture_numbers_are_dense_unique_and_nineteen():
     # Sixteen are SPEC §11's. Seventeen and eighteen are Open question 5's two
     # branches, which §11 does not ask for and which are the only place in the part
-    # where both readings of OQ5 exist as data.
+    # where both readings of OQ5 exist as data. Nineteen is `no_safety_evidence`,
+    # added with the ninth denial reason -- the third member of the family whose
+    # other two are fixture 2 ("nothing has looked") and fixture 15 ("something
+    # looked and failed"): something looked, succeeded, and met no safety word.
     numbers = [f.number for f in FIXTURES]
-    assert numbers == list(range(1, 19))
-    assert len(FIXTURES) == 18
+    assert numbers == list(range(1, 20))
+    assert len(FIXTURES) == 19
 
 
 def test_by_number_raises_on_a_number_nobody_published():
@@ -956,9 +962,14 @@ def test_every_replay_leaves_exactly_one_audit_event(p7_conn, tmp_path, number):
 
 #: The fixtures whose published values no longer match what the gate produces.
 #: Measured, not guessed — see the test below.
-#: EVERY Denied fixture — all fifteen of them. Not a few stale strings.
+#: EVERY Denied fixture — all sixteen of them. Not a few stale strings.
+#: 19 (`no_safety_evidence`) JOINS THE LIST rather than being written to match the
+#: gate's live text, and that is deliberate. Making one fixture match would decide
+#: which side is authoritative for all of them, and the docstring below says in as
+#: many words that this is the owner's decision about a contract P8 builds against.
+#: A new fixture is not the place to settle an open item by example.
 DECISION_DRIFT: frozenset[int] = frozenset(
-    {1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17})
+    {1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17, 19})
 #: The three whose `user_id` / `consent_request_id` / `redaction_manifest` differ.
 AUDIT_DRIFT: frozenset[int] = frozenset({9, 10, 18})
 

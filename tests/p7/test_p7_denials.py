@@ -124,13 +124,17 @@ def all_eight() -> dict[str, Denied]:
 
 def test_denial_order_is_a_permutation_of_the_vocabulary():
     assert set(DENIAL_ORDER) == set(DENIAL_REASONS)
-    assert len(DENIAL_ORDER) == len(DENIAL_REASONS) == 8
+    # Nine since 2026-09-04: `no_safety_evidence` joined SPEC §6's eight beside
+    # `unclassified`, which it could not borrow without saying an untrue thing
+    # about a file that HAS a classification record.
+    assert len(DENIAL_ORDER) == len(DENIAL_REASONS) == 9
 
 
 def test_nothing_that_needs_content_is_decided_before_something_that_does_not():
     # The principle: a gate that materialised an excerpt and THEN discovered the mode
     # forbade the call has read a sensitive file for a call that was never going to
-    # happen. Six reasons are decidable from the request; two need the resolved text.
+    # happen. Seven reasons are decidable from the request; two need the resolved
+    # text, and that split is what the ordering is for -- not the counts.
     assert DECIDABLE_FROM_REQUEST < set(DENIAL_REASONS)
     needs_content = set(DENIAL_REASONS) - DECIDABLE_FROM_REQUEST
     assert needs_content == {"whole_document_requested", "dossier_over_budget"}

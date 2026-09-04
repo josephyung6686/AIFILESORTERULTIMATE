@@ -51,7 +51,9 @@ from evidence_shape.store import runs_for_file
 from extractors.long_tail import POTENTIALLY_SENSITIVE, sensitivity_signals_for
 
 from privacy.vocabulary import (
-    CLASSIFICATION_BASES, DETECTOR as _DETECTOR, OutOfVocabulary, check_handling_class,
+    CLASSIFICATION_BASES, DETECTOR as _DETECTOR,
+    DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
+    OutOfVocabulary, check_handling_class,
 )
 
 #: SPEC §2's eight, in SPEC §2's order.
@@ -66,10 +68,18 @@ CLASSIFICATION_FIELDS: tuple[str, ...] = (
 #: it under this name rather than retyping the literal.
 UNREADABLE_UNCLASSIFIED: str = check_handling_class("unreadable_unclassified")
 
-#: The one basis §8.4's "evidence-backed" binds. `user` needs no evidence -- the
-#: user's act is the evidence -- and `safety_domain` is §3.15's rule about a domain,
-#: not a reading of a span.
-_EVIDENCE_REQUIRED_BASIS: str = _DETECTOR
+#: The bases §8.4's "evidence-backed" binds. `user` needs no evidence -- the user's
+#: act is the evidence -- and `safety_domain` is §3.15's rule about a domain, not a
+#: reading of a span.
+#:
+#: BOTH DETECTOR BASES, and the second is here for the same reason as the first.
+#: `detector_no_safety_evidence` is weaker about SAFETY and not weaker about
+#: recognition: the schema still won on the file's own terms, and those terms are
+#: what the record cites. A record on it carrying nothing would be the detector
+#: asserting an ordinary class out of thin air, which is exactly what `96` §19
+#: objected to -- so the weaker word must not become the way to skip the citation.
+_EVIDENCE_REQUIRED_BASES: frozenset[str] = frozenset(
+    {_DETECTOR, _DETECTOR_NO_SAFETY_EVIDENCE})
 
 
 
@@ -138,11 +148,11 @@ class ClassificationRecord:
                 "one-character references")
         refs = tuple(refs)
         object.__setattr__(self, "evidence_refs", refs)
-        if self.basis == _EVIDENCE_REQUIRED_BASIS and not refs:
+        if self.basis in _EVIDENCE_REQUIRED_BASES and not refs:
             raise UnbackedClassification(
-                f"a basis={_EVIDENCE_REQUIRED_BASIS!r} classification carries no "
-                "evidence. §8.4: the classification 'is itself evidence-backed', on "
-                "§3.1's principle that every fact preserves where it came from.")
+                f"a basis={self.basis!r} classification carries no evidence. §8.4: "
+                "the classification 'is itself evidence-backed', on §3.1's principle "
+                "that every fact preserves where it came from.")
         for ref in refs:
             if not _is_observation_key(ref):
                 raise UnbackedClassification(

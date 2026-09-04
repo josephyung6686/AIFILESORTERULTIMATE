@@ -48,6 +48,7 @@ nothing.
 """
 from __future__ import annotations
 
+import codecs
 import csv
 import email.utils
 import mailbox
@@ -132,6 +133,52 @@ _CARD_PROPERTIES: tuple[str, ...] = (
     "URL", "BDAY", "CATEGORIES")
 
 
+#: The byte-order marks Unicode defines, and the codec that consumes each one.
+#: LONGEST FIRST, because `FF FE 00 00` begins a UTF-32LE document AND begins with
+#: UTF-16LE's `FF FE`: tested the other way round, every UTF-32 file is read as
+#: UTF-16 and comes back as letters separated by NULs -- the exact failure this
+#: table exists to end, wearing the fix.
+#:
+#: The codec is `utf-16` and `utf-32` rather than the endian-specific spelling
+#: because those two CONSUME the mark while the `-le`/`-be` forms leave it in the
+#: text as a `\ufeff`, which is invisible in a viewer and is a character in every
+#: match. `utf-8-sig` does the same for the three-byte mark.
+_BOMS: tuple[tuple[bytes, str], ...] = (
+    (codecs.BOM_UTF32_LE, "utf-32"),
+    (codecs.BOM_UTF32_BE, "utf-32"),
+    (codecs.BOM_UTF8, "utf-8-sig"),
+    (codecs.BOM_UTF16_LE, "utf-16"),
+    (codecs.BOM_UTF16_BE, "utf-16"),
+)
+
+
+def declared_encoding(prefix: bytes) -> str | None:
+    """The encoding a document DECLARES in its first bytes, or None if it declares
+    none.
+
+    A byte-order mark is a statement the document makes about itself, in the same
+    class as HTML's `<meta charset>` and RTF's `\ansicpg` -- both of which the
+    readers here already honour -- and nothing like guessing a codepage from
+    statistics. `text_documents._decode`'s standing rule is that bytes which fail as
+    UTF-8 become replacement characters rather than a plausible wrong letter, and
+    that rule is untouched: this reads a declaration, it does not infer one.
+
+    IT MATTERS BECAUSE OF WHAT WRITES THESE FILES. Windows Notepad's "Unicode" save
+    and Excel's own "Unicode Text (*.txt)" export are UTF-16LE with a mark, and so
+    are a great many `.tsv` exports. Decoded as UTF-8 they came back as
+    `'\ufffd\ufffdc\x00o\x00u\x00r\x00s\x00e\x00'` -- stored `complete`, and
+    handed to the recogniser as the document's prose. Not missing information but
+    false information, which §2.4 treats as the worse of the two.
+
+    Shared with `readers/text_documents.py`, which already imports this module for
+    the other things that are true of bytes rather than of a format.
+    """
+    for mark, encoding in _BOMS:
+        if prefix.startswith(mark):
+            return encoding
+    return None
+
+
 class PartTooLarge(Exception):
     """A ZIP member declares more uncompressed bytes than this reader will read.
 
@@ -207,8 +254,13 @@ def _relationships(archive: zipfile.ZipFile, part: str) -> dict[str, str]:
                       else f"_rels/{name}.rels"))
     if tree is None:
         return {}
-    return {node.get("Id"): node.get("Target") or ""
-            for node in tree.findall(_tag("pkgrel", "Relationship"))}
+    # `Id` FILTERED, not defaulted. Every valid relationship carries one; a part
+    # damaged enough to omit it used to become the key `None`, which no lookup
+    # can hit -- so the entry was dead weight that only made the map look
+    # complete. Skipping it says what is true: that relationship is unusable.
+    return {identifier: node.get("Target") or ""
+            for node in tree.findall(_tag("pkgrel", "Relationship"))
+            if (identifier := node.get("Id")) is not None}
 
 
 def _resolve(base: str, target: str) -> str:
@@ -353,9 +405,15 @@ def _date_styles(archive: zipfile.ZipFile) -> tuple[frozenset[int], bool]:
     formats = styles.find(_tag("main", "numFmts"))
     if formats is not None:
         for node in formats.findall(_tag("main", "numFmt")):
+            # The absent attribute is checked rather than caught: `TypeError` from
+            # `int(None)` and `ValueError` from `int("x")` are the same line to an
+            # `except`, and only the second is about the file's CONTENT.
+            declared = node.get("numFmtId")
+            if declared is None:
+                continue
             try:
-                custom[int(node.get("numFmtId"))] = node.get("formatCode") or ""
-            except (TypeError, ValueError):
+                custom[int(declared)] = node.get("formatCode") or ""
+            except ValueError:
                 continue
 
     dated: set[int] = set()
@@ -423,7 +481,17 @@ def _cell_value(cell, *, shared: list[str], dated: frozenset[int],
     return raw
 
 
-def _read_xlsx(path: Path) -> LongTailFile:
+def _read_xlsx(path: Path, max_cells: int) -> LongTailFile:
+    """Every sheet, every visible cell, up to `max_cells` across the WHOLE workbook.
+
+    The ceiling bounds the DATABASE, which grows per file, so a workbook of forty
+    sheets does not get forty ceilings. Past it the cells are still counted and no
+    longer stored: `cells_total` is what makes the resulting `capped` run carry a
+    real coverage instead of claiming the sheet was as short as the ceiling.
+
+    Sheet NAMES are never capped. §2.9 asks for them separately from "visible cell
+    values", they are one row each, and they are most of what says what a workbook is.
+    """
     with zipfile.ZipFile(path) as archive:
         shared = _shared_strings(archive)
         dated, date1904 = _date_styles(archive)
@@ -435,13 +503,17 @@ def _read_xlsx(path: Path) -> LongTailFile:
         if workbook is not None:
             container = workbook.find(_tag("main", "sheets"))
             for node in (container if container is not None else []):
-                target = links.get(node.get(_tag("rel", "id")))
+                # A `<sheet>` with no `r:id` names no part; skipped, not looked up
+                # under a None key.
+                reference = node.get(_tag("rel", "id"))
+                target = links.get(reference) if reference is not None else None
                 if target:
                     sheets.append((node.get("name") or "",
                                    _resolve("xl/workbook.xml", target)))
 
         entries: list[LongTailEntry] = []
         texts: list[LongTailText] = []
+        seen = 0
         for ordinal, (name, part) in enumerate(sheets, 1):
             entries.append(LongTailEntry(kind="sheet", index=ordinal,
                                          label=name or None))
@@ -460,6 +532,13 @@ def _read_xlsx(path: Path) -> LongTailFile:
                                            epoch=epoch)
                     if not rendered:
                         continue
+                    seen += 1
+                    if seen > max_cells:
+                        # COUNTED AND DROPPED. The count is what `coverage` needs and
+                        # the drop is what the ceiling is for; rendering the cell to
+                        # find out it is non-empty is the same work the line above
+                        # already did, so nothing is spent twice.
+                        continue
                     if row_number == 1:
                         headers[column] = rendered
                     texts.append(LongTailText(
@@ -469,7 +548,8 @@ def _read_xlsx(path: Path) -> LongTailFile:
 
         values, iso_dates = _package_properties(archive)
     return LongTailFile(entries=tuple(entries), values=tuple(values),
-                        texts=tuple(texts), iso_dates=iso_dates)
+                        texts=tuple(texts), iso_dates=iso_dates,
+                        cells_total=seen, capped=seen > max_cells)
 
 
 def _package_properties(archive: zipfile.ZipFile
@@ -499,28 +579,92 @@ def _package_properties(archive: zipfile.ZipFile
     return values, iso_dates
 
 
-def _read_delimited(path: Path, delimiter: str) -> LongTailFile:
+def _delimited_sheet(handle, delimiter: str, max_cells: int) -> LongTailFile:
+    """One unnamed sheet, every visible cell up to `max_cells`, from an open handle.
+
+    Past the ceiling the rows keep streaming and the cells keep being counted; only
+    the storing stops. `csv.reader` is a generator, so the tail of a million-row
+    export is never held in memory -- what the ceiling saves is the two database rows
+    per cell downstream, which is where the cost actually was.
+    """
+    texts: list[LongTailText] = []
+    headers: dict[int, str] = {}
+    seen = 0
+    for row_number, row in enumerate(csv.reader(handle, delimiter=delimiter), 1):
+        for column, cell in enumerate(row, 1):
+            cell = cell.strip()
+            if not cell:
+                continue
+            seen += 1
+            if seen > max_cells:
+                continue
+            if row_number == 1:
+                headers[column] = cell
+            texts.append(LongTailText(
+                zone="table", text=cell, entry_ordinal=1, row=row_number,
+                column=column, column_header=headers.get(column)))
+    return LongTailFile(entries=(LongTailEntry(kind="sheet", index=1),),
+                        texts=tuple(texts),
+                        cells_total=seen, capped=seen > max_cells)
+
+
+def _read_delimited(path: Path, delimiter: str,
+                    max_cells: int) -> LongTailFile:
     """A `.csv` or `.tsv`: one unnamed sheet, every visible cell.
 
     `utf-8-sig` because a spreadsheet application writes a BOM and a reader that
     keeps it puts an invisible character on the front of the first column header,
     where it silently stops that header matching anything.
+
+    AND THE MARK MAY NOT BE A UTF-8 ONE. "Unicode Text (*.txt)" is one of Excel's own
+    save formats and it is UTF-16LE; `utf-8-sig` reads such a file as NUL-interleaved
+    mojibake and records it `complete`. `declared_encoding` reads whichever mark is
+    there -- it is the document's own statement, not a guess -- and a file with no
+    mark decodes exactly as it did before.
+
+    `errors="replace"` is right HERE and only here: these two extensions declare
+    themselves as text, so a byte that will not decode is one damaged character in
+    a document that is otherwise readable, and a replacement character is the
+    honest rendering of it. `_read_delimited_if_text` below is the same reader for
+    the extensions that make no such declaration.
     """
-    texts: list[LongTailText] = []
-    headers: dict[int, str] = {}
-    with open(path, newline="", encoding="utf-8-sig", errors="replace") as handle:
-        for row_number, row in enumerate(csv.reader(handle, delimiter=delimiter), 1):
-            for column, cell in enumerate(row, 1):
-                cell = cell.strip()
-                if not cell:
-                    continue
-                if row_number == 1:
-                    headers[column] = cell
-                texts.append(LongTailText(
-                    zone="table", text=cell, entry_ordinal=1, row=row_number,
-                    column=column, column_header=headers.get(column)))
-    return LongTailFile(entries=(LongTailEntry(kind="sheet", index=1),),
-                        texts=tuple(texts))
+    with open(path, "rb") as probe:
+        encoding = declared_encoding(probe.read(4)) or "utf-8-sig"
+    with open(path, newline="", encoding=encoding, errors="replace") as handle:
+        return _delimited_sheet(handle, delimiter, max_cells)
+
+
+def _read_delimited_if_text(path: Path, delimiter: str,
+                            max_cells: int) -> LongTailFile | None:
+    """The same sheet, but only if the bytes really are text. Otherwise None.
+
+    For extensions whose NAME does not promise text. `.raw` is Instron's tensile-test
+    export on this disk and a camera raw on a photographer's, and the router cannot
+    tell those apart without opening the file -- so the tiebreak is here, at the
+    bytes, where it can be answered instead of guessed.
+
+    Strict decoding is the whole check and it needs no threshold: text decodes,
+    a photograph does not. §2.4's two outcomes stay apart -- None is `unsupported`,
+    "no reader exists for this format in this deployment", which is exactly true of
+    a camera raw. With `errors="replace"` the same photograph would have become a
+    sheet of replacement characters recorded `complete`, and nothing downstream
+    could have told that from a file the product had genuinely read.
+
+    Streaming rather than `read_bytes().decode(...)`: a raw frame is tens of
+    megabytes and there is no reason to hold one in memory to find out it is not a
+    spreadsheet. `csv.reader` raises on the first undecodable byte.
+    """
+    try:
+        with open(path, "rb") as probe:
+            # A camera raw begins `FF D8 FF` (JPEG), `II*\0` or `MM\0*` (TIFF), none
+            # of which is a byte-order mark -- so this reads the mark of a real
+            # UTF-16 export and leaves the strict decode below to answer for
+            # everything else, exactly as before.
+            encoding = declared_encoding(probe.read(4)) or "utf-8-sig"
+        with open(path, newline="", encoding=encoding) as handle:
+            return _delimited_sheet(handle, delimiter, max_cells)
+    except UnicodeDecodeError:
+        return None
 
 
 # --------------------------------------------------------------------------- #
@@ -540,7 +684,9 @@ def _slide_parts(archive: zipfile.ZipFile) -> list[str]:
     order: list[str] = []
     container = tree.find(_tag("p", "sldIdLst"))
     for node in (container if container is not None else []):
-        target = links.get(node.get(_tag("rel", "id")))
+        # As in `_read_xlsx` above: a slide reference with no `r:id` names no part.
+        reference = node.get(_tag("rel", "id"))
+        target = links.get(reference) if reference is not None else None
         if target:
             order.append(_resolve("ppt/presentation.xml", target))
     return order
@@ -1056,9 +1202,6 @@ def _read_wav(path: Path) -> LongTailFile:
 #: `.ods`, `.odp` and `.numbers` are packages this deployment ships no reader for;
 #: `.mp3` has no container parser in the standard library.
 _BY_EXTENSION: dict[str, Callable[[Path], LongTailFile | None]] = {
-    ".csv": lambda path: _read_delimited(path, ","),
-    ".tsv": lambda path: _read_delimited(path, "\t"),
-    ".xlsx": _read_xlsx,
     ".pptx": _read_pptx,
     ".eml": _read_eml,
     ".mbox": _read_mbox,
@@ -1071,8 +1214,39 @@ _BY_EXTENSION: dict[str, Callable[[Path], LongTailFile | None]] = {
 }
 
 
-def stdlib_long_tail_reader() -> Callable[..., LongTailFile | None]:
+#: The spreadsheet half of the same table, kept SEPARATE because these four are the
+#: formats that take a ceiling. §2.9 asks a spreadsheet for "visible cell values" and
+#: names no limit, and every one of those cells becomes a `text_units` row AND an
+#: `evidence` row -- so a data export is the one shape in §2.9's six families that can
+#: cost more database than every document a person owns. Which formats have a cell
+#: count is format knowledge and belongs here; HOW MANY is a policy and belongs in
+#: `cli.py`.
+_SPREADSHEETS_BY_EXTENSION: dict[str, Callable[[Path, int], LongTailFile | None]] = {
+    ".csv": lambda path, ceiling: _read_delimited(path, ",", ceiling),
+    ".tsv": lambda path, ceiling: _read_delimited(path, "\t", ceiling),
+    # Instron's tensile-test exports. Comma-delimited and fully quoted, but under an
+    # extension that does not declare itself as text -- so `_read_delimited_if_text`,
+    # which answers None rather than mojibake when the bytes are something else.
+    ".rlt": lambda path, ceiling: _read_delimited_if_text(path, ",", ceiling),
+    ".raw": lambda path, ceiling: _read_delimited_if_text(path, ",", ceiling),
+    ".xlsx": _read_xlsx,
+}
+
+
+def stdlib_long_tail_reader(*, max_cells: int) -> Callable[..., LongTailFile | None]:
     """Build the `read_long_tail` callable `extractors.dispatch.Readers` takes.
+
+    `max_cells` is REQUIRED AND HAS NO DEFAULT. It is §8.6's kind of number -- a
+    ceiling that trades completeness for cost -- and this product keeps every one of
+    those in `cli.py`, where the rationale can sit above the value. A default here
+    would be a second ceiling nobody tuned, quietly governing the behaviour while the
+    documented one governed nothing. Absent means refuse, never guess.
+
+    It applies to spreadsheets and to nothing else, because a spreadsheet is the only
+    one of §2.9's six families whose size is unbounded in the unit that costs: a
+    presentation has slides, an email has one body, a calendar has events, and a cell
+    is a database row. A format with no cells reports `cells_total = None` and its run
+    keeps counting entries exactly as before.
 
     `transcribe` is accepted and ignored, and that is §2.9 being obeyed rather than
     a stub: speech-to-text runs only under P7's explicit privacy and compute policy,
@@ -1081,10 +1255,19 @@ def stdlib_long_tail_reader() -> Callable[..., LongTailFile | None]:
     authorization has nothing to authorize and `UnauthorizedTranscription` cannot
     fire on anything it produced.
     """
+    if max_cells < 1:
+        raise ValueError(
+            f"max_cells={max_cells} would store no cell of any spreadsheet while "
+            "still recording the run as `capped`, which reads as a ceiling that was "
+            "reached rather than one that admits nothing")
 
     def read_long_tail(path: Path, *, transcribe: bool = False
                        ) -> LongTailFile | None:
-        reader = _BY_EXTENSION.get(Path(path).suffix.lower())
+        extension = Path(path).suffix.lower()
+        spreadsheet = _SPREADSHEETS_BY_EXTENSION.get(extension)
+        if spreadsheet is not None:
+            return spreadsheet(Path(path), max_cells)
+        reader = _BY_EXTENSION.get(extension)
         return None if reader is None else reader(Path(path))
 
     return read_long_tail

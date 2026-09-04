@@ -79,11 +79,11 @@ from privacy.consent import (ConsentRequirement, grant_authorizes,
                              open_consent_request)
 from privacy.denial import (
     deny_always_local_item, deny_dossier_over_budget, deny_mode_forbids_target,
-    deny_policy_revoked, deny_protected_cloud_target,
+    deny_no_safety_evidence, deny_policy_revoked, deny_protected_cloud_target,
     deny_protected_records_template, deny_unclassified,
     deny_whole_document_requested, first_reason, is_protected_records, mode_forbids,
-    over_dossier_ceiling, policy_revoked_for, protected_cloud_denies, record_denial,
-    unclassified_denies,
+    no_safety_evidence_denies, over_dossier_ceiling, policy_revoked_for,
+    protected_cloud_denies, record_denial, unclassified_denies,
 )
 from privacy.items import (
     SUSPENDED_ITEM_KINDS,
@@ -99,6 +99,15 @@ from privacy.release import (
 )
 from privacy.resolve import (
     AmbiguousObservationKey, UnresolvableSpan, current_location, materialise,
+)
+# Aliased under a leading underscore, the way `classification.py` binds `DETECTOR`,
+# and for that module's reason: `test_p7_skeleton_step` asserts that no name here
+# begins `detect`, because "P7 is done" and "the product classifies files" are
+# different claims and this part delivers only the first. The guard is a name check,
+# so a vocabulary constant read at the door would trip it while meaning the opposite
+# -- the gate CONSUMES a basis another part wrote and produces none.
+from privacy.vocabulary import (
+    DETECTOR_NO_SAFETY_EVIDENCE as _DETECTOR_NO_SAFETY_EVIDENCE,
 )
 # Imported as a MODULE, not by name: `Gate.revoke` and `Gate.delete_derived` are the
 # same two words as the functions they delegate to, and an aliased import would give
@@ -247,6 +256,22 @@ class Gate:
             builders["unclassified"] = lambda: deny_unclassified(
                 file_ids=unclassified, locality=locality,
                 completeness=self._completeness(rows, unclassified[0]))
+
+        # §8.4's precondition is "classify data into handling classes before LLM
+        # escalation", and a CLASS EXISTING is not what that sentence is for. `96`
+        # §19 measured the difference: 41 of 78 files stored
+        # `personal_non_sensitive, protected=0` had matched no safety word at all,
+        # and were only reachable by a model because they had acquired a class.
+        # Read on the RECORD's basis and never on the class, because the class is
+        # the same on both sides of this line -- that is the whole finding.
+        unexamined = tuple(sorted(
+            file_id for file_id, record in records.items()
+            if record is not None
+            and record.basis == _DETECTOR_NO_SAFETY_EVIDENCE))
+        if unexamined and no_safety_evidence_denies(locality=locality):
+            builders["no_safety_evidence"] = lambda: deny_no_safety_evidence(
+                file_ids=unexamined, locality=locality,
+                handling_class=classes[unexamined[0]])
 
         if self._template_for is not None and any(
                 is_protected_records(self._template_for(file_id))

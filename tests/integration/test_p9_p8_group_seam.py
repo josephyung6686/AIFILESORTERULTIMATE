@@ -205,7 +205,7 @@ def _materialise(request):
     )
     dossier = build_dossier(
         request, released, reduction_rung=REDUCTION_NONE,
-        allowed_vocabulary=("coherent",),
+        allowed_vocabulary=("coherent",), folder_levels=(),
         prompt=_prompt(), handle_key=FIXTURE_HANDLE_KEY,
     )
     assert not isinstance(dossier, llm_harness.ValidationUnavailable), dossier
@@ -547,7 +547,7 @@ def _live_dependencies(policy_version, key):
             min_calls_per_scan=0),
         estimated_cost=Decimal("1"),
         actual_cost=Decimal("1"),
-        allowed_vocabulary=("coherent",),
+        allowed_vocabulary=("coherent",), folder_levels=(),
         policy_version=policy_version, wire_handle_key=FIXTURE_HANDLE_KEY,
     )
 

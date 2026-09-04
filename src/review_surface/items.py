@@ -58,6 +58,7 @@ from placement.vocabulary import (
     PLACE,
     ROUTED_TO_NODE,
     SHARED_MATERIAL_DECISION,
+    USER_CHOSE_DESTINATION,
 )
 
 from review_surface.labels import label_chain_for_version
@@ -75,9 +76,17 @@ RENDER_ABSTENTION: str = "abstention_state"
 RENDER_BUDGET_DEFERRAL: str = "budget_deferral_state"
 RENDER_ASK: str = "ask_user_state"
 RENDER_MARKED: str = "marked_state"
+#: A placement the PERSON decided, after being asked. Its own state and not
+#: `placement_state`, for the reason every other state here is its own: this
+#: surface exists so somebody can see WHY a file is where it is, and "a fact of
+#: yours matched" and "you told us" are two different answers to that question.
+#: Collapsing them would show a person their own instruction back as a conclusion
+#: the engine reached, which is the one reading that makes it unreviewable -- there
+#: is nothing to check, and they would be checking it.
+RENDER_USER_CHOSEN: str = "user_chosen_state"
 RENDER_STATES: tuple[str, ...] = (
     RENDER_PLACEMENT, RENDER_SHARED_MATERIAL, RENDER_ABSTENTION,
-    RENDER_BUDGET_DEFERRAL, RENDER_ASK, RENDER_MARKED)
+    RENDER_BUDGET_DEFERRAL, RENDER_ASK, RENDER_MARKED, RENDER_USER_CHOSEN)
 
 #: What the composition root injects for citation resolution: it is handed the
 #: connection and P11's `matching_facts[]` and returns one pair per fact.
@@ -137,6 +146,8 @@ def render_state_for(decision: PlacementDecision) -> str:
         return RENDER_MARKED
     if decision.confidence_class == SHARED_MATERIAL_DECISION:
         return RENDER_SHARED_MATERIAL
+    if decision.confidence_class == USER_CHOSE_DESTINATION:
+        return RENDER_USER_CHOSEN
     if decision.outcome == PLACE:
         return RENDER_PLACEMENT
     # Every remaining outcome -- a return to placement, a review-later mark, a
@@ -153,7 +164,12 @@ def affordance_for(decision: PlacementDecision) -> str:
         # No "accept anyway" over a deferred subject, and an abstention has
         # nothing to accept.
         return AFFORDANCE_NONE
-    if decision.confidence_class == EXACT_FACT_MATCH:
+    if decision.confidence_class in (EXACT_FACT_MATCH, USER_CHOSE_DESTINATION):
+        # A destination the person NAMED needs no second review of the same
+        # decision. `80` §4: "the friction budget is spent ONCE... it does not
+        # recur per file", and asking somebody to review their own answer file by
+        # file is that recurrence with a different label on it. What is still
+        # required is the freeze, which is a separate gesture and unaffected.
         return AFFORDANCE_ONE_STEP
     return AFFORDANCE_REVIEW_REQUIRED
 

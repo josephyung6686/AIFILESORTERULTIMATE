@@ -57,7 +57,9 @@ from llm_harness.budgets import ScanBudget
 from llm_harness.fact_validation import FactValidationDependencies
 from llm_harness.fingerprint import prompt_fingerprint
 from llm_harness.harness import CallDependencies, run_call
-from llm_harness.records import DossierRequest, EvidenceItem, PromptDefinition
+from llm_harness.records import (
+    DossierRequest, EvidenceItem, FolderLevel, PromptDefinition,
+)
 from llm_harness.sites import FactSiteDependencies, SiteDependencies
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
@@ -91,6 +93,73 @@ _ZONE_PREFERENCE: tuple[str, ...] = (
 )
 
 
+def require_folder_levels(
+        folder_levels: Sequence[FolderLevel]) -> tuple[FolderLevel, ...]:
+    """The situation's folder levels, or a refusal. There is no empty situation.
+
+    Every one of the shipped library's 208 situations declares at least one level --
+    `tests/integration/test_template_levels_wiring.py` walks all of them -- so an
+    empty list here is never "this situation designs no folders". It is a
+    deployment that did not read the library, and the damage it does is invisible:
+    the dossier stays well-formed and the model is simply asked the flat-vocabulary
+    question again, which is the question that filled `work_type` once in 199 files.
+
+    A mapping is refused rather than converted. A `dict` here would be a caller
+    authoring a level, and the labels and the `required`/`optional` words are the
+    library's own text -- transcribed, never authored, the rule `field_glossary`
+    already stands on.
+    """
+    if not folder_levels:
+        raise ValueError(
+            "an A_fact call carries the folder levels of the situation the person "
+            "named. Every shipped situation declares at least one, so an empty "
+            "list is a deployment that never read the template library -- and it "
+            "fails silently, by asking the model the question it was already "
+            "failing to answer")
+    levels = tuple(folder_levels)
+    if any(not isinstance(level, FolderLevel) for level in levels):
+        raise TypeError(
+            "folder levels are `FolderLevel` records read off the shipped template "
+            "library. A mapping here is a caller authoring a label, and the labels "
+            "are the library's own words")
+    return levels
+
+
+def order_vocabulary_by_levels(
+        allowed_vocabulary: Sequence[str],
+        folder_levels: Sequence[FolderLevel]) -> tuple[str, ...]:
+    """The same closed vocabulary, read in the order the tree is built in.
+
+    **The set is untouched and that is the whole safety argument.** §3.5's closed
+    vocabulary is ONE computation shared by the dossier and the validator, and check
+    1 asks membership, not position -- so reordering cannot reject an answer the old
+    order accepted. What it changes is what the model reads first.
+
+    Why that is worth doing: `active_field_allowlist` lists "the universal rows in
+    stored order, then each active schema". The universal rows are `file_type`,
+    `creation_date`, `language` and `authored_by`, none of which is ever a folder
+    level, and all four sit above every field the person's situation actually
+    builds on. Measured over 199 real files the model answered in that order -- 59,
+    19, 4 and 34 claims against a single `work_type`.
+
+    The levels lead, in the LIBRARY's order rather than required-first, because the
+    dossier's `folder_levels` key prints that same order and two orders of one list
+    in one document is a contradiction the model has to resolve. Which levels are
+    required is said once, where it is said plainly.
+    """
+    levels = [level.field for level in folder_levels]
+    allowed = tuple(allowed_vocabulary)
+    outside = [field for field in levels if field not in allowed]
+    if outside:
+        raise ValueError(
+            f"folder levels {sorted(outside)} are outside this file's allowlist. "
+            "The vocabulary and the levels are one computation; leading the list "
+            "with a field the validator will reject is how a model is punished for "
+            "obeying its instructions")
+    seen = set(levels)
+    return tuple(levels) + tuple(f for f in allowed if f not in seen)
+
+
 @dataclass(frozen=True)
 class FactCallAuthorities:
     """Everything one A_fact call needs and this module authors none of.
@@ -110,6 +179,11 @@ class FactCallAuthorities:
     prompt: PromptDefinition
     model_target: ModelTarget
     activation_signals: ActivationSignals
+    #: The folder levels of the situation the person named, read off the shipped
+    #: template library by the composition root. Required with no default: absent
+    #: means refuse, and a call built without them asks the model the flat-
+    #: vocabulary question that filled one `work_type` in 199 files.
+    folder_levels: tuple[FolderLevel, ...]
     normalizers: Mapping[str, Callable[[str], Any]]
     normalize: Callable[[str, str], object]
     contradicts: Callable[..., bool]
@@ -125,6 +199,8 @@ class FactCallAuthorities:
     on_result: Callable[[str, object], None] | None
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "folder_levels",
+                           require_folder_levels(self.folder_levels))
         if self.max_released_observations < 1:
             raise ValueError(
                 "a dossier with no released evidence is a model asked to answer "
@@ -335,6 +411,9 @@ def _call_dependencies(
         estimated_cost=authorities.estimated_cost,
         actual_cost=authorities.actual_cost,
         allowed_vocabulary=tuple(allowed_vocabulary),
+        # The SAME tuple the vocabulary above was ordered by, not a second read of
+        # the library: two answers here would print one order and validate another.
+        folder_levels=authorities.folder_levels,
         policy_version=authorities.policy_version,
         wire_handle_key=authorities.wire_handle_key,
     )
@@ -374,6 +453,11 @@ def fact_call_stage(authorities: FactCallAuthorities):
         if not request.allowlist:
             return ()
 
+        # ONE list, read in the order the tree is built in. Same membership as
+        # `request.allowlist`, which is what check 1 measures the answer against.
+        vocabulary = order_vocabulary_by_levels(
+            request.allowlist, authorities.folder_levels)
+
         before = {row["fact_id"] for row in facts_for_file(
             conn, file_id, content_hash)}
         result = run_call(
@@ -387,7 +471,7 @@ def fact_call_stage(authorities: FactCallAuthorities):
             model_client=authorities.model_client,
             prompt=authorities.prompt,
             validation_dependencies=_call_dependencies(
-                request, request.allowlist, authorities=authorities),
+                request, vocabulary, authorities=authorities),
             observed_at=authorities.observed_at,
         )
         if authorities.on_result is not None:

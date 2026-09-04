@@ -460,6 +460,46 @@ def test_a_file_the_branch_states_a_value_for_is_not_reported_unresolved(conn):
     assert option.unresolved_file_ids == ("f3",)
 
 
+def test_a_level_that_does_not_divide_is_left_out_when_another_level_does(conn):
+    """THE MIXED CASE, which is where the promise came back.
+
+    `test_an_option_that_builds_no_folder_says_what_the_branch_records_instead`
+    fixed the all-degenerate branch by replacing the whole sentence, and it is
+    reached only when the option builds NOTHING. The moment one level divides,
+    that replacement is skipped and `_summarise` speaks again -- and `_summarise`
+    dropped only levels with NO values, never levels with exactly one.
+
+    So a corpus of one course in one term, whose files ARE three different kinds
+    of work, summarised itself "1 term, 1 subject, and 3 work_type". The three
+    are real. The other two are the same broken promise as before: `term` and
+    `subject` each hold one value, V2 does not build a level the files do not
+    divide, and the person reads two folders that will never exist.
+
+    `_summarise`'s own docstring already states the rule it half-applied: "A
+    level producing NO folders is left out ... `_project` skips a level with no
+    values and V2 SKIPS ONE THAT DOES NOT DIVIDE." One value is one folder, which
+    separates nothing. V2's test "needs no threshold: either some file disagrees
+    or none does" (`upstream.py`), so this is a definition and not a knob --
+    which is why it lives here and not in `cli.py`.
+
+    `resulting_child_counts` is untouched, for the reason the fix above records:
+    `cli._nesting_key` derives an ANSWER's durable identity from its keys.
+    """
+    evidence = _evidence(
+        _level("term", "term", 0, {"Fall2024": {"f1", "f2", "f3"}}),
+        _level("subject", "subject", 1, {"PHYS1401": {"f1", "f2", "f3"}}),
+        _level("work_type", "work_type", 2,
+               {"syllabus": {"f1"}, "lecture": {"f2"}, "problem set": {"f3"}}))
+    option = _options(conn, evidence, "term", "subject", "work_type")[0]
+    # The level that divides is named, with its real count.
+    assert "3 work_type" in option.summary, option.summary
+    # The two that do not are not promised.
+    assert "1 term" not in option.summary, option.summary
+    assert "1 subject" not in option.summary, option.summary
+    # And the keys a recorded answer is identified by are unchanged.
+    assert set(option.resulting_child_counts) == {"term", "subject", "work_type"}
+
+
 def test_an_option_that_builds_a_folder_records_nothing_on_the_branch(conn):
     """The discriminating twin: a level that divides is built, so the branch
     states nothing of its own and the summary is the count it always was."""

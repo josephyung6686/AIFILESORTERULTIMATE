@@ -191,6 +191,9 @@ def _payload_from(released: Released, prompt: PromptDefinition):
         "eligibility_reason": REMAINS_AMBIGUOUS,
         "evidence_items": [],
         "field_glossary": {},
+        # This site designs no folder tree, so the truthful list is empty -- and it
+        # is PRESENT, because the door reads the body's key set by equality.
+        "folder_levels": [],
         "max_dossier_tokens": 0,
         "plan_version": None,
         "policy_version": released.policy_version,
@@ -366,7 +369,7 @@ def _released_and_body(conn) -> tuple[Released, str]:
         _dossier_request(file_id=file_id, key=key, fingerprint=digest),
         decision,
         reduction_rung=REDUCTION_NONE,
-        allowed_vocabulary=("school",),
+        allowed_vocabulary=("school",), folder_levels=(),
         prompt=prompt, handle_key=FIXTURE_HANDLE_KEY,
     )
     assert not isinstance(dossier, ValidationUnavailable), dossier

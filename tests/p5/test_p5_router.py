@@ -4,8 +4,6 @@ the disagreeing fixture, and each §2.9 family either has its handler or an expl
 `unsupported` status.\""""
 from pathlib import Path
 
-import pytest
-
 from database_agent.db import create_schema
 
 from evidence_shape.vocabulary import COMPLETENESS, SOURCE_TYPES, check
@@ -100,10 +98,26 @@ def test_every_format_in_the_table_is_one_2_9_or_2_6_names():
         "ts", "tsx", "jsx",                     # TypeScript and React
         "css", "sh", "cmake",                   # stylesheets, shell, build
     }
+    # The same reason a third time, and this set is the one with a MEASUREMENT behind
+    # each member rather than a count. `.groundtruth/baseline/scorecard.txt`,
+    # 2026-09-04, "by format, weakest first": each of these recovered text from
+    # 0 of its files, on a corpus where the average was 81.4%. Four of the seven are
+    # plain text or a text container this deployment already reads, so what was
+    # missing was the key and not the ability. `dockerfile` and `makefile` are tokens
+    # no extension can produce; they come from a detector that reads the whole
+    # filename. Declared here as well as in the table, like the two sets above.
+    formats_that_recovered_no_text_on_the_measured_corpus = {
+        "ris",                                  # bibliography citation record
+        "doc",                                  # legacy Word, NOT docx
+        "rlt", "raw",                           # Instron tensile-test exports (CSV)
+        "code-workspace",                       # VS Code workspace (JSON)
+        "dockerfile", "makefile",               # extensionless build files
+    }
     assert set(SOURCE_TYPE_BY_FORMAT) == (named_by_2_9
                                           | named_by_2_6_or_the_spec_fixtures
                                           | added_by_b6_and_not_by_a_design_sentence
-                                          | code_formats_the_owner_actually_writes)
+                                          | code_formats_the_owner_actually_writes
+                                          | formats_that_recovered_no_text_on_the_measured_corpus)
 
 
 def test_every_source_type_the_table_names_is_in_p4s_closed_vocabulary():

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field as dataclass_field
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from extractors.failure import unsupported_result
 from extractors.reading import StructuredString
 from extractors.runs import coverage
 from extractors.safety import SafetyPolicy, admit
@@ -42,10 +43,12 @@ EXTRACTOR_NAME_PREFIX = "ocr."
 SOURCE_TYPE = "ocr"
 ANALYSIS_TIER = "ocr"
 
-#: The name an OCR run carries when the engine raised BEFORE reporting its own.
+#: The name an OCR run carries when the engine never reported its own -- because
+#: it raised, or because it declined the format outright.
 #:
-#: `extractor_name_for` builds every real name from `output.provider`, and a crashed
-#: engine returns no output, so there is no provider to fold. This is the family with
+#: `extractor_name_for` builds every real name from `output.provider`, and an
+#: engine that crashed or returned `None` reports no provider, so there is none
+#: to fold. This is the family with
 #: the provider left off -- it cannot collide with any `ocr.<provider>` (no dot), it
 #: is non-empty as P4 requires, and it invents neither a provider nor a provider
 #: version. The run's `extractor_version` is `VERSION`, P5's OCR ADAPTER version:
@@ -138,7 +141,7 @@ def extractor_name_for(provider: str) -> str:
 
 
 def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy,
-                ocr_engine: Callable[..., OcrOutput],
+                ocr_engine: Callable[..., OcrOutput | None],
                 config: Mapping[str, Any],
                 find_structured_strings: Callable[[str],
                                                   tuple[StructuredString, ...]],
@@ -151,6 +154,31 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
     """
     admit(path, policy=policy)
     output = ocr_engine(path, config=config)
+    if output is None:
+        # §2.4's second outcome, at the seam every other extractor has had since it
+        # was written and E6 did not. `extract_pdf`, `extract_docx`,
+        # `extract_structured_text`, `extract_long_tail` and `extract_image` all read
+        # `None` from their reader as "no reader exists for this format in this
+        # deployment" and record `unsupported`. E6 had no such branch, so an engine
+        # that could not decode a format had exactly one way to say so -- raise --
+        # and the dispatcher's catch turned it into `failed`, which asserts the file
+        # is DAMAGED.
+        #
+        # Measured on the owner's 199-file corpus, 2026-09-04: seven undamaged SVG
+        # logos recorded `ocr · failed · "no image could be decoded from ..."`. The
+        # bytes were fine; this deployment's image stack ships no vector decoder.
+        # That is a statement about the deployment, and §8.6's "18 files remain
+        # unreadable" sentence is computed straight off this column.
+        #
+        # The name is the family with the provider left off: an engine that declined
+        # reported no provider and no provider version (§2.7's first two persisted
+        # fields), and neither is invented. The VERSION is P5's own OCR adapter
+        # version, which is the code that actually ran -- the same pairing
+        # `dispatch._ocr` already uses for an engine that raised.
+        return unsupported_result(
+            file_row=file_row, extractor_name=UNREPORTED_PROVIDER_NAME,
+            extractor_version=VERSION, source_type=SOURCE_TYPE,
+            analysis_tier=ANALYSIS_TIER, now=now)
     name = extractor_name_for(output.provider)
 
     observations: list[Mapping[str, Any]] = []
@@ -197,6 +225,59 @@ def extract_ocr(*, file_row: Mapping[str, Any], path: Path, policy: SafetyPolicy
                 context_truncated=truncated, observed_at=now,
                 reliability="possible", confidence=recognized.confidence,
             ))
+
+    # §2.4's prose-as-evidence, which was built in E3, then in E1 and E2, and never
+    # here. Measured over the owner's 199-file corpus on 2026-09-04: OCR ran on 52
+    # files and wrote 2,192 text units for one PDF alone against 17 observations, and
+    # eleven IMAGE files -- regression-line charts, WhatsApp saves, screen captures --
+    # carried 14 to 27 recognised units each and emitted ZERO evidence. §2.7 opens
+    # "OCR is not merely a rescue tool for scanned PDFs. It is the main way
+    # screenshots and opaque loose images become understandable to the pre-sorting
+    # engine", and the engine reads OBSERVATIONS: `recognition/detector.py` scans
+    # evidence only, on purpose, because "a detector that pulled whole text units
+    # would be a second materialisation locus". So the words Apple Vision read off
+    # the pixels were stored and unreachable, and the file was then filed as though
+    # nothing had been read.
+    #
+    # ONE PASSAGE FOR THE WHOLE FILE, not one per region, and that is the difference
+    # from E1. `pdf.py` emits per PAGE because a page is what §2.2's ranking argument
+    # is about. Apple Vision returns ONE REGION PER LINE -- the comment above says so
+    # and `test_each_region_on_a_page_is_separately_addressable` pins it -- so a row
+    # per region would give the recogniser twenty one-line strings in which a term
+    # like `vaccination record` is never adjacent to itself. This is E2's shape, for
+    # E2's reason.
+    #
+    # NO CONTAINER AND NO SPAN, both load-bearing, and `docx.py` sets them out at
+    # length. No container because P4 rule 10 anchors a span-carrying observation to a
+    # unit at exactly its path and this passage is a unit at no path. No span because
+    # an excerpt P7 can locate is an excerpt P7 can release.
+    #
+    # ZONE `ocr`, AND THAT IS THE SECURITY-BEARING LINE. §8.4 member 3 is
+    # `ocr_output` and it never leaves the device;
+    # `privacy.vocabulary.ALWAYS_LOCAL_ZONES` gained `"ocr"` on 2026-09-04 and every
+    # release door reads it -- `privacy/items.py` refuses to construct an excerpt
+    # addressing one, `model_facts.py` and `model_placement.py` both check before
+    # sending. Emitting this as `body`, which is what E1 and E2 use for their own
+    # prose, would put a scanned identity document into a cloud dossier through a
+    # door that was already shut. The whole point of this row is to be READ BY THE
+    # RECOGNISER ON THIS DEVICE, and `ocr` is the zone that says exactly that.
+    #
+    # NO CONFIDENCE. Every region carries its own and P4 publishes the field, but a
+    # confidence for the whole passage would be an aggregate of them -- a mean, a
+    # minimum, a weighting -- and choosing which is a policy with a number in it. P5
+    # holds no number (`test_p5_holds_no_dpi_no_language_and_no_confidence_threshold`).
+    # The per-region rows above keep theirs.
+    passage = "\n".join(recognized.text for recognized in output.regions)
+    if passage.strip():
+        observations.append(observation(
+            file_id=file_row["file_id"], content_hash=file_row["content_hash"],
+            extractor_name=name, extractor_version=output.provider_version,
+            source_type=SOURCE_TYPE, raw_value=passage,
+            normalized_value=normalize_mechanical(passage),
+            location=location(zone="ocr", container_path=(), text_span=None),
+            context_before="", context_after="", context_truncated=False,
+            observed_at=now, reliability="possible",
+        ))
 
     return ExtractionResult(
         run=run(file_id=file_row["file_id"], content_hash=file_row["content_hash"],

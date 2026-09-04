@@ -545,7 +545,12 @@ def test_a_course_code_printed_with_a_space_is_the_same_identifier():
     """
     assert _identifiers("Homework for PHYS 1401, due Friday") == ["PHYS 1401"]
     assert _identifiers("Homework for PHYS1401, due Friday") == ["PHYS1401"]
-    canonical = cli.DIRECT_SLOTS.slots[0].canonical
+    # `cli.SUBJECT_RULE.canonical`, not `DIRECT_SLOTS.slots[0].canonical`. The slot
+    # was removed on 2026-09-04 and `subject` is filled by §3.5's rule instead; the
+    # canonicaliser moved with the field and is the same callable it always was, so
+    # the question this test asks -- do the two spellings reach ONE value -- is
+    # unchanged and is still asked of the shipped producer rather than a copy.
+    canonical = cli.SUBJECT_RULE.canonical
     assert canonical("PHYS 1401") == canonical("PHYS1401")
 
 
@@ -738,7 +743,8 @@ def test_an_adopted_folder_enters_as_the_persons_folder_not_as_a_proposal(tmp_pa
     corpus = tmp_path / "corpus"
     (corpus / "Uni" / "PHYS1401").mkdir(parents=True)
     for name in ("a.txt", "b.txt"):
-        (corpus / "Uni" / "PHYS1401" / name).write_text("PHYS1401\n")
+        (corpus / "Uni" / "PHYS1401" / name).write_text(
+            "PHYS1401 Syllabus\nInstructor: Dr. Ramirez\n")
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
@@ -796,7 +802,8 @@ def test_a_file_is_not_offered_a_move_into_a_duplicate_of_its_own_folder(tmp_pat
         (corpus / "Uni" / course).mkdir(parents=True)
         for name in names:
             (corpus / "Uni" / course / name).write_text(
-                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n"
+                f"Instructor: Dr. Ramirez\n")
     database = tmp_path / "plan.sqlite"
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
@@ -839,7 +846,8 @@ def test_a_file_staying_in_its_own_folder_is_not_described_as_a_move(tmp_path):
         (corpus / "Uni" / course).mkdir(parents=True)
         for name in names:
             (corpus / "Uni" / course / name).write_text(
-                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n"
+                f"Instructor: Dr. Ramirez\n")
     database = tmp_path / "plan.sqlite"
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
@@ -874,7 +882,7 @@ def test_the_group_record_does_not_claim_a_person_chose_its_file_set(tmp_path):
     corpus = tmp_path / "corpus"
     corpus.mkdir()
     for name in ("a.txt", "b.txt"):
-        (corpus / name).write_text("PHYS1401\n")
+        (corpus / name).write_text("PHYS1401 Syllabus\nInstructor: Dr. Ramirez\n")
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
@@ -921,7 +929,7 @@ def test_the_label_is_still_recorded_as_the_persons_because_it_is(tmp_path):
     corpus = tmp_path / "corpus"
     corpus.mkdir()
     for name in ("a.txt", "b.txt"):
-        (corpus / name).write_text("PHYS1401\n")
+        (corpus / name).write_text("PHYS1401 Syllabus\nInstructor: Dr. Ramirez\n")
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
@@ -962,7 +970,7 @@ def test_the_tree_record_does_not_claim_a_person_saw_a_canvas(tmp_path):
     corpus = tmp_path / "corpus"
     corpus.mkdir()
     for name in ("a.txt", "b.txt"):
-        (corpus / name).write_text("PHYS1401\n")
+        (corpus / name).write_text("PHYS1401 Syllabus\nInstructor: Dr. Ramirez\n")
     database = tmp_path / "plan.sqlite"
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
@@ -1011,15 +1019,37 @@ def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
     # matter number, and one passport carrying its own. Two values, so the level
     # really forms -- a one-value level is refused as a "meaningless one-child
     # level" (`00`:97) and would make this test pass for the wrong reason.
+    # THE ORDINARY DOCUMENTS ARE COURSEWORK, AND 2026-09-04 IS WHY. They were a
+    # motion, a privilege log and a deposition, all naming the matter number
+    # `CV20261234`, run under `--situation academic.coursework`. `subject` stopped
+    # being a bare-shape DIRECT slot that day and became `cli.SUBJECT_RULE`, whose
+    # context vocabulary is §3.5's -- ACADEMIC. A litigation document carries none
+    # of those words, so the shared value stopped filling and the guard below
+    # ("the matter number was suppressed too") began failing for a reason that has
+    # nothing to do with passports.
+    #
+    # V5's own docstring already stated the shape this test wants: "a university's
+    # name is not protected material; the passport is", and "A course code shared
+    # with ordinary files stays a folder." So the shared value is now a course
+    # code in coursework, which is what the sentence describes and what the
+    # situation says. NOT ONE ASSERTION MOVED -- the passport number must still
+    # never name a folder, and a value ordinary files also carry must still be
+    # allowed to. The non-academic case is a real gap and is reported separately:
+    # this deployment cannot fill `subject` for a legal matter until the owner
+    # rules on a non-academic context vocabulary (`99` §4).
     (corpus / "Client Passport.txt").write_text(
         "Passport\n\nPassport number X12345678. Client identity document.\n")
-    (corpus / "Motion.txt").write_text(
-        "Motion to Compel\n\nIn re CV20261234. Plaintiff moves to compel "
-        "discovery responses.\n")
-    (corpus / "Privilege Log.txt").write_text(
-        "Privilege Log\n\nPrivilege log for CV20261234.\n")
-    (corpus / "Deposition.txt").write_text(
-        "Deposition Transcript\n\nDeposition of the witness in CV20261234.\n")
+    (corpus / "Problem Set 2.txt").write_text(
+        "BUSIB 4300 Problem Set 2\n\nInstructor: Dr. Ramirez. Due Friday.\n")
+    (corpus / "Reading List.txt").write_text(
+        "BUSIB 4300 Reading List\n\nLecture 4 and the prerequisite chapters.\n")
+    # A SECOND course, because a level that does not divide is not built (`00`:97's
+    # "meaningless one-child level"). Three files of one course would give a tree
+    # with no subject level at all and this test would fail without a passport in
+    # sight -- which is the same trap the original corpus avoided by carrying two
+    # values.
+    (corpus / "Exam Notes.txt").write_text(
+        "COMS 4995 Exam Notes\n\nRevision for the midterm exam, 3 credits.\n")
     database = tmp_path / "plan.sqlite"
 
     out = io.StringIO()
@@ -1043,8 +1073,8 @@ def test_a_passport_number_never_becomes_a_folder_name(tmp_path):
     folders = printed.split("Folders in this plan:", 1)[1].split("Files:", 1)[0]
     assert "X12345678" not in folders, (
         f"a passport number is printed as a destination:\n{folders}")
-    assert "CV20261234" in labels, (
-        "the matter number was suppressed too, so this test would pass on a "
+    assert "BUSIB4300" in labels, (
+        "the shared course code was suppressed too, so this test would pass on a "
         f"tree that simply has no folders: {sorted(labels)}")
 
 
@@ -1069,14 +1099,13 @@ def test_a_value_shared_with_ordinary_files_is_still_allowed_to_name_a_folder(
     # Same corpus, one change: the passport names the SAME matter number the
     # ordinary documents do. A second value keeps the level alive.
     (corpus / "Client Passport.txt").write_text(
-        "Passport\n\nPassport number CV20261234. Client identity document.\n")
-    (corpus / "Motion.txt").write_text(
-        "Motion to Compel\n\nIn re CV20261234. Plaintiff moves to compel "
-        "discovery responses.\n")
-    (corpus / "Privilege Log.txt").write_text(
-        "Privilege Log\n\nPrivilege log for CV20261234.\n")
-    (corpus / "Filing.txt").write_text(
-        "Efiling Confirmation\n\nCourt e-filing receipt for AB99887.\n")
+        "Passport\n\nPassport number BUSIB 4300. Client identity document.\n")
+    (corpus / "Problem Set 2.txt").write_text(
+        "BUSIB 4300 Problem Set 2\n\nInstructor: Dr. Ramirez. Due Friday.\n")
+    (corpus / "Reading List.txt").write_text(
+        "BUSIB 4300 Reading List\n\nLecture 4 and the prerequisite chapters.\n")
+    (corpus / "Seminar Handout.txt").write_text(
+        "AB 99887 Seminar Handout\n\nOffice hours and the course reading.\n")
     database = tmp_path / "plan.sqlite"
 
     cli.main([str(corpus), "--situation", "academic.coursework",
@@ -1087,8 +1116,8 @@ def test_a_value_shared_with_ordinary_files_is_still_allowed_to_name_a_folder(
     labels = {r[0] for r in conn.execute("SELECT display_label FROM tree_nodes")}
     conn.close()
 
-    assert "CV20261234" in labels, (
-        "a matter number shared with two ordinary documents was suppressed "
+    assert "BUSIB4300" in labels, (
+        "a course code shared with two ordinary documents was suppressed "
         f"because one file also mentioned a passport: {sorted(labels)}")
 
 
@@ -1103,15 +1132,37 @@ def _ambiguous_corpus(tmp_path):
     'transcript' is authored by seven schemas and 'witness' by several, so a
     deposition is exactly the case `00` requires abstention on -- and exactly the
     case `66` §13 says a person can settle and evidence cannot.
+
+    THE SHARED VALUE IS A COURSE CODE, AND 2026-09-04 IS WHY IT IS NOT A MATTER
+    NUMBER. It was `CV20261234`. `subject` stopped being a bare-shape DIRECT slot
+    that day and became `cli.SUBJECT_RULE`, whose context vocabulary is §3.5's --
+    ACADEMIC. A deposition carries none of those words, so `CV20261234` stopped
+    filling as a subject anywhere; and `questions.triggers.tied_readings` is keyed
+    on the SUBJECT by design ("grouped by SUBJECT rather than by file, because
+    §14 asks for a question on a repeated ambiguity"). With no subject there was
+    nothing to group, the question was never raised at all, and all four tests
+    below went red without one line changing in the question machinery.
+
+    THE AMBIGUITY IS WHAT THESE TESTS ARE ABOUT AND IT IS UNTOUCHED. 'transcript'
+    and 'witness' still tie, both files still carry the same value, and the run
+    still reports its own words supporting SEVEN readings equally -- more than
+    the original corpus produced, not fewer. What changed is only that the value
+    is one this deployment can read as a subject at all. The academic words are
+    load-bearing for that and for nothing else. The non-academic gap is real, is
+    wider than these tests, and awaits the owner's ruling on a non-academic
+    context vocabulary (`99` §4).
     """
     corpus = tmp_path / "corpus"
     corpus.mkdir()
     (corpus / "Deposition.txt").write_text(
-        "Deposition Transcript\n\nDeposition of the witness in CV20261234.\n")
+        "BUSIB 4300 Deposition Transcript\n\n"
+        "Transcript of the witness in the seminar. Instructor: Dr. Ramirez. "
+        "Credits: 3.\n")
     (corpus / "Second Deposition.txt").write_text(
-        "Deposition Transcript\n\nSecond transcript of a witness, CV20261234.\n")
+        "BUSIB 4300 Deposition Transcript\n\n"
+        "Second transcript of a witness. Instructor: Dr. Ramirez. Credits: 3.\n")
     (corpus / "Notes.txt").write_text(
-        "Lecture Notes\n\nLecture notes for PHYS1401.\n")
+        "Lecture Notes\n\nLecture notes for PHYS1401. Instructor office hours.\n")
     return corpus
 
 
@@ -1125,7 +1176,7 @@ def test_the_run_asks_a_question_when_a_decision_is_actually_blocked(tmp_path):
               "--database", str(tmp_path / "plan.sqlite")], out=out)
     printed = out.getvalue()
 
-    assert "CV20261234" in printed
+    assert "BUSIB4300" in printed
     joined = " ".join(printed.split())
     assert "readings equally" in joined, printed
     # §12: name the decision it unlocks, and what it will not do.
@@ -1178,7 +1229,7 @@ def test_an_answer_is_remembered_and_changes_the_next_run(tmp_path):
     assert "--answer" in first.getvalue()
 
     answered = io.StringIO()
-    code = cli.main(argv + ["--answer", "reading.organization:CV20261234=law_practice"],
+    code = cli.main(argv + ["--answer", "reading.organization:BUSIB4300=law_practice"],
                     out=answered)
     assert code == 0, answered.getvalue()
 
@@ -1224,7 +1275,7 @@ def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
 
     cli.main(argv, out=io.StringIO())
     after = io.StringIO()
-    cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"], out=after)
+    cli.main(argv + ["--answer", "reading.organization:BUSIB4300=skip"], out=after)
 
     # Named exactly, because the run also OFFERS a nesting for the branch and an
     # offer is not a re-ask: the promise here is that THIS question, once
@@ -1237,9 +1288,9 @@ def test_skipping_is_an_answer_and_the_question_does_not_come_back(tmp_path):
     # question and re-asks nothing. Its own guard is
     # `test_the_reminder_line_is_not_the_question_asked_again`.
     printed = after.getvalue()
-    assert "What kind of material is CV20261234?" not in printed, printed
+    assert "What kind of material is BUSIB4300?" not in printed, printed
     offered = [line for line in printed.splitlines()
-               if "--answer reading.organization:CV20261234=" in line]
+               if "--answer reading.organization:BUSIB4300=" in line]
     assert all(line.strip().endswith("Ask me this again") for line in offered), (
         printed)
 
@@ -1311,7 +1362,8 @@ def test_the_tree_shows_which_folders_are_already_yours(tmp_path):
         (corpus / "Uni" / course).mkdir(parents=True)
         for name in names:
             (corpus / "Uni" / course / name).write_text(
-                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n"
+                f"Instructor: Dr. Ramirez\n")
     out = io.StringIO()
     cli.main([str(corpus), "--situation", "academic.coursework",
               "--label", "Coursework", "--user", "jy",
@@ -1375,7 +1427,8 @@ def _two_shape_corpus(tmp_path):
         (corpus / "Uni" / course).mkdir(parents=True)
         for name in names:
             (corpus / "Uni" / course / name).write_text(
-                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n")
+                f"{course} {name[:-4]}\nColumbia University, Spring 2026\n"
+                f"Instructor: Dr. Ramirez\n")
     return corpus
 
 
@@ -1944,11 +1997,11 @@ def test_a_skipped_question_can_still_be_found_afterwards(tmp_path):
 
     cli.main(argv, out=io.StringIO())
     after = io.StringIO()
-    cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"],
+    cli.main(argv + ["--answer", "reading.organization:BUSIB4300=skip"],
              out=after)
     report = after.getvalue()
 
-    assert "reading.organization:CV20261234" in report, (
+    assert "reading.organization:BUSIB4300" in report, (
         "the id the person needs in order to revoke is nowhere on the "
         f"screen:\n{report}")
     assert "revoke" in report, report
@@ -1977,21 +2030,21 @@ def test_the_reminder_line_is_not_the_question_asked_again(tmp_path):
     # last question line printed before its own options. The run also asks a
     # branch question that was never skipped, and that one is meant to stay.
     option = next(i for i, line in enumerate(lines)
-                  if "--answer reading.organization:CV20261234=" in line)
+                  if "--answer reading.organization:BUSIB4300=" in line)
     prompt = next(lines[i].strip() for i in range(option, -1, -1)
                   if lines[i].strip().endswith("?"))
 
     after = io.StringIO()
-    cli.main(argv + ["--answer", "reading.organization:CV20261234=skip"],
+    cli.main(argv + ["--answer", "reading.organization:BUSIB4300=skip"],
              out=after)
     report = after.getvalue()
 
     assert prompt not in report, (
         f"{prompt!r} is the question being asked again:\n{report}")
     offered = [line.strip() for line in report.splitlines()
-               if "--answer reading.organization:CV20261234=" in line]
+               if "--answer reading.organization:BUSIB4300=" in line]
     assert offered == [
-        "--answer reading.organization:CV20261234=revoke   Ask me this again"], (
+        "--answer reading.organization:BUSIB4300=revoke   Ask me this again"], (
         f"the options are being offered again:\n{report}")
     # And the branch question, which was NOT skipped, is untouched by any of it.
     assert "How should Coursework be organised?" in report, report
@@ -2145,25 +2198,43 @@ def test_the_ocr_engine_is_still_wired_after_being_imported_late():
     is present, and it is not `None`.
     """
     from readers.deployment import macos_readers
-    readers = macos_readers(find_structured_strings=lambda _text: ())
+    readers = macos_readers(find_structured_strings=lambda _text: (),
+                            spreadsheet_cell_ceiling=cli.SPREADSHEET_CELL_CEILING)
     assert readers.ocr_engine is not None
 
 
-def _mortgage_corpus(tmp_path, folder: str):
-    """Two real documents inside a folder the person already made."""
+def _their_own_folder_corpus(tmp_path, folder: str):
+    """Two real documents inside a folder the person already made.
+
+    THEY WERE MORTGAGE DOCUMENTS UNDER `--situation finance.household-property`
+    UNTIL 2026-09-04, AND THE PAIR BELOW STOPPED BEING ABLE TO SEE ITS OWN
+    SUBJECT. `subject` became `cli.SUBJECT_RULE` that day, whose context
+    vocabulary is §3.5's -- academic -- and `work_type`'s 942-term vocabulary
+    carries almost nothing of household finance ("agreement in principle",
+    "statement of account", "mortgage offer": none of them). So the mortgage
+    corpus filled no field, formed no group, and the run proposed NO top-level
+    folder at all: `Folders in this plan: 1. 0 proposed, 1 yours already.` The
+    collision cannot happen when only one of the two names is ever printed, and
+    the twin below -- which exists precisely to forbid passing by proposing
+    nothing -- caught it, exactly as it was written to.
+
+    WHAT IS UNDER TEST IS A NAME COLLISION BETWEEN A PROPOSED FOLDER AND ONE OF
+    THE PERSON'S OWN, AND THAT IS NOT ABOUT MORTGAGES. Coursework is a situation
+    this deployment can actually fill fields for, so both names reach the screen
+    and the two tests can compare them. The defect still reproduces with two
+    files, which is what the xfail's reason claims. The non-academic gap is real
+    and is reported separately; it awaits the owner's ruling on a non-academic
+    context vocabulary (`99` §4).
+    """
     corpus = tmp_path / "corpus"
     theirs = corpus / folder
     theirs.mkdir(parents=True)
-    (theirs / "agreement in principle.txt").write_text(
-        "NORTHERN COUNTIES BUILDING SOCIETY\n"
-        "MORTGAGE AGREEMENT IN PRINCIPLE\nReference: AIP-2026-778104\n"
-        "Applicant: Mr Marcus Halloran\n"
-        "Property: 8 Wolseley Gardens, Leeds LS6 1TG\n"
-        "Purchase price 285,000 Deposit 42,750\n")
-    (theirs / "statement jan.txt").write_text(
-        "Statement of account\nAccount name M J HALLORAN\n"
-        "Statement period 1 January 2026 to 31 January 2026\n"
-        "Opening balance 4,118.22\nClosing balance 6,121.67\n")
+    (theirs / "PHYS 1401 syllabus.txt").write_text(
+        "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr. E. Ross.\n"
+        "Credits: 4. Office hours Tuesdays 14:00.\n")
+    (theirs / "PHYS 1401 problem set 2.txt").write_text(
+        "PHYS 1401 Problem Set 2\n\nSpring 2026. Instructor: Dr. E. Ross.\n"
+        "Due Friday. Answer all three questions from the lecture.\n")
     return corpus
 
 
@@ -2183,9 +2254,9 @@ def _top_level_folders(printed: str) -> list[str]:
 @pytest.mark.xfail(strict=True, reason=(
     "The proposed top-level folder is allowed to have the same name as one the "
     "person already has, and the report prints the two as adjacent identical "
-    "lines:\n\n    Mortgage\n    Mortgage   [yours already]\n\nBoth are "
-    "destinations. Scanning a folder that already contains `Mortgage` and "
-    "typing `--label Mortgage` is the most ordinary thing a person does -- it "
+    "lines:\n\n    Coursework\n    Coursework   [yours already]\n\nBoth are "
+    "destinations. Scanning a folder that already contains `Coursework` and "
+    "typing `--label Coursework` is the most ordinary thing a person does -- it "
     "is what they would call it, which is why they called it that -- and the "
     "answer is a second folder of the same name beside their own. The person "
     "cannot tell the two apart on screen, and every later gesture that names "
@@ -2195,11 +2266,11 @@ def _top_level_folders(printed: str) -> list[str]:
     "taken. Reproduces with two files. Strict, so the suite turns red the day "
     "it is fixed."))
 def test_the_proposed_folder_does_not_share_a_name_with_one_of_the_persons_own(tmp_path):
-    """`--label Mortgage` over a disk that already has a `Mortgage` folder."""
-    corpus = _mortgage_corpus(tmp_path, "Mortgage")
+    """`--label Coursework` over a disk that already has a `Coursework` folder."""
+    corpus = _their_own_folder_corpus(tmp_path, "Coursework")
     out = io.StringIO()
-    assert cli.main([str(corpus), "--situation", "finance.household-property",
-                     "--label", "Mortgage", "--user", "m",
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "m",
                      "--database", str(tmp_path / "plan.sqlite")], out=out) == 0
     printed = out.getvalue()
 
@@ -2216,16 +2287,16 @@ def test_a_label_that_collides_with_nothing_still_gets_its_folder(tmp_path):
     it, or that renamed the person's own folder to make room, would make the
     names unique and take the feature away.
     """
-    corpus = _mortgage_corpus(tmp_path, "House purchase")
+    corpus = _their_own_folder_corpus(tmp_path, "Old uni stuff")
     out = io.StringIO()
-    assert cli.main([str(corpus), "--situation", "finance.household-property",
-                     "--label", "Mortgage", "--user", "m",
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "m",
                      "--database", str(tmp_path / "plan.sqlite")], out=out) == 0
     printed = out.getvalue()
 
     names = _top_level_folders(printed)
-    assert "Mortgage" in names, (f"the label was not proposed at all: {names}\n{printed}")
-    assert "House purchase" in names, (
+    assert "Coursework" in names, (f"the label was not proposed at all: {names}\n{printed}")
+    assert "Old uni stuff" in names, (
         f"the person's own folder is gone from the picture: {names}\n{printed}")
 
 
@@ -2307,17 +2378,34 @@ def test_rejecting_something_the_file_never_said_is_still_refused(tmp_path):
     assert "is not a file in this plan" in absent.getvalue(), absent.getvalue()
 
 
-#: The words are a real court filing's, so the recognition vocabulary has
-#: something to fire on. They are shared by both files in the corpus below,
-#: because the whole question is whether the FORMAT changes the answer.
-_MOTION_LINES: tuple[str, ...] = (
-    "IN THE SUPERIOR COURT OF THE STATE OF CALIFORNIA",
-    "COUNTY OF ALAMEDA",
-    "HENDRICKS v. NORTHRIDGE PROPERTY MANAGEMENT LLC",
-    "Case No. CV20264417",
-    "PLAINTIFF'S MOTION TO COMPEL FURTHER RESPONSES",
-    "MEMORANDUM OF POINTS AND AUTHORITIES",
-    "Code of Civil Procedure section 2031.310(b)(2)",
+#: The words are a real syllabus's, so the recognition vocabulary has something
+#: to fire on. They are shared by both files in the corpus below, because the
+#: whole question is whether the FORMAT changes the answer.
+#:
+#: THEY WERE A COURT FILING'S UNTIL 2026-09-04, AND THE FORMAT IS WHY THEY ARE NOT.
+#: `subject` stopped being a bare-shape DIRECT slot that day and became
+#: `cli.SUBJECT_RULE`, whose context vocabulary is §3.5's -- academic. A motion
+#: carries none of those words, so under `--situation law_practice.discovery`
+#: nothing filled, no group formed, and the run ended `NothingToDesign` with exit
+#: 1 -- before either assertion below could read a single line of the report. The
+#: guard is "one document, two formats, one answer", and the FIELD OF LAW IS NOT
+#: PART OF IT. Verified at the same time, on the court-filing corpus that no
+#: longer designs a plan: the .pdf and the .txt were BOTH classified
+#: `personal_non_sensitive`, so the parity this file exists to hold was never in
+#: question -- only the report that shows it. The non-academic gap is real, is
+#: wider than these two tests, and is reported separately; it awaits the owner's
+#: ruling on a non-academic context vocabulary (`99` §4).
+#:
+#: The filenames stay deliberately empty of meaning (`week3`). `work_type` reads
+#: the filename zone, so naming these `syllabus.pdf` would let the corpus be
+#: recognised from its NAME, and a PDF whose prose was never read would pass.
+_SYLLABUS_LINES: tuple[str, ...] = (
+    "PHYS 1401 - INTRODUCTORY MECHANICS",
+    "Course syllabus, Spring 2026",
+    "Instructor: Dr. E. Ross. Office hours Tuesdays 14:00.",
+    "Credits: 4. Prerequisite: MATH 1010.",
+    "Assessment: midterm 30 percent, final examination 50 percent.",
+    "Required text: Kleppner and Kolenkow, An Introduction to Mechanics.",
 )
 
 
@@ -2361,21 +2449,21 @@ def _one_page_pdf(lines) -> bytes:
     return bytes(out)
 
 
-def _one_motion_two_formats(tmp_path):
-    """The same court filing, saved twice: once as .txt and once as a real PDF."""
+def _one_document_two_formats(tmp_path):
+    """The same syllabus, saved twice: once as .txt and once as a real PDF."""
     corpus = tmp_path / "corpus"
     corpus.mkdir()
-    (corpus / "motion.txt").write_text("\n".join(_MOTION_LINES) + "\n")
-    (corpus / "motion.pdf").write_bytes(_one_page_pdf(_MOTION_LINES))
+    (corpus / "week3.txt").write_text("\n".join(_SYLLABUS_LINES) + "\n")
+    (corpus / "week3.pdf").write_bytes(_one_page_pdf(_SYLLABUS_LINES))
     return corpus
 
 
 def _run_two_formats(tmp_path):
-    corpus = _one_motion_two_formats(tmp_path)
+    corpus = _one_document_two_formats(tmp_path)
     database = tmp_path / "plan.sqlite"
     out = io.StringIO()
-    assert cli.main([str(corpus), "--situation", "law_practice.discovery",
-                     "--label", "Matters", "--user", "jy",
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
                      "--database", str(database)], out=out) == 0
     conn = sqlite3.connect(database)
     conn.row_factory = sqlite3.Row
@@ -2388,9 +2476,9 @@ def _run_two_formats(tmp_path):
     # Not vacuous: if the deployment shipped no PDF library the file would be
     # `unsupported` and this whole comparison would be about a missing install
     # rather than about the seam.
-    assert "pdf.text" in extractors.get("motion.pdf", set()), (
+    assert "pdf.text" in extractors.get("week3.pdf", set()), (
         "no PDF reader ran, so nothing here is about classification: "
-        f"{sorted(extractors.get('motion.pdf', ()))}")
+        f"{sorted(extractors.get('week3.pdf', ()))}")
     return out.getvalue()
 
 
@@ -2426,7 +2514,7 @@ def test_a_pdf_and_a_txt_of_the_same_document_get_the_same_answer(tmp_path):
     """
     printed = _run_two_formats(tmp_path)
 
-    pdf = _block_naming(printed, "motion.pdf")
+    pdf = _block_naming(printed, "week3.pdf")
     assert "has not been classified" not in pdf, (
         "the PDF was read and then reported as never classified, while the "
         f"identical .txt was not:\n{pdf}\n\nwhole report:\n{printed}")
@@ -2441,7 +2529,7 @@ def test_the_plain_text_copy_is_still_recognised(tmp_path):
     """
     printed = _run_two_formats(tmp_path)
 
-    txt = _block_naming(printed, "motion.txt")
+    txt = _block_naming(printed, "week3.txt")
     assert "has not been classified" not in txt, (
         f"the .txt is no longer recognised either:\n{txt}")
 
@@ -2584,13 +2672,36 @@ def test_the_passport_in_the_same_corpus_is_still_marked_and_still_refused(tmp_p
 
 
 def _mixed_sensitivity_corpus(tmp_path):
-    """Ordinary files and protected ones, none of which any template places."""
+    """Protected files, one ordinary file the tree can place, and one it cannot.
+
+    IT SAID "none of which any template places", AND ON 2026-09-04 THAT STOPPED
+    BEING TRUE OF `notes.txt`. `work_type` gained its first producer that day --
+    a controlled vocabulary of 942 terms read out of the naming zones, filename
+    among them -- and `notes` is one of those 942 terms. So a file literally
+    named `notes.txt` now names its own work type, the branch resolves on it,
+    and the file is placed. That is the required level finally being built, not
+    a destination invented for it.
+
+    The consequence for THIS fixture was that the last ordinary unplaced file
+    disappeared and with it the whole `"Not yet placed"` set -- so the three
+    tests below stopped being able to see the ordinary half of the distinction
+    they exist to assert. `misc.txt` restores it: a name that is not in
+    `WORK_TYPE_VOCABULARY`, and a body that is readable (so it is a file nothing could
+    place, not a file nothing could READ, which is a different surface and
+    would be asked about instead of held).
+
+    NOT ONE ASSERTION MOVED. The corpus still holds two protected files and the
+    tests still demand both sets, both names, and `--send-set` on the ordinary
+    one and never on the protected one. The premise was repaired; the guard was
+    not touched.
+    """
     corpus = tmp_path / "corpus"
     corpus.mkdir()
     (corpus / "Passport scan.txt").write_text(
         "PASSPORT\n\nPassport No X12345678. Date of birth JUN1998.\n")
     (corpus / "notes.txt").write_text("Remember to buy milk.\n")
     (corpus / "receipt.txt").write_text("Thank you for your purchase.\n")
+    (corpus / "misc.txt").write_text("Nothing in particular about anything.\n")
     return corpus
 
 
@@ -2801,25 +2912,56 @@ def _ready_to_file_blocks(printed: str) -> list[str]:
             if block.strip().startswith("Ready to file into")]
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "The child's report cards are proposed for the parent's law school "
-    "semester folders, and they are the ONLY two files in the corpus the "
-    "product is confident enough to move. One course means `subject` does not "
-    "divide, so the report leaves that level out -- correctly, by its own "
-    "stated rule -- and the branch resolves on `term` alone. The destinations "
-    "then expect exactly `term=Fall2026` and `term=Spring2026`, and a report "
-    "card's whole recorded evidence is one `term` fact. So a semester word is "
-    "a COMPLETE match: the file states nothing about a course and nothing "
-    "asks it to. The anchoring field is absent and the file is placed on the "
-    "period alone, which is 'absent means refuse, never guess' read the other "
-    "way round. This is the north star's own case -- the person who is a "
-    "student and a parent at once -- and the report's honesty about it is a "
-    "line at the BOTTOM ('applied to EVERY file in the folder -- including any "
-    "that are something else entirely'), while the line at the top says "
-    "'Ready to file'. Whether the answer is a non-period field requirement, a "
-    "category check, or a question, is the owner's call; the symptom is not. "
-    "Verified to go green under the first of those. Strict, so the suite "
-    "turns red the day it is fixed."))
+#: THE XFAIL THAT STOOD HERE IS GONE BECAUSE THE DEFECT IS FIXED, AND THE TWIN
+#: BELOW IS HOW WE KNOW IT IS NOT FIXED BY SILENCE.
+#:
+#: The marker was `strict` and said so itself: "Strict, so the suite turns red the
+#: day it is fixed." 2026-09-05 is that day. Its whole reason is kept verbatim
+#: below, because it is the best record of why this test exists and of what the
+#: product used to do; nothing in it was softened.
+#:
+#:     "The child's report cards are proposed for the parent's law school semester
+#:     folders, and they are the ONLY two files in the corpus the product is
+#:     confident enough to move. One course means `subject` does not divide, so
+#:     the report leaves that level out -- correctly, by its own stated rule --
+#:     and the branch resolves on `term` alone. The destinations then expect
+#:     exactly `term=Fall2026` and `term=Spring2026`, and a report card's whole
+#:     recorded evidence is one `term` fact. So a semester word is a COMPLETE
+#:     match: the file states nothing about a course and nothing asks it to. The
+#:     anchoring field is absent and the file is placed on the period alone, which
+#:     is 'absent means refuse, never guess' read the other way round. This is the
+#:     north star's own case -- the person who is a student and a parent at once
+#:     -- and the report's honesty about it is a line at the BOTTOM ('applied to
+#:     EVERY file in the folder -- including any that are something else
+#:     entirely'), while the line at the top says 'Ready to file'. Whether the
+#:     answer is a non-period field requirement, a category check, or a question,
+#:     is the owner's call; the symptom is not."
+#:
+#: WHAT ACTUALLY CLOSED IT, IN TWO PARTS, BOTH FROM 2026-09-05.
+#:
+#: 1. `work_type` gained a producer, so a report card's recorded evidence is no
+#:    longer one `term` fact. It carries `work_type = report card`, and `Kid` --
+#:    the folder the child's records are already in -- carries that expectation
+#:    too. The file is no longer anchored on the period alone, which is the first
+#:    of the three answers the reason above named.
+#: 2. That alone did NOT close it, and an earlier reading of this marker recorded
+#:    exactly why: with the producer on, the corpus went to "5 decided, 0 ready to
+#:    file, 0 CONTRACTS files recognised" -- the symptom gone because NOTHING was
+#:    placed any more, which is over-refusal and is what the twin below forbids.
+#:    The cause was `_CHANNEL_WEIGHT` summing DEDUPLICATED channels: a node
+#:    expecting `term + work_type` scored exactly what the person's own `Fall
+#:    2026` scored expecting `term` alone, the margin came out 0.0, and every file
+#:    was routed to a model that was not there. `placement.scoring` now resolves
+#:    that tie in favour of the folder the file is ALREADY IN and does not ask a
+#:    model whether a file should stay where its owner put it.
+#:
+#: Measured on this corpus, all five files, after both parts:
+#:     5 decided, 0 ready to file, and every one of them named where it already is
+#:     3x "Already in Fall 2026"  (the law student's own coursework, recognised)
+#:     2x "Already in Kid"        (the child's report cards, left alone)
+#: So this test passes because the report cards are recognised as belonging in
+#: `Kid`, not because the product stopped answering. The twin is what holds that
+#: distinction and it passes in the same run.
 def test_a_childs_report_card_is_not_filed_into_the_law_school_semester(tmp_path):
     """Two lives, one word, and the product moves the wrong one.
 
@@ -2876,8 +3018,15 @@ def _course_corpus(tmp_path):
         "PHYS 1401 Syllabus\n\nSpring 2026. Instructor office hours.\n")
     (corpus / "PHYS 1401 homework 3.txt").write_text(
         "PHYS 1401 Homework 3\n\nSpring 2026 lecture notes.\n")
+    # `Instructor` is load-bearing on this one file, and 2026-09-04 is why: with
+    # `subject` moved off a bare-shape DIRECT slot onto §3.5's rule, a course code
+    # is a fact only beside "syllabus", "lecture", "credits", "instructor" or
+    # "semester". The other two files here already say "Instructor office hours"
+    # and "lecture notes"; this one said neither, so it alone lost its subject and
+    # the corpus stopped being three files of one course. A real lab handout names
+    # the section it belongs to.
     (corpus / "PHYS 1401 lab.txt").write_text(
-        "PHYS 1401 Lab\n\nSpring 2026 lab report.\n")
+        "PHYS 1401 Lab\n\nSpring 2026 lab report. Instructor: Dr. Ramirez.\n")
     return corpus
 
 

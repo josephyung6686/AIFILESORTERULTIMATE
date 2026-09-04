@@ -44,7 +44,9 @@ from xml.etree import ElementTree
 from extractors.reading import Region
 from extractors.structured_text import StructuralMarker, TextDocument
 
-from readers.long_tail_stdlib import MAX_PART_BYTES, PartTooLarge, UnsafeXml
+from readers.long_tail_stdlib import (
+    MAX_PART_BYTES, PartTooLarge, UnsafeXml, declared_encoding,
+)
 
 #: HTML elements whose content is code or styling, never text a person reads. Their
 #: contents are dropped rather than emitted: a `<script>` body stored as the
@@ -155,7 +157,7 @@ _RTF_CONTROL = re.compile(r"\\([a-zA-Z]+)(-?\d+)? ?|\\'([0-9a-fA-F]{2})|\\(.)")
 # plain text and Markdown
 # --------------------------------------------------------------------------- #
 
-def _decode(payload: bytes, encoding: str = "utf-8") -> str:
+def _decode(payload: bytes, encoding: str | None = None) -> str:
     """Bytes as text. `replace` rather than a fallback codec, and deliberately.
 
     Guessing Windows-1252 for bytes that failed as UTF-8 turns an unreadable
@@ -164,7 +166,27 @@ def _decode(payload: bytes, encoding: str = "utf-8") -> str:
     this reader could not name, and it is visible to anything that reads the text.
     Where a format DECLARES its encoding (HTML's `<meta charset>`, RTF's `\\ansicpg`)
     that declaration is used instead, because then nothing is being guessed.
+
+    A BYTE-ORDER MARK IS SUCH A DECLARATION, and it was the one no caller could pass.
+    `encoding=None` means "the document has not been asked yet", and the mark is read
+    first. Notepad's "Unicode" save and Excel's "Unicode Text (*.txt)" export are
+    UTF-16LE with a mark, and decoded as UTF-8 they arrived as
+    `'\\ufffd\\ufffdC\\x00o\\x00u\\x00r\\x00s\\x00e\\x00'` -- false information,
+    stored `complete`, read by the recogniser as the document's prose. That is the
+    same class of defect as a `.rtf` arriving as its own control words, which is what
+    this module was written for.
+
+    A CALLER THAT NAMES AN ENCODING STILL WINS, and that is why the sniff sits behind
+    a default rather than in front of the decode: `_read_rtf` asks for `latin-1`
+    because RTF's grammar needs its bytes mapped one to one, and a mark consumed
+    underneath it would shift every offset in the document.
+
+    Nothing here counts NULs, scores a codec or infers a language. `declared_encoding`
+    matches five fixed byte sequences the Unicode standard defines and answers None
+    for everything else -- which lands on the `replace` rule above, unchanged.
     """
+    if encoding is None:
+        encoding = declared_encoding(payload[:4]) or "utf-8"
     return payload.decode(encoding, errors="replace")
 
 
@@ -288,6 +310,20 @@ class _VisibleText(HTMLParser):
 
 
 def _html_encoding(payload: bytes) -> str:
+    """HTML5's encoding sniffing order, as far as this reader goes: byte-order mark,
+    then `<meta charset>`, then UTF-8.
+
+    THE MARK HAS TO COME FIRST, and not only because the standard says so. The regex
+    below runs over BYTES, and `<meta charset="utf-8">` inside a UTF-16 document is
+    NUL-interleaved -- it cannot match. So a UTF-16 page fell through to `utf-8`
+    every time and arrived as mojibake with its `<title>` in it, which is the same
+    defect this module was written to end for `.rtf`, on the format that meets it
+    most often. This function returning a string and never `None` is why `_decode`'s
+    own mark check could not reach HTML: an encoding was always already chosen.
+    """
+    marked = declared_encoding(payload[:4])
+    if marked is not None:
+        return marked
     match = _META_CHARSET.search(payload[:4096])
     if match is None:
         return "utf-8"
@@ -633,18 +669,34 @@ _BY_EXTENSION.update({
 })
 
 
-def stdlib_text_document_reader() -> Callable[[Path], TextDocument]:
+def stdlib_text_document_reader(
+        *, read_doc: Callable[[Path], TextDocument | None] | None = None,
+) -> Callable[[Path], TextDocument | None]:
     """Build the `read_text_document` callable `extractors.dispatch.Readers` takes.
 
-    It never returns `None`. Every extension the router sends to this reader is one
-    whose bytes are text or a container this module opens, so §2.4's `unsupported`
-    outcome does not arise here -- and a format that failed to open raises, which is
-    §2.4's `failed`: a fact about the bytes, recorded as one, with the scan
-    continuing.
+    It returns `None` for exactly one format, and only when that format has no
+    reader wired. Every extension the router sends here has text for bytes or is a
+    container this module opens -- except `.doc`, which is an OLE compound document
+    and needs a converter this module does not contain. A format that failed to open
+    raises, which is §2.4's `failed`: a fact about the bytes, recorded as one, with
+    the scan continuing.
+
+    `read_doc` is a SOCKET and its absence is honest rather than lazy. §2.4 gives
+    "no reader exists in this deployment" its own word, `unsupported`, and
+    `readers/deployment.py` makes the case for the shape: "A deployment that ships
+    PDF and not DOCX is the ordinary case, and recording its .docx files as
+    unreadable would report a missing library as a corrupt corpus." A deployment
+    that wants legacy Word passes `readers/doc_cocoa.cocoa_doc_reader()`; one that
+    does not gets `unsupported`, which is what it is.
     """
 
-    def read_text_document(path: Path) -> TextDocument:
+    def read_text_document(path: Path) -> TextDocument | None:
         path = Path(path)
+        if path.suffix.lower() == ".doc":
+            # Before `_BY_EXTENSION`, because the fallback there is `_plain` and
+            # `_plain` on an OLE compound file returns its own binary as the
+            # document's prose -- `complete`, and false.
+            return None if read_doc is None else read_doc(path)
         document = _BY_EXTENSION.get(path.suffix.lower(), _plain)(path)
         markers = _markers_for(path, document.text)
         language = _LANGUAGE_BY_EXTENSION.get(path.suffix.lower())

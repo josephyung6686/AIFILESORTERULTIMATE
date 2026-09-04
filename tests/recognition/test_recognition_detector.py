@@ -432,7 +432,14 @@ def test_a_caller_supplied_handling_policy_classifies_that_schema(db, tmp_path):
     record = produce(db, file_id, content_hash)
     assert record.handling_class == "personal_non_sensitive"
     assert record.protected is False
-    assert record.basis == "detector"
+    # The POLICY says `detector` and the record says `detector_no_safety_evidence`,
+    # and that difference is not a drift: this rule set contains no safety schema at
+    # all, so no safety work type could have been matched and the detector says so
+    # rather than letting the policy's word stand for an examination that never
+    # happened. `96` §19 is why -- 41 released files were saying `detector` on
+    # exactly this evidence. What the policy still decides is the CLASS and the
+    # FLAG, which are asserted two lines up and are untouched.
+    assert record.basis == "detector_no_safety_evidence"
 
 
 def test_a_handling_policy_naming_an_unrecognised_schema_is_a_load_error():
@@ -947,7 +954,12 @@ def test_a_winning_schema_with_no_safety_domain_present_is_left_alone(db, tmp_pa
     assert record.protected is False, (
         "an ordinary coursework file was marked protected; that is the "
         "over-protection collapse, not a precaution")
-    assert record.basis == "detector"
+    # `credit` is `finance`'s CONTEXT term -- a word that accompanies a financial
+    # document, not one that says the file is one -- so `_safety_readings_in_evidence`
+    # returns empty and the record carries the weaker basis. That is the same
+    # work-type/context line this test's own body relies on, read one field along:
+    # a schema that stayed silent examined nothing, and the record says so.
+    assert record.basis == "detector_no_safety_evidence"
 
 
 def test_a_safety_term_in_the_directory_chain_protects_nothing_under_it(db, tmp_path):

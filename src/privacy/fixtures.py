@@ -81,7 +81,7 @@ from privacy.redaction import RedactionEntry, RedactionManifest
 from privacy.release import (
     Denied, ModelCallRequest, ModelTarget, Released, ReleasedItem, Target,
 )
-from privacy.vocabulary import CONSENT_OPTIONS
+from privacy.vocabulary import CONSENT_OPTIONS, DETECTOR_NO_SAFETY_EVIDENCE
 
 #: One clock for every fixture. A fixture whose timestamps drift is a fixture whose
 #: golden audit record cannot be compared field for field.
@@ -358,7 +358,13 @@ def _classified(p4_number: int, handling_class: str, *, protected: bool,
     return ClassificationRecord(
         file_id=FIXTURE_FILE_ID, content_hash=_hash(p4_number),
         handling_class=handling_class, protected=protected, basis=basis,
-        evidence_refs=(_key(p4_number),) if basis == "detector" else (),
+        # BOTH DETECTOR BASES cite, because `classification` requires evidence of
+        # both -- `detector_no_safety_evidence` is weaker about SAFETY and not about
+        # recognition, so the terms the schema won on are still what the record
+        # stands on. `safety_domain` and `user` cite nothing: §3.15's rule is about a
+        # domain and the user's own act is its own evidence.
+        evidence_refs=((_key(p4_number),)
+                       if basis in ("detector", DETECTOR_NO_SAFETY_EVIDENCE) else ()),
         reliability_state=reliability_state, observed_at=FIXTURE_CLOCK)
 
 
@@ -957,15 +963,53 @@ FIXTURES: tuple[GateFixture, ...] = (
                             redaction_applied=True),
         p4_fixture=3, downstream_obligation=None, revoked=False,
         unclassified_permits_local=True),
+    GateFixture(
+        number=19,
+        spec_case="Denied.reason = no_safety_evidence (something looked, and found "
+                  "no safety word at all)",
+        policy=_policy("hybrid"),
+        # THE THIRD MEMBER OF A FAMILY, and the distinction it adds is the point.
+        # Fixture 2 is "nothing has looked". Fixture 15 is "something looked and
+        # failed". This one is "something looked, succeeded, and never encountered
+        # anything about safety" -- and until 2026-09-04 it was indistinguishable
+        # from an ordinary release. `96` §19 measured the cost of that: 41 of 78
+        # files stored `personal_non_sensitive, protected=0` had matched no safety
+        # work type, and a Hong Kong identity card was among them.
+        #
+        # The class is the ORDINARY one and the flag is `False`, deliberately. This
+        # fixture is not a protection and states none; what it pins is that the
+        # weakness lives in `basis` and that the gate reads it there.
+        classification=_classified(3, "personal_non_sensitive", protected=False,
+                                   basis=DETECTOR_NO_SAFETY_EVIDENCE),
+        area=FIXTURE_AREA,
+        request=_request(stage="fact_resolution", model_target=CLOUD_MODEL,
+                         items=(Excerpt(observation_key=_key(3), span=_span(3),
+                                        reason="resolve the institution"),),
+                         fingerprint="fp-19", max_dossier_tokens=2000),
+        decision=_denied(
+            "no_safety_evidence",
+            "the detector recognised this file from its own words and matched no "
+            "term for finance, identity, medical or legal material anywhere in it, "
+            "so the ordinary class it carries rests on nothing about safety. §8.4 "
+            "makes classification a precondition of escalation, and finding no "
+            "safety evidence is not the same as establishing that there is none.",
+            _LOCAL_INSTEAD, _CLASSIFY, _REVIEW),
+        audit_record=_cloud_audit(stage="fact_resolution",
+                                  file_sensitivity="personal_non_sensitive",
+                                  content_hash=_hash(3), content_hashes=(_hash(3),),
+                                  operation_mode="hybrid",
+                                  prompt_fingerprint="fp-19"),
+        p4_fixture=3, downstream_obligation=None, revoked=False),
 )
 
 
-#: SPEC §11's list, mapped to the fixtures that satisfy it. Thirteen keys: the eight
+#: SPEC §11's list, mapped to the fixtures that satisfy it. Fourteen keys: the nine
 #: `Denied.reason` values and the five `SPEC_11_ITEMS`. A key with an empty tuple is a
 #: §11 item with no fixture, which is the failure this map exists to make visible.
 FIXTURE_COVERAGE: Mapping[str, tuple[int, ...]] = MappingProxyType({
     "protected_cloud_target": (1, 13, 14),
     "unclassified": (2, 15, 17),
+    "no_safety_evidence": (19,),
     "policy_revoked": (3,),
     "protected_records_template": (4, 16),
     "whole_document_requested": (5,),

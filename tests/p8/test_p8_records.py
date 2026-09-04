@@ -393,7 +393,13 @@ def test_dossier_is_frozen_closed_world_and_content_bearing_after_release():
         "max_dossier_tokens",
         "reduction_rung",
         "release_id",
+        # The folder levels of the situation the person named. Last and defaulted
+        # to `()`, which is the truthful content at B, C and D -- they design no
+        # tree -- rather than a stand-in for an answer nobody gave. The site that
+        # does design one refuses an empty list a layer up, at composition.
+        "folder_levels",
     )
+    assert dossier.folder_levels == ()
     assert dossier.reduction_rung == "none"
     assert dossier.evidence_items[0].basis == DIRECT_ANCHOR
 

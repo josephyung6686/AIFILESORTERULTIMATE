@@ -138,6 +138,7 @@ def _build(**overrides):
         released=_released(),
         reduction_rung=REDUCTION_NONE,
         allowed_vocabulary=VOCABULARY,
+        folder_levels=(),
         prompt=_prompt(),
     )
     values.update(overrides)

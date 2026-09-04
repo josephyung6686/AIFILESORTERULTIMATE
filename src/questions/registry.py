@@ -31,10 +31,10 @@ from dataclasses import dataclass
 
 from questions.records import QuestionOption
 from questions.store import (
-    activated_schemas, gated_template, selected_situation,
+    activated_schemas, chosen_destination, gated_template, selected_situation,
 )
 from questions.vocabulary import (
-    SCOPE_BRANCH, SCOPE_CORPUS, SCOPE_ORGANIZATION, SCOPES, check,
+    SCOPE_BRANCH, SCOPE_CORPUS, SCOPE_FOLDER, SCOPE_ORGANIZATION, SCOPES, check,
 )
 
 
@@ -131,10 +131,25 @@ ROLE_KIND = QuestionKind(
     consequence_field="activates_schema",
     reader=activated_schemas)
 
+#: `triggers.question_for_unreadable_folder`. The product opened the files in one
+#: folder and no text-producing extractor recovered anything from any of them, so
+#: there is nothing to be wrong about and nobody but the person to ask. They name
+#: the destination, and `chosen_destination` returns it to placement.
+#:
+#: `kind_id` is `home` and not `folder`, for NESTING_KIND's reason one word along:
+#: `folder` is already this kind's SCOPE, and a kind whose id equals its scope kind
+#: forecloses a second kind ever taking that scope -- which is exactly the corner
+#: `branch` painted itself into and SITUATION_KIND had to climb out of.
+HOME_KIND = QuestionKind(
+    kind_id="home",
+    scope_kind=SCOPE_FOLDER,
+    consequence_field="chooses_destination",
+    reader=chosen_destination)
+
 #: Every kind this deployment ships, and the tests assert that every
 #: consequence `QuestionOption` can carry is claimed by one of them.
 QUESTION_KINDS: tuple[QuestionKind, ...] = (
-    READING_KIND, NESTING_KIND, SITUATION_KIND, ROLE_KIND)
+    READING_KIND, NESTING_KIND, SITUATION_KIND, ROLE_KIND, HOME_KIND)
 
 
 def kind_of(question_id: str) -> QuestionKind | None:

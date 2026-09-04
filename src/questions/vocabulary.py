@@ -87,7 +87,33 @@ SCOPE_ORGANIZATION: str = "organization"
 #: `Coursework` is a word the person typed on the command line, and calling it an
 #: organisation would put a user's label where the vocabulary promises a fact.
 SCOPE_BRANCH: str = "branch"
-SCOPES: tuple[str, ...] = (SCOPE_CORPUS, SCOPE_ORGANIZATION, SCOPE_BRANCH)
+
+#: THE FOURTH KIND, added under the same principle the third one records: a closed
+#: vocabulary that cannot express what happened is a design gap rather than a
+#: discipline. **JOSEPH HAS NOT RATIFIED THIS ONE.** It is added because the work
+#: that needed it could not be done without it, and it is named here rather than
+#: slipped in, so that ratifying or reversing it is one edit in one place.
+#:
+#: What it scopes: a folder of files the product OPENED and recovered nothing
+#: readable from. Measured on `.groundtruth/corpus`, 24 such files across the
+#: labelled corpus, 76% of which a human labeller independently marked "the right
+#: answer is ask the person" against a 41% base rate.
+#:
+#: Why none of the three above will do. `corpus` is the whole run, so an answer
+#: about seven unreadable web-page assets would decide the filing of a passport
+#: scan. `organization` is "one named entity the evidence actually produced", and
+#: these files produced no evidence at all -- that is the entire reason they are
+#: being asked about. `branch` is a folder in the PROPOSED tree; this names a
+#: folder on the person's own disk, which is a different thing that happens to
+#: share the word, and collapsing them would let an answer about where files came
+#: from decide the shape of where they are going.
+#:
+#: The entity is the path RELATIVE to the scan root, never an absolute one:
+#: `privacy.vocabulary.ALWAYS_LOCAL`'s first member is `paths`, and a scope is
+#: stored, printed, and carried between runs.
+SCOPE_FOLDER: str = "folder"
+SCOPES: tuple[str, ...] = (SCOPE_CORPUS, SCOPE_ORGANIZATION, SCOPE_BRANCH,
+                           SCOPE_FOLDER)
 
 
 def check(value: str, allowed: tuple[str, ...], *, name: str) -> str:

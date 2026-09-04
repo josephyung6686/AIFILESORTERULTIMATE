@@ -545,3 +545,70 @@ def test_the_zone_set_now_maps_three_members_and_still_adds_no_tenth():
     assert "ocr_output" in ALWAYS_LOCAL
     assert ALWAYS_LOCAL_ZONES == frozenset({"path", "filename", "ocr"})
     assert not ALWAYS_LOCAL_ZONES & set(ALWAYS_LOCAL)
+
+
+def test_the_real_ocr_extractors_whole_passage_is_denied_by_the_gate(zone_conn):
+    """The one above seeds a synthetic row. THIS ONE runs the real extractor.
+
+    `extractors/ocr.py` gained a whole-passage observation on 2026-09-04, because
+    everything Apple Vision read off a screenshot was reaching `text_units` and
+    nothing else: eleven image files on the owner's disk carried 14 to 27 recognised
+    units each and emitted zero evidence, and the recogniser scans evidence only.
+
+    That row is a WHOLE PAGE OF RECOGNISED TEXT, which is a far larger thing to leak
+    than the card number the test above refuses -- a scanned identity document
+    arrives here entire. The emitter addresses it `zone="ocr"` for exactly that
+    reason, and this test is the proof that the choice is load-bearing rather than
+    cosmetic: it drives the REAL gate over the REAL emitted observation.
+
+    SABOTAGE: change `zone="ocr"` to `zone="body"` in `extractors/ocr.py`, which is
+    the zone `pdf.py` and `docx.py` use for their own prose and the obvious thing to
+    copy. Nothing in P5's own tests notices. This goes red.
+    """
+    from evidence_shape.store import RunWriter
+    from extractors.ocr import OcrOutput, OcrRegion, extract_ocr
+    from extractors.safety import SafetyPolicy
+
+    content_hash = "bcbb377bc839704c4e4ccf7781cce3dcc88cc8a288c9eebbffa245a3476c56e9"
+    file_id = _file(zone_conn, "scanned-hkid.png", content_hash)
+    scanned = ("HONG KONG PERMANENT IDENTITY CARD\n"
+               f"CHAN TAI MAN\n{CARD_NUMBER}")
+
+    result = extract_ocr(
+        file_row={"file_id": file_id, "content_hash": content_hash,
+                  "filename": "scanned-hkid.png"},
+        path=Path("/corpus/scanned-hkid.png"),
+        policy=SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False),
+        ocr_engine=lambda target, *, config: OcrOutput(
+            provider="apple-vision", provider_version="19.1",
+            regions=tuple(
+                OcrRegion(page=None, region=index, text=line, confidence=0.9)
+                for index, line in enumerate(scanned.split("\n"), 1)),
+            pages_processed=1, pages_total=1),
+        config={"languages": ["en-US"]},
+        find_structured_strings=lambda text: (),
+        now=OBSERVED_AT, context_window=20)
+    RunWriter(zone_conn, author="P5").write(result)
+
+    stored = [dict(row) for row in zone_conn.execute(
+        "SELECT observation_key, raw_value, location FROM evidence "
+        "WHERE file_id = ? AND superseded_by IS NULL", (file_id,))]
+    whole = [row for row in stored if scanned in row["raw_value"]]
+    assert whole, (
+        "the real extractor emitted no whole-passage row, so this test is guarding "
+        f"nothing; stored {[r['raw_value'][:40] for r in stored]}")
+
+    _classify(zone_conn, file_id, content_hash, key=whole[0]["observation_key"])
+    _store_policy(zone_conn)
+    decision = _gate(zone_conn).release(_request(
+        items=(Excerpt(observation_key=whole[0]["observation_key"], span=None,
+                       reason="the recognised text of a scanned card"),),
+        file_id=file_id))
+
+    assert isinstance(decision, Denied), (
+        f"a whole page of OCR text was {type(decision).__name__}; `ocr_output` is "
+        "member three of §8.4's nine always-local kinds and this is all of it")
+    assert decision.reason == "always_local_item"
+    assert CARD_NUMBER not in decision.explanation
+    assert "CHAN TAI MAN" not in decision.explanation

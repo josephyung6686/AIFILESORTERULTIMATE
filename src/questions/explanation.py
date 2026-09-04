@@ -51,6 +51,9 @@ CONSEQUENCE_WORDS: dict[str, str] = {
     "selects_situation": (
         "It makes this branch `{value}`, instead of the situation the rest of the "
         "run was given."),
+    "chooses_destination": (
+        "It files the material in this folder into `{value}`, in a plan you still "
+        "have to approve."),
 }
 
 #: How each answer state came about, in `66` §12's own distinction between an

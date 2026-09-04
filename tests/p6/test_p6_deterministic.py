@@ -71,6 +71,12 @@ PRODUCERS = (
     ("facts.photo_event", "media_type"),
     ("facts.supersede", "supersede_fact"),
     ("facts.usable", "no_usable_facts_for"),
+    # `artifact_kind`'s producer, added 2026-09-04. Deterministic in the same sense
+    # every entry above is: a closed vocabulary the CALLER supplies, matched on word
+    # boundaries, ranked by §3.7's injected weights and refused by its margin. It
+    # takes no model parameter and reaches no network, which is what the guards
+    # below check of every name in this list.
+    ("facts.kind", "kind_facts"),
 )
 
 #: Modules in `facts` that are not producers: the tables, the vocabularies, the

@@ -225,4 +225,12 @@ def test_the_readable_text_does_not_become_a_folder_name(sink):
     body = [o for o in sink.observations if o["raw_value"] == text][0]
     locator = locator_for(body["location"])
     assert not locator.startswith("body#")
-    assert not cli.DIRECT_SLOTS.slots[0].names(locator), locator
+    # NO SHIPPED PRODUCER CLAIMS IT, which is the property this test is about, and
+    # after 2026-09-04 that is TWO statements rather than one. `DIRECT_SLOTS` is
+    # empty -- the deployment ships no direct slot at all -- so the locator half is
+    # asked of the whole set, and `subject` is now filled by §3.5's rule, which sees
+    # no locator and is held off a whole zone by anchoring its pattern to the entire
+    # reading. Both are asserted, because a future slot could re-open the first door
+    # and a de-anchored pattern the second.
+    assert not any(slot.names(locator) for slot in cli.DIRECT_SLOTS.slots), locator
+    assert cli.SUBJECT_RULE.pattern.search(text) is None, text

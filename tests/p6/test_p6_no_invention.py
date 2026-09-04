@@ -85,11 +85,20 @@ DECLARED_MODULES = frozenset({
     # the product. It could not go IN `dates.py`: Task 12's interface list says
     # `fill_or_abstain` is "applied by the caller and by the tests, not imported into
     # the producer's own path", and that boundary is still worth keeping.
+    # `kind` is a second module beyond the plan's list, added 2026-09-04 and
+    # named here for the same reason `date_facts` is. `def.subject-work-record`
+    # marks `artifact_kind` REQUIRED and nothing in `src/` produced it, so the
+    # recipe's second required level could never be built and every file in the
+    # situation went unplaced. It could not go in `facets.py`, which is §3.7's
+    # ranker and field-agnostic, nor in `rules.py`, whose `Rule` is a regex plus a
+    # context check and writes one fact per match with no margin -- a file naming
+    # two kinds of work would get two live `work_type` facts, which is the defect
+    # the removed term slot was deleted over.
     "authorship", "budgets", "cache", "date_facts", "dates", "direct", "discount",
     "domains", "evidence", "facets", "families", "fields", "file_facts", "learning", "llm_seam",
     "photo_event", "plan_versions", "read_surface", "resolver", "rules", "schema",
     "session", "states", "stage_output", "supersede", "unresolved", "usable", "values",
-    "vocabulary",
+    "vocabulary", "kind",
 })
 
 #: Every module-level COLLECTION P6 publishes, with the task that owns it. A plain string

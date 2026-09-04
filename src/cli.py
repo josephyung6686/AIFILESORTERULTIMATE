@@ -57,21 +57,31 @@ from database_agent.cloud_consent import (
 )
 from database_agent.db import DatabaseInsideCorpus, open_database
 from database_agent.files_table import get_file
+from extractors.image import PERCEPTUAL_HASH_FIELD
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
+from extractors.filesystem import SOURCE_TYPE as FILESYSTEM_SOURCE_TYPE
 from extractors.safety import SafetyPolicy
 from facts.date_facts import date_facts
 from facts.dates import (
     ACADEMIC_YEAR_RANGE, NAMED_TERM_YEAR, SEASON_YEAR, DatePattern, DatePatterns,
 )
 from facts.direct import DirectSlot, DirectSlots, direct_facts
+from facts.families import (
+    DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD, duplicate_family,
+    shared_family_field,
+)
 from facts.discount import MetadataScreen
 from facts.learning import NoSuchClaim, reject_claim
 from facts.domains import ActivationSignal, ActivationSignals
+from facts.photo_event import MEDIA_TYPE_FIELD, media_type
 from facts.budgets import LLM_ROUTE
 from facts.resolver import PRIVACY_BAR, FactResolver
+from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
+from facts.fields import DOMAIN_FIELDS
+from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
 from grouping.config import GroupingLimits
 from grouping.embeddings import EmbeddingsOff
@@ -84,14 +94,15 @@ from grouping.store import (
     stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES, USER_EDITED,
+    ACCEPTED, COHERENT, DUPLICATE, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES,
+    USER_EDITED, VERSION_FAMILY,
 )
 from llm_harness.budgets import ScanBudget, create_budget_schema
 from llm_harness.prompt_library import (
     a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
-    a_fact_template_bytes,
+    a_fact_template_folder_levels_bytes,
 )
-from llm_harness.records import PromptDefinition
+from llm_harness.records import FolderLevel, PromptDefinition
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
@@ -134,18 +145,24 @@ from questions.roles import (
 )
 from questions.schema import create_questions_schema
 from questions.store import (
-    activated_schemas, gated_template, live_answer, live_answer_id, open_questions,
+    activated_schemas, chosen_destination, gated_template, live_answer,
+    live_answer_id,
+    open_questions,
     record_answer,
     record_question, set_aside_questions,
 )
 from questions.triggers import (
-    NestingChoice, question_for_nesting, tied_readings,
+    DestinationChoice, NestingChoice, question_for_nesting,
+    question_for_unreadable_folder, tied_readings,
 )
-from questions.vocabulary import CONFIRMED, REVOKED, SCOPE_BRANCH, SKIPPED
+from questions.vocabulary import (
+    CONFIRMED, REVOKED, SCOPE_BRANCH, SCOPE_FOLDER, SKIPPED,
+)
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
-    bootstrap_p1_p7, corpus_roster, load_shipped_catalogue, nearest_situations,
-    read_packaged_library_file, schema_for_situation, shipped_situations,
+    bootstrap_p1_p7, corpus_roster, folder_levels_for, load_shipped_catalogue,
+    nearest_situations, read_packaged_library_file, schema_for_situation,
+    shipped_situations,
     run_production_corpus,
 )
 from readers.deployment import macos_readers
@@ -157,7 +174,7 @@ from readers.model_routing import (
 )
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
-    SAFETY_DOMAIN_HANDLING, Detector, Handling,
+    FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Detector, Handling,
 )
 from recognition.rules import load_rules
 from scan_agent.corpus_source import FilesystemCorpusSource
@@ -582,6 +599,72 @@ FACT_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 #: with the sentence that says it was reached. A ceiling that reported `complete`
 #: would be a worse product than a slow one.
 PDF_PAGE_CEILING: int = 50
+
+#: HOW MANY SPREADSHEET CELLS ARE STORED PER FILE, and the only place that number is
+#: chosen. A ceiling of the same kind as the page ceiling above, for the same reason
+#: and with the same honesty attached.
+#:
+#: WHY A SPREADSHEET NEEDS ONE AND THE OTHER FIVE FAMILIES DO NOT. §2.9 asks a
+#: spreadsheet for "visible cell values" and names no limit, so the reader stored
+#: every non-empty cell of every sheet -- and each one becomes a `text_units` row AND
+#: an `evidence` row, roughly 300 bytes of database apiece once the locators are
+#: written. A presentation has slides, an email has one body, a calendar has events
+#: and a contact card has fields; a spreadsheet is the one family whose size is
+#: unbounded in the unit that costs. Measured on the owner's 199-file corpus,
+#: 2026-09-04, with no ceiling at all:
+#:
+#:      13,994 of 23,983 text units were spreadsheet cells      58% of the rows
+#:          82,428 of 2,357,143 characters were in them        3.5% of the text
+#:       7,563 of 11,953 evidence rows came from that family
+#:
+#: WHAT THE CORPUS COULD AND COULD NOT SETTLE. Whole runs, varying only this number:
+#:
+#:      no ceiling   33.04 MB   23,983 units   176 of 199 read   101 classified
+#:      10,000       31.82 MB   23,983 units   176 of 199        101 classified
+#:       2,000       27.99 MB   20,293 units   176 of 199        101 classified
+#:         500       23.28 MB   13,304 units   176 of 199        101 classified
+#:
+#: 10,000 is above every sheet in this corpus and changes not one row, which is what
+#: makes the other two readable. EVERY ceiling measured, down to 500, cost NOTHING --
+#: the same files read, the same prose recovered, the same files classified. So
+#: unlike `PDF_PAGE_CEILING`, this
+#: corpus does not pick the number: its largest sheet is 5,352 cells and none of them
+#: is big enough for a ceiling to reach anything that carries meaning. What the runs
+#: DO establish is the negative that matters -- 2,000 takes nothing away -- and the
+#: number itself has to be argued rather than fitted, because fitting it to a corpus
+#: whose spreadsheets are small is how a ceiling ends up too low for a disk whose
+#: spreadsheets are not.
+#:
+#: WHY TWO THOUSAND. It is more than a person ever reads to find out what a sheet IS:
+#: a 40-column table 50 rows deep, or a 5-column export 400 rows deep. §2.9's own
+#: spreadsheet list leads with "workbook or file metadata, sheet names, column
+#: headers", and the ceiling reaches none of those -- sheet names are entries,
+#: workbook metadata is package properties, and the header row is row 1. Below about
+#: 500 the header row of a wide sheet starts to be at risk, which is the one thing
+#: that must never be cut; above about 10,000 the file is a data table rather than a
+#: document and the rows bought stop being evidence.
+#:
+#: WHAT IT IS WORTH WHERE IT BITES. The corpus understates this badly, because it
+#: holds no large spreadsheet. ONE synthetic 200,000-cell sensor export -- 1.9 MB of
+#: `.csv`, the shape any lab or finance disk has several of -- through the real
+#: extraction path, alone in its own folder:
+#:
+#:      no ceiling   483.6 MB db   200,001 text units   120,044 evidence   336.8 s
+#:       2,000         5.2 MB db     2,001 text units     1,244 evidence     0.7 s
+#:
+#: 92x the database and 480x the time, for one file, for a table nobody will read
+#: back. The SECONDS are the half a person actually feels: five and a half minutes
+#: of a scan spent on one sensor log while every document they wrote waits behind it.
+#: And the capped run says so -- `capped`, `2,000 of 200,000 cells` -- rather than
+#: reporting a complete reading of a file it read one percent of.
+#:
+#: WHAT IT COSTS, STATED RATHER THAN HIDDEN. A capped read is recorded
+#: `completeness="capped"` with `coverage {"units": "cells", "processed": 2000,
+#: "total": 5352}`. §2.4 forbids a partial read that calls itself complete, so the
+#: ceiling arrives with the sentence that says it was reached -- and the cells past it
+#: are COUNTED before they are dropped, so that total is the file's real size and not
+#: the ceiling wearing a full count.
+SPREADSHEET_CELL_CEILING: int = 2000
 
 #: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
 #: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
@@ -1085,10 +1168,27 @@ _STRUCTURED = re.compile(r"\b[A-Z][A-Z0-9]*[ -]?[0-9]{3,}\b")
 #: academic-term regex catalogue beyond those three is Deferred.
 _SEASON = r"(?:Spring|Summer|Fall|Autumn|Winter)"
 _TERM_NAME = r"(?:Michaelmas|Hilary|Trinity|Lent|Easter)"
+#: A YEAR, not any four digits. `[0-9]{4}` matched the COURSE NUMBER in
+#: `BUSIB 4300 Spring 2026` and, because the second alternative below reads
+#: `<four digits> <season>`, the leftmost match was `4300 Spring` -- which then
+#: CONSUMED the string so the correct `Spring 2026` after it was never seen. That
+#: file was filed under a term of `Spring4300`, conflicted with its own subject of
+#: `BUSIB4300`, and was never placed. It is not one file: `PHYS 1401 Fall 2023`
+#: gives `Fall1401` and `ECON 4100 Fall 2025` gives `Fall4100` -- every academic
+#: filename of the shape `CODE NNNN Season YYYY`, which is the commonest one there
+#: is.
+#:
+#: `19|20` is this deployment's, like every other pattern in this block, and it is a
+#: NARROWING of the four-digit run already chosen here rather than a new policy.
+#: Measured before it was made: over 6,679 real observations it drops ZERO matches
+#: and keeps all 44; over the 18-file live corpus it drops only `2926 Summer` and
+#: `2548 Summer` -- two more course numbers -- and corrects `Spring4300` to
+#: `Spring2026`. A term outside 1900-2099 is not a term this product will meet.
+_YEAR = r"(?:19|20)[0-9]{2}"
 _SEASON_YEAR_SOURCE = (
-    rf"\b(?:{_SEASON}[ \-_]?[0-9]{{4}}|[0-9]{{4}}[ \-_]?{_SEASON})\b")
-_ACADEMIC_YEAR_SOURCE = r"\bAY[ \-_]?[0-9]{4}[ ]?[-/][ ]?[0-9]{2}\b"
-_NAMED_TERM_SOURCE = rf"\b{_TERM_NAME}(?:[ \-_]Term)?[ \-_][0-9]{{4}}\b"
+    rf"\b(?:{_SEASON}[ \-_]?{_YEAR}|{_YEAR}[ \-_]?{_SEASON})\b")
+_ACADEMIC_YEAR_SOURCE = rf"\bAY[ \-_]?{_YEAR}[ ]?[-/][ ]?[0-9]{{2}}\b"
+_NAMED_TERM_SOURCE = rf"\b{_TERM_NAME}(?:[ \-_]Term)?[ \-_]{_YEAR}\b"
 
 _TERM = re.compile("|".join(
     (_SEASON_YEAR_SOURCE, _ACADEMIC_YEAR_SOURCE, _NAMED_TERM_SOURCE)),
@@ -1119,26 +1219,34 @@ def _is_an_identifier(raw: str) -> bool:
     **They arrived because one stated invariant is false for one emitter.**
     `reads_a_structured_string` below admits a `body`/`heading` locator carrying a
     span, and rests that bound on "a structured string always carries a span because
-    it is a substring the pass located; a whole zone never does". `extractors/pdf.py:
-    156-159` emits every heading REGION with an explicit `span={"start": 0, "end":
-    len(heading_text)}` -- so a whole heading is addressed exactly like a located
-    substring, while a whole page (`extractors/pdf.py:143`) is not. All 158
-    heading-zone observations in that run were whole regions. That is P4's shape and
-    not this file's to change; what this file can do is stop claiming them.
+    it is a substring the pass located; a whole zone never does". In `extract_pdf`,
+    the heading-REGION candidate is emitted with an explicit
+    `span={"start": 0, "end": len(heading_text)}` -- so a whole heading is addressed
+    exactly like a located substring, while the whole-page candidate beside it takes
+    `span=None` and is not. All 158 heading-zone observations in that run were whole
+    regions. That is P4's shape and not this file's to change; what this file can do
+    is stop claiming them.
 
     **It is a predicate over the READING, not the locator, because the locator cannot
-    answer it.** `extractors/pdf.py:162-176` gives an identifier found INSIDE a
-    heading the heading's own zone (`ZONE_BY_STRUCTURED_KIND` names none for an
-    `identifier` and the fallback is the region's), so `PHYS 1401` in a slide title
-    is `heading:page=1/heading=3#9-18` -- `00`:78's own worked tree. Narrowing
-    `_TEXT_ZONES` would have cleaned the noise and thrown that away with it.
+    answer it.** `extract_pdf`'s `find_structured_strings` loop gives an identifier
+    found INSIDE a heading the heading's own zone (`ZONE_BY_STRUCTURED_KIND` names
+    none for an `identifier` and the fallback is the region's), so `PHYS 1401` in a
+    slide title is `heading:page=1/heading=3#9-18` -- `00`:78's own worked tree.
+    Narrowing `_TEXT_ZONES` would have cleaned the noise and thrown that away with it.
 
     **Nothing is authored here.** The slot is `cli.text.identifier`; this deployment
     already spells what an identifier is, once, in `_STRUCTURED`, and a located
-    structured string's raw value IS its match (`extractors/pdf.py:171`). So the test
-    is the pattern the reading would have had to satisfy to be produced by the pass
-    the slot claims to read. Whitespace is collapsed first, for the same reason the
-    canonicaliser collapses it: `PHYS  1401` off a two-column page is one identifier.
+    structured string's raw value IS its match -- that same loop slices it out of the
+    unit as `raw = unit_text[start:end]`. So the test is the pattern the reading would
+    have had to satisfy to be produced by the pass the slot claims to read. Whitespace
+    is collapsed first, for the same reason the canonicaliser collapses it:
+    `PHYS  1401` off a two-column page is one identifier.
+
+    **Every citation above names a symbol and not a line.** All four were
+    `extractors/pdf.py:NNN` until 2026-09-04 and all four had moved -- `:143` had
+    come to point at a comment about the recogniser, not at the page candidate it
+    claimed. Commit 90aadd6 is about exactly this: a line number is a citation that
+    decays, and a docstring that cites one is wrong on a schedule nobody is watching.
     """
     return _STRUCTURED.fullmatch(" ".join(raw.split())) is not None
 
@@ -1233,37 +1341,142 @@ def reads_a_structured_string(locator: str) -> bool:
     zone = locator.split(":", 1)[0].split("#", 1)[0]
     return zone in _TEXT_ZONES and "#" in locator
 
-#: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
-#: no default because the slot is the caller's; this deployment reads ONE -- the
-#: identifier the structured-string pass found in the document's text -- into
-#: `subject`. The claim it makes is narrow and it is this deployment's to make: an
-#: identifier printed in a document is what that document is ABOUT.
+#: The field §3.5's rule fills, spelled once beside `TERM_FIELD` for the same
+#: reason: two callers need it and neither may re-spell it.
+SUBJECT_FIELD = "subject"
+
+#: `_STRUCTURED`, ANCHORED TO THE WHOLE READING AND HELD OFF A TERM. The pattern
+#: §3.5's `subject` rule matches, and the only regex in this file that is built from
+#: another rather than written out -- there is still exactly ONE spelling of what an
+#: identifier is, and this adds two refusals to it and no new shape.
 #:
-#: The `/Title` metadata slot §3.5 also names is deliberately absent: its
-#: observation carries no text span, P7's gate cannot release a span-less excerpt,
-#: and a group anchored on it could never be reviewed.
-DIRECT_SLOTS = DirectSlots(slots=(
-    DirectSlot(
-        slot_id="cli.text.identifier", field_key="subject",
-        names=reads_a_structured_string,
-        # An identifier, and not the one the term slot would have claimed.
-        #
-        # `not _is_term` is the older half: without it the two slots would each
-        # take the other's readings -- they share every locator there is -- which
-        # is why only one of them could ship before `DirectSlot` gained a
-        # predicate over the reading itself. `SPRING2026` satisfies `_STRUCTURED`
-        # as well, so removing this clause would put a semester in `subject`.
-        #
-        # `_is_an_identifier` is the newer half and its reason is measured above:
-        # `names` admits a whole PDF heading because P4 gives one a span, so
-        # without a test on the reading this slot stated `!` as a `direct` fact
-        # about what a lecture is about. The slot claims the identifier the
-        # structured-string pass found; this asks whether the reading is one.
-        matches=lambda raw: not _is_term(raw) and _is_an_identifier(raw),
-        # Whitespace collapsed, THEN the identifier's own separator removed, so
-        # the two spellings of one course code canonicalise to one value.
-        canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split()))),
-))
+#: **The anchors replace a gate the rule does not have.** `facts.rules.apply_rules`
+#: SEARCHES `observation.raw_value`; the slot it replaces matched the LOCATOR, and
+#: `reads_a_structured_string` above kept whole pages out by refusing a span-less
+#: one. A rule sees no locator, so a whole page carrying `PHYS 1401` somewhere in it
+#: would match -- which is the reading that produced a proposed folder named "Fudan
+#: application checklist [x] transcript [x] personal statement [ ] recommendation [ ]
+#: HSK certificate". Anchoring costs nothing real: a located structured string's raw
+#: value IS its match, because `find_structured_strings` slices it out of the unit,
+#: and `_STRUCTURED` admits at most one separator so a match never holds two spaces.
+#: Simulated over the owner's 6,679 observations before the change: bare `search`
+#: writes 214 `context_check_failed` rows against the anchored pattern's 93, and the
+#: two produce THE SAME FIVE FACTS. The 121 rows are pages, not identifiers. The
+#: shipped run then wrote 158 refusal rows over 51 files -- 89 `context_truncated`,
+#: 69 `context_check_failed`.
+#:
+#: **The lookahead is `not _is_term`, which `Rule` has no other place to keep.**
+#: `DirectSlot` carries a `matches` predicate over the reading and `Rule` carries a
+#: pattern, a context list and a field -- so the term refusal, which the slot held,
+#: has to move into the pattern or be lost. Losing it re-arms the incident recorded
+#: above: `AY 2024-25` claimed as `AY2024` and a person's essays filed under a course
+#: by that name. `SPRING 2026` beside the word `semester` is precisely the reading
+#: that would otherwise walk through the context check.
+_SUBJECT_IDENTIFIER = re.compile(
+    rf"\A\s*(?!(?i:{_TERM.pattern})\s*\Z)(?:{_STRUCTURED.pattern})\s*\Z")
+
+#: §3.5's rule for `subject`, quoted: *"Rules create validated facts when a candidate
+#: passes strict context checks. For example, BUSIB 4300 becomes a course fact only
+#: when the engine finds a course-code pattern together with academic context such as
+#: 'syllabus,' 'lecture,' 'credits,' 'instructor,' or 'semester.'"*
+#:
+#: **This replaced the `cli.text.identifier` DIRECT slot, and the measurement is why.**
+#: 199 of the owner's real files, `academic.coursework`, no model: `subject` was
+#: **0 correct and 14 wrong** against the hand-made labels -- every value it produced
+#: on a labelled file was false -- and its two commonest values on this person's disk
+#: were the postal codes `NY 11794` and `MD 20852`, eight files each. Beside them:
+#: a Keyence `VHX-7000` microscope, a United booking reference `UARF470911`, `U238`
+#: out of a physics exam, `BOEING 777` out of a flight itinerary, and `USA 107` out
+#: of `Proc. Natl. Acad. Sci. USA 107, 4335-4340`.
+#:
+#: **A slot was the wrong home, whatever the pattern.** §3.5's direct slot "names a
+#: LOCATION and applies no test to the reading's reliability", and `direct_facts`
+#: writes `DIRECT_STATE` unconditionally -- so a regex over body text, which is a
+#: JUDGEMENT and not a location, arrived at the one reliability §3.6 ranks above
+#: everything a model can propose. A ZIP code outranked the right answer about the
+#: same file. Narrowing the shape does not fix that and was measured not to fix the
+#: values either (`99` §4: 61 distinct values become 26, of which ONE is a course; it
+#: drops the real courses `E1006` and `I1403` and keeps every flight number).
+#:
+#: **The sentence encoder was measured here and rejected.** The neighbourhood of
+#: every candidate in that run was embedded with the shipped MiniLM weights and
+#: scored against course-language prototypes: `MD20852` scores 0.296 and outranks
+#: BOTH real courses, `I1403` at 0.266 and `E1006` at 0.193. These documents genuinely
+#: ARE academic -- the affiliation block carrying the ZIP code is full of universities
+#: and departments -- so topic similarity answers "is this an academic document" and
+#: the question is "is this token the course".
+#:
+#: **Nothing is authored here that this deployment did not already own.** The terms
+#: are `facts.rules.ACADEMIC_CONTEXT_TERMS`, which is §3.5's own five words quoted in
+#: the design and refused a sixth by that module; the pattern is `_STRUCTURED` above;
+#: the canonicaliser is the slot's, unchanged, because `PHYS 1401` and `PHYS1401` are
+#: one course and `65` §4.2 records what happens when one identity arrives as two.
+#: There is no threshold, no weight and no cutoff -- this producer takes no number.
+#: §3.5's five terms PLUS this deployment's, and the deployment's are the ones that
+#: make the rule usable. `facts.rules` authors the five the design states literally
+#: and refuses a sixth by name -- "adding one is a design change, not an
+#: implementation detail" -- and says where the rest come from: "Every other domain's
+#: terms arrive on the `Rule`, because the SPEC defers them." This is that arrival.
+#: The five are a SUBSET, so nothing that used to fill stops filling.
+#:
+#: **The five alone were measured and they are not enough.** Over the owner's 199
+#: files they admit ONE course, `E1006`, on 5 files. The corpus contains two more
+#: real courses and neither prints any of the five words anywhere near itself:
+#: `I 1403` sits in "General Chemistry I 1403  Dr. Beer / Sample Exam 2", and
+#: `ELTU3017` in a citation ending "eltu.cuhk.edu.hk/courses/eltu3017/". Silencing
+#: them is not free: measured end to end, it costs four of the five working
+#: placements and takes not-placed from 85.4% to 97.6%. A producer that refuses
+#: everything scores better on wrong-fields and makes the product worse.
+#:
+#: **THE ONE RULING THAT SHAPES THIS LIST: an institution is not an act of teaching.**
+#: Every postal code in `99` §3 -- `NY11794`, `MD20852`, `MA01003`, `IN46256`,
+#: `NY10172`, `CA94588`, `MA01923` -- sits in an author-affiliation block, and an
+#: affiliation block is the densest academic prose in the corpus: universities,
+#: faculties, departments, institutes, medical centres. A list built from what makes
+#: a document ACADEMIC admits every one of them. That is also, exactly, why the
+#: sentence encoder failed here: it answers "is this an academic document", and these
+#: documents are. So `university`, `school`, `faculty`, `department` and `institute`
+#: are deliberately absent, and every term below names TEACHING or BEING TAUGHT.
+#:
+#: **The second exclusion: a word whose commonest sense is not academic.** `grade`
+#: (a school year, a slope, a quality), `quarter` (fiscal), `term` (terms and
+#: conditions), `class` (class action), `credit` singular (a credit card),
+#: `transcript` (seven schemas author it) and `dr` (a title) are all out. This one is
+#: honestly reported: the principle is real, but it was PROMPTED by measurement --
+#: an earlier draft carrying `grade` and `quarter` admitted exactly two false
+#: positives out of 101 candidate values, `MD20852` off the owner's school
+#: transcript and `RATE2018` off a financial table. Both are held shut by
+#: `tests/p6/test_p6_subject_rule.py` so the words cannot come back unnoticed.
+#:
+#: **Measured on the whole corpus with the list below: 3 of 3 real courses kept
+#: across 11 files, and 0 false positives out of 101 candidate values.** That zero
+#: is an IN-SAMPLE number on the corpus the exclusions were drawn from; the general
+#: claim it supports is only that teaching words and institution words separate, and
+#: `99` §4 records that this remains the owner's vocabulary to ratify.
+SUBJECT_CONTEXT_TERMS: tuple[str, ...] = ACADEMIC_CONTEXT_TERMS + (
+    "course", "courses", "coursework", "seminar", "tutorial", "recitation",
+    "lectures", "prerequisite", "prerequisites", "professor", "lecturer",
+    "homework", "assignment", "assignments", "problem set",
+    "exam", "midterm", "quiz", "office hours", "enrolled in", "registrar")
+
+SUBJECT_RULE = Rule(pattern=_SUBJECT_IDENTIFIER,
+                    required_context_terms=SUBJECT_CONTEXT_TERMS,
+                    field_key=SUBJECT_FIELD,
+                    canonical=lambda raw: _SEPARATOR.sub("", " ".join(raw.split())))
+
+#: §3.5's direct slot set, and §2.2/§2.3's suppression catalogue. `DirectSlots` has
+#: no default because the slot is the caller's, and THIS DEPLOYMENT NOW SHIPS NONE.
+#: That is a decision and not an omission: the one slot it had read a shape out of
+#: body text and stated it `direct`, which `SUBJECT_RULE` above records in full, and
+#: §3.5's own example of a direct fact is a filesystem timestamp, which does not
+#: come through a slot. An empty set is honest -- `direct_facts` runs, claims
+#: nothing, and the stage stays bound so a slot with a real location to name can be
+#: added without re-deciding the composition.
+#:
+#: The `/Title` metadata slot §3.5 also names is deliberately absent for its own
+#: reason: its observation carries no text span, P7's gate cannot release a span-less
+#: excerpt, and a group anchored on it could never be reviewed.
+DIRECT_SLOTS = DirectSlots(slots=())
 
 #: THE TERM SLOT IS GONE, AND THE SPEC IS WHY. P6 SPEC:409-410: "Filesystem
 #: timestamps are direct; dates recovered from text or filenames are not, and take
@@ -1426,6 +1639,53 @@ def find_structured_strings(text: str) -> tuple[StructuredString, ...]:
     return tuple(sorted(found, key=lambda one: one.start))
 
 
+#: §3.11's universal format key. Named once, beside the one rule that canonicalises
+#: it, because a second spelling of a field key is how a normalizer stops running.
+FILE_TYPE_FIELD = "file_type"
+
+
+def _canonical_file_type(text: str) -> str | None:
+    """ONE vocabulary for `file_type`: the bare lowercase extension token.
+
+    **The defect this closes, measured on a real run.** The same field, in the same
+    run, took `.pdf` from one file, `application/pdf` from another and `.docx` from a
+    third -- all three `llm_interpretation`, all three accepted, because a field with
+    no direct slot reached this function and got whitespace collapsed and nothing
+    else. Any folder level built on `file_type` would have split `.pdf` from
+    `application/pdf` into two folders holding the same kind of file.
+
+    **Why the extension token and not the MIME type**, which is a real choice:
+
+    1. It is the product's OWN format vocabulary already. `extractors.router` keys
+       `SOURCE_TYPE_BY_FORMAT` and `HANDLER_BY_FORMAT` on exactly these tokens
+       (`"pdf"`, `"docx"`, `"png"`), and `_detect_format` above returns them. The MIME
+       string is a second vocabulary, from `mimetypes`, that nothing routes on.
+    2. **The MIME form cannot legally become a folder.** `application/pdf` contains
+       `/`, and `tree_design.user_edits` refuses a display label holding a path
+       separator -- "a renamed level is a display label, never a path fragment". A
+       canonical form that the tree layer must reject is not a canonical form.
+    3. `file_type` is a routing signal and not a meaning (the glossary's own words),
+       so the shorter token loses nothing a person or a level needs.
+
+    A MIME string is MAPPED rather than refused, through `mimetypes` -- a standard
+    library table, not a vocabulary authored here. The model was RIGHT about the file
+    type and wrong only about the spelling, and this function's whole promise is that
+    one identity in several spellings becomes one value. What has no mapping returns
+    `None`, which is check 3's ordinary `normalization_failed` refusal rather than a
+    guess.
+    """
+    import mimetypes
+
+    token = text.strip().lower()
+    if "/" in token:
+        guessed = mimetypes.guess_extension(token)
+        if guessed is None:
+            return None
+        token = guessed
+    token = token.lstrip(".")
+    return token or None
+
+
 def normalize_for_model(field_key: str, raw_value: str) -> str | None:
     """§3.6 check 3: "the proposed value can be normalized safely". `None` = it cannot.
 
@@ -1462,6 +1722,8 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
     slot = next((one for one in DIRECT_SLOTS.slots
                  if one.field_key == field_key), None)
     if slot is None:
+        if field_key == FILE_TYPE_FIELD:
+            return _canonical_file_type(text)
         if field_key == TERM_FIELD:
             # The term has no slot any more (SPEC:409-410) but it is still a filled
             # field, and this function's promise is that a model's value is
@@ -1472,6 +1734,23 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             claimed = next((one for one in DATE_PATTERNS.patterns
                             if one.pattern.fullmatch(text)), None)
             return None if claimed is None else claimed.canonical(text)
+        if field_key == SUBJECT_RULE.field_key:
+            # AND NEITHER HAS `subject`, SINCE 2026-09-04. It moved from a slot to
+            # `SUBJECT_RULE` above, and this branch is what stops that move from
+            # re-opening the cloud path the deterministic path just shut. Without
+            # it `subject` falls to `return text` below and EVERY value a model
+            # proposes is normalizable -- `!`, `Spring 2026`, a whole heading --
+            # which is the laundering this function's docstring forbids by name and
+            # which `tests/p6/test_p6_subject_slot.py` asks about directly.
+            #
+            # The pattern is the rule's, not a second one: check 3 has to agree
+            # with §3.5 or the two producers disagree about what a course is. Asked
+            # of `text` rather than `raw_value` because the collapse above is the
+            # same one the rule's canonicaliser applies, so `PHYS  1401` off a
+            # two-column page is the one identifier it was before the move.
+            if SUBJECT_RULE.pattern.search(text) is None:
+                return None
+            return SUBJECT_RULE.canonical(text) or None
         return text
     if slot.matches is not None and not slot.matches(raw_value):
         return None
@@ -1535,19 +1814,130 @@ TIER_WEIGHT = {1: 4.0, 2: 2.0, 3: 1.0}
 MINIMUM_SCORE = 1.0
 MINIMUM_MARGIN = 0.5
 
+#: The field `artifact_kind` binds, spelled once beside `TERM_FIELD` and
+#: `SUBJECT_FIELD` for the same reason: several callers need it and none may
+#: re-spell it. `def.subject-work-record` marks it REQUIRED, and until 2026-09-04
+#: nothing in `src/` produced it -- so the second of the recipe's two required
+#: levels could never be built and every file in the situation went unplaced.
+WORK_TYPE_FIELD = "work_type"
+
+#: `artifact_kind`'s closed vocabulary, WHICH THE LIBRARY ALREADY SHIPPED. The
+#: compiled recognition release carries `work_type_terms` per schema and nothing had
+#: ever read them for a field -- the detector tokenises them to decide handling and
+#: throws the term away. They are the same closed set the library's own example
+#: chains draw on, and twelve of the thirteen distinct leaf values the ground-truth
+#: labels use for `academic.coursework` are members of it verbatim.
+#:
+#: THE JOIN IS `60` H6.2, APPLIED TO THE VOCABULARY. Only the four schemas that
+#: DECLARE this field contribute: "a file whose routed type key is not declared by
+#: the active schema returns unknown; it is never re-routed to the nearest declared
+#: type key." Taking the union over all twenty-three would let `medical`'s
+#: `discharge summary` become a `work_type`, which is the re-route that sentence
+#: forbids. The four are `academic`, `career`, `law_practice` and
+#: `construction_property`, and they are read off `DOMAIN_FIELDS` rather than listed
+#: here, so a catalogue that declares the field on a fifth schema widens this with
+#: no edit and one that drops a schema narrows it.
+#:
+#: The schema is not known when this runs -- `run_p1_p7` resolves facts BEFORE it
+#: classifies -- so the vocabulary cannot be narrowed per file. It does not need to
+#: be: a term two of the four authored is the same VALUE either way, and the
+#: `work_type` a file carries does not change with which of them claims it.
+def _work_type_vocabulary():
+    """The shipped terms of every schema that declares the field. Read once."""
+    schemas = json.loads(_RECOGNITION_MANIFEST.read_text())["schemas"]
+    return compile_vocabulary(
+        term
+        for schema_id, fields in DOMAIN_FIELDS.items()
+        if WORK_TYPE_FIELD in fields
+        for term in schemas.get(schema_id, {}).get("work_type_terms", ()))
+
+
+WORK_TYPE_VOCABULARY = _work_type_vocabulary()
+
+#: P7's naming zones, MINUS `heading`, and the subtraction is the composition root's
+#: because it is a policy rather than a rule. A heading names a SECTION; a filename
+#: and a document title name the DOCUMENT, and `work_type` is a claim about the
+#: whole file. P7 keeps `heading` because it is deciding PROTECTION, where reading a
+#: section title as the file's own kind errs toward sealing a file that did not need
+#: it -- the safe direction. Here the same reading errs toward a folder name, which
+#: is the unsafe one.
+#:
+#: Measured over the ground-truth corpus, of the 36 files this producer filled:
+#: every fill whose ONLY evidence was a heading was wrong -- three of three, a
+#: market analysis called `diploma` off a section title, an `index.html` called
+#: `notes` -- and not one correct fill depended on a heading. Filename and title
+#: carried all 20 correct ones. `header_footer` stays: it weighs 0.25, so a single
+#: reading there cannot clear §3.7's floor by itself, and it can still corroborate.
+WORK_TYPE_NAMING_ZONES = NAMING_ZONES - {"heading"}
+
 
 def _rule_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
-    """§8.6's second producer: §3.10's dates, ranked as §3.7 requires.
+    """§8.6's second producer: §3.5's rule, §3.10's dates, and §2.6's one question.
 
-    Not `apply_rules`: this deployment still ships no authored rule set, and a
-    course code is already read by the `subject` slot above. What it ships is the
-    date path, which had been written in full across two modules and called from
-    nowhere.
+    `apply_rules` stopped being uncalled on 2026-09-04. It had been written and
+    tested since P6 landed with no caller at all, while `subject` was filled by a
+    DIRECT slot over the same pattern and no context check -- which measured 0
+    correct and 14 wrong on the owner's own files, and named two ZIP codes as the
+    courses his documents were about. `SUBJECT_RULE` above carries the whole of that
+    decision; what changes HERE is only that the producer runs.
+
+    THE ORDER OF THE THREE IS ARBITRARY AND IS NOT LOAD-BEARING. They write three
+    different fields, none reads another's output, and `_SUBJECT_IDENTIFIER`'s
+    lookahead refuses a term wherever in this function it runs. It is written down
+    because the opposite is easy to assume from the removed term SLOT, which shared
+    every locator with the identifier slot and did have to be sequenced against it.
+    Fixed rather than arbitrary at RUNTIME, though: §8.5 replays a run and compares
+    it, so the sequence is stated here once instead of emerging from a set.
     """
-    return date_facts(conn, file_id=file_id, content_hash=content_hash,
-                      field_key=TERM_FIELD, patterns=DATE_PATTERNS,
-                      zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
-                      minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+    written = apply_rules(conn, file_id=file_id, content_hash=content_hash,
+                          rules=(SUBJECT_RULE,), screen=METADATA_SCREEN)
+    written += date_facts(conn, file_id=file_id, content_hash=content_hash,
+                          field_key=TERM_FIELD, patterns=DATE_PATTERNS,
+                          zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
+                          minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+    # `artifact_kind`, the recipe's OTHER required level. `NAMING_ZONES` and
+    # `FIRST_PAGE` are P7's, imported rather than restated: a term in body prose is
+    # a document mentioning some other document, and `work_type` is a claim about
+    # what this file IS. The four §3.7 numbers are the ones already above, shared
+    # with the date producer so one reading of one band cannot fill a field here
+    # and fail to fill one there.
+    written += kind_facts(
+        conn, file_id=file_id, content_hash=content_hash,
+        field_key=WORK_TYPE_FIELD, vocabulary=WORK_TYPE_VOCABULARY,
+        naming_zones=WORK_TYPE_NAMING_ZONES, first_page=FIRST_PAGE,
+        zone_weight=ZONE_WEIGHT, tier_weight=TIER_WEIGHT,
+        minimum_score=MINIMUM_SCORE, minimum_margin=MINIMUM_MARGIN)
+    return written + _media_type_stage(conn, file_id, content_hash)
+
+
+#: The one thing about a file this deployment reads before asking §2.6's question:
+#: is it an image at all. P1 stored the answer (`mime_type_for` is `_mime_type_for`
+#: above), so this is a read and not a second detection.
+IMAGE_MIME_PREFIX = "image/"
+
+
+def _media_type_stage(conn, file_id: str, content_hash: str) -> tuple[str, ...]:
+    """§2.6's photograph-or-screenshot question, asked of images and of nothing else.
+
+    **The gate is the point.** `media_type` abstains honestly on a file with no
+    tiered observation -- it writes `no_candidate_evidence` -- and asking it about
+    every PDF in the corpus would put a refusal row on each one for a question
+    nobody asked about it. `facts.families`' own rule is the one being followed
+    here: "a relation nobody proposed was never attempted." Measured on a real
+    42-file corpus, the gate is the difference between 5 refusal rows and 31.
+
+    The three numbers are already this file's and are not re-chosen: `TIER_WEIGHT`
+    is §2.6's three bands, and the two thresholds are §3.7's, shared with the date
+    producer above so one reading of one band cannot fill a field here and fail to
+    fill one there.
+    """
+    if not (get_file(conn, file_id)["mime_type"] or "").startswith(
+            IMAGE_MIME_PREFIX):
+        return ()
+    written = media_type(conn, file_id=file_id, content_hash=content_hash,
+                         tier_weight=TIER_WEIGHT, minimum_score=MINIMUM_SCORE,
+                         minimum_margin=MINIMUM_MARGIN)
+    return () if written is None else (written,)
 
 
 def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
@@ -1586,10 +1976,26 @@ def a_fact_prompt() -> PromptDefinition:
     a record pointing at it needs to mean: `planning/82-FACT-PROMPT-DRAFT.md` §0
     records the owner ratifying this text on 2026-09-02, and a revision is a new
     file with a new id beside this one rather than an edit to either.
+
+    **The text in force is the REVISION, and its id says `unratified`.** The dossier
+    now carries a `folder_levels` key -- the folders the person's chosen situation
+    would build, from the shipped template library -- and the ratified text says in
+    its own words that the dossier "has these keys and no others", listing fourteen.
+    Sending the new key under the old text would make the model's own instructions
+    false about the bytes beside them, so the revision describes it: four lines,
+    re-derived from the ratified file in `tests/p8/test_p8_a_fact_prompt_folder_
+    levels.py`, adding no meaning for any field and quoting the ratified text itself
+    for the two sentences that keep a `required` level from being guessed at.
+
+    It is an agent's text and the owner has not read it. The id is where that is
+    said, because the id is what every audit row, fact row and cache key written
+    under it carries: `a_fact.unratified.folder-levels.2026-09-04`. Ratifying it is
+    recording the text and renaming the id, and both are the owner's. Choosing which
+    of the two files is in force is a policy, which is why it is chosen here.
     """
     return PromptDefinition(
-        template_id="a_fact.ratified.2026-09-02",
-        template_bytes=a_fact_template_bytes(),
+        template_id="a_fact.unratified.folder-levels.2026-09-04",
+        template_bytes=a_fact_template_folder_levels_bytes(),
         response_schema_bytes=a_fact_response_schema_bytes(),
         call_site=A_FACT,
         call_site_version="1",
@@ -1640,7 +2046,8 @@ def model_route_permitted(conn: sqlite3.Connection):
 def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
                           scan_run_id: str, corpus_file_count: int,
                           policy_version: str, wire_handle_key: bytes,
-                          schema: str, user_id: str, now,
+                          schema: str, folder_levels: tuple[FolderLevel, ...],
+                          user_id: str, now,
                           on_result=None) -> FactCallAuthorities:
     """Everything one A_fact call needs, chosen here and nowhere else.
 
@@ -1658,6 +2065,22 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
     `signal_evaluator_for` already gives, from the same source, and it is the
     difference between offering the model `school`, `instructor`, `work_type` and
     offering it `file_type` and `language`.
+
+    **The folder levels are the template library's answer for the SITUATION**, read
+    by `production.folder_levels_for` and passed in with no default. The allowlist
+    above decides which fields the model MAY propose; it says nothing about which of
+    them this person's chosen situation builds folders out of. Measured over 199
+    real files with the levels absent: 59 `file_type`, 34 `authored_by`, 19
+    `creation_date` and ONE `work_type` -- and `work_type` is a required level, so
+    the file it decides the place for stayed unplaced. The library has held the
+    answer all along, on the same applicability row `schema_for_situation` already
+    reads: an ordered list of `(field, label, requirement)` with the labels written
+    for a person -- "My school", "Semester", "Course", "Kind of work".
+
+    Nothing about the person's files is added to them. A level is the same on every
+    file in the situation, which is what makes it safe to send at all: §8.4's
+    always-local set has no route into a library constant, and an example drawn from
+    the corpus -- which would have one -- is not offered.
 
     **The gate's span classifier declines**, and that is the honest binding rather
     than a stub. P7's SPEC files identifier classes and the redaction transform
@@ -1692,6 +2115,7 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
         model_target=routing.client_for(A_FACT).model_target,
         activation_signals=ActivationSignals(signals=(
             ActivationSignal(schema_id=schema, activates=lambda facts: True),)),
+        folder_levels=folder_levels,
         # §3.6 check 3's per-field alias tables are a Deferred row and this
         # deployment authors none, so the mapping is empty and `normalize_for_model`
         # below is what actually canonicalises. Injected empty rather than omitted:
@@ -1803,18 +2227,72 @@ def _mime_type_for(path: Path) -> str | None:
     return mimetypes.guess_type(str(path))[0]
 
 
+#: The format token for a file that has NO extension, by the convention its name
+#: follows. Nine files on the measured corpus have no extension at all and every one
+#: of them recovered nothing (`.groundtruth/baseline/scorecard.txt`: `(none) 0 of 9`)
+#: for a mechanical reason -- `route()` keys on a token, and the declared extension of
+#: `LICENSE` is the empty string, which is a key in no table.
+#:
+#: Every name here is one a tool or a licence body requires by that exact spelling, so
+#: this is a statement about those conventions and not a judgement about a project --
+#: the same claim `readers/text_documents._MARKERS_BY_FILENAME` makes about its own
+#: list. It lives HERE because §2.9 puts the mapping from a real-world signal onto the
+#: router's token space in the deployment: "A real deployment maps libmagic's MIME
+#: type or macOS's UTType onto that token space, and THAT mapping belongs to the
+#: reader." This is that mapping, keyed on the filename instead of a MIME type,
+#: because a filename is the only signal an extensionless file has.
+#:
+#: Prose on the left, code on the right, and the split is §2.4's: a LICENCE is a
+#: document a person reads, and a Dockerfile is a recipe whose text §2.4 keeps out of
+#: the prose path. `dockerfile` and `makefile` are format tokens no extension can
+#: produce, which is why `extractors/router.py` carries them as keys of their own.
+#: EACH NAME WAS COUNTED, which is the rule `extractors/router.py`'s own additions
+#: follow -- "nothing is here for a language the owner does not write". These are the
+#: seven extensionless files on the measured corpus, plus `readme` and `copying`:
+#: `readers/text_documents._markers_for` already recognises a README by stem, so a
+#: table that routed every convention EXCEPT that one would be the odd omission, and
+#: `COPYING` is the GNU spelling of `LICENSE` sitting beside it in the same trees.
+#: Nothing speculative: no `TODO`, no `CHANGELOG`, no `VERSION`. When one of those
+#: turns up on a real disk it can be added, with the count that earned it.
+_FORMAT_BY_EXTENSIONLESS_NAME: dict[str, str] = {
+    "license": "txt",     # Desktop/ThirdEye/LICENSE, .../GazeFollower/LICENSE-CC-BY-NC-SA
+    "notice": "txt",      # Desktop/vision claw /VisionClaw/NOTICE
+    "authors": "txt",     # .../ai-file-sorter/external/libzip/AUTHORS
+    "thanks": "txt",      # .../ai-file-sorter/external/libzip/THANKS
+    "copying": "txt",     # the GNU spelling of the two above
+    "readme": "txt",      # already a "README file" marker; see the note above
+    "dockerfile": "dockerfile",   # Desktop/ThirdEye/gaze2/Dockerfile
+    "makefile": "makefile",       # Desktop/Database agent/ai-file-sorter/app/Makefile
+}
+
+
 def _detect_format(path: Path) -> str | None:
-    """Which extractor family the bytes belong to, by extension only.
+    """Which extractor family the bytes belong to, by extension or by filename.
 
     Extension rather than content sniffing, and that is a choice: sniffing means
     opening the file, and the one class of file this command must never open is
     decided by PATH (`is_protected_container`) before any format question is asked.
+
+    A file with no extension is answered from its NAME, which is still not opening
+    it. Only the extensionless case reaches that table: an extension is what §2.9
+    calls the routing signal, and a stem that could overrule one would make
+    `license.py` a text document. Two of the corpus's nine -- a Google-Fonts
+    stylesheet saved as `css2`, and Premiere's `LocateDialog Column Settings` -- are
+    named by no convention and stay `unsupported`, which is what they are.
     """
-    return {".pdf": "pdf", ".txt": "txt", ".md": "md",
-            ".docx": "docx",
-            # `router` maps "zip" to the `archive` family, which yields the
-            # manifest without extracting anything (§2.5).
-            ".zip": "zip"}.get(path.suffix.lower())
+    by_extension = {".pdf": "pdf", ".txt": "txt", ".md": "md",
+                    ".docx": "docx",
+                    # `router` maps "zip" to the `archive` family, which yields the
+                    # manifest without extracting anything (§2.5).
+                    ".zip": "zip"}.get(path.suffix.lower())
+    if by_extension is not None or path.suffix:
+        return by_extension
+    name = path.name.lower()
+    # `LICENSE-CC-BY-NC-SA` is on this disk, and `LICENSE-APACHE` and
+    # `COPYING-LESSER` are the same convention: the licence body's name follows the
+    # word, after a hyphen. The word before the first hyphen is what carries it.
+    return (_FORMAT_BY_EXTENSIONLESS_NAME.get(name)
+            or _FORMAT_BY_EXTENSIONLESS_NAME.get(name.split("-")[0]))
 
 
 def classifier(detector, *, now):
@@ -1922,7 +2400,8 @@ def extraction_context() -> ExtractionContext:
         # earns the swap: zones and heading labels, not prose similarity.
         readers=macos_readers(find_structured_strings=find_structured_strings,
                               read_pdf=pdfium_reader(
-                                  max_pages=PDF_PAGE_CEILING)),
+                                  max_pages=PDF_PAGE_CEILING),
+                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)
@@ -2550,6 +3029,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     # They agree for 201 of 208 situations and disagree for seven, and every
     # applicability row has carried the true answer in `uses_schema` all along.
     schema = schema_for_situation(catalogue, situation)
+    # The folders this situation would build, from the same applicability row the
+    # line above reads. Here rather than inside the fact pass so a release that has
+    # lost its levels refuses before anything is scanned, and so this file -- the
+    # one place a policy may be chosen -- is visibly the one that decides what the
+    # model is asked.
+    folder_levels = folder_levels_for(catalogue, situation)
     clock = now()
     _bootstrap(conn)
     # `00`:20's THREE choices, as the person answered them. These were three
@@ -2981,7 +3466,175 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                        "one is yours to decide."))
         return tuple(sets)
 
+    def _every_destination(frozen) -> tuple[DestinationChoice, ...]:
+        """Every place a file can go in this plan, with the path a person reads.
+
+        The `display_path` is the answer's identity -- what a `--answer` line
+        carries and what the store keeps -- and the `node_id` is this run's address
+        for it. Both come from the same walk so they cannot disagree, which is the
+        whole reason the resolution is a lookup rather than a second derivation.
+
+        A node that accepts no placement is not here: an answer naming one would be
+        refused by `legal_node_ids` after the person had already given it, which is
+        a question whose answer is rejected on the way in.
+        """
+        labels = {node.node_id: node.display_label for node in frozen.nodes}
+        parents = {node.node_id: node.parent_node_id for node in frozen.nodes}
+
+        def path_of(node_id: str) -> str:
+            parts: list[str] = []
+            walk: str | None = node_id
+            while walk is not None and walk in labels:
+                parts.append(labels[walk])
+                walk = parents[walk]
+            return "/".join(reversed(parts))
+
+        return tuple(
+            DestinationChoice(node_id=node.node_id,
+                              display_path=path_of(node.node_id))
+            for node in frozen.nodes if node.accepts_placement)
+
+    def _destinations_to_offer(frozen):
+        """The folders a person is offered when asked where something goes.
+
+        **What this run PROPOSES, plus the folder the files are in already.** A real
+        run freezes 43 places a file can go, 39 of them the person's own folders,
+        and a question offering 43 options is a directory listing with a question
+        mark on it. The four the run proposes are the structure the plan is actually
+        asking the person to adopt, so they are the choice already in front of them.
+
+        The folder the files are in is the fifth, and it is not a rounding-out: it
+        is the answer "leave them where they are", which the ground-truth labeller
+        wrote in as many words for two of these files -- *"a person may not want it
+        filed at all"* and *"the honest outcome is to leave it where it is"*. A
+        question that offered only the new structure would make moving the only
+        expressible answer, which is the product deciding the thing it is asking
+        about.
+
+        P10 already tells the two apart through the `existing_path` the report reads
+        to print "[yours already]", so that is what is read here -- a second way of
+        distinguishing the person's folders from the engine's is a second answer
+        waiting to disagree. A node that accepts no placement is never offered:
+        `legal_node_ids` would refuse the answer afterwards, which is a question
+        whose answer is rejected after it is given.
+        """
+        every = _every_destination(frozen)
+        by_node = {choice.node_id: choice for choice in every}
+        existing_of = {node.node_id: getattr(node, "existing_path", None)
+                       for node in frozen.nodes}
+        proposed = tuple(choice for choice in every
+                         if not existing_of.get(choice.node_id))
+        theirs: dict[str, DestinationChoice] = {}
+        for choice in every:
+            existing = existing_of.get(choice.node_id)
+            if not existing:
+                continue
+            try:
+                relative = str(Path(existing).relative_to(directory).as_posix())
+            except ValueError:
+                continue
+            theirs.setdefault(relative, by_node[choice.node_id])
+
+        def for_folder(folder: str) -> tuple[DestinationChoice, ...]:
+            here = theirs.get(folder)
+            return proposed + ((here,) if here is not None else ())
+
+        return for_folder
+
+    def _node_for(frozen) -> dict[str, str]:
+        """Folder chain -> this plan version's node id, built once per tree.
+
+        The answer store holds folder chains and P11 places on node ids, and this
+        is the one place the two are joined -- a second one would be a second
+        opinion about which folder a person meant.
+        """
+        return {choice.display_path: choice.node_id
+                for choice in _every_destination(frozen)}
+
+    def _home_questions(frozen) -> dict[str, tuple[str, tuple[str, ...]]]:
+        """One question per folder nothing could be read from, and the words and
+        destinations each of its files carries into P11.
+
+        Recorded HERE rather than in `_raise_blocked_questions`, and the reason is
+        the tree: a question offering destinations cannot be written before the
+        destinations exist, and they exist when the plan is frozen. The recording
+        is idempotent by question id, so the second call for the residual pass adds
+        nothing.
+        """
+        node_for = _node_for(frozen)
+        offer_for = _destinations_to_offer(frozen)
+        asks: dict[str, tuple[str, tuple[str, ...]]] = {}
+        for folder, file_ids, held in folders_nothing_could_be_read_from(
+                conn, root=directory):
+            offered = offer_for(folder)
+            if len(offered) < 2:
+                # Fewer than two places to put anything is not a choice, and
+                # offering it as one would dress the engine's only option as the
+                # person's decision. `question_for_unreadable_folder` refuses that
+                # outright; this returns first so a corpus that simply built a
+                # shallow tree gets silence rather than a traceback.
+                continue
+            question = question_for_unreadable_folder(
+                folder=folder, choices=offered, file_count=len(file_ids),
+                protected_count=held)
+            record_question(conn, question, asked_at=clock)
+            # The WORDS and the DESTINATIONS, not a `placement.records.Ask`. P11
+            # owns that record and `test_ambiguity_cases` asserts `pipeline.py` is
+            # its only builder -- a guard from when §6.9's question had a shape and
+            # no producer. Minting one here would put its invariants in a second
+            # place and make the review surface's "what P11 asked" partly this
+            # file's account instead.
+            #
+            # The option ids are folder CHAINS, so the node ids are looked up in
+            # the same map the answer is resolved through: the person is offered
+            # exactly the destinations an answer can later reach.
+            offered_nodes = tuple(
+                node_for[option.option_id] for option in question.options
+                if option.option_id in node_for)
+            if len(offered_nodes) < 2:
+                continue
+            for file_id in file_ids:
+                asks[file_id] = (question.prompt, offered_nodes)
+        return asks
+
     def placement_inputs(tree) -> PipelineInputs:
+        asks = _home_questions(tree.tree)
+        node_of = _node_for(tree.tree)
+
+        def already_answered(subject) -> str | None:
+            """The node the person's answer names, in THIS plan version's tree.
+
+            Keyed on the FOLDER the file is in, because that is the scope the
+            question was asked at and §13 forbids reading an answer outside its
+            stated scope. A file that arrived in the folder after the answer was
+            given is covered by it, which is what a person means when they answer
+            about a folder rather than about three files.
+
+            **The stored answer is a folder chain and the resolution to a node id
+            happens HERE, once per run.** Every run freezes a new plan version and
+            mints new node ids for the same folders, so an answer that had stored an
+            id would have been refused by the next run as a destination from a tree
+            that no longer exists -- the person's answer silently ceasing to mean
+            anything, one run after they gave it. `gates_template` records the same
+            decision for the same reason, and this is that reason measured: the
+            round trip failed exactly this way before the chain replaced the id.
+
+            `None` when the chain resolves to nothing. A folder the person named and
+            the plan no longer builds is a real change they should see as the
+            question coming back, not as a placement into a folder that is gone.
+            """
+            row = conn.execute("SELECT current_path FROM files WHERE file_id = ?",
+                               (subject.file_id,)).fetchone()
+            if row is None:
+                return None
+            try:
+                folder = str(PurePosixPath(
+                    Path(row[0]).relative_to(directory).as_posix()).parent)
+            except ValueError:
+                return None
+            named = chosen_destination(conn, scope=f"{SCOPE_FOLDER}:{folder}")
+            return None if named is None else node_of.get(named)
+
         return PipelineInputs(
             plan_version=tree.tree.plan_version_id, tree=tree.tree,
             policy=SUPPORT_POLICY, limits=placement_limits(conn),
@@ -2996,7 +3649,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # abstains with a reason instead of being decided by nothing.
             gate=None, model_client=None, prompt=None, call_dependencies=None,
             model_call_request=None, chosen_node_of=None, residual_action_of=None,
-            sensitivity_policy=None, p2=None)
+            sensitivity_policy=None,
+            # THE POLICY, and this file is where it belongs. P11 asks which files
+            # are worth a person's attention and holds no answer of its own;
+            # `folders_nothing_could_be_read_from` is the answer and carries the
+            # measurement behind it.
+            ask_about_file=lambda subject: asks.get(subject.file_id),
+            chosen_by_user=already_answered, p2=None)
 
     def _model_fact_pass(run_id: str) -> None:
         """Ask a model about the fields the deterministic producers left open.
@@ -3048,7 +3707,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         authorities = fact_call_authorities(
             conn, routing=routing, scan_run_id=run_id,
             corpus_file_count=len(roster), policy_version=policy_version,
-            wire_handle_key=wire_handle_key, schema=schema, user_id=user_id,
+            wire_handle_key=wire_handle_key, schema=schema,
+            folder_levels=folder_levels, user_id=user_id,
             now=now,
             on_result=lambda file_id, result: outcomes.append((file_id, result)))
         resolver = model_fact_resolver(conn, authorities=authorities)
@@ -3066,11 +3726,98 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             files=len(roster), outcomes=outcomes,
             model_id=routing.model_id_for(A_FACT), out=out)
 
+    def _family_pass(run_id: str) -> None:
+        """§3.11's two family fields, over the whole corpus at once.
+
+        **A corpus producer, which is why it is not a `FactResolver` stage.** Every
+        stage that resolver runs is asked about ONE file version; a duplicate family
+        is a statement about a SET, and neither of these two can be computed from a
+        file on its own. So it runs here, once, over `corpus_roster` -- the same
+        roster `_model_fact_pass` uses, which is P3's stat-cache order and includes
+        the unchanged files an extraction loop skips. A duplicate family assembled
+        from only the re-extracted files would break up on the second run of an
+        unchanged folder.
+
+        HERE, and before `_model_fact_pass` and P9: a fact that arrives after
+        grouping is a fact no group could form on, and `grouping.seeds` reads
+        `family_facts` into its anchor rows deliberately.
+
+        **THE COST IS LINEAR IN THE ROSTER, and that is a requirement rather than a
+        happy accident.** `duplicate_family`'s exact half groups the roster into a
+        dict keyed on `content_hash` and only looks inside a bucket holding two or
+        more files, so a corpus of unique files compares nothing. Its near half
+        enumerates pairs, but of PERCEPTUAL-HASH CARRIERS and never of the roster --
+        and `readers.image_headers`, the wired reader, supplies no perceptual hash,
+        so that set is empty (measured: 0 carriers on both real corpora) and
+        `_near_families` returns before the loop.
+
+        **`version_family` IS NOT CALLED, and that is the same refusal one step
+        further out.** §2.9 lists "duplicate and version-family signals" among what
+        extraction produces and defines none of them, so there is no lineage rule to
+        bind -- see `planning/97-VERSION-LINEAGE-PROPOSAL.md`. Binding it to a rule
+        that answers `None` would have been honest about the FACTS and dishonest
+        about the COST: `version_family` compares every pair of file versions,
+        because a version family is by definition files whose content hashes DIFFER
+        and no hash bucket can group them. On 10,000 files that is 50 million pairs
+        enumerated to answer "no rule" 50 million times. A producer whose rule can
+        establish nothing is not a producer this run has; calling it would buy a
+        quadratic and no fact. When a lineage rule is ruled, it arrives here with
+        the call, and whoever authors it owns the blocking strategy that keeps the
+        comparison bounded.
+
+        `near_match` answers False always, for the same reason one field over: §2.6
+        names the perceptual hash and states no distance metric and no threshold, and
+        equality would be a threshold of zero. See
+        `planning/98-NEAR-DUPLICATE-METRIC-PROPOSAL.md`. Byte identity needs no
+        threshold and is unaffected -- measured on a real 42-file corpus, 15 files in
+        7 families.
+
+        `perceptual_hash_label` is IMPORTED from `extractors.image` and never
+        respelled. It has a space in it, P5 owns the spelling, and a second home for
+        one string is the defect this repo has paid for most often.
+        """
+        roster = corpus_roster(conn, run_id)
+        if not roster:
+            return
+        duplicate_family(conn,
+                         file_ids=tuple(file_id for file_id, _hash in roster),
+                         perceptual_hash_label=PERCEPTUAL_HASH_FIELD,
+                         near_match=lambda left, right: False)
+
+    #: P6's two field keys onto P9's two verdicts. THE ONLY PLACE either vocabulary
+    #: may be spelled beside the other, which is why the mapping is here and not in
+    #: `facts.families`: P6 answers with its own key and never learns P9's word.
+    P9_VERDICT_BY_FAMILY_FIELD = {DUPLICATE_FAMILY_FIELD: DUPLICATE,
+                                  VERSION_FAMILY_FIELD: VERSION_FAMILY}
+
+    def _duplicate_or_version(seed_file_id: str, neighbour_file_id: str):
+        """P9's sixth channel names an edge it cannot type. This types it.
+
+        **Compulsory the moment `_family_pass` is bound, not optional.**
+        `grouping.retrieval` opens the `duplicate-or-version-link` channel off
+        `family_facts`, which covers BOTH fields, and `grouping.graph._edge_type`
+        raises `ConfigurationRequired` without an authority rather than guessing:
+        "the wrong answer puts two revisions of one document into a group as two
+        documents." Verified by running the product -- with the families written and
+        this left at `None`, a corpus holding one duplicate pair stops the run.
+
+        `None` is returned rather than raised, and deliberately. The channel only
+        opens on a shared family VALUE, so a pair reaching here with no shared field
+        is a contract failure and not a close call -- and P9 already has the right
+        sentence for it, naming both legal answers. Inventing a second error here
+        would be a worse copy of one that is already written.
+        """
+        return P9_VERDICT_BY_FAMILY_FIELD.get(shared_family_field(
+            conn, left_file_id=seed_file_id, right_file_id=neighbour_file_id))
+
     scan_run_id = [""]
     accepted_ids: list[str] = []
 
     def downstream(p1_p7) -> CorpusAuthorities:
         scan_run_id[0] = p1_p7.scan_run_id
+        # §3.11's universal families, BEFORE the model pass and before P9 groups.
+        # See `_family_pass` for why a corpus producer cannot be a resolver stage.
+        _family_pass(p1_p7.scan_run_id)
         # §8.6's THIRD producer, and the only point in the run where it can stand.
         # See `model_fact_resolver` for why it is a second pass and not the `llm`
         # stage of the pass P1-P7 already ran. BEFORE the three blocks below on
@@ -3122,13 +3869,23 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 # `DIRECT_SLOTS` is no longer the whole of the schema: `term`
                 # is filled by `_rule_stage` and has no slot (SPEC:409-410). A
                 # field missing here is a field P9 will not group on.
+                # `MEDIA_TYPE_FIELD` joins `TERM_FIELD` for the same reason the
+                # comment above gives: `_rule_stage` fills it, it has no slot, and
+                # a field missing here is a field P9 will not group on. It is
+                # destination-eligible, so leaving it out would fill the field and
+                # still never divide a level -- which is the whole defect.
+                # `WORK_TYPE_FIELD` joins them on the same reasoning, and it is the
+                # case the comment describes most exactly: it is the REQUIRED
+                # `artifact_kind` level of `def.subject-work-record`, so a run that
+                # filled it and left it out here would resolve the field and still
+                # never divide the level the recipe demands.
                 active_schema_for=lambda db, file_id, content_hash: (
                     tuple(slot.field_key for slot in DIRECT_SLOTS.slots)
-                    + (TERM_FIELD,)),
+                    + (TERM_FIELD, MEDIA_TYPE_FIELD, WORK_TYPE_FIELD)),
                 signal_evaluator_for=lambda domain: True,
                 classification_store=ClassificationStore(conn).current,
                 conflicts_for=lambda file_ids: (),
-                duplicate_or_version=None),
+                duplicate_or_version=_duplicate_or_version),
             user_seed_for=lambda file_id, content_hash: None,
             embeddings=EmbeddingsOff(), p8_run_call=None, p8_authorities=None,
             placement_inputs=placement_inputs, evidence_for=evidence_for,
@@ -3300,6 +4057,85 @@ def _raise_blocked_questions(conn: sqlite3.Connection, *, detector,
                                   files=files_with_observations(conn),
                                   subject_of=subject_of):
         record_question(conn, question, asked_at=asked_at)
+
+
+def folders_nothing_could_be_read_from(
+        conn: sqlite3.Connection, *,
+        root: Path) -> tuple[tuple[str, tuple[str, ...], int], ...]:
+    """THE POLICY: which files are worth a person's attention, and which are not.
+
+    Returns `(folder, files nothing was read out of, protected among them)` per
+    folder, the folder given relative to the scan root.
+
+    **This is the whole of the rule, and it is a rule about the EVIDENCE and not
+    about the outcome.** 73% of a real 199-file corpus goes unplaced. Asking about
+    all of it would be worse than the silence it replaced, so "the run could not
+    place it" is deliberately not the trigger. The trigger is narrower and it is
+    the one case where a person is the only possible source: every extractor ran,
+    and the only observations the file has are the ones the FILESYSTEM recorded
+    ABOUT it -- its name, its size, its dates. Nothing was read OUT of it, so there
+    is no reading for the product to be wrong about and nothing better it could do
+    with more effort.
+
+    Measured on `.groundtruth/corpus` against 215 hand-written labels: 24 files
+    corpus-wide, 76% of which the labeller independently marked "the right answer
+    is ask the person", against a base rate of 41%. Inside the one scored
+    situation, three files and three of three. The labeller's own words for these
+    are *"a scan or export with no text layer and a filename that is a scanner
+    counter or a content hash. Nothing but the person knows what it is."*
+
+    **WHAT WAS MEASURED AND REJECTED.** Every abstaining decision carries a ranked
+    `alternatives` list and `requires_review: true`, which reads like a
+    multiple-choice question with the options already computed. On the real corpus
+    it is not one: all 181 abstentions score 0.2857 against a support threshold of
+    0.5, and no file anywhere has two candidates above that threshold -- the
+    distribution is 0.2857 or 0.7143 and nothing between. So `alternatives` is not
+    a set of competing destinations; it is the person's own top-level folders
+    (`Desktop/MONEY`, `Desktop/Vaccine records`) tied at a score none of them
+    earned. Asking from it would have been 43% precise against a 41% base rate,
+    across 62 files -- noise with a question mark on it.
+
+    **PROTECTED FILES ARE COUNTED AND NEVER RETURNED.** §8.4 marks them so nothing
+    about them is assembled, and `00`:201 says a visible list of protected
+    specifics may not be safe to show. A question is printed on a screen somebody
+    else can see, so a protected file never becomes one -- and it is counted, because
+    dropping it silently would make the question describe a folder smaller than the
+    one the person is looking at. Marked, counted, never opened, never silently
+    omitted, in that order.
+
+    **The path is made relative HERE.** `privacy.vocabulary.ALWAYS_LOCAL`'s first
+    member is `paths`, and a scope is stored, printed, and carried between runs, so
+    an absolute one would put a person's home directory into a record that outlives
+    the run. A file outside the scan root has no relative name and is skipped
+    rather than named absolutely.
+    """
+    readable: set[str] = set()
+    for row in conn.execute(
+            "SELECT DISTINCT file_id FROM evidence "
+            "WHERE superseded_by IS NULL AND source_type <> ?",
+            (FILESYSTEM_SOURCE_TYPE,)):
+        readable.add(row[0])
+    protected = {row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM classifications "
+        "WHERE protected = 1 AND superseded_by IS NULL")}
+
+    folders: dict[str, list[str]] = {}
+    held: dict[str, int] = {}
+    for file_id, current_path in conn.execute(
+            "SELECT file_id, current_path FROM files"):
+        if file_id in readable:
+            continue
+        try:
+            folder = str(PurePosixPath(
+                Path(current_path).relative_to(root).as_posix()).parent)
+        except ValueError:
+            continue
+        if file_id in protected:
+            held[folder] = held.get(folder, 0) + 1
+            continue
+        folders.setdefault(folder, []).append(file_id)
+    return tuple((folder, tuple(sorted(folders[folder])), held.get(folder, 0))
+                 for folder in sorted(folders))
 
 
 def files_with_observations(
