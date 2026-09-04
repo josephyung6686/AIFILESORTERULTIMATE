@@ -177,8 +177,9 @@ def direct_facts(conn: sqlite3.Connection, *, file_id: str, content_hash: str,
         # `ensure_value` writes `raw_variants` as an empty list and never appends, and
         # `add_raw_variant` -- the column's only writer -- had no caller in `src/`, so
         # no shipped run kept the wording of any document. The canonicaliser above is
-        # exactly what makes that a loss rather than a redundancy: `cli.py:716-721`
-        # collapses `PHYS 1401`, `PHYS-1401` and `PHYS1401` into one value ON PURPOSE,
+        # exactly what makes that a loss rather than a redundancy: the `canonical`
+        # of the `cli.text.identifier` slot collapses `PHYS 1401`, `PHYS-1401` and
+        # `PHYS1401` into one value ON PURPOSE,
         # and once it has, the canonical form is the only surviving evidence of what
         # any of the three documents actually printed.
         #

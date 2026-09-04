@@ -118,16 +118,24 @@ def twins(p6_conn, tmp_path):
 
 def test_two_byte_identical_files_share_a_direct_duplicate_family_fact(twins, p6_conn):
     # Done-means 23. §3.13 names the content hash a Direct source.
+    #
+    # SHARED is the claim, and it is checked as one value seen twice rather than as a
+    # literal. This line read `== content_hash` until 2026-09-04, which asserted the
+    # §8.4 defect the two tests at the foot of this file now forbid: the hash decides
+    # membership and does not name it. What Done-means 23 actually requires is that
+    # both members land in ONE family at `direct` -- not what the family is called.
     left, right, content_hash, _ = twins
     written = duplicate_family(p6_conn, file_ids=(left, right),
                                perceptual_hash_label=LABEL, near_match=_never_near)
     assert len(written) == 2
+    seen = set()
     for file_id in (left, right):
         rows = [r for r in facts_for_file(p6_conn, file_id, content_hash)
                 if r["field_key"] == DUPLICATE_FAMILY_FIELD]
         assert len(rows) == 1
         assert rows[0]["reliability_state"] == "direct"
-        assert rows[0]["canonical_value"] == content_hash
+        seen.add(rows[0]["canonical_value"])
+    assert len(seen) == 1
 
 
 def test_the_duplicate_family_cites_the_keys_the_two_versions_share(twins, p6_conn):
@@ -288,3 +296,114 @@ def test_the_result_does_not_depend_on_the_order_the_file_ids_arrive_in(
             if r["fact_id"] in ids and r["field_key"] == DUPLICATE_FAMILY_FIELD)
 
     assert shape(forward) == shape(reverse)
+
+
+def _content_hashes(conn) -> set[str]:
+    """Every content hash P1 stored, read from the `files` table itself.
+
+    Read rather than passed in, because the claim under test is about the whole
+    database and not about the two hashes a fixture happened to hand back.
+    """
+    return {row["content_hash"]
+            for row in conn.execute("SELECT content_hash FROM files")}
+
+
+def test_no_duplicate_family_value_is_a_content_hash(twins, p6_conn):
+    """§8.4 member 4 -- `file_hashes` is one of the nine that never leave the device.
+
+    The family may be COMPUTED from the hash; the hash may not be what the family
+    is CALLED. `families`' own header already separates the two -- "the hash decides
+    membership and cannot be cited for it" -- and this is the same separation one
+    step further on: what decides membership is not what names it.
+
+    Written because the value does not stay in P6. It reaches
+    `grouping.seeds.seeds_for_file` (which reads `family_facts` deliberately),
+    becomes `Seed.value`, and from there `grouping.naming.label_for` puts it on a
+    group's display label and `grouping.dossier` puts it in `key_facts`, which is
+    the half of a candidate-group dossier that goes to a model. None of those three
+    is P6's to change and none of them is wrong: a fact's value is releasable by
+    design, so the fix is that P6 must not write an always-local value into one.
+    """
+    left, right, _, _ = twins
+    duplicate_family(p6_conn, file_ids=(left, right),
+                     perceptual_hash_label=LABEL, near_match=_never_near)
+    hashes = _content_hashes(p6_conn)
+    assert hashes                                   # the fixture really stored some
+    values = {row["canonical_value"] for row in p6_conn.execute(
+        'SELECT canonical_value FROM "values" WHERE field_key = ?',
+        (DUPLICATE_FAMILY_FIELD,))}
+    assert values                                   # and the family really wrote one
+    assert values & hashes == set()
+
+
+def test_no_family_seed_p9_would_release_carries_a_content_hash(twins, p6_conn):
+    """The same claim on the path that actually leaves P6, end to end.
+
+    `_anchor_rows` reads `family_facts` beside `proposal_eligible`, and a
+    `duplicate_family` fact is `direct`, so it clears any anchor bar. This asserts
+    against the SEED rather than against the stored row because the seed is the
+    object P9 hands onward, and a value that were laundered into it by some other
+    column would pass the test above and fail here.
+    """
+    from grouping.seeds import seeds_for_file
+
+    left, right, content_hash, _ = twins
+    duplicate_family(p6_conn, file_ids=(left, right),
+                     perceptual_hash_label=LABEL, near_match=_never_near)
+    hashes = _content_hashes(p6_conn)
+    seeds = seeds_for_file(p6_conn, file_id=left, content_hash=content_hash,
+                           user_seed_for=lambda *_: None)
+    family = [seed for seed in seeds if seed.field_key == DUPLICATE_FAMILY_FIELD]
+    assert len(family) == 1                         # P9 really does seed on it
+    assert family[0].value not in hashes
+
+
+def test_two_files_in_one_duplicate_family_share_that_field(twins, p6_conn):
+    """P9's `duplicate_or_version` authority, answered from the facts themselves.
+
+    `grouping.graph._edge_type` RAISES `ConfigurationRequired` on a
+    duplicate-or-version-link edge with no authority — "the wrong answer puts two
+    revisions of one document into a group as two documents" — and
+    `grouping.retrieval` opens that channel off `family_facts`, which covers BOTH
+    fields. So the moment `duplicate_family` is bound the authority stops being
+    optional: without it a corpus containing one duplicate pair stops the run.
+
+    P6 answers WHICH FIELD the two share and stops there. Mapping that key onto
+    P9's own two words is the composition root's, because P6 naming a P9 vocabulary
+    member would be a second home for it.
+    """
+    left, right, _, _ = twins
+    duplicate_family(p6_conn, file_ids=(left, right),
+                     perceptual_hash_label=LABEL, near_match=_never_near)
+    assert families.shared_family_field(
+        p6_conn, left_file_id=left, right_file_id=right) == DUPLICATE_FAMILY_FIELD
+    # Symmetric: an edge is one relation whichever end asks about it.
+    assert families.shared_family_field(
+        p6_conn, left_file_id=right, right_file_id=left) == DUPLICATE_FAMILY_FIELD
+
+
+def test_two_unrelated_files_share_no_family_field(p6_conn, tmp_path):
+    """`None`, not a guess. A caller that must produce one of two words has to be
+    able to tell that neither is true, or P9's refusal becomes P6's coin toss."""
+    left, _ = _record(p6_conn, tmp_path, name="one.pdf", body=b"first")
+    right, _ = _record(p6_conn, tmp_path, name="two.pdf", body=b"second")
+    assert families.shared_family_field(
+        p6_conn, left_file_id=left, right_file_id=right) is None
+
+
+def test_a_shared_version_family_answers_the_version_field(p6_conn, tmp_path):
+    # The other half of the same question, so the reader cannot be a constant.
+    left, left_hash = _record(p6_conn, tmp_path, name="draft.pdf", body=b"draft one")
+    right, right_hash = _record(p6_conn, tmp_path, name="final.pdf", body=b"draft two")
+    key_left = _observe(p6_conn, run_id="v-left", file_id=left,
+                        content_hash=left_hash, raw="Report", label="title")
+    key_right = _observe(p6_conn, run_id="v-right", file_id=right,
+                         content_hash=right_hash, raw="Report", label="title")
+    written = version_family(
+        p6_conn, file_ids=(left, right),
+        lineage_rule=lambda conn, a, b: Lineage(
+            family_value="report-lineage", reliability_state="validated",
+            evidence_refs=(key_left, key_right)))
+    assert len(written) == 2
+    assert families.shared_family_field(
+        p6_conn, left_file_id=left, right_file_id=right) == VERSION_FAMILY_FIELD

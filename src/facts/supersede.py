@@ -191,7 +191,8 @@ def _best_cited(rows: list[sqlite3.Row]) -> sqlite3.Row:
     bottom of the ladder, and `strength` raises for it. A slot whose live rows are ALL
     rejected still returns one -- filtering by state here would be a second rule for
     the pointer, and which states may become a folder proposal is the read surface's
-    question (`src/facts/read_surface.py:143-152`), asked by the caller after this.
+    question (`facts.read_surface.proposal_eligible`), asked by the caller after
+    this.
     """
     ranked = [row for row in rows if row["reliability_state"] != REJECTED]
     if not ranked:
@@ -225,7 +226,7 @@ def preferred_fact(conn: sqlite3.Connection, *, file_id: str,
     (`planning/71-diagnosis/audit-override-and-multivalue.md`, F1). Two rows naming
     one `value_id` are one answer with two citations; OQ6 is not reached, because
     there are not several values to choose between. `value_id` is content-addressed
-    over `(field_key, canonical_value)` (`src/facts/values.py:122-153`), so equal ids
+    over `(field_key, canonical_value)` (`facts.values.ensure_value`), so equal ids
     and equal canonical values are the same statement.
 
     Live means not superseded. `active` is a different axis and is Task 4's: §8.2's

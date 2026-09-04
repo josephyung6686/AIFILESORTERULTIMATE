@@ -44,7 +44,9 @@ from evidence_shape.vocabulary import ANALYSIS_TIERS, check
 
 from facts.cache import pass_cache_key
 from facts.evidence import analysis_tier_for_observation, cite, observations_for_version
-from facts.file_facts import DETERMINISTIC_EXTRACTOR, FACT_ORIGINS, RULE, write_fact
+from facts.file_facts import (
+    DETERMINISTIC_EXTRACTOR, FACT_ORIGINS, RULE, facts_for_file, write_fact,
+)
 from facts.states import DIRECT, POSSIBLE, VALIDATED
 from facts.unresolved import (
     ATTEMPTED_PRODUCERS, DIRECT_ROUTE, NO_CANDIDATE_EVIDENCE, RULE_ROUTE,
@@ -145,6 +147,61 @@ def _write_family(conn: sqlite3.Connection, *, version: _Version, field_key: str
         active=True)
 
 
+def _family_values(conn: sqlite3.Connection, file_id: str) -> dict[str, set[str]]:
+    """This file version's active family values, by field key.
+
+    Keyed on the field rather than flattened, because the whole question below is
+    WHICH of the two fields two files meet in, and a flat set of values cannot say.
+
+    `read_surface.family_facts` is the published read over exactly these two keys and
+    is deliberately NOT used: it imports both field constants from this module, so
+    depending on it here would be an import cycle. This reads what it filters, one
+    layer down, and narrows on the same two keys.
+    """
+    content_hash = dict(get_file(conn, file_id))["content_hash"]
+    values: dict[str, set[str]] = {DUPLICATE_FAMILY_FIELD: set(),
+                                   VERSION_FAMILY_FIELD: set()}
+    for row in facts_for_file(conn, file_id, content_hash):
+        if row["active"] and row["field_key"] in values:
+            values[row["field_key"]].add(row["canonical_value"])
+    return values
+
+
+def shared_family_field(conn: sqlite3.Connection, *, left_file_id: str,
+                        right_file_id: str) -> str | None:
+    """Which family field, if either, these two file versions share a value in.
+
+    **Written because binding `duplicate_family` makes P9's `duplicate_or_version`
+    authority compulsory rather than optional.** `grouping.retrieval` opens its
+    `duplicate-or-version-link` channel off `family_facts`, which covers BOTH fields,
+    and `grouping.graph._edge_type` then RAISES `ConfigurationRequired` if it has no
+    authority to say which one an edge is: "the wrong answer puts two revisions of
+    one document into a group as two documents." Verified by running the product --
+    with the families bound and this unbound, a corpus holding one duplicate pair
+    stops the run.
+
+    **P6 answers with its OWN field key and never with P9's word.** P9 spells the two
+    verdicts in `grouping.vocabulary` (`DUPLICATE`, `VERSION_FAMILY`) and a copy of
+    either here would be a second home for one string. The composition root maps this
+    key onto that vocabulary, which is the one place allowed to know both.
+
+    `None` when they meet in neither, and that is not a defect: a caller obliged to
+    produce one of two words must be able to tell that neither is true, or P9's
+    refusal turns into P6's coin toss.
+
+    Duplicate wins a tie it cannot actually have. Identical hashes are excluded from
+    version families by `version_family` itself, so no pair can be in both; the order
+    states which claim would be the stronger one if that ever changed -- `direct`
+    byte identity over an injected rule's `possible`.
+    """
+    left = _family_values(conn, left_file_id)
+    right = _family_values(conn, right_file_id)
+    for field_key in (DUPLICATE_FAMILY_FIELD, VERSION_FAMILY_FIELD):
+        if left[field_key] & right[field_key]:
+            return field_key
+    return None
+
+
 def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                      perceptual_hash_label: str,
                      near_match: Callable[[str, str], bool]) -> tuple[str, ...]:
@@ -153,6 +210,34 @@ def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
     `perceptual_hash_label` and `near_match` are required with no default. §2.6 names
     the perceptual hash and states no distance metric and no threshold, so P6 holds
     neither; the label is P5's string and P6 holds no copy of it.
+
+    **The family is NAMED by its shared citations, never by the content hash.** The
+    header above already separates deciding from citing -- "the hash decides
+    membership and cannot be cited for it" -- and the name is a third thing again,
+    on the far side of a privacy line the other two never cross. §8.4 puts
+    `file_hashes` among the nine that never leave the device, and a fact's value is
+    RELEASABLE by design: `grouping.seeds` reads `family_facts` into its anchor rows
+    deliberately, so the value becomes a `Seed`, and from there
+    `grouping.naming.label_for` puts it on a group's display label and
+    `grouping.dossier` puts it in `key_facts`, which is the half of a candidate-group
+    dossier that reaches a model. None of those three is wrong and none of them is
+    P6's to change. What is P6's is not to hand them an always-local value.
+
+    So the name is `sha256_of(canonical_json(shared))` -- the fingerprint of the
+    citation set the members share -- which is the shape `_near_families` already
+    uses. Its decisive property is that it releases nothing new: every input is an
+    observation key, and observation keys already cross the wire as
+    `EvidenceItem.observation_key`. A digest of the content hash would NOT have that
+    property; it is a deterministic function of the bytes under a published
+    algorithm, so it confirms possession of a known file exactly as the hash does,
+    and renaming it would be a fig leaf rather than a fix.
+
+    **The cost, stated rather than hidden: this name is not stable across a change
+    in extraction coverage.** `shared` is the intersection of what was actually read,
+    so re-scanning with a reader that emits one more observation mints a second value
+    for the same family. The content hash would have been stable for ever. That is
+    the trade accepted here, and it is the same one `_near_families` accepted when it
+    named a near-family after the perceptual readings that happened to exist.
     """
     versions = _read(conn, file_ids)
     written: list[str] = []
@@ -161,7 +246,8 @@ def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
     for version in versions:
         by_hash.setdefault(version.content_hash, []).append(version)
 
-    for content_hash, members in sorted(by_hash.items()):
+    # `_hash` is the grouping key and NOT the family's name: see the docstring.
+    for _hash, members in sorted(by_hash.items()):
         if len(members) < 2:
             continue
         shared = sorted(frozenset.intersection(*(m.keys for m in members)))
@@ -174,7 +260,8 @@ def duplicate_family(conn: sqlite3.Connection, *, file_ids: Iterable[str],
                           if cite(one) in set(shared))
             written.append(_write_family(
                 conn, version=member, field_key=DUPLICATE_FAMILY_FIELD,
-                canonical_value=content_hash, reliability_state=DIRECT,
+                canonical_value=sha256_of(canonical_json(shared)),
+                reliability_state=DIRECT,
                 origin=DETERMINISTIC_EXTRACTOR, evidence_refs=tuple(shared),
                 cited=cited))
 
@@ -204,6 +291,15 @@ def _near_families(conn: sqlite3.Connection, *, versions: tuple[_Version, ...],
     carriers = {version.file_id: readings
                 for version in versions
                 if (readings := _perceptual(version, perceptual_hash_label))}
+    # The pair loop below is quadratic, and this is what bounds it: it enumerates
+    # PERCEPTUAL-HASH CARRIERS, never the roster. A corpus of 10,000 files with no
+    # perceptual hash in it does no work here at all -- which is today's case, since
+    # the wired `readers.image_headers` reader supplies none, measured 0 carriers on
+    # both real corpora. Returning early is not an optimisation of that; it is so
+    # that the bound is stated in the code rather than inferred from a dict
+    # comprehension by the next person who reads this for its cost.
+    if len(carriers) < 2:
+        return []
     parent = {file_id: file_id for file_id in carriers}
 
     def find(file_id: str) -> str:
