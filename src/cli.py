@@ -386,9 +386,23 @@ def _unranked(candidates: frozenset[str]) -> tuple[str, ...]:
 #: mapping gets a refusal naming it, never a tier it did not choose.
 TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
     # The one that becomes folder structure, and the one a person finds out about
-    # months later. `00` §3.6 already demands the model return `unknown` rather
-    # than guess, and the model most able to decline is the one worth paying for.
-    A_FACT: REASONING,
+    # months later. `83` §3 gave it REASONING, and measurement on the owner's own
+    # files took it back: on four real dossiers `deepseek-v4-pro` answered NONE of
+    # them -- `finish_reason == "length"`, the whole ceiling spent on reasoning,
+    # `content` empty, ~110 seconds each -- while a non-reasoning model answered all
+    # four in under five seconds with every claim cited and every unevidenced field
+    # returned as an insufficiency statement.
+    #
+    # `00` §3.6 demands the model return `unknown` rather than guess, and the model
+    # that actually did that is the cheaper one. The cause is `82`'s ratified line
+    # "Think for as long as you need to before you answer": a reasoning model sharing
+    # one budget between thinking and writing never starts writing. The template is
+    # the owner's, so this row is the end that moves.
+    #
+    # LOGIC and not FAST: A_fact is `83`'s own "bounded, checkable,
+    # verification-shaped" -- every claim is re-checked against extracted evidence --
+    # and it is not FAST's "low stakes, individually cheap to get wrong".
+    A_FACT: LOGIC,
     # Bounded, checkable, verification-shaped: each verdict is re-checked against
     # evidence already extracted, so a cheaper reasoner is not a risk.
     B_GROUP: LOGIC,
@@ -404,26 +418,22 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
 #: says so: `readers.model_deepseek` raises on `finish_reason == "length"` rather
 #: than returning half a document for P8 to reject on the model's behalf.
 #:
-#: **RAISED FROM 2048 TO 8192 ON 2026-09-04, MEASURED.** The first four real A_fact
-#: calls this product ever made all came back `CallFailed(client_raised,
-#: NoAnswerFromModel)`, and the reason was here rather than anywhere near the
-#: prompt: `83` routes A_fact to the REASONING tier, a reasoning model spends this
-#: ceiling on thinking before it writes anything, and the whole 2048 went to
-#: `reasoning_tokens` with `content` empty. Measured on the same dossier at 8192:
-#: 3,477 reasoning tokens, 56 tokens of answer, `finish_reason == "stop"`, and the
-#: answer was `work_type = "Syllabus"` cited to the document's own title.
+#: **RAISED FROM 2048 TO 8192, AND THE CEILING WAS NEVER THE FIX.** An earlier
+#: comment stood here claiming 8192 had been measured to solve the empty answers, on
+#: the strength of one call that returned `work_type = "Syllabus"`. Re-measured on
+#: four real dossiers built from the owner's own files, that result did not
+#: reproduce: at 8192 the reasoning tier returned `finish_reason == "length"`,
+#: `completion_tokens == 8192` and ZERO answer characters on four of four. Raising a
+#: shared thinking-and-writing budget buys a reasoning model more thinking, not an
+#: answer, and the correction is recorded here rather than quietly deleted.
 #:
-#: The refusal was working exactly as its comment says -- it named the ceiling and
-#: refused rather than validating half an answer -- and that is what made this
-#: findable at all. What it could not do was tell the difference between "the model
-#: had more to say" and "the model had not started saying anything yet", and the
-#: second is what a reasoning tier does by design.
+#: What fixed it is `TIER_OF_CALL_SITE` above -- the model, not the number.
 #:
-#: 8192 rather than the measured 3,533: a ceiling set at the one dossier that has
-#: been measured is a ceiling the next dossier fails. This is roughly twice it, and
-#: the ANSWER is bounded by the response schema at a claim per field -- so what the
-#: headroom buys is thinking room, which is what the ratified template asks for in
-#: its own words ("Think for as long as you need to before you answer").
+#: 8192 is kept because the value is now nearly free: a non-reasoning model is billed
+#: for what it writes, and the ANSWER is bounded by the response schema at a claim
+#: per field. The measured answers ran 522 to 2,961 characters, so the headroom is
+#: real and unspent. What the ceiling still buys is the refusal below it: a truncated
+#: answer is refused by name rather than validated in half.
 MAX_RESPONSE_TOKENS: int = 8192
 
 #: HOW LONG ONE MODEL CALL MAY TAKE BEFORE THE RUN GIVES UP ON IT, in seconds, and
@@ -441,7 +451,14 @@ MAX_RESPONSE_TOKENS: int = 8192
 #: reasoning tier that spends its budget thinking before it writes. Ninety is
 #: roughly five times the slowest observed answer -- long enough that a slow but
 #: healthy call is never cut off, short enough that a dead socket is not mistaken
-#: for patience. §8.6 bounds model SPEND and says nothing about a call that never
+#: for patience.
+#:
+#: **IT IS NOT A DEADLINE, AND THE DIFFERENCE IS MEASURED.** `httpx` applies this
+#: per read, not to the call as a whole, so a request that keeps trickling bytes
+#: outlives it: one observed call ran 109 seconds under this ninety. It bounds a
+#: SILENT socket, which is the failure that stopped the suite dead for ten minutes,
+#: and it does not bound a slow one. A total deadline is a different mechanism and
+#: is not built here. §8.6 bounds model SPEND and says nothing about a call that never
 #: returns, so this is not a budget ceiling and a call that hits it is not
 #: `budget_deferred`; it is a failed call, and P8 records it as one.
 MODEL_CALL_TIMEOUT_SECONDS: float = 90.0

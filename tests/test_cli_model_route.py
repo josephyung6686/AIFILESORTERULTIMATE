@@ -101,14 +101,17 @@ def test_the_file_supplies_what_the_environment_has_not(monkeypatch, tmp_path):
     routing, _ = _route(monkeypatch, {}, "\n".join(
         f"{name}={value}" for name, value in ENV.items()), tmp_path)
     assert routing is not None
-    assert routing.model_id_for(A_FACT) == "a-reasoner"
+    # A_fact resolves through the LOGIC name since the row moved; what is under
+    # test here is that the FILE supplied it, not which tier it came from.
+    assert routing.model_id_for(A_FACT) == "a-logician"
+    assert routing.model_id_for(D_RESIDUAL) == "a-sprinter"
 
 
 def test_an_exported_value_beats_the_file(monkeypatch, tmp_path):
     """A person who exports a key for one run means it for that run. A file that
     overrode them would send their files to a model they did not choose."""
     routing, _ = _route(
-        monkeypatch, {MODEL_NAME_OF_TIER[REASONING]: "the-one-i-typed"},
+        monkeypatch, {MODEL_NAME_OF_TIER[LOGIC]: "the-one-i-typed"},
         "\n".join(f"{name}={value}" for name, value in ENV.items()), tmp_path)
     assert routing.model_id_for(A_FACT) == "the-one-i-typed"
 
@@ -127,7 +130,9 @@ def test_quotes_and_spacing_are_read_the_way_env_files_are(monkeypatch, tmp_path
         f"{MODEL_NAME_OF_TIER[LOGIC]}=a-logician\n"
         f"{MODEL_NAME_OF_TIER[FAST]}=a-sprinter\n"), tmp_path)
     assert routing is not None
-    assert routing.model_id_for(A_FACT) == "a-reasoner"
+    # The quoted value is the REASONING one, and it is read back unquoted through
+    # the tier that still carries it rather than through A_fact, whose row moved.
+    assert routing.client_of_tier[REASONING].model_target.model_id == "a-reasoner"
     assert routing.model_id_for(C_PLACEMENT) == "a-logician"
 
 
@@ -163,11 +168,51 @@ def test_every_call_site_p8_publishes_is_routed_to_a_tier():
         A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE}
 
 
-def test_the_site_whose_errors_become_folders_gets_the_reasoning_tier():
-    """`83` §3: A_fact "is the one that becomes folder structure, and a person
-    finds out months later". If this row ever reads LOGIC or FAST, the tiering has
-    been inverted -- the cheap model would be answering the expensive question."""
-    assert cli.TIER_OF_CALL_SITE[A_FACT] == REASONING
+def test_the_site_whose_errors_become_folders_gets_the_checkable_tier():
+    """`83` §3 gave A_fact the REASONING tier, and MEASUREMENT ON REAL FILES TOOK IT
+    AWAY. This is the record of that, kept beside the row it changed.
+
+    The old rule read `A_FACT: REASONING` and this test defended it in these words:
+    "if this row ever reads LOGIC or FAST, the tiering has been inverted -- the cheap
+    model would be answering the expensive question". The premise was that the
+    expensive model answers the question better. It does not answer it at all.
+
+    Four real dossiers, built by this product from four of the owner's own files and
+    replayed against both tiers:
+
+      * `deepseek-v4-pro`, the REASONING tier: 0 of 4 produced any answer.
+        `finish_reason == "length"`, `completion_tokens == 8192`, `content` empty --
+        the whole ceiling went to reasoning and the model never began writing. ~110
+        seconds each, and two of the four never returned at all: the provider closes
+        an idle connection at sixty seconds.
+      * `deepseek-chat`, non-reasoning: 4 of 4 answered, in 1.8 to 4.7 seconds. Each
+        claim carried a citation into released evidence -- `subject = "PHYS 1401"`
+        cited to the document's own title, `authored_by = "Eric Raymer"` cited to the
+        PDF `Author` field -- and every field without evidence came back as an
+        `insufficiency_statement` rather than a guess.
+
+    THE DECLINE §3.6 ASKS FOR IS WHAT THE CHEAPER MODEL ACTUALLY DID. `83` §3 chose
+    the reasoning tier because "the model most able to decline is the one worth
+    paying for", and the model that declined honestly, field by field, is the one
+    that costs less.
+
+    **The cause is in the ratified template and cannot be fixed there.** `82`'s text
+    says "Think for as long as you need to before you answer". A reasoning model whose
+    budget is shared between thinking and answering takes that literally and spends
+    all of it. A non-reasoning model reads the same sentence harmlessly. The template
+    is the owner's and an agent may not edit it, so the tier is the end that moves.
+
+    LOGIC rather than FAST, because `83`'s own words for LOGIC are "bounded,
+    checkable, verification-shaped" and that is exactly what A_fact is: every claim
+    is re-checked against evidence already extracted, and an uncited claim is
+    refused. FAST is described as "low stakes, individually cheap to get wrong",
+    which A_fact is not.
+
+    Latency settles it even where accuracy might not. The owner's standing target is
+    ten thousand files in under thirty minutes. At ~110 seconds a file the reasoning
+    tier misses it by two orders of magnitude before a single answer is judged.
+    """
+    assert cli.TIER_OF_CALL_SITE[A_FACT] == LOGIC
     assert cli.TIER_OF_CALL_SITE[D_RESIDUAL] == FAST
     for checkable in (B_GROUP, C_PLACEMENT, E_TEMPLATE):
         assert cli.TIER_OF_CALL_SITE[checkable] == LOGIC

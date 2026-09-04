@@ -364,10 +364,25 @@ def test_the_notice_names_the_models_that_would_receive_the_files(
         corpus, monkeypatch):
     """A person told their files go to "an external provider" has been told less
     than a person told the name. `questions/proposal.py` makes the same argument
-    for the self-description notice."""
+    for the self-description notice.
+
+    IT NAMES THE MODELS A CALL SITE ACTUALLY ROUTES TO, and that is now two of the
+    three rather than all three. `TIER_OF_CALL_SITE` no longer sends any site to the
+    REASONING tier -- A_fact was the only one that did, and measurement on the
+    owner's real files moved it to LOGIC -- so a run configured with all three names
+    has a reasoning model that nothing can reach.
+
+    Naming it anyway would be the same untruth `WIRED_CALL_SITES` was made a set to
+    stop telling: a person reading this notice is deciding what may leave their
+    machine, and a model listed there that no route reaches makes the decision look
+    larger than it is. The negative assertion is the point of the test, so it is
+    asserted and not merely implied by dropping the name from the loop.
+    """
     _, printed = _run(corpus, "--enable-cloud", monkeypatch=monkeypatch, env=ENV)
-    for model_id in ("a-reasoner", "a-logician", "a-sprinter"):
+    for model_id in ("a-logician", "a-sprinter"):
         assert model_id in printed
+    assert "a-reasoner" not in printed, (
+        "the notice names a model no call site routes to:\n" + printed)
 
 
 def test_the_notice_says_protected_material_is_not_among_them(corpus, monkeypatch):
