@@ -58,6 +58,40 @@ A_FACT_TEMPLATE_SHA256: str = (
     "e4fe6d12c27e701ca9e55f51fb4125d68c573659649687fd570c84c790b2ae10")
 
 
+#: The response schema and the shaping policy the A_fact dossier carries beside the
+#: template. `PromptDefinition` refuses an empty one of either
+#: (`llm_harness/records.py:89`), and until 2026-09-03 neither existed anywhere in
+#: `src/` -- so the ratified template could not be turned into a `PromptDefinition`
+#: at all, and the one call site the owner ratified a prompt for could not be built.
+#:
+#: **THESE TWO ARE NOT RATIFIED AND THIS COMMENT IS WHERE THAT IS SAID.** The
+#: template is the owner's, recorded at `planning/82-FACT-PROMPT-DRAFT.md` §0. These
+#: are an agent's reading of what that template already asks the model for, written
+#: so the ratified text could be used: the schema is `82`'s THE SHAPE and THE RULES
+#: in JSON Schema, and the policy is a description of the shaping this deployment
+#: actually does, in the terms the template's own paragraph about the dossier uses.
+#: Neither adds an instruction the template does not give. Both are model-visible --
+#: `dossier._body` writes them into the bytes under `response_schema` and
+#: `shaping_policy` -- so they are the owner's to read and to change.
+#:
+#: They are digest-pinned for the same reason the template is, and NOT because a
+#: digest confers ratification: `prompt_fingerprint` hashes both
+#: (`llm_harness/fingerprint.py:43`), so one changed character is a different prompt
+#: and every fact row already written under the old fingerprint points at text that
+#: would no longer exist. The pin makes an edit loud.
+A_FACT_RESPONSE_SCHEMA_FILE = (
+    Path(__file__).resolve().parent / "library" / "a_fact_response_schema.json")
+
+A_FACT_RESPONSE_SCHEMA_SHA256: str = (
+    "3412b6f728374643c8d12453035f9ed00aa0a9e93fb9badb2c2bbea630fa72b4")
+
+A_FACT_SHAPING_POLICY_FILE = (
+    Path(__file__).resolve().parent / "library" / "a_fact_shaping_policy.json")
+
+A_FACT_SHAPING_POLICY_SHA256: str = (
+    "d0076055bacaac330935f405b089b9fdac4a431239f7a017503fa443ecc15bdb")
+
+
 class RatifiedTextMissing(RuntimeError):
     """A ratified prompt file is not on disk. This package ships no default text."""
 
@@ -93,3 +127,15 @@ def _read(path: Path, expected_sha256: str) -> bytes:
 def a_fact_template_bytes() -> bytes:
     """The ratified A_fact template, verified against its digest on first read."""
     return _read(A_FACT_TEMPLATE_FILE, A_FACT_TEMPLATE_SHA256)
+
+
+@lru_cache(maxsize=1)
+def a_fact_response_schema_bytes() -> bytes:
+    """The A_fact response schema, verified against its digest on first read."""
+    return _read(A_FACT_RESPONSE_SCHEMA_FILE, A_FACT_RESPONSE_SCHEMA_SHA256)
+
+
+@lru_cache(maxsize=1)
+def a_fact_shaping_policy_bytes() -> bytes:
+    """The A_fact shaping policy, verified against its digest on first read."""
+    return _read(A_FACT_SHAPING_POLICY_FILE, A_FACT_SHAPING_POLICY_SHA256)

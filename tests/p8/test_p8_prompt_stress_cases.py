@@ -636,6 +636,13 @@ def test_s1_check_three_bounds_a_field_that_has_a_slot_and_only_that_field(
     deployment has not authored, not a check somebody forgot.
     """
     assert normalize_for_model("subject", DEFAULT_RELEASED) is None
+    # WARNING TO WHOEVER LANDS THE OWNER'S 2026-09-04 RULING (`subject` accepts a
+    # written course NAME as well as a code): THIS LINE IS THE ONE THAT BREAKS, and
+    # it should. Under that ruling a value carrying no identifier is a name and is
+    # accepted, so `'a' * 300` becomes `'a' * 300` and R11 narrows again to "enforced
+    # where an identifier is present". `82` §3 has to move with it. The line above
+    # does NOT break: `PHYS1401 Problem Set 4` carries an identifier and over-quotes
+    # it, which is what rule 4 refuses and what keeps S1 machine-defended.
     assert normalize_for_model("subject", "a" * 300) is None
     # And the twin: the value the same released line was quoted FROM still passes,
     # in either spelling, because refusing everything would be the other way to be

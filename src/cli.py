@@ -45,6 +45,7 @@ import sys
 import uuid
 import textwrap
 import unicodedata
+from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePosixPath
 from types import MappingProxyType
@@ -55,6 +56,7 @@ from database_agent.cloud_consent import (
     DISABLED, ENABLED, CloudConsent, cloud_consent_for, record_cloud_consent,
 )
 from database_agent.db import DatabaseInsideCorpus, open_database
+from database_agent.files_table import get_file
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
 from extractors.safety import SafetyPolicy
@@ -65,7 +67,9 @@ from facts.dates import (
 from facts.direct import DirectSlot, DirectSlots, direct_facts
 from facts.discount import MetadataScreen
 from facts.learning import NoSuchClaim, reject_claim
-from facts.resolver import FactResolver
+from facts.domains import ActivationSignal, ActivationSignals
+from facts.budgets import LLM_ROUTE
+from facts.resolver import PRIVACY_BAR, FactResolver
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from grouping.acceptance import group_state_as_of, record_acceptance
@@ -82,7 +86,12 @@ from grouping.store import (
 from grouping.vocabulary import (
     ACCEPTED, COHERENT, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES, USER_EDITED,
 )
-from llm_harness.budgets import create_budget_schema
+from llm_harness.budgets import ScanBudget, create_budget_schema
+from llm_harness.prompt_library import (
+    a_fact_response_schema_bytes, a_fact_shaping_policy_bytes,
+    a_fact_template_bytes,
+)
+from llm_harness.records import PromptDefinition
 from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE,
@@ -94,7 +103,10 @@ from placement.pipeline import (
 )
 from placement.residual import ProtectedSetNotReadable, prior_set_decisions
 from placement.schema import create_placement_schema
+from model_facts import FactCallAuthorities, fact_call_stage, pending_fields_for
+from privacy.classification import UNREADABLE_UNCLASSIFIED, resolve_class
 from privacy.classification_store import ClassificationStore
+from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
@@ -132,7 +144,7 @@ from questions.triggers import (
 from questions.vocabulary import CONFIRMED, REVOKED, SCOPE_BRANCH, SKIPPED
 from production import (
     CorpusAuthorities, CorpusDecisions, P1P7Authorities, ProductionRun,
-    bootstrap_p1_p7, load_shipped_catalogue, nearest_situations,
+    bootstrap_p1_p7, corpus_roster, load_shipped_catalogue, nearest_situations,
     read_packaged_library_file, schema_for_situation, shipped_situations,
     run_production_corpus,
 )
@@ -391,49 +403,129 @@ TIER_OF_CALL_SITE: Mapping[str, str] = MappingProxyType({
 #: so this is this deployment's. The cost of it being too small is a REFUSAL that
 #: says so: `readers.model_deepseek` raises on `finish_reason == "length"` rather
 #: than returning half a document for P8 to reject on the model's behalf.
-MAX_RESPONSE_TOKENS: int = 2048
+#:
+#: **RAISED FROM 2048 TO 8192 ON 2026-09-04, MEASURED.** The first four real A_fact
+#: calls this product ever made all came back `CallFailed(client_raised,
+#: NoAnswerFromModel)`, and the reason was here rather than anywhere near the
+#: prompt: `83` routes A_fact to the REASONING tier, a reasoning model spends this
+#: ceiling on thinking before it writes anything, and the whole 2048 went to
+#: `reasoning_tokens` with `content` empty. Measured on the same dossier at 8192:
+#: 3,477 reasoning tokens, 56 tokens of answer, `finish_reason == "stop"`, and the
+#: answer was `work_type = "Syllabus"` cited to the document's own title.
+#:
+#: The refusal was working exactly as its comment says -- it named the ceiling and
+#: refused rather than validating half an answer -- and that is what made this
+#: findable at all. What it could not do was tell the difference between "the model
+#: had more to say" and "the model had not started saying anything yet", and the
+#: second is what a reasoning tier does by design.
+#:
+#: 8192 rather than the measured 3,533: a ceiling set at the one dossier that has
+#: been measured is a ceiling the next dossier fails. This is roughly twice it, and
+#: the ANSWER is bounded by the response schema at a claim per field -- so what the
+#: headroom buys is thinking room, which is what the ratified template asks for in
+#: its own words ("Think for as long as you need to before you answer").
+MAX_RESPONSE_TOKENS: int = 8192
 
 #: HOW LONG ONE MODEL CALL MAY TAKE BEFORE THE RUN GIVES UP ON IT, in seconds, and
-#: the only place the number is chosen -- `deepseek_invoke` refuses to be built
+#: the only place the number is chosen. `deepseek_invoke` refuses to be built
 #: without one.
 #:
 #: WHY IT EXISTS. The transport built its client with no timeout and no retry
 #: ceiling, and the library's own defaults are ten minutes PER ATTEMPT with retries
-#: on top. Measured the day the A_fact site was first wired: the whole test suite
-#: stopped dead for ten minutes with no output, twice, and could not be run at all.
-#: In a person's ten-thousand-file scan the same silence is a run that never ends.
+#: on top. Measured: the first time a real client reached a `--enable-cloud` test,
+#: the whole suite stopped dead for ten minutes with no output -- twice. In a
+#: person's ten-thousand-file scan the same silence is a run that never finishes.
 #:
 #: WHY NINETY. Measured against the live API on this owner's account: a ten-file
-#: batch answered in 3.4 seconds on a non-reasoning model and 16.5 seconds on a
-#: reasoning tier that spends its budget thinking before it writes. Ninety is about
-#: five times the slowest answer observed -- long enough that a slow but healthy
-#: call is never cut off, short enough that a dead socket is not mistaken for
-#: patience. §8.6 bounds model SPEND and says nothing about a call that never
+#: batch answered in 3.4 seconds on `deepseek-chat`, and 16.5 seconds on a
+#: reasoning tier that spends its budget thinking before it writes. Ninety is
+#: roughly five times the slowest observed answer -- long enough that a slow but
+#: healthy call is never cut off, short enough that a dead socket is not mistaken
+#: for patience. §8.6 bounds model SPEND and says nothing about a call that never
 #: returns, so this is not a budget ceiling and a call that hits it is not
-#: `budget_deferred`: it is a failed call, and P8 records it as one.
+#: `budget_deferred`; it is a failed call, and P8 records it as one.
 MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
 
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
 ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
 
-#: Whether any call site in this run can actually reach a model.
+#: WHICH call sites in this run can actually reach a model. A SET, since 2026-09-03,
+#: and the shape is the correction.
 #:
 #: A ROUTE IS NOT A CALL SITE, and conflating them put an untruth on the one screen
 #: that must not carry one. `model_route` builds a client and this file announced
 #: that files "may be sent to" three named models -- while `p8_run_call`,
-#: `model_client`, `gate`, `prompt` and `call_dependencies` are `None` at every
-#: injection point below, so nothing in `src/` can construct a model request at all.
-#: A person who read that sentence and turned sending off was acting on a fear the
-#: product had given them about something that could not happen; a person who read
-#: it and left it on believed they had been told the truth about their files.
+#: `model_client`, `gate`, `prompt` and `call_dependencies` were `None` at every
+#: injection point below, so nothing in `src/` could construct a model request at
+#: all. A person who read that sentence and turned sending off was acting on a fear
+#: the product had given them about something that could not happen; a person who
+#: read it and left it on believed they had been told the truth about their files.
 #:
-#: FALSE until the sites are wired AND a prompt is ratified. `run_call` refuses
+#: A BOOLEAN WOULD NOW TELL THE SAME KIND OF UNTRUTH FROM THE OTHER SIDE. `A_fact`
+#: is wired -- `_fact_call_authorities` builds the gate, the client, the ratified
+#: prompt and the dependencies, and `model_facts.fact_call_stage` runs them as P6's
+#: third producer. `C_placement` and `D_residual` are NOT: `placement_inputs` below
+#: still passes `gate=None, model_client=None, prompt=None, call_dependencies=None`,
+#: and `p8_run_call=None, p8_authorities=None` still go to P9. One flag that said
+#: "wired" would have made the announcement claim a person's files may be sent for
+#: checks and review sets, which is exactly as false as the sentence it replaced.
+#: So the set is what is true, and `announce_cloud_posture` reads it per site.
+#:
+#: A SITE IS IN HERE ONLY WHEN A PROMPT IS RATIFIED FOR IT TOO. `run_call` refuses
 #: without a `PromptDefinition` (`llm_harness/records.py:89`), so a route plus a key
-#: plus a wired site still sends nothing until the owner ratifies one -- which means
-#: flipping this on the strength of the wiring alone would restore the same untruth
-#: one step later. `tests/integration/test_cli_cloud_announcement.py` asserts this
+#: plus a wired site still sends nothing until there is text to send -- which means
+#: adding a member on the strength of the wiring alone would restore the same
+#: untruth one step later. `A_fact` qualifies: `planning/82-FACT-PROMPT-DRAFT.md` §0
+#: records the owner's ratification and `llm_harness.prompt_library` holds the
+#: bytes. `tests/integration/test_cli_cloud_announcement.py` asserts this set
 #: against the injections themselves, so it cannot drift from what is true.
-MODEL_CALL_SITES_WIRED: bool = False
+WIRED_CALL_SITES: frozenset[str] = frozenset({A_FACT})
+
+#: Whether ANY site can reach a model. Derived, never written: two spellings of one
+#: fact is how the announcement got out of step with the code the first time.
+MODEL_CALL_SITES_WIRED: bool = bool(WIRED_CALL_SITES)
+
+#: How many of a file's observations may be offered to the A_fact call, and the only
+#: place the NUMBER is chosen. §8.4 asks for "a compact dossier ... selected
+#: excerpts", states no count, and `model_facts.releasable_observations` takes the
+#: cap with no default.
+#:
+#: TWELVE, and the cost of each direction is real. Too few and the model is shown a
+#: title and three metadata fields and honestly declines every field -- which is a
+#: call paid for and a fact not gained. Too many and §8.4's "data-minimizing" stops
+#: meaning anything: every additional excerpt is more of a person's document at a
+#: provider, and the response ceiling (`MAX_RESPONSE_TOKENS`) is fixed, so past some
+#: point the extra evidence only crowds out the answer. Twelve is the count at which
+#: a real coursework PDF's title, its page-one heading, its PDF metadata and a few
+#: body readings all fit, measured on the owner's own Downloads.
+FACT_CALL_MAX_RELEASED_OBSERVATIONS: int = 12
+
+#: §8.6's spend ceilings for the fact pass, as a `ScanBudget`. `00` names them and
+#: states no values.
+#:
+#: ONE CALL PER FILE is the shape of site A -- a fact is about a file -- so the rate
+#: is a thousand per thousand files rather than a number that would silently make
+#: most of a corpus unaskable. The FLOOR matters more than it looks: a rate per
+#: thousand floors to zero on any corpus smaller than `1000 / rate`, and a wired
+#: model that abstains on everything is indistinguishable from a model nobody wired.
+FACT_CALLS_PER_1000_FILES: int = 1000
+FACT_MIN_CALLS_PER_SCAN: int = 1
+
+#: What one A_fact call is charged, and what it settles for. THIS DEPLOYMENT
+#: MEASURES NEITHER A TOKEN NOR A PRICE: `readers.model_deepseek` returns no usage
+#: figures, so a number here pretending to be dollars would be one nobody could
+#: check. It is a UNIT -- one call costs one -- which makes the ceiling below a
+#: count of calls in the same units as the rate above, and leaves the real
+#: accounting owed rather than faked. `ScanBudget` takes both with no default and
+#: reads nothing from P1's ceiling store, so this is the only place they are chosen.
+FACT_CALL_COST: Decimal = Decimal("1")
+
+#: The most calls one scan may make, whatever the rate works out to. Two hundred is
+#: a bound on a first real run rather than an optimisation of one: it is more than
+#: the folders `00`:20 describes a person naming, and small enough that a
+#: misconfigured run costs a person a bounded amount of money before they see the
+#: count printed at the end of it.
+FACT_CALLS_PER_SCAN_CEILING: Decimal = Decimal("200")
 
 #: §8.6's page cap for PDFs, and the only place the NUMBER is chosen. `pdfminer_reader`
 #: takes `max_pages=None` -- read everything -- and this file hands it a ceiling
@@ -587,15 +679,16 @@ def model_route(*, out) -> TierRouting | None:
 
     # THE ENVIRONMENT MAY WITHHOLD THE KEY, and until now it could not. `ENV_FILE`
     # is the repository's own `.env`, read unconditionally, so a process that set
-    # no credential still got one -- including every test in this suite. Measured
-    # the day the A_fact site was first wired: a `--enable-cloud` test found a real
-    # key, built a real client, called a paid API, and stopped the suite for ten
-    # minutes with no output.
+    # no credential still got one -- including every test in this suite. Measured:
+    # `test_a_second_source_does_not_send_under_the_first_ones_consent` passes
+    # `--enable-cloud`, found a real key, built a real client and made a real call
+    # to a paid API; the run stopped for ten minutes with no output, twice, and the
+    # whole suite became unrunnable the moment the A_fact site was wired.
     #
     # A test that spends the owner's money is a defect whatever it asserts, and a
     # deployment with no way to say "not this run" has no way to be tested at all.
-    # `GRAPH_AGENT_NO_DOTENV` is that way. The environment still wins over the file
-    # when it is not set, which is unchanged.
+    # `GRAPH_AGENT_NO_DOTENV` is that way: set it and the file is not read. The
+    # environment still wins over the file when it is not set, which is unchanged.
     supplied = ({} if environ.get("GRAPH_AGENT_NO_DOTENV")
                 else _dotenv(ENV_FILE))
 
@@ -720,13 +813,25 @@ def announce_cloud_posture(routing: TierRouting | None,
                 f"changes. Sending stays ON for this folder until you turn it off "
                 f"with:", indent="  "), file=out)
         else:
+            # PER SITE, because only one of the three is wired. `A_fact` can send
+            # and the other two cannot, and a sentence that named all three as
+            # recipients would frighten a person about two things that cannot
+            # happen -- the same untruth `WIRED_CALL_SITES` replaced, inverted.
+            # Every model is still NAMED, including the two that will not be
+            # asked: a person deciding today is deciding about tomorrow's runs,
+            # and "an external provider" tells them less than a name does.
             print(_wrapped(
-                f"Files that need a judgement may be sent to "
-                f"{routing.model_id_for(A_FACT)} (facts), "
-                f"{routing.model_id_for(C_PLACEMENT)} (checks) and "
-                f"{routing.model_id_for(D_RESIDUAL)} (review sets). Protected "
-                f"material and §8.4's always-local kinds are refused by P7 and "
-                f"are not among them. Turn it off with:", indent="  "), file=out)
+                f"Files that need a FACT judgement -- what course, what school, "
+                f"what kind of document -- may be sent to "
+                f"{routing.model_id_for(A_FACT)}. That is the only question this "
+                f"run can ask a model. {routing.model_id_for(C_PLACEMENT)} "
+                f"(checks) and {routing.model_id_for(D_RESIDUAL)} (review sets) "
+                f"are configured and no part of this run can reach them yet, so "
+                f"nothing goes to either. Protected material and §8.4's "
+                f"always-local kinds -- your paths, your filenames, whole "
+                f"documents -- are refused by P7 and are not among what is sent. "
+                f"Sending stays ON for this folder until you turn it off with:",
+                indent="  "), file=out)
         print(_turn_off_line(corpus_root, *other_sources), file=out)
         return
     if routing is None:
@@ -744,9 +849,20 @@ def announce_cloud_posture(routing: TierRouting | None,
     # consent one rather than replacing it, because a person who turns sending on
     # tomorrow needs to know that today's quiet had two causes and only one of
     # them was their choice.
-    unwired = ("" if MODEL_CALL_SITES_WIRED else
-               " No part of this run can call a model yet either, so turning "
-               "sending on today would still send nothing.")
+    # WHAT TURNING IT ON WOULD DO. While nothing was wired this sentence could only
+    # say "still nothing", and a notice that gives only the consent reason lets a
+    # person believe turning it on tomorrow changes something about today. Now that
+    # `A_fact` is wired the answer is a real one -- and it names the ONE question
+    # that can be asked, because a person deciding needs the size of the thing they
+    # would be turning on, not the number of models that happen to be configured.
+    unwired = (
+        f" If you turned it on, files whose fields this device could not settle "
+        f"would be sent to {routing.model_id_for(A_FACT)} to be asked what course, "
+        f"what school or what kind of document they are -- and to no other model: "
+        f"the checks and the review sets are not wired to anything yet."
+        if MODEL_CALL_SITES_WIRED else
+        " No part of this run can call a model yet either, so turning "
+        "sending on today would still send nothing.")
     print(_wrapped(
         f"None of them will be asked on this run. Cloud sending is off for this "
         f"folder, which is what happens by not choosing -- this run operates "
@@ -1384,6 +1500,228 @@ def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
         screen_metadata=lambda conn, file_id, content_hash: ())
 
 
+def a_fact_prompt() -> PromptDefinition:
+    """The one prompt this deployment may send at site A. Composed HERE, not in P8.
+
+    `llm_harness.prompt_library` holds the bytes and verifies them against their
+    digests; it "picks no `template_id`, no `call_site_version`, no tier and no
+    model; those are the composition root's". These are the composition root's.
+
+    `template_id` names the ratification rather than the file, because that is what
+    a record pointing at it needs to mean: `planning/82-FACT-PROMPT-DRAFT.md` §0
+    records the owner ratifying this text on 2026-09-02, and a revision is a new
+    file with a new id beside this one rather than an edit to either.
+    """
+    return PromptDefinition(
+        template_id="a_fact.ratified.2026-09-02",
+        template_bytes=a_fact_template_bytes(),
+        response_schema_bytes=a_fact_response_schema_bytes(),
+        call_site=A_FACT,
+        call_site_version="1",
+        shaping_policy_bytes=a_fact_shaping_policy_bytes())
+
+
+def model_route_permitted(conn: sqlite3.Connection):
+    """§8.4 as `FactResolver` asks it: may THIS file's route reach a model at all?
+
+    Two files never may, and the resolver's own docstring says why the answer
+    belongs here rather than at the door: "a handling class that forbids the model
+    route is a PROHIBITION, and a file that may never reach a model is not a file
+    waiting for budget to free up. Reporting it as a deferral would promise work
+    that will never be done." A `False` here writes an `unresolved` row per pending
+    field reading `privacy_withheld`, spends no budget, and mints no release.
+
+    * **Unclassified.** `resolve_class(None)` is `unreadable_unclassified` and
+      `privacy.denial.unclassified_denies` refuses every cloud release of one
+      unconditionally. This is the common case on a real folder and it is not a
+      defect in the gate: measured on the owner's own 54-file slice, the safety
+      detector reached a verdict about 9 files and abstained on 45, so 45 files
+      have no classification and no route. The remedy the design already has is
+      the person's -- `Detector` takes `settled_by_user` and P15's `--answer`
+      feeds it -- and whether a file the detector examined and did not flag should
+      instead be `personal_non_sensitive` is a decision with a test standing on it
+      (`tests/test_cli.py::test_the_cli_does_not_invent_a_classification...`), so
+      it is NOT taken here.
+    * **Protected.** §8.4 keeps protected material out of cloud prompts by default,
+      and this deployment runs `hybrid`, under which `protected_cloud_denies`
+      refuses it with no carve-out at all. Barred here so the refusal is recorded
+      against the file rather than discovered at the door -- the same posture
+      `placement_inputs` takes when it abstains rather than asking.
+    """
+    store = ClassificationStore(conn)
+
+    def permitted(file_id: str) -> bool:
+        row = get_file(conn, file_id)
+        if row is None:
+            return False
+        record = store.current(file_id, row["content_hash"])
+        if resolve_class(record) == UNREADABLE_UNCLASSIFIED:
+            return False
+        return not record.protected
+
+    return permitted
+
+
+def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
+                          scan_run_id: str, corpus_file_count: int,
+                          policy_version: str, wire_handle_key: bytes,
+                          schema: str, user_id: str, now,
+                          on_result=None) -> FactCallAuthorities:
+    """Everything one A_fact call needs, chosen here and nowhere else.
+
+    `model_facts` authors none of these and P8 authors none of them either. The two
+    that are this deployment's answer to a question both parts filed back to the
+    other are `normalize_for_model` and `contradicts_stronger` (C-5); the rest are
+    numbers, a clock, a key and a client.
+
+    **The activation signal is the SITUATION the person named.** `active_field_
+    allowlist` is §3.5's closed vocabulary and it is empty beyond the six universal
+    fields unless a domain schema activates. P6 authors no signal -- "Which evidence
+    activates which domain is unauthored" -- and this command already asked the
+    person which situation they are in and resolved it to a schema through the
+    template library. Answering `True` for that one schema is the same answer P9's
+    `signal_evaluator_for` already gives, from the same source, and it is the
+    difference between offering the model `school`, `instructor`, `work_type` and
+    offering it `file_type` and `language`.
+
+    **The gate's span classifier declines**, and that is the honest binding rather
+    than a stub. P7's SPEC files identifier classes and the redaction transform
+    under *Deferred* and nothing in `src/` classifies a span into one, so a
+    classifier that claimed to would be inventing the vocabulary §8.4 says P7 does
+    not own. What holds the always-local set is not that function: it is
+    `releasable_observations`' zone and whole-document exclusions, P5's
+    `sensitive_observation_keys`, the file-level bar above, and the gate's own
+    `_precheck_items`.
+    """
+    return FactCallAuthorities(
+        gate=Gate(
+            conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
+            classifier=lambda value, *, context_before=None, context_after=None: None,
+            transform=lambda value, *, identifier_class: "[redacted]",
+            # §8.4's Open question 5, answered `False`: an unclassified file is one
+            # nothing has read successfully, and this deployment does not ask a
+            # model about a file it could not read.
+            unclassified_permits_local=False,
+            # Open question 3 -- what a "corpus area" is -- is unanswered, so the
+            # scope is the SCAN. It is internal, it never leaves the device, and it
+            # is the one boundary this run can name truthfully.
+            scope_for=lambda file_id: scan_run_id,
+            files_in_scope=lambda scope: tuple(
+                file_id for file_id, _hash in corpus_roster(conn, scan_run_id)),
+            component_version=COMPONENT_VERSION, now=now, user_id=user_id),
+        model_client=routing.client_for(A_FACT),
+        prompt=a_fact_prompt(),
+        # The SAME target the client is pointed at, read off the client rather than
+        # built beside it: two values here would let the gate decide about one
+        # destination while the bytes went to another.
+        model_target=routing.client_for(A_FACT).model_target,
+        activation_signals=ActivationSignals(signals=(
+            ActivationSignal(schema_id=schema, activates=lambda facts: True),)),
+        # §3.6 check 3's per-field alias tables are a Deferred row and this
+        # deployment authors none, so the mapping is empty and `normalize_for_model`
+        # below is what actually canonicalises. Injected empty rather than omitted:
+        # `FactRequest` carries it and a caller that skipped it would be choosing
+        # for P6.
+        normalizers={},
+        normalize=normalize_for_model,
+        contradicts=contradicts_stronger,
+        evidence_resolver=_stored_value_of(conn),
+        scan_budget=ScanBudget(
+            scan_id=scan_run_id, corpus_file_count=corpus_file_count,
+            max_calls_per_1000_files=FACT_CALLS_PER_1000_FILES,
+            max_estimated_cost=FACT_CALLS_PER_SCAN_CEILING,
+            min_calls_per_scan=FACT_MIN_CALLS_PER_SCAN),
+        estimated_cost=FACT_CALL_COST, actual_cost=FACT_CALL_COST,
+        policy_version=policy_version,
+        wire_handle_key=wire_handle_key,
+        max_released_observations=FACT_CALL_MAX_RELEASED_OBSERVATIONS,
+        max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens,
+        observed_at=now,
+        on_result=on_result)
+
+
+def _stored_value_of(conn: sqlite3.Connection):
+    """§3.6 check 2's coarse half: does this citation handle still resolve at all?
+
+    `None` is an answer -- `validation._check_citation` reads it as
+    `CITATION_NOT_FOUND` -- and it is never the SPAN-matching source: the model was
+    shown P7's released (possibly redacted) value, and matching a quotation against
+    the raw stored text would accept one the model could not have read.
+    """
+    def resolve(observation_key: str) -> str | None:
+        row = conn.execute(
+            "SELECT raw_value FROM evidence WHERE observation_key = ? "
+            "AND superseded_by IS NULL", (observation_key,)).fetchone()
+        return None if row is None else row["raw_value"]
+
+    return resolve
+
+
+def model_fact_resolver(conn: sqlite3.Connection, *,
+                        authorities: FactCallAuthorities) -> FactResolver:
+    """P6 again, with ONLY the model producer. A second pass, and deliberately so.
+
+    **Why it is not the `llm` stage of the resolver P1-P7 already runs.** Two
+    things the gate requires do not exist yet at that point in the run, and neither
+    is a detail:
+
+    * `orchestrator.run_p1_p7` calls `classify` AFTER `resolve_native` for the same
+      file, in the same loop, so during the first pass EVERY file is unclassified
+      and every cloud release would be `Denied(unclassified)`.
+    * `set_privacy_policy` is a `CorpusDecisions` callback and
+      `run_production_p8_p11` calls it after the tree is designed --
+      `production.py:733` -- so during the first pass `current_policy` returns
+      `None` and `Gate.release` raises `NoPolicyInForce` rather than deciding.
+
+    So the model pass runs where both are true: after P7 has classified and after a
+    policy is in force, and before P9 groups -- which it must be, because a fact
+    that arrives after grouping is a fact no group could form on.
+
+    `record_pass` records NOTHING, and the reason is at the argument itself: a
+    `fact_passes` row is a claim about EXTRACTION coverage, and this pass reads no
+    bytes.
+    """
+    return FactResolver(
+        stages={"direct": None, "rule": None,
+                "llm": fact_call_stage(authorities)},
+        # WHAT THE BARRED ROUTE WOULD HAVE ATTEMPTED. `_write_bars` writes one
+        # `unresolved` row per pending field when the privacy or budget bar fires,
+        # and `()` here -- which is what the deterministic resolvers pass, because
+        # neither of their stages is ceiling-gated -- would write none of them and
+        # leave a withheld file looking like a file with nothing to say.
+        pending_fields=lambda db, file_id, content_hash: pending_fields_for(
+            db, file_id=file_id, content_hash=content_hash,
+            activation_signals=authorities.activation_signals),
+        # `ScanBudget` is P8's ceiling and `reserve_call` enforces it inside
+        # `run_call`, which is where the reservation and the settlement live. A
+        # second budget read here would be a second answer to one question, and the
+        # bar it writes -- `budget_deferred` -- would then describe a deferral P8
+        # never made.
+        budget_exhausted=lambda ceiling: False,
+        model_route_permitted=model_route_permitted(conn),
+        # NOTHING IS RECORDED, and `"llm"` being a member of P4's `ANALYSIS_TIERS`
+        # is exactly why the temptation had to be refused. `facts.usable` publishes
+        # one reader of that table and it asks two questions: `no_usable_facts`
+        # RAISES when `passes_for` is empty, on the ground that §2.2's verdict "is
+        # defined only after that pass has completed"; `targeted_ocr_needed` then
+        # asks whether any recorded pass covered `ocr`. A row reading `{llm}` is a
+        # true statement about this pass and a false answer to the first question:
+        # it says a pass completed for this version when no extractor has read a
+        # byte of it, so a file whose deterministic pass never ran would stop
+        # raising and start answering. Today the ordering hides that -- this
+        # resolver runs after P1-P7 has recorded a native pass for every file -- and
+        # a guard that is correct only because of where it is called is the kind
+        # this project has paid for. The model pass reads no bytes and covers no
+        # extraction tier, so it records no coverage.
+        record_pass=lambda db, file_id, content_hash: None,
+        cache_key_for=lambda file_id, content_hash: f"cli-llm-v1:{content_hash}",
+        # §2.2's suppression already fired in the pass that read the bytes, and
+        # `screen_metadata` is not idempotent-by-nature: it writes an `unresolved`
+        # row. Running it twice would accuse this file of a second refusal it did
+        # not receive.
+        screen_metadata=lambda db, file_id, content_hash: ())
+
+
 def _mime_type_for(path: Path) -> str | None:
     import mimetypes
 
@@ -1925,6 +2263,48 @@ def _identifier_observations(conn: sqlite3.Connection, file_id: str,
         if json.loads(row[1]).get("text_span") is not None)
 
 
+def _print_fact_pass(*, asked: int, written: int, withheld: int, files: int,
+                     outcomes: Sequence[tuple[str, object]], model_id: str,
+                     out) -> None:
+    """What the model pass actually did, in counts a person can check.
+
+    **The withheld count is the line that earns this block.** On a real folder most
+    files reach `model_route_permitted` with no classification and are never asked
+    -- 45 of 54 on the owner's own measured slice -- and without this sentence the
+    report reads as a model having nothing to say about them. It is a fact about
+    THIS PRODUCT'S detector and about a decision that is still open, not a fact
+    about their files, and the standing rule is that what was skipped is counted and
+    named rather than silently omitted.
+
+    **Every other outcome is named too, by its own reason.** A refused release, a
+    call that failed, an abstention and a validation that could not run are four
+    different things that all look like "no fact" from the outside, and collapsing
+    them into one number is how a person reads a broken key as an unhelpful model.
+    """
+    if not files:
+        return
+    kinds: dict[str, int] = {}
+    for _file_id, result in outcomes:
+        kinds[type(result).__name__] = kinds.get(type(result).__name__, 0) + 1
+    print(f"\nFacts from a model: {written} written, from {asked} "
+          f"{'file' if asked == 1 else 'files'} sent to {model_id}.", file=out)
+    if withheld:
+        print(_wrapped(
+            f"{withheld} of {files} files were not sent, and were not skipped "
+            f"quietly: nothing has classified them, and §8.4 makes a handling "
+            f"class a precondition of asking a model about a file. Each one has "
+            f"an `unresolved` row per open field saying `privacy_withheld`, so "
+            f"none of them is recorded as a file with nothing to say. This is "
+            f"about the detector, not about your files.", indent="  "), file=out)
+    named = {"Refusal": "the gate refused the release",
+             "CallFailed": "the call did not come back",
+             "ValidationUnavailable": "something the check needed was missing",
+             "NeedsConsent": "it needs an answer from you first"}
+    for kind, count_ in sorted(kinds.items()):
+        if kind in named:
+            print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
+
+
 def _print_protected_areas(areas, out) -> None:
     """§1.1's containers: marked, counted, named, and never opened."""
     out = out if out is not None else sys.stdout
@@ -2021,7 +2401,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         residuals: Sequence[str] = (),
         sends: Mapping[str, str] = MappingProxyType({}),
         operation_mode: str = OPERATION_MODE,
-        record: str | None = None) -> ProductionRun:
+        record: str | None = None,
+        routing: TierRouting | None = None,
+        wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
     `out` is here so the protected-container block can be printed the moment the
@@ -2483,11 +2865,85 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             model_call_request=None, chosen_node_of=None, residual_action_of=None,
             sensitivity_policy=None, p2=None)
 
+    def _model_fact_pass(run_id: str) -> None:
+        """Ask a model about the fields the deterministic producers left open.
+
+        **It happens only when both things are true**, and the gate is not the
+        switch. `routing` is `None` when no key is configured, and
+        `operation_mode` is `hybrid` only when this folder's stored consent says
+        so -- `main` reads it through `operation_mode_for`. `mode_forbids` at the
+        door is the defence behind that, not the decision: a run that reached the
+        gate to be told `offline` would have built a request about a person's file
+        that they had not agreed to have built.
+
+        **The policy is put in force HERE, and it is a second policy row rather
+        than an early copy of `set_privacy_policy`'s.** That one is written against
+        the FROZEN plan version, after the tree exists, because that is the version
+        P11 asks about. This one is written against `PLAN_VERSION`, the working
+        version P9's groups are recorded under, because the gate is asked now and
+        §8.4's audit record names the authorizing policy -- and there has to BE one
+        to name. Two versions, two rows, and each says the mode its own stage ran
+        under.
+        """
+        if routing is None or operation_mode != CLOUD_ENABLED_MODE:
+            return
+        roster = corpus_roster(conn, run_id)
+        if not roster:
+            return
+        if wire_handle_key is None:
+            # A credential, not a convenience: `dossier._body` keys every
+            # identifier that reaches a model under it and there is no un-keyed
+            # fallback, because an un-keyed digest sitting beside the locator it
+            # digests is reversible by whoever receives it.
+            print(_wrapped(
+                "No model was consulted about facts: this run has no wire handle "
+                "key, and every identifier that reaches a model is digested under "
+                "one. There is no un-keyed form to fall back to.", indent="  "),
+                file=out)
+            return
+
+        policy_version = set_policy(
+            conn,
+            Policy(policy_version=UNSET_POLICY_VERSION,
+                   operation_mode=operation_mode, consent_grants=(),
+                   redaction_settings={}, automatic_move_permissions={},
+                   plan_version=PLAN_VERSION, set_at=clock),
+            component_version=COMPONENT_VERSION, user_id=user_id,
+            reason=f"{operation_mode} run: fact extraction, before grouping")
+
+        outcomes: list[tuple[str, object]] = []
+        authorities = fact_call_authorities(
+            conn, routing=routing, scan_run_id=run_id,
+            corpus_file_count=len(roster), policy_version=policy_version,
+            wire_handle_key=wire_handle_key, schema=schema, user_id=user_id,
+            now=now,
+            on_result=lambda file_id, result: outcomes.append((file_id, result)))
+        resolver = model_fact_resolver(conn, authorities=authorities)
+
+        written: list[str] = []
+        withheld: list[str] = []
+        for file_id, content_hash in roster:
+            result = resolver.resolve(
+                conn, file_id=file_id, content_hash=content_hash)
+            written.extend(result.fact_ids)
+            if result.stages_barred.get(LLM_ROUTE) == PRIVACY_BAR:
+                withheld.append(file_id)
+        _print_fact_pass(
+            asked=len(outcomes), written=len(written), withheld=len(withheld),
+            files=len(roster), outcomes=outcomes,
+            model_id=routing.model_id_for(A_FACT), out=out)
+
     scan_run_id = [""]
     accepted_ids: list[str] = []
 
     def downstream(p1_p7) -> CorpusAuthorities:
         scan_run_id[0] = p1_p7.scan_run_id
+        # §8.6's THIRD producer, and the only point in the run where it can stand.
+        # See `model_fact_resolver` for why it is a second pass and not the `llm`
+        # stage of the pass P1-P7 already ran. BEFORE the three blocks below on
+        # purpose: they report what the scan found, and a fact this pass writes is
+        # part of what the scan found.
+        _model_fact_pass(p1_p7.scan_run_id)
         # HERE, and not in `report`. The scan has finished and every design stage
         # after this point can refuse by name -- and `main` reaches `report` only
         # when none of them does. Printed at the end, the count of what was marked
@@ -4583,7 +5039,14 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                      residuals=_validate_residuals(args.residual),
                      sends=_parse_sends(args.send_set),
                      operation_mode=operation_mode_for(consent),
-                     record=args.record)
+                     record=args.record,
+                     # BOTH, or the fact pass does not happen. `routing` is `None`
+                     # with no key and the mode is `offline` without this folder's
+                     # consent, so the two arguments carry the two independent
+                     # reasons a run sends nothing -- which is the same pair
+                     # `announce_cloud_posture` has just told the person about.
+                     routing=routing,
+                     wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
         # Belt and braces behind hunk 13. The name is checked before the scan, so
         # this is reachable only if a second process recorded that name while

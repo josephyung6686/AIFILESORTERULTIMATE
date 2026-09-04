@@ -1,0 +1,24 @@
+{
+  "policy_id": "a_fact.shaping.1",
+  "call_site": "A_fact",
+  "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the file: every sentence here is the same on every file in every corpus, and nothing in it is evidence.",
+  "closed_world": "The dossier is the whole of what was sent. There is no document behind it, no page, no filename, no surrounding sentence. A claim can only be anchored in a value that is present in released_evidence.",
+  "selection": {
+    "unit": "one file version",
+    "what_is_offered": "observations the local extractors already produced for that version, each addressed by an observation_key and bounded by a span",
+    "what_is_never_offered": "complete extracted text, whole documents, paths, filenames, OCR output, file hashes, image EXIF, GPS, the person's own typed words, group memberships, and raw sensitive values",
+    "ordering": "the most placed evidence first -- title, heading and metadata before body -- then a bounded number of the rest",
+    "bounded": "the count and the length are both capped before the request is built; what did not fit was not sent and is not described"
+  },
+  "reduction_ladder": [
+    "none: the dossier fits and is sent unreduced",
+    "summarized_facts: facts stand in for their evidence",
+    "preserved_anchors: only the anchoring evidence is kept",
+    "split: the subject is sent as several dossiers, each judged on its own",
+    "deferred: nothing is sent"
+  ],
+  "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+  "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+  "what_is_done_with_the_answer": "each claim is checked against the evidence that was actually released -- the field against the allowed vocabulary, the citation against the released value, the value against the cited span, and the whole against any better-supported local fact -- and a claim that fails a check is recorded as having failed it. Nothing here is a hint about which answer passes.",
+  "declining": "a declined field is recorded as declined and stays open. It is not a failure and it is not counted as one."
+}

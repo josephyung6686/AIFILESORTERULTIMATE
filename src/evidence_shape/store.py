@@ -319,6 +319,38 @@ def unit_for_observation(conn: sqlite3.Connection,
                         observation.location.container_path)
 
 
+def unit_length_for_observation(conn: sqlite3.Connection,
+                                observation: Observation) -> int | None:
+    """Rule 10's lookup answering only HOW LONG, for a caller that must not hold the
+    text.
+
+    `unit_for_observation` above returns the `TextUnit`, and a `TextUnit` carries
+    `.text` -- the whole extracted document. A caller whose only question is "is this
+    observation the whole of its unit?" does not need the document to answer it, and
+    P8's dossier builder asks exactly that question in order to REFUSE to send the
+    document. Giving it the text so that it can decline to send the text puts the
+    full document inside the one module that builds cloud requests, which is why
+    `tests/p7/test_p7_no_invention.py` names the three modules that may bind a P4
+    materialiser and does not offer a fourth place in the list.
+
+    The length is read in SQL rather than off a materialised row: `SELECT
+    length(text)` never brings the text across, so the guarantee is in the query and
+    not in the caller's manners. `length()` in SQLite counts characters for a TEXT
+    value, which is D4 rule 5's Unicode scalar values and the same number
+    `TextUnit.length` reports.
+
+    `None` means no unit stands at that path, and is not `0`: a span-less
+    observation with no unit is §2.3's cell and §2.8's EXIF field, which may be
+    offered, while a unit of length 0 is a different fact about a different row.
+    """
+    row = conn.execute(
+        "SELECT length(text) FROM text_units WHERE run_id = ? AND unit_locator = ?",
+        (observation.run_id,
+         serialize_container_path(observation.location.container_path)),
+    ).fetchone()
+    return None if row is None else row[0]
+
+
 def supersede_observation(conn: sqlite3.Connection, *, old_observation_id: str,
                           new_observation_id: str, reason: str) -> None:
     """§8.2: a newer result supersedes an earlier one, retaining the old observation

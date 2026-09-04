@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "A_fact response",
+  "description": "The one JSON object a model may return at call site A_fact. It is the machine-readable form of THE SHAPE and THE RULES in the ratified A_fact template; where the two could differ, the template is what the model was told and this is what the validator enforces, and they are meant to say the same thing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claims"],
+  "properties": {
+    "claims": {
+      "description": "One entry for each field considered, whether supported or declined. Never empty: silence is what a declining claim is for.",
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/claim"}
+    }
+  },
+  "$defs": {
+    "claim": {
+      "description": "One field, supported with citations or declined with a statement. Never both and never neither.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payload"],
+      "properties": {
+        "payload": {"$ref": "#/$defs/payload"},
+        "citations": {"$ref": "#/$defs/citations"},
+        "unknown": {"$ref": "#/$defs/unknown"}
+      },
+      "oneOf": [
+        {
+          "title": "support",
+          "required": ["citations"],
+          "not": {"required": ["unknown"]},
+          "properties": {
+            "payload": {"required": ["field", "value"]}
+          }
+        },
+        {
+          "title": "decline",
+          "required": ["unknown"],
+          "not": {"required": ["citations"]},
+          "properties": {
+            "payload": {
+              "required": ["field"],
+              "not": {"required": ["value"]}
+            }
+          }
+        }
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field"],
+      "properties": {
+        "field": {
+          "description": "A key copied character for character from allowed_vocabulary.",
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "description": "The value, as a JSON string. Never a number, a list, an object, true, false or null. Present only when the field is supported.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/citation"}
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "why_it_supports"],
+      "properties": {
+        "evidence_ref": {
+          "description": "An observation_key copied from released_evidence.",
+          "type": "string",
+          "minLength": 1
+        },
+        "cited_span": {
+          "description": "Characters copied exactly from that item's value.",
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata_field_name": {
+          "description": "That item's address, character for character, when the evidence is a metadata field rather than text.",
+          "type": "string",
+          "minLength": 1
+        },
+        "why_it_supports": {
+          "description": "One short sentence saying how that evidence carries that value. Required and never empty.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {"required": ["cited_span"], "not": {"required": ["metadata_field_name"]}},
+        {"required": ["metadata_field_name"], "not": {"required": ["cited_span"]}}
+      ]
+    },
+    "unknown": {
+      "description": "The field is declined. Present when declining and absent when not; never false and never null.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["insufficiency_statement"],
+      "properties": {
+        "insufficiency_statement": {
+          "description": "One short sentence naming what was missing.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

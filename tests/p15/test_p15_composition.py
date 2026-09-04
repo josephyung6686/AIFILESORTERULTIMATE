@@ -72,9 +72,25 @@ import cli  # noqa: E402
 #: between, which is what `tied_readings` turns into `reading.organization:CHEM2210`
 #: -- a decision genuinely blocked on the person, and the evidence R1 wants them to
 #: have seen before being asked who they are.
+#:
+#: THE FIRST FILE'S AMBIGUITY IS NOW `reference letter`, and the word matters. It
+#: held `Dissertation chapter. Literature review.` and the tie came out of
+#: `chapter` and `review` -- two ordinary English words in body prose, which is
+#: exactly the evidence `recognition.detector` stopped letting NOMINATE a schema:
+#: a word that accompanies a kind of document is not a claim that this is one. So
+#: that corpus stopped raising any question at all and this file's own guard
+#: caught it, which is what the guard is for ("a property of a one-file corpus,
+#: which is the kind of thing that changes under this project's feet").
+#:
+#: `reference letter` is a genuine ambiguity and a sharper one: it is authored as
+#: a WORK TYPE by `academic` and by `career` in the shipped library, and it is in
+#: the file's own name. Both readings are properly nominated, they tie at one term
+#: each, `00` requires abstention -- and which one it is depends on whether this
+#: person is a student collecting letters or a teacher writing them, which is
+#: precisely the fact `80` §3 (R1) says only the person can supply.
 CORPUS: dict[str, str] = {
-    "CHEM 2210 chapter.txt":
-        "CHEM 2210\n\nDissertation chapter. Literature review. Advisor.\n",
+    "CHEM 2210 reference letter.txt":
+        "CHEM 2210\n\nReference letter. To whom it may concern.\n",
     "CHEM 2210 quiz 2.txt": "CHEM 2210\n\nQuiz 2. Due Friday. Grade.\n",
 }
 

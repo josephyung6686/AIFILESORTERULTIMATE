@@ -63,8 +63,18 @@ from placement import vocabulary as pv  # noqa: E402
 #: from a sweep. Two of them carry the SAME subject, so a rejection aimed at one
 #: has a sibling to wrongly take with it; the third is protected material, which
 #: keeps the tree the shape that places the other two.
+#: THE FIRST FILE IS NAMED `syllabus` AND WAS NOT. Its body always said
+#: "PHYS 1401 Syllabus" and its name said `week 3.pdf.txt`, so the only thing
+#: calling it coursework was a word in the body -- and `recognition.detector` no
+#: longer lets a term NOMINATE a schema from there, because a word that
+#: accompanies a kind of document is not a claim that this is one. The file then
+#: reached this test with nothing to correct, which is a correct outcome for that
+#: file and a useless corpus for this test: a rejection loop needs a conclusion
+#: to reject. The name now says what the file is, which is what a real syllabus
+#: on a real disk does, and `subject=PHYS1401` -- the claim the gesture retracts
+#: -- is unchanged and still comes from the course code in the body.
 CORPUS = {
-    "week 3.pdf.txt":
+    "week 3 syllabus.pdf.txt":
         "PHYS 1401 Syllabus\n\nSpring 2026. Instructor: Dr. Ross.\n",
     "notes.txt":
         "PHYS 1401 lecture notes, week 3.\n",
@@ -74,7 +84,7 @@ CORPUS = {
 
 #: The claim the person rejects, in the three words they have: the file, the
 #: field, and the value the product printed beside it.
-GESTURE = "week 3.pdf.txt:subject=PHYS1401"
+GESTURE = "week 3 syllabus.pdf.txt:subject=PHYS1401"
 
 
 def _corpus(tmp_path: Path) -> Path:
@@ -128,15 +138,15 @@ def test_a_rejected_conclusion_is_gone_from_the_next_run_and_the_one_after(tmp_p
     corpus = _corpus(tmp_path)
 
     first = _run(corpus)
-    assert _section_holding(first, "week 3.pdf.txt").startswith(
+    assert _section_holding(first, "week 3 syllabus.pdf.txt").startswith(
         "Ready to file into PHYS1401"), first
 
     second = _run(corpus, "--reject", GESTURE)
-    assert _section_holding(second, "week 3.pdf.txt").startswith(
+    assert _section_holding(second, "week 3 syllabus.pdf.txt").startswith(
         "Waiting for you to say"), second
 
     third = _run(corpus)
-    assert _section_holding(third, "week 3.pdf.txt").startswith(
+    assert _section_holding(third, "week 3 syllabus.pdf.txt").startswith(
         "Waiting for you to say"), third
 
 
@@ -185,7 +195,8 @@ def test_the_correction_is_stored_even_though_the_run_does_not_yet_honour_it(
     retractions = conn.execute(
         "SELECT ff.reliability_state, ff.origin FROM file_facts ff "
         "JOIN files f ON f.file_id = ff.file_id "
-        "WHERE f.filename = 'week 3.pdf.txt' AND ff.field_key = 'subject' "
+        "WHERE f.filename = 'week 3 syllabus.pdf.txt' "
+        "AND ff.field_key = 'subject' "
         "AND ff.superseded_by IS NULL").fetchall()
     assert [(row["reliability_state"], row["origin"]) for row in retractions] == [
         ("rejected", "user_correction")], [dict(row) for row in retractions]
@@ -229,11 +240,11 @@ def test_rejecting_something_the_product_never_said_is_refused_by_name(tmp_path)
     corpus = _corpus(tmp_path)
     _run(corpus)
 
-    printed = _run(corpus, "--reject", "week 3.pdf.txt:subject=CHEM1500")
+    printed = _run(corpus, "--reject", "week 3 syllabus.pdf.txt:subject=CHEM1500")
 
     assert "This run was refused" in printed, printed
     assert "carries no subject of 'CHEM1500'" in printed, printed
-    assert "'week 3.pdf.txt'" in printed, printed
+    assert "'week 3 syllabus.pdf.txt'" in printed, printed
 
 
 #: §8.7's reset half, part by part, checked with the census instrument

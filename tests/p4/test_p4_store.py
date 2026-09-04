@@ -12,7 +12,7 @@ from evidence_shape.store import (
 )
 from evidence_shape.location import Location, Segment, TextSpan
 from evidence_shape.observation import Observation
-from evidence_shape.store import get_observation, observation_row, observations_by_key, observations_for_file, observations_for_run, record_observation, record_text_unit, text_unit_at, text_units_for_run, unit_for_observation
+from evidence_shape.store import get_observation, observation_row, observations_by_key, observations_for_file, observations_for_run, record_observation, record_text_unit, text_unit_at, text_units_for_run, unit_for_observation, unit_length_for_observation
 from evidence_shape.text_units import TextUnit
 
 
@@ -318,3 +318,42 @@ def test_the_event_carries_the_keys_once_the_observations_exist(p4_conn):
     assert explanation["run_id"] == "r1"
     assert len(explanation["observation_keys"]) == 2
     assert all(key.startswith("sha256:") for key in explanation["observation_keys"])
+
+
+# --- rule 10's lookup, without the text -------------------------------------
+
+def test_the_length_only_lookup_answers_rule_10_without_handing_over_the_text(
+        p4_conn):
+    """A caller that only needs to know how long a unit is never holds the unit.
+
+    `unit_for_observation` returns a `TextUnit`, and a `TextUnit` carries `.text` --
+    the whole extracted document. Two callers want rule 10's lookup only to compare
+    a length: P8's dossier builder asks "is this observation the whole of its unit?"
+    so it can REFUSE to send it. Handing that caller the document in order to let it
+    decline to send the document is the wrong shape, and `p7`'s repo-wide binder
+    guard is what says so out loud -- it names the three modules that may bind a P4
+    materialiser, and a module that builds cloud requests is not going to be a
+    fourth.
+
+    So P4 answers the question that was actually asked. The length is a number; a
+    number cannot be leaked.
+    """
+    record_run(p4_conn, _run())
+    record_text_unit(p4_conn, TextUnit(run_id="r1",
+                                       container_path=(Segment("page", 1),),
+                                       text=PAGE_ONE))
+    assert unit_length_for_observation(p4_conn, _observation()) == len(PAGE_ONE)
+
+
+def test_the_length_only_lookup_says_nothing_rather_than_zero_when_no_unit_exists(
+        p4_conn):
+    """`None` and `0` are different answers and the caller branches on the difference.
+
+    A span-less observation with NO unit at its path is P8's §2.3 cell and §2.8 EXIF
+    field -- the shape where the address IS the whole citation -- and it may be
+    offered. A span-less observation standing at a unit of length 0 is a different
+    thing entirely. Returning `0` for the first would silently reclassify every
+    EXIF field as a whole document and drop it from every dossier.
+    """
+    record_run(p4_conn, _run())
+    assert unit_length_for_observation(p4_conn, _observation()) is None
