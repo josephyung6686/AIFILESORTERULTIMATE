@@ -95,7 +95,9 @@ def a_file(db, tmp_path, filename: str, *, body: str | None = None,
            source_type: str = "text_document", extension: str = ".pdf",
            subdirectory: str = "", identifier: str | None = None,
            abspath: str | None = None,
-           heading: str | None = None, heading_page: int | None = 1):
+           heading: str | None = None, heading_page: int | None = 1,
+           title: str | None = None,
+           metadata_field: tuple[str, str] | None = None):
     # `heading` writes the zone SPEC 2.2 ranks beside a filename, and
     # `heading_page` is which page it sits on -- `None` for a format with no
     # pagination, which is a `.docx` and not an absence of evidence.
@@ -147,6 +149,25 @@ def a_file(db, tmp_path, filename: str, *, body: str | None = None,
                               container_path=[*container,
                                               {"index": 1, "kind": "heading",
                                                "label": heading}]),
+            observed_at=CLOCK, reliability="possible"))
+    if title:
+        # P4's OWN zone for a document naming itself: `extractors/pdf.py:135`
+        # routes a title slot here and everything else to `metadata`.
+        observations.append(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="pdf.text", extractor_version="0.1.0",
+            source_type=source_type, raw_value=title,
+            location=location(zone="title"),
+            observed_at=CLOCK, reliability="possible"))
+    if metadata_field:
+        # The format talking about itself -- `Producer`, `CreationDate`,
+        # `extension`. Never a title slot; those go to `title` above.
+        _field, value = metadata_field
+        observations.append(observation(
+            file_id=file_id, content_hash=content_hash,
+            extractor_name="pdf.text", extractor_version="0.1.0",
+            source_type=source_type, raw_value=value,
+            location=location(zone="metadata"),
             observed_at=CLOCK, reliability="possible"))
     if identifier:
         # A structured string is its OWN observation, spanned inside the body --
@@ -1421,3 +1442,75 @@ def test_an_answer_cannot_activate_a_schema_the_evidence_never_supported(db, tmp
 
     assert isinstance(outcome, Abstention)
     assert outcome.reason == "no_evidence"
+
+
+# --- `00`'s worked example, and the co-location that refused it ------------------
+
+def test_a_course_code_beside_its_context_word_in_one_filename_corroborates(
+        db, tmp_path):
+    """`00`'s OWN worked example, which this detector could not execute.
+
+    *"BUSIB 4300 becomes a course fact only when the engine finds a course-code
+    PATTERN TOGETHER WITH academic context such as 'syllabus,' 'lecture,'
+    'credits,' 'instructor,' or 'semester.'"* One pattern and one term -- and on a
+    real file the two sit in the SAME observation, because the filename is where
+    both are written.
+
+    The corroboration gate refused exactly that. It required the identifier to be
+    "an observation NO term matched", which is a rule about a term that IS an
+    identifier corroborating itself, and a filename carrying `syllabus` AND
+    `BUSIB 4300` is not that. Measured on the owner's own
+    `Syllabus BUSIB 4300 Spring 2026 Haran Segram.pdf`: the filename observation
+    holds both, its key is in `matched_keys`, and the file abstained.
+
+    The filename is also the ONLY evidence that never leaves the device --
+    `privacy.vocabulary.ALWAYS_LOCAL` holds `path` and `filename` -- so no model
+    can ever rescue a file this refuses.
+    """
+    rules = rule_set(schema_entry("academic", context=("syllabus",)))
+    file_id, content_hash = a_file(
+        db, tmp_path, "Syllabus BUSIB 4300 Spring 2026.pdf")
+    # The DEPLOYMENT says which observations carry a structured code. Here that is
+    # the filename, which is also where the authored term was found.
+    filename_key = db.execute(
+        "SELECT observation_key FROM evidence WHERE file_id = ? "
+        "AND json_extract(location, '$.zone') = 'filename'", (file_id,)
+    ).fetchone()["observation_key"]
+
+    outcome = detector(
+        rules, corroborating_observations=lambda *_: (filename_key,)
+    ).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Recognition), (
+        "a course code beside its own context word in one filename did not "
+        f"corroborate; `00`'s worked example cannot execute: {outcome}")
+    assert outcome.schema_id == "academic"
+
+
+def test_an_observation_that_is_only_the_identifier_still_cannot_second_itself(
+        db, tmp_path):
+    """The negative twin the old rule was actually written for.
+
+    "A schema whose authored term happens to be an identifier would corroborate
+    itself out of a single signal." That is a term which IS the whole observation
+    -- a filename that is nothing but `X12345678`, authored as a work type and
+    also matching the deployment's pattern. One signal, read twice, must stay one
+    signal.
+
+    Co-located-but-distinct is a different thing, and the test above is it.
+    """
+    rules = rule_set(schema_entry("identity", work_types=("x12345678",)))
+    # The structured-string pass "writes one observation per identifier", so the
+    # self-corroboration shape is that observation: its whole text is the code,
+    # and the code is also the authored term.
+    file_id, content_hash = a_file(db, tmp_path, "scan.pdf",
+                                   identifier="X12345678")
+    identifier_keys = _identifier_keys(db, "X12345678")
+
+    outcome = detector(
+        rules, corroborating_observations=identifier_keys
+    ).explain(db, file_id, content_hash)
+
+    assert isinstance(outcome, Abstention), (
+        f"a term that is the whole observation seconded itself: {outcome}")
+    assert outcome.reason == "no_corroboration"

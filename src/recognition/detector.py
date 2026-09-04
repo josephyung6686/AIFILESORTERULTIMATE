@@ -124,16 +124,29 @@ SAFETY_DOMAIN_HANDLING: Mapping[str, Handling] = MappingProxyType({
 
 #: WHERE A DOCUMENT NAMES ITSELF. SPEC 2.2 ranks "a filename, title, or page-one
 #: heading" as meaningful evidence, and `_matches` already quotes that ranking for a
-#: different purpose. These are those three, plus the two that are one of them under
-#: another name: `header_footer` is a running head -- a page-one heading, on page two
-#: -- and `metadata` is the format's own title slot, a document naming itself in its
-#: own words.
+#: different purpose. These are those three, plus the one that is one of them under
+#: another name: `header_footer` is a running head -- a page-one heading, on page two.
+#:
+#: `metadata` USED TO BE HERE, on the claim that it is "the format's own title slot,
+#: a document naming itself in its own words". That claim was false, and P4 is what
+#: makes it false: `extractors/pdf.py`:135 routes a slot to `zone="title"` when it IS
+#: a title slot and to `metadata` otherwise, so `metadata` is by construction
+#: everything that is NOT the document naming itself. Measured over the owner's real
+#: corpora, what lands there is `extension`, `mime_type`, `language`, `Producer`,
+#: `CreationDate`, `ModDate`, `Creator`, `format`, `pixel dimensions` and `Trapped` --
+#: the format talking about itself and about the software that wrote it.
+#:
+#: It cost accuracy rather than tidiness. `HW 9.pdf`'s ONLY authored term is
+#: `retail_hospitality:build`, out of
+#: `Producer = 'iOS Version 18.5 (Build 22F76) Quartz PDFContext'`, and it sat in a
+#: zone asserting that a physics homework had named itself that. Nothing is lost by
+#: removing it: `title` is already here and is P4's own zone for the real thing.
 #:
 #: `body`, `table`, `ocr`, `notes`, `annotation` and `reference_list` are deliberately
-#: absent. They are where a document mentions OTHER documents, and the whole of this
-#: constant's job is to keep a mention from becoming a claim.
+#: absent for the same reason. They are where a document mentions OTHER documents, and
+#: the whole of this constant's job is to keep a mention from becoming a claim.
 NAMING_ZONES: frozenset[str] = frozenset(
-    {"filename", "title", "heading", "header_footer", "metadata"})
+    {"filename", "title", "heading", "header_footer"})
 
 #: SPEC 2.2's phrase is "page-ONE heading", and the page is the half that does the
 #: work on a long document. `pdf.text` calls a line a heading when its type is
@@ -176,6 +189,12 @@ class TermMatch:
     #: `None` for a format that does not paginate -- a `.docx` heading is still a
     #: heading -- and for zones that have no page, like a filename.
     page: int | None = None
+    #: Is this term the WHOLE observation, rather than a word inside it? Recorded
+    #: where the text already is, so the corroboration gate never re-reads an
+    #: observation to ask what it says. The gate is the only reader: an
+    #: observation that is nothing but an authored term may not second the schema
+    #: that term already named, because that is one signal read twice.
+    whole: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -348,7 +367,10 @@ class Detector:
         """
         found: list[TermMatch] = []
         source_types: set[str] = set()
-        seen: set[tuple[str, str]] = set()
+        #: (schema, term) -> where its ONE match sits in `found`. An index rather
+        #: than a set, because a later occurrence in a naming zone replaces an
+        #: earlier one outside the naming zones -- see the replacement below.
+        seen: dict[tuple[str, str], int] = {}
         for row in conn.execute(
                 "SELECT observation_key, raw_value, normalized_value, source_type, "
                 "location FROM evidence WHERE file_id = ? AND content_hash = ? "
@@ -369,18 +391,62 @@ class Detector:
             for text in (row["raw_value"], row["normalized_value"]):
                 if not text:
                     continue
+                observation_tokens = _tokens(text)
                 for term, owners in self._terms_in(text):
+                    # Is the term the WHOLE observation? `_terms_in` yields the
+                    # tokeniser's own spelling, so this is a tuple comparison and
+                    # never a second parse of the text.
+                    whole = observation_tokens == tuple(term.split(" "))
                     for schema_id in owners:
-                        if (schema_id, term) in seen:
-                            continue
-                        seen.add((schema_id, term))
-                        found.append(TermMatch(schema_id=schema_id, term=term,
-                                               observation_key=key, zone=zone,
-                                               page=page))
+                        match = TermMatch(schema_id=schema_id, term=term,
+                                          observation_key=key, zone=zone,
+                                          page=page, whole=whole)
+                        at = seen.get((schema_id, term))
+                        if at is None:
+                            seen[(schema_id, term)] = len(found)
+                            found.append(match)
+                        elif (_names_the_file(match)
+                              and not _names_the_file(found[at])):
+                            # THE SAME TERM IN TWO PLACES IS STILL ONE TERM, and
+                            # the arity rule is untouched by this -- what changes
+                            # is WHICH occurrence the one match records. The
+                            # first-wins rule kept whichever observation `rowid`
+                            # happened to reach first, and P4 writes a body before
+                            # a heading: a brokerage statement whose page-one
+                            # heading reads "Statement of assets" and whose prose
+                            # also says "statement" was filed at the BODY, so
+                            # `_safety_readings_naming_the_file` found nothing in a
+                            # naming zone and let the file go. Protection must not
+                            # depend on the order P4 wrote its rows in, and adding
+                            # ordinary prose to a file must not unprotect it.
+                            found[at] = match
         return found, source_types
 
     def _terms_in(self, text: str) -> Iterable[tuple[str, tuple[str, ...]]]:
-        """Authored terms present in this text as whole-word phrases."""
+        """Authored terms present in this text as whole-word phrases.
+
+        A SHORTER TERM INSIDE A LONGER ONE IS STILL YIELDED, and the attempt to
+        suppress it was reverted after measurement. `personal statement` is
+        `college_applications`' work type and `statement` is `finance`'s, so the
+        owner's own `Chinese University Personal Statement.pdf` is sealed
+        `sensitive_personal` -- a real over-protection, recorded in
+        `planning/96`. Refusing the covered term fixes it and cannot be told from
+        the case that breaks protection, because the difference is semantic:
+
+          * `personal statement` is a DIFFERENT THING that contains the word.
+          * `last will and testament` and `living will` are SPECIES of `will`, and
+            both are authored as context terms, so suppressing `will` inside them
+            releases a real will named by its own filename.
+
+        Enumerated over the shipped library, 210 (safety work type, covering term)
+        pairs leave no safety work type standing. Among them `financial statement`,
+        `pay statement`, `earnings statement` and `statement period` cover
+        `finance:statement`; `commercial invoice` and `invoice to` cover `invoice`;
+        `photographed receipt or slip` covers `receipt`; and `government`'s
+        passport, visa and driver-licence rows cover all three `identity` work
+        types. An over-release is worse than an over-protection, so the covered
+        term stays evidence and the cure belongs to the vocabulary.
+        """
         tokens = _tokens(text)
         for start in range(len(tokens)):
             for end in range(start + 1, len(tokens) + 1):
@@ -500,7 +566,28 @@ class Detector:
         # whose authored term happens to be an identifier would corroborate
         # itself out of a single signal.
         if best < 2 and len(leaders) == 1 and self._corroborating is not None:
-            matched_keys = {match.observation_key for match in matches}
+            # AN OBSERVATION THAT IS NOTHING BUT AN AUTHORED TERM, which is the
+            # case the old rule was written for and the only one it should have
+            # refused. Its comment says it: "a schema whose authored term happens
+            # to be an identifier would corroborate itself out of a single
+            # signal." A term that IS the whole observation is that -- one signal
+            # read twice.
+            #
+            # The rule as written asked a wider question -- any observation ANY
+            # term matched -- and that refused `00`'s own worked example. "BUSIB
+            # 4300 becomes a course fact only when the engine finds a course-code
+            # PATTERN TOGETHER WITH academic context such as 'syllabus'": on a
+            # real file the pattern and the word are in the SAME observation,
+            # because the filename is where both are written. Measured on the
+            # owner's `Syllabus BUSIB 4300 Spring 2026 Haran Segram.pdf`, the
+            # filename holds `syllabus` and `BUSIB 4300`, its key was in the
+            # matched set, and the easiest file in the corpus abstained.
+            #
+            # The filename is also the ONE signal that never leaves the device --
+            # `privacy.vocabulary.ALWAYS_LOCAL` holds `path` and `filename` -- so
+            # a file refused here can never be rescued by a model either.
+            one_signal_twice = {match.observation_key for match in matches
+                                if match.whole}
             # The nominating term comes from the file ITSELF -- its text, its own
             # name -- and never from the absolute path it happens to sit under.
             # Found by running it: a corpus in a directory called
@@ -537,7 +624,7 @@ class Detector:
             corroborable = leader not in SAFETY_DOMAIN_IDS or leader in (
                 self._safety_readings_in_evidence(conn, file_id, content_hash))
             if corroborable and any(
-                    key not in matched_keys for key in
+                    key not in one_signal_twice for key in
                     self._corroborating(conn, file_id, content_hash)):
                 best = 2
 
@@ -698,7 +785,7 @@ class Detector:
         `credit` -- out of "credit hours" -- marked both files `sensitive_personal,
         protected=1`, removed the course folders and withheld every file from
         placement. A college personal statement was protected because it contains
-        the word "statement". `cli.py:210` names that outcome in the file this guard
+        the word "statement". `cli.classifier` names that outcome in the file this guard
         lives beside: it "made an unreadable scan and a passport identical in P7's
         store". A safety domain that is merely MENTIONED is not a safety domain.
 

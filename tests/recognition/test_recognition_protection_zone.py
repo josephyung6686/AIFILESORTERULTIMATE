@@ -36,9 +36,13 @@ detector reads AS a payslip is a payslip wherever its terms sit.
 """
 from __future__ import annotations
 
+import cli  # the DEPLOYMENT's handling policy, which is the one that ships
+
 from recognition.detector import NAMING_ZONES
+from recognition.rules import load_rules
 from test_recognition_detector import (  # the packaged harness
-    ACADEMIC, CLOCK, a_file, db, detector, rule_set, schema_entry)  # noqa: F401
+    ACADEMIC, CLOCK, MANIFEST_PATH, a_file, db, detector, rule_set,
+    schema_entry)  # noqa: F401
 
 #: A safety domain whose work types are the two shapes that matter: one ordinary
 #: English word, and one specific phrase. Both are how the real library spells them.
@@ -47,16 +51,65 @@ FINANCE_GENERIC = schema_entry(
 
 
 def test_the_naming_zones_are_the_ones_spec_2_2_ranks():
-    """filename, title, heading -- and the two that are a heading by another name.
+    """filename, title, heading -- and the one that is a heading by another name.
 
-    `header_footer` is a running head: a page-one heading, on page two. `metadata`
-    is the format's own title slot -- a document naming itself in its own words.
+    `header_footer` is a running head: a page-one heading, on page two.
 
-    `body`, `table`, `ocr`, `notes` and `annotation` are NOT here, and that is the
-    whole point: they are where a document mentions OTHER documents.
+    `metadata` IS NOT HERE, and used to be, on the claim that it is "the format's
+    own title slot, a document naming itself in its own words". P4 already gives
+    that its own zone: `extractors/pdf.py:135` routes a slot to `zone="title"` if
+    it is a title slot and to `metadata` otherwise, so `metadata` is by
+    construction everything that is NOT the document naming itself. Measured over
+    the owner's real corpora, what actually lands there is
+    `extension`, `mime_type`, `language`, `Producer`, `CreationDate`, `ModDate`,
+    `Creator`, `format`, `pixel dimensions` and `Trapped` -- the format talking
+    about itself and about the toolchain that wrote it.
+
+    It cost accuracy, not just tidiness: `HW 9.pdf`'s only authored term is
+    `retail_hospitality:build`, out of
+    `Producer = 'iOS Version 18.5 (Build 22F76) Quartz PDFContext'`, sitting in a
+    zone that says the physics homework named itself that.
+
+    `body`, `table`, `ocr`, `notes` and `annotation` are NOT here either, and that
+    is the same point: they are where a document mentions OTHER documents.
     """
     assert NAMING_ZONES == frozenset(
-        {"filename", "title", "heading", "header_footer", "metadata"})
+        {"filename", "title", "heading", "header_footer"})
+
+
+def test_a_toolchain_string_in_metadata_does_not_name_the_file(db, tmp_path):
+    """The `Producer` field is the writing software, not the document.
+
+    A safety work type landing in one must not be able to say the file IS that
+    kind of document -- a PDF written by "Statement Printer 3.0" is not a
+    financial statement.
+    """
+    file_id, content_hash = a_file(
+        db, tmp_path, "notes.pdf", body="Syllabus and office hours.",
+        metadata_field=("Producer", "Statement Printer 3.0"))
+
+    record = detector(rule_set(ACADEMIC, FINANCE_GENERIC))(db, file_id, content_hash)
+
+    assert record is None or record.protected is False, (
+        f"a toolchain string sealed an ordinary file: {record}")
+
+
+def test_the_documents_own_title_slot_still_names_it(db, tmp_path):
+    """The half that must NOT be lost: P4's `title` zone is the real one.
+
+    `extractors/pdf.py:135` routes a title slot to `zone="title"`, so narrowing
+    `metadata` takes nothing away from a document that names itself in its own
+    metadata -- it just stops the toolchain fields pretending to.
+    """
+    file_id, content_hash = a_file(
+        db, tmp_path, "scan001.pdf", body="Syllabus and office hours.",
+        title="Statement of assets")
+
+    record = detector(rule_set(ACADEMIC, FINANCE_GENERIC))(db, file_id, content_hash)
+
+    assert record is not None and record.protected is True, (
+        f"a document whose own title slot names a financial statement was "
+        f"released: {record}")
 
 
 def test_body_and_table_and_ocr_are_not_naming_zones():
@@ -186,3 +239,72 @@ def test_a_heading_in_a_document_with_no_pages_still_protects(db, tmp_path):
     record = detector(rule_set(ACADEMIC, FINANCE_GENERIC))(db, file_id, content_hash)
     assert record is not None
     assert record.protected is True
+
+
+# --- the same word in two places, and which one gets recorded --------------------
+
+def test_body_prose_repeating_the_heading_does_not_unprotect_the_file(db, tmp_path):
+    """A file that names itself names itself however many other times it says so.
+
+    `_matches` keeps ONE match per (schema, term) and kept whichever observation
+    `rowid` reached first. P4 writes a body before a heading, so a brokerage
+    statement whose page-one heading reads "Statement of assets" AND whose prose
+    also says "statement" had its one `finance` match filed at the BODY -- and
+    `_safety_readings_naming_the_file` then found nothing in a naming zone and let
+    the file go.
+
+    That is an over-release produced by ADDING ordinary prose: the identical file
+    without the second sentence is protected (`test_a_page_one_heading_still_
+    protects`). Protection must not depend on the order P4 happened to write its
+    rows in, and arity is untouched -- the same term twice is still one term.
+    """
+    file_id, content_hash = a_file(
+        db, tmp_path, "letter.pdf", extension=".pdf",
+        body="Syllabus and office hours. A statement of the facts follows.",
+        heading="Statement of assets", heading_page=1)
+
+    record = detector(rule_set(ACADEMIC, FINANCE_GENERIC))(db, file_id, content_hash)
+
+    assert record is not None and record.protected is True, (
+        "a page-one heading naming a financial statement stopped protecting the "
+        f"file because its body also says the word: {record}")
+    assert record.basis == "safety_domain"
+
+
+# --- a work type spelled inside a longer work type -------------------------------
+#
+# `Chinese University Personal Statement.pdf` -- a real file on the owner's disk --
+# is sealed `sensitive_personal, protected=1` because `finance` authors bare
+# `statement` and it is in the FILENAME, where the zone cut cannot reach it. That
+# over-protection is REAL and is NOT fixed here: refusing a term covered by a longer
+# one releases `last will and testament` and `living will` (both context terms
+# covering `legal:will`), `financial statement`, `pay statement` and `statement
+# period` (covering `finance:statement`), and `government`'s rows covering every
+# `identity` work type -- 210 such pairs over the shipped library. An over-release is
+# worse than an over-protection. See `_terms_in`'s docstring and `planning/96`.
+#
+# What IS held below is the direction that must never regress.
+
+def test_the_bare_word_still_protects_where_it_stands_on_its_own(db, tmp_path):
+    """The floor under the comment above, against the SHIPPED library.
+
+    `Statement.pdf` is a real brokerage statement on the owner's disk whose
+    filename is `finance`'s work type standing on its own tokens, and it is a
+    measured `protected=1` on the `~/Documents` run. Any future attempt to cure
+    the `personal statement` over-protection has to keep this green, and the
+    reverted one did -- it was the 210 OTHER pairs that sank it.
+
+    The real deployment's policy, not the harness's: with the harness `POLICY`
+    this file abstains `unassigned_handling` before it ever reaches the branch
+    that protects, so the assertion would pass without testing anything.
+    """
+    rules = load_rules(MANIFEST_PATH.read_text)
+    file_id, content_hash = a_file(
+        db, tmp_path, "Statement.pdf",
+        body="Table of contents. Client holdings as of 09.01.2025.")
+
+    record = detector(rules, handling_for=cli.HANDLING_POLICY)(
+        db, file_id, content_hash)
+
+    assert record is not None and record.protected is True, (
+        f"a brokerage statement was released: {record}")

@@ -36,6 +36,7 @@ from production import (
     InvalidP1P7Authority, MissingClassificationAuthority, P1P7Authorities,
     bootstrap_p1_p7, run_production_p1_p7,
 )
+from extraction_pool import ExtractionContext, InlinePool
 from recognition.detector import Detector, SAFETY_DOMAIN_HANDLING
 from recognition.rules import load_rules
 from scan_agent.corpus_source import FilesystemCorpusSource
@@ -94,7 +95,22 @@ def _resolver(*, tiers: frozenset[str], cache_key: str) -> FactResolver:
 
 
 def _authorities(classify) -> P1P7Authorities:
+    # The REAL protected-container predicate, through the real pipeline. Built once
+    # and shared with the pool's context, because `ExtractionContext` holds "the
+    # things that cannot cross a process boundary" and both halves of a run must be
+    # wired by ONE function rather than by two that agree today.
+    policy = SafetyPolicy(is_protected_container=is_protected_container,
+                          is_dataless=lambda path: False)
+    readers = _readers()
     return P1P7Authorities(
+        # `pool` has no default by design -- "a pool carries a worker count and a
+        # look-ahead, both numbers, and the composition root is the only place in
+        # this product that picks one." A test is not that root, so it states the
+        # inline one explicitly: this thread, which is what every run did before
+        # the module existed.
+        pool=InlinePool(ExtractionContext(
+            policy=policy, readers=readers,
+            transcription_authorized=lambda: False)),
         native_resolver=_resolver(tiers=frozenset(("filesystem", "native")),
                                   cache_key="native-v1"),
         ocr_resolver=_resolver(tiers=frozenset(("filesystem", "native", "ocr")),
@@ -108,10 +124,8 @@ def _authorities(classify) -> P1P7Authorities:
         scan_budget_exhausted=lambda: False,
         detect_format=lambda path: (
             "pdf" if Path(path).suffix == ".pdf" else None),
-        # The REAL protected-container predicate, through the real pipeline.
-        policy=SafetyPolicy(is_protected_container=is_protected_container,
-                            is_dataless=lambda path: False),
-        readers=_readers(), now=lambda: CLOCK, context_window=64,
+        policy=policy,
+        readers=readers, now=lambda: CLOCK, context_window=64,
         transcription_authorized=lambda: False, corpus_form="snapshot",
         policy_settings={}, file_entry_body=lambda row: {"payload_ref": "blob"},
         p7_component_version=COMPONENT)
