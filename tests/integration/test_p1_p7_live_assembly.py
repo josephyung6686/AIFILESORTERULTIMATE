@@ -27,6 +27,7 @@ from extractors.schema import create_extraction_schema
 from extractors.structured_text import TextDocument
 from facts.schema import create_facts_schema
 from facts.usable import passes_for, record_pass, targeted_ocr_needed_for
+from extraction_pool import ExtractionContext, InlinePool
 from orchestrator import P1P7Run, run_p1_p7
 from privacy.classification import ClassificationRecord
 from privacy.authorship import CLASSIFICATION_ASSIGNED
@@ -87,18 +88,31 @@ def _readers(ocr_calls, *, pdf_text="broken text", ocr_error=None,
     )
 
 
+#: Nothing is protected and nothing is dataless: these two tests are about
+#: ORDER, and a refusal here would stop the run before the order was visible.
+_open_policy = SafetyPolicy(is_protected_container=lambda path: False,
+                            is_dataless=lambda path: False)
+
+
 def _call(live_db, root, *, supplied_readers, resolve_native,
           targeted_ocr_needed, resolve_with_ocr, classify, policy=None):
     selection = record_selection(
         live_db, sources=[root], candidate_roots=[], cross_folder_moves=False,
         selected_by=None)
+    policy = policy or SafetyPolicy(
+        is_protected_container=lambda path: False,
+        is_dataless=lambda path: False)
     return run_p1_p7(
         live_db, selection, source=FilesystemCorpusSource(),
         mime_type_for=lambda path: "application/pdf", scan_state="scanned",
         budget_exhausted=lambda: False, detect_format=lambda path: "pdf",
-        policy=policy or SafetyPolicy(
-            is_protected_container=lambda path: False,
-            is_dataless=lambda path: False),
+        policy=policy,
+        # This thread, the same call order, and the SAME policy object -- so the
+        # protected-container predicate a test installs is the one the extraction
+        # actually runs under, not a second one that agrees today.
+        pool=InlinePool(ExtractionContext(
+            policy=policy, readers=supplied_readers,
+            transcription_authorized=lambda: False)),
         readers=supplied_readers, sink=RunWriter(live_db, author="P5"),
         now=lambda: CLOCK, context_window=40,
         transcription_authorized=lambda: False, corpus_form="snapshot",
@@ -168,9 +182,10 @@ def test_live_assembly_orders_both_fact_passes_before_authoritative_p7_and_bundl
         live_db, selection, source=FilesystemCorpusSource(),
         mime_type_for=lambda path: "application/pdf", scan_state="scanned",
         budget_exhausted=lambda: False,
-        detect_format=lambda path: "pdf", policy=SafetyPolicy(
-            is_protected_container=lambda path: False,
-            is_dataless=lambda path: False),
+        detect_format=lambda path: "pdf", policy=_open_policy,
+        pool=InlinePool(ExtractionContext(
+            policy=_open_policy, readers=_readers(ocr_calls, structured=True),
+            transcription_authorized=lambda: False)),
         readers=_readers(ocr_calls, structured=True),
         sink=RunWriter(live_db, author="P5"),
         now=lambda: CLOCK, context_window=40,
@@ -204,8 +219,10 @@ def test_live_assembly_bundles_unclassified_as_gate_outcome(live_db, tmp_path):
         live_db, selection, source=FilesystemCorpusSource(),
         mime_type_for=lambda path: "application/pdf", scan_state="scanned",
         budget_exhausted=lambda: False, detect_format=lambda path: "pdf",
-        policy=SafetyPolicy(is_protected_container=lambda path: False,
-                            is_dataless=lambda path: False),
+        policy=_open_policy,
+        pool=InlinePool(ExtractionContext(
+            policy=_open_policy, readers=_readers([]),
+            transcription_authorized=lambda: False)),
         readers=_readers([]), sink=RunWriter(live_db, author="P5"),
         now=lambda: CLOCK, context_window=40,
         transcription_authorized=lambda: False, corpus_form="snapshot",
@@ -655,7 +672,7 @@ def test_reuse_refuses_ambiguous_native_authority_instead_of_choosing_latest(
             classify=lambda conn, file_id, content_hash: None)
 
 
-def test_zero_observation_reuse_uses_persisted_p6_passes_and_terminates(
+def test_a_native_pass_with_no_citable_strings_reuses_and_terminates(
         live_db, tmp_path):
     root = tmp_path / "real-predicate-reuse"
     root.mkdir()
@@ -673,9 +690,26 @@ def test_zero_observation_reuse_uses_persisted_p6_passes_and_terminates(
         record_pass(conn, file_id=file_id, content_hash=content_hash,
                     analysis_tiers=with_ocr)
 
-    # The native reader stores nonblank page text but the finder emits no structured
-    # observations. OCR is unavailable in this invocation, leaving the real P6
-    # native-pass decision persisted for REUSE.
+    # ONE OBSERVATION, AND IT WAS ZERO UNTIL `acb462a`. This fixture builds a page
+    # with nonblank text whose finder emits no structured strings, and that used to
+    # be a run with nothing to cite. `acb462a` made a page's PROSE an observation in
+    # its own right, so the same page now carries exactly one.
+    #
+    # The count is a premise here and not the subject: what this test guards is that
+    # the real P6 native-pass decision persists and that the OCR retry terminates,
+    # and both are unchanged -- the assertion moved from 0 to 1 and every other
+    # assertion below passed untouched.
+    #
+    # WHAT IS NO LONGER COVERED, said plainly rather than left as a stale name: a
+    # genuinely zero-observation run. That shape still exists and still matters --
+    # `cli.files_with_observations` keys on `observation_count > 0`, and a scanned
+    # PDF renders pages, stores their empty text and has nothing to cite. Three of
+    # the owner's own homework PDFs are photographs that do exactly this. Building it
+    # here needs a page whose text is blank, which changes what the OCR predicate
+    # does and is a different test rather than a smaller edit to this one.
+    #
+    # OCR is unavailable in this invocation, leaving the real P6 native-pass
+    # decision persisted for REUSE.
     first_ocr = []
     _call(
         live_db, root,
@@ -689,7 +723,7 @@ def test_zero_observation_reuse_uses_persisted_p6_passes_and_terminates(
         "SELECT run_id, observation_count FROM extraction_runs "
         "WHERE extractor_name = 'pdf.text'"
     ).fetchone()
-    assert native_run["observation_count"] == 0
+    assert native_run["observation_count"] == 1
 
     second_ocr = []
     _call(
