@@ -1034,7 +1034,7 @@ def _enable_residual_library(conn, authorities, decisions, *, version: str) -> N
         # user once for all of them, so `residual_refinement` is a fixed pair and
         # reads neither argument.
         write_node(conn, _with_refinement(
-            node, lambda _node, _count, **_: decisions.residual_refinement,
+            node, lambda _node, _count, *, was_split: decisions.residual_refinement,
             # §7.4's home is flat DELIBERATELY, so neither number is a claim
             # about anything measured: the answer is the user's, verbatim.
             file_count=0, was_split=False))

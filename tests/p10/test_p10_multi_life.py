@@ -106,7 +106,7 @@ def decisions(**over):
         from_plan_version=PLAN_0,
         branch_group_ids=ALL_GROUPS,
         choose_option=lambda candidate, options: options[0].option_id,
-        refinement_for=lambda node, file_count, **_: (
+        refinement_for=lambda node, file_count, *, was_split: (
             (REFINED, "The levels beneath this node are populated from settled "
                       "facts.")
             if node.parent_node_id is None else

@@ -110,7 +110,7 @@ def decisions(**over):
         from_plan_version=PLAN_0,
         branch_group_ids=("g_columbia_coursework",),
         choose_option=lambda candidate, options: options[0].option_id,
-        refinement_for=lambda node, file_count, **_: (
+        refinement_for=lambda node, file_count, *, was_split: (
             (REFINED, "The levels beneath this node are populated from settled "
                       "facts.")
             if node.parent_node_id is None else
@@ -237,7 +237,7 @@ def test_a_chain_that_answers_58_for_nothing_is_refused_at_freeze(corpus):
 
     with pytest.raises(FreezeRefused) as excinfo:
         design(corpus,
-               dec=decisions(refinement_for=lambda node, count, **_: None))
+               dec=decisions(refinement_for=lambda node, count, *, was_split: None))
     assert any("refinement disposition" in reason
                for reason in excinfo.value.reasons)
 
@@ -892,7 +892,7 @@ def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
     """
     seen: list[tuple[str, int]] = []
 
-    def record(node, file_count, **_):
+    def record(node, file_count, *, was_split):
         seen.append((node.display_label, file_count))
         return (REFINED, "The levels beneath this node came from settled facts.")
 

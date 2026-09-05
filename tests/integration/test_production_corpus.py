@@ -390,7 +390,7 @@ def _choose_option(candidate, options) -> str:
     return options[-1].option_id
 
 
-def _refinement(node, file_count, **_):
+def _refinement(node, file_count, *, was_split):
     if node.parent_node_id is None:
         return (REFINED, "Populated from facts that were already settled.")
     return (SHALLOW_BY_CHOICE, "Few enough files that a split would not help.")
