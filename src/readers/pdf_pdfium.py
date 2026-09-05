@@ -243,63 +243,101 @@ def pdfium_reader(*, heading_ratio: float = 1.15,
 
             for number in range(1, ceiling + 1):
                 page = document[number - 1]
-                textpage = page.get_textpage()
-                lines = _lines(textpage)
-                signal = _size_signal(lines)
-                body_size = _dominant_size(lines, signal)
-                # pdfium reports a page's size in its own page space, whose origin is
-                # the bottom-left corner and whose y grows upward -- the same
-                # convention `pdf_pdfminer` reads off `page.bbox`.
-                height = page.get_size()[1] or 1.0
-                margin = height * margin_fraction
-                top, bottom = height - margin, margin
+                # EVERY PAGE IS CLOSED ON THIS THREAD BEFORE THE NEXT ONE IS LOADED,
+                # and the `finally` is the whole of it.
+                #
+                # pypdfium2's page and text-page objects each set `_fin_obj = self`,
+                # so every one of them is a reference CYCLE: a refcount reaching zero
+                # never frees one, and the cyclic garbage collector does -- running
+                # `weakref.finalize` -> `FPDF_ClosePage`. The collector runs on
+                # whichever thread happens to trip its threshold. Left to it, this loop
+                # accumulates one such handle per page (verified by execution: 13 pages
+                # read, 13 live page handles and 13 live text-page handles, every one
+                # of them unreachable garbage with a live finalizer).
+                #
+                # pdfium is not thread-safe and pypdfium2 takes no lock -- there is no
+                # `import threading` anywhere in the package. Once
+                # `extraction_pool.ProcessPool` has started, this process has two more
+                # threads that allocate constantly while pickling requests and results
+                # (`_ExecutorManagerThread` and the call queue's `_feed`), so a page
+                # can be closed by the collector ON ONE OF THEM, inside the same
+                # document's shared colorspace and font caches, while this thread is in
+                # a pdfium call on another page of that document. Measured over one
+                # pass of the owner's corpus with the pool running: three text pages
+                # closed by `_ExecutorManagerThread`, all three of them while the
+                # calling thread was inside pdfium. With this `finally`, zero.
+                #
+                # What that costs was observed on the owner's real 199-file corpus,
+                # roughly one run in six: a `CPDF_ColorSpace` freed while in use and a
+                # segmentation fault in `CPDF_ColorSpace::CreateBufAndSetDefaultColor`
+                # at the next `FPDF_LoadPage`, on THIS line, with the two pool threads
+                # in the traceback. The run dies with no error message and a truncated
+                # database -- 18 of 199 files where 176 were extracted. Closing here
+                # leaves nothing for another thread's collector to free.
+                try:
+                    textpage = page.get_textpage()
+                    lines = _lines(textpage)
+                    signal = _size_signal(lines)
+                    body_size = _dominant_size(lines, signal)
+                    # pdfium reports a page's size in its own page space, whose origin
+                    # is the bottom-left corner and whose y grows upward -- the same
+                    # convention `pdf_pdfminer` reads off `page.bbox`.
+                    height = page.get_size()[1] or 1.0
+                    margin = height * margin_fraction
+                    top, bottom = height - margin, margin
 
-                # Reading order: top of the page first, exactly as the pdfminer
-                # adapter sorts, so a document does not change shape when a
-                # deployment changes library.
-                lines.sort(key=lambda line: (-line.y1, line.x0))
+                    # Reading order: top of the page first, exactly as the pdfminer
+                    # adapter sorts, so a document does not change shape when a
+                    # deployment changes library.
+                    lines.sort(key=lambda line: (-line.y1, line.x0))
 
-                text_parts: list[str] = []
-                regions: list[Region] = []
-                cursor = 0
-                heading_ordinal = 0
+                    text_parts: list[str] = []
+                    regions: list[Region] = []
+                    cursor = 0
+                    heading_ordinal = 0
 
-                for line in lines:
-                    rendered = line.text() + "\n"
-                    stripped = rendered.strip()
-                    if not stripped:
+                    for line in lines:
+                        rendered = line.text() + "\n"
+                        stripped = rendered.strip()
+                        if not stripped:
+                            text_parts.append(rendered)
+                            cursor += len(rendered)
+                            continue
+
+                        # The span covers the line's TEXT, not its trailing newline, so
+                        # a slice of `page.text` by these offsets is the evidence
+                        # itself.
+                        lead = len(rendered) - len(rendered.lstrip())
+                        start = cursor + lead
+                        end = start + len(stripped)
+
+                        zone = "body"
+                        ordinal = label = None
+                        if line.y1 > top or line.y0 < bottom:
+                            # Bottom or top margin band: a running head or foot.
+                            # Geometry only -- a page number and a chapter title look
+                            # identical here and both belong to the same zone.
+                            zone = "header_footer"
+                        elif body_size and (
+                                line.height if signal == "height" else line.size
+                        ) >= body_size * heading_ratio:
+                            zone = "heading"
+                            heading_ordinal += 1
+                            ordinal = heading_ordinal  # 1-based, P4 D3
+                            label = stripped           # descriptive only, P4 rule 2
+
+                        regions.append(Region(zone=zone, start=start, end=end,
+                                              ordinal=ordinal, label=label))
                         text_parts.append(rendered)
                         cursor += len(rendered)
-                        continue
 
-                    # The span covers the line's TEXT, not its trailing newline, so a
-                    # slice of `page.text` by these offsets is the evidence itself.
-                    lead = len(rendered) - len(rendered.lstrip())
-                    start = cursor + lead
-                    end = start + len(stripped)
-
-                    zone = "body"
-                    ordinal = label = None
-                    if line.y1 > top or line.y0 < bottom:
-                        # Bottom or top margin band: a running head or foot. Geometry
-                        # only -- a page number and a chapter title look identical
-                        # here and both belong to the same zone.
-                        zone = "header_footer"
-                    elif body_size and (
-                            line.height if signal == "height" else line.size
-                    ) >= body_size * heading_ratio:
-                        zone = "heading"
-                        heading_ordinal += 1
-                        ordinal = heading_ordinal      # 1-based, P4 D3
-                        label = stripped               # descriptive only, P4 rule 2
-
-                    regions.append(Region(zone=zone, start=start, end=end,
-                                          ordinal=ordinal, label=label))
-                    text_parts.append(rendered)
-                    cursor += len(rendered)
-
-                pages.append(PdfPage(number=number, text="".join(text_parts),
-                                     regions=tuple(regions)))
+                    pages.append(PdfPage(number=number, text="".join(text_parts),
+                                         regions=tuple(regions)))
+                finally:
+                    # The text page goes with it: `close()` closes its kids first. Put
+                    # on `page` and not on `textpage` because `get_textpage()` may
+                    # raise, and then there is no `textpage` name to close.
+                    page.close()
         finally:
             document.close()
 

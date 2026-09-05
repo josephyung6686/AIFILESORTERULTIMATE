@@ -269,3 +269,76 @@ def test_the_ordinary_page_is_still_decided_by_its_declared_size(syllabus):
         assert _size_signal(_lines(document[0].get_textpage())) == "size"
     finally:
         document.close()
+
+
+# --------------------------------------------------------------------------
+# The native crash. This is the only test here that is not about what the reader
+# returns -- it is about what the reader LEAVES BEHIND.
+# --------------------------------------------------------------------------
+
+def test_no_pdfium_handle_is_ever_left_for_another_threads_collector(
+        eight_pages, monkeypatch):
+    """A page left to the garbage collector is a segmentation fault waiting for load.
+
+    pypdfium2's page and text-page objects each set `_fin_obj = self`, so every one of
+    them is a reference CYCLE -- a refcount reaching zero never frees one, and the
+    CYCLIC collector does, by running `weakref.finalize` -> `FPDF_ClosePage`. The
+    collector runs on whichever thread trips its threshold, and once
+    `extraction_pool.ProcessPool` has started, the calling process has two more that
+    allocate constantly while pickling requests and results:
+    `_ExecutorManagerThread` and the call queue's `_feed`.
+
+    pdfium is not thread-safe and pypdfium2 takes no lock. So a page closed by the
+    collector on one of those threads reaches into one document's shared colorspace
+    cache while the calling thread is inside a pdfium call on another page of that
+    same document. Measured over one pass of the owner's corpus with the pool running,
+    that happened three times, all three while the calling thread was inside pdfium.
+    Measured on the owner's real 199-file corpus it killed roughly one run in six --
+    SIGSEGV in `CPDF_ColorSpace::CreateBufAndSetDefaultColor`, no error message, and a
+    database holding 18 of 199 files where 176 had been extracted.
+
+    The collector is disabled here so that nothing CAN be collected: every handle the
+    reader would have left for it is therefore still counted. One page and one text
+    page are expected -- the pair being read, which the frame holds and which is not
+    collectable at all. Any number above that is a handle this loop handed to another
+    thread. Before the fix this reached 8, one per page of the document.
+    """
+    import gc
+
+    from pypdfium2 import PdfPage as RawPage
+    from pypdfium2 import PdfTextPage as RawTextPage
+    from pypdfium2.internal.bases import ObjectTracker
+
+    import readers.pdf_pdfium as adapter
+
+    def live(kind):
+        return {ref for ref in ObjectTracker[kind] if ref() is not None}
+
+    gc.collect()                    # whatever an earlier test left is not this one's
+    before = {RawPage: live(RawPage), RawTextPage: live(RawTextPage)}
+    peak = {RawPage: 0, RawTextPage: 0}
+
+    # Sampled mid-page, which is where the reader spends its time and where the
+    # crashes landed -- not at the end, where `document.close()` has already swept
+    # whatever survived.
+    reading = adapter._lines
+
+    def sample(textpage):
+        for kind in peak:
+            peak[kind] = max(peak[kind], len(live(kind) - before[kind]))
+        return reading(textpage)
+
+    monkeypatch.setattr(adapter, "_lines", sample)
+
+    gc.disable()
+    try:
+        document = adapter.pdfium_reader()(eight_pages)
+    finally:
+        gc.enable()
+
+    assert len(document.pages) == 8
+    assert peak[RawPage] == 1, (
+        f"{peak[RawPage]} pdfium page handles were live at once with the collector "
+        "off, so this reader leaves them for a collector on another thread to close")
+    assert peak[RawTextPage] == 1, (
+        f"{peak[RawTextPage]} pdfium text-page handles were live at once")
