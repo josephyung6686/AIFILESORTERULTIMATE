@@ -3283,19 +3283,69 @@ def _children_of(printed: str, parent: str) -> list[str]:
 #:    person made which holds files like the file. Four of the nine exact
 #:    placements would go back to abstaining.
 #:
-#: WHAT ACTUALLY SEPARATES THEM IS COVERAGE, and it is worth testing before
-#: anything else. `Kid` holds two files and BOTH are report cards; the folder is
-#: unanimous, and a folder whose every file is one kind is a folder made for that
-#: kind. `Desktop` holds résumés among a great many other things -- the kind
-#: merely leads. `settled_values_in_directory` already reasons this way ("A SET OF
-#: ONE IS ALWAYS UNANIMOUS, which is why one file is not enough"), so the concept
-#: is in the codebase and only the threshold would be new -- and a threshold
-#: belongs in `cli.py`, not here.
+#: WHAT ACTUALLY SEPARATES THEM IS COVERAGE, AND THAT PART IS BUILT.
+#: `Kid` holds two files and BOTH are report cards; the folder is unanimous, and
+#: a folder whose every file is one kind is a folder made for that kind.
+#: `Desktop` holds four résumés among eleven things -- the kind merely leads, and
+#: five of the nine résumés sit ALONE in a folder, which
+#: `settled_values_in_directory`'s own floor already refuses to read as anything.
+#: `settled_values_stated_by_every_file` is that distinction,
+#: `placement.pipeline._a_folder_made_for_this_keeps_it` is the rule that acts on
+#: it, and `cli.py` reads `TREE_LIMITS.tiny_folder_max_files` for the band. With
+#: the contract change applied, all four tests here and both law-school tests and
+#: all three protected-neighbour tests were GREEN together on 2026-09-05. The
+#: discrimination is found. It is not what is missing.
+#:
+#: THE CHANGE ALSO NEEDS `settled_values_in_directory`'s FLOOR, which is measured
+#: and whose code is gone with the rest of it. Without it a folder of ONE file is
+#: designed from its occupant, builds no children, and `materialise` absorbs that
+#: single file's every value onto the folder as `stated` -- so the folder expects
+#: exactly what its occupant says and claims it. `94` F1's `Uni/PHYS 1401 lecture
+#: 08.txt` sits alone in `Uni`: the lecture read "Already in Uni -- nothing to
+#: do", the freeze fell from three files to two, and all three of
+#: `test_cli_protected_neighbours` went red. `_adopted_expectations` was
+#: correctly empty for that folder the whole time, which is how the two answers
+#: came to disagree.
+#:
+#: WHAT IS MISSING IS A REASON TO MAKE THE CHANGE AT ALL, and this is the third
+#: candidate eliminated by measurement. Full run, owner's 199 files,
+#: `academic.coursework`, baseline and treatment from separate clean worktrees
+#: with `prose 174/199` and `classified 104/199` identical in both, so the
+#: control is not contaminated:
+#:
+#:                     exact  right parent  top folder  wrong  not placed
+#:     baseline            0             6           3      0          32
+#:     contract change     0             1           0      6          34
+#:
+#: `Desktop/Python 1006` DID gain `lecture` and `homework` on the real corpus,
+#: exactly as promised. The five lectures then abstained anyway, and the six
+#: `wrong` are `Downloads/essay` x5 and `Downloads/notes` x2 -- the person's
+#: 89-file `Downloads` designed into levels that then claimed files whose answer
+#: is `University Writing/essay`. `exact` never moved off zero.
+#:
+#: THE FOURTH CANDIDATE, AND IT IS A MECHANISM RATHER THAN A GUESS. Read out of
+#: the treatment database for `lecture01_introduction.ipynb`: abstained
+#: `privacy_blocked` behind a TIE at `support 0.714` between
+#:
+#:     node_..._137  `Coursework/.../Spring2023/lecture`   proposed
+#:     node_..._166  `Desktop/Python 1006/lecture`         proposed
+#:
+#: A level built under an adopted folder is a `proposed` node with no
+#: `existing_path`, so it has none of its parent's standing: `_staying_put_wins_a
+#: _tie` sees no candidate the file is already in, and
+#: `_without_duplicated_proposals` drops a proposal only where one of the
+#: PERSON'S folders expects a superset -- and neither of these two is one. The
+#: adoption rules break the tie between a folder and the engine's copy of it at
+#: the folder level, and the change re-creates that same tie one level down where
+#: nothing breaks it. That is the thing to solve before designing adopted
+#: branches again.
 @pytest.mark.xfail(strict=True, reason=(
-    "designing an adopted branch from the groups it holds does build "
-    "Python 1006/lecture, but it re-opens the child's report card into the law "
-    "school semester; the discrimination between that and the nine résumés is "
-    "not yet found"))
+    "the discrimination is found and built -- coverage, not curation -- and "
+    "with the contract change every guardrail test is green together. The "
+    "contract change itself was measured on the full corpus and reverted: "
+    "exact stayed 0, right parent fell 6 -> 1 and wrong rose 0 -> 6, because a "
+    "level built under an adopted folder is a `proposed` node that ties with "
+    "the engine's own copy and nothing breaks that tie"))
 def test_the_lectures_get_a_folder_of_their_own_inside_the_folder_they_are_in(tmp_path):
     """The person's own course folder gains the level underneath it, not beside it.
 

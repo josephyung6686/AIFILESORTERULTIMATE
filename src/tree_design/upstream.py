@@ -403,7 +403,9 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
 
 
 def settled_values_in_directory(conn: sqlite3.Connection, *,
-                                directory_path: str) -> tuple[FieldValue, ...]:
+                                directory_path: str,
+                                stated_by_every_file: bool = False,
+                                ) -> tuple[FieldValue, ...]:
     """What the files ALREADY IN one of the person's folders agree about.
 
     `00`:100 asks that a folder the person made be "treated as a strong
@@ -441,6 +443,13 @@ def settled_values_in_directory(conn: sqlite3.Connection, *,
     field where NOBODY settled a value yields nothing, so an empty folder and a
     folder of unreadable files both expect nothing, which is the honest answer
     for each.
+
+    `stated_by_every_file` narrows the third rule and nothing else: it keeps only
+    the values that are not merely unanimous among the files that spoke but are
+    stated by every file in the folder. That is a different question from this
+    one -- what the folder was MADE for rather than what it expects -- and
+    `settled_values_stated_by_every_file` below is where it is asked and
+    explained. No caller of the expectations needs it, which is why it is off.
     """
     here = _rows_directly_inside(conn, directory_path)
     # A SET OF ONE IS ALWAYS UNANIMOUS, which is why one file is not enough.
@@ -481,8 +490,49 @@ def settled_values_in_directory(conn: sqlite3.Connection, *,
                                    value=present[0].canonical_value,
                                    inside={row["file_id"] for row in here}):
             continue
+        if stated_by_every_file and len(present) != len(here):
+            continue
         settled.append(present[0])
     return tuple(settled)
+
+
+def settled_values_stated_by_every_file(conn: sqlite3.Connection, *,
+                                        directory_path: str,
+                                        ) -> tuple[FieldValue, ...]:
+    """WHAT A FOLDER WAS MADE FOR, WHICH IS NOT WHAT IT EXPECTS.
+
+    **UNANIMITY IS NOT COVERAGE, AND THE DIFFERENCE IS THE WHOLE OF THIS.**
+    `settled_values_in_directory` counts a silent file as silent, deliberately:
+    §5.11 permits a tree "even if some files remain unresolved" and a file that
+    says nothing has not disagreed with anything. That is the right rule for what
+    a folder may be said to EXPECT. It is the wrong rule for what a folder was
+    MADE for, and one measurement on the owner's own disk separates them:
+
+        `Kid` holds two files and BOTH are report cards.
+        `Desktop` holds four résumés among eleven files.
+
+    Both fold to `work_type` unanimously, because the seven other things on the
+    desktop are silent about what kind of thing they are. But a folder whose
+    EVERY file is one kind was made for that kind, and a folder where one kind
+    merely leads is a place things land. Somebody made `Kid` for their child's
+    school papers; nobody made `Desktop` for résumés.
+
+    Measured, 2026-09-05, and this is why the distinction had to be exactly this
+    one: the two failed candidates before it were "refuse a move when the file
+    states no anchoring fact", which also refuses the nine résumés, and "refuse a
+    move out of a folder the person made that holds files like it", which
+    describes `Desktop` as accurately as it describes `Kid`. Coverage is the
+    first test that comes out different on the two.
+
+    HOW MANY FILES ARE ENOUGH is not answered here and must not be. The floor is
+    already there -- `settled_values_in_directory` returns nothing for a folder
+    of one, because a set of one is always unanimous -- and any band above it is
+    a number the composition root authors. `cli.py` reads
+    `TreeLimits.tiny_folder_max_files` for exactly that and decides which files
+    it applies to.
+    """
+    return settled_values_in_directory(conn, directory_path=directory_path,
+                                       stated_by_every_file=True)
 
 
 def _divides_the_corpus(conn: sqlite3.Connection, *, field_ref: str, value: str,

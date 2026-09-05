@@ -164,6 +164,7 @@ def _inputs(conn, **overrides):
         # deployment's catalogue binds to a what-or-when role are the fields
         # `_without_kind_only_moves` refuses to move a file on.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
+        their_own_folder_made_for_what_it_holds={},
         p2=None,
     )
     values.update(overrides)

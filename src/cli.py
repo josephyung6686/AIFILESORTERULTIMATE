@@ -206,7 +206,8 @@ from tree_design.store import ReviewActionRefused
 from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
-    UpstreamUnavailable, existing_folders, handling_class_for, protected_areas,
+    UpstreamUnavailable, existing_folders, file_ids_in_directory,
+    handling_class_for, protected_areas, settled_values_stated_by_every_file,
 )
 from tree_design.schema import create_tree_schema
 from mutation.schema import create_mutation_schema
@@ -3719,6 +3720,52 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 asks[file_id] = (question.prompt, offered_nodes)
         return asks
 
+    def _their_own_folder_made_for_what_it_holds(frozen) -> dict[str, str]:
+        """WHICH OF THE PERSON'S FOLDERS WERE BUILT FOR WHAT IS IN THEM.
+
+        P11's `_a_folder_made_for_this_keeps_it` refuses to carry a file out of
+        one of these on an artifact kind or a period alone, and it is told which
+        files are in one rather than working it out: which folders qualify turns
+        on how many files a folder needs before "every one of them agrees" means
+        anything, and that band is this file's to author.
+
+        THE BAND IS `TREE_LIMITS.tiny_folder_max_files`, ALREADY THIS FILE'S
+        ANSWER to how few files is too few to be worth a folder -- §5.9's
+        tiny-folder warning and `_depth_disposition` both read the same number,
+        and P10's own floor inside `settled_values_stated_by_every_file` refuses
+        a folder of one for the same reason ("a set of one is always unanimous").
+        One reading of one band, in one place. A number tuned until this corpus
+        came out right would be a rule nobody authored.
+
+        AT THIS SETTING IT RESTATES P10'S OWN FLOOR RATHER THAN TIGHTENING IT,
+        and it is written here anyway because the floor is the load-bearing part
+        and it should be visible where the rule is composed. What it excludes,
+        measured: five of the nine résumés this product places sit ALONE in a
+        folder of their own -- `Desktop/Resume - Joseph Yung (9 Aug)/` holds one
+        file and that file is a résumé -- so with no floor at all each of those
+        folders would be "made for" résumés and the person's own copies would
+        stop being filed. The four résumés sitting loose in `Desktop` beside
+        seven other things are excluded by coverage instead, being four of eleven
+        and not eleven of eleven. The day either number moves, one band moves.
+
+        Read off the ADOPTED NODES rather than off paths, so the folders asked
+        about are exactly the ones the tree shows the person as theirs, and no
+        separator rule is invented here to find a file's parent.
+        """
+        made_for: dict[str, str] = {}
+        for node in frozen.nodes:
+            if node.existing_path is None:
+                continue
+            here = file_ids_in_directory(conn, directory_path=node.existing_path)
+            if len(here) <= TREE_LIMITS.tiny_folder_max_files:
+                continue
+            if not settled_values_stated_by_every_file(
+                    conn, directory_path=node.existing_path):
+                continue
+            for file_id in here:
+                made_for[file_id] = node.node_id
+        return made_for
+
     def placement_inputs(tree) -> PipelineInputs:
         asks = _home_questions(tree.tree)
         node_of = _node_for(tree.tree)
@@ -3779,6 +3826,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             ask_about_file=lambda subject: asks.get(subject.file_id),
             chosen_by_user=already_answered,
             fields_that_cannot_anchor_a_move=FIELDS_THAT_CANNOT_ANCHOR_A_MOVE,
+            their_own_folder_made_for_what_it_holds=(
+                _their_own_folder_made_for_what_it_holds(tree.tree)),
             p2=None)
 
     def _model_fact_pass(run_id: str) -> None:

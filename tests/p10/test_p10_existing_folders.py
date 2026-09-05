@@ -348,6 +348,46 @@ def test_one_file_agreeing_with_itself_is_not_a_folder_expectation(corpus,
             ] == ["BUSIB 4300"]
 
 
+def test_a_kind_that_merely_leads_is_an_expectation_but_not_what_a_folder_is_for(
+        corpus, tmp_path):
+    """UNANIMITY IS NOT COVERAGE, and the two answers must stay different.
+
+    A folder holding a syllabus and a lab report: only one of them says what kind
+    of thing it is, and a file that says nothing has not disagreed -- §5.11
+    permits a tree "even if some files remain unresolved" -- so the folder
+    unanimously expects `Syllabus` and that is the right answer for §6.2.
+
+    It is the wrong answer to a different question. `00`:100 treats a folder the
+    person made as a strong expression of intent, and P11 refuses to carry a file
+    OUT of one on an artifact kind alone -- but only where the kind is what the
+    folder IS. Measured on the owner's own disk, 2026-09-05: `Kid` holds two
+    files and BOTH are report cards; `Desktop` holds four résumés among eleven
+    things. Both fold to one `work_type` unanimously. One was made for that kind
+    and the other is where things land, and the nine résumés this product places
+    exactly are the difference between the two answers.
+
+    So `settled_values_stated_by_every_file` keeps only what every file states,
+    and this is the corpus where the two functions must not agree. Collapse them
+    and `Desktop` becomes a folder made for résumés.
+    """
+    from tree_design.upstream import (settled_values_in_directory,
+                                      settled_values_stated_by_every_file)
+
+    leading = put_in_folder(corpus, tmp_path, "Desk", ("syllabus", "lab"))
+
+    assert "Syllabus" in [
+        value.canonical_value for value
+        in settled_values_in_directory(corpus.conn, directory_path=leading)], (
+        "a kind one file names and the other is silent about is still what the "
+        "folder expects, and §6.2 needs that answer")
+    assert not [value for value
+                in settled_values_stated_by_every_file(
+                    corpus.conn, directory_path=leading)
+                if value.field_ref == "work_type"], (
+        "one file of two naming a kind made the folder look built for that "
+        "kind, which is `Desktop` described as `Kid`")
+
+
 def test_a_level_that_makes_no_folder_is_not_counted_in_the_summary():
     """§5.5's sentence is what a person reads before choosing a shape, so it must
     not name folders the shape would not build.

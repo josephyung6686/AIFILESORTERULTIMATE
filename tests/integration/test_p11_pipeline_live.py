@@ -242,6 +242,7 @@ def _inputs(conn, **overrides):
         # §6.3's third suppression, stated rather than inherited for the same
         # reason as the two above it.
         fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
+        their_own_folder_made_for_what_it_holds={},
         p2=None)
     values.update(overrides)
     return PipelineInputs(**values)

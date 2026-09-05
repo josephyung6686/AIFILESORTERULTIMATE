@@ -317,6 +317,114 @@ def _without_kind_only_moves(
     )
 
 
+def _a_folder_made_for_this_keeps_it(
+        retrieval: Retrieval, *, its_own_folder: str | None,
+        fields_that_cannot_anchor_a_move: frozenset[str]) -> Retrieval:
+    """Step 6's fourth half: COVERAGE, NOT CURATION.
+
+    `_without_kind_only_moves` above lets a folder claim a file on what-kind-or-
+    when alone exactly when THAT IS WHAT THE FOLDER IS -- a `work_type` LEVEL
+    means "the syllabus one", and refusing it placed nothing on the easiest
+    corpus there is. This is the other side of that permission: the level is
+    entitled to the file only if nobody else already has a better claim on it,
+    and the person's own filing is that claim.
+
+    THE FILE THIS EXISTS FOR, MEASURED 2026-09-05 ON A CORPUS SMALL ENOUGH TO
+    READ. A part-time law student who is also a parent. Her child's report card
+    sits in `Kid`; the run proposes `Coursework/Fall2026/report card`, a
+    `work_type` level, and the file states `work_type = report card` and `term =
+    Fall2026` and NOTHING about whose work it is. Every guard above allows it,
+    and the product offers to put a child's school record in the parent's
+    Contracts folder -- the one defect this product exists to not have.
+
+    TWO EARLIER DISCRIMINATIONS WERE BUILT AND MEASURED AND BOTH WERE WRONG, and
+    they are recorded because each is a rule somebody will propose again:
+
+    * "Refuse a move when the file states no anchoring fact." It equally refuses
+      the nine résumés into `Coursework/Spring2023/resume`, measured exact at 9
+      of 9. A résumé states a kind and a period and nothing about whose work it
+      is: it has the SAME evidence shape as the report card, and no rule reading
+      only the file can tell them apart.
+    * "Refuse a move out of a folder the person made that holds files like it."
+      `Desktop` holds four résumés directly, so the product's own evidence
+      describes `Desktop` as a folder its owner made which holds files like the
+      file. Four of the nine exact placements went back to abstaining.
+
+    WHAT SEPARATES THEM IS COVERAGE. `Kid` holds two files and BOTH are report
+    cards. `Desktop` holds résumés among a great many other things. A folder
+    whose every file is one kind was made for that kind; a folder where one kind
+    wins a plurality is a place things land. Five of the nine résumés sit alone
+    in a folder of their own, and the floor inside
+    `settled_values_stated_by_every_file` -- a set of one is always unanimous --
+    already refuses to call those made for anything, so the rule does not reach
+    them either.
+
+    **IT IS NOT A FIELD MATCH, AND THAT IS DELIBERATE.** What the folder was made
+    for need not be what the rival matched on. The law student's own `Fall 2026`
+    holds three files that all state that term, and the rival that claims one of
+    them is a `syllabus` level -- a different field entirely. A folder every one
+    of whose files agrees about something is a folder somebody built, and a file
+    is not carried out of it on what-kind-or-when alone whatever the coincidence
+    is. WHICH files are in such a folder is the composition root's to say and is
+    injected, for the same reason `fields_that_cannot_anchor_a_move` is: the band
+    beneath "every file" is a number P11 does not own.
+
+    **A CHILD IS NOT AN ESCAPE AND DOES NOT NEED TO BE ONE.** A level built on
+    the field the folder is covered by cannot exist -- a value every file states
+    does not divide, so §5.4 measures it and builds nothing -- and a level built
+    on any other field is a rival like any other. `Desktop/Python 1006` states
+    `lecture` five times in twenty-one files and is covered by nothing, so this
+    rule does not touch its files at all.
+
+    **WHAT IT DOES TODAY, STATED PLAINLY.** Measured on the owner's 199 files on
+    2026-09-05: NO folder in either the `academic.coursework` or the
+    `career.recruiting` run is covered by anything -- 0 of 29 directories -- so
+    this rule fires on none of them and both scorecards are unchanged by it. The
+    rival it drops in the law-school corpus is one `_staying_put_wins_a_tie`
+    also holds today. The report card escapes, `Fall 2026/syllabus` exists to
+    claim a file, and every guard above allows the move ONLY under the contract
+    change recorded in `test_cli.py`'s xfail on
+    `test_the_lectures_get_a_folder_of_their_own_inside_the_folder_they_are_in`
+    -- which was built, measured on the full corpus and reverted. This rule is
+    the discrimination that change needs, kept so it can be retried without
+    re-opening the defect, and `test_a_kind_that_merely_leads_is_an_expectation_
+    but_not_what_a_folder_is_for` is what pins it in the meantime.
+
+    **THE FOLDER IS NAMED, NOT INFERRED FROM `CURATED_FOLDER`.** The rule above
+    reads the stay off that channel, and it is the wrong instrument here: the
+    channel is a LABEL match (`retrieval.label_matches`), so it fires for a
+    folder whose NAME agrees with the file and is silent for one whose name does
+    not. `Kid` is called "Kid" and a report card says nothing about a kid, so the
+    folder the file is actually sitting in reached it on `DIRECT_FACT` alone --
+    and a first draft of this rule, reading the channel, dropped the file's own
+    folder along with the rivals and abstained on all five files. The caller
+    names the node instead.
+
+    Nothing is dropped when the file's own folder was made for nothing, which is
+    every file in a folder that is merely a place things land, and every file
+    that is not in one of the person's folders at all.
+    """
+    if its_own_folder is None:
+        return retrieval
+    carried = {
+        candidate.node_id for candidate in retrieval.candidates
+        if candidate.node_id != its_own_folder
+        and candidate.matching_facts
+        and all(fact.field in fields_that_cannot_anchor_a_move
+                for fact in candidate.matching_facts)}
+    if not carried:
+        return retrieval
+
+    return Retrieval(
+        subject_ref=retrieval.subject_ref,
+        plan_version=retrieval.plan_version,
+        candidates=tuple(candidate for candidate in retrieval.candidates
+                         if candidate.node_id not in carried),
+        conflicts=retrieval.conflicts,
+        semantic_only_node_ids=retrieval.semantic_only_node_ids,
+    )
+
+
 class ModelJudgementUnavailable(RuntimeError):
     """`run_call` came back with something that is not a verdict.
 
@@ -439,6 +547,24 @@ class PipelineInputs:
     #: one of its fields can anchor a move passes an empty set, which is a
     #: position it has taken rather than one this dataclass took for it.
     fields_that_cannot_anchor_a_move: frozenset[str]
+    #: For each file whose OWN folder was made for what it holds -- every one of
+    #: its files agreeing about a field, not merely the ones that spoke -- the
+    #: node that folder became. `_a_folder_made_for_this_keeps_it` is the rule
+    #: and carries the measurement; this is where the deployment says which
+    #: folders clear the band, because "every file" needs a floor beneath it and
+    #: a count is a number P11 does not own.
+    #:
+    #: A MAPPING AND NOT A SET, because the rule has to keep the folder it is
+    #: protecting: a set would leave P11 to work out which candidate is the
+    #: file's own folder, and the only channel it could ask is a LABEL match
+    #: that is silent for a folder whose name says nothing about its contents.
+    #:
+    #: Required, with no default, for the same reason as the set above: a run
+    #: that did not state it would carry a child's report card out of the folder
+    #: their parent keeps it in, on an artifact kind and a term. A deployment
+    #: with no folders of the person's own passes an empty mapping, which is a
+    #: position it has taken rather than one this dataclass took for it.
+    their_own_folder_made_for_what_it_holds: Mapping[str, str]
     p2: P2Run | None
 
     def __post_init__(self) -> None:
@@ -450,6 +576,14 @@ class PipelineInputs:
                 "only say what-or-when is a fact about a catalogue P11 does not "
                 "own, and a run that did not state it would move files on an "
                 "artifact kind alone")
+        if not isinstance(self.their_own_folder_made_for_what_it_holds, Mapping):
+            raise ValueError(
+                "`their_own_folder_made_for_what_it_holds` maps a file id to "
+                "the node its own folder became, given by the composition root: "
+                "how many files a folder needs before every one of them "
+                "agreeing means it was built for that is a band P11 does not "
+                "own, and a run that did not state it would carry a file out of "
+                "the folder its owner keeps it in on an artifact kind alone")
         if not isinstance(self.limits, PlacementLimits):
             raise ValueError(
                 "the pipeline runs under P1's seven ceilings and reads them "
@@ -638,8 +772,24 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         for candidate in retrieval.candidates
     }
 
-    # Step 6, both halves. `identify_child_parent_fallback_or_none` names the
-    # first one and it had no implementation until 2026-08-29.
+    # Step 6. FIRST, BEFORE THE COLLAPSES, AND THE ORDER IS THE RULE. A folder
+    # every one of whose files agrees about something was built for that, and
+    # nothing carries a file out of it on what-kind-or-when alone. It runs ahead
+    # of the two collapses below because they both read the candidate SET: the
+    # ancestor collapse drops a folder the moment one of its own children is also
+    # a candidate, so run afterwards this rule found the file's own folder
+    # already gone and dropped the rest, and all five files in
+    # `_two_lives_one_semester_corpus` abstained `conflicting_facts`. Measured
+    # 2026-09-05 under the adopted-branch change that xfail records -- the only
+    # state in which that folder HAS children -- and it is why this is the first
+    # thing step 6 does.
+    retrieval = _a_folder_made_for_this_keeps_it(
+        retrieval,
+        its_own_folder=inputs.their_own_folder_made_for_what_it_holds.get(
+            subject.file_id),
+        fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move)
+    # Then both halves of the collapse. `identify_child_parent_fallback_or_none`
+    # names the first one and it had no implementation until 2026-08-29.
     retrieval = _without_superseded_ancestors(
         conn, retrieval, plan_version=inputs.plan_version)
     # And the same collapse across branches, where the rival is the engine's own
@@ -664,7 +814,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
         if getattr(node, "existing_path", None) is not None:
             their_own_folders.add(node.node_id)
 
-    # And the third: a folder reached only because it holds the same KIND of
+    # And the last: a folder reached only because it holds the same KIND of
     # thing is not a home this file's evidence chose.
     retrieval = _without_kind_only_moves(
         retrieval, dimension_of=dimension_of,

@@ -534,6 +534,7 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             ask_about_file=lambda subject: None,
             chosen_by_user=lambda subject: None,
             fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
+            their_own_folder_made_for_what_it_holds={},
             p2=None)
 
     def downstream(p1_p7):
