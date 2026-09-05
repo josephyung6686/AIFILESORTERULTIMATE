@@ -307,3 +307,37 @@ def test_the_first_run_files_them_without_being_answered(tmp_path):
     printed = _run(corpus, "PHYS 1401")
 
     assert _headline(printed) == "Files: 3 decided, 3 ready to file", printed
+
+
+def test_the_required_level_of_the_chosen_situation_can_actually_be_built(tmp_path):
+    """`academic.coursework` declares `subject` REQUIRED, and the tree builds it.
+
+    **This test passed the moment it was written, and that is the finding.** It was
+    written to prove a regression: `fd68cb6` emptied `DIRECT_SLOTS`, `subject` reached
+    P9's `active_schema_for` only by being a slot, and the diff did not put it back --
+    so `subject` looked unbuildable, and `planning/102` said so before running anything.
+    Running it says otherwise. Levels come from `folder_levels_for`, which reads the
+    applicability row and carries `subject`; `active_schema_for` is the GROUPING schema
+    and a different seam. The level was never lost.
+
+    It is kept because the reasoning that produced it was sound and the seam is real:
+    a hand-kept tuple beside a derived list is exactly the shape that drifts, and this
+    pins the half that matters -- that the situation's required level reaches the tree.
+    `TWO_HOMES` names two courses, so `subject` divides and §5.4 has a level to build.
+
+    What actually holds `subject` at zero is measured in `102` §1b and is not here:
+    the file says `E1006`, the folder the owner made says `Python 1006`, and two thirds
+    of the files name no course at all.
+    """
+    corpus = _corpus(tmp_path, TWO_HOMES)
+    _run(corpus, "Coursework")
+
+    conn = sqlite3.connect(corpus.parent / "plan.sqlite")
+    conn.row_factory = sqlite3.Row
+    built = {row["dimension"] for row in conn.execute(
+        "SELECT dimension FROM tree_nodes WHERE dimension IS NOT NULL")}
+    conn.close()
+
+    assert "subject" in built, (
+        f"`subject` is a REQUIRED level of academic.coursework and no node carries "
+        f"it; the tree built {sorted(built)}")

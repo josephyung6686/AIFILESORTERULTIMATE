@@ -1,59 +1,86 @@
-# 102 — The schema is a hand-kept tuple, and it drifted
+# 102 — Why `subject` is still zero, and it is not the schema
 
-**For the owner.** Two findings, both measured today on your 199 files. The first is a
-regression `fd68cb6` introduced last night — the same commit that fixed a real defect.
-The second is why the product can only ever build three kinds of folder, and it is the
-answer to "how do we make the extractor better than rules".
+**For the owner.** `101` traced why nothing was placed and ended at a poisoned `subject`.
+The poisoning is fixed — 110 values including five ZIP codes became 8 that pass a context
+check. This document is what that uncovered, and **§1 is a correction to my own first
+answer**, which was committed before it was run.
 
-`101` traced why nothing was placed and ended at a poisoned `subject`. That poisoning is
-fixed. This document is what the fix uncovered underneath it.
+Scored against your labels: `subject` is **0 correct out of 43**. The reason is not the
+schema plumbing. It is that the course is written one way in the file and another way on
+the folder, and that two thirds of the files do not name it at all.
 
 ---
 
-## 1. `subject` is produced correctly and can no longer become a folder
+## 1. CORRECTED — the schema tuple is not what stops the level
 
-**Before `fd68cb6`** (`.groundtruth/rebaseline-coursework`, the run recorded at 21:54):
+**The first version of this document was wrong and it was committed wrong.** It said
+`subject` could no longer become a folder because `fd68cb6` dropped it out of
+`active_schema_for`. That was reasoned from the code and never run. Run, it is false:
 
-```
-proposed  dim='subject'  role='subject_anchor'  label='E1006'
-proposed  dim='term'     role='cycle_period'    label='Spring2023'
-```
+    proposed  dim=subject  role=subject_anchor  'PHYS1401'
+    proposed  dim=subject  role=subject_anchor  'ECON2105'
 
-**After, measured today** — fresh `academic.coursework` run, all 199 files carrying
-evidence:
+— a live `academic.coursework` run on a six-file corpus, on the current tree. Levels are
+built from `folder_levels_for`, which reads the applicability row and **does** carry
+`subject`. `active_schema_for` is P9's *grouping* schema, a different seam. The `subject`
+level was never unbuildable.
 
-| | before | after |
+`fd68cb6` is still the right commit and the tuple is still a hand-kept copy. Neither claim
+about the level survives.
+
+## 1b. What actually stops it, measured against the labels
+
+The producer's own numbers on the owner's corpus, scored against `labels.json`:
+
+| | |
+|---|---|
+| files whose label carries a `subject` | **43** |
+| values the producer wrote | 8 |
+| **correct** | **0** |
+| missed | 35 |
+
+The eight are not hallucinations. They are **the right course under a different spelling**:
+
+| file | produced | label |
 |---|---|---|
-| `subject` facts | 110, `direct` | **8, `validated`** |
-| `subject` tree nodes | `E1006` present | **zero** |
-| `term` nodes | present | 4 |
-| `work_type` nodes | none | 4 |
+| `Desktop/Python 1006/lecture01_introduction.ipynb` | `E1006` | `PYTHON1006` |
+| `Downloads/Essay 2 Final Draft.pdf` | `ELTU3017` | `University Writing` |
 
-The fact side got *better*: 110 shape-matches that included five ZIP codes became 8
-values that passed a context check. That was the intended fix and it worked. **Their
-precision against the labels is not measured here** — what is measured is that the
-producer stopped firing on 102 readings it had no business claiming.
+The document says `E1006`. The folder the owner made says `Python 1006`. Both name one
+course, and the label follows the folder — which is the owner telling us that **the folder
+he made is the naming authority**, not the string inside the file. `values` already carries
+`aliases` and `merged_into`; nothing populates them for this.
 
-**The tree side lost the level entirely**, and it is one line:
+The thirty-five are the harder half and they are the design's own example. `problem1.ipynb`,
+`homework0.py`, `es1_written.txt`, `fractions.py` — **they contain no course code at all**.
+Twenty-four of the thirty-five sit in a folder where a sibling states the course
+(`Desktop/Python 1006`: 21 files, 5 state `E1006`). Eleven have no sibling that knows either.
 
-```python
-active_schema_for=lambda db, file_id, content_hash: (
-    tuple(slot.field_key for slot in DIRECT_SLOTS.slots)
-    + (TERM_FIELD, MEDIA_TYPE_FIELD, WORK_TYPE_FIELD))     # cli.py:4055
-DIRECT_SLOTS = DirectSlots(slots=())                        # cli.py:1527
-```
+**And copying the sibling's fact onto them is forbidden by name.** `00`:55:
 
-`subject` reached that tuple *only* by being a direct slot. `fd68cb6` emptied the slots —
-correctly, `101` §"three explanations" names the slot as its second ceiling — and extended
-the tuple with two fields, without putting `SUBJECT_FIELD` back. The lambda's own comment
-states the consequence: **"a field missing here is a field P9 will not group on."**
+> A file named HW 3.pdf may contain only equations and the phrase "Homework 3," while a
+> related syllabus, lecture deck, problem set, and midterm contain the missing anchors
+> PHYS1401, Columbia, and Spring 2026. **The graph does not automatically copy those missing
+> facts onto sparse files.** Instead, it assembles an evidence-rich local neighborhood…
 
-`ap.academic.coursework` binds `subject_anchor → subject` as **required**. A required level
-that cannot be built is a stronger explanation of that situation's 0% than the tie analysis,
-and it supersedes the "fourth candidate" theory: proposed nodes under adopted folders were
-being diagnosed in a tree that was missing its load-bearing level.
+`00`:108 says what happens instead: the sparse file is compared against the node's syllabus,
+lectures and accepted problem sets and placed there "**rather than falsely claiming that the
+course code was found inside the homework itself**." The file never acquires the fact. It
+acquires a destination.
 
----
+The channel that finds it is named at `00`:56, and it is off:
+
+> Embeddings are useful at this stage because they can find files such as HW 3.pdf that lack
+> the course code but resemble lecture notes and earlier problem sets
+
+`cli.py` ships `EmbeddingsOff()` and `retrieval=RetrievalKnowledge(similarity=None, …)`, so
+retrieval is by shared validated fact alone — and a file with no fact shares nothing and is
+never retrieved. `readers/embedding_minilm.py` exists; `100` measured the encoder at 9.3–10
+docs/s, fully on-device.
+
+**So the ranking changed.** The schema tuple is tidy-up. The two things that move `subject`
+off zero are an alias between what the file says and what the folder is called, and the
+retrieval channel the design already specifies for files that say nothing.
 
 ## 2. Four situations of 208 can have their required folders built
 
