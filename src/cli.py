@@ -2800,10 +2800,27 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
     return choose
 
 
-def refinement_for(node, file_count: int) -> tuple[str, str]:
+def refinement_for(node, file_count: int, *, was_split: bool) -> tuple[str, str]:
     """§5.8, per node. Every legal destination needs an answer or freeze refuses.
 
-    A top-level branch is `refined` -- its levels came from settled facts.
+    A top-level branch is `refined` -- its levels came from settled facts. SO IS
+    ANY BRANCH THAT WAS ACTUALLY SPLIT, and `was_split` is how this function is
+    told. Until 2026-09-05 an adopted folder could not be split at all, so the
+    question never arose; now `Desktop/Python 1006` gains `lecture` and
+    `homework` from its own files, and the sentence about a top-level branch --
+    "The levels beneath this branch were populated from facts that were already
+    settled in your files" -- became literally true of it. It was being told
+    `refine-later` instead, because the verdict is stamped BEFORE the branch is
+    routed and `_with_refinement` skips a node that already carries one.
+    `refine-later` on a branch that has just been refined is the same kind of
+    false statement in the person's own voice that the file-count band was
+    written to end, one field over.
+
+    `was_split` is REQUIRED and keyword-only, for the reason `file_count` is: a
+    default would let this function claim a branch was left unsplit without
+    anything having looked. Both callers know the answer for certain -- the
+    pre-routing stamp has genuinely not split anything yet, and the re-stamp in
+    `_projection` is only reached when children were built.
 
     Below it the answer is a claim about a NUMBER, and until this function was
     handed one it made that claim without being able to check it: every node with
@@ -2832,7 +2849,7 @@ def refinement_for(node, file_count: int) -> tuple[str, str]:
     this answer is stamped before the branch is routed, so a sentence that said
     "left as one folder" would be a second unchecked claim in the same place.
     """
-    if node.parent_node_id is None:
+    if node.parent_node_id is None or was_split:
         return (REFINED,
                 "The levels beneath this branch were populated from facts that "
                 "were already settled in your files.")

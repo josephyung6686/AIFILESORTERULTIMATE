@@ -110,7 +110,7 @@ def decisions(**over):
         from_plan_version=PLAN_0,
         branch_group_ids=("g_columbia_coursework",),
         choose_option=lambda candidate, options: options[0].option_id,
-        refinement_for=lambda node, file_count: (
+        refinement_for=lambda node, file_count, **_: (
             (REFINED, "The levels beneath this node are populated from settled "
                       "facts.")
             if node.parent_node_id is None else
@@ -237,7 +237,7 @@ def test_a_chain_that_answers_58_for_nothing_is_refused_at_freeze(corpus):
 
     with pytest.raises(FreezeRefused) as excinfo:
         design(corpus,
-               dec=decisions(refinement_for=lambda node, count: None))
+               dec=decisions(refinement_for=lambda node, count, **_: None))
     assert any("refinement disposition" in reason
                for reason in excinfo.value.reasons)
 
@@ -892,7 +892,7 @@ def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
     """
     seen: list[tuple[str, int]] = []
 
-    def record(node, file_count):
+    def record(node, file_count, **_):
         seen.append((node.display_label, file_count))
         return (REFINED, "The levels beneath this node came from settled facts.")
 
@@ -907,3 +907,37 @@ def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
     # And no node is judged on nothing: a count of zero would make "few enough
     # files" true of every branch there is.
     assert all(count > 0 for _, count in seen), seen
+
+
+def test_a_branch_that_gained_children_is_told_it_was_split(corpus):
+    """The other half of §5.8's evidence, and the one nothing pinned.
+
+    The branch's verdict is stamped BEFORE `_route` runs, when it has no
+    children, and `_with_refinement` skips a node that already carries one. So a
+    branch that then splits keeps the answer computed about a branch that had not
+    split -- `refine-later` on something just refined, which is the same false
+    statement in the person's own voice as the file count was.
+
+    `_projection` re-derives it once the children exist. That re-derivation is
+    invisible from the disposition alone on this corpus (the fixture policy above
+    answers `refined` for everything), so what is pinned is the FACT the chain
+    hands over: a node another node names as its parent is offered
+    `was_split=True`, and a node nothing hangs off is offered `False`. Delete the
+    re-stamp and `Columbia coursework` goes back to being told it was not split.
+    """
+    seen: dict[str, set[bool]] = {}
+
+    def record(node, file_count, *, was_split):
+        seen.setdefault(node.display_label, set()).add(was_split)
+        return (REFINED, "The levels beneath this node came from settled facts.")
+
+    design(corpus, dec=decisions(refinement_for=record))
+
+    # The branch is asked twice -- once before routing, once after -- and the
+    # second answer is the one that survives, so BOTH values appear for it and
+    # `True` must be among them. A leaf is asked once and nothing hangs off it.
+    assert True in seen["Columbia coursework"], seen
+    assert seen["BUSIB 4300"] == {True}, seen
+    assert seen["Homework"] == {False}, seen
+    assert seen["Syllabus"] == {False}, seen
+    assert seen["PHYS1401"] == {False}, seen

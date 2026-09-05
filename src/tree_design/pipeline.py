@@ -218,7 +218,7 @@ class TreeDesignDecisions:
     #: Returns `(disposition, reason)` or None. None is not a default — it is the
     #: state of a branch nobody answered, and `validate_for_freeze` refuses it for
     #: any node that would be a destination.
-    refinement_for: Callable[[Node, int], tuple[str, str] | None]
+    refinement_for: Callable[..., tuple[str, str] | None]
     residual_library: Mapping[str, ResidualTemplate]
     residual_choices: tuple[ResidualChoice, ...]
     residual_configuration: Mapping[str, str]
@@ -464,7 +464,8 @@ class _Action:
     payload: dict = field(default_factory=dict)
 
 
-def _with_refinement(node: Node, refinement_for, *, file_count: int) -> Node:
+def _with_refinement(node: Node, refinement_for, *, file_count: int,
+                     was_split: bool) -> Node:
     """§5.8's answer, stamped on a node the chain is about to write.
 
     Nothing in P10 wrote this field. `project_branch_nodes` leaves it `None`,
@@ -483,10 +484,16 @@ def _with_refinement(node: Node, refinement_for, *, file_count: int) -> Node:
     would let the chain hand a policy a count nobody measured — which is the
     shape the defect took the first time: the answer was stated, the number never
     read, and the sentence was wrong about a real folder by twenty files.
+
+    `was_split` is required for the same reason and answers the other half: this
+    function runs BEFORE a branch is routed, so the verdict it stamps there is
+    about a branch that has no children YET. `_projection` re-derives it once the
+    children exist -- see `_restamped` -- because `refine-later` on a branch that
+    was in fact just refined is a false sentence in the person's own voice.
     """
     if not node.accepts_placement or node.refinement_disposition is not None:
         return node
-    answer = refinement_for(node, file_count)
+    answer = refinement_for(node, file_count, was_split=was_split)
     if answer is None:
         return node
     disposition, reason = answer
@@ -841,7 +848,10 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
         # §5.3's own count for this branch, not one re-derived here: for an
         # accepted group it is the size of its membership and for an adopted
         # folder it is the file count the scan observed in that directory.
-        file_count=candidate.supporting_file_count)
+        file_count=candidate.supporting_file_count,
+        # Nothing has been routed yet, so this is a fact and not a guess. When a
+        # split does happen, `_projection` re-derives the verdict.
+        was_split=False)
     write_node(conn, parent)
 
     report = _route(conn, authorities, branch_node_id=parent.node_id,
@@ -927,11 +937,50 @@ def _projection(conn, authorities, decisions, *, evidence, validation,
             mint_node_id=authorities.mint_node_id,
             handling_class_for=authorities.collapse_handling_classes,
             template_context_for=authorities.template_context_for)
-        return tuple(
+        # WHICH OF THESE NODES IS A PARENT, read off the projection itself
+        # rather than asked of the tree: these are exactly the nodes about to be
+        # written, and a node that another one names as its parent HAS been
+        # split. `refinement_for` needs it to tell a branch that was refined from
+        # one that nobody has refined yet.
+        split_parents = {node.parent_node_id for node in preview.projected}
+        stamped = tuple(
             _with_refinement(node, decisions.refinement_for,
-                             file_count=len(preview.members_by_node[node.node_id]))
+                             file_count=len(preview.members_by_node[node.node_id]),
+                             was_split=node.node_id in split_parents)
             for node in preview.projected)
+        # THE BRANCH'S OWN VERDICT, RE-DERIVED NOW THAT IT HAS CHILDREN. It was
+        # stamped before `_route` ran, when it had none, and `_with_refinement`
+        # skips a node that already carries one -- so without this the first
+        # adopted folder to gain a child keeps `refine-later` on a branch that
+        # was in fact just refined. Written directly because the branch is
+        # usually NOT among the projected nodes: `project_branch_nodes` returns
+        # the parent only when the composition put its values there instead of
+        # into a folder, which is the case where it has no children at all.
+        if parent.node_id in split_parents and not any(
+                node.node_id == parent.node_id for node in stamped):
+            write_node(conn, _restamped(
+                parent, decisions.refinement_for,
+                file_count=len(preview.members_by_node[parent.node_id]),
+                was_split=True))
+        return stamped
     return project
+
+
+def _restamped(node: Node, refinement_for, *, file_count: int,
+               was_split: bool) -> Node:
+    """`_with_refinement` for a node that already carries a stale answer.
+
+    `_with_refinement` refuses to overwrite one on purpose -- §5.8's answer is
+    the USER's and a chain that re-derived it at every write would overrule an
+    edit they made. This is the one case where the earlier answer was not theirs
+    and not about this node as it now stands: it was computed before the branch
+    was routed, about a branch with no children. Blanking it first is what makes
+    the re-derivation visible here rather than hidden inside the guard.
+    """
+    return _with_refinement(
+        dataclasses.replace(node, refinement_disposition=None,
+                            refinement_reason=None),
+        refinement_for, file_count=file_count, was_split=was_split)
 
 
 def _apply(conn, authorities, decisions, *, action: _Action, project=None) -> str:
@@ -985,5 +1034,7 @@ def _enable_residual_library(conn, authorities, decisions, *, version: str) -> N
         # user once for all of them, so `residual_refinement` is a fixed pair and
         # reads neither argument.
         write_node(conn, _with_refinement(
-            node, lambda _node, _count: decisions.residual_refinement,
-            file_count=0))
+            node, lambda _node, _count, **_: decisions.residual_refinement,
+            # §7.4's home is flat DELIBERATELY, so neither number is a claim
+            # about anything measured: the answer is the user's, verbatim.
+            file_count=0, was_split=False))

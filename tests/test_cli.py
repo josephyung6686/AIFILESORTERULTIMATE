@@ -21,7 +21,9 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import cli  # noqa: E402
-from tree_design.vocabulary import RESIDUAL_TEMPLATE_NAMES  # noqa: E402
+from tree_design.vocabulary import (  # noqa: E402
+    REFINED, RESIDUAL_TEMPLATE_NAMES,
+)
 from facts.unresolved import (  # noqa: E402
     BELOW_MARGIN, NO_CANDIDATE_EVIDENCE,
 )
@@ -3180,6 +3182,13 @@ def _adopted_folder_with_a_kind_inside_it(tmp_path):
         "E1006 Lecture 2: variables\nSpring 2023 semester. Instructor office hours.\n")
     (course / "Lecture.txt").write_text(
         "E1006 lecture on recursion\nSpring 2023 semester. Instructor: Dr Ng.\n")
+    # A SECOND KIND, because the owner's real folder has one. Measured on the
+    # real corpus 2026-09-05: `Desktop/Python 1006` holds 21 files carrying
+    # `lecture` x5 and `homework` x1, so `work_type` DIVIDES there and §5.4's
+    # ordinary path builds both children. A fixture with one kind would test a
+    # one-child level nobody is asking for.
+    (course / "homework 1.txt").write_text(
+        "E1006 homework 1\nSpring 2023 semester. Instructor: Dr Ng.\n")
     (course / "palmer_penguins.csv").write_text(
         "species,island,bill_length\nAdelie,Torgersen,39.1\n")
 
@@ -3224,64 +3233,69 @@ def _children_of(printed: str, parent: str) -> list[str]:
     return []
 
 
-#: STRICT, SO THE SUITE TURNS RED THE DAY THIS IS FIXED, exactly as the report
-#: card marker above it did. What is recorded here is not "we did not get to it"
-#: -- it is a mechanism that was traced to the wrong place first, and the trace is
-#: the useful part.
+#: STRICT, SO THE SUITE TURNS RED THE DAY THIS IS FIXED. What is recorded here is
+#: not "we did not get to it": the change was BUILT and MEASURED on 2026-09-05,
+#: it does what this test asks, and it was reverted because of what else it did.
 #:
-#: THE OBVIOUS READING IS WRONG. `materialise._project` skips a level that does
-#: not divide and `project_branch_preview` records its value on the parent
-#: instead (`stated`), which looks exactly like the defect: the value is known,
-#: the folder is not built. It is the right story for a branch the ENGINE
-#: proposes, and it is not what happens to a folder the PERSON made.
+#: THE CHANGE. `tree_design/candidates.py` builds an adopted-folder candidate with
+#: `accepted_group_ids=()` -- correctly, a folder the person made is not built
+#: FROM a group -- and `_design_one_branch` then designs it from `_members(groups)`
+#: over that empty tuple. No members, so `_route` sees no files, no domain and no
+#: detection signal, so `vertical_options` can only offer "keep as it is", so
+#: `_project` is never called with an adopted node as parent. Every one of the
+#: forty adopted folders in the owner's academic run has zero children.
+#: `supporting_file_count` is right the whole time, so the canvas shows a count
+#: for a folder whose membership does not exist. (`refinement-truth` named the
+#: construction site; verified here.)
 #:
-#: An adopted folder never reaches that code at all. `tree_design.pipeline`
-#: `_adopted_expectations` (:598) reads its expectations straight off its own
-#: contents with `settled_values_in_directory`, and `_design_one_branch` (:822)
-#: designs it from `_members(groups)` -- the accepted groups the CANDIDATE NAMES,
-#: which for an existing-folder candidate is empty. No members, so no evidence,
-#: so no levels, so `_project` is never called with an adopted node as parent.
-#: Verified by instrumenting the predicate: on a corpus with `Python 1006` and
-#: `AP world` both adopted, every call arrived with `parent = Coursework`, the
-#: proposed top-level branch, and none with either folder.
+#: WHAT WORKED. Designing an adopted branch from the groups it HOLDS --
+#: `_groups_already_held`'s overlap, narrowed to `file_ids_in_directory` so the
+#: branch is not designed from files the person cannot see in it. Measured on a
+#: nested fixture: `Desktop/Python 1006` gained `lecture` and `homework`, built by
+#: §5.4's ORDINARY path, because `work_type` genuinely divides there now (the real
+#: folder holds `lecture` x5 and `homework` x1). No new rule about one-child
+#: levels was needed at all, and `AP world` -- one file naming a kind -- correctly
+#: gained nothing.
 #:
-#: WHERE THE EMPTINESS IS BORN, named by `refinement-truth` on 2026-09-05 and
-#: checked here: `tree_design/candidates.py` builds the adopted-folder candidate
-#: with `accepted_group_ids=()` while `supporting_file_count` is `folder.
-#: file_count` and CORRECT. So the count exists and the membership does not, and
-#: `_route` sees no files -- which is why EVERY adopted folder in the academic
-#: run has zero children, all forty of them, and not only `Python 1006`.
+#: WHY IT WAS REVERTED, AND THIS IS THE PART TO SOLVE FIRST. It puts the child's
+#: report card back in the law school's semester folder. Measured, same run:
+#:     Kid/report card fall 2026.txt  ->  Coursework/Fall2026/report card
+#: `test_a_childs_report_card_is_not_filed_into_the_law_school_semester` and its
+#: twin both go red. The file states `term = Fall2026` and `work_type = report
+#: card` and NOTHING about whose work it is; the destination is an artifact-kind
+#: LEVEL, so `placement._without_kind_only_moves` allows it -- that rule's
+#: `dimension_of` clause exists to let `PHYS 1401/syllabus` claim a syllabus, and
+#: this destination is the same shape. What used to stop it was
+#: `_staying_put_wins_a_tie`: `Kid` tied and the file was held for the person.
+#: Once `Kid` is designed from its own groups that tie no longer forms.
 #:
-#: SO THE GRAFT IS NOT A CONDITION ON `divides`. It requires giving an adopted
-#: branch its own members -- `file_ids_in_directory` already computes them, for
-#: `_groups_already_held` -- so that a composition can be routed and materialised
-#: beneath it. That changes what an adopted branch is DESIGNED from, which moves
-#: its routing, its options, the question the person is asked about it and the
-#: §5.9 warnings on it. It is a change to the tree-design contract and not a
-#: condition, and it was not what this test was written expecting.
+#: TWO CANDIDATE FIXES, BOTH MEASURED AND BOTH WRONG. Neither is a guess; the
+#: numbers are from the real corpus on 2026-09-05.
 #:
-#: AND ONE THING THAT WILL BE WRONG THE MOMENT IT WORKS. `_design_one_branch`
-#: stamps the branch through `_with_refinement` BEFORE `_route`, before
-#: `vertical_options`, before the option is chosen -- and `_with_refinement`
-#: skips any node whose `refinement_disposition` is already set. So the first
-#: adopted folder to gain a child will still carry the §5.8 verdict computed when
-#: it had none: `refine-later` on a branch that has in fact just been refined.
-#: The stamp has to move to after the composition is known and the node
-#: re-written, or be re-computed there. `refinement-truth` flagged this while
-#: making `refinement_for` conditional on a real file count.
+#: 1. "Refuse a move when the file states no anchoring fact." Also refuses the
+#:    nine résumés into `Coursework/Spring2023/resume`, measured exact at 9 of 9.
+#:    The résumé and the report card have the SAME evidence shape -- kind and
+#:    period, nothing about whose work it is.
+#: 2. "Refuse a move OUT of a folder the person made that matches on the same
+#:    field." This is the one this note used to recommend, and it is wrong too:
+#:    `Desktop` expects `work_type = resume` -- the product measured that, from
+#:    the four résumés sitting directly in it -- so `Desktop` IS a folder the
+#:    person made which holds files like the file. Four of the nine exact
+#:    placements would go back to abstaining.
 #:
-#: AND IT WOULD NOW PAY OFF ON ITS OWN, which was not true when this note was
-#: first written. The evidence is there: all five of the owner's real lecture
-#: files carry `work_type = lecture`, so an adopted branch that could hold a
-#: composition would build `Desktop/Python 1006/lecture` and those five files
-#: would score `exact` instead of `right parent, wrong leaf`. `accepted_group_ids
-#: = ()` is the ONLY thing left in the way. Whoever picks this up should not go
-#: looking for a producer gap; there isn't one any more.
+#: WHAT ACTUALLY SEPARATES THEM IS COVERAGE, and it is worth testing before
+#: anything else. `Kid` holds two files and BOTH are report cards; the folder is
+#: unanimous, and a folder whose every file is one kind is a folder made for that
+#: kind. `Desktop` holds résumés among a great many other things -- the kind
+#: merely leads. `settled_values_in_directory` already reasons this way ("A SET OF
+#: ONE IS ALWAYS UNANIMOUS, which is why one file is not enough"), so the concept
+#: is in the codebase and only the threshold would be new -- and a threshold
+#: belongs in `cli.py`, not here.
 @pytest.mark.xfail(strict=True, reason=(
-    "an adopted folder is designed from the accepted groups its candidate names, "
-    "which is none, so no composition is ever materialised beneath it; the graft "
-    "needs the branch to carry its own directory members, not a new condition on "
-    "`divides`"))
+    "designing an adopted branch from the groups it holds does build "
+    "Python 1006/lecture, but it re-opens the child's report card into the law "
+    "school semester; the discrimination between that and the nine résumés is "
+    "not yet found"))
 def test_the_lectures_get_a_folder_of_their_own_inside_the_folder_they_are_in(tmp_path):
     """The person's own course folder gains the level underneath it, not beside it.
 
@@ -3497,13 +3511,23 @@ def test_a_branch_is_only_told_it_holds_few_files_when_it_actually_does():
     """
     band = cli.TREE_LIMITS.tiny_folder_max_files
 
-    _, few = cli.refinement_for(_refinement_node("n_0"), band)
+    _, few = cli.refinement_for(_refinement_node("n_0"), band, was_split=False)
     assert "few enough files" in few, few
     # And it says the number, so the claim is falsifiable by the person reading it.
     assert str(band) in few, few
 
-    disposition, many = cli.refinement_for(_refinement_node("n_0"), band + 20)
+    disposition, many = cli.refinement_for(_refinement_node("n_0"), band + 20,
+                                          was_split=False)
     assert "few enough files" not in many, many
     assert disposition != cli.SHALLOW_BY_CHOICE, (disposition, many)
     assert str(band + 20) in many, many
+
+    # And a branch that WAS split is refined whatever it holds: the count decides
+    # only between the two answers for a branch that was not. A branch with
+    # children told "how far it is split is yours to decide" is the same unchecked
+    # claim one field over from the one this test was written for.
+    split, why = cli.refinement_for(_refinement_node("n_0"), band + 20,
+                                    was_split=True)
+    assert split == REFINED, (split, why)
+    assert "few enough files" not in why, why
 
