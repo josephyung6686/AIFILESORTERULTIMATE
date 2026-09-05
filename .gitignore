@@ -30,3 +30,11 @@ graphify-out/
 # repo has a remote, so committing them would be egress. Kept here rather than
 # in a session scratchpad so the instrument outlives the session that built it.
 .groundtruth/
+
+# The A_fact wire handle key. Machine state and a SECRET: it is 32 bytes of
+# key material, mode 600, and nothing in the repo needs it. Ignored so that a
+# careless `git add -A` cannot publish it.
+.wire-handle-key
+
+# Tooling state, not project state.
+.superpowers/
