@@ -532,7 +532,9 @@ def run_corpus_through(conn, tmp_path, *, fields=FIELDS, names=CORPUS,
             # required with no default, so a fixture states its position
             # rather than inheriting one.
             ask_about_file=lambda subject: None,
-            chosen_by_user=lambda subject: None, p2=None)
+            chosen_by_user=lambda subject: None,
+            fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
+            p2=None)
 
     def downstream(p1_p7):
         scan_run_id[0] = p1_p7.scan_run_id

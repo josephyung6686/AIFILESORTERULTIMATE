@@ -69,10 +69,7 @@ WHAT_IT_IS = (
 WHAT_TO_DO = (
     "Consider every field it names before you consider the rest of the vocabulary. "
     "You are still not choosing a folder: the plan is already decided, and this "
-    "only tells you which fields it rests on. Considering a field is not filling "
-    "it. A required field with no evidence behind it is declined like any other. "
-    "Declining is a correct answer and it is recorded as one. A field you get wrong "
-    "becomes a permanent property of someone's file."
+    "only tells you which fields it rests on. Considering a field is not filling it."
 )
 ANCHOR = ('"released_evidence" is a list of objects, each with "observation_key", '
           '"address", "value" and "zone".')
@@ -105,8 +102,8 @@ def test_the_revision_is_the_ratified_text_plus_exactly_this_delta():
 def test_the_shipped_digest_is_the_digest_of_that_derivation():
     raw = a_fact_template_folder_levels_bytes()
     assert hashlib.sha256(raw).hexdigest() == A_FACT_TEMPLATE_FOLDER_LEVELS_SHA256
-    assert len(raw) == 8219
-    assert len(raw.decode("utf-8").split()) == 1395
+    assert len(raw) == 8020
+    assert len(raw.decode("utf-8").split()) == 1359
 
 
 def test_the_ratified_file_is_untouched_beside_it():
@@ -117,16 +114,23 @@ def test_the_ratified_file_is_untouched_beside_it():
     assert A_FACT_TEMPLATE_FOLDER_LEVELS_FILE.name != "a_fact_template.txt"
 
 
-def test_the_sentences_that_disarm_required_are_quotes_and_not_new_text():
+def test_what_disarms_required_is_the_ratified_text_and_not_this_delta():
     """`required` is the template library's word about the TREE. Shown to a model it
     reads as "you must fill this", and a required level filled with a guess is worse
     than an empty one: a wrong value suppresses candidate folders for OTHER files.
     What holds that line is the ratified text's own position on declining, so the
     delta quotes it rather than restating it."""
     ratified = _ratified()
+    # Still said, and said where the shape for saying it is defined. The delta
+    # repeated them two sections earlier and 7 declines came back with `unknown`
+    # nested inside `payload`; the repetition is gone and the ratified text is not.
     for sentence in QUOTED_FROM_THE_RATIFIED_TEXT:
         assert sentence in ratified, sentence
-        assert sentence in WHAT_TO_DO, sentence
+        assert sentence not in WHAT_TO_DO, sentence
+    # What holds `required` down in the delta itself: it defines the word as a
+    # property of the PLAN, never as an obligation on the answer.
+    assert "the plan cannot be built without that field" in WHAT_IT_IS
+    assert "Considering a field is not filling it." in WHAT_TO_DO
 
 
 def test_the_delta_describes_the_key_and_never_a_field():

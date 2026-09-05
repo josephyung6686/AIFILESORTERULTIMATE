@@ -158,7 +158,13 @@ def _inputs(conn, **overrides):
         # required with no default, so a fixture states its position
         # rather than inheriting one.
         ask_about_file=lambda subject: None,
-        chosen_by_user=lambda subject: None, p2=None,
+        chosen_by_user=lambda subject: None,
+        # The fixture states its position on §6.3's third suppression rather
+        # than inheriting one: these are P11's own tests, and the fields this
+        # deployment's catalogue binds to a what-or-when role are the fields
+        # `_without_kind_only_moves` refuses to move a file on.
+        fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
+        p2=None,
     )
     values.update(overrides)
     return PipelineInputs(**values)

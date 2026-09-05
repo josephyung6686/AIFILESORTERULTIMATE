@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import dataclasses
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -80,7 +81,7 @@ from placement.residual import (
     record_set_decision, require_model_call_permitted, require_set_actionable,
     require_set_decision, surface_residual_sets,
 )
-from placement.retrieval import Retrieval, retrieve
+from placement.retrieval import CURATED_FOLDER, Retrieval, retrieve
 from placement.scoring import assess, needs_model_call
 from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
@@ -228,6 +229,94 @@ def _without_duplicated_proposals(conn: sqlite3.Connection, retrieval: Retrieval
     )
 
 
+def _without_kind_only_moves(
+        retrieval: Retrieval, *, dimension_of: Mapping[str, str | None],
+        fields_that_cannot_anchor_a_move: frozenset[str]) -> Retrieval:
+    """Step 6's third half: AN ARTIFACT KIND IS NOT AN IDENTITY.
+
+    "This is an exam" says WHAT a file is. It never says whose it is, or which
+    body of work it belongs to, and every exam anybody has ever written matches
+    it. A destination reached on that agreement ALONE is not a destination the
+    evidence chose; it is the first folder in the tree that happened to hold the
+    same kind of thing.
+
+    MEASURED, ON THE OWNER'S OWN 199 FILES, 2026-09-05. Six university physics
+    papers -- two copies of `1403.Exam.1.Equations`, three `1403.Sample.Exam`
+    files and an exam seating chart -- were placed into `Desktop/AP world`, a
+    high-school history folder, with `support 0.71 against a threshold of 0.50`
+    and no review required. `work_type = exam` was the whole of both sides:
+    the papers state nothing else, and the folder's ONLY expectation is that one
+    word, because its own files all agree on it, so P10 built no child and
+    recorded the expectation on the folder itself (`materialise._project`'s
+    `stated`). A seventh file went the same way on `term = Fall2024` alone.
+
+    THIS IS THE REPORT CARD READ ONE FIELD OVER.
+    `test_a_childs_report_card_is_not_filed_into_the_law_school_semester` is the
+    same shape on `cycle_period`: "the anchoring field is absent and the file is
+    placed on the period alone, which is 'absent means refuse, never guess' read
+    the other way round". `artifact_kind` is the second role that can say only
+    what-or-when, and the library's own role vocabulary is where the two are
+    named. WHICH fields play those roles is the composition root's to say and is
+    injected; a set chosen here would be this package holding an opinion about a
+    catalogue it does not own.
+
+    **A STAY IS NOT A MOVE, AND THAT IS THE WHOLE OF THE DISCRIMINATION.**
+    `AP world`'s own practice exam is already in `AP world`. Nothing is carried
+    anywhere, the artifact kind is the person's OWN filing rather than a guess
+    about it, and the plan still has to say the file belongs where it sits --
+    otherwise this rule buys the misfiling back with silence, which is the
+    failure `_staying_put_wins_a_tie` records from the other side ("the product
+    stopped placing ANYTHING rather than place the wrong thing"). The stay is
+    read off `CURATED_FOLDER`, the same channel `Scored.already_there` reads and
+    for the same reason: the file is IN that folder right now.
+
+    **Only a candidate the FACTS carried.** A candidate with no matching fact at
+    all is not this case -- it reached the file through a group or a relationship,
+    which §6.5 already judges -- and dropping it here would be this rule
+    answering a question nobody asked it.
+
+    **AND ONLY A FOLDER THAT IS SOMETHING ELSE. `dimension_of` IS THE WHOLE OF
+    THAT TEST AND THE RULE IS WRONG WITHOUT IT.** P10 builds `PHYS 1401/syllabus`
+    as the `work_type` LEVEL of a branch: the folder's own dimension IS the field,
+    the folder means "the syllabus one", and a file matching `work_type =
+    syllabus` matches what that folder is FOR. Refusing it took
+    `tests/integration/test_cli_agreeing_corpus.py` from three files filed to
+    three abstentions -- the easiest corpus there is, placing nothing -- which is
+    the over-refusal this package has now met three times.
+
+    `Desktop/AP world` is the other shape and carries no dimension at all. Its
+    `work_type = exam` was ABSORBED onto it by `materialise._project`'s `stated`,
+    because the level did not divide and there was no child to put it on. The
+    folder still means "AP World History"; the expectation is only what its files
+    happened to have in common. So: a folder may claim a file on what-kind-or-when
+    alone exactly when THAT IS WHAT THE FOLDER IS, and never when it is something
+    else that merely holds some.
+
+    Read from P10's own `Node.dimension` through the caller's tree, the same
+    object `their_own_folder_node_ids` is read from, so the two halves of this
+    step see one tree and not two.
+    """
+    carried = {
+        candidate.node_id for candidate in retrieval.candidates
+        if CURATED_FOLDER not in candidate.channels
+        and candidate.matching_facts
+        and all(fact.field in fields_that_cannot_anchor_a_move
+                for fact in candidate.matching_facts)
+        and dimension_of.get(candidate.node_id) not in {
+            fact.field for fact in candidate.matching_facts}}
+    if not carried:
+        return retrieval
+
+    return Retrieval(
+        subject_ref=retrieval.subject_ref,
+        plan_version=retrieval.plan_version,
+        candidates=tuple(candidate for candidate in retrieval.candidates
+                         if candidate.node_id not in carried),
+        conflicts=retrieval.conflicts,
+        semantic_only_node_ids=retrieval.semantic_only_node_ids,
+    )
+
+
 class ModelJudgementUnavailable(RuntimeError):
     """`run_call` came back with something that is not a verdict.
 
@@ -338,10 +427,29 @@ class PipelineInputs:
     #: directly would be the place where a placement started depending on a question
     #: having been asked.
     chosen_by_user: object
+    #: The fields that may not, on their own, carry a file OUT of the folder it
+    #: is in. `_without_kind_only_moves` is the rule and carries the measurement;
+    #: this is where the deployment says which of P6's fields play a role that
+    #: can only ever answer what-or-when. The library's role vocabulary names two
+    #: -- `artifact_kind` and `cycle_period` -- and which FIELD each binds to is a
+    #: fact about a catalogue P11 does not own.
+    #:
+    #: Required, with no default, exactly as `ask_about_file` and `chosen_by_user`
+    #: are: absent means refuse, never guess. A deployment that has decided every
+    #: one of its fields can anchor a move passes an empty set, which is a
+    #: position it has taken rather than one this dataclass took for it.
+    fields_that_cannot_anchor_a_move: frozenset[str]
     p2: P2Run | None
 
     def __post_init__(self) -> None:
         require_policy(self.policy)
+        if not isinstance(self.fields_that_cannot_anchor_a_move, frozenset):
+            raise ValueError(
+                "`fields_that_cannot_anchor_a_move` is a frozenset of field "
+                "keys, given by the composition root: which of P6's fields can "
+                "only say what-or-when is a fact about a catalogue P11 does not "
+                "own, and a run that did not state it would move files on an "
+                "artifact kind alone")
         if not isinstance(self.limits, PlacementLimits):
             raise ValueError(
                 "the pipeline runs under P1's seven ceilings and reads them "
@@ -538,6 +646,29 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # vaguer copy of a folder the person already made (`00`:100).
     retrieval = _without_duplicated_proposals(
         conn, retrieval, plan_version=inputs.plan_version)
+    # P10'S TWO FACTS ABOUT EVERY NODE, READ IN ONE WALK. The rule below needs
+    # each node's `dimension`; §6.10's margin needs to know which nodes are
+    # folders the person already has. Both are facts about the same nodes, and
+    # two comprehensions over `inputs.tree.nodes` is two walks of the whole tree
+    # PER FILE -- the O(files x nodes) shape `planning/58-SCALE-STRESS.md` §2
+    # measured and `reachable_entries` was written to stop. One walk is not a fix
+    # for that shape; it is simply not a second copy of it.
+    #
+    # Read by name, because `PipelineInputs.tree` is typed `object` on purpose --
+    # P11 does not own P10's record -- and this is how `cli.py` reads the same
+    # two attributes off the same nodes.
+    dimension_of: dict[str, str | None] = {}
+    their_own_folders: set[str] = set()
+    for node in getattr(inputs.tree, "nodes"):
+        dimension_of[node.node_id] = getattr(node, "dimension", None)
+        if getattr(node, "existing_path", None) is not None:
+            their_own_folders.add(node.node_id)
+
+    # And the third: a folder reached only because it holds the same KIND of
+    # thing is not a home this file's evidence chose.
+    retrieval = _without_kind_only_moves(
+        retrieval, dimension_of=dimension_of,
+        fields_that_cannot_anchor_a_move=inputs.fields_that_cannot_anchor_a_move)
     graphs = {node_id: graph for node_id, graph in graphs.items()
               if node_id in {c.node_id for c in retrieval.candidates}}
     # WHICH CANDIDATES ARE FOLDERS THE PERSON ALREADY HAS. `existing_path` is set
@@ -548,9 +679,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # and a folder this run would like to create, which is not a question at all.
     assessment = assess(
         retrieval, graphs, policy=inputs.policy,
-        their_own_folder_node_ids=frozenset(
-            node.node_id for node in inputs.tree.nodes
-            if node.existing_path is not None))
+        their_own_folder_node_ids=frozenset(their_own_folders))
 
     context = _Context(subject=subject, subject_ref=subject_ref, inputs=inputs,
                        privacy=privacy, retrieval=retrieval,

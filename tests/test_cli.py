@@ -3021,6 +3021,288 @@ def test_the_coursework_the_semester_folder_does_hold_is_still_recognised(tmp_pa
         f"being where it belongs; only {named} were:\n{printed}")
 
 
+def _two_courses_one_word_corpus(tmp_path):
+    """Two courses that share nothing but the word "exam", and a third that does not.
+
+    Measured on the owner's own 199 files before this corpus existed: five
+    university physics papers were filed into `Desktop/AP world`, a high-school
+    history folder, because `work_type = exam` was the only thing either of them
+    said and the folder's whole expectation was that one word. This is that
+    corpus, small enough to read.
+
+    `AP world` holds two exams and nothing else, so `work_type` does not divide
+    there, no child is built, and P10 records the expectation on the folder
+    itself -- which is how a folder comes to expect ONE artifact kind and
+    nothing about whose work it is. `Downloads` holds the physics papers beside
+    three essays that DO name a course, so its own expectation resolves on
+    `subject` and it is not a rival for the word "exam". `Python 1006` is the
+    control that has to keep working: its files agree on a course code, which is
+    a fact about WHOSE work this is, and they are already sitting in it.
+    """
+    corpus = tmp_path / "corpus"
+    theirs = corpus / "AP world"
+    theirs.mkdir(parents=True)
+    (theirs / "PRACTICE exam Ap world 2.txt").write_text(
+        "AP World History - Practice Exam 2\nUnit 9 review. Answer all questions.\n")
+    (theirs / "AP world unit 7 exam.txt").write_text(
+        "AP World History - Unit 7 Exam\nAnswer all multiple choice questions.\n")
+
+    course = corpus / "Python 1006"
+    course.mkdir()
+    for number in (1, 2, 3):
+        (course / f"lecture0{number}.txt").write_text(
+            f"E1006 lecture {number}\nSpring 2023 semester. Instructor notes.\n")
+
+    downloads = corpus / "Downloads"
+    downloads.mkdir()
+    (downloads / "1403.Sample.Exam.1.No.1.w.key.txt").write_text(
+        "1403 Sample Exam 1 No 1 with key\n"
+        "Answer all questions. Show your working.\n")
+    (downloads / "1403.Exam.1.Equations.txt").write_text(
+        "1403 Exam 1 Equations sheet\nConstants and formulas.\n")
+    for number in (1, 2, 3):
+        (downloads / f"Essay 2 Final Draft ({number}).txt").write_text(
+            "ELTU3017 syllabus reading response\nEssay 2 final draft.\n"
+            "The argument proceeds in three parts.\n")
+    return corpus
+
+
+def _blocks_offering_a_move(printed: str) -> list[str]:
+    """The blocks that offer to MOVE a file somewhere it is not.
+
+    Both of `DESTINATION_HEADINGS`' move wordings, and neither of the "Already
+    in" ones: what is under test is a file being carried out of the folder it is
+    in, and a file the plan agrees is already home is the other half of the pair.
+    """
+    return [block for block in printed.split("\n\n")
+            if block.strip().startswith(("Ready to file into", "Would go into"))]
+
+
+def test_a_physics_exam_is_not_filed_into_the_high_school_history_folder(tmp_path):
+    """An artifact kind says WHAT a file is. It never says whose it is.
+
+    `work_type = exam` is the only fact either of these physics papers carries,
+    and `AP world` -- a folder about one high-school course -- expects exactly
+    that one word and nothing else. Every exam in the world matches it. Moving a
+    file on that agreement alone is the report card in the law school folder read
+    one field over: the anchoring field is absent, and the product guessed.
+
+    The right outcome is not a better folder -- there is no evidence for one --
+    it is to leave these files alone and say so.
+    """
+    corpus = _two_courses_one_word_corpus(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")],
+                    out=out) == 0
+    printed = out.getvalue()
+
+    carried = [block for block in _blocks_offering_a_move(printed)
+               if "1403" in block]
+    assert not carried, (
+        "the report offers to carry a university physics paper into a "
+        "high-school history folder, on the word 'exam' alone:\n"
+        + "\n\n".join(carried) + "\n\nwhole report:\n" + printed)
+
+
+def test_the_exams_that_folder_does_hold_are_still_recognised(tmp_path):
+    """The twin, and the reason the test above may not be satisfied by silence.
+
+    `AP world`'s own two exams are already in `AP world`. Nothing is being
+    carried anywhere and the artifact kind is the person's own filing, not a
+    guess about it -- so the plan still has to say they belong there. A rule that
+    refused these too would score better on the misfiling and leave the person
+    with a product that recognises nothing.
+    """
+    corpus = _two_courses_one_word_corpus(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")],
+                    out=out) == 0
+    printed = out.getvalue()
+
+    settled = [block for block in printed.split("\n\n")
+               if block.strip().startswith("Already in AP world")]
+    named = [line for block in settled for line in block.splitlines()
+             if "exam Ap world 2" in line]
+    assert named, (
+        "AP world's own practice exam is no longer recognised as being where "
+        f"it belongs:\n{printed}")
+
+    # And the anchored placements, which this rule must not touch at all: a
+    # course code IS a statement about whose work this is.
+    anchored = [block for block in printed.split("\n\n")
+                if block.strip().startswith("Already in Python 1006")]
+    lectures = [line for block in anchored for line in block.splitlines()
+                if "lecture0" in line]
+    assert len(lectures) == 3, (
+        f"the course folder's own lectures are no longer recognised; only "
+        f"{lectures} were:\n{printed}")
+
+
+def _adopted_folder_with_a_kind_inside_it(tmp_path):
+    """One of the person's own course folders, holding lectures and other things.
+
+    THE SHAPE THE GRAFT EXISTS FOR. `Python 1006` is a folder the person made, so
+    P10 adopts it as a branch. Every file in it that names a kind names the SAME
+    kind, so `work_type` does not divide, `_project` builds nothing, and
+    `branch_expectations` records the value on the folder itself -- which is how
+    a run ends with `Desktop/Python 1006` and never `Desktop/Python 1006/lecture`.
+
+    `palmer_penguins.csv` is load-bearing: it is a file in the folder that is NOT
+    a lecture. Without it the folder is entirely lectures and a `lecture` child
+    would hold everything its parent holds, which is `00`:97's meaningless
+    one-child level and is exactly what `AP world` below is here to keep refused.
+
+    Filenames say `lecture 02`, not `lecture02`, and the difference is not
+    cosmetic. Measured 2026-09-05: `kind_facts` fills `work_type = lecture` from
+    `lecture 02 variables.txt` and leaves `lecture01_introduction.txt`
+    unresolved, because the digit-glued token is not the vocabulary's word. Every
+    one of the owner's five real lecture files is named the second way, which is
+    why the real corpus has no `lecture` fact to graft even once the tree can
+    hold one.
+    """
+    corpus = tmp_path / "corpus"
+    course = corpus / "Python 1006"
+    course.mkdir(parents=True)
+    (course / "E1006 lecture 3 recursion.txt").write_text(
+        "E1006 Lecture 3 recursion\nSpring 2023 semester. Credits: 3.\n")
+    (course / "lecture 02 variables.txt").write_text(
+        "E1006 Lecture 2: variables\nSpring 2023 semester. Instructor office hours.\n")
+    (course / "Lecture.txt").write_text(
+        "E1006 lecture on recursion\nSpring 2023 semester. Instructor: Dr Ng.\n")
+    (course / "palmer_penguins.csv").write_text(
+        "species,island,bill_length\nAdelie,Torgersen,39.1\n")
+
+    # The control, in the same run: ONE file names a kind, so a `exam` folder
+    # would be a folder holding one of the folder's two files, named after a word
+    # every course's exams share.
+    theirs = corpus / "AP world"
+    theirs.mkdir()
+    (theirs / "PRACTICE exam Ap world 2.txt").write_text(
+        "AP World History - Practice Exam 2\nUnit 9 review.\n")
+    (theirs / "AP WD His MCQ U9.txt").write_text(
+        "AP World History unit nine multiple choice.\nQuestions follow.\n")
+    return corpus
+
+
+def _folder_tree_lines(printed: str) -> list[str]:
+    """The indented folder list the report prints under "Folders in this plan"."""
+    block = printed.split("Folders in this plan:", 1)[1]
+    lines = []
+    for line in block.splitlines()[1:]:
+        if not line.strip():
+            break
+        lines.append(line.rstrip())
+    return lines
+
+
+def _children_of(printed: str, parent: str) -> list[str]:
+    """The folder names the report nests directly under `parent`."""
+    lines = _folder_tree_lines(printed)
+    depth_of = lambda line: len(line) - len(line.lstrip())
+    for index, line in enumerate(lines):
+        if line.strip().split("   ")[0] != parent:
+            continue
+        own = depth_of(line)
+        children = []
+        for below in lines[index + 1:]:
+            if depth_of(below) <= own:
+                break
+            if depth_of(below) == own + 2:
+                children.append(below.strip().split("   ")[0])
+        return children
+    return []
+
+
+#: STRICT, SO THE SUITE TURNS RED THE DAY THIS IS FIXED, exactly as the report
+#: card marker above it did. What is recorded here is not "we did not get to it"
+#: -- it is a mechanism that was traced to the wrong place first, and the trace is
+#: the useful part.
+#:
+#: THE OBVIOUS READING IS WRONG. `materialise._project` skips a level that does
+#: not divide and `project_branch_preview` records its value on the parent
+#: instead (`stated`), which looks exactly like the defect: the value is known,
+#: the folder is not built. It is the right story for a branch the ENGINE
+#: proposes, and it is not what happens to a folder the PERSON made.
+#:
+#: An adopted folder never reaches that code at all. `tree_design.pipeline`
+#: `_adopted_expectations` (:598) reads its expectations straight off its own
+#: contents with `settled_values_in_directory`, and `_design_one_branch` (:822)
+#: designs it from `_members(groups)` -- the accepted groups the CANDIDATE NAMES,
+#: which for an existing-folder candidate is empty. No members, so no evidence,
+#: so no levels, so `_project` is never called with an adopted node as parent.
+#: Verified by instrumenting the predicate: on a corpus with `Python 1006` and
+#: `AP world` both adopted, every call arrived with `parent = Coursework`, the
+#: proposed top-level branch, and none with either folder.
+#:
+#: SO THE GRAFT IS NOT A CONDITION ON `divides`. It requires giving an adopted
+#: branch its own members -- `file_ids_in_directory` already computes them, for
+#: `_groups_already_held` -- so that a composition can be routed and materialised
+#: beneath it. That changes what an adopted branch is DESIGNED from, which moves
+#: its routing, its options, the question the person is asked about it and the
+#: §5.9 warnings on it. It is a change to the tree-design contract and not a
+#: condition, and it was not what this test was written expecting.
+#:
+#: It would also not move the real corpus on its own: see the fixture above --
+#: no file in the owner's `Python 1006` carries a `work_type` at all, because
+#: `lecture01_introduction.ipynb` glues the vocabulary's word to a digit.
+@pytest.mark.xfail(strict=True, reason=(
+    "an adopted folder is designed from the accepted groups its candidate names, "
+    "which is none, so no composition is ever materialised beneath it; the graft "
+    "needs the branch to carry its own directory members, not a new condition on "
+    "`divides`"))
+def test_the_lectures_get_a_folder_of_their_own_inside_the_folder_they_are_in(tmp_path):
+    """The person's own course folder gains the level underneath it, not beside it.
+
+    Every file the product places lands in one of the person's EXISTING folders
+    and stops there. `Desktop/Python 1006` is right and it is not the answer: the
+    ground truth wants `PYTHON1006/lecture`, and the product knows which of these
+    files are lectures. It simply had nowhere to put that, because a level whose
+    files all agree builds no folder and the value is recorded on the parent.
+
+    Under a folder the person MADE, that reasoning inverts. `00`:97 refuses a
+    one-child level because the user "opens a folder to find one folder" -- but
+    here the parent keeps `palmer_penguins.csv`, so the child divides the folder
+    into the lectures and everything else, which is the whole point of opening it.
+    """
+    corpus = _adopted_folder_with_a_kind_inside_it(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")],
+                    out=out) == 0
+    printed = out.getvalue()
+
+    assert "lecture" in _children_of(printed, "Python 1006"), (
+        "the person's own course folder still has nothing underneath it, so a "
+        "lecture can only be filed as far as the folder it is already in:\n"
+        + printed)
+
+
+def test_a_folder_holding_one_of_a_kind_gains_nothing(tmp_path):
+    """The twin: a graft that fires on one file is `00`:97's own complaint.
+
+    `AP world` holds two files and exactly one names a kind. A `exam` folder
+    there would hold one file, be named after a word every course's exams share,
+    and push the file a level deeper than any answer wants it. The rule has to
+    tell that from the case above, or it is just "build everything".
+    """
+    corpus = _adopted_folder_with_a_kind_inside_it(tmp_path)
+    out = io.StringIO()
+    assert cli.main([str(corpus), "--situation", "academic.coursework",
+                     "--label", "Coursework", "--user", "jy",
+                     "--database", str(tmp_path / "plan.sqlite")],
+                    out=out) == 0
+    printed = out.getvalue()
+
+    assert _children_of(printed, "AP world") == [], (
+        "a folder in which ONE file names a kind gained a folder for it:\n"
+        + printed)
+
+
 def _course_corpus(tmp_path):
     corpus = tmp_path / "corpus"
     corpus.mkdir()

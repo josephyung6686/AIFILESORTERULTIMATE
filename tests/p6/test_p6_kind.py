@@ -42,7 +42,7 @@ from evidence_shape.store import record_observation, record_run
 from facts.file_facts import facts_for_file
 from facts.unresolved import unresolved_for_file
 from facts.kind import (
-    EmptyVocabulary, compile_vocabulary, kind_facts,
+    EmptyVocabulary, compile_vocabulary, kind_facts, terms_in,
 )
 
 CLOCK = "2026-08-22T00:00:00Z"
@@ -380,11 +380,17 @@ def test_the_tokeniser_agrees_with_the_detectors(p6_conn):
     # This module cannot import `recognition/` -- `facts/` reaches it never -- so
     # the phrase tokeniser is spelled twice in the product. Two spellings of one
     # rule drift silently, so the agreement is a test rather than a comment.
+    #
+    # They now differ in ONE place and only one, and it is deliberate: a digit run
+    # adjacent to a letter run separates HERE and not there. Every string below is
+    # free of that boundary, so agreement is still the rule; the exception is pinned
+    # by `test_the_producer_and_the_detector_differ_only_at_the_digit_boundary`,
+    # which also says why the detector's must not follow.
     from recognition.detector import _tokens as detector_tokens
     from facts.kind import tokens as producer_tokens
     for text in ("Lecture Slides Week 3.pdf", "Problem-Set-4", "after-visit summary",
                  "1403.Sample.Exam.1.No.1.w.key_revised.docx", "C++ / notes",
-                 "  MIXED   Case_and.punctuation  ", "lecture08_recursion.ipynb"):
+                 "  MIXED   Case_and.punctuation  "):
         assert producer_tokens(text) == detector_tokens(text), text
 
 
@@ -507,22 +513,151 @@ def test_the_vocabularies_of_the_three_type_keys_are_nearly_disjoint():
     assert {"work_type", "record_type"} <= set(DOMAIN_FIELDS["career"])
 
 
-# --- the measured gap, recorded rather than papered over ---------------------
+# --- the digit boundary: a gap that was recorded, then closed -----------------
 
-def test_a_term_run_together_with_digits_is_not_matched_and_that_is_recorded(
+def test_a_term_run_together_with_digits_reaches_the_vocabulary_word(
         p6_conn, tmp_path):
-    # `lecture08_recursion.ipynb` tokenises to ('lecture08', 'recursion', 'ipynb')
-    # because the tokeniser separates on everything that is not a letter OR DIGIT,
-    # so `lecture08` is one token and never equals `lecture`. Five ground-truth
-    # lecture notebooks and one `homework0.py` are unreachable for this reason.
-    #
-    # It is asserted rather than fixed. Relaxing the boundary is §3.7's forbidden
-    # substring match -- the rule that keeps `MIT` out of `submit` -- and this
-    # producer shares `word_boundary_match`'s discipline with every other facet.
-    # Splitting alpha from digit runs is P4's call at the observation, not a
-    # matcher's.
+    """`lecture08` is `lecture`, and this test used to assert the opposite.
+
+    It was pinned as an accepted gap on the argument that "relaxing the boundary is
+    §3.7's forbidden substring match -- the rule that keeps `MIT` out of `submit`",
+    and that "splitting alpha from digit runs is P4's call at the observation, not a
+    matcher's." The first half does not hold and the second was a routing preference,
+    not a rule. A substring match FINDS a shorter term inside a longer token, which is
+    why `submit` must not yield `mit`; `submit` carries no digit and is still ONE
+    token here. This re-SEGMENTS a run at a change of character class, and then
+    matches whole tokens exactly as before -- so the discipline `word_boundary_match`
+    shares with every other facet is untouched, and
+    `test_a_shorter_term_inside_a_longer_word_is_not_a_match` still passes.
+
+    What it cost to leave open: all five of the owner's Python lectures are named
+    this way, and `def.subject-work-record` marks the level `work_type` fills
+    REQUIRED, so a folder that cannot be named cannot be built and the file is not
+    placed at all.
+    """
     file_id, content_hash, written = _run(
         p6_conn, tmp_path, name="lecture08_recursion.ipynb",
         readings=[("lecture08_recursion.ipynb", "filename", None)])
-    assert written == ()
-    assert _refusal(p6_conn, file_id, content_hash) == ["no_candidate_evidence"]
+    assert len(written) == 1
+    assert _values(p6_conn, file_id, content_hash) == ["lecture"]
+
+
+def test_the_boundary_is_the_digit_and_never_the_case():
+    """An ALL-CAPS RUN IS ONE TOKEN, and that is the whole safety of this rule.
+
+    The hazard a camel-case boundary carries and this one does not: `HKID` is the
+    owner's own identity card, and a rule that split a letter run on case would
+    reduce it to `h` + `kid` and stop the identity term matching the document that
+    names it. Case is never read here -- only whether a character is a digit -- so
+    every acronym in the corpus survives whole.
+    """
+    from facts.kind import tokens
+    assert tokens("HKID") == ("hkid",)
+    assert tokens("PDF") == ("pdf",)
+    assert tokens("OrderReceipt") == ("orderreceipt",)
+
+
+def test_the_boundary_splits_a_digit_run_from_a_letter_run_either_way():
+    from facts.kind import tokens
+    assert tokens("lecture01_introduction") == ("lecture", "01", "introduction")
+    assert tokens("week3") == ("week", "3")
+    assert tokens("chapter12") == ("chapter", "12")
+    assert tokens("2024report") == ("2024", "report")
+    # ...and a run with no digit in it is untouched, which is every English word.
+    assert tokens("submit") == ("submit",)
+    assert tokens("examination") == ("examination",)
+
+
+def test_the_boundary_re_keys_no_shipped_work_type_term_and_loses_no_reading():
+    """Why the rule cannot invent or lose a reading. Measured, not asserted by hope.
+
+    `compile_vocabulary` tokenises the AUTHORED terms with this same function, so a
+    boundary that re-segmented a term would re-key the vocabulary. Two facts, both
+    measured over the shipped library:
+
+    Of the 944 terms of the four schemas declaring `work_type` -- the one key
+    `cli.py` wires -- NOT ONE contains a digit beside a letter, so the compiled key
+    set is identical to the one the previous rule produced and the boundary fires on
+    the evidence side alone. That is the whole of production.
+
+    Five terms of the two keys nothing wires do re-key: `3d brief` and three more
+    `3d ...` under `artifact_type`, and `409a or other common-stock valuation report`
+    under `record_type`. They still match, because the SAME function tokenises the
+    evidence -- `3D-Brief.docx` and `3d brief` reach the same key from either side --
+    and the term's own spelling is what the vocabulary returns. Re-keying is not
+    re-reading, and the assertion below is the one that would catch it if it were.
+    """
+    library = json.loads(
+        (Path(__file__).resolve().parents[2] / "src" / "recognition" / "library"
+         / "recognition.json").read_text())["schemas"]
+    from facts.fields import DOMAIN_FIELDS
+    from facts.kind import tokens
+
+    def previous_rule(text):
+        out, current = [], []
+        for character in text:
+            if character.isalnum():
+                current.append(character)
+            elif current:
+                out.append("".join(current).casefold())
+                current = []
+        if current:
+            out.append("".join(current).casefold())
+        return tuple(out)
+
+    def authored_for(field_key):
+        return [term
+                for schema_id, fields in DOMAIN_FIELDS.items()
+                if field_key in fields
+                for term in library.get(schema_id, {}).get("work_type_terms", ())]
+
+    # Production's key: unchanged, so nothing the product ships is re-keyed at all.
+    work_type = authored_for("work_type")
+    assert len(work_type) > 900, len(work_type)
+    assert [t for t in work_type if tokens(t) != previous_rule(t)] == []
+
+    # The other two: re-keyed, and every one still reaches itself through the
+    # compiled vocabulary. A term that stopped matching its own spelling would fail
+    # here, which is the failure re-keying could actually cause.
+    for field_key in ("artifact_type", "record_type"):
+        terms = authored_for(field_key)
+        moved = [t for t in terms if tokens(t) != previous_rule(t)]
+        assert moved, field_key
+        vocabulary = compile_vocabulary(terms)
+        for term in moved:
+            assert term in terms_in(term, vocabulary=vocabulary), term
+
+    # ...and no two distinct terms were merged onto one key by the new segmentation.
+    for field_key in ("work_type", "artifact_type", "record_type"):
+        terms = authored_for(field_key)
+        def collisions(rule):
+            keyed = {}
+            for term in terms:
+                key = rule(term)
+                if key:
+                    keyed.setdefault(key, set()).add(term.casefold())
+            return {k for k, v in keyed.items() if len(v) > 1}
+        assert collisions(tokens) == collisions(previous_rule), field_key
+
+
+def test_the_producer_and_the_detector_differ_only_at_the_digit_boundary():
+    """The drift guard, and the one deliberate exception to it.
+
+    `test_the_tokeniser_agrees_with_the_detectors` still holds everywhere else. The
+    detector's tokeniser is NOT changed to match, and the divergence is the point:
+    its evidence side carries the structured identifiers that corroborate a schema --
+    `PHYS1401`, `E1006`, an HKID's own digits -- and it compares an observation's
+    tokens WHOLE against a term (`observation_tokens == tuple(term.split(" "))`).
+    Splitting a course code into two tokens there would change the `whole` flag, the
+    corroboration gate and the prefix index, all of which decide PROTECTION. Here the
+    same split only names a folder. Different consequence, different rule.
+    """
+    from recognition.detector import _tokens as detector_tokens
+    from facts.kind import tokens as producer_tokens
+    assert producer_tokens("lecture08_recursion.ipynb") == (
+        "lecture", "08", "recursion", "ipynb")
+    assert detector_tokens("lecture08_recursion.ipynb") == (
+        "lecture08", "recursion", "ipynb")
+    # The identifier the detector must keep whole, and does.
+    assert detector_tokens("PHYS1401") == ("phys1401",)
+    assert producer_tokens("PHYS1401") == ("phys", "1401")

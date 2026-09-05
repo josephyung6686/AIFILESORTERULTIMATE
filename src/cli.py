@@ -1868,6 +1868,26 @@ MINIMUM_MARGIN = 0.5
 #: levels could never be built and every file in the situation went unplaced.
 WORK_TYPE_FIELD = "work_type"
 
+#: THE TWO FIELDS THAT CAN SAY WHAT, OR WHEN, AND NEVER WHOSE. P11's
+#: `_without_kind_only_moves` refuses to carry a file out of the folder it is in
+#: on one of these alone; this is where the deployment says which fields they are,
+#: because the roles are the template library's and the FIELDS each role binds to
+#: are this catalogue's.
+#:
+#: `src/tree_design/library` authors forty-five dimension roles and SEVERAL of them
+#: are what-or-when: `artifact_kind`, `cycle_period`, `capture_time`,
+#: `capture_kind`, `scope_period`, `lifecycle_stage` and every other `*_period`.
+#: This is not a list of those roles. It is the list of FIELDS this catalogue can
+#: actually fill with one, and there are two: §8.6's producers fill `work_type`
+#: and `term` and nothing else that answers what-or-when.
+#:
+#: `media_type` is the omission that shows the shape of the decision. §2.6's
+#: photograph-or-screenshot answer is a what-kind fact and belongs here on the
+#: reasoning; it is left out because no folder in this deployment expects it, so
+#: naming it would be a rule with nothing to act on. The same is true of every
+#: role above that no producer fills. The day either changes, this set is where
+#: it changes.
+FIELDS_THAT_CANNOT_ANCHOR_A_MOVE = frozenset({WORK_TYPE_FIELD, TERM_FIELD})
 #: `artifact_kind`'s closed vocabulary, WHICH THE LIBRARY ALREADY SHIPPED. The
 #: compiled recognition release carries `work_type_terms` per schema and nothing had
 #: ever read them for a field -- the detector tokenises them to decide handling and
@@ -3710,7 +3730,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # `folders_nothing_could_be_read_from` is the answer and carries the
             # measurement behind it.
             ask_about_file=lambda subject: asks.get(subject.file_id),
-            chosen_by_user=already_answered, p2=None)
+            chosen_by_user=already_answered,
+            fields_that_cannot_anchor_a_move=FIELDS_THAT_CANNOT_ANCHOR_A_MOVE,
+            p2=None)
 
     def _model_fact_pass(run_id: str) -> None:
         """Ask a model about the fields the deterministic producers left open.

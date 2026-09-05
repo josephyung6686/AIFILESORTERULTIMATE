@@ -97,29 +97,52 @@ class EmptyVocabulary(ValueError):
 
 
 def tokens(text: str) -> tuple[str, ...]:
-    """Words, case-folded. Everything that is not a letter or digit separates.
+    """Words, case-folded. Non-alphanumerics separate, AND SO DOES A DIGIT.
 
-    `recognition.detector._tokens`' rule, restated because `facts` imports nothing
-    from `recognition` and must not start here. Two spellings of one rule drift
-    silently, so `tests/p6/test_p6_kind.py` imports both and asserts they agree
-    rather than leaving the duplication to a comment.
+    `recognition.detector._tokens`' rule plus one boundary: inside a run of letters
+    and digits, every transition between a digit and a non-digit separates too, so
+    `lecture01` is `lecture` + `01` and `2024report` is `2024` + `report`. CASE IS
+    NEVER READ, which is the whole safety of it -- `HKID` and `OrderReceipt` stay one
+    token each, where a camel-case boundary would reduce the owner's identity card to
+    `h` + `kid` and put ordinary English words into naming zones.
 
-    Not a regex, for that module's stated reason: `str.isalnum` over code points is
-    the same rule expressed in the one place it is applied. Applied identically to
-    the vocabulary at compile time and to the evidence here, so `problem set` and
-    `Problem-Set-4` are one term and one match -- which is the half of the boundary
-    rule that ADMITS a reading. The half that refuses one is that `examination` is a
-    single token and never equals `exam`, which is §3.7's own requirement that
-    `MIT` must not be found inside `submit`.
+    WHY THE DETECTOR'S IS NOT CHANGED TO MATCH, and this is now a DELIBERATE
+    divergence rather than the drift the old agreement test existed to catch. That
+    tokeniser decides PROTECTION: it compares an observation's tokens WHOLE against a
+    term, and its evidence side carries the structured identifiers that corroborate a
+    schema -- `PHYS1401`, `E1006`, an HKID's own digits. Splitting a course code in
+    two there would move the `whole` flag, the corroboration gate and the prefix
+    index. Here the same split only names a folder: different consequence, different
+    rule. `tests/p6/test_p6_kind.py` still asserts the two agree everywhere else and
+    pins the one exception, so the divergence stays exactly one boundary wide.
+
+    NOT §3.7'S FORBIDDEN SUBSTRING MATCH, which is the argument this boundary was
+    once left open on. A substring match FINDS a shorter term inside a longer token,
+    which is why `MIT` must not be found inside `submit` -- and `submit` carries no
+    digit, so it is still one token and `examination` still never equals `exam`. This
+    re-SEGMENTS at a change of character class and then matches whole tokens exactly
+    as before; nothing that matched under the old rule stops matching.
+
+    Not a regex, for that module's stated reason: `str.isalnum` and `str.isdigit`
+    over code points are the same rule expressed in the one place it is applied.
+    Applied identically to the vocabulary at compile time and to the evidence here,
+    so `problem set` and `Problem-Set-4` are one term and one match. That symmetry is
+    what keeps the rule from inventing a reading, and it is free: measured over every
+    term of every schema declaring a type key, not one has a digit beside a letter,
+    so the compiled key set is unchanged and the boundary fires on evidence alone.
     """
     out: list[str] = []
     current: list[str] = []
     for character in text:
-        if character.isalnum():
-            current.append(character)
-        elif current:
+        if not character.isalnum():
+            if current:
+                out.append("".join(current).casefold())
+                current = []
+            continue
+        if current and character.isdigit() != current[-1].isdigit():
             out.append("".join(current).casefold())
             current = []
+        current.append(character)
     if current:
         out.append("".join(current).casefold())
     return tuple(out)

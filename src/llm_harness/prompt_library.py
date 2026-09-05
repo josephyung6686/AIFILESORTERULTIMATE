@@ -104,9 +104,9 @@ A_FACT_TEMPLATE_FOLDER_LEVELS_FILE = (
     Path(__file__).resolve().parent / "library"
     / "a_fact_template_folder_levels.txt")
 
-#: sha256 of the file above. 8,219 bytes, 1,395 words.
+#: sha256 of the file above. 8,020 bytes, 1,359 words.
 A_FACT_TEMPLATE_FOLDER_LEVELS_SHA256: str = (
-    "7101b8e4c9a9f10e2dd074900e05ea2e1e87645fc1e60d0ceeaf26c6bc7900dd")
+    "102acdaf53a656433548b3b6c3c9c4af3200ba3eca268435f744a5148b32aa41")
 
 
 A_FACT_RESPONSE_SCHEMA_FILE = (

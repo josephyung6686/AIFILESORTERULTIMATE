@@ -146,3 +146,97 @@ def test_a_level_the_allowlist_does_not_carry_is_refused_rather_than_prepended()
         order_vocabulary_by_levels(
             ("file_type",),
             (FolderLevel(field="subject", label="Course", requirement="required"),))
+
+
+# --- a settled field is not a question ------------------------------------------
+
+
+def test_the_open_question_drops_fields_a_stronger_fact_has_already_closed(catalogue):
+    """The dossier asks about what is still OPEN, not about the whole schema.
+
+    Measured on a real cloud run: of the 27 files the model answered about, 8 already
+    carried a `work_type` written by a rule at `validated` strength. §3.13 ranks
+    `validated` above `llm_supported`, so check 4 rejects any model answer there
+    before it can become a fact. The model was spending a claim on a closed question
+    and being punished for it, and every extra claim is another chance to malform --
+    one malformed claim destroys every claim in the answer.
+
+    `pending_fields_for` already computes the open set and `model_fact_resolver`
+    already calls it. This is that same tuple reaching the bytes.
+    """
+    from model_facts import open_question
+
+    levels = folder_levels_for(catalogue, "academic.coursework")
+    pending = ("file_type", "creation_date", "school", "term", "work_type")
+
+    vocabulary, visible = open_question(pending, levels)
+    assert vocabulary == ("school", "term", "work_type", "file_type", "creation_date")
+    # `subject` is settled, so it is neither offered as a field nor shown as a level.
+    assert [level.field for level in visible] == ["school", "term", "work_type"]
+    assert sorted(vocabulary) == sorted(pending)
+
+
+def test_a_file_whose_levels_are_all_settled_is_asked_about_the_rest(catalogue):
+    """An empty level list is truthful HERE, and it is not the composition failure
+    `require_folder_levels` refuses: the situation has four levels, this one file has
+    no level still open. The call is still worth making for the fields that are."""
+    from model_facts import open_question
+
+    levels = folder_levels_for(catalogue, "academic.coursework")
+    vocabulary, visible = open_question(("file_type", "language"), levels)
+    assert vocabulary == ("file_type", "language")
+    assert visible == ()
+
+
+def test_the_narrowed_list_is_never_wider_than_what_the_validator_holds(catalogue):
+    """The direction of the one-computation rule that matters.
+
+    Check 1 measures a proposal against `FactRequest.allowlist`, the FULL active
+    schema. Showing the model a SUBSET of that is safe -- everything it is offered is
+    something the validator accepts. Showing it a SUPERSET would be the failure
+    `pending_fields_for` names, so the subset relation is asserted rather than
+    assumed.
+    """
+    from model_facts import open_question
+
+    levels = folder_levels_for(catalogue, "academic.coursework")
+    allowlist = ("file_type", "creation_date", "language", "authored_by",
+                 "school", "term", "subject", "instructor", "work_type")
+    for settled in ("subject", "work_type", "school", "file_type"):
+        pending = tuple(f for f in allowlist if f != settled)
+        vocabulary, visible = open_question(pending, levels)
+        assert set(vocabulary) <= set(allowlist)
+        assert settled not in vocabulary
+        assert all(level.field in vocabulary for level in visible)
+
+
+def test_the_stage_asks_open_question_about_pending_and_not_the_whole_allowlist():
+    """The call site, pinned -- because `open_question` is correct either way.
+
+    Every test above passes an explicit `pending` tuple, so all of them stay green
+    if `fact_call_stage` hands over `request.allowlist` instead. Sabotaging exactly
+    that produced no red test, which is the definition of an unguarded seam: the
+    whole point of narrowing is lost and nothing says so.
+
+    AST rather than prose, the way `tests/p8/test_p8_architecture.py` reads import
+    directions: a docstring explaining which tuple is meant must not satisfy it.
+    """
+    import ast
+    import inspect
+
+    import model_facts
+
+    tree = ast.parse(inspect.getsource(model_facts))
+    stage = next(node for node in ast.walk(tree)
+                 if isinstance(node, ast.FunctionDef)
+                 and node.name == "fact_call_stage")
+    calls = [node for node in ast.walk(stage)
+             if isinstance(node, ast.Call)
+             and isinstance(node.func, ast.Name)
+             and node.func.id == "open_question"]
+    assert len(calls) == 1, "one question per call, built in one place"
+    first = calls[0].args[0]
+    assert isinstance(first, ast.Name) and first.id == "pending", (
+        "the vocabulary offered is the PENDING set. `request.allowlist` here is the "
+        "whole active schema, which spends claims on questions a stronger fact has "
+        "already closed and gives the answer more ways to malform")

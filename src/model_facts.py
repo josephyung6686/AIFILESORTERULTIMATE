@@ -160,6 +160,41 @@ def order_vocabulary_by_levels(
     return tuple(levels) + tuple(f for f in allowed if f not in seen)
 
 
+def open_question(pending: Sequence[str],
+                  folder_levels: Sequence[FolderLevel]
+                  ) -> tuple[tuple[str, ...], tuple[FolderLevel, ...]]:
+    """What is still OPEN on this file: the vocabulary to offer, and the levels to show.
+
+    **Why the dossier asks about pending rather than about the whole schema.** A
+    field a stronger fact already settled is not a question. §3.13 ranks `validated`
+    and `user_confirmed` above `llm_supported`, so check 4 rejects a model answer
+    there before it can become a fact -- the claim was spent to be thrown away.
+    Measured on a real run: of the 27 files the model answered about, 8 already
+    carried a rule-written `work_type` at `validated`, and `work_type` is the field
+    that decides where the file goes.
+
+    It costs more than the wasted claim. One malformed claim destroys every claim in
+    the answer (the ratified rule 11), so every question that cannot pay is another
+    chance to lose the ones that can. Claims per response measured 7.0 before the
+    template link and 9.0 after it; this is the half of that increase nobody wanted.
+
+    **The subset direction is the safe one and it is the only one taken.** Check 1
+    measures a proposal against `FactRequest.allowlist`, the full active schema.
+    Everything offered here is inside that, so nothing the model is told it may
+    propose can be rejected for not being in the active schema -- which is the
+    failure `pending_fields_for` warns about, and it happens in the other direction.
+
+    A settled LEVEL is dropped from the shown list too, and that keeps the
+    projection exact: `dossier._folder_levels_body` refuses a level naming a field
+    the vocabulary does not carry. `()` here is truthful -- this file has no folder
+    level still open -- and it is not the empty list `require_folder_levels` refuses,
+    which is about a deployment that never read the library at all.
+    """
+    open_fields = set(pending)
+    visible = tuple(level for level in folder_levels if level.field in open_fields)
+    return order_vocabulary_by_levels(pending, visible), visible
+
+
 @dataclass(frozen=True)
 class FactCallAuthorities:
     """Everything one A_fact call needs and this module authors none of.
@@ -384,6 +419,7 @@ def build_fact_request(
 def _call_dependencies(
     request: FactRequest,
     allowed_vocabulary: Sequence[str], *,
+    folder_levels: Sequence[FolderLevel],
     authorities: FactCallAuthorities,
 ) -> CallDependencies:
     return CallDependencies(
@@ -413,7 +449,8 @@ def _call_dependencies(
         allowed_vocabulary=tuple(allowed_vocabulary),
         # The SAME tuple the vocabulary above was ordered by, not a second read of
         # the library: two answers here would print one order and validate another.
-        folder_levels=authorities.folder_levels,
+        # It is the OPEN subset, so every level shown names a field still on offer.
+        folder_levels=folder_levels,
         policy_version=authorities.policy_version,
         wire_handle_key=authorities.wire_handle_key,
     )
@@ -453,10 +490,11 @@ def fact_call_stage(authorities: FactCallAuthorities):
         if not request.allowlist:
             return ()
 
-        # ONE list, read in the order the tree is built in. Same membership as
-        # `request.allowlist`, which is what check 1 measures the answer against.
-        vocabulary = order_vocabulary_by_levels(
-            request.allowlist, authorities.folder_levels)
+        # What is still open on THIS file, in the order the tree is built in. A
+        # subset of `request.allowlist`, which is what check 1 measures the answer
+        # against, so nothing offered here can be rejected for being out of schema.
+        vocabulary, visible_levels = open_question(
+            pending, authorities.folder_levels)
 
         before = {row["fact_id"] for row in facts_for_file(
             conn, file_id, content_hash)}
@@ -471,7 +509,8 @@ def fact_call_stage(authorities: FactCallAuthorities):
             model_client=authorities.model_client,
             prompt=authorities.prompt,
             validation_dependencies=_call_dependencies(
-                request, vocabulary, authorities=authorities),
+                request, vocabulary, folder_levels=visible_levels,
+                authorities=authorities),
             observed_at=authorities.observed_at,
         )
         if authorities.on_result is not None:

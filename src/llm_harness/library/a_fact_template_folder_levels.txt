@@ -22,7 +22,7 @@ Six of them are yours.
 
 "folder_levels" is the list of folder levels this file's filing plan is built from, in the order they nest. Each entry has "field", which is a key that also appears in "allowed_vocabulary"; "label", the name that folder level is given; and "requirement", which is "required" when the plan cannot be built without that field and "optional" when it can. It is the same list on every file and it says nothing about this one.
 
-Consider every field it names before you consider the rest of the vocabulary. You are still not choosing a folder: the plan is already decided, and this only tells you which fields it rests on. Considering a field is not filling it. A required field with no evidence behind it is declined like any other. Declining is a correct answer and it is recorded as one. A field you get wrong becomes a permanent property of someone's file.
+Consider every field it names before you consider the rest of the vocabulary. You are still not choosing a folder: the plan is already decided, and this only tells you which fields it rests on. Considering a field is not filling it.
 
 "released_evidence" is a list of objects, each with "observation_key", "address", "value" and "zone". The "value" strings are the only text you have been given. There is no document, no page, no filename, no surrounding sentence, no rest of the file. Text that is not inside one of those "value" strings does not exist for you.
 

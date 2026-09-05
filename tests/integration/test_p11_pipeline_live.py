@@ -238,7 +238,11 @@ def _inputs(conn, **overrides):
         # required with no default, so a fixture states its position
         # rather than inheriting one.
         ask_about_file=lambda subject: None,
-        chosen_by_user=lambda subject: None, p2=None)
+        chosen_by_user=lambda subject: None,
+        # §6.3's third suppression, stated rather than inherited for the same
+        # reason as the two above it.
+        fields_that_cannot_anchor_a_move=frozenset({"work_type", "term"}),
+        p2=None)
     values.update(overrides)
     return PipelineInputs(**values)
 
