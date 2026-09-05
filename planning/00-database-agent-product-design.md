@@ -284,3 +284,17 @@ The trust and operations layer turns a sophisticated analysis pipeline into a re
 Together, these layers establish the product’s operational promise: it will never treat an inference as an unexplained fact, never treat a proposed action as permission to mutate a file, never hide a privacy boundary, never silently change an approved organization plan, and never require the user to trust a black box when the evidence, decision history, and correction path can be shown directly.
 
 
+
+---
+
+## Amendments
+
+Each amendment below is dated and was ruled by the owner; the ruling and its consequences are recorded in `planning/104-DIAGNOSIS-FINAL.md` §13. Where the body above disagrees with a line below, the line below governs. The body is left as written so the history of the design stays readable.
+
+**2026-09-05.** The owner issued the product constitution (LLM decides, code delivers; coverage is sacred; valid options only; execute then assert; measure the number) and ruled four questions this document left open or stated the other way.
+
+- **Placement (lines 110 and 114).** A unique direct match and the score-and-margin threshold no longer place a file without a model call. Every placement goes through the model. Deterministic scores rank and shortlist the candidates the model is shown, and deterministic validation rejects only a structurally invalid answer: a node that is not in the frozen tree, or a cited fact that is not in the evidence. A unique direct match is the top-ranked candidate, not a bypass.
+- **Fact validation (line 42).** The validator's hard checks are grounding (the cited quote or metadata field exists in the file's own evidence) and schema (the field exists in the derived schema for the domain). Every other contradiction check, including the precedence of rule facts over model facts, is shown to the model as a flag with its evidence, and the model reconciles.
+- **Vocabularies (lines 41 to 43).** `work_type`, `subject`, `term` and user labels are model decisions grounded in the file's evidence. A value the shipped library has not seen is proposed once; the user confirms or renames it; it then belongs to that user's vocabulary in the database. There are no alias tables or equivalence maps in code. The ratified library is the vocabulary the model is shown first, and template levels stay fixed as structure.
+- **Preserving existing structure (line 22).** Refinement, moving a file deeper inside the branch it already sits in, is allowed and is the model's call. Removal, moving a file out of the person's existing arrangement, stays a constraint that is surfaced to the user rather than decided silently.
+- **Release 1 and its bar.** Release 1 is the engine (selection through mutation and its records). Onboarding, the role matcher, the canvas, the review gestures, the household workflow and automatic filing are Release 2. Release 1 is done when, on the owner's pinned corpus, the median of three runs shows exact placement for at least 30 of the 41 labelled files, 0 wrong placements, 0 spillover among placed files, all 29 "ask the person" files abstained, 0 files reaching a model without a ratified prompt, and every readable unprotected file either reaching a model or carrying a named reason. The long-run targets in the body stand beyond that.

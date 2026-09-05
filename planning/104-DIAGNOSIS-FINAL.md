@@ -201,7 +201,7 @@ containers marked and counted (`94` F17); protected filenames summarised by defa
   `00`, a traced draft, stress cases, a measured bakeoff of at least two candidates on a labelled
   corpus under both models, ratification with numbers attached.
 
-**Open, collected from all three documents, one question each:**
+**Collected from all three documents, one question each. Q-A to Q-D were RULED on the evening of 2026-09-05 (see §13); Q-E to Q-J remain open:**
 
 | Q | Question | Sources |
 |---|---|---|
@@ -460,7 +460,7 @@ preserves `96` §20's intent, because a file with no evidence still cannot becom
 negative; and the local half restores the escape hatch the rule assumed. The fix is aimed at the
 cause, not the symptom.
 
-### 12.2 D1 exit criterion and evidentiary parity with D2 (proposal for the owner)
+### 12.2 D1 exit criterion and evidentiary parity with D2 (RULED, see §13.2: bakeoff runs, the lift does not wait for it)
 
 Cloud lift ships only when all three hold: SF-1 closed; a **local-model row exists in §9** on the
 pinned corpus; local reaches at least the cloud run's 15 correct fields with 0 wrong placements, or
@@ -507,7 +507,7 @@ The transport sets no temperature (R-14), so repeat runs can differ. Protocol: *
 condition, report min, median, max; pass criteria are judged on the median with a tolerance of
 ±1 file on `wrong` and ±2 on spillover.** Cloud repeats wait for SF-1; local repeats do not.
 
-### 12.8 Provisional defaults for Q-A to Q-D, so a stalled ruling cannot stall Phase 3
+### 12.8 Provisional defaults for Q-A to Q-D (SUPERSEDED: all four ruled, see §13.5 to §13.8)
 
 Until ruled: `00` as written stands, which means scores and margin remain hard gates, rule facts
 outrank model facts, and the preservation heuristics stand. Each default is recorded as
@@ -523,7 +523,7 @@ tests; the 9 are rewritten to assert refusal only where `None` remains a legal d
 expected-red list is written down before the wiring commit, and every red not on it is a
 regression. The seven strict xfails are expected to flip and lose their markers.
 
-### 12.10 Definition of done, with numbers (proposal for the owner to set)
+### 12.10 Definition of done, with numbers (RULED, see §13.1: exact ≥ 30 of 41, not 20)
 
 Phase 3 done, on the pinned corpus, median of three runs: **exact ≥ 20 of 41; wrong 0; spillover 0
 among placed files; 29 of 29 "ask the person" abstained; 0 files reach a model without a ratified
@@ -577,3 +577,39 @@ labelled by the owner, **never tuned against**, and run it once at the end of Ph
 passes only the tuned corpus is overfit.
 
 *Section added by Claude Fable 5.1. The manifest is the only new file, and it stays out of git with the corpus it pins.*
+
+
+---
+
+## 13. Rulings of 2026-09-05, evening: the owner set the bars
+
+Put to the owner by Claude Fable 5.1 in two rounds of four questions each, after §12 was committed
+as `5c321a8`. Each ruling is final unless the owner reopens it. The provisional defaults in §12.8
+are no longer needed for Q-A to Q-D. The same rulings are recorded as dated amendments at the end
+of `00-database-agent-product-design.md`, so the design stays the source of truth and no session
+has to choose between the two documents.
+
+| # | Question | Ruling | What changes in the plan |
+|---|---|---|---|
+| 13.1 | Definition of done (§12.10) | **Stricter.** On the pinned corpus (manifest digest `a3a8f4ef4a04e5d4`), median of three runs: **exact ≥ 30 of 41; wrong 0; spillover 0 among placed files; 29 of 29 "ask the person" abstained; 0 files reach a model without a ratified prompt; every readable unprotected file reaches a model or carries a named reason.** | §12.10's "20" is replaced. Phase 3 cannot close at 20. Release 1 needs the same bar on the held-out corpus (§12.17) plus Phase 4's scale gates. |
+| 13.2 | D1 exit criterion (§12.2) | **Bakeoff for the record; the cloud lift does not wait for it.** The cloud denial for basis `detector_no_safety_evidence` is lifted the moment SF-1 (R-07, whole-document release) is closed. | §12.2's third condition (a local row before the lift) is dropped. The bakeoff (`qwen3:8b` thinking off, `qwen2.5:3b`, `deepseek-chat`; same corpus, same dossiers; grounding, abstention, correct fields) still runs in Phase 0a and its row goes into §9. |
+| 13.3 | Scope (§12.16) | **Release 1 is the engine, Phases 0 to 4.** Onboarding, the role matcher, the canvas, the six gestures, the household workflow and automatic filing are Release 2. | C15 to C21 and the §4.5 onboarding entries stay open and do not block "done". Their xfails stay strict. |
+| 13.4 | Process (§12.7, §12.11, §12.12, §12.17) | **All four accepted as written.** | Three runs per condition, judged on the median with ±1 on `wrong` and ±2 on spillover; a commit that raises either is reverted before the next lands; a "fixed" claim needs a fresh session's run diffed against §9; a held-out persona corpus labelled by the owner, run once at the end of Phase 3, never tuned against. |
+| 13.5 | Q-A, placement bypass (`00`:110, 114) | **Model decides, rules validate.** Every placement goes through the model. Scores rank and shortlist candidates; a rule may reject only a structurally invalid answer (node not in the frozen tree, cited fact not in evidence). A unique direct match is the top-ranked candidate the model is shown, not a bypass. Precondition: the §11 fix chain, because the model as wired today makes placement worse. | R-19 closes by implementation: P11's two-condition threshold and `needs_model_call` stop skipping site C for placeable files. Budget consequence: up to one C call per placeable file per run (42 calls took 79 s on 2026-09-05; 199 would take about 6 minutes on the cloud tier, longer locally). |
+| 13.6 | Q-B, contradiction checks (`00`:42) | **Grounding hard, the rest shown.** A hard veto only when a model fact is not grounded in the file's own evidence (quote or metadata) or falls outside the derived schema. Every other check, including rule-fact precedence over model facts, is shown to the model as a flag with its evidence, and the model reconciles. | R-20. The `FactResolver` stage order (direct, rule, llm) stays as the order of collection, not of authority; a rule fact that disagrees with a grounded model fact becomes a flag in the next call's dossier, not a silent override. |
+| 13.7 | Q-C, vocabularies (`00`:41-43, constitution 1) | **Model names, user confirms.** `work_type`, `subject`, `term` and user labels are model decisions grounded in evidence. A value the library has not seen is proposed once; the user confirms or renames it; it joins that user's vocabulary in the database. No alias tables or equivalence maps in code. Template levels stay fixed as structure. | R-21. Reverses the direction of `3e4a64d` for unseen values: a closed-vocabulary rejection becomes a "confirm this new value" question instead of a dropped fact. The ratified library remains the default vocabulary the model is shown first. |
+| 13.8 | Q-D, preservation heuristics (`00`:22) | **Split: refinement allowed, removal constrained.** Moving a file deeper inside its own branch is the model's call. Moving it out of the person's existing arrangement stays a constraint surfaced to the user. | R-22. `_without_kind_only_moves` and `_staying_put_wins_a_tie` distinguish refinement from removal (§11 fix 5). The six `Python 1006` files placed one level short are the pass case. |
+
+**What is still the owner's after these rulings, and when.** Ratifying each prompt at the end of its
+bakeoff, with the numbers attached (D2 protocol, `103` §28.1); labelling the held-out corpus before
+the end of Phase 3; accepting a stated gap in the bakeoff row if one appears. Nothing else blocks
+Phase 0.
+
+**Build authorisation, same evening.** The owner authorised the build to start once ready, with
+dynamic workflows and multiple agents, on the condition that every dispatched agent, and every
+agent those agents dispatch, runs on Opus 5. The standing constraints do not move: protected
+containers are marked and counted, never opened; the corpus never enters git; no cloud
+ground-truth pass until SF-1 is closed; prompt text and vocabulary members are ratified by the
+owner, never by an agent.
+
+*Section added by Claude Fable 5.1.*
