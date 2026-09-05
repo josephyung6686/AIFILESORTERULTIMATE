@@ -82,6 +82,7 @@ from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
+from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
 from grouping.config import GroupingLimits
@@ -1850,6 +1851,26 @@ def normalize_for_model(field_key: str, raw_value: str) -> str | None:
             claimed = next((one for one in DATE_PATTERNS.patterns
                             if one.pattern.fullmatch(text)), None)
             return None if claimed is None else claimed.canonical(text)
+        if field_key == WORK_TYPE_FIELD:
+            # `work_type` IS A CLOSED VOCABULARY AND HAD NO BRANCH HERE. Measured
+            # on a cloud run with retrieval on: the rule wrote `lecture`,
+            # `homework`, `exam` -- all members of the 942 terms the library ships
+            # -- and the model wrote `.pdf`, `Proposed Scope` and
+            # `GRC Proposed Scope V2.1`, none of them members. `.pdf` became a
+            # folder: four files were placed into
+            # `Coursework/Daniel Lacker/IEOR3658/.pdf`.
+            #
+            # This function's own promise already covers it -- "the model's value is
+            # canonicalised by the SAME rule the deterministic slot uses for that
+            # field", and "a value the field's own `matches` predicate rejects is
+            # NOT normalizable". The rule for this field is membership, and nothing
+            # is authored here: `WORK_TYPE_VOCABULARY` is the library's, and it is
+            # the same object `kind_facts` reads.
+            #
+            # The LIBRARY's spelling is returned rather than the model's, for the
+            # reason `KindVocabulary` states: that spelling becomes a folder name
+            # and the document's casing must not.
+            return WORK_TYPE_VOCABULARY.terms.get(kind_tokens(text))
         if field_key == SUBJECT_RULE.field_key:
             # AND NEITHER HAS `subject`, SINCE 2026-09-04. It moved from a slot to
             # `SUBJECT_RULE` above, and this branch is what stops that move from

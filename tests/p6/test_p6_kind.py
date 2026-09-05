@@ -661,3 +661,31 @@ def test_the_producer_and_the_detector_differ_only_at_the_digit_boundary():
     # The identifier the detector must keep whole, and does.
     assert detector_tokens("PHYS1401") == ("phys1401",)
     assert producer_tokens("PHYS1401") == ("phys", "1401")
+
+
+def test_a_model_work_type_outside_the_librarys_vocabulary_is_not_normalizable():
+    """CONSTITUTION 3, applied to VALUES: `work_type` is a closed vocabulary field.
+
+    **Measured, cloud run with retrieval on, 2026-09-05.** The rule producer wrote
+    `lecture`, `homework`, `exam`, `essay`, `resume` -- every one a member of the
+    942-term vocabulary the library ships. The MODEL wrote `.pdf`, `Proposed Scope`,
+    `GRC Proposed Scope V2.1` and `Abstract`, none of them members, and one of them
+    became a folder: four files were placed into
+    `Coursework/Daniel Lacker/IEOR3658/.pdf`.
+
+    `normalize_for_model` is §3.6 check 3 and its promise is already exactly this --
+    "the model's value is canonicalised by the SAME rule the deterministic slot uses
+    for that field", and a value the field's own rule rejects "is NOT normalizable".
+    `work_type`'s rule is a closed vocabulary; it simply had no branch here. Nothing
+    is authored: the vocabulary is the library's, the same object `kind_facts` reads.
+
+    The library's own spelling comes back rather than the model's, for the reason
+    `KindVocabulary` gives: that spelling becomes a folder name and the document's
+    casing must not.
+    """
+    import cli
+
+    assert cli.normalize_for_model("work_type", ".pdf") is None
+    assert cli.normalize_for_model("work_type", "GRC Proposed Scope V2.1") is None
+    assert cli.normalize_for_model("work_type", "Lecture") == "lecture"
+    assert cli.normalize_for_model("work_type", "  HOMEWORK  ") == "homework"
