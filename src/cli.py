@@ -2112,8 +2112,35 @@ def model_route_permitted(conn: sqlite3.Connection):
         if row is None:
             return False
         record = store.current(file_id, row["content_hash"])
-        if resolve_class(record) == UNREADABLE_UNCLASSIFIED:
-            return False
+        # UNCLASSIFIED IS NOT UNREADABLE, AND THE RUN IS WHY. The premise this
+        # refused on -- "an unclassified file is one nothing has read successfully"
+        # -- was measured false on the owner's own corpus on 2026-09-05: 95 of 199
+        # files carried no classification, EVERY ONE of them had evidence, and they
+        # are ordinary lecture PDFs, `.py` files and a club logo. All 95 were
+        # refused the model with `privacy_withheld`, which is 57% of the corpus
+        # never reaching the engine that decides where files go.
+        #
+        # `resolve_class(None)` is still `unreadable_unclassified` and P7 is right
+        # to spell it that way: it is the name for "no record", and P11 reads it to
+        # say `blocked_pending_user`. What was wrong is this deployment treating
+        # that name as a finding about the BYTES. The detector abstaining is a
+        # sentence about the detector.
+        #
+        # No second definition of "was read" is invented here, because
+        # `model_facts` already holds one: it declines to build a call with
+        # "nothing releasable -- every observation is in an always-local zone, is
+        # unbounded, or was signalled sensitive, so the dossier would be empty and
+        # the model would be asked to answer from nothing". A file nothing read has
+        # no releasable observation and therefore still costs no call. Permitting
+        # here and refusing there keeps one definition rather than two that drift.
+        #
+        # PROTECTED IS UNTOUCHED. §8.4 keeps protected material out of cloud
+        # prompts with no carve-out under `hybrid`, and the standing rule is
+        # stricter still: marked and counted, never opened. That is the branch
+        # below, and the widening above must never reach it -- which is why a file
+        # WITH a record still answers `not record.protected`.
+        if record is None:
+            return True
         return not record.protected
 
     return permitted
@@ -2172,10 +2199,22 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             conn, store=ClassificationStore(conn), plan_version=PLAN_VERSION,
             classifier=lambda value, *, context_before=None, context_after=None: None,
             transform=lambda value, *, identifier_class: "[redacted]",
-            # §8.4's Open question 5, answered `False`: an unclassified file is one
-            # nothing has read successfully, and this deployment does not ask a
-            # model about a file it could not read.
-            unclassified_permits_local=False,
+            # §8.4's Open question 5. ANSWERED `True` ON 2026-09-05, and the
+            # answer it replaces was reasoned from a premise the run disproved:
+            # "an unclassified file is one nothing has read successfully". 95 of
+            # the owner's 199 files were unclassified and every one had evidence.
+            # P7 leaves this to the caller precisely because the design does not
+            # settle it -- `unclassified_denies`' own docstring warns that denying
+            # local calls here "may block exactly the OCR-opaque screenshots §2.7
+            # and §7.8 want a model to interpret" -- and `no_safety_evidence_denies`
+            # answers the sibling question the same way in its own words: "LOCAL IS
+            # PERMITTED, and that is the half that keeps this from being a coverage
+            # regression wearing a safety fix's name."
+            #
+            # Nothing leaves the device on this branch: `unclassified_denies`
+            # refuses every CLOUD release of an unclassified file unconditionally
+            # and this flag cannot reach that decision.
+            unclassified_permits_local=True,
             # Open question 3 -- what a "corpus area" is -- is unanswered, so the
             # scope is the SCAN. It is internal, it never leaves the device, and it
             # is the one boundary this run can name truthfully.

@@ -170,21 +170,37 @@ def test_the_open_question_drops_fields_a_stronger_fact_has_already_closed(catal
     pending = ("file_type", "creation_date", "school", "term", "work_type")
 
     vocabulary, visible = open_question(pending, levels)
-    assert vocabulary == ("school", "term", "work_type", "file_type", "creation_date")
+    assert vocabulary == ("school", "term", "work_type")
     # `subject` is settled, so it is neither offered as a field nor shown as a level.
     assert [level.field for level in visible] == ["school", "term", "work_type"]
-    assert sorted(vocabulary) == sorted(pending)
+    # UPDATED 2026-09-05 under Constitution 3. This read
+    # `sorted(vocabulary) == sorted(pending)` -- every pending field offered, levels
+    # merely sorted first. `file_type` and `creation_date` are pending and can never
+    # become a folder of this situation, so they are no longer offered at all. The
+    # measured cost of offering them is in `open_question`'s own comment.
+    assert set(vocabulary) <= {level.field for level in levels}
 
 
-def test_a_file_whose_levels_are_all_settled_is_asked_about_the_rest(catalogue):
-    """An empty level list is truthful HERE, and it is not the composition failure
-    `require_folder_levels` refuses: the situation has four levels, this one file has
-    no level still open. The call is still worth making for the fields that are."""
+def test_a_file_whose_levels_are_all_settled_is_not_asked_at_all(catalogue):
+    """RENAMED AND REVERSED 2026-09-05, under Constitution 3.
+
+    It used to read `..._is_asked_about_the_rest` and assert that `file_type` and
+    `language` were still worth a call. They are not. Neither can become a folder of
+    this situation, so a call spending them buys nothing the tree can use -- measured
+    at 28 `file_type` and 16 `authored_by` answers on one 199-file run, against zero
+    `subject`.
+
+    An empty vocabulary here is truthful and is NOT the composition failure
+    `require_folder_levels` refuses: the situation has four levels and this file has
+    none still open. `model_facts`' own first refusal -- "nothing pending, so the
+    question has no content and the spend buys a repetition of what is known" --
+    then declines to build the call, which is the cheapest correct outcome.
+    """
     from model_facts import open_question
 
     levels = folder_levels_for(catalogue, "academic.coursework")
     vocabulary, visible = open_question(("file_type", "language"), levels)
-    assert vocabulary == ("file_type", "language")
+    assert vocabulary == ()
     assert visible == ()
 
 
@@ -298,3 +314,38 @@ def test_the_model_is_shown_the_filename_and_not_only_the_body():
         max_dossier_tokens=1000)
 
     assert Filename(file_id="file-1") in built.model_call_request.requested_items
+
+
+def test_the_model_is_never_offered_a_field_that_cannot_become_a_folder(catalogue):
+    """Constitution 3: never ask the model to choose among structurally invalid options.
+
+    **Measured, cloud run, 199 real files, 2026-09-05.** The model answered
+    `file_type` 28 times, `authored_by` 16, `creation_date` 9 -- and `subject`, the
+    REQUIRED level of the situation being run, zero. Every one of those answers is
+    tokens bought and thrown away: the library says in its own words that
+    "instructor, authored_by and programming_language may never become a level", and
+    a `file_type` fact cannot divide a branch either.
+
+    `open_question` used to offer everything still pending and merely SORT the levels
+    to the front. Ordering does not stop a model answering what it was offered. The
+    situation's own `role_bindings` already name the fields this person's tree is
+    built from, so those are the valid options and the rest are not options at all.
+
+    The subset direction that `test_the_narrowed_list_is_never_wider_than_what_the_
+    validator_holds` pins is unaffected and is strengthened: a narrower list is still
+    inside `FactRequest.allowlist`, so nothing offered can be rejected by check 1.
+    """
+    from model_facts import open_question
+
+    levels = folder_levels_for(catalogue, "academic.coursework")
+    level_fields = {level.field for level in levels}
+    pending = ("file_type", "creation_date", "language", "authored_by",
+               "instructor", "school", "term", "subject", "work_type")
+
+    vocabulary, visible = open_question(pending, levels)
+
+    assert set(vocabulary) <= level_fields, (
+        f"offered {sorted(set(vocabulary) - level_fields)}, which no folder of "
+        f"academic.coursework can ever be built from")
+    assert "subject" in vocabulary and "work_type" in vocabulary
+    assert {level.field for level in visible} <= level_fields

@@ -8,6 +8,7 @@ to be true -- and so does what it tells them happened.
 from __future__ import annotations
 
 import io
+import json
 
 import pytest
 
@@ -244,3 +245,54 @@ def test_the_key_is_never_printed(monkeypatch):
     _, refused = _route(monkeypatch, dict(
         ENV, **{CREDENTIAL_NAME: "sk-secret", MODEL_NAME_OF_TIER[FAST]: ""}))
     assert "sk-secret" not in refused
+
+
+def test_a_file_that_was_read_reaches_the_model_even_with_no_classification(
+        conn, tmp_path):
+    """CONSTITUTION 2: a detector abstaining is not proof a file is unreadable.
+
+    **Measured, 199 real files, 2026-09-05.** 95 of them carried no classification
+    and were refused the model with `privacy_withheld` -- and every one of the 95 had
+    evidence: ordinary lecture PDFs, `.py` files, a club logo. The written premise
+    for refusing them, in `model_route_permitted`'s own docstring, was "an
+    unclassified file is one nothing has read successfully". The run disproves it.
+    Unclassified means the DETECTOR abstained, which is a different sentence.
+
+    Protected files are unaffected and the standing rule is why: marked and counted,
+    never opened. That half is asserted here beside this one so the widening cannot
+    quietly take it with it.
+    """
+    from database_agent.files_table import get_file, record_file
+    from privacy.classification import ClassificationRecord
+    from privacy.vocabulary import DETECTOR
+    from privacy.classification_store import ClassificationStore
+    from privacy.schema import create_privacy_schema
+
+    create_privacy_schema(conn)
+
+    def _file(name: str, body: bytes) -> tuple[str, str]:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+        file_id = record_file(
+            conn, path, filename=name, normalized_filename=name.lower(),
+            extension=".pdf", observed_size=len(body),
+            observed_timestamps=json.dumps({"mtime": 1_700_000_000.0}),
+            parent_folder_context="Downloads", mime_type="application/pdf",
+            detected_format="pdf", scan_state="included", materialized=True)
+        return file_id, get_file(conn, file_id)["content_hash"]
+
+    read_but_unclassified, _ = _file("Lecture 08.pdf", b"Work and energy, lecture 8")
+    protected, protected_hash = _file("HKID scan.pdf", b"identity document")
+    ClassificationStore(conn).write(ClassificationRecord(
+        file_id=protected, content_hash=protected_hash,
+        handling_class="sensitive_personal", protected=True, basis=DETECTOR,
+        evidence_refs=("sha256:" + "b" * 64,), reliability_state="validated",
+        observed_at="2026-09-05T00:00:00Z"))
+
+    permitted = cli.model_route_permitted(conn)
+
+    assert permitted(read_but_unclassified) is True, (
+        "a file the product read and the detector merely abstained on is not "
+        "'unreadable'; refusing it keeps 95 of 199 files away from the engine")
+    assert permitted(protected) is False, "protected material never reaches a model"

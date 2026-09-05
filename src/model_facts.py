@@ -190,9 +190,26 @@ def open_question(pending: Sequence[str],
     level still open -- and it is not the empty list `require_folder_levels` refuses,
     which is about a deployment that never read the library at all.
     """
-    open_fields = set(pending)
+    #: CONSTITUTION 3, AND IT REPLACES ORDERING WITH EXCLUSION. This used to offer
+    #: everything pending and merely sort the levels to the front, which does not
+    #: stop a model answering what it was shown. Measured on 199 real files with a
+    #: model in the loop: 28 `file_type`, 16 `authored_by`, 9 `creation_date`, and
+    #: ZERO `subject` -- the required level of the situation being run. The library
+    #: forbids two of those from ever becoming a level in its own words, and a
+    #: `file_type` cannot divide a branch either, so each was tokens bought to be
+    #: thrown away, and each was another chance for rule 11 to void the whole answer.
+    #:
+    #: The valid options are the situation's OWN, read from `role_bindings` by
+    #: `production.folder_levels_for` and passed in here. Nothing is authored: a
+    #: library that adds a level widens this with no edit.
+    #:
+    #: Still a SUBSET of `FactRequest.allowlist`, which is the direction that keeps
+    #: check 1 from rejecting something the model was invited to say.
+    level_fields = {level.field for level in folder_levels}
+    open_fields = set(pending) & level_fields
+    offered = tuple(field for field in pending if field in open_fields)
     visible = tuple(level for level in folder_levels if level.field in open_fields)
-    return order_vocabulary_by_levels(pending, visible), visible
+    return order_vocabulary_by_levels(offered, visible), visible
 
 
 @dataclass(frozen=True)
