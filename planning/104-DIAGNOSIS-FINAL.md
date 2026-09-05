@@ -436,3 +436,144 @@ coverage first (which is what the four constitution-run commits did) multiplies 
 
 *Section added by Claude Fable 5.1 after the `exp1`, `gt-head` and `gt-cloud` runs. Nothing
 committed.*
+
+
+---
+
+## 12. Pre-flight before Phase 0 ("Phase −1"): what decides whether the next fix is the last
+
+Added after a review of this document listed twenty gaps. Each is answered below with a value, a
+rule or a measurement, or named as owed. Three were already closed by §11 and are cross-referenced.
+
+### 12.1 Root cause of R-01, from the commit itself, not the symptom
+
+`fd68cb6` is a **six-workstream commit** whose headline is a different fix ("the child's report card
+stops landing in the parent's law-school semester"). The cloud denial rode inside it. Its intent is
+stated in `privacy.denial.no_safety_evidence_denies`' docstring and in `96` §19–§20: **deliberate
+safety tightening**, after `96` §19 found that 41 of 78 classified files had matched no safety term
+and were reachable by a model only because they had acquired a class, "turning 41 silences into 41
+confident negatives". Its written escape hatch is *"LOCAL IS PERMITTED"*. **No local model existed**,
+so a rule meant to redirect ordinary files to an on-device model became a total cloud block. The
+commit's own measurement table is headed "no model", so the cloud effect was never measured by the
+commit that caused it. **Consequence for the fix:** D1's condition ("releasable evidence present")
+preserves `96` §20's intent, because a file with no evidence still cannot become a confident
+negative; and the local half restores the escape hatch the rule assumed. The fix is aimed at the
+cause, not the symptom.
+
+### 12.2 D1 exit criterion and evidentiary parity with D2 (proposal for the owner)
+
+Cloud lift ships only when all three hold: SF-1 closed; a **local-model row exists in §9** on the
+pinned corpus; local reaches at least the cloud run's 15 correct fields with 0 wrong placements, or
+the owner accepts a stated gap. Before that, **D1 gets the same bar D2 imposes on prompts:** a
+bakeoff of `qwen3:8b` (thinking off), `qwen2.5:3b` and `deepseek-chat` on the same corpus, same
+dossiers, reporting grounding, abstention and correct fields. D1 was ruled without this; it is
+flagged here rather than assumed.
+
+### 12.3 Spillover attribution: what is verified and what is not
+
+The seven `wrong` placements are attributed per file in §11.1 (five essays to the `school`
+collector, two study guides to an unanchored `subject`). The +6 spillover (11 → 17) is attributed
+to the same collector **by mechanism only**; a per-file join against `labels.json` was attempted
+and is inconclusive because the label schema does not expose the situation for those rows in the
+column read. **Owed:** extend `tools.groundtruth` to print the spillover file list with `got`, so
+the attribution is a table, not an inference.
+
+### 12.4 Cost and latency of the cloud run
+
+Whole run 3.2 minutes; the 42 model responses arrived between 12:47:18 and 12:48:37, **79 seconds
+for 42 sequential calls, about 1.9 s each**. Dollar cost is **not observable**: the transport returns
+no usage (R-14) and `FACT_CALL_COST` is a unit. At list prices the input volume implies cents, not
+dollars, and that sentence is an estimate. Instrument usage before Phase 4; do not quote a number
+until the provider's own count is stored.
+
+### 12.5 Observe-only artefacts and later ratification
+
+Every fact row, verdict and cache key already carries the **prompt fingerprint** (`82` §1). Rule:
+observe-only runs use a template id prefixed `draft.`; Phase 3's pass counts only verdicts whose
+fingerprint is the ratified one; on ratification, draft-fingerprint verdicts are marked superseded
+and never validated against. A stale-fingerprint verdict counted as evidence is a test failure.
+
+### 12.6 Severity rubric, stated
+
+Blocker: no model decision is possible until fixed. High: changes where a real file lands, or a
+safety boundary, or the north star's multi-role case. Medium: a wrong record, screen or count.
+Low: process. C7's upgrade to High is fact-based (seven live oversized dossiers on the owner's
+files), not a judgement call. R-19 to R-22 carry the severity they would have **if the corrected
+purpose stands**; if the owner rules the other way they are re-labelled, not deleted.
+
+### 12.7 Non-determinism and tolerance
+
+The transport sets no temperature (R-14), so repeat runs can differ. Protocol: **three runs per
+condition, report min, median, max; pass criteria are judged on the median with a tolerance of
+±1 file on `wrong` and ±2 on spillover.** Cloud repeats wait for SF-1; local repeats do not.
+
+### 12.8 Provisional defaults for Q-A to Q-D, so a stalled ruling cannot stall Phase 3
+
+Until ruled: `00` as written stands, which means scores and margin remain hard gates, rule facts
+outrank model facts, and the preservation heuristics stand. Each default is recorded as
+**provisional and dated**, and every place it decides an outcome writes that word into the record.
+If the questions are unruled when Phase 3 starts, work proceeds under these defaults and the owner
+is told which files they decided. They are the conservative direction; they are not a ruling.
+
+### 12.9 The suite at the transition
+
+Measured now: **9 test files assert the all-`None` model state or `p8_run_call=None`; 13 construct
+a `ModelClient` by hand.** Rule before wiring: those 13 remain as validator and transport contract
+tests; the 9 are rewritten to assert refusal only where `None` remains a legal deployment; the
+expected-red list is written down before the wiring commit, and every red not on it is a
+regression. The seven strict xfails are expected to flip and lose their markers.
+
+### 12.10 Definition of done, with numbers (proposal for the owner to set)
+
+Phase 3 done, on the pinned corpus, median of three runs: **exact ≥ 20 of 41; wrong 0; spillover 0
+among placed files; 29 of 29 "ask the person" abstained; 0 files reach a model without a ratified
+prompt; every readable unprotected file reaches a model or carries a named reason.** Release 1 done:
+the same on the held-out corpus (12.17) plus Phase 4's scale gates. The design's 99% is the
+long-run target, not this release's.
+
+### 12.11 Stop-loss, decided now
+
+Any commit whose measured `wrong` or spillover exceeds the previous recorded row is **reverted
+before the next commit lands**. If Phase 3 ends worse than HEAD offline on either number, the
+shipped default returns to offline and Phase 3 reopens. Every commit message carries the before and
+after row.
+
+### 12.12 Independent verification
+
+Numbers come only from `tools.groundtruth`; nobody types a number. A "fixed" claim requires a fresh
+run by a different session or a different day, diffed against this document's §9. Every column
+states its environment: model, prompt fingerprint, semantic channel, situation. K's columns did not,
+which is why they could not be reproduced.
+
+### 12.13 The corpus is now pinned
+
+The corpus and labels are **not in git** (0 tracked files under `.groundtruth/`) and had no
+manifest, so drift was undetectable. Written today: `.groundtruth/MANIFEST.sha256`, 216 lines
+(every corpus file plus `labels.json`), manifest digest **`a3a8f4ef4a04e5d4`**. Every future scorecard
+must print the manifest digest it ran against; a mismatch is a different corpus.
+
+### 12.14 Attribution when fixes interact
+
+One seam per commit with its numbers (constitution 5), then a combined run at the end of each
+phase; if the combined row differs from the last sequential row, bisect before proceeding. R-09 and
+R-23 interact and are landed in the order §11.2 gives.
+
+### 12.15 Local parity in the numbers table
+
+The first deliverable of Phase 0a is a **local-only row in §9**. Until it exists, "final" has no
+meaning for the path D1 ships first.
+
+### 12.16 Scope boundary
+
+**Release 1 is the engine: Phases 0 to 4.** Onboarding, the role matcher, the canvas, the six
+gestures, the household workflow and automatic filing are **Release 2 (Phase 5)** and are outside
+the meaning of "fixed" in this document.
+
+### 12.17 A held-out corpus
+
+Every diagnosis measured the same 199 files. Before Release 1 is called done, build a small
+second corpus from `68-PERSONA-RERUN.md`'s four personas (student, litigant, householder, parent),
+labelled by the owner, **never tuned against**, and run it once at the end of Phase 3. A fix that
+passes only the tuned corpus is overfit.
+
+*Section added by Claude Fable 5.1. The manifest is the only new file, and it stays out of git with the corpus it pins.*
