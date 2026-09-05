@@ -35,6 +35,13 @@ def main(argv: list[str]) -> int:
 
     argv_for_cli = [corpus, "--situation", situation, "--label", label,
                     "--user", "groundtruth", "--database", database]
+    # The weights are machine state, not project state, so the harness is told
+    # where they are rather than knowing. Absent means the semantic channel is off
+    # and the run is the deterministic one, which is the same posture `--enable-
+    # cloud` takes above: a capability is named or it does not happen.
+    model = os.environ.get("GRAPH_AGENT_SEMANTIC_MODEL")
+    if model:
+        argv_for_cli += ["--semantic-model", model]
     if cloud:
         argv_for_cli.append("--enable-cloud")
 

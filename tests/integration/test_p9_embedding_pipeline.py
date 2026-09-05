@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 
+import pathlib
 import pytest
 
 from database_agent.db import create_schema
@@ -38,6 +39,7 @@ from grouping.embeddings import (
     FileVersionRef,
 )
 from grouping.pipeline import GroupingKnowledge, group_subject
+from grouping.vocabulary import MUTUAL_SEMANTIC_RETRIEVAL, SHARED_VALIDATED_FACT
 from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.vocabulary import MUTUAL_SEMANTIC_RETRIEVAL
@@ -348,3 +350,58 @@ def test_a_duplicate_eligible_version_does_not_consume_a_cap_slot(
          knowledge=_knowledge(_mutual(anchor[0], "file-a")))
     encoded = [call[0] for call in text_for.calls if call[0] != anchor[0]]
     assert encoded == ["file-a", "file-b", "file-c"]
+
+
+# --- the deployment's own wiring: §4.4's channel, on a measured threshold ---------
+
+WEIGHTS = pathlib.Path.home() / ".graph-agent" / "models" / "minilm"
+
+
+def test_the_semantic_channel_is_off_when_no_weights_are_named():
+    """Absent means off, and off means every similarity input is `None`.
+
+    `RetrievalKnowledge` is "absent means omit, never assume", and
+    `_require_semantic_configuration` refuses a half-configured channel. A
+    deployment that named no weights must produce the shape retrieval reads as
+    "there is no semantic channel", not one with a threshold and no encoder.
+    """
+    import cli
+
+    runtime, retrieval = cli._embedding_runtime(None, versions_for=lambda c, n: ())
+
+    assert runtime.enabled is False
+    assert retrieval.similarity is None
+    assert retrieval.similarity_threshold is None
+    assert retrieval.embedding_identity is None
+
+
+@pytest.mark.skipif(not (WEIGHTS / "model.onnx").is_file(),
+                    reason="the weights are machine state; this run has none")
+def test_the_threshold_is_the_measured_one_and_the_identity_matches_the_vectors():
+    """MEASURED, not chosen. `planning/103` records the run this number comes from.
+
+    On the owner's own corpus, over every pair of labelled files: same-course pairs
+    have a median cosine of 0.417 and a 10th percentile of 0.212; different-course
+    pairs have a median of 0.057 and a 90th percentile of 0.165. The distributions
+    separate, and 0.30 is where F1 peaks -- 90.7% precision at 67.1% recall.
+
+    The identity is asserted against the config rather than restated, because a
+    vector stored under one identity and read back under another is the failure
+    `EmbeddingIdentity` exists to prevent -- "all three or none".
+    """
+    import cli
+
+    runtime, retrieval = cli._embedding_runtime(
+        WEIGHTS, versions_for=lambda conn, cap: ())
+
+    assert runtime.enabled is True
+    assert retrieval.similarity_threshold == cli.SEMANTIC_SIMILARITY_THRESHOLD == 0.30
+    assert retrieval.similarity is not None
+    assert retrieval.embedding_identity.scope == runtime.config.scope
+    assert retrieval.embedding_identity.model_id == runtime.config.model_id
+    assert retrieval.embedding_identity.model_version == runtime.config.model_version
+    # §4.4's own precedence: a shared validated fact ESTABLISHES a group and a
+    # semantic neighbour never does, so when the neighbourhood is capped the fact
+    # channel must survive the cut first.
+    assert (retrieval.channel_weights[SHARED_VALIDATED_FACT]
+            > retrieval.channel_weights[MUTUAL_SEMANTIC_RETRIEVAL])

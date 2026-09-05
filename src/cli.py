@@ -48,6 +48,7 @@ import unicodedata
 from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePosixPath
+from functools import lru_cache
 from types import MappingProxyType
 from typing import Mapping, Sequence
 
@@ -84,17 +85,20 @@ from facts.fields import DOMAIN_FIELDS
 from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
 from grouping.config import GroupingLimits
-from grouping.embeddings import EmbeddingsOff
+from grouping.embeddings import (
+    EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
+    FileVersionRef)
 from grouping.pipeline import GroupingKnowledge, GroupingResult
 from grouping.records import Group, GroupAcceptance
-from grouping.retrieval import RetrievalKnowledge
+from grouping.retrieval import EmbeddingIdentity, RetrievalKnowledge
 from grouping.schema import create_grouping_schema
 from grouping.store import (
     current_group, memberships_for_group, record_group, record_membership,
     stop_rule_outcome_for,
 )
 from grouping.vocabulary import (
-    ACCEPTED, COHERENT, DUPLICATE, P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES,
+    ACCEPTED, COHERENT, DUPLICATE, MUTUAL_SEMANTIC_RETRIEVAL,
+    P1_INCLUDED_SCAN_STATE, PENDING_REVIEW, RULES, SHARED_VALIDATED_FACT,
     USER_EDITED, VERSION_FAMILY,
 )
 from llm_harness.budgets import ScanBudget, create_budget_schema
@@ -177,6 +181,11 @@ from recognition.detector import (
     FIRST_PAGE, NAMING_ZONES, SAFETY_DOMAIN_HANDLING, Detector, Handling,
 )
 from recognition.rules import load_rules
+from recognition.semantic import (
+    FLOAT32_LE, SemanticFloors, SemanticRecogniser, build_schema_anchors,
+    evidence_text,
+    schema_similarity_from, scope_for,
+)
 from scan_agent.corpus_source import FilesystemCorpusSource
 
 # §8.5's replay. `evaluation` is the composition layer's own module, beside
@@ -1079,6 +1088,65 @@ HANDLING_POLICY: Mapping[str, Handling] = MappingProxyType({
        for schema_id in SCHEMA_IDS},
     **SAFETY_DOMAIN_HANDLING,
 })
+
+# --- RECOGNITION BY MEANING: every number the similarity path decides with -----
+#
+# `recognition/semantic.py` authors none of these and refuses to default one. They
+# are all MEASURED on the 199-file ground-truth corpus under `.groundtruth/`, and
+# the measurement is in `planning/97-SEMANTIC-RECOGNITION-MEASURED.md`.
+#
+# THE PATH IS OFF UNLESS `--semantic-model DIR` NAMES THE WEIGHTS. Absent means
+# the product behaves exactly as it did before, which is the honest reading of
+# "absent means refuse, never guess": a missing model is a feature that is off,
+# not a number to invent.
+
+#: P4 zones the vector is read from, in SPEC 2.2's ranking -- where a document
+#: names itself first, so a truncation keeps the identifying half. `metadata` is
+#: deliberately absent: measured over the owner's corpora it holds `Producer`,
+#: `CreationDate` and `pixel dimensions`, the format talking about the software
+#: that wrote it, and `HW 9.pdf`'s only authored term came out of it.
+SEMANTIC_ZONES: tuple[str, ...] = (
+    "filename", "title", "heading", "header_footer", "body", "table", "ocr")
+
+#: How much of a file's own text is assembled. Matched to `SEMANTIC_MAX_TOKENS`
+#: rather than chosen: 256 word-pieces is about a thousand characters, and a
+#: budget larger than the model reads would put a number in the vector's SCOPE --
+#: which is part of what the vector means -- that nothing was ever computed over.
+SEMANTIC_CHAR_BUDGET: int = 1_000
+SEMANTIC_MAX_TOKENS: int = 256
+SEMANTIC_BATCH: int = 32
+SEMANTIC_THREADS: int = 4
+
+#: Anchors longer than this are dropped. 13.5% of the 8,925 compiled terms are
+#: authoring prose -- one `government` row is a 77-word aside beginning "proposed
+#: for r6, not design" -- and they were expected to be the RICHEST anchors, being
+#: unmatchable as literal strings. Measured, they are the worst: dropping them
+#: moves top-1 schema accuracy from 29.1% to 32.2%, because an editorial note is
+#: generic English and pulls a schema's centroid toward the middle of the space.
+SEMANTIC_MAX_ANCHOR_WORDS: int = 6
+
+#: `never_alone` in the form a vector can state it. Mean pooling hides how much
+#: text was pooled, so a vector over a filename looks exactly as confident as a
+#: vector over four pages. This is the ONE rule that separates safe from unsafe
+#: here: the only two hand-labelled protected files the path ever claimed as
+#: ordinary carry 22 and 84 characters. At 100 it claims neither.
+SEMANTIC_MIN_CHARS: int = 100
+
+#: caution / release / margin. The caution line sits ABOVE the release floor
+#: because they measure different things: `release` is how near the leader must
+#: be, `caution` is how near ANY of `00`'s four safety domains may be before the
+#: path falls silent.
+#:
+#: THERE IS NO PROTECT FLOOR AND THE ABSENCE IS THE FINDING. The four safety
+#: domains do not separate: the eight hand-labelled protected files score
+#: 0.084-0.151 and sit at the 43rd to 90th percentiles of the corpus, the highest
+#: safety score of all 199 files belongs to a Red Cross first-aid certificate, and
+#: an open-source `LICENSE` outranks the owner's own HKID card. No floor catches
+#: the eight without protecting half the disk, which is the over-protection
+#: collapse `classifier` below already records. So the vector neither protects nor
+#: releases one of `00`'s four domains: near one, it says nothing.
+SEMANTIC_FLOORS: SemanticFloors = SemanticFloors(
+    caution=0.137, release=0.10, margin=0.01)
 
 #: §1.1's root anchor -- the top of the tree the plan is written against.
 ROOT_ANCHOR: str = "root_documents"
@@ -3167,6 +3235,175 @@ def _print_candidate_roots(candidate_roots: Sequence[Path],
           "nothing.", file=out)
 
 
+#: §4.4's similarity threshold, MEASURED AND NOT CHOSEN. `planning/103` records
+#: the run: every pair of the owner's own labelled files, encoded by the same
+#: MiniLM weights this deployment names, split by whether the ground truth puts
+#: them in one course.
+#:
+#:     SAME course   n=73   p10=0.212  p50=0.417  p90=0.603
+#:     DIFFERENT     n=362  p10=-0.045 p50=0.057  p90=0.165
+#:
+#: The distributions separate -- the 90th percentile of DIFFERENT sits below the
+#: 10th of SAME -- and F1 peaks here at 90.7% precision for 67.1% recall. A
+#: threshold picked rather than measured is the thing `_require_semantic_
+#: configuration` refuses to supply a default for, and this is the measurement it
+#: was waiting on.
+SEMANTIC_SIMILARITY_THRESHOLD: float = 0.30
+
+#: §4.4's precedence when the neighbourhood is capped, and `00`:56 is the whole of
+#: the reasoning: "embeddings never establish the group by themselves. A semantic
+#: neighbor is simply a file worth bringing into the evidence packet." So a shared
+#: validated fact must survive the cut before a cosine does. Only the two channels
+#: this deployment actually produces are weighted; a channel with no weight ranks
+#: last, which is the correct place for one nothing has measured.
+SEMANTIC_CHANNEL_WEIGHTS: Mapping[str, int] = MappingProxyType({
+    SHARED_VALIDATED_FACT: 2, MUTUAL_SEMANTIC_RETRIEVAL: 1})
+
+
+@lru_cache(maxsize=2)
+def _encoder_at(model_dir: Path):
+    """One loaded model per directory per process, shared by both consumers.
+
+    Recognition and P9 retrieval read the same weights for different questions,
+    and loading them twice costs 3-6 seconds and 90 MB for nothing. Keyed on the
+    directory because that is what identifies the weights -- `MiniLmEncoder`
+    itself digests the file, so two directories holding the same bytes still get
+    one entry each and neither is wrong.
+    """
+    from readers.embedding_minilm import MiniLmEncoder  # noqa: PLC0415
+
+    return MiniLmEncoder(model_dir, max_tokens=SEMANTIC_MAX_TOKENS,
+                         batch=SEMANTIC_BATCH, threads=SEMANTIC_THREADS)
+
+
+def _embedding_runtime(semantic_model, *, versions_for):
+    """P9's §4.4 semantic channel, and the retrieval knowledge that reads it.
+
+    **Why this returns BOTH.** `EmbeddingsOn` says vectors will be computed and
+    `RetrievalKnowledge` says how they are compared; a run with one and not the
+    other either stores vectors nothing reads or asks retrieval for vectors that
+    were never stored. `_require_semantic_configuration` catches the second and
+    nothing catches the first, so they are built together or not at all.
+
+    **Off unless the weights are named.** `--semantic-model` has no default and
+    this file names no download, so an absent directory turns the channel off
+    rather than failing a run. Off is the complete `None` shape retrieval reads as
+    "there is no semantic channel", never a threshold with no encoder behind it.
+
+    **Nothing leaves the device.** `onnxruntime` opens no socket and a vector is
+    computed, stored and compared locally. A vector is not releasable and is not
+    made releasable here: `readers.embedding_minilm` says why in its own words --
+    mean-pooled MiniLM embeddings are invertible enough that "a vector of a payslip
+    is a payslip in a lossier coat".
+    """
+    if semantic_model is None:
+        return EmbeddingsOff(), RetrievalKnowledge(
+            document_compatible=None, channel_weights={}, similarity=None,
+            similarity_threshold=None, embedding_identity=None, domain=None)
+
+    encoder = _encoder_at(Path(semantic_model))
+    config = EmbeddingConfig(
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        # The truncation is part of what produced the vector, so it is part of the
+        # model's identity -- the same reasoning `_semantic_classifier` records.
+        model_version=f"{encoder.weights_digest}@{SEMANTIC_MAX_TOKENS}tok",
+        scope=scope_for(SEMANTIC_ZONES, SEMANTIC_CHAR_BUDGET),
+        encoding=FLOAT32_LE, dimension=encoder.dimension)
+
+    def encode(text: str, cfg: EmbeddingConfig) -> EncodedVector:
+        vector = encoder.encode([text])[0].astype("<f4")
+        return EncodedVector(array_bytes=vector.tobytes(),
+                             dimension=int(vector.shape[0]), encoding=cfg.encoding)
+
+    def text_for(conn, file_id: str, content_hash: str, scope: str):
+        """This file version's own words. `recognition.semantic` already assembles
+        them and a second assembler here would be a second scope wearing one name."""
+        text = evidence_text(conn, file_id, content_hash,
+                             zones=SEMANTIC_ZONES, char_budget=SEMANTIC_CHAR_BUDGET)
+        return text if text and len(text) >= SEMANTIC_MIN_CHARS else None
+
+    def similarity(left: bytes, right: bytes) -> float:
+        """Cosine, and it IS a dot product here: `MiniLmEncoder.encode` returns
+        unit-norm vectors, which is the property that makes this correct."""
+        import numpy  # noqa: PLC0415  a deployment import, as everywhere else
+
+        a = numpy.frombuffer(left, dtype="<f4")
+        b = numpy.frombuffer(right, dtype="<f4")
+        return float(numpy.dot(a, b)) if a.shape == b.shape else 0.0
+
+    return (
+        EmbeddingsOn(config=config, encoder=encode, embedding_text_for=text_for,
+                     eligible_versions_for=lambda conn, seed, cap: versions_for(
+                         conn, cap)),
+        RetrievalKnowledge(
+            # §4.4's compatibility predicate is a separate channel and nothing has
+            # measured one, so it stays absent rather than being guessed at beside
+            # a threshold that was measured.
+            document_compatible=None,
+            channel_weights=SEMANTIC_CHANNEL_WEIGHTS,
+            similarity=similarity,
+            similarity_threshold=SEMANTIC_SIMILARITY_THRESHOLD,
+            embedding_identity=EmbeddingIdentity(
+                scope=config.scope, model_id=config.model_id,
+                model_version=config.model_version),
+            domain=None),
+    )
+
+
+def _semantic_classifier(rules, detector, semantic_model, now):
+    """The term detector, with recognition-by-meaning composed behind it.
+
+    RETURNS THE DETECTOR UNCHANGED WHEN NO MODEL IS NAMED. That is the whole of
+    the off switch, and it is the honest reading of "absent means refuse, never
+    guess": a deployment that did not fetch the weights gets the product it had
+    before -- not a guessed model path, and not a crash.
+
+    WHAT IT BUYS, MEASURED on the 199-file ground-truth corpus: the term detector
+    classifies 90 files and this adds 13 more, releasing none of the eight
+    hand-labelled protected files and protecting none that are not. It is a modest
+    number and it is the honest one; the same measurement is why there is no
+    protect floor beside `SEMANTIC_FLOORS`.
+
+    THE WEIGHTS ARE READ FROM DISK AND NOTHING LEAVES THE DEVICE. `onnxruntime`
+    opens no socket; the 90.4 MB `all-MiniLM-L6-v2` ONNX model (Apache-2.0) is
+    fetched ONCE, by hand, from huggingface.co, and this names no download.
+
+    A VECTOR IS THE DOCUMENT, not a fact about it. It is stored by P1 beside the
+    observations it was computed from and is never sent anywhere: the nine
+    `ALWAYS_LOCAL` kinds are as local in 384 floats as they are in words.
+    """
+    if semantic_model is None:
+        return detector
+    from grouping.embeddings import EmbeddingConfig
+    from readers.embedding_minilm import MiniLmEncoder, build_anchor_index
+
+    encoder = MiniLmEncoder(semantic_model, max_tokens=SEMANTIC_MAX_TOKENS,
+                            batch=SEMANTIC_BATCH, threads=SEMANTIC_THREADS)
+    index = build_anchor_index(
+        build_schema_anchors(rules, max_words=SEMANTIC_MAX_ANCHOR_WORDS), encoder,
+        # Encoding the anchors takes about half a minute and a run pays it once
+        # per process. Keyed on the library AND the weights together, so a stale
+        # cache is not read rather than being noticed later as a similarity that
+        # quietly moved.
+        cache_path=Path(semantic_model) / "anchors.npz")
+    config = EmbeddingConfig(
+        model_id="sentence-transformers/all-MiniLM-L6-v2",
+        # The truncation is part of what produced the vector, so it is part of the
+        # model's identity. Without it, two vectors read to different depths would
+        # be stored under one identity and silently compared.
+        model_version=f"{encoder.weights_digest}@{SEMANTIC_MAX_TOKENS}tok",
+        scope=scope_for(SEMANTIC_ZONES, SEMANTIC_CHAR_BUDGET),
+        encoding=FLOAT32_LE, dimension=encoder.dimension)
+    return SemanticRecogniser(
+        lexical=detector,
+        schema_similarity=schema_similarity_from(
+            anchor_scores=index.scores_for, config=config,
+            encode=encoder.encode_one, zones=SEMANTIC_ZONES,
+            char_budget=SEMANTIC_CHAR_BUDGET, now=now),
+        floors=SEMANTIC_FLOORS, handling_for=HANDLING_POLICY, now=now,
+        min_chars=SEMANTIC_MIN_CHARS, is_protected=is_protected_container)
+
+
 def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str,
         user_id: str, now, out=None,
         also_read: Sequence[Path] = (),
@@ -3177,6 +3414,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         operation_mode: str = OPERATION_MODE,
         record: str | None = None,
         routing: TierRouting | None = None,
+        semantic_model: Path | None = None,
         wire_handle_key: bytes | None = None) -> ProductionRun:
     """One corpus, end to end. Assembles the authorities and calls the composition.
 
@@ -3207,7 +3445,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     selection_id = record_selection(
         conn, sources=sources, candidate_roots=list(candidate_roots),
         cross_folder_moves=cross_folder_moves, selected_by=user_id)
-    detector = Detector(load_rules(_RECOGNITION_MANIFEST.read_text),
+    rules = load_rules(_RECOGNITION_MANIFEST.read_text)
+    detector = Detector(rules,
                         handling_for=HANDLING_POLICY, now=now,
                         is_protected=is_protected_container,
                         corroborating_observations=_identifier_observations,
@@ -3216,6 +3455,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                         # rather than captured, so an answer given by `--answer`
                         # earlier in this same invocation is already in force.
                         settled_by_user=lambda: activated_schemas(conn))
+    # RECOGNITION BY MEANING, composed AROUND the term detector and never in front
+    # of it: `SemanticRecogniser` calls it first and returns its answer untouched,
+    # so a vector can add a classification where there was none and can never
+    # change, lower or second-guess one that exists. No model named, no change at
+    # all -- `_semantic_classifier` hands `detector` straight back.
+    classify_producer = _semantic_classifier(rules, detector, semantic_model, now)
 
     #: P7's store, read rather than re-derived. §5.2 and §8.4 make sensitivity
     #: P7's to own; P10 asks and never classifies.
@@ -4025,6 +4270,22 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     scan_run_id = [""]
     accepted_ids: list[str] = []
 
+    #: §4.4's semantic channel, built once for the run. `00`:56 is why it exists:
+    #: "Embeddings are useful at this stage because they can find files such as
+    #: HW 3.pdf that lack the course code but resemble lecture notes and earlier
+    #: problem sets." Measured on the owner's corpus, 35 of the 43 files whose
+    #: label carries a course name no course anywhere in their own bytes, and the
+    #: model answered `unknown` about them -- correctly, because the evidence is in
+    #: their neighbours and nothing was retrieving those.
+    #:
+    #: The eligible set is the SCAN's own roster, capped by P9. A vector is
+    #: computed for a file this run included and for no other.
+    _embeddings, _retrieval_knowledge = _embedding_runtime(
+        semantic_model,
+        versions_for=lambda db, cap: tuple(
+            FileVersionRef(file_id=file_id, content_hash=content_hash)
+            for file_id, content_hash in corpus_roster(db, scan_run_id[0])[:cap]))
+
     def downstream(p1_p7) -> CorpusAuthorities:
         scan_run_id[0] = p1_p7.scan_run_id
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
@@ -4070,14 +4331,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             catalogue=catalogue, design_authorities=design_authorities,
             grouping_limits=GROUPING_LIMITS,
             grouping_knowledge=GroupingKnowledge(
-                # §4.4's retrieval channels. This deployment runs no embeddings, so
-                # every similarity channel is off and retrieval is by shared
-                # validated fact alone -- the deterministic path P9 is explicit is
-                # a complete path.
-                retrieval=RetrievalKnowledge(
-                    document_compatible=None, channel_weights={}, similarity=None,
-                    similarity_threshold=None, embedding_identity=None,
-                    domain=None),
+                # §4.4's retrieval channels. Both halves come from
+                # `_embedding_runtime` so they cannot disagree: a run either stores
+                # vectors AND knows how to compare them, or does neither. Without
+                # `--semantic-model` this is the same all-`None` shape it always
+                # was, and retrieval is by shared validated fact alone -- the
+                # deterministic path P9 is explicit is a complete path.
+                retrieval=_retrieval_knowledge,
                 # `DIRECT_SLOTS` is no longer the whole of the schema: `term`
                 # is filled by `_rule_stage` and has no slot (SPEC:409-410). A
                 # field missing here is a field P9 will not group on.
@@ -4099,7 +4359,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 conflicts_for=lambda file_ids: (),
                 duplicate_or_version=_duplicate_or_version),
             user_seed_for=lambda file_id, content_hash: None,
-            embeddings=EmbeddingsOff(), p8_run_call=None, p8_authorities=None,
+            embeddings=_embeddings, p8_run_call=None, p8_authorities=None,
             placement_inputs=placement_inputs, evidence_for=evidence_for,
             # §8.5's replay measures a run against a reference corpus with
             # hand-labelled expectations. This command scans a person's own
@@ -4123,7 +4383,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                  if record is not None else None)
     result = run_production_corpus(
         conn, selection_id, authorities=p1_p7_authorities(
-            now=now, detector=detector, operation_mode=operation_mode,
+            now=now, detector=classify_producer, operation_mode=operation_mode,
             source=recording,
             # THE ONE CONDITION, and it is the same one that decides `recording`
             # two lines up: §8.5's envelope is built when the person asked to keep
@@ -5795,6 +6055,13 @@ def _replay_bundle(args, *, out) -> int:
                 # disable below records.
                 analysis_tiers_enabled=["filesystem", "native", "ocr"]),
             budget_ceilings=all_ceilings(conn),
+            # `embeddings_enabled` is P9's GROUPING channel and is still off:
+            # §4.4's similarity retrieval needs a threshold, channel weights and a
+            # compatibility predicate that nothing has measured. The RECOGNITION
+            # vectors are a different consumer -- `--semantic-model` computes and
+            # stores them through P9's own `ensure_file_embedding` -- so
+            # `vector_embeddings` carries rows on such a run while grouping
+            # continues to retrieve by shared validated fact alone.
             run_settings={"model_enabled": False, "embeddings_enabled": False},
             adapters=BUNDLE_ADAPTERS)
         comparison = None
@@ -6006,6 +6273,14 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
              "moves nothing; what it adds is a frozen copy of what was read, "
              "which --replay re-reads without touching your folder again. The "
              "name is yours and must not already be taken.")
+    parser.add_argument(
+        "--semantic-model", type=Path, default=None, metavar="DIR",
+        help="the folder holding a local sentence encoder (model.onnx and "
+             "tokenizer.json). With it, recognition falls back to MEANING where "
+             "matching your authored terms found nothing. OFF unless you name "
+             "it, and nothing leaves your device either way -- the model runs "
+             "here. Measured on a 199-file corpus it classifies 13 more files "
+             "and changes no protection in either direction.")
     parser.add_argument(
         "--replay", nargs="?", const="", default=None, metavar="BUNDLE",
         help="re-evaluate one recorded bundle without touching the files: it "
@@ -6261,6 +6536,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                      # reasons a run sends nothing -- which is the same pair
                      # `announce_cloud_posture` has just told the person about.
                      routing=routing,
+                     semantic_model=args.semantic_model,
                      wire_handle_key=wire_handle_key_for(database))
     except RecordingNameTaken as refusal:
         # Belt and braces behind hunk 13. The name is checked before the scan, so
