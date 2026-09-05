@@ -240,3 +240,61 @@ def test_the_stage_asks_open_question_about_pending_and_not_the_whole_allowlist(
         "the vocabulary offered is the PENDING set. `request.allowlist` here is the "
         "whole active schema, which spends claims on questions a stronger fact has "
         "already closed and gives the answer more ways to malform")
+
+
+def test_the_model_is_shown_the_filename_and_not_only_the_body():
+    """§7.7's sixth releasable kind is BUILT, GATED, and never constructed.
+
+    **Measured on the owner's 199 files before this test existed.** Every file
+    carries exactly one `filename` observation and one `path` observation -- the
+    only two zones present on all 199 -- and `releasable_observations` drops both
+    because they are in `ALWAYS_LOCAL_ZONES`. Dropping them there is RIGHT for what
+    it refuses: a filename arriving as an `Excerpt` is the sixth kind coming through
+    a door where §7.3's protected-records ban does not apply, which `privacy.
+    vocabulary` says in those words.
+
+    The defect is that nothing then sends it through the door where the ban DOES
+    apply. `Filename(file_id=...)` exists, `items.UNRATIFIED_ITEM_KINDS` names it,
+    and `gate._precheck_items` passes `allow_unratified=True` for the express
+    purpose of admitting it for ordinary files and refusing it as
+    `ProtectedItemRequested` for protected ones. The only construction of one in
+    `src/` is a fixture. So the model is asked what kind of work a file is while
+    being shown, for `Desktop/Python 1006/homework0.py`, two metadata rows and
+    nothing else -- with the word `homework` sitting in a field it never receives.
+
+    The reference is a `file_id`, never a name: the gate resolves it, and `Filename`
+    itself raises `AlwaysLocalRequested` on an id carrying a path separator.
+    """
+    from llm_harness.records import PromptDefinition
+    from llm_harness.vocabulary import A_FACT
+    from model_facts import build_fact_request
+    _HASH = "a" * 64
+    from evidence_shape.location import Location, Segment, TextSpan
+    from evidence_shape.observation import Observation
+    from privacy.items import Filename
+    from privacy.release import ModelTarget
+
+    from facts.llm_seam import FactRequest
+
+    #: One ordinary body reading, so the dossier is well formed and the assertion is
+    #: about what was ADDED beside it rather than about an empty request.
+    reading = Observation(
+        file_id="file-1", content_hash=_HASH, extractor_name="pdf.text",
+        extractor_version="1.0.0", source_type="text_document",
+        raw_value="Homework 3", occurrence_count=1, observed_at="2026-09-05T00:00:00Z",
+        reliability="possible", run_id="r-1",
+        location=Location("heading", (Segment("field", label="h1"),),
+                          TextSpan(0, 10)))
+    request = FactRequest(
+        file_id="file-1", content_hash=_HASH, allowlist=("work_type",),
+        citable_observations=(reading,), existing_facts=(), normalizers={})
+    built = build_fact_request(
+        request, (reading,),
+        model_target=ModelTarget(
+            locality="cloud", model_id="m", provider="p"),
+        prompt=PromptDefinition(
+            template_id="t", template_bytes=b"{}", response_schema_bytes=b"{}",
+            call_site=A_FACT, call_site_version="1", shaping_policy_bytes=b"{}"),
+        max_dossier_tokens=1000)
+
+    assert Filename(file_id="file-1") in built.model_call_request.requested_items

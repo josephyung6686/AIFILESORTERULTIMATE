@@ -64,7 +64,7 @@ from llm_harness.sites import FactSiteDependencies, SiteDependencies
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import A_FACT, DIRECT_ANCHOR, REMAINS_AMBIGUOUS
 from privacy.gate import Gate
-from privacy.items import Excerpt, sensitive_observation_keys
+from privacy.items import Excerpt, Filename, sensitive_observation_keys
 from privacy.release import ModelCallRequest, ModelTarget, Target
 from privacy.vocabulary import ALWAYS_LOCAL_ZONES
 
@@ -397,7 +397,25 @@ def build_fact_request(
             stage=FACT_STAGE,
             target=Target(file_ids=(request.file_id,), group_id=None),
             model_target=model_target,
-            requested_items=tuple(
+            # THE FILENAME LEADS, and it is the sixth kind going through the door
+            # built for it. `releasable_observations` drops every `filename`-zone
+            # observation and is right to: one arriving as an `Excerpt` is this kind
+            # reaching the model where §7.3's protected-records ban does not apply,
+            # which `privacy.vocabulary` says in those words. What was missing is
+            # the OTHER half of that sentence -- nothing constructed the `Filename`
+            # item the ban DOES cover, so the name reached the model through no door
+            # at all. `gate._precheck_items` passes `allow_unratified=True` for the
+            # express purpose of admitting this and refusing it as
+            # `ProtectedItemRequested` on a protected file; that refusal is now
+            # reachable instead of moot.
+            #
+            # Measured on the owner's 199 files: `filename` and `path` are the only
+            # two zones present on ALL of them, and for a file like
+            # `Desktop/Python 1006/homework0.py` the model otherwise sees two
+            # metadata rows -- while the word `homework` sits in the field it never
+            # receives. A `file_id` and never a name: §6 says requests carry
+            # references, and `Filename` itself refuses an id holding a separator.
+            requested_items=(Filename(file_id=request.file_id),) + tuple(
                 Excerpt(
                     observation_key=observation.observation_key,
                     span=observation.location.text_span,
