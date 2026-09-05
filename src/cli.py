@@ -226,7 +226,7 @@ from tree_design.residuals import (
     ResidualChoice, ResidualTemplate, build_library,
 )
 from tree_design.vocabulary import (
-    ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION, REFINED,
+    ENABLE, MANDATORY_REVIEW, PHYSICAL_DESTINATION, REFINE_LATER, REFINED,
     RESIDUAL_TEMPLATE_NAMES, SHALLOW_BY_CHOICE, SURFACE_UNATTENDED,
 )
 
@@ -2800,20 +2800,50 @@ def nesting_chooser(conn: sqlite3.Connection, *, asked_at: str):
     return choose
 
 
-def refinement_for(node) -> tuple[str, str]:
+def refinement_for(node, file_count: int) -> tuple[str, str]:
     """§5.8, per node. Every legal destination needs an answer or freeze refuses.
 
-    A top-level branch is `refined` -- its levels came from settled facts. Anything
-    below it is `shallow-by-choice`, and the reason says so in the user's words
-    rather than in a code's.
+    A top-level branch is `refined` -- its levels came from settled facts.
+
+    Below it the answer is a claim about a NUMBER, and until this function was
+    handed one it made that claim without being able to check it: every node with
+    a parent got `shallow-by-choice` and the sentence "This branch holds few
+    enough files that splitting it further would not help you find anything". On
+    a real corpus that sentence sat on `Desktop/Python 1006`, which holds 21
+    files. A frozen tree is permanent and P13 shows the reason back to the person
+    as their own words, so the sentence was a false statement about somebody's
+    folder, in their voice, that nothing had measured.
+
+    The band is `TREE_LIMITS.tiny_folder_max_files`, which is ALREADY this file's
+    answer to "how few files is too few to be worth a folder" -- §5.9's tiny-folder
+    warning reads the same number to tell the person a level's children hold one
+    file or fewer. One reading of one band: at or under it, splitting genuinely
+    cannot help, and the sentence now says the count so the person can disagree
+    with it. A new number tuned until this corpus came out shallow would be the
+    same false claim with arithmetic in front of it.
+
+    Above the band the honest answer is `refine-later` and NOT `shallow-by-choice`.
+    §5.8 keeps the two apart precisely so a deliberate design does not look like
+    unfinished work, and `shallow-by-choice` literally means the person chose the
+    shallowness. Run with nobody at the screen nobody chose anything, so the one
+    thing that is true of a branch holding more files than the band is that its
+    depth is still an open question -- which is what `refine-later` says. The
+    reason deliberately makes no claim about whether the branch has children:
+    this answer is stamped before the branch is routed, so a sentence that said
+    "left as one folder" would be a second unchecked claim in the same place.
     """
     if node.parent_node_id is None:
         return (REFINED,
                 "The levels beneath this branch were populated from facts that "
                 "were already settled in your files.")
-    return (SHALLOW_BY_CHOICE,
-            "This branch holds few enough files that splitting it further would "
-            "not help you find anything.")
+    if file_count <= TREE_LIMITS.tiny_folder_max_files:
+        return (SHALLOW_BY_CHOICE,
+                f"This branch holds {file_count} file(s) -- few enough files that "
+                "splitting it further would not help you find anything.")
+    return (REFINE_LATER,
+            f"This branch holds {file_count} files. Nobody was asked how deep it "
+            "should go, so it is not shallow on purpose -- how far it is split is "
+            "yours to decide.")
 
 
 # ======================================================================================
@@ -4604,9 +4634,12 @@ DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
      "the first one that passed every check and actually splits the folder. A "
      "person looking at the counts and warnings would reasonably pick another."),
     ("How deep each folder goes",
-     "the top-level folder is treated as fully refined, and everything under it "
-     "as deliberately shallow. Nobody was asked whether a branch is short "
-     "on purpose or just unfinished."),
+     "the top-level folder is treated as fully refined. Every branch under it is "
+     f"counted: one holding {TREE_LIMITS.tiny_folder_max_files} file(s) or fewer "
+     "is marked deliberately shallow, because splitting it could not help you "
+     "find anything, and every other one is marked as left for you to split "
+     "further. Nobody was asked which a branch should be, so the count is "
+     "standing in for an answer only you can give."),
     ("Where material that belongs to two folders goes",
      "kept as your decision, file by file, rather than sent to one of them. It "
      "is the only answer a command with nobody to ask may make for you."),

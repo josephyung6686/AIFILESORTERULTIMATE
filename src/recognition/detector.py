@@ -236,19 +236,63 @@ def _tokens(text: str) -> tuple[str, ...]:
     Not a regex: `str.isalnum` over code points is the same rule stated in the one
     place it is applied, and P7's own package is forbidden from importing `re` for
     exactly the reason that a pattern is a detection rule wearing a library's face.
-    Applied identically to the rule side at compile time and to the evidence side
-    here, so `problem set` and `Problem  Set,` are one term and one match.
+    Applied to the rule side at compile time and to the evidence side here, so
+    `problem set` and `Problem  Set,` are one term and one match.
+
+    **ONE EXCEPTION TO "identically", ADDED 2026-09-05.** The run boundary below is
+    EVIDENCE-SIDE ONLY, and not by choice: `recognition/compile.py` casefolds every
+    authored term, so the manifest holds `hkid` and never `HKID` and no authored
+    term can reach the boundary at all. Nothing is lost by that -- the authored
+    terms are lowercase prose phrases, and the boundary exists to make a filename
+    read like one of them -- but the sentence above used to say "identically" with
+    no qualification, and it would now be untrue.
     """
     out: list[str] = []
     current: list[str] = []
-    for character in text:
-        if character.isalnum():
-            current.append(character)
-        elif current:
+
+    def flush() -> None:
+        if current:
             out.append("".join(current).casefold())
-            current = []
-    if current:
-        out.append("".join(current).casefold())
+            current.clear()
+
+    previous = ""
+    for character in text:
+        if not character.isalnum():
+            flush()
+            previous = ""
+            continue
+        # A RUN BOUNDARY INSIDE ONE ALPHANUMERIC SPAN: lower-or-digit followed by
+        # an uppercase letter. `DisplayMedicalRecord` is three words a person reads
+        # as three words, and on a file whose bytes carry nothing the filename is
+        # the whole of the evidence. Measured case: `DisplayMedicalRecord.pdf` is a
+        # 672-byte macOS Finder alias -- no document inside it, so no extractor can
+        # ever help -- and it is one of the eight protected files in the ground
+        # truth. Under the old rule its name was one token matching nothing, and
+        # the product called the owner's medical record ordinary.
+        #
+        # AN ALL-CAPS RUN IS NOT SPLIT, and that is the half that has to hold.
+        # `HKID` must stay one token or `identity`'s `hkid` term stops matching
+        # `2025209423_Joseph_Yung_HKID.pdf` and a national identity card goes back
+        # to `personal_non_sensitive, protected=0`. So this is only the
+        # CONSERVATIVE half: `PDFReader` stays whole, because separating an acronym
+        # from the word after it needs a rule about where an uppercase RUN ends,
+        # and that rule is deliberately absent.
+        #
+        # WHAT IT COSTS, recorded here rather than discovered later. More tokens
+        # mean more phrase candidates, and `never_alone` turns a second match into
+        # an activated schema. `CB_OrderReceipt.pdf` now reads `cb order receipt`,
+        # putting `receipt` -- a `finance` work type that is also ordinary English
+        # -- into a naming zone. Over the 215-file corpus that cost nothing: the
+        # over-marked SET was byte-identical, diffed file by file rather than
+        # compared by count, and SORTING did not move. On a corpus with more
+        # CamelCase filenames it could; `test_recognition_tokeniser.py` pins the
+        # case so a future regression has a test to point at.
+        if current and character.isupper() and (
+                previous.islower() or previous.isdigit()):
+            flush()
+        current.append(character)
+        previous = character
+    flush()
     return tuple(out)
 
 

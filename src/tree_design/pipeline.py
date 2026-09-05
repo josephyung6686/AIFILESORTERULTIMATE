@@ -49,7 +49,7 @@ from tree_design.config import ConfigurationRequired, TreeLimits
 from tree_design.freeze import FrozenTree, freeze, frozen_tree, represent_protected_areas
 from tree_design.materialise import (
     BranchEvidence, MaterialisationRefused, materialise_branch,
-    project_branch_nodes, project_branch_preview,
+    project_branch_preview,
 )
 from tree_design.profiles import build_profiles
 from tree_design.records import (
@@ -208,10 +208,17 @@ class TreeDesignDecisions:
     #: mapping because the options do not exist until the chain has computed
     #: them, and a caller naming `opt_0` in advance has chosen nothing.
     choose_option: Callable[[BranchCandidate, tuple[VerticalOption, ...]], str]
-    #: §5.8, per node the chain writes. Returns `(disposition, reason)` or None.
-    #: None is not a default — it is the state of a branch nobody answered, and
-    #: `validate_for_freeze` refuses it for any node that would be a destination.
-    refinement_for: Callable[[Node], tuple[str, str] | None]
+    #: §5.8, per node the chain writes, WITH the number of files that node holds.
+    #: The count is passed because every §5.8 answer is a claim about one — "few
+    #: enough files that a further split would not help" is a sentence about a
+    #: number — and `Node` carries no count, so a policy handed only the node
+    #: could state that claim without ever being in a position to check it. It
+    #: was: `cli.py` returned `shallow-by-choice` with exactly that sentence for
+    #: every node with a parent, and attached it to a folder holding 21 files.
+    #: Returns `(disposition, reason)` or None. None is not a default — it is the
+    #: state of a branch nobody answered, and `validate_for_freeze` refuses it for
+    #: any node that would be a destination.
+    refinement_for: Callable[[Node, int], tuple[str, str] | None]
     residual_library: Mapping[str, ResidualTemplate]
     residual_choices: tuple[ResidualChoice, ...]
     residual_configuration: Mapping[str, str]
@@ -457,7 +464,7 @@ class _Action:
     payload: dict = field(default_factory=dict)
 
 
-def _with_refinement(node: Node, refinement_for) -> Node:
+def _with_refinement(node: Node, refinement_for, *, file_count: int) -> Node:
     """§5.8's answer, stamped on a node the chain is about to write.
 
     Nothing in P10 wrote this field. `project_branch_nodes` leaves it `None`,
@@ -470,10 +477,16 @@ def _with_refinement(node: Node, refinement_for) -> Node:
 
     A node that is not a destination is left alone. `Node.__post_init__` pairs
     the disposition with its reason, so both are set or neither is.
+
+    `file_count` is the number of files this node holds, and it is REQUIRED with
+    no default. §5.8's answers are claims about that number, and a default here
+    would let the chain hand a policy a count nobody measured — which is the
+    shape the defect took the first time: the answer was stated, the number never
+    read, and the sentence was wrong about a real folder by twenty files.
     """
     if not node.accepts_placement or node.refinement_disposition is not None:
         return node
-    answer = refinement_for(node)
+    answer = refinement_for(node, file_count)
     if answer is None:
         return node
     disposition, reason = answer
@@ -824,7 +837,11 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
                         parent_node_id=parent_node_id,
                         expected_values=expected_values,
                         associated_groups=associated_groups),
-        decisions.refinement_for)
+        decisions.refinement_for,
+        # §5.3's own count for this branch, not one re-derived here: for an
+        # accepted group it is the size of its membership and for an adopted
+        # folder it is the file count the scan observed in that directory.
+        file_count=candidate.supporting_file_count)
     write_node(conn, parent)
 
     report = _route(conn, authorities, branch_node_id=parent.node_id,
@@ -898,14 +915,22 @@ def _projection(conn, authorities, decisions, *, evidence, validation,
     def project(_action, plan_version_id: str) -> tuple[Node, ...]:
         parent = next(node for node in nodes_for_version(conn, plan_version_id)
                       if node.origin_node_id == parent_origin_id)
+        # The PREVIEW rather than `project_branch_nodes`, for its
+        # `members_by_node`: §5.8's answer is a claim about how many files a node
+        # holds and this is the one place that number is already computed, beside
+        # the node it belongs to and in the same traversal that built it. Reading
+        # it here is what makes the answer checkable; recovering it afterwards
+        # would be a second count that could disagree with the tree.
+        preview = project_branch_preview(
+            evidence, validation, parent=parent,
+            plan_version_id=plan_version_id,
+            mint_node_id=authorities.mint_node_id,
+            handling_class_for=authorities.collapse_handling_classes,
+            template_context_for=authorities.template_context_for)
         return tuple(
-            _with_refinement(node, decisions.refinement_for)
-            for node in project_branch_nodes(
-                evidence, validation, parent=parent,
-                plan_version_id=plan_version_id,
-                mint_node_id=authorities.mint_node_id,
-                handling_class_for=authorities.collapse_handling_classes,
-                template_context_for=authorities.template_context_for))
+            _with_refinement(node, decisions.refinement_for,
+                             file_count=len(preview.members_by_node[node.node_id]))
+            for node in preview.projected)
     return project
 
 
@@ -954,5 +979,11 @@ def _enable_residual_library(conn, authorities, decisions, *, version: str) -> N
             # parent gets this run's top-level branch rather than the root.
             node = dataclasses.replace(node,
                                        parent_node_id=default_parent.node_id)
+        # A residual home is a template: it is created empty and P11/P12 put
+        # files in it later, so the number it holds AT DESIGN TIME is zero and
+        # that is the count handed over rather than a stand-in. §7.4 asks the
+        # user once for all of them, so `residual_refinement` is a fixed pair and
+        # reads neither argument.
         write_node(conn, _with_refinement(
-            node, lambda _node: decisions.residual_refinement))
+            node, lambda _node, _count: decisions.residual_refinement,
+            file_count=0))

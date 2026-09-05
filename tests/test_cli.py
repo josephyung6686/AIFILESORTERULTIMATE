@@ -668,11 +668,15 @@ def test_the_report_names_the_decisions_nobody_was_asked_about():
     refinement disposition. Run non-interactively there is nobody to ask, so
     `cli.py` answers all five -- and said nothing about having done so.
 
-    The frozen tree then records `shallow-by-choice` with the reason "This branch
-    holds few enough files that splitting it further would not help you find
-    anything", in the user's own voice, on a branch nobody was asked about.
-    `shallow-by-choice` LITERALLY MEANS the user chose it. A frozen tree is
-    permanent and P13 will show that sentence back to them as their own.
+    The frozen tree USED TO record `shallow-by-choice` with the reason "This
+    branch holds few enough files that splitting it further would not help you
+    find anything", in the user's own voice, on every branch nobody was asked
+    about -- including one holding 21 files. `shallow-by-choice` LITERALLY MEANS
+    the user chose it, a frozen tree is permanent, and P13 shows that sentence
+    back to them as their own. The verdict is now counted rather than assumed
+    (`refinement_for`), so a branch is told it is shallow only when it is; that
+    the count stands in for an answer nobody gave is still a decision made for
+    the person, and this is where the command says so.
 
     This does not build the registry. It stops the record being silently false.
     """
@@ -3156,13 +3160,16 @@ def _adopted_folder_with_a_kind_inside_it(tmp_path):
     would hold everything its parent holds, which is `00`:97's meaningless
     one-child level and is exactly what `AP world` below is here to keep refused.
 
-    Filenames say `lecture 02`, not `lecture02`, and the difference is not
-    cosmetic. Measured 2026-09-05: `kind_facts` fills `work_type = lecture` from
-    `lecture 02 variables.txt` and leaves `lecture01_introduction.txt`
-    unresolved, because the digit-glued token is not the vocabulary's word. Every
-    one of the owner's five real lecture files is named the second way, which is
-    why the real corpus has no `lecture` fact to graft even once the tree can
-    hold one.
+    Filenames say `lecture 02` rather than `lecture02` only because that is what
+    this fixture happened to need when it was written; NOTHING here depends on
+    it. An earlier version of this note claimed the digit-glued token defeated
+    the producer and that the real corpus therefore had no `lecture` fact to
+    graft. That was true of a run taken at 08:39 on 2026-09-05 and is NOT true
+    now: `refinement-truth` checked a 10:21 run and found `work_type = lecture`
+    `validated`, `origin=rule` on all five of the owner's real
+    `lecture01_introduction.ipynb`-shaped files, plus `homework` on
+    `homework0.py`. Verified here against that same database. The producer gained
+    them in between, in `src/recognition/detector.py`.
     """
     corpus = tmp_path / "corpus"
     course = corpus / "Python 1006"
@@ -3238,6 +3245,13 @@ def _children_of(printed: str, parent: str) -> list[str]:
 #: `AP world` both adopted, every call arrived with `parent = Coursework`, the
 #: proposed top-level branch, and none with either folder.
 #:
+#: WHERE THE EMPTINESS IS BORN, named by `refinement-truth` on 2026-09-05 and
+#: checked here: `tree_design/candidates.py` builds the adopted-folder candidate
+#: with `accepted_group_ids=()` while `supporting_file_count` is `folder.
+#: file_count` and CORRECT. So the count exists and the membership does not, and
+#: `_route` sees no files -- which is why EVERY adopted folder in the academic
+#: run has zero children, all forty of them, and not only `Python 1006`.
+#:
 #: SO THE GRAFT IS NOT A CONDITION ON `divides`. It requires giving an adopted
 #: branch its own members -- `file_ids_in_directory` already computes them, for
 #: `_groups_already_held` -- so that a composition can be routed and materialised
@@ -3246,9 +3260,23 @@ def _children_of(printed: str, parent: str) -> list[str]:
 #: §5.9 warnings on it. It is a change to the tree-design contract and not a
 #: condition, and it was not what this test was written expecting.
 #:
-#: It would also not move the real corpus on its own: see the fixture above --
-#: no file in the owner's `Python 1006` carries a `work_type` at all, because
-#: `lecture01_introduction.ipynb` glues the vocabulary's word to a digit.
+#: AND ONE THING THAT WILL BE WRONG THE MOMENT IT WORKS. `_design_one_branch`
+#: stamps the branch through `_with_refinement` BEFORE `_route`, before
+#: `vertical_options`, before the option is chosen -- and `_with_refinement`
+#: skips any node whose `refinement_disposition` is already set. So the first
+#: adopted folder to gain a child will still carry the §5.8 verdict computed when
+#: it had none: `refine-later` on a branch that has in fact just been refined.
+#: The stamp has to move to after the composition is known and the node
+#: re-written, or be re-computed there. `refinement-truth` flagged this while
+#: making `refinement_for` conditional on a real file count.
+#:
+#: AND IT WOULD NOW PAY OFF ON ITS OWN, which was not true when this note was
+#: first written. The evidence is there: all five of the owner's real lecture
+#: files carry `work_type = lecture`, so an adopted branch that could hold a
+#: composition would build `Desktop/Python 1006/lecture` and those five files
+#: would score `exact` instead of `right parent, wrong leaf`. `accepted_group_ids
+#: = ()` is the ONLY thing left in the way. Whoever picks this up should not go
+#: looking for a producer gap; there isn't one any more.
 @pytest.mark.xfail(strict=True, reason=(
     "an adopted folder is designed from the accepted groups its candidate names, "
     "which is none, so no composition is ever materialised beneath it; the graft "
@@ -3435,3 +3463,47 @@ def test_rejecting_a_conclusion_about_an_ambiguous_filename_is_refused(tmp_path)
     assert code != 0, printed
     # And it says which ones it could have meant, so the person can name one.
     assert "PHYS 1401" in printed and "CHEM 1500" in printed, printed
+
+
+# ======================================================================================
+# §5.8's answer, and the count the sentence claims to have read
+# ======================================================================================
+
+
+def _refinement_node(parent_node_id):
+    """One node, only as much of it as `refinement_for` reads."""
+    from tree_design.records import Node
+
+    return Node(
+        node_id="n_1", plan_version_id="plan_1", node_type="proposed",
+        display_label="Python 1006", parent_node_id=parent_node_id,
+        root_anchor=cli.ROOT_ANCHOR, ordinal=0, associated_group_ids=(),
+        explanation="an existing folder the scan read",
+        node_role="ordinary", accepts_placement=True,
+        handling_class=cli.ORDINARY_CLASS, origin_node_id="n_1")
+
+
+def test_a_branch_is_only_told_it_holds_few_files_when_it_actually_does():
+    """The sentence, pinned against the count it is a claim about.
+
+    "This branch holds few enough files that splitting it further would not help
+    you find anything" was returned for EVERY node with a parent, and no file
+    count was ever read. On the real corpus it was attached to `Python 1006`,
+    which holds 21 files: a sentence a person reads, about their own folder,
+    stating a fact the product never checked and that is false.
+
+    A verdict is allowed to come out shallow. It is not allowed to come out
+    shallow without counting.
+    """
+    band = cli.TREE_LIMITS.tiny_folder_max_files
+
+    _, few = cli.refinement_for(_refinement_node("n_0"), band)
+    assert "few enough files" in few, few
+    # And it says the number, so the claim is falsifiable by the person reading it.
+    assert str(band) in few, few
+
+    disposition, many = cli.refinement_for(_refinement_node("n_0"), band + 20)
+    assert "few enough files" not in many, many
+    assert disposition != cli.SHALLOW_BY_CHOICE, (disposition, many)
+    assert str(band + 20) in many, many
+

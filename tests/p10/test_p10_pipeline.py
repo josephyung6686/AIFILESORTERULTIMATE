@@ -110,7 +110,7 @@ def decisions(**over):
         from_plan_version=PLAN_0,
         branch_group_ids=("g_columbia_coursework",),
         choose_option=lambda candidate, options: options[0].option_id,
-        refinement_for=lambda node: (
+        refinement_for=lambda node, file_count: (
             (REFINED, "The levels beneath this node are populated from settled "
                       "facts.")
             if node.parent_node_id is None else
@@ -236,7 +236,8 @@ def test_a_chain_that_answers_58_for_nothing_is_refused_at_freeze(corpus):
     from tree_design.freeze import FreezeRefused
 
     with pytest.raises(FreezeRefused) as excinfo:
-        design(corpus, dec=decisions(refinement_for=lambda node: None))
+        design(corpus,
+               dec=decisions(refinement_for=lambda node, count: None))
     assert any("refinement disposition" in reason
                for reason in excinfo.value.reasons)
 
@@ -873,3 +874,36 @@ def test_the_five_row_academic_recipe_composes_once_the_signal_is_read(corpus):
         "school", "term", "subject", "work_type"]
     assert [d.display_label for d in composed.resolved_dimensions] == [
         "My school", "Semester", "Course", "Kind of work"]
+
+
+def test_the_58_answer_is_handed_the_files_the_node_actually_holds(corpus):
+    """§5.8's verdict is a claim about a count, so the count has to be real.
+
+    `cli.py` answered "This branch holds few enough files that splitting it
+    further would not help you find anything" for every node with a parent and
+    read no file count to do it. On the production corpus that sentence was
+    attached to a folder holding 21 files — a fact about the person's own folder,
+    in their own voice, that nothing had checked.
+
+    A conditional verdict fed a constant is the same defect wearing a comparison,
+    so what is pinned here is what the CHAIN hands over, not what any one policy
+    does with it: the branch is offered the files it holds, and no node is offered
+    a count of nothing.
+    """
+    seen: list[tuple[str, int]] = []
+
+    def record(node, file_count):
+        seen.append((node.display_label, file_count))
+        return (REFINED, "The levels beneath this node came from settled facts.")
+
+    design(corpus, dec=decisions(refinement_for=record))
+
+    # Each node is offered ITS OWN share -- the branch every file of the accepted
+    # group it was built from, and each level beneath it only the files carrying
+    # that value. A chain that passed one number down would show the same count
+    # on all five, which is the old defect wearing a comparison in front of it.
+    assert dict(seen) == {"Columbia coursework": 3, "BUSIB 4300": 2,
+                          "Homework": 1, "Syllabus": 1, "PHYS1401": 1}, seen
+    # And no node is judged on nothing: a count of zero would make "few enough
+    # files" true of every branch there is.
+    assert all(count > 0 for _, count in seen), seen

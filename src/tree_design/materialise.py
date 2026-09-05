@@ -407,20 +407,11 @@ def project_branch_nodes(
             "HANDLING_CLASSES and has published none, and a rank chosen here "
             "could give a node a weaker floor than one of its files requires")
 
-    preview = project_branch_preview(
+    return project_branch_preview(
         evidence, report, parent=parent, plan_version_id=plan_version_id,
         mint_node_id=mint_node_id, handling_class_for=handling_class_for,
         template_context_for=template_context_for,
-        protected_movement_permitted=protected_movement_permitted)
-    # The branch itself, when the composition put its values there rather than
-    # into a folder. It is a REWRITE of a node that already exists and creates
-    # nothing: `write_node` replaces the row and the expected values are added to
-    # it. Returning nothing here is what made `apply_review_action` refuse the
-    # whole run -- "accepting X produced no node" -- for a corpus whose files
-    # agreed on every dimension, which is the easiest corpus there is.
-    if preview.branch_expectations:
-        return (preview.parent, *preview.nodes)
-    return preview.nodes
+        protected_movement_permitted=protected_movement_permitted).projected
 
 
 @dataclass(frozen=True)
@@ -454,6 +445,29 @@ class BranchPreview:
     @property
     def tree(self) -> tuple[Node, ...]:
         return (self.parent, *self.nodes)
+
+    @property
+    def projected(self) -> tuple[Node, ...]:
+        """Exactly the nodes `project_branch_nodes` writes -- the rule, once.
+
+        The branch itself is included when the composition put its values THERE
+        rather than into a folder. It is a REWRITE of a node that already exists
+        and creates nothing: `write_node` replaces the row and the expected values
+        are added to it. Returning nothing here is what made `apply_review_action`
+        refuse the whole run -- "accepting X produced no node" -- for a corpus
+        whose files agreed on every dimension, which is the easiest corpus there
+        is.
+
+        It is a property on the preview rather than three lines inside
+        `project_branch_nodes` because a caller that needs `members_by_node` --
+        §5.8's answer is a claim about how many files a node holds -- has to take
+        the preview, and would otherwise restate this rule beside it. Two copies
+        of it is one copy too many: the day the branch is included on a second
+        condition, one of them is wrong.
+        """
+        if self.branch_expectations:
+            return (self.parent, *self.nodes)
+        return self.nodes
 
 
 def project_branch_preview(
