@@ -531,6 +531,28 @@ LOCAL_MODEL_TIMEOUT_SECONDS: float = 600.0
 #: fields. The alternative was measured and is why this number exists at all: at
 #: every window tried, an oversized prompt was silently cut and answered anyway,
 #: with a value that was never in the evidence.
+#:
+#: ONE LOAD PER RUN IS THE PROMISE, AND A SHARED SERVER IS WHAT BREAKS IT. Measured
+#: 2026-09-06 on the five-file smoke: `num_ctx` was 32,768 on all four calls and
+#: ollama still reported 62-87 seconds of `load_duration` on EVERY one of them,
+#: 319.5 seconds out of 598.8 -- 53% of the run spent loading a model that should
+#: have loaded once. The cause is not this number and not `readers.model_ollama`.
+#: `/api/ps` reported `context_length` 8,192, then 16,384, then 16,384 again either
+#: side of the run: another bench on this machine is calling the same ollama with a
+#: different window, and one context length per loaded model means the two evict
+#: each other. The premise above holds for a single consumer of the server, which
+#: is the deployment this product ships into; it is not a defect to fix here, and
+#: a latency number measured against a shared server is an upper bound.
+#:
+#: AND THE PROMPT'S ORDER IS A LATENCY LEVER, which is the A_fact template's to
+#: pull and not this file's. ollama reuses its KV cache across requests for as long
+#: as the prompts share a PREFIX, so a template that puts what every file has in
+#: common first -- the authored prompt, the folder levels, the allowed vocabulary --
+#: and the file's own dossier LAST lets each call re-evaluate only its own tail.
+#: Put the dossier first and every file is a fresh prompt from its first token, at
+#: the ~4,200 prompt tokens and ~85 seconds of evaluation this smoke measured. The
+#: window is what makes the cache POSSIBLE by staying constant; the section order
+#: is what makes it PAY.
 LOCAL_CONTEXT_CEILING: int = 32768
 
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
