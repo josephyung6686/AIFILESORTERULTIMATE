@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "D_residual response (unratified draft, 2026-09-06)",
+  "description": "The one JSON object a model may return at call site D_residual. The controlled action set is llm_harness.vocabulary.RESIDUAL_ACTIONS; the validator that enforces most of this is llm_harness.placement_validation.validate_residual_response, and where the two could differ the template is what the model was told. The two numeric keys site C carries are deliberately absent: the validator refuses a D answer that carries both.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["claims"],
+  "properties": {
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {"$ref": "#/$defs/claim"}
+    }
+  },
+  "$defs": {
+    "target_actions": {
+      "enum": ["return_to_confirmed_domain_group",
+               "return_to_accepted_graph_or_purpose_packet",
+               "choose_approved_residual_destination",
+               "choose_approved_broad_parent_branch",
+               "mark_protected_or_unsupported"]
+    },
+    "no_target_actions": {
+      "enum": ["mark_review_later", "leave_in_current_location", "abstain"]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payload"],
+      "properties": {
+        "claim_ref": {"type": "string"},
+        "payload": {"$ref": "#/$defs/payload"},
+        "citations": {"$ref": "#/$defs/citations"},
+        "unknown": {"$ref": "#/$defs/unknown"}
+      },
+      "oneOf": [
+        {
+          "title": "names a target",
+          "required": ["citations"],
+          "not": {"required": ["unknown"]},
+          "properties": {
+            "payload": {
+              "properties": {
+                "action": {"$ref": "#/$defs/target_actions"},
+                "target": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        },
+        {
+          "title": "names no target",
+          "required": ["unknown"],
+          "not": {"required": ["citations"]},
+          "properties": {
+            "payload": {
+              "properties": {
+                "action": {"$ref": "#/$defs/no_target_actions"},
+                "target": {"type": "null"}
+              }
+            }
+          }
+        }
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "target", "stop_reason", "relationships_considered"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["return_to_confirmed_domain_group",
+                   "return_to_accepted_graph_or_purpose_packet",
+                   "choose_approved_residual_destination",
+                   "choose_approved_broad_parent_branch",
+                   "mark_review_later", "leave_in_current_location",
+                   "mark_protected_or_unsupported", "abstain"]
+        },
+        "target": {"type": ["string", "null"]},
+        "stop_reason": {"type": "string", "minLength": 1},
+        "relationships_considered": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "citations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/citation"}
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "why_it_supports"],
+      "properties": {
+        "evidence_ref": {"type": "string", "minLength": 1},
+        "cited_span": {"type": "string", "minLength": 1},
+        "metadata_field_name": {"type": "string", "minLength": 1},
+        "why_it_supports": {"type": "string", "minLength": 1}
+      },
+      "oneOf": [
+        {"required": ["cited_span"], "not": {"required": ["metadata_field_name"]}},
+        {"required": ["metadata_field_name"], "not": {"required": ["cited_span"]}}
+      ]
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["insufficiency_statement"],
+      "properties": {
+        "insufficiency_statement": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

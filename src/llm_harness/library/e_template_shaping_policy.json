@@ -1,0 +1,24 @@
+{
+  "policy_id": "e_template.shaping.unratified.2026-09-06",
+  "call_site": "E_template",
+  "what_this_is": "How the dossier beside it was shaped, so the reader knows what it is looking at and what it is not. It describes the SHAPING, never the group: every sentence here is the same on every group in every corpus, and nothing in it is evidence.",
+  "closed_world": "The dossier is the whole of what was sent. There is no document behind any excerpt, no page, no filename, no path, no surrounding sentence, and no part of the tree beyond the branch context stated. A schema-field dimension can only be a name present in allowed_vocabulary, and a citation can only be anchored in a value present in released_evidence.",
+  "selection": {
+    "unit": "one accepted group that fits no existing template, and the branch the person approved for it",
+    "what_is_offered": "short excerpts from the group's representative files as observations the local extractors already produced, each addressed by an observation_key and bounded by a span, each excerpt item naming the file it was read from; the established field names of the group's kind of material, with their meanings; and the branch context: the kind of material, the approved label, the parent branch and what it already expresses, the sensitivity policy reference, and the depth limit",
+    "what_is_never_offered": "the whole tree, other branches' templates, complete extracted text, whole documents, paths, filenames, OCR output of protected material, file hashes, image EXIF, GPS, the person's own typed words, and raw sensitive values",
+    "ordering": "excerpts with the most placed first -- title, heading and metadata before body -- then a bounded number of the rest; the order carries no meaning for the answer",
+    "bounded": "the count of files, the count of excerpts and their length are all capped before the request is built; what did not fit was not sent and is not described"
+  },
+  "reduction_ladder": [
+    "none: the dossier fits and is sent unreduced",
+    "summarized_facts: facts stand in for their evidence",
+    "preserved_anchors: only the anchoring evidence is kept",
+    "split: the subject is sent as several dossiers, each judged on its own",
+    "deferred: nothing is sent"
+  ],
+  "reduction_rung_in_force": "the dossier's own reduction_rung key says which rung this one was built at",
+  "redaction": "identifiers the local policy recognises are transformed before the value is written into the dossier. A redacted value is the value that was sent, and it is the only text a citation can quote.",
+  "what_is_done_with_the_answer": "the payload is checked against the strict template shape: every required key present, every dimension named, scoped, cited, graded and ordered, every level justified, every example chain free of separators; a schema-field name outside allowed_vocabulary is refused; a template-local name that is an established field of another kind of material is refused; a dimension whose evidence_ref is not among the citations is refused; a level with an empty justification is recorded as unresolved; a fragment reference that is not published is refused; any key that defines or publishes a fragment refuses the whole answer. What passes is a reviewable design on the person's canvas, never an active template: the person edits, accepts or discards it. Nothing here is a hint about which answer passes.",
+  "declining": "proposing nothing is recorded as a correct outcome; the branch stays as the person left it. It is not a failure and it is not counted as one."
+}
