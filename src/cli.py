@@ -4073,6 +4073,37 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 made_for[file_id] = node.node_id
         return made_for
 
+    def _the_folder_each_file_is_in(frozen) -> dict[str, str]:
+        """WHICH OF THE PERSON'S FOLDERS EACH FILE IS ACTUALLY SITTING IN.
+
+        P11 tells REFINEMENT from REMOVAL with this (`00`'s amendment of line 22,
+        `104` §13.8): a candidate inside the folder a file is already in is the
+        file going deeper into the arrangement its owner built, which is allowed;
+        anything else is coming out of that arrangement, which stays constrained.
+
+        THE SAME READ AS `_their_own_folder_made_for_what_it_holds` ABOVE, WITHOUT
+        ITS TWO GATES, and the difference is the whole point. That one answers
+        "was this folder BUILT for this kind of thing", so it needs a floor under
+        "every file agrees" and it needs them to agree. This one answers "is this
+        where the file LIVES", which is true of a folder whose files agree about
+        nothing. `Desktop/Python 1006` holds twenty-one files that agree about
+        nothing, so it is absent from that mapping and present in this one -- and
+        it is the folder whose six lecture files stop one level short of the child
+        built for them (R-48).
+
+        Read off the ADOPTED NODES for the same reason: the folders named here are
+        exactly the ones the tree shows the person as theirs, and no separator rule
+        is invented to find a file's parent.
+        """
+        here: dict[str, str] = {}
+        for node in frozen.nodes:
+            if node.existing_path is None:
+                continue
+            for file_id in file_ids_in_directory(
+                    conn, directory_path=node.existing_path):
+                here[file_id] = node.node_id
+        return here
+
     def placement_inputs(tree) -> PipelineInputs:
         asks = _home_questions(tree.tree)
         node_of = _node_for(tree.tree)
@@ -4135,7 +4166,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             fields_that_cannot_anchor_a_move=FIELDS_THAT_CANNOT_ANCHOR_A_MOVE,
             their_own_folder_made_for_what_it_holds=(
                 _their_own_folder_made_for_what_it_holds(tree.tree)),
-            p2=None)
+            p2=None,
+            the_folder_each_file_is_in=_the_folder_each_file_is_in(tree.tree))
 
     def _model_fact_pass(run_id: str) -> None:
         """Ask a model about the fields the deterministic producers left open.
