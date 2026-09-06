@@ -730,8 +730,13 @@ def corpus_roster(conn: sqlite3.Connection,
         file_id = verdict["file_id"]
         if file_id is None:
             continue
+        # A verdict naming a file id with no row is a data-integrity fault, not a
+        # retirement, and it still raises where it always did. Reading `None` as
+        # "skip this one" would turn a broken database into a corpus quietly one
+        # file short -- which is the silent omission `84` §1 forbids, arriving
+        # through the fix for it.
         row = get_file(conn, file_id)
-        if row is None or row["scan_state"] in retired:
+        if row["scan_state"] in retired:
             continue
         roster.append((file_id, row["content_hash"]))
     return tuple(roster)
