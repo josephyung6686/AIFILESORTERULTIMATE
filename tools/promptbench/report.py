@@ -155,6 +155,45 @@ def markdown(summary: dict, table: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _cell(call: dict | None) -> str:
+    """One arm's result for one case, short enough for a table cell."""
+    if call is None:
+        return "—"
+    if call.get("error"):
+        return "ERR"
+    j = call.get("judgement") or {}
+    if j.get("should_abstain"):
+        mark = "abstained" if j.get("abstained") else "ANSWERED"
+    else:
+        mark = ("correct" if j.get("correct") else
+                ("false abstain" if j.get("abstained") else "WRONG"))
+    outcome = (j.get("worst_outcome") or "?").replace("accept_", "acc_")
+    reasons = sorted({r for v in j.get("verdicts", []) for r in v["reasons"]})
+    tail = f" {','.join(reasons)}" if reasons else ""
+    return f"{mark} / {outcome}{tail}"
+
+
+def stress_tables(out: Path, cases) -> str:
+    """The packet's per-site stress-case table: one row per case, one column per
+    candidate x model, rendered from the recorded calls."""
+    calls = load_calls(out)
+    by_key = {(c["case_id"], c["candidate"], c["model"]): c for c in calls}
+    arms = sorted({(c["candidate"], c["model"]) for c in calls})
+    lines = ["| case | persona | traces | expectation | " +
+             " | ".join(f"{cand} / {model}" for cand, model in arms) + " |",
+             "|---|---|---|---|" + "---|" * len(arms)]
+    for case in cases:
+        expect = json.dumps(case.expect, separators=(",", ":"), ensure_ascii=False)
+        if len(expect) > 90:
+            expect = expect[:87] + "..."
+        kind = "abstain" if case.should_abstain else "answer"
+        cells = [_cell(by_key.get((case.case_id, cand, model))) for cand, model in arms]
+        lines.append(
+            f"| {case.case_id} — {case.title} | {case.persona} | "
+            f"{', '.join(case.traces)} | {kind}: `{expect}` | " + " | ".join(cells) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def write_summary(out: Path) -> dict:
     calls = load_calls(out)
     summary = aggregate(calls)
@@ -166,4 +205,5 @@ def write_summary(out: Path) -> dict:
     return summary
 
 
-__all__ = ["aggregate", "load_calls", "markdown", "per_case_table", "write_summary"]
+__all__ = ["aggregate", "load_calls", "markdown", "per_case_table", "stress_tables",
+           "write_summary"]

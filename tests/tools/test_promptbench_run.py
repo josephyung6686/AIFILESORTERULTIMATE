@@ -92,6 +92,26 @@ def test_run_site_c_writes_one_record_per_call_and_a_summary(tmp_path):
     assert {f: f.stat().st_mtime_ns for f in files} == before
 
 
+def test_stress_tables_render_one_row_per_case_and_one_column_per_arm(tmp_path):
+    from tools.promptbench.report import stress_tables
+    from tools.promptbench.suites import cases_for
+
+    out = tmp_path / "out"
+    run_site(site=C_PLACEMENT, candidate_names=["walk"], model_names=["fake"],
+             out=out, case_ids=["C01", "C04"], clients={"fake": _fake_c_client},
+             ledger_path=tmp_path / "ledger.json", log=lambda *a: None)
+    table = stress_tables(out, cases_for(C_PLACEMENT))
+    lines = table.splitlines()
+    assert lines[0].endswith("| walk / fake |")
+    assert len(lines) == 2 + len(cases_for(C_PLACEMENT))
+    c01 = next(l for l in lines if l.startswith("| C01"))
+    c04 = next(l for l in lines if l.startswith("| C04"))
+    c02 = next(l for l in lines if l.startswith("| C02"))
+    assert "correct / acc_direct" in c01          # the fake chose the first id, C01's answer
+    assert "ANSWERED" in c04                       # a should-abstain case the fake answered
+    assert c02.endswith("| — |")                   # not run: no cell
+
+
 def test_run_site_a_builds_a_p6_world_and_swaps_the_glossary(tmp_path):
     out = tmp_path / "out"
     run_site(site=A_FACT, candidate_names=["ratified-glossary", "proposed-glossary"],

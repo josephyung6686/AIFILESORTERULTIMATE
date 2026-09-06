@@ -190,10 +190,18 @@ def main(argv: list[str] | None = None) -> int:
     show.add_argument("--case", required=True)
     show.add_argument("--candidate", required=True)
 
+    tables = sub.add_parser("tables", help="the packet's stress-case table for one site")
+    tables.add_argument("--site", required=True)
+    tables.add_argument("--out", type=Path, required=True)
+
     args = parser.parse_args(argv)
     if args.command == "score":
         summary = write_summary(args.out)
         print(json.dumps(summary, indent=1))
+        return 0
+    if args.command == "tables":
+        from tools.promptbench.report import stress_tables
+        sys.stdout.write(stress_tables(args.out, cases_for(args.site)))
         return 0
     if args.command == "dossier":
         candidate = load_candidate(args.site, args.candidate)

@@ -222,6 +222,30 @@ def test_cloud_client_spends_the_ledger_before_the_socket_and_stops_at_the_cap(
     assert CallLedger(path=tmp_path / "ledger.json", cap=2).summary()["calls"] == 2
 
 
+def test_the_ledger_counts_exactly_under_concurrent_spends(tmp_path):
+    """Five site runs spend one ledger at once; the cap must hold to the call."""
+    import concurrent.futures
+
+    ledger = CallLedger(path=tmp_path / "ledger.json", cap=40)
+    outcomes: list[str] = []
+
+    def spend_many(_):
+        got = []
+        for _ in range(10):
+            try:
+                ledger.spend()
+                got.append("ok")
+            except CloudCapReached:
+                got.append("cap")
+        return got
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+        for result in pool.map(spend_many, range(6)):
+            outcomes.extend(result)
+    assert outcomes.count("ok") == 40 and outcomes.count("cap") == 20
+    assert ledger.summary()["calls"] == 40
+
+
 # --- report -----------------------------------------------------------------------
 
 
