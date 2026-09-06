@@ -24,6 +24,8 @@ from llm_harness.vocabulary import A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_T
 from privacy.release import LOCALITIES, ModelTarget
 from questions.proposal import REASONING_TIER
 from readers.model_deepseek import CLOUD, PROVIDER
+from readers.model_ollama import LOCAL, MODEL_NAME as LOCAL_MODEL_NAME
+from readers.model_ollama import PROVIDER as LOCAL_PROVIDER
 from readers.model_routing import (
     FAST,
     LOGIC,
@@ -35,6 +37,7 @@ from readers.model_routing import (
     TierUnavailable,
     UnroutedCallSite,
     deepseek_routing,
+    ollama_routing,
 )
 
 ENDPOINT = "https://api.deepseek.example"
@@ -243,9 +246,15 @@ def test_the_ceiling_reaches_every_tier():
 # --- the shape of the module itself -------------------------------------------
 
 def test_the_router_holds_clients_and_can_never_read_a_corpus():
-    """It is composition, not a part: it may name `ModelClient` and `ModelTarget`
-    and nothing else from `src/`. A router that could reach `extractors` or
-    `facts` would be a second place able to decide what goes into a call."""
+    """It is composition, not a part: it may name `ModelClient`, `ModelTarget` and
+    THE TRANSPORTS IT ASSEMBLES, and nothing else from `src/`. A router that could
+    reach `extractors` or `facts` would be a second place able to decide what goes
+    into a call.
+
+    `readers.model_ollama` joined `readers.model_deepseek` here when D1's local
+    half landed, and it is the same kind of name: a transport this router builds a
+    client out of. The set is written out rather than pattern-matched so that a
+    module of a DIFFERENT kind cannot arrive under a transport's cover."""
     import readers.model_routing as module
 
     tree = ast.parse(inspect.getsource(module))
@@ -258,7 +267,8 @@ def test_the_router_holds_clients_and_can_never_read_a_corpus():
     src = {path.stem if path.is_file() else path.name
            for path in pathlib.Path("src").iterdir()}
     assert {name for name in runtime if name.split(".")[0] in src} == {
-        "llm_harness.transport", "privacy.release", "readers.model_deepseek"}
+        "llm_harness.transport", "privacy.release",
+        "readers.model_deepseek", "readers.model_ollama"}
 
 
 def test_no_model_name_and_no_number_lives_in_this_module():
@@ -275,3 +285,104 @@ def test_no_model_name_and_no_number_lives_in_this_module():
     assert set(numbers) <= {0, 1}, numbers
     assert "DeepSeek-" not in inspect.getsource(
         __import__("readers.model_routing", fromlist=["x"]))
+
+
+# --- `00`:189-193's second mode: the model the person installed themselves -----
+#
+# D1's local half. `104` §7 Phase 0a: "Wire `readers.model_ollama` for A_fact under
+# `local_model`". These tests are about WHICH client each site gets, never about
+# what a model says -- no ollama runs here, for the reason
+# `tests/readers/test_model_ollama.py` gives.
+
+LOCAL_TABLE = {A_FACT: LOGIC, B_GROUP: LOGIC, C_PLACEMENT: LOGIC,
+               E_TEMPLATE: LOGIC, D_RESIDUAL: FAST}
+
+
+def _local(**overrides):
+    settings = dict(model_id="qwen3:8b", base_url=None,
+                    tier_of_call_site=LOCAL_TABLE, max_response_tokens=2048,
+                    context_ceiling=32768, timeout_seconds=600.0)
+    settings.update(overrides)
+    return ollama_routing(**settings)
+
+
+def test_a_local_model_alone_answers_every_site_and_says_it_is_local():
+    """A deployment with one installed model has one destination for every
+    question it can ask. `83` §4 forbids the substitution NOBODY SEES -- a cheap
+    model quietly answering the expensive one's question -- and this is the
+    opposite: the person chose the one model, and every site names it.
+
+    The alternative, refusing REASONING and FAST, would make the pre-scan
+    announcement raise on a deployment that is correctly configured."""
+    routing = _local()
+
+    for site in LOCAL_TABLE:
+        target = routing.client_for(site).model_target
+        assert target.locality == LOCAL
+        assert target.provider == LOCAL_PROVIDER
+        assert target.model_id == "qwen3:8b"
+
+
+def test_one_client_object_serves_every_tier():
+    """`transport.issue` audits `model_target`, and two clients claiming one model
+    would be two descriptions of one destination in §8.4's record."""
+    routing = _local()
+
+    assert len({id(client) for client in routing.client_of_tier.values()}) == 1
+
+
+def test_the_local_model_takes_only_its_own_sites_tier_beside_a_cloud_routing():
+    """D1 in one assertion: **local model first**, for the site `104` §7 Phase 0a
+    names, with every other tier still the cloud one the key paid for.
+
+    Which site is policy and arrives as an argument -- `src/cli.py` picks it --
+    because `83` §3's table is the only place a site-to-tier judgement lives and
+    this must not become a second one."""
+    cloud = _routing(table=LOCAL_TABLE)
+    both = _local(beside=cloud, serves=A_FACT)
+
+    assert both.client_for(A_FACT).model_target.locality == LOCAL
+    assert both.model_id_for(A_FACT) == "qwen3:8b"
+    # FAST is untouched: D_residual still goes to the model the key paid for.
+    assert both.client_for(D_RESIDUAL).model_target.locality == CLOUD
+    assert both.model_id_for(D_RESIDUAL) == "a-sprinter"
+
+
+def test_the_sites_sharing_a_tier_with_a_fact_follow_it_and_that_is_said_out_loud():
+    """B_group, C_placement and E_template are routed to A_fact's own tier by
+    `83` §3, so a local model taking that tier takes them with it. That is
+    TRUE rather than accidental -- if those sites were wired tomorrow, with this
+    configuration they would go to the local model -- and the screen has to be
+    able to say so, which is why it is asserted rather than left to be noticed."""
+    both = _local(beside=_routing(table=LOCAL_TABLE), serves=A_FACT)
+
+    for sharing in (B_GROUP, C_PLACEMENT, E_TEMPLATE):
+        assert both.client_for(sharing).model_target.locality == LOCAL
+
+
+def test_a_deployment_that_names_no_local_model_refuses_by_name():
+    """Absent means refuse, never guess. There is no model this module would pick
+    on a person's behalf."""
+    for absent in (None, "", "   "):
+        with pytest.raises(ValueError, match=LOCAL_MODEL_NAME):
+            _local(model_id=absent)
+
+
+def test_a_local_model_serving_an_unrouted_site_is_a_load_error():
+    """`83` §3's last row refuses an unlisted site rather than inventing a tier
+    for it, and a local model aimed at one would be aimed at nothing."""
+    with pytest.raises(UnroutedCallSite, match="A_nowhere"):
+        _local(beside=_routing(table=LOCAL_TABLE), serves="A_nowhere")
+
+
+def test_a_local_model_beside_a_cloud_one_must_say_which_site_it_serves():
+    """Otherwise it is a model this machine loaded, paid the memory for, and
+    nothing can reach."""
+    with pytest.raises(ValueError, match="serving nothing|no call site"):
+        _local(beside=_routing(table=LOCAL_TABLE))
+
+
+def test_the_local_locality_is_p7s_own_value_and_not_a_second_spelling():
+    """`Gate.release` decides by `model_target.locality`. A second string that
+    happened to look the same would be authorized by nothing."""
+    assert LOCAL == LOCALITIES[0]
