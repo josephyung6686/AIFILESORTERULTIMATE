@@ -46,9 +46,22 @@ so. That is the worst failure this product can have: not a refusal and not an
 abstention, but a fabricated fact about someone's file, citing evidence the model
 was never shown, in a system whose entire validator is grounding.
 
-So the window is computed from the bytes actually being sent and sent with them,
-every time, and a payload that will not fit under the deployment's ceiling is
-REFUSED BEFORE THE SOCKET rather than truncated into an answer.
+So the window is sent explicitly on every request, and a payload that will not fit
+in it is REFUSED BEFORE THE SOCKET rather than truncated into an answer.
+
+**ONE WINDOW FOR THE WHOLE RUN, AND THE MEASUREMENT THAT SETTLED IT.** The first
+version of this sized `num_ctx` per request from the payload's own bytes, which is
+the memory-frugal answer and the wrong one. ollama holds ONE context length per
+loaded model -- `/api/ps` reports it -- so a request naming a different `num_ctx`
+UNLOADS AND RELOADS THE MODEL. Measured 2026-09-05: `load_duration` 283.0 seconds on
+the call that changed it, against 182.8 seconds of prompt evaluation and 37.5
+seconds of answering. A scan is many calls in a row over files whose dossiers differ
+in size, so a per-payload window would have paid that reload again and again, for a
+saving in KV cache that no scan can spend.
+
+The window is therefore the deployment's ceiling, on every call, unchanged for the
+life of the run. That also deletes the rounding and the granularity: there is
+nothing left to round.
 
 **A LARGER WINDOW IS NOT A FIX, WHICH IS WHY THE REFUSAL IS THE FIX.** The same
 measurement run at `num_ctx` 8,192 and 16,384 truncated at both: the server kept
@@ -139,10 +152,6 @@ BYTES_PER_TOKEN_FLOOR: int = 2
 #: and the turn scaffolding ollama wraps the message in. Measured at well under
 #: this on both models; it is headroom, not a prediction.
 CHAT_TEMPLATE_TOKENS: int = 128
-
-#: Windows are asked for in round numbers because the server allocates in blocks
-#: and a window of 6,133 buys nothing a window of 7,168 does not.
-CONTEXT_GRANULARITY: int = 1024
 
 #: The reply field ollama fills when it thought anyway. Its presence is the
 #: evidence that `think: false` was not honoured.
@@ -256,29 +265,27 @@ def _upper_bound(prompt_bytes: int) -> int:
     return -(-prompt_bytes // BYTES_PER_TOKEN_FLOOR) + CHAT_TEMPLATE_TOKENS
 
 
-def _window_for(prompt_bytes: int, *, max_response_tokens: int,
-                context_ceiling: int) -> int:
-    """The window these bytes need, rounded up, or a refusal naming the ceiling.
+def _fits(prompt_bytes: int, *, max_response_tokens: int,
+          context_ceiling: int) -> None:
+    """Refuse a payload the run's one window cannot hold. Never a smaller window.
 
-    Room for the prompt AND the answer: `num_ctx` bounds both, so a window sized
-    to the prompt alone makes the server drop the front of the prompt to leave
+    Room for the prompt AND the answer: `num_ctx` bounds both, so a window that
+    fits only the prompt makes the server drop the front of the prompt to leave
     room for the reply -- which is the silent truncation, arrived at by arithmetic
     instead of by default.
     """
     needed = _upper_bound(prompt_bytes) + max_response_tokens
-    window = -(-needed // CONTEXT_GRANULARITY) * CONTEXT_GRANULARITY
-    if window > context_ceiling:
+    if needed > context_ceiling:
         raise OllamaContextExceeded(
-            f"this dossier needs a context window of about {window} tokens "
+            f"this dossier needs a context window of about {needed} tokens "
             f"({prompt_bytes} bytes of prompt, plus {max_response_tokens} for the "
-            f"answer) and this deployment's ceiling is {context_ceiling}. It was "
+            f"answer) and this deployment's window is {context_ceiling}. It was "
             f"NOT sent: ollama truncates a prompt that exceeds `num_ctx` and says "
             f"nothing, so what came back would be an answer about evidence the "
             f"model never saw, cited to a span that had been cut away. Measured "
             f"2026-09-05: a 96,000-character prompt became 2,050 tokens and the "
             f"model invented the value it was asked for. A refusal leaves the "
             f"file's fields open; a truncated call fills them with fiction.")
-    return window
 
 
 def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
@@ -309,9 +316,9 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
             "not patience but a different bug wearing a number.")
     url = endpoint + CHAT_PATH
     model_id = model_target.model_id
-    #: The window the LAST call used, for the row §8.4 writes about what the model
-    #: was given. Two runs over one file under two windows are two questions.
-    used: dict[str, int] = {"context_tokens": 0}
+    #: The window every call in this run is given, for the row §8.4 writes about
+    #: what the model was given. One value, because changing it reloads the model.
+    used: dict[str, int] = {"context_tokens": ceiling}
 
     def invoke(payload: bytes) -> bytes:
         try:
@@ -325,9 +332,9 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
                 "the model something the stored fingerprint does not describe."
             ) from problem
         # BEFORE the socket, so a dossier that cannot fit is never truncated.
-        window = _window_for(len(payload), max_response_tokens=response_tokens,
-                             context_ceiling=ceiling)
-        used["context_tokens"] = window
+        _fits(len(payload), max_response_tokens=response_tokens,
+              context_ceiling=ceiling)
+        window = ceiling
         body = json.dumps({
             "model": model_id,
             "messages": [{"role": "user", "content": prompt}],
@@ -399,7 +406,7 @@ class _Invoke:
 
     @property
     def context_tokens(self) -> int:
-        """The window the last call was given, or 0 before the first."""
+        """The window every call in this run is given. One value, by design."""
         return self._used["context_tokens"]
 
 

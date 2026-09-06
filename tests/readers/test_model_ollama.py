@@ -20,7 +20,7 @@ import pytest
 
 from privacy.release import ModelTarget
 from readers.model_ollama import (
-    CONTEXT_GRANULARITY, LOCAL, PROVIDER, DEFAULT_BASE_URL,
+    LOCAL, PROVIDER, DEFAULT_BASE_URL,
     ModelVisibleBytesNotText, NoAnswerFromModel, OllamaContextExceeded,
     OllamaRanOutOfTime, OllamaUnavailable, TargetIsNotThisTransport,
     ollama_invoke,
@@ -139,7 +139,7 @@ def test_a_thinking_block_that_came_back_anyway_is_a_refusal():
 
 # --- the context window, which is the one that silently loses evidence --------
 
-def test_the_context_window_is_sized_from_the_payload_and_sent():
+def test_the_context_window_is_sent_on_every_request():
     """THE FINDING THAT MADE THIS PARAMETER MANDATORY, measured on ollama 0.31.1
     on 2026-09-05: a ~96,000-character prompt was silently truncated to 2,050
     tokens and the model answered CONFIDENTLY with a value that was not in the
@@ -149,29 +149,37 @@ def test_the_context_window_is_sized_from_the_payload_and_sent():
     That is the worst failure this product can have: not a refusal, not an
     abstention, but a fabricated fact about someone's file with a citation the
     evidence no longer contains. `num_ctx` defaults to a small window and is not
-    negotiated, so it is computed from the bytes actually being sent and sent
-    with them."""
+    negotiated, so it is stated on every request."""
     captured = {}
     _invoke(captured)(b"x" * 8000)
 
     options = captured["body"]["options"]
     assert options["num_predict"] == RESPONSE_TOKENS
-    # Room for the prompt AND the answer: a window that fits only the prompt
-    # truncates the prompt to make room for the reply.
-    assert options["num_ctx"] >= 8000 // 2 + RESPONSE_TOKENS
-    assert options["num_ctx"] <= CEILING
-    assert options["num_ctx"] % CONTEXT_GRANULARITY == 0
+    assert options["num_ctx"] == CEILING
 
 
-def test_a_small_dossier_does_not_pay_for_a_large_window():
-    """Sized from the payload rather than pinned at the ceiling, because the
-    window is memory: the KV cache is allocated for `num_ctx`, and a run over
-    thousands of small files would hold the largest window any of them might have
-    needed. The ceiling is the bound, not the value."""
+def test_every_call_in_a_run_asks_for_the_same_window():
+    """ONE WINDOW FOR THE WHOLE RUN, and the measurement that settled it.
+
+    Sizing `num_ctx` per payload is the memory-frugal answer and the wrong one.
+    ollama holds ONE context length per loaded model -- `/api/ps` reports it -- so
+    a request naming a different `num_ctx` UNLOADS AND RELOADS THE MODEL. Measured
+    2026-09-05 on the call that changed it: `load_duration` 283.0 seconds, against
+    182.8 seconds of prompt evaluation and 37.5 seconds of answering.
+
+    A scan is many calls in a row over files whose dossiers differ in size. A
+    per-payload window would pay that reload again and again, to save KV cache
+    that no scan can spend. So a 40-byte dossier and an 8,000-byte one ask for the
+    same window, and the model is loaded once."""
     captured = {}
-    _invoke(captured)(b"x" * 40)
+    invoke = _invoke(captured)
 
-    assert captured["body"]["options"]["num_ctx"] < CEILING
+    invoke(b"x" * 40)
+    small = captured["body"]["options"]["num_ctx"]
+    invoke(b"x" * 8000)
+    large = captured["body"]["options"]["num_ctx"]
+
+    assert small == large == CEILING
 
 
 def test_a_payload_that_cannot_fit_the_ceiling_is_refused_before_the_socket():
@@ -255,6 +263,7 @@ def test_the_window_that_was_used_is_readable_but_nothing_reads_it_yet():
     invoke(b"x" * 8000)
 
     assert invoke.context_tokens == captured["body"]["options"]["num_ctx"]
+    assert invoke.context_tokens == CEILING
 
 
 # --- the locality claim, checked where it is a fact ---------------------------
