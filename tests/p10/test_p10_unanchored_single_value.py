@@ -29,7 +29,6 @@ it is applied at every level alike.
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 
 import pytest
@@ -129,6 +128,15 @@ class _Corpus:
 
 
 def _candidate(*pairs):
+    """A branch of levels, each `(role, field)`. A `None` field is TEMPLATE-LOCAL.
+
+    The scope is DERIVED and not a third element, because `ResolvedDimension`
+    already refuses every other combination: Contract W5 makes `field_ref = None`
+    reachable only through the template-local path, and a template-local level
+    naming a field is the same record rejected from the other side. Passing the
+    two independently means a caller can build one that cannot exist, and the
+    constructor raises before the test it was built for runs.
+    """
     return CompositionCandidate(
         applicability_refs=(), privacy_floor="policy.public",
         covered_file_ids=frozenset(), gates_passed=("C1",),
@@ -137,7 +145,9 @@ def _candidate(*pairs):
         resolved_dimensions=tuple(
             ResolvedDimension(
                 role_ref=role, field_ref=field, action=ACTION_SELECTED,
-                order_index=index, display_label=None, scope=SCOPE_SCHEMA_FIELD)
+                order_index=index, display_label=None,
+                scope=(SCOPE_TEMPLATE_LOCAL if field is None
+                       else SCOPE_SCHEMA_FIELD))
             for index, (role, field) in enumerate(pairs)))
 
 
@@ -258,12 +268,6 @@ def test_a_template_local_level_of_one_group_is_not_touched(seeded):
     seeded.fact("matter", "subject", "E1006", VALIDATED)
     member = seeded.members("matter")
     candidate = _candidate(("subject", "subject"), ("matter_number", None))
-    candidate = dataclasses.replace(
-        candidate,
-        resolved_dimensions=(
-            candidate.resolved_dimensions[0],
-            dataclasses.replace(candidate.resolved_dimensions[1],
-                                field_ref=None, scope=SCOPE_TEMPLATE_LOCAL)))
 
     _, evidence = materialise_branch(
         seeded.conn, candidate, branch_node_id="n_academics", members=member,
