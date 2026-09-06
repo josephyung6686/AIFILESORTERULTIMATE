@@ -167,6 +167,9 @@ def test_local_client_sets_think_off_and_num_ctx_and_records_them():
     assert seen["body"]["options"]["temperature"] == 0 and seen["body"]["format"] == "json"
     assert meta.prompt_tokens == 1200 and meta.completion_tokens == 9
     assert meta.settings["think"] is False and meta.locality == "local"
+    # the load average travels beside the latency, before and after the call
+    assert isinstance(meta.settings["load_average_1m_before"], float)
+    assert isinstance(meta.settings["load_average_1m_after"], float)
 
 
 def test_local_client_refuses_a_prompt_that_filled_the_context():

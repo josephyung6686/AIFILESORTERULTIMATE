@@ -133,9 +133,15 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
         payload["options"] = dict(payload.get("options", {}),
                                   num_ctx=num_ctx,
                                   num_predict=LOCAL_RESPONSE_CEILING)
+        # The machine's load is recorded beside the latency because a local
+        # latency on a shared laptop is a fact about the laptop as much as
+        # about the model: 5 minutes at load 200 and 40 seconds at load 3
+        # are the same call.
+        load_before = _load_average_1m()
         started = time.monotonic()
         raw = real_post(url, json.dumps(payload).encode("utf-8"), timeout=timeout)
         elapsed = time.monotonic() - started
+        load_after = _load_average_1m()
         answer = json.loads(raw)
         prompt_tokens = answer.get("prompt_eval_count")
         last.clear()
@@ -145,6 +151,7 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
             completion_tokens=answer.get("eval_count"),
             done_reason=answer.get("done_reason"),
             thinking_present=bool(answer.get("thinking")),
+            load_before=load_before, load_after=load_after,
         )
         # `prompt_eval_count` can be BELOW the true length when Ollama reuses a
         # cached prefix, so it cannot prove absence of truncation; the byte
@@ -171,10 +178,20 @@ def local_client(*, post=None) -> Callable[[bytes], tuple[bytes, CallMeta]]:
             settings={"think": False, "format": "json", "temperature": 0,
                       "seed": 1, "num_predict": LOCAL_RESPONSE_CEILING,
                       "done_reason": last["done_reason"],
-                      "thinking_present": last["thinking_present"]})
+                      "thinking_present": last["thinking_present"],
+                      "load_average_1m_before": last["load_before"],
+                      "load_average_1m_after": last["load_after"]})
         return answer, meta
 
     return call
+
+
+def _load_average_1m() -> float | None:
+    """The one-minute load average, or None where the platform has none."""
+    try:
+        return round(os.getloadavg()[0], 2)
+    except (AttributeError, OSError):
+        return None
 
 
 # --- the cloud side -------------------------------------------------------------

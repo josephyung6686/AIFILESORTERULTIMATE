@@ -48,6 +48,10 @@ def aggregate(calls: list[dict]) -> dict:
                              if c.get("meta") and c["meta"].get("completion_tokens")]
         num_ctx = sorted({c["meta"].get("num_ctx") for c in items
                           if c.get("meta") and c["meta"].get("num_ctx")})
+        loads = [c["meta"]["settings"]["load_average_1m_before"] for c in items
+                 if c.get("meta") and isinstance(
+                     c["meta"].get("settings", {}).get("load_average_1m_before"),
+                     (int, float))]
         rows.append({
             "site": site, "candidate": candidate, "model": model,
             "cases": n, "calls_failed": len(failed),
@@ -77,6 +81,8 @@ def aggregate(calls: list[dict]) -> dict:
             "completion_tokens_total": (sum(completion_tokens)
                                         if completion_tokens else None),
             "num_ctx_used": num_ctx,
+            "load_average_1m": ({"min": min(loads), "median": round(
+                statistics.median(loads), 1), "max": max(loads)} if loads else None),
             "worst_outcomes": dict(sorted(
                 _count(x["worst_outcome"] for x in j).items())),
             "reasons": dict(sorted(_count(
@@ -110,6 +116,8 @@ def per_case_table(calls: list[dict]) -> list[dict]:
             "error": call.get("error"),
             "latency_s": round(call["meta"]["latency_seconds"], 1)
             if call.get("meta") else None,
+            "load_1m": (call["meta"].get("settings", {}).get("load_average_1m_before")
+                        if call.get("meta") else None),
         })
     return rows
 
@@ -127,8 +135,8 @@ def _short(answer) -> str:
 
 def markdown(summary: dict, table: list[dict]) -> str:
     lines = ["# promptbench summary", ""]
-    lines.append("| site | candidate | model | cases | failed | schema | validator ok | accepted | grounding | abstain (should) | correct (should answer) | correct+accepted | false abstain | median s | prompt tok | completion tok | num_ctx |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    lines.append("| site | candidate | model | cases | failed | schema | validator ok | accepted | grounding | abstain (should) | correct (should answer) | correct+accepted | false abstain | median s | load 1m (min/med/max) | prompt tok | completion tok | num_ctx |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for r in summary["rows"]:
         lines.append(
             f"| {r['site']} | {r['candidate']} | {r['model']} | {r['cases']} | "
@@ -139,6 +147,7 @@ def markdown(summary: dict, table: list[dict]) -> str:
             f"{r['correct_rate_on_should_answer']} ({r['should_answer_cases']}) | "
             f"{r['correct_and_accepted_rate']} | "
             f"{r['false_abstain_rate_on_should_answer']} | {r['median_latency_s']} | "
+            f"{_load_cell(r.get('load_average_1m'))} | "
             f"{r['prompt_tokens_total']} | {r['completion_tokens_total']} | "
             f"{','.join(str(x) for x in r['num_ctx_used'])} |")
     lines.append("")
@@ -153,6 +162,12 @@ def markdown(summary: dict, table: list[dict]) -> str:
             f"{r['accepted']} | {r['worst']} | {','.join(r['reasons'])} | "
             f"{r['schema']} | {r['grounding']} | `{r['answer']}` | {r['error'] or ''} |")
     return "\n".join(lines) + "\n"
+
+
+def _load_cell(load) -> str:
+    if not load:
+        return "—"
+    return f"{load['min']}/{load['median']}/{load['max']}"
 
 
 def _cell(call: dict | None) -> str:
