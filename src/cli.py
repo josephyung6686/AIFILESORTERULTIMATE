@@ -514,8 +514,12 @@ LOCAL_MODEL_TIMEOUT_SECONDS: float = 600.0
 
 #: THE LARGEST CONTEXT WINDOW THIS DEPLOYMENT WILL ASK A LOCAL MODEL TO HOLD OPEN,
 #: in tokens, and the bound `readers.model_ollama` refuses above rather than letting
-#: ollama truncate a dossier in silence. `readers.model_ollama` sizes each request's
-#: window from its own bytes; this is the ceiling, not the value.
+#: ollama truncate a dossier in silence. It is also the window every call in a run
+#: ACTUALLY ASKS FOR, and not merely a ceiling over smaller ones: ollama holds one
+#: context length per loaded model, so a request naming a different `num_ctx`
+#: unloads and reloads it -- measured at 283 seconds, more than the prompt
+#: evaluation and the answer together -- and a scan whose dossiers differ in size
+#: would pay that on every crossing, to save KV cache no scan can spend.
 #:
 #: 32,768, and both directions are measured. It is under `qwen3:8b`'s own advertised
 #: 40,960, so the model can actually hold what is asked for. And the KV cache is

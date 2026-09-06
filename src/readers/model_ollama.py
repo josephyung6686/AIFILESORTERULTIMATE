@@ -450,10 +450,10 @@ def _answer(response: object, *, window: int, prompt_bytes: int,
             f"finished answering is {FINISHED!r}. A reason this module cannot read "
             f"is a reason it cannot certify as complete.")
     # THE RECEIPT BEHIND THE CONSTRUCTION, and it checks the ONE assumption the
-    # construction rests on. `_window_for` sized this window above
-    # `bytes / BYTES_PER_TOKEN_FLOOR`, which is an upper bound on the prompt's
-    # true token count -- so the prompt fits, and truncation cannot happen, UNLESS
-    # this payload tokenised worse than that floor. `prompt_eval_count` is what
+    # construction rests on. `_fits` let this payload through only because the
+    # window is above `bytes / BYTES_PER_TOKEN_FLOOR`, which is an upper bound on
+    # the prompt's true token count -- so the prompt fits, and truncation cannot
+    # happen, UNLESS this payload tokenised worse than that floor. `prompt_eval_count` is what
     # the model actually read, and it is the only way to find that out.
     #
     # Above the bound means the floor was beaten and the window may have been too
