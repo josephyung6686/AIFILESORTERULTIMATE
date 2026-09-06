@@ -48,12 +48,16 @@ The bench builds each A case as a real P6 world (a file, its observations, `Fact
 
 Two numbers matter here and they are not the same number. **What the model said** per field is the glossary's effect; **what the deployment accepted** is capped by `cli.normalize_for_model`, which returns `None` for every course title (`University Writing`, `AP World History`, `Introduction to Organic Chemistry`, `Machine Learning`), for `Michaelmas term`, and for any `work_type` outside its closed list (`Tutorial sheet`, `Final Exam`, `Study Guide`) — so `accepted_rate` is 0.0 under both glossaries and says nothing about them (G15).
 
-| arm | fields correct (said) | `school` wrong | `subject` wrong | cases fully correct | schema-valid | grounding | worst outcomes | accepted |
-|---|---|---|---|---|---|---|---|---|
-| ratified-glossary | 25 / 40 | 4 (A01, A04, A12*, A13) | 6 | 4 / 14 | 13 / 14 | 23 / 25 | 12 reject, 2 abstain | 0 / 14 |
-| proposed-glossary | 20 / 40 | 3 (A04, A05*, A13) | 9 | 2 / 14 | 13 / 14 | 22 / 22 | 12 reject, 2 abstain | 0 / 14 |
+Only `school` and `subject` differ between the arms, so they are the comparison; `term` and `work_type` carry the same meaning under both and are reported apart.
 
-\* a whole response destroyed by one malformed claim (`SCHEMA_INVALID`), counted as every field wrong.
+| arm | `school` wrong (said) | `subject` wrong (said) | responses destroyed* | schema-valid | grounding | accepted |
+|---|---|---|---|---|---|---|
+| ratified-glossary | 3 of 13 said (A01, A04, A13) | 5 of 13 said (A02, A03, A06, A07, A13) | 1 (A12) | 13 / 14 | 23 / 25 | 0 / 14 |
+| proposed-glossary | 2 of 13 said (A04, A13) | 8 of 13 said (A01, A02, A03, A06, A07, A08, A13, A14) | 1 (A05) | 13 / 14 | 22 / 22 | 0 / 14 |
+
+\* one malformed claim destroying the whole response (`SCHEMA_INVALID`, the ratified rule 11), in which nothing was said.
+
+Apart, and the same under both arms: `term` was right wherever it was judged (A03, A05, A10); `work_type` was right in 5 of 10 judged fields under the ratified arm and 3 of 10 under the proposed one, but three of those "wrong" cells are declines on a syllabus, a lecture deck and a tutorial sheet, and the ratified glossary's own meaning for `work_type` is *"if the file IS the work product of a bounded engagement or course"* — a syllabus is not the student's work product, so the decline is arguably right and the label is arguably wrong. The `work_type` labels of A03, A06 and A10 are recorded as disputed and carry no weight here. This is a first measurement: one run, temperature 0, cloud only; `104` §13.4 asks for three runs and a median before any of it is read as more.
 
 **The regression case is fixed by the proposal and the collector is not closed by it.** On A01 — the university essay that names the author's old school and a target university, the mechanism of `104` §11.1 — the ratified wording produced `school = "Georgetown Prep"` and the proposed wording produced a decline with the statement *"No released evidence names the institution offering the course."* That is the five essays leaving `Georgetown Prep`. But on the résumé (A04) both wordings answered `school = "Georgetown Preparatory School"`, and on the transcript (A13) the proposal answered `Columbia University`: a file that is not coursework, asked coursework's `school`, still yields a school. That is what `104` §11.2 says — step 1 is necessary and steps 2 (school as a group-level fact on the anchor) and 4 (per-branch situation, so a résumé is not asked `subject`) are what stop the collector.
 
@@ -86,7 +90,7 @@ G15 (new): `cli.normalize_for_model` returns `None` for every course title as `s
 
 ### 1.6 The ratification question
 
-1. **Ratify the proposed `school` entry** — *"the institution that offers this course and term, not any school the person attended; a school merely mentioned is authored_by-class metadata and never a level"* — as fix-chain step 1's first half: it reverses A01 and is neutral or better everywhere else, with A04/A13 recorded as what steps 2 and 4 must close.
+1. **Provisionally, the proposed `school` entry** — *"the institution that offers this course and term, not any school the person attended; a school merely mentioned is authored_by-class metadata and never a level"* — as fix-chain step 1's first half: on this one cloud run it reverses A01 and is neutral or better everywhere else, with A04/A13 recorded as what steps 2 and 4 must close. Ratification waits for the local arm and the three-run median (`103` §28.1 step 4, `104` §13.4); what the owner is asked now is whether this wording is the one to measure to that standard.
 2. **Do not ratify the proposed `subject` entry as written.** Its measured effect is title-lifting. Put to the owner instead, unmeasured: *"the course's own name — a course code, or the name a syllabus would give the course — never the title of this document, its chapter, its book, its study guide or its publisher"*; measure it as a third arm before ratifying.
 3. Decide G15: whether the normaliser's closed vocabularies for `subject`, `term` and `work_type` are replaced by the "confirm this new value" path before A is measured on the owner's corpus again.
 
@@ -204,7 +208,7 @@ Every citation resolved and span-matched under both texts (41 of 41). The one ca
 
 The two "should-abstain" misses are the same under both and are worth reading: D14 (nothing readable) was marked `unsupported` rather than abstained — labelled as also acceptable, so it is a correct answer the abstention metric counts against; D05 (noise OCR, no context) was `abstain` where the label wanted "leave in place" or the screenshot area — the model treated unreadable OCR as nothing to read at all. D08 is G1: both texts echoed the flagged relationship id and were rejected `STRONGER_RELATIONSHIP_OVERLOOKED` for it.
 
-**Winner: ladder**, on D02 and on equal ground everywhere else.
+**Ahead on this run: ladder**, on D02 alone and on equal ground everywhere else — one case, one run, cloud only; the local arm and the three-run median are owed before "winner" means more than that.
 
 ### 3.4 Stress cases
 
@@ -274,7 +278,7 @@ They differ on three cases. **four-questions** formed the group `00`:63 names as
 
 Both false-abstained on B03, the Duke essay inside the Columbia packet: each excluded the Duke essay and named it an outlier (4 of 4 member decisions right) and then answered `coherent: no` *because* a member conflicted. The intended reading — a contradicting candidate is an outlier of a coherent group, not a coherence failure — is stated by neither text plainly enough, and is the one v2 sentence for B.
 
-**Winner: anchors-first** — perfect abstention including the `00`:63 case, no schema failure, equal placement.
+**Ahead on this run: anchors-first** — every abstention including the `00`:63 case, no schema failure, equal placement. B08 and B01 are one case each on one cloud run; the same caveat as D applies.
 
 ### 4.4 Stress cases
 
@@ -417,7 +421,7 @@ From `tools/promptbench/out/cloud_ledger.json`, the one ledger spent before each
 
 Per site: A 28, C 32 (one of them the probe), D 30, B 30, E 24. Median latency 1.9 to 4.4 s per call once past the first; the first call of each process took 83 to 421 s on a machine whose load average stayed between 190 and 280 throughout (other agents' suites), and that first-call time is in the recorded latencies. No owner file, filename or dossier reached the model: every request is a synthetic case whose bytes are stored under `tools/promptbench/out/<site>/calls/`.
 
-**Local arm (qwen3:8b), at the time of writing: 4 of 144 calls recorded**, all at C (walk), 5 to 7 minutes each under that load (`prompt_eval_count` 5,167 to 5,200 against `num_ctx` 16,384, thinking off, `done_reason: stop`, no truncation). The 3 judged: 3 of 3 placed correctly, 1 accepted; 2 lost to the same group-citation defect as walk on the cloud (`CITATION_NOT_IN_DOSSIER`), 1 schema-invalid on the draft's own schema while valid to the validator. The local chain (`run_local_chain.sh`, C then D, B, E, A, resuming past what is recorded) was left running when this wave paused; its records land in the same directories and `python3 -m tools.promptbench score --out tools/promptbench/out/<site>` folds them in. The local numbers are owed before any ratification that names both models, as `103` §28.1 step 4 requires.
+**Local arm (qwen3:8b), when this wave paused: 4 of 144 calls recorded**, all at C (walk), 5 to 7 minutes each under that load (`prompt_eval_count` 5,167 to 5,200 against `num_ctx` 16,384, thinking off, `done_reason: stop`, no truncation). C01, C02 and C03 were placed correctly (C01 accepted; C02 and C03 lost to the same group-citation defect as walk on the cloud, `CITATION_NOT_IN_DOSSIER`); **C04, a should-abstain case, was answered** — the local model chose a home for the two-packet transcript, and the answer was rejected on its citation. Two more things the local run showed and nothing validates: on C01 it set `refinement: deeper_in_own_folder` with no candidate marked as the file's current folder (the v2 must make "not_applicable when no candidate is the current folder" unmissable), and its C01 answer was invalid against the draft's own schema while valid to the validator (a `per_dimension_support.value` outside the file's text). The chain was **stopped at the pause** so it would not keep a shared machine busy; it resumes past what is recorded with the same command (`zsh run_local_chain.sh`, or per site `python3 -m tools.promptbench run --site <site> --candidates <a>,<b> --models local --out tools/promptbench/out/<site>`). The local numbers are owed before any ratification that names both models, as `103` §28.1 step 4 requires.
 
 ## 9. What this wave did not do, and the next one should
 
