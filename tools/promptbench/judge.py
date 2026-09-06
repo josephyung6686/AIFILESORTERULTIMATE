@@ -271,27 +271,38 @@ def _correct(case: Case, answer: dict, accepted: bool) -> tuple[bool | None, dic
         return bool(answer["destination"] == want), detail
     if site == D_RESIDUAL:
         want_action = expect.get("action")
-        ok = answer["action"] == want_action
+        actions = set(expect.get("action_in", ())) | ({want_action} if want_action else set())
+        ok = answer["action"] in actions
         if "target" in expect and expect["target"] is not None:
             ok = ok and answer["target"] == expect["target"]
             detail["target_matches"] = answer["target"] == expect["target"]
-        detail["action_matches"] = answer["action"] == want_action
-        if want_action in D_NO_DESTINATION:
+        detail["action_matches"] = answer["action"] in actions
+        # A second labelled-acceptable pair, e.g. "leave in place" beside
+        # "choose Temporary Screenshots" (`00`:125 offers both).
+        for alt_action, alt_target in expect.get("also_acceptable", ()):
+            if answer["action"] == alt_action and (
+                    alt_target is None or answer["target"] == alt_target):
+                ok = True
+                detail["matched_alternative"] = [alt_action, alt_target]
+        if want_action in D_NO_DESTINATION and not expect.get("also_acceptable"):
             return None, detail
         return bool(ok), detail
     if site == B_GROUP:
         want = expect.get("coherent")
-        ok = answer["coherent"] == want
+        wanted = set(expect.get("coherent_in", ())) | ({want} if want else set())
+        ok = answer["coherent"] in wanted
         detail["coherent_matches"] = ok
         members_expected = expect.get("members", {})
+        # A decision may be labelled with alternatives ("include|uncertain"):
+        # `00`:60 lets a sparse member be included or left uncertain.
         member_hits = sum(1 for f, d in members_expected.items()
-                          if answer["members"].get(f) == d)
+                          if answer["members"].get(f) in set(str(d).split("|")))
         detail["members_expected"] = len(members_expected)
         detail["members_correct"] = member_hits
         outliers_expected = set(expect.get("outliers", ()))
         detail["outliers_found"] = len(outliers_expected & set(answer["outliers"]))
         detail["outliers_expected"] = len(outliers_expected)
-        if want in ("no", "insufficient"):
+        if want in ("no", "insufficient") or wanted <= {"no", "insufficient"}:
             return None, detail
         ok = ok and member_hits == len(members_expected)
         ok = ok and outliers_expected <= set(answer["outliers"])
@@ -311,6 +322,13 @@ def _correct(case: Case, answer: dict, accepted: bool) -> tuple[bool | None, dic
         detail["must_exclude_met"] = not (forbid & set(names))
         detail["accepted"] = accepted
         ok = accepted and must <= set(names) and not (forbid & set(names))
+        if expect.get("max_dimensions") is not None:
+            detail["within_depth"] = len(names) <= expect["max_dimensions"]
+            ok = ok and detail["within_depth"]
+        if expect.get("min_template_local") is not None:
+            local = sum(1 for s in answer["scopes"] if s == "template-local")
+            detail["template_local_count"] = local
+            ok = ok and local >= expect["min_template_local"]
         if expect.get("first") is not None:
             detail["first_matches"] = bool(names) and names[0] == expect["first"]
             ok = ok and detail["first_matches"]
