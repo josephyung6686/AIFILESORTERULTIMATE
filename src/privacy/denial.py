@@ -196,31 +196,56 @@ def unclassified_denies(*, locality: str, local_calls_on_unclassified: bool) -> 
     return not local_calls_on_unclassified
 
 
-def no_safety_evidence_denies(*, locality: str) -> bool:
-    """§8.4's precondition, satisfied by evidence of having LOOKED (`96` §20).
+def no_safety_evidence_denies(*, locality: str, releasable_evidence: bool) -> bool:
+    """§8.4's precondition, satisfied by evidence of having LOOKED (`96` §20), and
+    by evidence there is something to look AT (`104` §13.2).
 
     A classification on `detector_no_safety_evidence` says the detector concluded an
-    ordinary class while matching NO safety work type at all. The class is not in
-    doubt and the file is not being called sensitive; what is missing is any basis
-    for the negative half of the sentence, and a cloud call is precisely the act
-    that would depend on it.
+    ordinary class while matching NO safety work type at all. `96` §20 read that as
+    the weaker claim it is -- "I concluded ordinary and matched no safety word"
+    rather than "I checked and it is fine" -- and refused to let it clear a cloud
+    call, because 41 of 78 files were reachable by a model only because they had
+    acquired a class, "turning 41 silences into 41 confident negatives".
 
-    **No knob, unlike `unclassified_denies`, and that asymmetry is deliberate.**
-    That function takes `local_calls_on_unclassified` because P7 SPEC Open question 5
-    ASKS it -- "Does `unreadable_unclassified` permit a LOCAL model call?" -- and P7
-    names no winner where the design leaves a question open. Nothing in the design
-    asks this one, so inventing a second knob would manufacture an open question and
-    push a decision to a caller who was never asked to make it.
+    **THE OWNER RE-RULED THIS ON 2026-09-05 (`104` §13.2), AND THE RULE HERE IS
+    NARROWED RATHER THAN REVERSED.** `96` §20's escape hatch is written into its own
+    docstring -- *"LOCAL IS PERMITTED"* -- and it assumed a local model that did not
+    exist, so a rule meant to REDIRECT ordinary files to an on-device model became a
+    total cloud block: 155 of the owner's 199 files could not reach the only wired
+    model site (`103` C1, `104` R-01). Against the constitution's second rule -- a
+    gate that excludes readable files from the engine is a defect -- that is not a
+    safety tightening, it is a coverage regression wearing one's name.
 
-    LOCAL IS PERMITTED, and that is the half that keeps this from being a coverage
-    regression wearing a safety fix's name. §8.4's `local_model` is "Local extraction
-    plus a user-installed local LLM for eligible dossiers" and `hybrid` promises that
-    "Sensitive files remain LOCAL" -- the whole distinction the four modes draw is
-    about what leaves the device, not about what may be read on it. `96` §19's 41
-    files are mostly ordinary coursework, and a file nobody has established anything
-    about is exactly what §2.7 and §7.8 want an on-device model to look at.
+    What survives is the thing `96` §19 actually objected to. A silence became a
+    confident negative because the file had a CLASS and nothing else; the fix is not
+    to admit every such file but to require what the class was missing, which is
+    something for the model to read. `releasable_evidence` is that: at least one item
+    in this request resolves to an observation belonging to this file, which after
+    P7's own exclusions means a bounded, non-always-local, non-sensitive-flagged
+    reading of the file's own bytes. A file with none is still refused, and is still
+    refused for the same reason it always was: nothing has been established about it
+    and a call would be asking a model to confirm a negative from nothing.
+
+    **Still no knob.** `unclassified_denies` takes `local_calls_on_unclassified`
+    because P7 SPEC Open question 5 ASKS it, and P7 names no winner where the design
+    leaves a question open. This one the owner has now answered twice, so a knob
+    would manufacture an open question that is closed.
+
+    LOCAL IS STILL PERMITTED UNCONDITIONALLY, evidence or no evidence. §8.4's
+    `local_model` is "Local extraction plus a user-installed local LLM for eligible
+    dossiers" and `hybrid` promises that "Sensitive files remain LOCAL" -- the whole
+    distinction the four modes draw is about what leaves the device, not about what
+    may be read on it. A file nobody has established anything about is exactly what
+    §2.7 and §7.8 want an on-device model to look at.
+
+    PROTECTED IS NOT THIS FUNCTION'S BUSINESS and must not be read into it.
+    `protected_cloud_denies` refuses a protected file a cloud target with no
+    carve-out outside `cloud_assisted` plus an explicit grant, and it is a separate
+    rung of the same ladder. Widening here cannot reach it.
     """
-    return locality == "cloud"
+    if locality != "cloud":
+        return False
+    return not releasable_evidence
 
 
 def is_protected_records(template_name: str | None) -> bool:
@@ -388,6 +413,11 @@ def deny_no_safety_evidence(*, file_ids: Sequence[str], locality: str,
     The class is NAMED rather than described. A person told their file was judged
     "not sensitive" has been told an outcome; a person told it was stored
     `personal_non_sensitive` has been told what to look for in the report.
+
+    NARROWED 2026-09-07 (`104` §13.2). The sentence had to change with the rule: this
+    now fires only when the weak basis is joined by an EMPTY request, so a sentence
+    blaming the basis alone would name the half that is no longer sufficient on its
+    own and leave out the half that decided.
     """
     return deny(
         "no_safety_evidence",
@@ -397,11 +427,14 @@ def deny_no_safety_evidence(*, file_ids: Sequence[str], locality: str,
             f"{DETECTOR_NO_SAFETY_EVIDENCE!r}: the detector recognised the file "
             "from its own words and matched no term for finance, identity, medical "
             "or legal material anywhere in it. Finding no safety evidence is not the "
-            "same as establishing that there is none, and §8.4 makes classification "
-            f"a precondition of escalation, so this has not met it for a {locality} "
-            "model call. The file is not being treated as sensitive: its class and "
-            "its protected flag are unchanged and it remains available to everything "
-            "that runs on this device."
+            "same as establishing that there is none. On its own that would not stop "
+            f"a {locality} call any longer; what stops this one is that the request "
+            "also carries no releasable reading of the file itself -- every "
+            "observation of it is in an always-local zone, covers the whole "
+            "document, or was flagged sensitive at emission -- so the model would be "
+            "asked to confirm a negative from nothing. The file is not being treated "
+            "as sensitive: its class and its protected flag are unchanged and it "
+            "remains available to everything that runs on this device."
         ),
         remedy_options=(
             RemedyOption("use_local_model",

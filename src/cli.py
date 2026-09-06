@@ -2299,9 +2299,13 @@ def fact_call_authorities(conn: sqlite3.Connection, *, routing: TierRouting,
             # settle it -- `unclassified_denies`' own docstring warns that denying
             # local calls here "may block exactly the OCR-opaque screenshots §2.7
             # and §7.8 want a model to interpret" -- and `no_safety_evidence_denies`
-            # answers the sibling question the same way in its own words: "LOCAL IS
+            # answers the sibling question the same way, permitting local
+            # unconditionally. That sibling's own escape hatch read "LOCAL IS
             # PERMITTED, and that is the half that keeps this from being a coverage
-            # regression wearing a safety fix's name."
+            # regression wearing a safety fix's name", and no local model existed,
+            # so it became one; the owner narrowed it on 2026-09-07 (`104` §13.2,
+            # `96` §20.1). The answer here is untouched by that: local was permitted
+            # before and is permitted after.
             #
             # Nothing leaves the device on this branch: `unclassified_denies`
             # refuses every CLOUD release of an unclassified file unconditionally
