@@ -173,9 +173,15 @@ from production import (
 from readers.deployment import macos_readers
 from readers.pdf_pdfium import pdfium_reader
 from extraction_pool import ExtractionContext, InlinePool, ProcessPool
-from readers.model_deepseek import BASE_URL_NAME, CREDENTIAL_NAME
+from readers.model_deepseek import BASE_URL_NAME, CLOUD, CREDENTIAL_NAME
+from readers.model_ollama import (
+    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
+    LOCAL,
+    MODEL_NAME as LOCAL_MODEL_NAME,
+)
 from readers.model_routing import (
     FAST, LOGIC, MODEL_NAME_OF_TIER, REASONING, TierRouting, deepseek_routing,
+    ollama_routing,
 )
 from facts.domains import SCHEMA_IDS
 from recognition.detector import (
@@ -491,6 +497,37 @@ MAX_RESPONSE_TOKENS: int = 8192
 #: returns, so this is not a budget ceiling and a call that hits it is not
 #: `budget_deferred`; it is a failed call, and P8 records it as one.
 MODEL_CALL_TIMEOUT_SECONDS: float = 90.0
+
+#: HOW LONG ONE LOCAL CALL MAY TAKE, and it is not the cloud number. A provider
+#: answers a bounded dossier in seconds and closes an idle socket itself; a model
+#: on this machine is doing the arithmetic on this machine, sharing the GPU with
+#: whatever else the person is running, and has nobody to close the connection.
+#:
+#: Measured 2026-09-05, `qwen3:8b` on this deployment: 8,194 prompt tokens plus a
+#: short answer took 81.7 seconds; a cold model added 8.1 seconds of load on top of
+#: the first call of a run. The cloud number (90 s) would have refused that call and
+#: recorded the file as one the model declined.
+#:
+#: The cost of the two directions is not symmetric. Too long and a person waits;
+#: too short and the file is recorded as unanswered by a model that was answering.
+LOCAL_MODEL_TIMEOUT_SECONDS: float = 600.0
+
+#: THE LARGEST CONTEXT WINDOW THIS DEPLOYMENT WILL ASK A LOCAL MODEL TO HOLD OPEN,
+#: in tokens, and the bound `readers.model_ollama` refuses above rather than letting
+#: ollama truncate a dossier in silence. `readers.model_ollama` sizes each request's
+#: window from its own bytes; this is the ceiling, not the value.
+#:
+#: 32,768, and both directions are measured. It is under `qwen3:8b`'s own advertised
+#: 40,960, so the model can actually hold what is asked for. And the KV cache is
+#: real memory: measured on 2026-09-05, ollama's resident set went 5.11 GB -> 5.72 GB
+#: at `num_ctx` 8,192 and -> 6.85 GB at 16,384, so this ceiling is about 3 GB above
+#: the model itself in the worst case and fits the machines this product is for.
+#:
+#: A dossier that will not fit is refused BY NAME and the file keeps its open
+#: fields. The alternative was measured and is why this number exists at all: at
+#: every window tried, an oversized prompt was silently cut and answered anyway,
+#: with a value that was never in the evidence.
+LOCAL_CONTEXT_CEILING: int = 32768
 
 #: Where this deployment keeps its own values. Read here and nowhere else in `src/`.
 ENV_FILE: Path = Path(__file__).resolve().parents[1] / ".env"
@@ -865,29 +902,64 @@ def model_route(*, out) -> TierRouting | None:
         # The environment first, then the file, then nothing. Never a literal.
         return (environ.get(name) or supplied.get(name) or "").strip()
 
-    if not value(CREDENTIAL_NAME):
-        print(f"\nNo model was consulted: {CREDENTIAL_NAME} is not set, so this "
-              f"run used only what it could read and decide on this device. Files "
-              f"that needed a judgement are named below and say so. To enable one, "
-              f"copy `.env.example` to `.env` and put a key in it.", file=out)
+    local_model = value(LOCAL_MODEL_NAME)
+    if not value(CREDENTIAL_NAME) and not local_model:
+        # BOTH NAMES, because there are now two ways to have a model and a person
+        # who is told only about the cloud one is told the product needs a paid
+        # account to think at all. `00`:189-193's second mode is a model on their
+        # own machine, and it costs nothing and sends nothing.
+        print(_wrapped(
+            f"No model was consulted: neither {CREDENTIAL_NAME} nor "
+            f"{LOCAL_MODEL_NAME} is set, so this run used only what it could read "
+            f"and decide on this device. Files that needed a judgement are named "
+            f"below and say so. To enable one, either install a local model "
+            f"(`ollama pull qwen3:8b`) and set {LOCAL_MODEL_NAME} to its id, which "
+            f"sends nothing anywhere, or copy `.env.example` to `.env` and put a "
+            f"key in it.", indent=""), file=out)
         return None
+    cloud: TierRouting | None = None
+    if value(CREDENTIAL_NAME):
+        try:
+            cloud = deepseek_routing(
+                api_key=value(CREDENTIAL_NAME),
+                base_url=value(BASE_URL_NAME),
+                model_id_of_tier={tier: value(name)
+                                  for tier, name in MODEL_NAME_OF_TIER.items()},
+                tier_of_call_site=TIER_OF_CALL_SITE,
+                max_response_tokens=MAX_RESPONSE_TOKENS,
+                timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS)
+        except (ValueError, RuntimeError) as refusal:
+            # Every refusal `readers/` can raise names what was missing and what to
+            # set. Printed, not raised: a misconfigured model is not a reason to
+            # refuse a scan that needs no model to do most of its work.
+            print(f"\nNo cloud model was consulted, and here is what it needed:\n"
+                  f"  {refusal}", file=out)
+            if not local_model:
+                return None
+    if not local_model:
+        return cloud
     try:
-        routing = deepseek_routing(
-            api_key=value(CREDENTIAL_NAME),
-            base_url=value(BASE_URL_NAME),
-            model_id_of_tier={tier: value(name)
-                              for tier, name in MODEL_NAME_OF_TIER.items()},
+        # D1's local half, and `serves` is what makes it FIRST rather than
+        # instead-of: beside a cloud key the local model takes the tier A_fact
+        # requires and the other tiers keep the models the key paid for.
+        return ollama_routing(
+            model_id=local_model,
+            base_url=value(LOCAL_BASE_URL_NAME),
             tier_of_call_site=TIER_OF_CALL_SITE,
             max_response_tokens=MAX_RESPONSE_TOKENS,
-            timeout_seconds=MODEL_CALL_TIMEOUT_SECONDS)
+            context_ceiling=LOCAL_CONTEXT_CEILING,
+            timeout_seconds=LOCAL_MODEL_TIMEOUT_SECONDS,
+            serves=A_FACT if cloud is not None else None,
+            beside=cloud)
     except (ValueError, RuntimeError) as refusal:
-        # Every refusal `readers/` can raise names what was missing and what to
-        # set. Printed, not raised: a misconfigured model is not a reason to
-        # refuse a scan that needs no model to do most of its work.
-        print(f"\nNo model was consulted, and here is what it needed:\n"
+        # NO MODEL AT ALL, and deliberately not the cloud one. A person who set
+        # {LOCAL_MODEL_NAME} asked for the model on their own machine; quietly
+        # sending their files to a provider instead because their local setup is
+        # wrong is the one direction that costs money and leaves the device, and
+        # it is the surprise `_dotenv` refuses for the same reason.
+        print(f"\nNo model was consulted, and here is what the local one needed:\n"
               f"  {refusal}", file=out)
         return None
-    return routing
 
 
 def _turn_off_line(corpus_root: Path, *other_sources: Path) -> str:
@@ -940,6 +1012,16 @@ def announce_cloud_posture(routing: TierRouting | None,
     if consent is not None and consent.permits_sending:
         print(f"\nCloud sending is ON for this folder"
               f"{'' if routing else ', but no model is configured'}.", file=out)
+        if routing is not None and routing.client_for(
+                A_FACT).model_target.locality == LOCAL:
+            # FACTS ARE NOT PART OF WHAT WAS TURNED ON. Consent is about what
+            # leaves the device, and with the fact question answered on this
+            # machine the sentence below -- "may be sent to X" -- would name a
+            # model on their own hard disk as a recipient of their files.
+            print(_wrapped(
+                f"Facts are answered by {routing.model_id_for(A_FACT)} on this "
+                f"device and do not leave it, whatever this folder's sending "
+                f"says.", indent="  "), file=out)
         # The path on its OWN line, never inside a wrapped paragraph. `textwrap`
         # breaks a long unbroken token across lines, and half a path on each of two
         # lines is a path a person cannot read and must not copy. The folders this
@@ -1006,6 +1088,37 @@ def announce_cloud_posture(routing: TierRouting | None,
     if routing is None:
         # `model_route` has already said no model is configured. A second sentence
         # about consent would answer a question the person cannot yet be asking.
+        return
+    if routing.client_for(A_FACT).model_target.locality == LOCAL:
+        # THE ONE SENTENCE A LOCAL MODEL CHANGES, and it has to change because
+        # every other sentence in this branch says nothing will be asked. With a
+        # model on this machine something IS asked, and a person reading "cloud
+        # sending is off" would otherwise conclude that nothing was.
+        #
+        # It names the model, says where it is, and says the thing that makes the
+        # difference matter: `00`:189-193's `offline` is "No content leaves the
+        # device; only local rules and LOCAL MODELS may run", so this run asking a
+        # model and this run sending nothing are both true at once, and a person
+        # who cannot see that has been told the weaker half.
+        print(_wrapped(
+            f"Model: {routing.model_id_for(A_FACT)}, running on this device, for "
+            f"facts -- what course, what school, what kind of document. It is "
+            f"asked over loopback, no key is used, and NOTHING LEAVES YOUR "
+            f"DEVICE; `{OPERATION_MODE}` is \"{MODE_SEMANTICS[OPERATION_MODE]}\", "
+            f"and a local model is one of them. Protected material and §8.4's "
+            f"always-local kinds are refused by P7 and are not among what it is "
+            f"shown, the same way they would be refused a model anywhere else.",
+            indent=""), file=out)
+        elsewhere = tuple(sorted({
+            routing.model_id_for(site) for site in (C_PLACEMENT, D_RESIDUAL)
+            if routing.client_for(site).model_target.locality != LOCAL}))
+        if elsewhere:
+            print(_wrapped(
+                f"{' and '.join(elsewhere)} {'are' if len(elsewhere) > 1 else 'is'}"
+                f" also configured and would be reached over the internet, but no "
+                f"part of this run asks {'them' if len(elsewhere) > 1 else 'it'} "
+                f"and cloud sending is off for this folder anyway. To turn sending "
+                f"on for this folder, add --enable-cloud.", indent="  "), file=out)
         return
     print(f"\nModel: {routing.model_id_for(A_FACT)} for facts, "
           f"{routing.model_id_for(C_PLACEMENT)} for checks, "
@@ -4155,7 +4268,19 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         to name. Two versions, two rows, and each says the mode its own stage ran
         under.
         """
-        if routing is None or operation_mode != CLOUD_ENABLED_MODE:
+        if routing is None:
+            return
+        if (routing.client_for(A_FACT).model_target.locality == CLOUD
+                and operation_mode != CLOUD_ENABLED_MODE):
+            # BY LOCALITY, not by mode alone, and the cloud half is unchanged: a
+            # cloud target still requires `hybrid`, which still requires this
+            # folder's stored consent. What the mode-only test also refused was a
+            # model on the person's OWN MACHINE, which `00`:189-193 permits under
+            # every mode including `offline` -- "No content leaves the device;
+            # only local rules and LOCAL MODELS may run". Nothing is released to a
+            # local target that would not be released to a cloud one; the gate
+            # makes that decision below, from the same `model_target`, and it is
+            # `Gate.release` that reads the locality rather than this line.
             return
         roster = corpus_roster(conn, run_id)
         if not roster:
