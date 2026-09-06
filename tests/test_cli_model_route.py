@@ -459,3 +459,27 @@ def test_the_cloud_only_posture_is_word_for_word_what_it_was(monkeypatch, tmp_pa
         in printed
     assert "None of them will be asked on this run" in printed
     assert "NOTHING LEAVES YOUR DEVICE" not in printed
+
+
+def test_with_sending_on_the_facts_are_still_said_to_stay_on_the_device(
+        monkeypatch, tmp_path):
+    """The consent-ON branch, which the end-to-end tests cannot reach: driving
+    `cli.main --enable-cloud` is exactly what must not happen in a suite. Called
+    directly instead, because this is a sentence and not a send -- no client is
+    invoked and no socket is opened by printing it.
+
+    Without the clause, a person who turned cloud sending on would read "files ...
+    may be sent to qwen3:8b" and be told a model on their own hard disk is a
+    recipient of their files. Consent is about what LEAVES; the fact question no
+    longer does."""
+    from database_agent.cloud_consent import CloudConsent
+
+    routing, _ = _route(monkeypatch, LOCAL_ENV)
+    consent = CloudConsent(corpus_root=str(tmp_path), decision="enabled",
+                           user_id="jy", decided_at="2026-09-05T00:00:00Z")
+    out = io.StringIO()
+    cli.announce_cloud_posture(routing, consent, corpus_root=tmp_path, out=out)
+    printed = out.getvalue()
+
+    assert "on this device and do not leave it" in printed
+    assert "qwen3:8b" in printed

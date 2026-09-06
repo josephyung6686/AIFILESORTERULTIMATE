@@ -1012,8 +1012,7 @@ def announce_cloud_posture(routing: TierRouting | None,
     if consent is not None and consent.permits_sending:
         print(f"\nCloud sending is ON for this folder"
               f"{'' if routing else ', but no model is configured'}.", file=out)
-        if routing is not None and routing.client_for(
-                A_FACT).model_target.locality == LOCAL:
+        if routing is not None and routing.locality_for(A_FACT) == LOCAL:
             # FACTS ARE NOT PART OF WHAT WAS TURNED ON. Consent is about what
             # leaves the device, and with the fact question answered on this
             # machine the sentence below -- "may be sent to X" -- would name a
@@ -1089,7 +1088,7 @@ def announce_cloud_posture(routing: TierRouting | None,
         # `model_route` has already said no model is configured. A second sentence
         # about consent would answer a question the person cannot yet be asking.
         return
-    if routing.client_for(A_FACT).model_target.locality == LOCAL:
+    if routing.locality_for(A_FACT) == LOCAL:
         # THE ONE SENTENCE A LOCAL MODEL CHANGES, and it has to change because
         # every other sentence in this branch says nothing will be asked. With a
         # model on this machine something IS asked, and a person reading "cloud
@@ -1111,7 +1110,7 @@ def announce_cloud_posture(routing: TierRouting | None,
             indent=""), file=out)
         elsewhere = tuple(sorted({
             routing.model_id_for(site) for site in (C_PLACEMENT, D_RESIDUAL)
-            if routing.client_for(site).model_target.locality != LOCAL}))
+            if routing.locality_for(site) != LOCAL}))
         if elsewhere:
             print(_wrapped(
                 f"{' and '.join(elsewhere)} {'are' if len(elsewhere) > 1 else 'is'}"
@@ -4270,7 +4269,7 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         """
         if routing is None:
             return
-        if (routing.client_for(A_FACT).model_target.locality == CLOUD
+        if (routing.locality_for(A_FACT) == CLOUD
                 and operation_mode != CLOUD_ENABLED_MODE):
             # BY LOCALITY, not by mode alone, and the cloud half is unchanged: a
             # cloud target still requires `hybrid`, which still requires this

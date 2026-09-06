@@ -176,6 +176,21 @@ class TierRouting:
         """
         return self.client_for(call_site).model_target.model_id
 
+    def locality_for(self, call_site: str) -> str:
+        """WHETHER IT LEAVES THE DEVICE, which is the other thing a person is owed.
+
+        Beside `model_id_for` and for the same reason it exists: a person told
+        their sentence is going to a named model has been told more than one told
+        it is going to "an external provider", and a person told it is going to a
+        named model ON THEIR OWN MACHINE has been told the thing that decides
+        whether any of it matters. `00`:189-193 draws every one of its four modes
+        along this line, and `Gate.release` decides by this value.
+
+        A method rather than a reach through `client_for(...).model_target`, so
+        the screen and the gate ask the same object the same question.
+        """
+        return self.client_for(call_site).model_target.locality
+
 
 def deepseek_routing(*, api_key: str | None, base_url: str | None,
                      model_id_of_tier: Mapping[str, str],

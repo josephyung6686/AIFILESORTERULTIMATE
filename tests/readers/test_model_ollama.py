@@ -235,10 +235,20 @@ def test_a_bigger_window_is_not_a_fix_and_the_refusal_is():
     assert "body" not in captured
 
 
-def test_the_window_that_was_used_is_readable_for_the_audit_row():
-    """§8.4 audits what the model was given. The window is part of that: two runs
-    over one file with different windows are two different questions, and the row
-    that says which model received the data should say how much of it."""
+def test_the_window_that_was_used_is_readable_but_nothing_reads_it_yet():
+    """§8.4 audits what the model was given, and the window is part of that: two
+    runs over one file under different windows are two different questions.
+
+    THIS IS A HOOK AND NOT YET A RECORD, and the name says so rather than
+    implying otherwise. Nothing persists this number today. The two rows that
+    could carry it are `privacy.release_ledger.model_target`, which is P7's
+    three-field `ModelTarget` and describes a DEPLOYMENT rather than a call, and
+    `llm_harness.llm_response`, which is P8's schema -- neither belongs to the
+    readers layer, and inventing a third table here would be a second place
+    claiming to say what one call was given.
+
+    So the value is exposed where a P8 or P7 owner can reach it, and the gap is
+    reported rather than papered over."""
     captured = {}
     invoke = _invoke(captured)
     invoke(b"x" * 8000)
