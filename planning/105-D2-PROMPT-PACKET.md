@@ -127,6 +127,50 @@ Both texts share the dossier description, the shape, the rules and the abstentio
 
 Both carry the same response schema (`c_placement_response_schema.json`) and shaping policy (`c_placement_shaping_policy.json`). The bench's C dossier carries each candidate as an evidence item of kind `candidate` whose `location` is the node's label chain with its expected values, and each accepted group as an `accepted_group` item; that shape is the builder change G3 asks for, and the text describes exactly those keys.
 
+#### 2.2.1 The texts, traced by block (`103` §28.1 step 2)
+
+The two texts are identical outside `HOW TO DECIDE`; the shared blocks are traced once, and the block that differs is traced per candidate. A block with no requirement behind it would be cut; none was found. The dossier key line is checked against `dossier._body`'s emitted keys by `tests/llm_harness/test_d2_draft_templates.py::test_the_text_is_a_constant_that_names_the_dossier_exactly`; the item kinds the text names (`candidate`, `accepted_group`, `excerpt`) are the bench's, and the live builder emits none of them (G3): the trace therefore holds for the dossier the text describes, not for the one `placement/pipeline.py` sends today.
+
+| Block (both texts) | Sentences | Requirement |
+|---|---|---|
+| OUTPUT | one object, no fence, first `{` last `}` | C-R13; `76` R15 |
+| WHAT YOU ARE DOING | choose among approved, frozen folders; cite | C-R1, C-R2, C-R7 |
+| | not designing, naming, inventing; cannot describe a better one | C-R1 |
+| | nothing about the person | C-R15 |
+| WHAT THE DOSSIER CONTAINS | the key line | step 2 key check (test above) |
+| | `allowed_vocabulary` complete; `none` always available | C-R1, C-R8 |
+| | `candidate` item: label chain, expected values, "sits in that folder now" | C-R3 (levels), C-R10 (own folder), G3 |
+| | `accepted_group` item: accepted vs merely retrieved; context support | C-R3 (context), C-R6 |
+| | `excerpt` carries no text; `released_evidence` is the only text; no filename, no path | C-R7, `00`:42 |
+| | `conflicts`: a flag is not a verdict; read, decide, echo every id | C-R4, §13.6 |
+| | the rest is bookkeeping; no other files, no other answers | C-R15, `76` R2 |
+| WHEN THE ANSWER IS "none" | correct, costs nothing; wrong placement stays, `none` is looked at; when close, `none` | C-R8 |
+| | (walk only) the four `none` triggers enumerated | C-R5, C-R6, C-R7, C-R8; R2 (abstention specified) |
+| | one sentence naming what was missing | C-R13 (`unknown` shape) |
+| THE FILE'S OWN FOLDER | refinement vs out of own folder; both allowed; name which | C-R10, §13.8 |
+| THE SHAPE | the two objects | C-R13, C-R14 (the two numbers) |
+| Rule 1 | destination copied or `none`; a composed id is a folder that does not exist | C-R1 |
+| Rule 2 | `direct` or `context`, no third word; an unfillable level is unfilled | C-R3, C-R12 |
+| Rule 3 | value as the text spells it; context value from the group | C-R7, C-R11 |
+| Rule 4 | citation shape; span copied; only `released_evidence` keys | C-R7 |
+| Rule 5 | `why_it_supports` never empty; a sentence doing the text's work is no support | C-R7, C-R12 |
+| Rule 6 | `support` / `next_support` as whole-number citation counts; equal means `none` | C-R14, G6 |
+| Rule 7 | every conflict id echoed | C-R4 |
+| Rule 8 | `refinement` closed set | C-R10 |
+| Rule 9 | `unknown` present iff `none`; never false/null | C-R13 |
+| Rule 10 | one malformed value destroys the answer | C-R13 |
+| closing | rules check anchoring, not truth; do not shape to pass | C-R9, §13.5 |
+
+| HOW TO DECIDE, eliminate | Requirement | HOW TO DECIDE, walk | Requirement |
+|---|---|---|---|
+| First: strike every contradicted candidate; a flag points, the text confirms | C-R4 | Walk top down, stop at the deepest supported level; direct / context / unfilled; deeper only if supported; scoped fallback | C-R3, C-R12 |
+| Second: strike resemblance-only support (shared word, look-alike number, contained word, kind-resemblance, merely-retrieved group) | C-R6, C-R12, `00`:239 | Two spellings can be one thing; the model judges; if it cannot tell, not the same | C-R11 |
+| Third: deepest fully supported survivor; direct / context / unfilled; shallower stands; scoped fallback | C-R3, C-R12 | A disagreement is a reason to stop; all disagree means `none` | C-R4 |
+| Two spellings can be one thing | C-R11 | Some things look like support and are not (same list) | C-R6, C-R12 |
+| Fourth: count what is left; two standing and no shared branch is `none` | C-R5, C-R8, C-R14 | | |
+
+Requirements with no sentence of their own: C-R9 and C-R10 are carried by the closing and the own-folder block; C-R5's positive half ("prefer a shared branch") is stated only inside the count step, which is the C05 wording gap §2.3 measured.
+
 ### 2.3 Results (cloud, deepseek-chat, 16 cases × 2 candidates = 32 calls; local, qwen3:8b, 3 of 32 at the time of writing)
 
 | arm | schema-valid | validator ok | grounding | abstain on should-abstain | correct on should-answer | correct **and** accepted | false abstain | accepted | median s | tokens (prompt / completion) |
@@ -197,6 +241,45 @@ Ratify **eliminate** (`c_placement.unratified.eliminate.2026-09-06`), its respon
 
 Both share `d_residual_response_schema.json` and `d_residual_shaping_policy.json`. In the bench dossier every approved area and every return branch is an evidence item (`residual_area`, `branch`) whose `location` carries the area's label chain, disposition and holds sentence — the "user-approved residual library" and "representative examples" of `00`:124 that the live builder does not yet carry (G3); a return's target is the branch node built from the group, because the validator requires a frozen node (G8); and every cited item's `location` is the subject ref (G5).
 
+#### 3.2.1 The texts, traced by block
+
+Shared blocks once; `HOW TO DECIDE` per candidate. Item kinds `residual_area` and `branch` are the bench's (G3, G8).
+
+| Block (both texts) | Sentences | Requirement |
+|---|---|---|
+| OUTPUT | one object | D-R12 |
+| WHAT YOU ARE DOING | one action of eight; name the home; cite | D-R1, D-R7 |
+| | not naming, describing, inventing a folder; a home not on the list does not exist | D-R2 |
+| | nothing about the person | D-R13 |
+| WHAT THE DOSSIER CONTAINS | key line | step 2 key check |
+| | `residual_area`: name, disposition, holds | D-R2, D-R6, D-R10 (disposition shown), G3 |
+| | `branch`: built from a confirmed group or accepted packet, or a broad parent | D-R3, D-R2, G8 |
+| | `released_evidence`: recognised, extracted, metadata, manifest; nothing else exists | D-R7 |
+| | `conflicts` of kind `stronger_relationship`: read, decide, echo | D-R3 |
+| THE EIGHT ACTIONS | each action with its target rule | D-R1; returns D-R3; destination and broad parent D-R2; mark D-R8; the three no-target actions D-R9 |
+| WHEN THE ANSWER NAMES NO HOME | correct, costs nothing; wrong home is a folder to unpick; when close, none | D-R9 |
+| THE SHAPE | two objects, no numeric keys | D-R12, D-R11 |
+| Rule 1 | action copied; no ninth | D-R1 |
+| Rule 2 | target rules per action; a slash is an invented folder | D-R2 (`Travel/Gate B12`) |
+| Rule 3 | cite when a target is named; citation shape; only `released_evidence` | D-R7 |
+| Rule 4 | `why_it_supports` never empty | D-R7 |
+| Rule 5 | `stop_reason` required | D-R4 |
+| Rule 6 | every flag echoed | D-R3 |
+| Rules 7, 8 | `unknown` discipline; one malformed value | D-R12 |
+| closing | anchoring, not truth | §13.5 |
+
+| HOW TO DECIDE, ladder | Requirement | HOW TO DECIDE, shelves | Requirement |
+|---|---|---|---|
+| Rung 1: a group or packet named by the text is a return; never filed in a residual home | D-R3 | Before the shelves: named group or packet is a return | D-R3 |
+| Rung 2: protected or unreadable; mark; nothing else chosen | D-R8 | Before the shelves: protected or unreadable | D-R8 |
+| Rung 3: an approved area, with the five kinds `00`:125 names | D-R6 | The shelves: the one shelf whose description the text satisfies; two equally is review later | D-R6, D-R9 |
+| Rung 4: broad parent only when no area fits | D-R2, D-R4 | No shelf but a broad branch plainly right | D-R2, D-R4 |
+| Rung 5: review later / leave / abstain, each with its trigger | D-R9 | After the shelves: the three no-home answers with triggers | D-R9 |
+| The higher the rung the more you cite; an isolated file stays high | D-R4, D-R7 | Per-shelf "holds / does not hold" including review-only never moves a file | D-R6, D-R10 |
+| Looks like an association and is not: gate, seat, booking; a name is not an application; a date is not an event; a broad branch is not a home for a file that says nothing about it | D-R5, `00`:239 | What a description never says (same list) | D-R5 |
+
+D-R10 (review-only areas never move a file) has a sentence in shelves and none in ladder; the disposition is the node's, enforced by P10, so the omission costs nothing at the validator, but a ladder v2 should carry it. D-R11 is satisfied by absence: neither shape has a numeric key.
+
 ### 3.3 Results (cloud, deepseek-chat, 15 cases × 2 candidates = 30 calls)
 
 | arm | schema-valid | validator ok | grounding | abstain on should-abstain | correct on should-answer | correct **and** accepted | false abstain | accepted | median s | tokens (prompt / completion) |
@@ -265,6 +348,41 @@ Ratify **ladder** (`d_residual.unratified.ladder.2026-09-06`), its response sche
 
 Both share `b_group_response_schema.json` and `b_group_shaping_policy.json`. The bench dossier carries the proposed basis, each member's anchor/candidate status and retrieval channel, and each excerpt's owning member as evidence-item text — three things `grouping/p8_seam.py` does not yet send (G9) — and defines `allowed_vocabulary` as the shipped situation ids, which the live product leaves undefined (G4).
 
+#### 4.2.1 The texts, traced by block
+
+Shared blocks once; the deciding block per candidate. Item kinds `proposed_basis`, `member` (with anchor/candidate status and channel) and `excerpt` (with its owning member) are the bench's (G9).
+
+| Block (both texts) | Sentences | Requirement |
+|---|---|---|
+| OUTPUT | one object | B-R13 |
+| WHAT YOU ARE DOING | holds, members, contradictions, label; cite each | B-R1, B-R4 |
+| | not building, retrieving, designing, naming folders; no file added; no path | B-R3, B-R5 |
+| | nothing about the person | B-R13 |
+| WHAT THE DOSSIER CONTAINS | key line | step 2 key check |
+| | `allowed_vocabulary` is the category list | B-R11, G4 |
+| | `proposed_basis`; `member` anchor vs candidate, channel named | B-R2, `00`:57-58, G9 |
+| | `excerpt` owned by a member; `released_evidence` the only text | B-R4, G9 |
+| | `conflicts`: institution, code, term, project, purpose; a flag is not a verdict | B-R6, B-R7 |
+| THE SHAPE | two objects; per-member decisions with `evidence_refs`; `outliers` with kind; `merge_terms` | B-R1, B-R4, B-R6 |
+| Rule 1 | `coherent` three values; `basis` three values; generic-similarity is not a group | B-R2, B-R8, B-R12 |
+| Rule 2 | file ids copied; every listed member gets a decision | B-R3 |
+| Rule 3 | label and category only when `yes`; category copied | B-R1, B-R11 |
+| Rule 4 | more than one term means two groups | B-R6 |
+| Rule 5 | no key for folder, path, hierarchy, inferred date, project, purpose | B-R5 |
+| Rule 6 | citation shape; only `released_evidence`; `evidence_refs` among citations | B-R4 |
+| Rule 7 | `why` never empty; a sentence doing the text's work makes the decision `uncertain` | B-R4 |
+| Rules 8, 9 | `unknown` discipline; one malformed value | B-R13 |
+
+| anchors-first | Requirement | four-questions | Requirement |
+|---|---|---|---|
+| Start from the anchors and nothing else; what they state in common is the basis; nothing in common is `no`; too little is `insufficient` | B-R2, B-R8 (anchor rule), B-R12 | Q1 coherence: `yes` when anchors state it, `no` on incompatibility or a shared word / session / resemblance, `insufficient` otherwise; not surfaced is correct | B-R1, B-R8, B-R12 |
+| Admit candidates one at a time: states the basis → include; contradicts → exclude and outlier; compatible and channel-connected but silent → uncertain; a contradicting anchor is excluded too | B-R2, B-R4, B-R7 | Q2 membership per member with a sentence; anchor included unless it contradicts; candidate include / uncertain / exclude; uncertain is not a failure | B-R2, B-R4 |
+| Read every flag against the text; outliers account for them | B-R7 | Q3 outliers with kind; read every flag first | B-R7, B-R6 |
+| Only if the basis holds: a short label from what the anchors state, one category; a proposal the person confirms | B-R1, B-R11 | Q4 label and category only if `yes`; a proposal | B-R1, B-R11 |
+| What a basis is not: a university's name (three relationships), an email domain, a name, a shared word; a download session; a suffix; a code across two terms; a purpose only when declared | B-R8, B-R9, B-R6, `00`:239 | WHAT MAKES A GROUP NOT A GROUP: the same six, plus "a basis nobody states" | B-R8, B-R9, B-R7, B-R6, `00`:239 |
+
+B-R10 (a file may belong to more than one accepted group) has no sentence in either text. Each dossier reviews one group, so an exclusion here says nothing about another group; the v2 should say that in one sentence, because a model that reads "exclude" as "belongs elsewhere" will refuse the shared transcript of C05's kind at B too. B03's measured false abstention is the one place the trace is thin: "a contradicting candidate is an outlier of a coherent group" is implied by the shape (an outlier list beside `coherent: yes`) and stated by neither text.
+
 ### 4.3 Results (cloud, deepseek-chat, 15 cases × 2 candidates = 30 calls)
 
 | arm | schema-valid | validator ok | grounding | abstain on should-abstain | correct on should-answer | correct **and** accepted | false abstain | accepted | median s | tokens (prompt / completion) |
@@ -331,6 +449,43 @@ Ratify **anchors-first** (`b_group.unratified.anchors-first.2026-09-06`), its re
 - **what-a-person-opens** (`e_template.unratified.what-a-person-opens.2026-09-06`, 9,504 B): top-down — what a person opens first a year from now, each imagined level put to the same five tests as questions with their failure named.
 
 Both share `e_template_response_schema.json` and `e_template_shaping_policy.json`. `allowed_vocabulary` is P10's `allowed_vocabulary_for(catalogue, uses_schema)` and `field_glossary` explains it; the branch constraints travel as `branch_context` items (G10).
+
+#### 5.2.1 The texts, traced by block
+
+The `branch_context` item kind is the bench's (G10).
+
+| Block (both texts) | Sentences | Requirement |
+|---|---|---|
+| OUTPUT | one object | E-R10 |
+| WHAT YOU ARE DOING | levels, order, why each helps; cite | E-R1, E-R4 |
+| | not creating folders or choosing a domain; canvas review; valid shape is not a good design | E-R8 |
+| | nothing about the person | E-R10 |
+| WHAT THE DOSSIER CONTAINS | key line | step 2 key check |
+| | `allowed_vocabulary` as established field names; may be empty | E-R3 |
+| | `field_glossary` is a definition, not evidence | E-R4 |
+| | `branch_context`: kind, label, parent and what it expresses, sensitivity policy ref, depth limit | E-R1, E-R5 (parent, depth), G10 |
+| | `excerpt` owned by a member; `released_evidence` the only text | E-R4 |
+| HOW TO DESIGN (shared tail) | name with `schema-field` or a plain `template-local` word, never a borrowed key | E-R3 |
+| | stop before the depth limit; fewer levels; `metadata_only` for a field worth search but not a folder | E-R5 (depth), E-R2 (metadata-only fields) |
+| | nothing to open / no distinction passes → propose nothing | E-R9 |
+| THE SHAPE | every `TEMPLATE_PAYLOAD_KEYS` member: domain, allowed_fields, fragment_refs, dimensions, levels, sensitivity_policy_ref, example_label_chains | E-R2 |
+| Rule 1 | names copied or template-local; a borrowed key is refused | E-R3 |
+| Rule 2 | `allowed_fields` once each | E-R2 |
+| Rule 3 | every dimension cites; `order_index` unique from zero | E-R4, E-R2 (field order) |
+| Rule 4 | levels name dimensions with a justification; metadata-only has no level | E-R4, E-R2 |
+| Rule 5 | fragments referenced by id and version, never published | E-R7 |
+| Rule 6 | sensitivity policy ref copied; label chains without slashes | E-R2 |
+| Rules 7, 8 | citation shape; `why_it_supports` never empty | E-R4 |
+| Rules 9, 10 | `unknown` discipline; one malformed value | E-R10 |
+| closing | rules check anchoring, not design; the person judges | E-R8 |
+
+| what-a-person-opens | Requirement | from-facts | Requirement |
+|---|---|---|---|
+| What a person opens first a year from now, then inside that; parent gives context; subject before time for documents; time first for captures | E-R6, E-R4 | List every distinction the text actually draws; a value in one file or the same in all is no distinction | E-R4, E-R5 (one child), E-R9 |
+| Five questions per imagined level: splits what the parent has not; more than one child; not a person or organization; no name / id / account / diagnosis on a folder; every child has a file | E-R5 | Five tests: not the parent; splits the files; not an author or organization as collector; no protected information; a value for every child | E-R5 |
+| | | Order survivors: parent gives context; subject / project / function before time; captures time first | E-R6 |
+
+Both texts carry every E requirement; the difference is direction (top-down questions against bottom-up filtering), which is what the bakeoff measured. The measured failure (§5.3) is in neither text's design block: it is the shape's last key.
 
 ### 5.3 Results (cloud, deepseek-chat, 12 cases × 2 candidates = 24 calls)
 
