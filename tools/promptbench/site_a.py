@@ -69,6 +69,10 @@ def build_world(case: Case, workdir: Path, *, catalogue) -> SiteAWorld:
     from production import folder_levels_for
 
     workdir.mkdir(parents=True, exist_ok=True)
+    # A world is rebuilt from the case every time and is never reused: a database
+    # left by an earlier run would make the second build collide on its own rows.
+    for leftover in workdir.glob(f"{case.case_id}.sqlite*"):
+        leftover.unlink()
     conn = open_database(workdir / f"{case.case_id}.sqlite")
     create_schema(conn)
     create_evidence_schema(conn)

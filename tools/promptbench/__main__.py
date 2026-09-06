@@ -164,6 +164,49 @@ def run_site(*, site: str, candidate_names: list[str], model_names: list[str],
     return out
 
 
+def rejudge_site(*, site: str, out: Path, log=print) -> int:
+    """Re-run the judge over every recorded response for a site, without a model.
+
+    The dossier is rebuilt from the case (deterministic), the stored response
+    bytes are judged again, and the record's judgement is replaced. This is how
+    a corrected reader or an extended expectation reaches numbers already paid
+    for; the request and response bytes are never touched.
+    """
+    cases = {case.case_id: case for case in cases_for(site)}
+    catalogue = _catalogue()
+    prepared_by_candidate: dict[str, dict] = {}
+    count = 0
+    for path in sorted((out / "calls" / site).rglob("*.json")):
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if record.get("error") or "response" not in record:
+            continue
+        candidate = load_candidate(site, record["candidate"])
+        key = (record["candidate"], record["case_id"])
+        if key not in prepared_by_candidate:
+            prepared_by_candidate[key] = _prepare(
+                cases[record["case_id"]], candidate, site=site, out=out,
+                catalogue=catalogue)
+        prepared = prepared_by_candidate[key]
+        judgement = judge(
+            prepared["case"], prepared["dossier"],
+            record["response"].encode("utf-8"), schema=candidate.response_schema(),
+            site_dependencies=prepared["site_dependencies"],
+            evidence_resolver=prepared["resolver"], contradicts=prepared["contradicts"],
+            conn=prepared["conn"], model_id=record["meta"]["model_id"],
+            prompt_fingerprint=record["prompt_fingerprint"])
+        record["judgement"] = judgement.as_dict()
+        record["rejudged_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+        path.write_text(json.dumps(record, indent=1, ensure_ascii=False),
+                        encoding="utf-8")
+        count += 1
+    for prepared in prepared_by_candidate.values():
+        if prepared["conn"] is not None:
+            prepared["conn"].close()
+    write_summary(out)
+    log(f"[{site}] re-judged {count} records under {out}")
+    return count
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="tools.promptbench", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -194,7 +237,14 @@ def main(argv: list[str] | None = None) -> int:
     tables.add_argument("--site", required=True)
     tables.add_argument("--out", type=Path, required=True)
 
+    rejudge = sub.add_parser("rejudge", help="re-run the judge over recorded responses")
+    rejudge.add_argument("--site", required=True)
+    rejudge.add_argument("--out", type=Path, required=True)
+
     args = parser.parse_args(argv)
+    if args.command == "rejudge":
+        rejudge_site(site=args.site, out=args.out)
+        return 0
     if args.command == "score":
         summary = write_summary(args.out)
         print(json.dumps(summary, indent=1))

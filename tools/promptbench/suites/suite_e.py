@@ -99,9 +99,11 @@ CASES = (
         [_excerpt("group:e04", "f-syl", "heading:1", "PHYS 1401 Syllabus - Spring 2026", "heading"),
          _excerpt("group:e04", "f-hw", "heading:1", "PHYS 1401 Homework 3 - Spring 2026", "heading"),
          _excerpt("group:e04", "f-exam", "heading:1", "PHYS 1401 Midterm - Spring 2026", "heading")],
-        {"must_include": ["subject", "work_type"], "must_exclude": ["term", "instructor"]},
+        {"must_include": ["work_type"], "must_exclude": ["term", "instructor", "subject"]},
         should_abstain=False,
-        notes="A level that produces one child is a meaningless level."),
+        notes="A level that produces one child is a meaningless level. Label corrected "
+              "after the first cloud run: every member is PHYS 1401, so `subject` is a "
+              "one-child level too and the model was right to leave it out."),
     _case(
         "E05", "a domain the library has no schema for", "Tom",
         ("00:97", "43:9"), "group:e05", "tabletop_games",
@@ -124,9 +126,12 @@ CASES = (
          _excerpt("group:e06", "f-manifest", "manifest:1", "package.json: name matcher, version 0.4.1", "manifest"),
          _excerpt("group:e06", "f-test", "title", "test_matcher.py", "title"),
          _excerpt("group:e06", "f-doc", "title", "docs/architecture.md", "title")],
-        {"must_include": ["repository"], "must_exclude": ["programming_language", "authored_by"]},
+        {"must_include": ["artifact_type"],
+         "must_exclude": ["programming_language", "authored_by", "repository", "project"]},
         should_abstain=False,
-        notes="A proposal may reference published fragments and may not publish one."),
+        notes="A proposal may reference published fragments and may not publish one. Label "
+              "corrected after the first cloud run: one repository and one project make "
+              "one-child levels; only the kind of artifact splits these files."),
     _case(
         "E07", "financial records where a person would be the collector", "Tom",
         ("00:97", "00:185"), "group:e07", "finance",
@@ -185,6 +190,9 @@ CASES = (
          _excerpt("group:e12", "f-2", "title", "thirdeye/detector.py", "title"),
          _excerpt("group:e12", "f-3", "title", "docs/README.md", "title"),
          _excerpt("group:e12", "f-4", "title", "config/settings.yaml", "title")],
-        {"must_include": ["repository"], "must_exclude": ["programming_language", "authored_by"]},
-        should_abstain=False),
+        {"must_include": ["artifact_type"],
+         "must_exclude": ["programming_language", "authored_by", "repository", "project"]},
+        should_abstain=False,
+        notes="Label corrected after the first cloud run for the same reason as E06: one "
+              "repository is a one-child level."),
 )

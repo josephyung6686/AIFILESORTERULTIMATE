@@ -112,6 +112,29 @@ def test_stress_tables_render_one_row_per_case_and_one_column_per_arm(tmp_path):
     assert c02.endswith("| — |")                   # not run: no cell
 
 
+def test_rejudge_recomputes_judgements_from_stored_responses_without_a_model(tmp_path):
+    from tools.promptbench.__main__ import rejudge_site
+
+    out = tmp_path / "out"
+    run_site(site=C_PLACEMENT, candidate_names=["walk"], model_names=["fake"],
+             out=out, case_ids=["C01"], clients={"fake": _fake_c_client},
+             ledger_path=tmp_path / "ledger.json", log=lambda *a: None)
+    path = out / "calls" / C_PLACEMENT / "walk" / "fake" / "C01.json"
+    record = json.loads(path.read_text())
+    record["judgement"] = {"tampered": True}       # a stale or wrong judgement
+    path.write_text(json.dumps(record))
+    calls = [0]
+
+    def never(payload):
+        calls[0] += 1
+        raise AssertionError("rejudge must not call a model")
+
+    assert rejudge_site(site=C_PLACEMENT, out=out, log=lambda *a: None) == 1
+    fresh = json.loads(path.read_text())
+    assert fresh["judgement"]["correct"] is True and "rejudged_at" in fresh
+    assert fresh["response"] == record["response"] and calls[0] == 0
+
+
 def test_run_site_a_builds_a_p6_world_and_swaps_the_glossary(tmp_path):
     out = tmp_path / "out"
     run_site(site=A_FACT, candidate_names=["ratified-glossary", "proposed-glossary"],

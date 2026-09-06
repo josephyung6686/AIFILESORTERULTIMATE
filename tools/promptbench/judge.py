@@ -245,9 +245,10 @@ def _read_a(case: Case, claims: list[dict]) -> tuple[dict, bool]:
             fields[key] = None
         else:
             fields[key] = payload.get("value")
-    expected = case.expect.get("fields", {})
-    abstained = all(fields.get(k, "MISSING") is None for k, v in expected.items()
-                    if v is None) if expected else False
+    # Abstained means the model proposed no value at all: every field it named
+    # was declined. A case that expects declines on every judged field is a
+    # should-abstain case, and this is the reading that matches it.
+    abstained = bool(fields) and all(value is None for value in fields.values())
     return {"fields": fields}, abstained
 
 
