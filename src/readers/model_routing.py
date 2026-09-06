@@ -52,7 +52,6 @@ from privacy.release import ModelTarget
 
 from readers.model_deepseek import CLOUD, PROVIDER, deepseek_invoke
 from readers.model_ollama import (
-    BASE_URL_NAME as LOCAL_BASE_URL_NAME,
     DEFAULT_BASE_URL as LOCAL_DEFAULT_BASE_URL,
     LOCAL,
     MODEL_NAME as LOCAL_MODEL_NAME,
