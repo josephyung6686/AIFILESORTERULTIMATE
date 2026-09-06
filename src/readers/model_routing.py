@@ -280,8 +280,14 @@ def ollama_routing(*, model_id: str | None, base_url: str | None,
             f"routed to a tier, so there is no tier for it to take. `83` §3's last "
             f"row refuses an unlisted site rather than inventing one for it. The "
             f"routed sites are {sorted(table)}.")
+    # THE WINDOW TRAVELS WITH THE TARGET, so §8.4's record of what the model was
+    # given says which window it was given it in. One number for the run, the same
+    # one `ollama_invoke` sends as `num_ctx` on every call, and
+    # `tests/readers/test_model_ollama.py` asserts the transport reports back the
+    # number the target carries rather than trusting that it does.
     target = ModelTarget(locality=LOCAL, model_id=model_id.strip(),
-                         provider=LOCAL_PROVIDER)
+                         provider=LOCAL_PROVIDER,
+                         context_tokens=context_ceiling)
     # ONE object under however many keys it ends up under. `transport.issue`
     # audits `model_target`, and two clients claiming one model would be two
     # descriptions of one destination in §8.4's record.

@@ -288,6 +288,31 @@ def test_the_audit_row_names_the_local_model_and_says_local(
         assert target["provider"] == "ollama", target
 
 
+def test_the_audit_row_names_the_window_the_model_was_actually_given(
+        tmp_path, stub, monkeypatch):
+    """§8.4 audits what the model was GIVEN, and the window is part of what it was
+    given: ollama truncates a prompt that will not fit and says nothing, so two
+    runs over one file under different windows are two different questions and
+    only one of them was asked.
+
+    THE ASSERTION IS THAT THE ROW IS TRUE, not that the row exists. The number is
+    read out of `release_ledger.model_target` and compared against the `num_ctx`
+    that actually went over the wire, because a record naming a window the request
+    did not carry would describe a call that never happened, in the one place a
+    person or a replay has to trust."""
+    database, _ = _local_run(tmp_path, stub, monkeypatch)
+
+    targets = [json.loads(row[0]) for row in
+               _query(database, "SELECT model_target FROM release_ledger")]
+    sent = {request["options"]["num_ctx"] for request in stub.requests}
+
+    assert targets
+    assert sent == {cli.LOCAL_CONTEXT_CEILING}
+    for target in targets:
+        assert target["context_tokens"] == cli.LOCAL_CONTEXT_CEILING, target
+        assert {target["context_tokens"]} == sent, target
+
+
 def test_the_request_carries_thinking_off_and_a_window(tmp_path, stub, monkeypatch):
     """`104` R-18 and the truncation finding, asserted where they are observable:
     on the bytes that actually left for the model."""

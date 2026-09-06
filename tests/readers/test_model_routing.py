@@ -15,16 +15,19 @@ from __future__ import annotations
 
 import ast
 import inspect
+import json
 import pathlib
 
 import pytest
 
 from llm_harness.transport import ModelClient
 from llm_harness.vocabulary import A_FACT, B_GROUP, C_PLACEMENT, D_RESIDUAL, E_TEMPLATE
-from privacy.release import LOCALITIES, ModelTarget
+from privacy.release import LOCALITIES, MalformedRequest, ModelTarget
 from questions.proposal import REASONING_TIER
 from readers.model_deepseek import CLOUD, PROVIDER
 from readers.model_ollama import LOCAL, MODEL_NAME as LOCAL_MODEL_NAME
+from readers.model_ollama import DEFAULT_BASE_URL as LOCAL_DEFAULT_BASE_URL
+from readers.model_ollama import ollama_invoke
 from readers.model_ollama import PROVIDER as LOCAL_PROVIDER
 from readers.model_routing import (
     FAST,
@@ -386,3 +389,92 @@ def test_the_local_locality_is_p7s_own_value_and_not_a_second_spelling():
     """`Gate.release` decides by `model_target.locality`. A second string that
     happened to look the same would be authorized by nothing."""
     assert LOCAL == LOCALITIES[0]
+
+
+# --- the window, in the row that says what the model was given ----------------
+
+def test_the_local_target_carries_the_window_the_audit_record_needs():
+    """§8.4 audits what the model was given, and for a local model the window is
+    part of that: the same dossier under two windows is not the same question,
+    because a window that does not hold the prompt is answered from what fits.
+
+    It rides on the TARGET rather than on a record of one call because it is a
+    deployment fact and behaves like one -- ollama holds one context length per
+    loaded model, so the number is fixed for the life of the run and every call
+    in that run is given it. `binding._target_form` serialises the target into
+    `release_ledger.model_target`, so putting it here is what puts it in the row
+    beside the model id, the locality and the provider."""
+    target = _local(context_ceiling=32768).client_for(A_FACT).model_target
+
+    assert target.context_tokens == 32768
+    assert target.to_mapping() == {
+        "locality": LOCAL, "model_id": "qwen3:8b",
+        "provider": LOCAL_PROVIDER, "context_tokens": 32768}
+
+
+def test_the_number_in_the_row_is_the_number_the_request_carries():
+    """THE ROW HAS TO BE TRUE, which is a different claim from the row existing.
+
+    A window recorded beside the model id is read as a statement of fact about
+    what the model was shown. If the target said one number and `num_ctx` sent
+    another, the audit record would describe a call that never happened, and it
+    would do so in the one place a person or a replay has to trust. So the two
+    are asserted to be one number rather than two that happen to agree today."""
+    captured: dict[str, object] = {}
+
+    def post(url, body, *, timeout):
+        captured["body"] = json.loads(body)
+        return json.dumps({
+            "model": "qwen3:8b", "message": {"role": "assistant", "content": "{}"},
+            "done": True, "done_reason": "stop", "prompt_eval_count": 8,
+        }).encode("utf-8")
+
+    target = ModelTarget(locality=LOCAL, model_id="qwen3:8b",
+                         provider=LOCAL_PROVIDER, context_tokens=4096)
+    invoke = ollama_invoke(model_target=target, base_url=LOCAL_DEFAULT_BASE_URL,
+                           max_response_tokens=256, context_ceiling=4096,
+                           timeout_seconds=30.0, post=post)
+    invoke(b"a dossier")
+
+    assert captured["body"]["options"]["num_ctx"] == target.context_tokens
+    assert invoke.context_tokens == target.context_tokens
+
+
+def test_a_cloud_target_stores_the_three_keys_it_has_always_stored():
+    """THE UNCHANGED HALF, pinned. A provider's window is the provider's and not
+    this deployment's, so a cloud target names none -- and the stored form omits
+    the key entirely rather than writing a null, which is what keeps every row
+    this ledger already holds the same bytes it was written as."""
+    target = _routing(table=LOCAL_TABLE).client_for(A_FACT).model_target
+
+    assert target.context_tokens is None
+    assert target.to_mapping() == {
+        "locality": CLOUD, "model_id": "a-logician", "provider": PROVIDER}
+
+
+def test_the_ledger_stores_the_targets_own_form_and_not_a_second_one():
+    """One spelling of the stored form. `binding._target_form` used to serialise
+    every dataclass field whether or not it held anything, so an optional field
+    on `ModelTarget` would have added a null key to every cloud row in the ledger
+    without a line of `binding.py` changing. The target says how it is stored and
+    both readers ask it."""
+    from privacy.binding import _target_form
+
+    local = _local().client_for(A_FACT).model_target
+    cloud = _routing(table=LOCAL_TABLE).client_for(A_FACT).model_target
+
+    assert json.loads(_target_form(local)) == local.to_mapping()
+    assert json.loads(_target_form(cloud)) == cloud.to_mapping()
+    assert "context_tokens" not in json.loads(_target_form(cloud))
+
+
+@pytest.mark.parametrize("window", [0, -1, True, 2.5, "32768"])
+def test_a_window_that_could_not_have_been_sent_is_refused(window):
+    """A number that could not have been a `num_ctx` makes the audit record false
+    where it is written, and the record is the product's own evidence about what
+    happened to someone's file. `84` §1: absent means refuse, never guess --
+    `None` is how a target says it has no window of ours to state, and anything
+    else is a load error rather than a value to be stored and believed."""
+    with pytest.raises(MalformedRequest, match="context_tokens"):
+        ModelTarget(locality=LOCAL, model_id="qwen3:8b",
+                    provider=LOCAL_PROVIDER, context_tokens=window)
