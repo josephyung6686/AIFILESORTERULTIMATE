@@ -158,6 +158,20 @@ class OllamaUnavailable(RuntimeError):
     """The local model could not be reached, so no call happened."""
 
 
+class OllamaRanOutOfTime(OllamaUnavailable):
+    """The model was asked, worked, and did not finish inside our patience.
+
+    A SUBCLASS BECAUSE THE HANDLING IS THE SAME AND THE SENTENCE IS NOT. Either
+    way there is no answer and P8 records `client_raised`, so nothing downstream
+    needs to tell them apart. But "no call was made" is FALSE here: the request
+    reached the model and the model spent real time on it -- measured at about
+    170 seconds a file on `qwen3:8b`, which is close enough to any patience worth
+    setting that this is an ordinary outcome rather than a broken install. A
+    person told to run `ollama serve` when ollama is already running and working
+    has been sent to fix the one thing that is not wrong.
+    """
+
+
 class OllamaContextExceeded(RuntimeError):
     """The dossier will not fit the window, so it was not sent to be truncated."""
 
@@ -331,7 +345,29 @@ def ollama_invoke(*, model_target: "ModelTarget", base_url: str | None,
             raw = post(url, body, timeout=timeout_seconds)
         except OllamaUnavailable:
             raise
+        except TimeoutError as problem:
+            # THE MODEL WAS ASKED AND IS STILL THINKING, which is not the same as
+            # a model that is not there, and telling a person to start a server
+            # that is already running would send them to fix the thing that works.
+            raise OllamaRanOutOfTime(
+                f"the local model at {endpoint} was asked and had not answered "
+                f"after {timeout_seconds:g} seconds, so this run stopped waiting "
+                f"({problem}). The call HAPPENED -- ollama is running and was "
+                f"working -- and no answer came back, so nothing was decided on "
+                f"the strength of a judgement that was never finished. A bigger "
+                f"model on a busy machine is the ordinary cause; raise the "
+                f"deployment's patience or name a smaller model."
+            ) from problem
         except Exception as problem:  # transport failure of any kind
+            # A read timeout can also arrive wrapped, and what it MEANS does not
+            # change with the wrapper it arrived in.
+            if isinstance(getattr(problem, "reason", None), TimeoutError):
+                raise OllamaRanOutOfTime(
+                    f"the local model at {endpoint} was asked and had not "
+                    f"answered after {timeout_seconds:g} seconds, so this run "
+                    f"stopped waiting ({problem}). The call HAPPENED and no "
+                    f"answer came back."
+                ) from problem
             raise OllamaUnavailable(
                 f"the local model at {endpoint} could not be reached ({problem}). "
                 f"Start it with `ollama serve`. No call was made, so nothing was "

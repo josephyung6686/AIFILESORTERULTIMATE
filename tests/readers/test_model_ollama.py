@@ -22,7 +22,8 @@ from privacy.release import ModelTarget
 from readers.model_ollama import (
     CONTEXT_GRANULARITY, LOCAL, PROVIDER, DEFAULT_BASE_URL,
     ModelVisibleBytesNotText, NoAnswerFromModel, OllamaContextExceeded,
-    OllamaUnavailable, TargetIsNotThisTransport, ollama_invoke,
+    OllamaRanOutOfTime, OllamaUnavailable, TargetIsNotThisTransport,
+    ollama_invoke,
 )
 
 TARGET = ModelTarget(locality="local", model_id="qwen3:8b", provider="ollama")
@@ -357,3 +358,58 @@ def test_a_deployment_with_no_response_ceiling_refuses_to_be_built():
 def test_bytes_that_are_not_text_are_refused_rather_than_repaired():
     with pytest.raises(ModelVisibleBytesNotText):
         _invoke({})(b"\xff\xfe not utf-8")
+
+
+def test_a_model_that_ran_out_of_time_is_not_told_to_start_the_server():
+    """"No call was made" is TRUE of a refused connection and FALSE of a timeout,
+    and the difference is what a person does next.
+
+    Measured 2026-09-05: one A_fact call on `qwen3:8b` takes about 170 seconds --
+    close enough to any patience worth setting that running out of it is an
+    ordinary outcome, not a broken install. A person told to run `ollama serve`
+    when ollama is already running and working has been sent to fix the one thing
+    that is not wrong.
+
+    Still an `OllamaUnavailable` by inheritance, because the HANDLING is identical:
+    there is no answer, P8 records `client_raised`, and nothing downstream has to
+    tell the two apart. Only the sentence changes."""
+    def slow(url, body, *, timeout):
+        raise TimeoutError("timed out")
+
+    with pytest.raises(OllamaRanOutOfTime, match="had not answered"):
+        _invoke({}, post=slow)(b"x")
+    try:
+        _invoke({}, post=slow)(b"x")
+    except OllamaRanOutOfTime as refusal:
+        assert "ollama serve" not in str(refusal)
+        assert "call HAPPENED" in str(refusal)
+
+
+def test_a_timeout_that_arrived_wrapped_means_the_same_thing():
+    """`urllib` reports a read timeout as the `reason` of a `URLError` on some
+    paths and raises it bare on others. What it means does not change with the
+    wrapper it arrived in."""
+    class Wrapped(OSError):
+        def __init__(self):
+            super().__init__("urlopen error")
+            self.reason = TimeoutError("timed out")
+
+    def slow(url, body, *, timeout):
+        raise Wrapped()
+
+    with pytest.raises(OllamaRanOutOfTime):
+        _invoke({}, post=slow)(b"x")
+
+
+def test_a_refused_connection_still_says_no_call_was_made():
+    """The negative twin. Nothing is listening, nothing was asked, and `ollama
+    serve` is exactly the right instruction."""
+    def refuse(url, body, *, timeout):
+        raise ConnectionRefusedError("nothing listening")
+
+    try:
+        _invoke({}, post=refuse)(b"x")
+    except OllamaUnavailable as refusal:
+        assert "ollama serve" in str(refusal)
+        assert "No call was made" in str(refusal)
+        assert not isinstance(refusal, OllamaRanOutOfTime)
