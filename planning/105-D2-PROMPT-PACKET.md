@@ -21,6 +21,8 @@ python3 -m tools.promptbench score --out tools/promptbench/out/C_placement
 
 and the same for `D_residual` (`ladder,shelves`), `B_group` (`four-questions,anchors-first`), `E_template` (`from-facts,what-a-person-opens`) and `A_fact` (`ratified-glossary,proposed-glossary`). `--dry-run` builds every dossier and prints its size and `num_ctx` without a call; `dossier --site S --case ID --candidate NAME` prints the exact model-visible bytes. Raw requests, responses, verdicts, latencies, tokens and `num_ctx` are one JSON per call under `tools/promptbench/out/<site>/calls/`, ignored by git (`tools/promptbench/.gitignore`); the per-site `summary.md` tables are copied into this document. The cloud call ledger is `tools/promptbench/out/cloud_ledger.json`, one file for the whole bakeoff, spent before each socket opens, cap 400. The cloud arm is `deepseek-chat` at temperature 0 (recorded per call; the product sets none, §7 G13) with no `response_format`; the local arm is `qwen3:8b` through `readers/model_ollama.py` with `think: false`, `num_ctx` set per call (16,384 for every case here) and `prompt_eval_count` recorded beside it, temperature 0, seed 1, `format: json`, `num_predict` 4,096. Every case is synthetic; no owner file, filename or dossier reached either model.
 
+**One stated deviation from `103` §28.1 step 4.** Step 4 names `.groundtruth/corpus` as the labelled corpus for C and D. This packet ran no corpus arm: the owner's corpus is personal data, the coordinator's constraint for this wave was that no owner file, dossier or filename reaches a cloud model and the local model sees real dossiers only through the product's own gate, and the C and D builders do not yet emit the profiles the texts describe (G3), so a corpus request today would offer the model identifiers it cannot read. The synthetic suites carry the corpus's failure mechanisms instead (`104` §11.1: C14, C16, A01, A02, A04, B08, E03) and §9 item 3 is the path to the corpus arm once G3 exists in some form. Until it runs, no number here is a `SORTING exact` number.
+
 ## 1. A_fact — the `school` and `subject` glossary entries (fix-chain step 1)
 
 ### 1.1 Requirements, traced
@@ -214,6 +216,9 @@ G1 (conflict ids keyed on the wire, compared raw — C06 measured), G2 (R-15, a 
 
 Ratify **eliminate** (`c_placement.unratified.eliminate.2026-09-06`), its response schema and shaping policy, **conditional on**: (a) the builder change G3 (candidate profiles as `candidate` items; accepted groups as `accepted_group` items) that the text describes; (b) G1 fixed or C wired with `conflicts=()` until it is; (c) a decision on G6 — keep `support`/`next_support` as whole-number citation counts with the tie-means-none rule, or drop the two-condition rule from the model path. And authorise a v2 measurement (the shared-branch sentence and the group-is-not-a-citation sentence) before the text is installed.
 
+
+**The two known limits, stated the way `82` §0 states S1 and S2.** S1, what the text cannot catch: a placement that is grounded, cited and wrong — the model choosing a sibling folder that the same quoted span also fits (C05's shared branch, C07's own-folder child). Nothing in the wording prevents it; only the person's confirmation does, and the text is written so that the model's `alternatives` and `refinement` name the case. S2, what the validator catches instead: an identifier not on the list, a citation that does not resolve or whose span is not in the value, a level marked with a third support word, an unechoed conflict id, a malformed object. G1 and G6 are the two places where the validator catches a correct answer.
+
 ## 3. D_residual
 
 ### 3.1 Requirements, traced
@@ -321,6 +326,9 @@ G1 (relationship ids keyed vs raw — D08 measured), G3 (no area profiles), G5 (
 
 Ratify **ladder** (`d_residual.unratified.ladder.2026-09-06`), its response schema and shaping policy, conditional on the same builder change as C (area and branch profiles as items, G3), on G8's reading (a return names the branch built from the group), and on G1 being fixed or D wired with `conflicts=()`; and confirm that `residual_action_of` reads the eight actions from the response payload (G7).
 
+
+**The two known limits.** S1, what the text cannot catch: a wrong destination among valid ones when the text says nothing that distinguishes two approved areas (D02 is the measured instance: a boarding pass is both transactional and a travel confirmation, and the text can only say which reading `00`:125 prefers). S2, what the validator catches: a ninth action, a target off the list or containing a slash, an unresolved citation, an unechoed relationship id, a numeric support key, a malformed object. G1 and G5 are where the validator catches or fails to catch the wrong thing.
+
 ## 4. B_group
 
 ### 4.1 Requirements, traced
@@ -426,6 +434,9 @@ G4 (no authorities constructed; `allowed_vocabulary` undefined), G9 (the seam ca
 
 Ratify **anchors-first** (`b_group.unratified.anchors-first.2026-09-06`), its response schema and shaping policy, conditional on the seam change G9 that the text describes and on `allowed_vocabulary` being defined as the situation ids (G4); wire it observe-only until P9 reads the label, the category and the per-member decisions (G11). Authorise a v2 measurement carrying the B03 sentence and a payload whose last key is a scalar (G13).
 
+
+**The two known limits.** S1, what the text cannot catch: a coherent-looking group whose anchors do state one thing in common that is nonetheless not how the person thinks of the files (a purpose-coherent packet the person keeps by course, or the reverse); the label is a proposal for exactly that reason, `00`:64. S2, what the validator catches: a file id not in the dossier, a label without coherence, a merged term, a folder or hierarchy key, an uncited member decision, a malformed object; and not the category (G4) or the per-member decisions once P9 drops them (G11).
+
 ## 5. E_template
 
 ### 5.1 Requirements, traced
@@ -526,6 +537,9 @@ G10 (no channel for the schema id, the parent's expressed value, the sensitivity
 ### 5.6 The ratification question
 
 Not yet. Authorise a v2 of **what-a-person-opens** with the payload reordered to end on a scalar, measured on the same 12 cases, and decide G13 at the transport; E has no live caller (G12), so nothing is lost by the wait.
+
+
+**The two known limits.** S1, what the text cannot catch: a design that passes the five tests and is still not how the person would look for a file; `00`:97 makes the canvas the judge and the text says so. S2, what the validator catches: a borrowed field key, a dimension without a citation, a level without a justification, a published fragment, a missing payload key, a malformed object; and not the one-child rule, the parent repetition or an author used as a collector, which are semantic (E-R5) and reach the person's canvas unflagged.
 
 ## 6. Research applied across the five sites, with citations
 
