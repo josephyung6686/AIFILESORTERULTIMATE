@@ -33,14 +33,12 @@ import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
-from facts.read_surface import PROPOSAL_ELIGIBLE_STATES
-from facts.states import strength
-
 from tree_design.config import ConfigurationRequired
 from tree_design.records import ExpectedValue, Node, derive_accepts_placement
 from tree_design.routing import CompositionCandidate
 from tree_design.upstream import (
     GroupMember,
+    anchors_a_level,
     preferred_value_for,
     resolve_role_to_field,
 )
@@ -227,9 +225,10 @@ def materialise_branch(
         labels: dict[str, str] = {}
         classes_by_value: dict[str, set[str]] = {}
         missing: set[str] = set()
-        #: The strongest reliability any member gave each value, which is what
-        #: `_unanchored_single_values` needs and `by_value` cannot say.
-        strongest: dict[str, int] = {}
+        #: Whether ANY member stated each value strongly enough to anchor a level
+        #: on its own, which is what `_unanchored_single_values` needs and
+        #: `by_value` cannot say.
+        anchored: dict[str, bool] = {}
         for member in members:
             if local:
                 # A group id is the child's identity and the group's own label is
@@ -250,12 +249,22 @@ def materialise_branch(
                 continue
             by_value.setdefault(settled.canonical_value, set()).add(member.file_id)
             labels.setdefault(settled.canonical_value, settled.display_label)
-            strongest[settled.canonical_value] = max(
-                strongest.get(settled.canonical_value, -1),
-                strength(settled.reliability))
+            anchored[settled.canonical_value] = (
+                anchored.get(settled.canonical_value, False)
+                or anchors_a_level(settled.reliability))
             classes_by_value.setdefault(settled.canonical_value, set()).add(
                 classes[member.file_id])
-        for value in _unanchored_single_values(by_value, strongest):
+        # NOT ON A TEMPLATE-LOCAL LEVEL, and the exemption is the rule's own
+        # premise rather than a special case. That level's children ARE accepted
+        # groups (Contract W4.2-4.3): the loop above `continue`s past
+        # `preferred_value_for` for it, so no value there has a reliability to
+        # weigh, and there is no fact for `00`:42's sentence to be about. Reading
+        # the absent reliability as "unanchored" deleted a one-group level
+        # outright, which `test_a_template_local_level_reaches_materialisation_
+        # without_calling_c2` caught: a novel domain whose whole tree is one
+        # accepted group is exactly the case that has one member and no fact.
+        stopped = () if local else _unanchored_single_values(by_value, anchored)
+        for value in stopped:
             # NOT A LEVEL, AND NOT A LOSS EITHER. The value stays on the file as
             # P6 wrote it and the file becomes unresolved AT THIS LEVEL, which is
             # §5.11's own state ("a tree can be accepted even if some files remain
@@ -287,7 +296,7 @@ def materialise_branch(
 
 
 def _unanchored_single_values(by_value: Mapping[str, set[str]],
-                              strongest: Mapping[str, int]) -> tuple[str, ...]:
+                              anchored: Mapping[str, bool]) -> tuple[str, ...]:
     """Values ONE file offered, on a model's word, with nothing behind them.
 
     `00`:42: a model output "that is useful but too weak to establish a fact may
@@ -325,14 +334,16 @@ def _unanchored_single_values(by_value: Mapping[str, set[str]],
 
     NO THRESHOLD IS INTRODUCED AND NO STATE IS SPELLED. "More than one" is not a
     tuned band -- it is the difference between a value and a single utterance --
-    and the anchor bar is read off P6's own ladder through
-    `PROPOSAL_ELIGIBLE_STATES[0]`, the weakest state a folder proposal may rest
-    on. Nothing here names a field, a word or a value.
+    and the anchor bar is `upstream.anchors_a_level`, read off P6's own ladder at
+    P10's declared seam onto it. Nothing here names a field, a word or a value.
+
+    NOT CALLED FOR A TEMPLATE-LOCAL LEVEL. Its children are accepted groups and
+    carry no reliability at all, so there is no fact for `00`:42's sentence to be
+    about; the caller holds that guard and states why.
     """
-    floor = strength(PROPOSAL_ELIGIBLE_STATES[0])
     return tuple(
         value for value, files in by_value.items()
-        if len(files) == 1 and strongest.get(value, floor) <= floor)
+        if len(files) == 1 and not anchored.get(value, False))
 
 
 def _label_of(level: LevelEvidence) -> str:

@@ -29,6 +29,7 @@ it is applied at every level alike.
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
@@ -45,7 +46,9 @@ from grouping.vocabulary import DIRECT_ANCHOR
 from tree_design.materialise import materialise_branch
 from tree_design.routing import CompositionCandidate, ResolvedDimension
 from tree_design.upstream import GroupMember
-from tree_design.vocabulary import ACTION_SELECTED, SCOPE_SCHEMA_FIELD
+from tree_design.vocabulary import (
+    ACTION_SELECTED, SCOPE_SCHEMA_FIELD, SCOPE_TEMPLATE_LOCAL,
+)
 
 CLOCK = "2026-08-27T00:00:00+00:00"
 ONE_CLASS = lambda member: "personal_non_sensitive"
@@ -237,6 +240,41 @@ def test_one_unanchored_value_does_not_take_its_anchored_neighbour_with_it(seede
     assert evidence.levels[0].values == ("E1006",)
     assert evidence.unresolved_by_field["subject"] == frozenset(
         {seeded.file_id("guide")})
+
+
+def test_a_template_local_level_of_one_group_is_not_touched(seeded):
+    """THE CASE THE FIRST DRAFT DELETED, and it is the rule's own premise.
+
+    A template-local level's children ARE accepted groups (Contract W5,
+    W4.2-4.3): it has no P6 field, `_project` never asks `preferred_value_for`
+    for it, and no value there has a reliability to weigh. The first draft read
+    that absent reliability as "unanchored" and dropped any such level with one
+    group — which is the novel-domain path whose whole tree is one accepted
+    group, exactly the shape that has one member and no fact.
+    `test_a_template_local_level_reaches_materialisation_without_calling_c2` and
+    its sibling in `test_p10_materialise.py` caught it; this keeps the case in the
+    suite that owns the rule.
+    """
+    seeded.fact("matter", "subject", "E1006", VALIDATED)
+    member = seeded.members("matter")
+    candidate = _candidate(("subject", "subject"), ("matter_number", None))
+    candidate = dataclasses.replace(
+        candidate,
+        resolved_dimensions=(
+            candidate.resolved_dimensions[0],
+            dataclasses.replace(candidate.resolved_dimensions[1],
+                                field_ref=None, scope=SCOPE_TEMPLATE_LOCAL)))
+
+    _, evidence = materialise_branch(
+        seeded.conn, candidate, branch_node_id="n_academics", members=member,
+        ancestor_field_refs=(), ancestor_depth=0,
+        handling_class_for_member=ONE_CLASS,
+        protected_handling_classes=PROTECTED_CLASSES,
+        group_label_for_member=lambda m: ("g_matter", "Matter 1"))
+
+    assert evidence.levels[1].values == ("g_matter",), (
+        "a level whose children are accepted groups was deleted by a rule about "
+        "how strongly a FACT was stated, and it has no facts")
 
 
 def test_a_second_file_stating_it_more_strongly_anchors_the_first(seeded):
