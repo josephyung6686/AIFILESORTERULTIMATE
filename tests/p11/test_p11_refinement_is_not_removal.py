@@ -211,6 +211,62 @@ def test_a_tied_rival_somewhere_else_still_loses_to_staying_put():
     assert result.stays_put is True
 
 
+def test_a_level_inside_the_persons_folder_beats_a_tied_level_outside_it():
+    """THE TIE THE FULL-CORPUS RUN ACTUALLY RECORDED, and the folder the file is
+    in is not one of its two sides.
+
+    `tests/test_cli.py`'s xfail on `test_the_lectures_get_a_folder_of_their_own_
+    inside_the_folder_they_are_in` reads the mechanism out of a treatment
+    database for `lecture01_introduction.ipynb`: support 0.714 on BOTH of
+
+        `Coursework/.../Spring2023/lecture`   proposed
+        `Desktop/Python 1006/lecture`         proposed
+
+    and the file abstained between them. A level built under an adopted folder is
+    a `proposed` node with no `existing_path`, so it has none of its parent's
+    standing -- neither side is a folder the person made, `_staying_put_wins_a_
+    tie` saw no candidate the file was already in, and the note ends "that is the
+    thing to solve before designing adopted branches again".
+
+    IT IS SOLVED HERE AND THE TEST ABOVE DOES NOT REACH IT. That one ties the
+    child against its own PARENT, which is the tie R-48 names; this one ties two
+    strangers, and the exemption still applies because `refined` is read over
+    every tied candidate rather than only when the parent is among them. One of
+    the two lies inside the folder this file is already sitting in and the other
+    does not, and that is a difference §6.9 does not have to arbitrate: it is not
+    a choice between two institutions, it is where staying leads against
+    somewhere else.
+
+    THE TREE STILL BUILDS NO SUCH LEVEL, so the xfail stays xfailed and stays
+    strict. What this pins is that the placement half no longer refuses the
+    answer when the level exists.
+    """
+    rival_parent = "n-coursework-spring2023"
+    rival = "n-coursework-spring2023-lecture"
+    parents = dict(PARENT_OF, **{rival_parent: None, rival: rival_parent})
+    retrieval = _retrieval(_candidate(rival), _candidate(CHILD))
+    theirs = frozenset({OWN, ELSEWHERE})
+
+    abstained = assess(retrieval, {}, policy=POLICY,
+                       their_own_folder_node_ids=theirs)
+    assert abstained.scored[0].node_id == rival, (
+        "the baseline this test measures against is not the one the run "
+        "recorded: the level outside the person's folder has to be the one that "
+        "wins without the exemption, or nothing below is about the exemption")
+
+    result = assess(retrieval, {}, policy=POLICY,
+                    their_own_folder_node_ids=theirs,
+                    refinements=_refinements_of(OWN, parents, (CHILD, rival)))
+
+    assert result.scored[0].node_id == CHILD, (
+        "two proposed levels tied, one of them inside the folder this file is "
+        "already in, and the run still could not tell them apart")
+    assert result.stays_put is False, (
+        "a file that went deeper inside its own folder was recorded as having "
+        "stayed put, which tells `needs_model_call` the opposite of what "
+        "happened")
+
+
 def test_two_tied_refinements_leave_the_file_at_the_parent():
     """WHEN THE DEEPER LEVEL CANNOT BE TOLD APART, THE APPROVED SHALLOWER PATH
     WINS -- which is `00`:111's own answer and not a gap in this rule.
