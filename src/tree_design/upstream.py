@@ -362,6 +362,17 @@ class FieldValue:
     field_ref: str
     canonical_value: str
     display_label: str
+    #: P6's own reliability state for the fact this value came from. Carried
+    #: rather than dropped because `00`:42 turns on it: a model output "too weak
+    #: to establish a fact may remain a possible clue for review; it must not
+    #: quietly become a folder proposal". `PROPOSAL_ELIGIBLE_STATES` admits the
+    #: whole ladder above `possible`, which is the right bar for a value SEVERAL
+    #: files carry and too low for one file saying something once --
+    #: `materialise._project` is where that difference is applied and carries the
+    #: measurement. Defaulted to the weakest admissible state so a caller that
+    #: builds a `FieldValue` without one gets the cautious answer rather than a
+    #: silent promotion.
+    reliability: str = PROPOSAL_ELIGIBLE_STATES[0]
 
 
 def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
@@ -399,6 +410,7 @@ def preferred_value_for(conn: sqlite3.Connection, *, file_id: str,
         field_ref=field_ref,
         canonical_value=row["canonical_value"],
         display_label=row["display_label"] or row["canonical_value"],
+        reliability=row["reliability_state"],
     )
 
 
