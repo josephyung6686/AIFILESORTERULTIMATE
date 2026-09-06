@@ -122,13 +122,16 @@ def test_a_residual_send_is_recorded_as_a_review_action(tmp_path):
 
 
 # --- 103 §18 C7: the dossier token cap is asserted, never measured ------------------
+#
+# CLOSED 2026-09-07 (`104` §7 Phase 1 step 1, SF-5). Both markers removed in the
+# commit that fixed them. `cli._bootstrap` now seeds
+# `model.max_dossier_tokens_per_call` at `GROUPING_LIMITS.max_dossier_tokens`, and
+# `cli.fact_call_authorities` supplies `measure_tokens`, so `over_dossier_ceiling`
+# can fire and `model_facts._call_dependencies` measures `unreduced_fits` instead
+# of asserting it. `tests/integration/test_cli_dossier_ceiling_is_measured.py`
+# carries the rest of the property, including the deferral rung.
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C7: `_bootstrap` seeds every placement ceiling with CEILING_VALUE "
-           "(8), including `model.max_dossier_tokens_per_call`, while every request "
-           "carries GROUPING_LIMITS.max_dossier_tokens (4000). Two answers to one "
-           "ceiling.")
+
 def test_the_stored_dossier_ceiling_matches_the_one_requests_carry(conn):
     from database_agent.budget import get_ceiling
 
@@ -137,11 +140,6 @@ def test_the_stored_dossier_ceiling_matches_the_one_requests_carry(conn):
     assert stored == cli.GROUPING_LIMITS.max_dossier_tokens
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="103 C7: `cli.fact_call_authorities` builds the gate with no "
-           "`measure_tokens`, so `over_dossier_ceiling` never runs and "
-           "`model_facts._call_dependencies` asserts `unreduced_fits=True` unmeasured.")
 def test_the_a_fact_gate_measures_dossier_tokens(conn):
     from production import (
         folder_levels_for, load_shipped_catalogue, read_packaged_library_file,
