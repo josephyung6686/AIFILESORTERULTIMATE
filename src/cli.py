@@ -57,7 +57,9 @@ from database_agent.cloud_consent import (
     DISABLED, ENABLED, CloudConsent, cloud_consent_for, record_cloud_consent,
 )
 from database_agent.db import DatabaseInsideCorpus, open_database
-from database_agent.files_table import get_file
+from database_agent.files_table import (
+    PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
+)
 from extractors.image import PERCEPTUAL_HASH_FIELD
 from extractors.reading import StructuredString
 from extractors.structured_text import EXTRACTOR_NAME as STRUCTURED_EXTRACTOR
@@ -4709,9 +4711,18 @@ def apply_rejections(conn: sqlite3.Connection, rejections: Sequence[str], *,
         # screen said it worked. A gesture that acts on something other than
         # what was named is worse than one that stops and asks -- the same
         # ruling a bare label for a split review set gets.
+        #
+        # EVERY row P1 HAS NOT RETIRED (R-25). Two versions of one file are not
+        # two files, and the refusal below could not tell them apart: a file
+        # edited between runs left the old row at the SAME path, so `--reject`
+        # refused with "names 2 files" and offered the person the identical path
+        # twice as the way to say which one they meant. `84` §6 -- what the screen
+        # tells a person to type has to be true, and there was no way to type it.
         rows = conn.execute(
             "SELECT file_id, content_hash, current_path FROM files "
-            "WHERE filename = ? ORDER BY current_path", (filename,)).fetchall()
+            "WHERE filename = ? AND scan_state NOT IN (?, ?) "
+            "ORDER BY current_path",
+            (filename, SUPERSEDED_CONTENT, PATH_NO_LONGER_EXISTS)).fetchall()
         if not rows:
             raise RejectionRefused(
                 f"{filename!r} is not a file in this plan. Run the command without "
@@ -5114,10 +5125,22 @@ def file_names(conn: sqlite3.Connection, *roots: Path) -> dict[str, str]:
 
     Nothing inside a protected container appears here, and not by omission: P3
     never walks into one, so no `files` row for its interior exists to read.
+
+    NOR A VERSION P1 HAS RETIRED (R-25). A file edited between two runs leaves the
+    old row `superseded_content` at the SAME path, so this map held two ids for
+    one name and every screen built on it counted the person's four files as five.
+    `84` §1 is not broken by leaving the ghost out: a superseded version is not
+    material the person has, so there is nothing here to mark or count.
+
+    P1's two sentinels by name, never "not the scanned value" -- `scan_state` is
+    P3's column and most of its vocabulary means the file is present.
     """
     ordered = sorted(roots, key=lambda root: len(Path(root).parts), reverse=True)
     names: dict[str, str] = {}
-    for row in conn.execute("SELECT file_id, current_path FROM files"):
+    for row in conn.execute(
+            "SELECT file_id, current_path FROM files "
+            "WHERE scan_state NOT IN (?, ?)",
+            (SUPERSEDED_CONTENT, PATH_NO_LONGER_EXISTS)):
         path = Path(row["current_path"])
         names[row["file_id"]] = str(path)
         for root in ordered:

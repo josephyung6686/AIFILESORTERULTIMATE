@@ -26,7 +26,9 @@ from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
 from database_agent.db import create_schema
-from database_agent.files_table import get_file
+from database_agent.files_table import (
+    PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
+)
 from eval_harness.driver import EvaluationRun, evaluate_bundle
 from eval_harness.store import create_eval_schema
 from evidence_shape.schema import create_evidence_schema
@@ -708,13 +710,30 @@ def corpus_roster(conn: sqlite3.Connection,
 
     Nothing inside a protected container is here, because P3 never wrote a `files`
     row for one. That is the marking; the counting is `TreeDesignResult`'s.
+
+    NOR A VERSION P1 HAS RETIRED (R-25). A verdict names the file id the scan
+    resolved a path to, and a path whose bytes changed resolves to a NEW row while
+    the old one becomes `superseded_content`; a path that has gone leaves its row
+    `path_no_longer_exists`. Neither is a file this run can plan over -- `00`:135
+    makes new content a new version rather than an edit of the old one -- and a
+    plan naming one is a plan to move bytes that are not on the disk.
+
+    P1's two sentinels, not "everything that is not the scanned value". The
+    column is P3's vocabulary and holds `scanned`, `unscanned` and `pending` as
+    well; retiring a row for carrying one of those would drop live files on a word
+    P3 uses to mean the opposite. `placement.groups._p1_has_retired` records the
+    same discrimination and the drafts that failed it.
     """
+    retired = (SUPERSEDED_CONTENT, PATH_NO_LONGER_EXISTS)
     roster: list[tuple[str, str]] = []
     for verdict in cache_verdicts(conn, scan_run_id):
         file_id = verdict["file_id"]
         if file_id is None:
             continue
-        roster.append((file_id, get_file(conn, file_id)["content_hash"]))
+        row = get_file(conn, file_id)
+        if row is None or row["scan_state"] in retired:
+            continue
+        roster.append((file_id, row["content_hash"]))
     return tuple(roster)
 
 
