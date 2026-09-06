@@ -605,6 +605,8 @@ bakeoff, with the numbers attached (D2 protocol, `103` §28.1); labelling the he
 the end of Phase 3; accepting a stated gap in the bakeoff row if one appears. Nothing else blocks
 Phase 0.
 
+**13.9 The finish line (ruled 2026-09-06, after Wave 1 was dispatched).** Release 1 (§13.3) is sequencing, not the finish line. The work is finished only when every register entry in §4 (R-01 to R-49, Release 2 included) is closed with its test, and the product runs end to end and behaves as `00` describes. Whether it does is assessed the original two ways, both required: **user-based** (what a real person in each of the personas would want at every step, the north-star instruction) and **product-based** (line-by-line conformance to `00` and its amendments). The lead may adapt the remaining plan to what each wave actually delivered, but may not narrow this finish line.
+
 **Build authorisation, same evening.** The owner authorised the build to start once ready, with
 dynamic workflows and multiple agents, on the condition that every dispatched agent, and every
 agent those agents dispatch, runs on Opus 5. The standing constraints do not move: protected
