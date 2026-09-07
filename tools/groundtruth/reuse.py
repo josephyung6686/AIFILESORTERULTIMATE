@@ -135,6 +135,12 @@ class Seeded:
     #: the path moved, the dimensions would not digest, or two prior answers
     #: reached one question here.
     skipped_reasons: Mapping[str, int] = field(default_factory=dict)
+    #: Dimensions this checkout digests that a prior identity did not carry, filled
+    #: with their empty value and counted per row. `104` R-141: this is a key that
+    #: changed shape, which is the thing a reuse must never do in silence.
+    defaulted_dimensions: Mapping[str, int] = field(default_factory=dict)
+    #: Dimensions a prior identity carried that this checkout no longer digests.
+    dropped_dimensions: Mapping[str, int] = field(default_factory=dict)
 
 
 def _src_on_path() -> None:
@@ -341,6 +347,8 @@ def write_seeded(out_dir: Path, situation: str, given: "Seeded", *,
                     # down here.
                     "addresses": dict(given.addresses),
                     "skipped_reasons": dict(given.skipped_reasons),
+                    "defaulted_dimensions": dict(given.defaulted_dimensions),
+                    "dropped_dimensions": dict(given.dropped_dimensions),
                     "untranslated": given.untranslated,
                     "prior_checkout": read_provenance(source)},
                    indent=2, sort_keys=True),
@@ -711,7 +719,10 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
     _src_on_path()
     from database_agent.db import open_database
     from llm_harness.schema import create_llm_schema
-    from llm_harness.store import call_identity
+    from llm_harness.store import (
+        DimensionWithoutAnEmptyValue, call_identity,
+        under_these_dimensions,
+    )
 
     # BEFORE the fresh database exists, because `cli.wire_handle_key_for` mints a
     # key the first time anything opens a database in that directory and refuses to
@@ -761,6 +772,8 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
             written: set[tuple[str, str]] = set()
             skipped = 0
             reasons: dict[str, int] = {}
+            defaulted: dict[str, int] = {}
+            no_longer_digested: dict[str, int] = {}
 
             def leave_behind(reason: str) -> None:
                 """One answer not seeded, and WHY. `104` R-141.
@@ -806,13 +819,32 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
                 # whose dimension set differed reaches here -- and the cost of
                 # skipping is that the file is asked again, which is the only
                 # direction a reuse may ever fail in.
+                # A PRIOR KEY IS READ UNDER THIS CHECKOUT'S DIMENSIONS, NOT
+                # REFUSED FOR NOT HAVING THEM. `104` R-141: r9 left all 238 of
+                # r6's answers behind because r6 recorded nine dimensions and this
+                # checkout digests ten, including the files the tenth is EMPTY for
+                # -- whose digest under the new set is byte-identical to the one
+                # they would compute today. `store.under_these_dimensions` fills a
+                # missing dimension with the value a call with nothing to put
+                # there carries and drops one this checkout no longer digests, so
+                # the addition does exactly what it was added to do: the files it
+                # is non-empty for are asked again, the rest reuse.
                 try:
                     dimensions = json.loads(row["dimensions"])
                     dimensions["subject_ref"] = mine
+                    dimensions, added, dropped = under_these_dimensions(dimensions)
                     digest = call_identity(dimensions)
+                except DimensionWithoutAnEmptyValue as gap:
+                    # The one case that stays a refusal, and it says which.
+                    leave_behind(f"no_empty_value_for_{gap.name}")
+                    continue
                 except Exception:
                     leave_behind("dimensions_this_checkout_cannot_digest")
                     continue
+                for name in added:
+                    defaulted[name] = defaulted.get(name, 0) + 1
+                for name in dropped:
+                    no_longer_digested[name] = no_longer_digested.get(name, 0) + 1
                 # `(identity, dossier)` is the primary key, and two prior rows
                 # CAN land on one pair here: their prior file ids differ and both
                 # resolve to the same file version of this corpus. Skipped rather
@@ -895,7 +927,8 @@ def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
         return Seeded(answers=len(digests), rows=rows, skipped=skipped,
                       responses=rows.get("llm_response", 0),
                       addresses=addresses, untranslated=untranslated,
-                      skipped_reasons=reasons)
+                      skipped_reasons=reasons, defaulted_dimensions=defaulted,
+                      dropped_dimensions=no_longer_digested)
     finally:
         conn.close()
 

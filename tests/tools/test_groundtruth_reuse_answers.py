@@ -33,8 +33,8 @@ import pytest
 
 from tools.groundtruth import reuse as reuse_module
 from tools.groundtruth.reuse import (
-    ReuseRefused, prior_database, refuse_unless_seedable, seed, spend,
-    wire_handle_key_file,
+    ReuseRefused, prior_database, refuse_unless_seedable, seed, seeded_note,
+    spend, wire_handle_key_file, write_seeded,
 )
 from tools.groundtruth.run import run_situations
 
@@ -726,3 +726,122 @@ def test_a_prior_that_never_said_what_produced_it_is_labelled_as_such(
     assert completed.returncode in (0, 1), completed.stderr
     card = (out / "scorecard.txt").read_text(encoding="utf-8")
     assert f"from {prior} (commit not recorded)" in card
+
+
+# --- `104` R-141: a prior key is read under this checkout's dimensions ------------
+
+
+def _strip_dimension(database, name: str) -> int:
+    """Take one dimension out of every identity, as an older checkout would have.
+
+    The table is append-only by trigger, and the state this needs is one no
+    current checkout can write: a key recorded before a dimension existed. The
+    trigger is dropped in the open rather than worked around, because a fixture
+    that needs a forbidden state should say so where a reader can see it.
+    """
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        for trigger in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'trigger' AND "
+                "tbl_name = 'llm_call_identity'").fetchall():
+            conn.execute(f"DROP TRIGGER {trigger['name']}")
+        changed = 0
+        for row in conn.execute(
+                "SELECT identity_id, dossier_id, dimensions "
+                "FROM llm_call_identity").fetchall():
+            mapping = json.loads(row["dimensions"])
+            mapping.pop(name, None)
+            conn.execute(
+                "UPDATE llm_call_identity SET dimensions = ? "
+                "WHERE identity_id = ? AND dossier_id = ?",
+                (json.dumps(mapping, sort_keys=True), row["identity_id"],
+                 row["dossier_id"]))
+            changed += 1
+        conn.commit()
+        return changed
+    finally:
+        conn.close()
+
+
+def test_a_prior_missing_a_dimension_is_paired_under_its_empty_value(prior, tmp_path):
+    """R-141 in one number: 238 answers refused, and the empty ones were identical.
+
+    r6 recorded nine dimensions and the checkout that seeded from it digests ten,
+    so every prior answer was left behind as undigestable -- including the files
+    the tenth dimension is EMPTY for, whose digest under the new set is what they
+    would compute today. A missing dimension is filled, not refused.
+    """
+    fresh = tmp_path / "fresh" / "x.sqlite"
+    identities = _strip_dimension(
+        prior_database(prior, SITUATION), "extractor_versions")
+    assert identities
+
+    given = seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
+
+    assert given.skipped_reasons.get(
+        "dimensions_this_checkout_cannot_digest") is None
+    assert given.answers, given.skipped_reasons
+    assert given.defaulted_dimensions == {"extractor_versions": given.answers}
+    stored = _rows(fresh, "SELECT dimensions FROM llm_call_identity")
+    assert all(json.loads(row["dimensions"])["extractor_versions"] == []
+               for row in stored)
+
+
+def test_a_file_the_new_dimension_is_not_empty_for_is_a_different_question(prior, tmp_path):
+    """The other half of R-141's ruling, and R-135's own intent.
+
+    Filling a missing dimension with its empty value pairs the files that have
+    nothing to put there. A file this run DOES have something for computes a
+    different digest, so it is not paired and is asked again with the new term in
+    view. Both halves are one rule, read here off the digest itself.
+    """
+    from llm_harness.store import call_identity, under_these_dimensions
+
+    _strip_dimension(prior_database(prior, SITUATION), "extractor_versions")
+    given = seed(fresh := tmp_path / "fresh" / "x.sqlite",
+                 prior_database(prior, SITUATION), corpus=CORPUS)
+    assert given.answers
+
+    seeded = json.loads(_rows(fresh, "SELECT dimensions FROM llm_call_identity")[0]
+                        ["dimensions"])
+    empty, _added, _dropped = under_these_dimensions(seeded)
+    non_empty = dict(seeded, extractor_versions=[["a-reader", "1.0"]])
+    assert call_identity(empty) != call_identity(non_empty), (
+        "a file with something to put in the new dimension would have reused an "
+        "answer given without it")
+
+
+def test_a_dimension_with_no_empty_value_is_still_a_refusal_that_names_itself(prior, tmp_path):
+    """`model_id` has no empty value: every call has one.
+
+    A mapping without it is not an older shape of the key, it is a record nobody
+    can read, and inventing a value would pair two calls that were never the same.
+    The refusal says which dimension rather than reporting a bare count.
+    """
+    _strip_dimension(prior_database(prior, SITUATION), "model_id")
+
+    given = seed(tmp_path / "fresh" / "x.sqlite",
+                 prior_database(prior, SITUATION), corpus=CORPUS)
+
+    assert given.answers == 0
+    # The fixture also holds one answer about a file this corpus does not have,
+    # which is left behind for its own reason and before any digest is taken.
+    assert given.skipped_reasons["no_empty_value_for_model_id"] > 0
+    assert "dimensions_this_checkout_cannot_digest" not in given.skipped_reasons
+
+
+def test_the_note_counts_a_defaulted_dimension_rather_than_a_refusal(prior, tmp_path):
+    """R-141 (c): a key that changed shape is written down, never silent."""
+    out = tmp_path / "fresh"
+    out.mkdir()
+    _strip_dimension(prior_database(prior, SITUATION), "extractor_versions")
+
+    given = seed(prior_database(out, SITUATION),
+                 prior_database(prior, SITUATION), corpus=CORPUS)
+    write_seeded(out, SITUATION, given, source=prior)
+
+    note = json.loads(
+        seeded_note(out, SITUATION).read_text(encoding="utf-8"))
+    assert note["defaulted_dimensions"] == {"extractor_versions": given.answers}
+    assert "dimensions_this_checkout_cannot_digest" not in note["skipped_reasons"]
