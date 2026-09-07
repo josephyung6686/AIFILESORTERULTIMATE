@@ -326,15 +326,18 @@ def test_a_file_with_two_supported_homes_is_told_it_has_two_homes(skeleton):
     assert "No legal destination cleared" not in decision.explanation
 
 
-def test_an_ordinary_abstention_still_says_no_legal_destination_cleared(skeleton):
+def test_an_ordinary_abstention_still_says_nothing_matched(skeleton):
     # The negative twin of the two tests above and below. A file nothing supports
-    # gets the sentence it always got; a fix that gave every abstention a
-    # reassuring new voice would pass those two and erase the one honest report
-    # of a genuine evidence failure.
+    # is told so plainly; a fix that gave every abstention a reassuring new voice
+    # would pass those two and erase the one honest report of a genuine evidence
+    # failure. `104` R-M took the section number out of this sentence and left
+    # the finding in it: no folder was a supported home.
     decision = _place(skeleton,
                       evidence=_evidence(facts=(), semantic_neighbours=()))
     assert decision.abstention_reason == v.NO_SUPPORTED_DESTINATION
-    assert decision.explanation.startswith("No legal destination cleared")
+    assert decision.explanation.startswith(
+        "No folder in this plan matched it well enough")
+    assert "§" not in decision.explanation
     assert "protected" not in decision.explanation
     assert "more than one" not in decision.explanation
 
@@ -664,7 +667,9 @@ def test_an_offline_install_says_so_rather_than_naming_the_file_sensitive(
                       evidence=_evidence(**AMBIGUOUS))
     assert decision.abstention_reason == v.PRIVACY_BLOCKED
     assert "protected material" not in decision.explanation
-    assert "did not clear this file for a model" in decision.explanation
+    # `104` R-M: the same distinction, said without citing §8.4 at the person.
+    assert "privacy settings do not let one be asked" in decision.explanation
+    assert "§" not in decision.explanation
 
 
 def test_an_unclassified_file_does_not_read_as_a_passport_or_as_thin_evidence(
@@ -1962,3 +1967,45 @@ def test_r17_site_d_describes_every_home_it_offers(skeleton, monkeypatch):
     assert v.REVIEW_ONLY in described["n-review-later"].location
     # And no site-C kind at a site whose text names two others.
     assert not [item for item in seen["items"] if item.kind == "candidate"]
+
+
+# --- `104` R-O at site C --------------------------------------------------------
+
+
+def test_a_refusal_at_site_c_leaves_the_deterministic_placement_standing(
+        skeleton, monkeypatch):
+    """A refused call is not a judgement about the file, so it does not take the
+    file's home away.
+
+    `104` §13.5's Q-A clause is the rule: *"Q-A governs whenever a model is
+    configured; with no model configured the deterministic path remains the
+    fallback."* A call that could not be made is the same position as no model at
+    all for THIS file -- and the alternative, which is what the code did, is a
+    `ModelJudgementUnavailable` out of `_require_verdict` that ends the whole run
+    on the file after it as well.
+    """
+    import placement.pipeline as pipeline
+    from privacy.resolve import UnresolvableSpan
+
+    def _refuse(conn, request, **kwargs):
+        raise UnresolvableSpan(
+            "observation 'sha256:3ea4' belongs to a file outside request.target")
+
+    monkeypatch.setattr(pipeline, "call_placement", _refuse)
+    refused = _place(skeleton, inputs=_model_inputs(skeleton))
+    offline = _place(skeleton)
+
+    assert refused.outcome == offline.outcome == v.PLACE
+    assert refused.destination.node_id == offline.destination.node_id
+    assert refused.confidence_class == offline.confidence_class
+
+
+def test_a_programming_error_at_site_c_still_surfaces(skeleton, monkeypatch):
+    import placement.pipeline as pipeline
+
+    def _bug(conn, request, **kwargs):
+        raise AttributeError("'NoneType' object has no attribute 'locality'")
+
+    monkeypatch.setattr(pipeline, "call_placement", _bug)
+    with pytest.raises(AttributeError):
+        _place(skeleton, inputs=_model_inputs(skeleton))

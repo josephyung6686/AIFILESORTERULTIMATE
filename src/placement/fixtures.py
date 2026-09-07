@@ -106,9 +106,10 @@ CORRECT_ABSTENTION = _decision(
     two_condition=_two_condition(support_score=0.2, meets_threshold=False,
                                  verdict=WEAK, requires_review=True),
     abstention_reason=NO_SUPPORTED_DESTINATION,
-    explanation="No legal destination cleared §6.10's conditions "
-                "(no_supported_destination). Abstaining is the correct outcome; "
-                "the evidence is retained and the file has not moved.",
+    explanation="No folder in this plan matched it well enough to be worth "
+                "proposing. Declining to place it is the right answer rather "
+                "than a failure: nothing moved, and everything this run read "
+                "about it is kept.",
 )
 
 #: A §7-origin decision, to prove a consumer parses it with no residual branch.

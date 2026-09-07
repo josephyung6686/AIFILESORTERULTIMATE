@@ -310,7 +310,7 @@ PERMITTED_NUMBERS = frozenset({0, 1})
 NAMED_EXCEPTIONS = {
     ("names.py:_truncate_to_bytes", -1),
     ("plan.py:_source_high_level_folder", -1),
-    ("resolution.py:_source_folder", -1),
+    ("resolution.py:source_high_level_folder", -1),
     ("resolution.py:resolve_destination", -1),
 }
 

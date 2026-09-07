@@ -43,11 +43,15 @@ import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
+from types import MappingProxyType
 
 from database_agent.supersede import mark_superseded
 from llm_harness import P8Verdict, Refusal
 from llm_harness.vocabulary import ABSTAIN as P8_ABSTAIN
-from llm_harness.records import DossierRequest, EvidenceItem
+from llm_harness.records import (
+    REFUSAL_EXCEPTIONS, CallRefused, DossierRequest, EvidenceItem,
+)
+from llm_harness.store import refusal_outcome
 from llm_harness.vocabulary import (
     C_PLACEMENT, CHOOSE_RESIDUAL_DESTINATION,
     CONTEXT_SUPPORTED as P8_CONTEXT_SUPPORTED, D_RESIDUAL,
@@ -92,8 +96,9 @@ from placement.stage_output import emit_retrieval_stage, emit_scoring_stage
 from placement.store import current_decision, record_decision, subject_ref_of
 from placement.vocabulary import (
     ABSTAIN, ABSTAIN_NO_SUPPORTED_DESTINATION, ASK_USER, BUDGET_DEFERRED,
-    CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT, EXISTING, FILE,
-    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH,
+    CONFLICTING_FACTS, CONTEXT_SUPPORTED, CONTEXT_SUPPORTED_GROUP_MATCH, DIRECT,
+    EXISTING, FILE, GENERIC_HUB_ONLY, LOW_MARGIN,
+    MARGIN_TRUE_VACUOUS, MARK_STATE, NO_SHARED_BRANCH, SEMANTIC_ONLY,
     MULTIPLE_SUPPORTED_HOMES, NO_SUPPORTED_DESTINATION, PLACE, PLACEMENT,
     POSSIBLE, PRIVACY_BLOCKED, RESIDUAL, RESIDUAL_ROLE,
     RETURN_TO_PLACEMENT, SEND_TO_APPROVED_NODE, SHARED_MATERIAL,
@@ -1062,7 +1067,10 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                 return _abstention(conn, context, reason=PRIVACY_BLOCKED)
             gate_refused = True
         elif inputs.model_path_available():
-            result = _judge_with_model(
+            # `104` R-O's wrapper around R-74's call: a refusal RAISED inside the
+            # call comes back as a `CallRefused` rather than ending the run, and
+            # everything R-74 does with a refusal the gate DECIDED is unchanged.
+            result = _judged_or_refused(
                 conn, subject=subject, inputs=inputs, retrieval=retrieval,
                 evidence=evidence, call_site=C_PLACEMENT,
                 observed_at=observed_at,
@@ -1085,7 +1093,20 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
                 if not offline_would_place:
                     return _abstention(conn, context, reason=PRIVACY_BLOCKED)
                 gate_refused = True
-            else:
+            # `104` R-O. A REFUSED CALL IS NOT AN ANSWER ABOUT THIS FILE, and
+            # `_require_verdict` says why in its own words: "§6.10's abstention
+            # reasons are a closed set and none of them means 'the call did not
+            # happen'; naming one would record a conclusion nothing reached". So
+            # nothing below runs, `chosen_node_id` stays `None`, and step 9 places
+            # the file the way a run with no model configured would -- which is
+            # exactly what §13.5's Q-A clause names as the fallback: "with no
+            # model configured the deterministic path remains the fallback". The
+            # refusal is already a `call_refused` event; what it is not is a
+            # reason to take this file's home away, nor -- as it was until now --
+            # a `ModelJudgementUnavailable` that ends the run on every file after
+            # it too. NOT `gate_refused`: §8.4 decided nothing here, and saying it
+            # did would name the wrong actor in the record.
+            elif not isinstance(result, CallRefused):
                 verdict = _require_verdict(result, call_site=C_PLACEMENT)
                 outcome, reason, deferred = transcribe(
                     verdict, assessment=assessment)
@@ -1297,6 +1318,43 @@ def _supported_homes(context: _Context) -> tuple[str, ...]:
                  if item.support_score >= threshold)
 
 
+#: `104` R-M. WHAT EACH ABSTENTION MEANS, in the person's words.
+#:
+#: The screen used to end every one of these with "No legal destination cleared
+#: §6.10's conditions ({reason})" -- a paragraph number and an engine word, on the
+#: screen of somebody looking at their own folder. Measured by a fresh session on
+#: a 52-file corpus: 31 occurrences of "§6.10's" on one report.
+#:
+#: **The section reference is not lost by coming off the screen.** It is in the
+#: RECORD, structurally rather than as prose: `PlacementDecision.two_condition` IS
+#: §6.10's measurement -- support, margin, the threshold and the policy that set
+#: them -- `privacy` is §8.4's class, and `abstention_reason` is the closed code
+#: for which condition failed. The person reads the sentence; a lead reads the row.
+#:
+#: One sentence per member of `ABSTENTION_REASONS`, and `_abstention_explanation`
+#: falls back to the general one for a member added without a sentence, so a new
+#: code can never reach a person as a bare word.
+REASON_IN_WORDS: Mapping[str, str] = MappingProxyType({
+    NO_SUPPORTED_DESTINATION:
+        "No folder in this plan matched it well enough to be worth proposing.",
+    LOW_MARGIN:
+        "Two folders in this plan fit it about equally well, so picking one "
+        "would have been a guess rather than a decision.",
+    SEMANTIC_ONLY:
+        "The only thing linking it to a folder was that they read alike, which "
+        "is not enough on its own to move a file.",
+    GENERIC_HUB_ONLY:
+        "The only thing it shares with a folder is a word many of your files "
+        "share, which says nothing about where this one belongs.",
+    CONFLICTING_FACTS:
+        "What this run read about it points at more than one folder, and the "
+        "readings disagree with each other.",
+    NO_SHARED_BRANCH:
+        "The files it belongs with are not all under one branch, so there is no "
+        "single home to propose for them.",
+})
+
+
 def _abstention_explanation(context: _Context, *, reason: str) -> str:
     """What the person is told, which is not always what the machine recorded.
 
@@ -1320,8 +1378,8 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
     if reason == MULTIPLE_SUPPORTED_HOMES:
         homes = _supported_homes(context)
         return (
-            f"{', '.join(homes)} each cleared §6.10's support threshold and "
-            "nothing in the evidence separates them, so this file has more than "
+            f"{', '.join(homes)} each match this file well enough on their own, "
+            "and nothing in the evidence separates them, so it has more than "
             "one supported home. Nothing moved: which one is its home is a "
             "choice about your material, not a gap in the evidence."
         )
@@ -1342,7 +1400,7 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
         # the rule that decided the outcome; the other names a step that ran on
         # the way there and would still have refused if it had agreed.
         return (
-            "This file is protected material (§8.4), so nothing about it was "
+            "This file is protected material, so nothing about it was "
             "assembled for a model and it was left exactly where it is. That "
             "is a deliberate decision about sensitivity, not a failure to "
             "find a destination."
@@ -1376,14 +1434,14 @@ def _abstention_explanation(context: _Context, *, reason: str) -> str:
                 "marked sensitive and not judged on thin evidence."
             )
         return (
-            "Deciding this file needed a model, and §8.4 did not clear this file "
-            "for a model call. Nothing about it left this device and nothing "
-            "moved; the evidence is retained."
+            "Deciding this file needed a model, and this folder's privacy "
+            "settings do not let one be asked about it. Nothing about it left "
+            "this device and nothing moved; the evidence is retained."
         )
     return (
-        f"No legal destination cleared §6.10's conditions ({reason}). "
-        "Abstaining is the correct outcome; the evidence is retained and the "
-        "file has not moved."
+        f"{REASON_IN_WORDS.get(reason, 'No folder in this plan was a supported home for it.')} "
+        "Declining to place it is the right answer rather than a failure: "
+        "nothing moved, and everything this run read about it is kept."
     )
 
 
@@ -1871,6 +1929,28 @@ def _judge_with_model(conn, *, subject, inputs: PipelineInputs, retrieval,
     ), prompt=prompt)
 
 
+def _judged_or_refused(conn, **kwargs):
+    """`_judge_with_model`, with `104` R-O's one difference: a refusal comes back.
+
+    The `try` covers the REQUEST BUILD as well as the call. `inputs.model_call_
+    request` and the `DossierRequest` above it construct P7's `ModelCallRequest`,
+    whose `__post_init__` raises `MalformedRequest` -- the second of the two
+    refusals that ended a real run -- and that raise never reaches `run_call`'s own
+    `try` because it happens while its argument is being built.
+
+    Recorded here rather than swallowed: the same `call_refused` event site A
+    writes, so one query over the run counts every refusal wherever it was raised.
+    """
+    try:
+        return _judge_with_model(conn, **kwargs)
+    except REFUSAL_EXCEPTIONS as refusal:
+        subject = kwargs["subject"]
+        return refusal_outcome(
+            conn, call_site=kwargs["call_site"],
+            subject_ref=subject_ref_of(subject),
+            error=refusal, observed_at=kwargs["observed_at"])
+
+
 # --- §6.8 and §6.9: the group plan -------------------------------------------------
 
 
@@ -2341,7 +2421,7 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
             curated_folder_labels=evidence["curated_folder_labels"],
             semantic_neighbours=evidence["semantic_neighbours"],
             component_version=component_version, observed_at=observed_at)
-        result = _judge_with_model(
+        result = _judged_or_refused(
             conn, subject=subject, inputs=inputs, retrieval=retrieval,
             evidence=evidence, call_site=D_RESIDUAL, observed_at=observed_at,
             own_folder_node_id=(
@@ -2351,6 +2431,19 @@ def _review_set_with_model(conn, *, item: ResidualSet, inputs: PipelineInputs,
                 conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
                 qualifier=PRIVACY_BLOCKED, residual=residual, evidence=evidence,
                 component_version=component_version, observed_at=observed_at))
+            continue
+        if isinstance(result, CallRefused):
+            # `104` R-O, and the residual half of what site C does above: the
+            # file stays where the person's own decision put it, recorded and
+            # named, rather than the run ending on the set it belongs to.
+            # `NO_SUPPORTED_DESTINATION` is the honest qualifier -- D proposes a
+            # destination and none was proposed -- and `PRIVACY_BLOCKED` would be
+            # the untruth, because §8.4 allowed this dossier.
+            written.append(_residual_decision(
+                conn, subject=subject, inputs=inputs, outcome=ABSTAIN,
+                qualifier=NO_SUPPORTED_DESTINATION, residual=residual,
+                evidence=evidence, component_version=component_version,
+                observed_at=observed_at))
             continue
         verdict = _require_verdict(result, call_site=D_RESIDUAL)
         if verdict.outcome == P8_REJECT:

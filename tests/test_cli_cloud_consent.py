@@ -338,11 +338,10 @@ def test_enabling_one_folder_does_not_enable_another(tmp_path, monkeypatch):
 def test_the_notice_is_printed_before_the_scan_starts(corpus, monkeypatch):
     """`80` §8 and `88` §3, in the same words: a run that sends says so BEFORE
     sending. A notice at the end is a receipt, and a receipt is what a person gets
-    instead of a choice. "Protected containers" is the first line `run` prints, so
-    it marks where the scan begins."""
+    instead of a choice. "Protected:" is the first line `run` prints, so it marks
+    where the scan begins."""
     _, printed = _run(corpus, "--enable-cloud", monkeypatch=monkeypatch, env=ENV)
-    assert printed.index("Cloud sending is ON") < printed.index(
-        "Protected containers")
+    assert printed.index("Cloud sending is ON") < printed.index("Protected:")
 
 
 def test_the_notice_names_the_day_and_the_person(corpus, monkeypatch):

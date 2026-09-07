@@ -342,7 +342,10 @@ def test_a_protected_group_is_counted_and_reachable_rather_than_listed():
     # COUNTED, always. A person may never have to ask whether something was set
     # aside, and this is the half of the rule that did not change.
     assert "40 protected files" in printed, printed
-    assert "none of them opened" in printed, printed
+    # `104` R-J: the group's sentence points at the run's ONE count rather than
+    # asserting "none of them opened", which was never true of a file this
+    # product read, indexed and classified in order to know it was protected.
+    assert "of the ones counted at the top of this report" in printed, printed
     # And REACHABLE, always. Omitting the command is what would turn a summary
     # into a concealment, so it is printed every time and not only when asked.
     assert "--show-protected" in printed, printed
@@ -427,19 +430,24 @@ def test_the_protected_containers_block_survives_the_regrouping():
     This is the standing rule made visible. Every other part of the report may be
     grouped, renamed or shortened; this one is what the grouping must not reach.
 
-    The block now prints from `_print_protected_areas`, called the moment the scan
+    The block now prints from `_print_protected`, called the moment the scan
     knows the answer, because `report` runs only when the design SUCCEEDS and a
     refused run was dropping the count entirely. All four elements are asserted
     here, where they are produced; that it comes before the rest of the report is
     asserted by `test_a_refused_run_still_says_what_was_marked_and_counted` and by
     ordering in `main`.
+
+    The heading is `104` R-J's single one; "never opened" now sits on the kind it
+    is true of, which the test below this one holds in place.
     """
     printed = io.StringIO()
-    cli._print_protected_areas(
-        (_area("Notes.app", "/tmp/demo/Notes.app"),), printed)
+    cli._print_protected(
+        (_area("Notes.app", "/tmp/demo/Notes.app"),), protected_files=0,
+        out=printed)
     block = printed.getvalue()
 
-    assert "Protected containers: 1 marked, none opened" in block
+    assert "Protected: 1 marked and counted" in block
+    assert "Application and system folders: 1, never opened" in block
     assert "Notes.app  (untouched_protected)" in block
     assert "/tmp/demo/Notes.app" in block
     assert UNTOUCHED in block
@@ -1862,7 +1870,7 @@ def test_a_refused_run_still_says_what_was_marked_and_counted(tmp_path):
     printed = out.getvalue()
 
     assert code != 0 and "No plan was made" in printed, printed
-    assert "Protected containers: 1 marked, none opened" in printed, (
+    assert "Application and system folders: 1, never opened" in printed, (
         "the run marked a protected container and refused without ever saying so")
     assert "Notes.app" in printed, printed
 
@@ -2900,7 +2908,8 @@ def test_a_review_set_says_truthfully_whether_it_holds_protected_material(tmp_pa
     # count and the way to the name, rather than the name. The SET is what this
     # test is about and it is named either way.
     flat = " ".join(printed.split())
-    assert "2 protected files, marked and counted" in flat, printed
+    assert "2 protected files, of the ones counted at the top" in flat, printed
+    assert "Protected: 2 marked and counted" in flat, printed
     assert "--show-protected" in printed, printed
     # Asserted on the SET NAME and not on how many "Held for review" lines the
     # report prints. Counting lines passes against the defect: the report groups
@@ -3747,3 +3756,97 @@ def test_a_branch_is_only_told_it_holds_few_files_when_it_actually_does():
     assert split == REFINED, (split, why)
     assert "few enough" not in why, why
 
+
+
+# --- `104` R-J: one word for protected, one count -------------------------------
+
+
+def test_the_screen_has_one_protected_vocabulary_and_one_count():
+    """Two lines apart, the report said "Protected containers: 0 marked, none
+    opened" and "4 protected files, marked and counted" -- §1.1's folders and
+    §8.4's files, both called protected, with two counts and no way for a person
+    to tell that one of them was not the other.
+
+    `00`'s rule is one rule: marked and counted, never opened, never silently
+    omitted. So the screen carries ONE heading with ONE total, and each kind says
+    underneath it what is true of that kind. "Never opened" moves down to the
+    folders, because it is FALSE of a §8.4 file -- that file was read, indexed and
+    classified on this device; what it was not is sent to a model or filed in
+    bulk. Saying "none opened" over it would be a comfort the run has not earned.
+    """
+    printed = io.StringIO()
+    cli._print_protected(
+        (_area("Notes.app", "/tmp/demo/Notes.app"),),
+        protected_files=4, out=printed)
+    block = printed.getvalue()
+
+    assert "Protected: 5 marked and counted" in block
+    # The kinds, each with its own truth.
+    assert "Application and system folders: 1, never opened" in block
+    assert "Protected material: 4 files" in block
+    # Named, because a container is a folder the person can see anyway.
+    assert "Notes.app  (untouched_protected)" in block
+    assert "/tmp/demo/Notes.app" in block
+    assert UNTOUCHED in block
+    # And never named, because these are the person's own private files.
+    assert "--show-protected" in block
+    # ONE vocabulary: the old second heading is gone.
+    assert "Protected containers" not in block
+
+
+def test_the_protected_block_says_nothing_twice_when_there_is_one_kind():
+    printed = io.StringIO()
+    cli._print_protected((), protected_files=2, out=printed)
+    block = printed.getvalue()
+
+    assert "Protected: 2 marked and counted" in block
+    assert "Protected material: 2 files" in block
+    assert "Application and system folders" not in block
+    assert UNTOUCHED not in block
+
+
+# --- `104` R-D: the locked archive on the screen --------------------------------
+
+
+def _locked(name, reason):
+    return SimpleNamespace(name=name, reason=reason)
+
+
+def test_a_password_protected_archive_is_counted_as_a_container():
+    """`03938ae` marked it in the record and the screen went on saying nothing.
+
+    The run recorded "password-protected: 2 of 2 member(s) are encrypted; names
+    listed, contents not read" and made the extraction `unreadable`; the person
+    read "This file has not been classified", folded in with twelve other files,
+    and `--show-protected` did not count it. §2.5 marks a locked archive rather
+    than forcing it open, and the standing rule says what is marked is counted --
+    on the screen, not only in the database.
+    """
+    printed = io.StringIO()
+    cli._print_protected(
+        (), protected_files=0,
+        locked=(_locked("submission_backup.zip",
+                        "2 of 2 member(s) are encrypted; names listed, "
+                        "contents not read"),),
+        out=printed)
+    block = printed.getvalue()
+
+    assert "Protected: 1 marked and counted" in block
+    assert "Password-protected containers: 1, never opened" in block
+    assert "submission_backup.zip" in block
+    # The members are LISTED and UNREAD, and the sentence says both.
+    assert "names listed, contents not read" in block
+
+
+def test_a_locked_container_and_a_protected_folder_are_one_total():
+    printed = io.StringIO()
+    cli._print_protected(
+        (_area("Notes.app", "/tmp/demo/Notes.app"),), protected_files=3,
+        locked=(_locked("locked.zip", "1 of 1 member(s) are encrypted"),),
+        out=printed)
+    block = printed.getvalue()
+
+    assert "Protected: 5 marked and counted" in block
+    assert "Application and system folders: 1, never opened" in block
+    assert "Password-protected containers: 1, never opened" in block
+    assert "Protected material: 3 files" in block

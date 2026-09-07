@@ -34,6 +34,17 @@ EXTRACTOR_NAME = "archive.manifest"
 SOURCE_TYPE = "archive"
 ANALYSIS_TIER = "native"
 
+#: THE WORD A LOCKED ARCHIVE IS RECOGNISED BY, downstream and on the screen.
+#:
+#: `104` R-D. Section 2.5's password-protected case is one of two things an
+#: `unreadable_reason` can be -- the other is `malformed archive:` -- and the
+#: report has to tell them apart to say *"marked, never opened"* about one and
+#: *"this could not be read"* about the other. The reader composes its reason with
+#: this prefix and the report matches on it, so the two cannot drift into two
+#: spellings of one fact; matching on the free sentence in `cli.py` would have
+#: made a wording change silently stop counting somebody's locked archive.
+LOCKED_REASON_PREFIX = "password-protected"
+
 #: Section 2.5's own names for the two values that describe the archive itself.
 ARCHIVE_TYPE_FIELD = "archive type"
 UNCOMPRESSED_SIZE_FIELD = "uncompressed size"

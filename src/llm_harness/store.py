@@ -26,12 +26,14 @@ from llm_harness.authorship import (
     event_defaults,
 )
 from llm_harness.records import (
+    CallRefused,
     GroundingReport,
     MalformedRecord,
     P8Verdict,
     PreCallAbstention,
     Refusal,
 )
+from llm_harness.vocabulary import pre_call_address
 
 
 def _jsonable(value: object) -> object:
@@ -382,6 +384,61 @@ def record_pre_call_abstention(conn: sqlite3.Connection, abstention: PreCallAbst
             conn, report, observed_at=observed_at, abstention_id=abstention_id,
         )
     return abstention_id
+
+
+def record_call_refusal(conn: sqlite3.Connection, refused: CallRefused, *,
+                        observed_at: str) -> int:
+    """`104` R-O's durable half: one `call_refused` event, and no table of its own.
+
+    **Why an event and not a row.** The two rows that exist would each have to lie.
+    `llm_call_failure` requires the `release_id` that was spent -- *"A failed call
+    still spent a release, and the row says which one"* -- and a refusal raised
+    inside `gate.release` spent none. `llm_pre_call_abstention` requires a member of
+    `PRE_CALL_REASON_CODES`, and none of its three means *"the gate could not read
+    the request"*; adding a fourth is a spec-level act and the owner's, not an
+    agent's. `call_refused` is already P8's registered event for *"this call did not
+    happen and here is why"*, and both of the rows above append it too, so a reader
+    counting refusals over the run finds all three kinds in one place.
+
+    `dossier_id` is `pre_call_address`, the same address `report_for_pre_call_
+    terminal` gives a terminal that never reached a dossier -- deliberately shaped
+    so it cannot be mistaken for, or joined to, one.
+    """
+    if not isinstance(refused, CallRefused):
+        raise TypeError("record_call_refusal stores a CallRefused")
+    return _append(
+        conn,
+        event_type=CALL_REFUSED,
+        observed_at=observed_at,
+        explanation=_explanation(
+            audit_id=None, model_id=None, prompt_fingerprint=None,
+            dossier_id=pre_call_address(refused.call_site, refused.subject_ref),
+            call_site=refused.call_site,
+            subject_ref=refused.subject_ref,
+            refusal_class=refused.refusal_class,
+        ),
+    )
+
+
+def refusal_outcome(conn: sqlite3.Connection, *, call_site: str, subject_ref: str,
+                    error: BaseException, observed_at: str) -> CallRefused:
+    """One refused call, recorded and handed back as an outcome. `104` R-O.
+
+    Public because the raise can happen BEFORE the call seam is entered: at site A
+    `build_fact_request` constructs the `ModelCallRequest`, and at site B
+    `build_dossier_request` does, so `__post_init__`'s refusal never reaches
+    `run_call`'s own `try`. Every site calls this with the same reduction, so one
+    refusal is recorded one way wherever it was raised.
+    """
+    refused = CallRefused(
+        call_site=call_site, subject_ref=subject_ref,
+        # THE TYPE, NEVER THE MESSAGE. `transport._client_exception_explanation`
+        # reduces a third-party exception the same way and for the same reason:
+        # the message that ended the second real run named a file id and a
+        # filename, and §8.4's property 4 keeps both out of a durable record.
+        refusal_class=type(error).__qualname__)
+    record_call_refusal(conn, refused, observed_at=observed_at)
+    return refused
 
 
 def record_call_failure(conn: sqlite3.Connection, *, dossier_id: str,

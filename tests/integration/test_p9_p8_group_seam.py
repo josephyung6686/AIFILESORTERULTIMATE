@@ -612,3 +612,62 @@ def test_the_pipeline_reaches_the_real_run_call(seam_conn, live_group):
     assert result.not_implemented_reason is None, result.not_implemented_reason
     assert isinstance(result.model_result, GroupDecision), result.model_result
     assert len(sent) == 1, "P8 called the model exactly once"
+
+
+# --- `104` R-O at site B --------------------------------------------------------
+
+
+def test_a_refusal_at_site_b_records_the_call_and_leaves_the_group(
+        seam_conn, live_group, monkeypatch):
+    """The second crash the verifier reproduced, at the seam that produced it.
+
+    `MalformedRequest: a request with no items has nothing to release` came out of
+    `build_dossier_request` -- P7's `ModelCallRequest.__post_init__` -- forty-eight
+    minutes into a run, and ended it with a traceback and no report. `00` §8 wants
+    the group recorded with its reason and the run carried on; the group is P9's
+    own work and a call that could not be made does not undo it.
+    """
+    from privacy.release import MalformedRequest
+
+    import grouping.p8_seam as p8_seam
+    from grouping.pipeline import ModelCallAuthorities
+
+    def _refuse(*_args, **_kwargs):
+        raise MalformedRequest("a request with no items has nothing to release")
+
+    monkeypatch.setattr(p8_seam, "build_dossier_request", _refuse)
+    result = live_group(
+        seam_conn,
+        p8_run_call=llm_harness.run_call,
+        p8_authorities=ModelCallAuthorities(
+            gate=_live_gate(seam_conn), model_client=object(),
+            prompt=_prompt(), validation_dependencies=object(),
+            observed_at=lambda: T0, model_target=LOCAL))
+
+    assert result.group is not None
+    assert result.model_result is None
+    assert "MalformedRequest" in (result.not_implemented_reason or "")
+    refused = seam_conn.execute(
+        "SELECT explanation FROM events WHERE event_type = 'call_refused'"
+    ).fetchall()
+    assert refused, "a refused group call leaves no `call_refused` event"
+    assert "MalformedRequest" in refused[-1]["explanation"]
+
+
+def test_a_programming_error_at_site_b_still_surfaces(
+        seam_conn, live_group, monkeypatch):
+    import grouping.p8_seam as p8_seam
+    from grouping.pipeline import ModelCallAuthorities
+
+    def _bug(*_args, **_kwargs):
+        raise TypeError("'Dossier' object is not subscriptable")
+
+    monkeypatch.setattr(p8_seam, "build_dossier_request", _bug)
+    with pytest.raises(TypeError):
+        live_group(
+            seam_conn,
+            p8_run_call=llm_harness.run_call,
+            p8_authorities=ModelCallAuthorities(
+                gate=_live_gate(seam_conn), model_client=object(),
+                prompt=_prompt(), validation_dependencies=object(),
+                observed_at=lambda: T0, model_target=LOCAL))

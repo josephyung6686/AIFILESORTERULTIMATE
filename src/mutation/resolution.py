@@ -288,12 +288,17 @@ def _refuse_sibling_collision(child: Node, nodes: Sequence[Node],
                         "parent_node_id": child.parent_node_id})
 
 
-def _source_folder(source_path: Path,
-                   high_level_folders: Mapping[str, Path]) -> str | None:
+def source_high_level_folder(source_path: Path,
+                             high_level_folders: Mapping[str, Path]) -> str | None:
     """Which §1.1 high-level folder the source currently lives under.
 
     Longest match wins, so a nested named folder is reported rather than its
     parent. `None` means the source is under none of them -- see F11.
+
+    PUBLIC since `104` R-N. The report has to mark a proposal this rule will
+    refuse, and two answers to "which folder is this file in" is one too many:
+    the screen's copy would be the one that drifts, and it would drift into
+    telling a person a move is fine that the freeze then refuses.
     """
     best: str | None = None
     best_length = -1
@@ -306,6 +311,19 @@ def _source_folder(source_path: Path,
         if length > best_length:
             best, best_length = name, length
     return best
+
+
+def crosses_high_level_folder(*, source_path: Path, root_anchor: str,
+                              high_level_folders: Mapping[str, Path]) -> bool:
+    """Would moving this file into a node anchored at `root_anchor` cross? `104` R-N.
+
+    The same comparison `resolve_destination` makes before it raises
+    `cross_root_refused`, published so the proposal screen can say so BEFORE the
+    person types `--freeze` and is refused. It reads no permission: whether the
+    crossing is allowed is `00`:20's third choice and the caller holds the
+    person's answer to it.
+    """
+    return source_high_level_folder(source_path, high_level_folders) != root_anchor
 
 
 def resolve_destination(*, plan_version: str, node_id: str,
@@ -381,7 +399,8 @@ def resolve_destination(*, plan_version: str, node_id: str,
         directory = directory / resolved.filesystem_safe_name
         created.append(str(directory))
 
-    source_folder = _source_folder(source_path, high_level_folders)
+    source_folder = source_high_level_folder(
+        source_path, high_level_folders)
     if source_folder == root_anchor:
         verdict = WITHIN_ROOT
     elif cross_folder_moves:

@@ -98,11 +98,11 @@ NOT_COMPUTED_BECAUSE: Mapping[str, str] = MappingProxyType({
         "'is computed by P11 from this diff against its own placement decisions'. "
         "P15 holds no placement decision and must not invent one."),
     "protected_area_change": (
-        "Nothing records a protected AREA yet. §15's relationship work is the "
-        "producer and it is held on the owner's vocabulary ruling."),
+        "Nothing in this product records a protected AREA yet, so an answer "
+        "cannot change one."),
     "filing_policy_paused": (
-        "No filing policy has a producer. `66` §22 puts automatic filing last, "
-        "and there is nothing yet to pause."),
+        "Nothing files anything automatically yet, so there is no filing to "
+        "pause."),
 })
 
 

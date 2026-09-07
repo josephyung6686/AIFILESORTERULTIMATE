@@ -21,7 +21,10 @@ P5's and P6's.
 """
 from __future__ import annotations
 
+import contextlib
+import os
 import platform
+import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -114,6 +117,59 @@ def _cg_image_from_file(path: Path):
     return image
 
 
+@contextlib.contextmanager
+def _core_graphics_kept_quiet():
+    """File descriptor 2, redirected around the one call that makes Quartz talk.
+
+    `104` R-L. `CoreGraphics PDF has logged an error. Set environment variable
+    "CG_PDF_VERBOSE" to learn more.` stood above every report a person saw, five
+    times -- once per extraction worker. Measured to a single cause: this engine
+    asks `CGPDFDocumentCreateWithURL` whether a file is a PDF, and Core Graphics
+    writes that line straight to fd 2 the first time in a process that the answer
+    is no. Two of the corpus's OCR candidates are a `.txt` and a `.png`.
+
+    **At the descriptor and not at `sys.stderr`.** The write comes from C inside
+    Apple's framework and never passes through Python's stream, so
+    `contextlib.redirect_stderr` cannot see it. There is no switch to turn it off:
+    `CG_PDF_VERBOSE` makes it say MORE, and Apple publishes no counterpart.
+
+    **Around the ONE call, and nothing else.** The window is a single C function
+    that writes nothing of ours; the reader's own raises, this product's messages
+    and pytest's output are all outside it. Silencing the run's own voice to hide
+    a library's would be a worse defect than the one this fixes -- which is why
+    the test asserts the product's stderr still arrives.
+
+    **The one thing to know before reusing this.** A descriptor is process-wide,
+    so anything else writing to fd 2 during the window loses that write. The
+    window is one C call, and the only thread `src/` starts beside extraction is
+    `extraction_pool`'s parent watchdog, which writes nothing -- but that is a
+    fact about today's code rather than a guarantee, and widening the window is
+    how it would stop being true. Restored in `finally` whatever happens,
+    including an interrupt.
+    """
+    sys.stderr.flush()
+    saved = os.dup(2)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull, 2)
+        yield
+    finally:
+        os.dup2(saved, 2)
+        os.close(saved)
+        os.close(devnull)
+
+
+def _pdf_document(path: Path):
+    """The PDF at `path`, or `None` -- and Core Graphics keeps its opinion to itself.
+
+    This IS the format test: a `None` here is how `ocr_engine` learns the file is a
+    loose image rather than a document, so the call is made for every OCR candidate
+    and the honest answer for most of them is the one that prints the line.
+    """
+    with _core_graphics_kept_quiet():
+        return Quartz.CGPDFDocumentCreateWithURL(NSURL.fileURLWithPath_(str(path)))
+
+
 def _render_pdf_page(page, dpi: float):
     box = Quartz.CGPDFPageGetBoxRect(page, Quartz.kCGPDFMediaBox)
     scale = dpi / _POINTS_PER_INCH
@@ -201,8 +257,7 @@ def vision_ocr() -> Callable[..., OcrOutput]:
         time_limit = settings.get("time_limit_seconds")
 
         path = Path(path)
-        document = Quartz.CGPDFDocumentCreateWithURL(
-            NSURL.fileURLWithPath_(str(path)))
+        document = _pdf_document(path)
         total = (Quartz.CGPDFDocumentGetNumberOfPages(document)
                  if document is not None else 0)
 

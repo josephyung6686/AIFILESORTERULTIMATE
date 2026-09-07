@@ -148,7 +148,7 @@ def test_this_file_is_really_reading_the_run_and_the_corpus_really_excludes(
     its own finding being fixed.
     """
     printed, aside, summary = _real_run(tmp_path)
-    assert "Protected containers:" in printed, (
+    assert "Protected:" in printed, (
         "this is not the run's report -- the block `cli.py` does print is absent, "
         "so a passing assertion above would be about a string nobody printed")
     assert len(aside) >= 4, (

@@ -45,6 +45,7 @@ import sys
 import uuid
 import textwrap
 import unicodedata
+from collections import namedtuple
 from decimal import Decimal
 from itertools import count
 from pathlib import Path, PurePosixPath
@@ -59,6 +60,10 @@ from database_agent.cloud_consent import (
 from database_agent.db import DatabaseInsideCorpus, open_database
 from database_agent.files_table import (
     PATH_NO_LONGER_EXISTS, SUPERSEDED_CONTENT, get_file,
+)
+from extractors.archive import (
+    EXTRACTOR_NAME as ARCHIVE_EXTRACTOR_NAME,
+    LOCKED_REASON_PREFIX,
 )
 from extractors.image import PERCEPTUAL_HASH_FIELD
 from extractors.router import SOURCE_TYPE_BY_FORMAT
@@ -120,7 +125,9 @@ from llm_harness.prompt_library import (
     a_fact_template_folder_levels_bytes, draft_bytes, drafts_status,
 )
 from llm_harness.harness import CallDependencies, run_call
-from llm_harness.records import FolderLevel, P8Verdict, PromptDefinition
+from llm_harness.records import (
+    CallRefused, FolderLevel, P8Verdict, PromptDefinition,
+)
 from llm_harness.store import last_response_bytes
 from llm_harness.sites import SiteDependencies
 from llm_harness.schema import create_llm_schema
@@ -276,6 +283,7 @@ from tree_design.provenance import actor_phrase
 from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
+from mutation.resolution import source_high_level_folder
 from tree_design.store import nodes_for_version
 from apply_run.approval import approval_reader, approval_writer
 from apply_run.branches import BranchRefused, branches_named
@@ -4524,11 +4532,11 @@ WITHHELD_PRIVACY: str = "privacy"
 #: reason a person reads is prose and not a code with a template around it.
 WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
     WITHHELD_UNCLASSIFIED:
-        "nothing has classified them, and §8.4 makes a handling class a "
-        "precondition of asking a model about a file. This is about the "
-        "detector, not about your files.",
+        "nothing has said yet what kind of material they are, and this product "
+        "will not ask a model about a file until something has. This is about "
+        "the detector, not about your files.",
     WITHHELD_PROTECTED:
-        "they are protected material (§8.4), so nothing about them was "
+        "they are protected material, so nothing about them was "
         "assembled for a model. That is a decision about sensitivity and not a "
         "gap in what this run could read.",
     WITHHELD_PRIVACY:
@@ -4588,6 +4596,25 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
     for kind, count_ in sorted(kinds.items()):
         if kind in named:
             print(f"  {count_} refused: {named[kind]} ({kind}).", file=out)
+    # `104` R-O's line. A refusal raised inside a model-site call used to end the
+    # run with a traceback and no report at all, so there was nothing here to
+    # print; now it is an outcome, and an outcome a person is never told about is
+    # the same silence with better manners. Grouped by WHAT REFUSED, because
+    # "the gate could not read one of the items" and "the request could not be
+    # described" are different things for the lead to fix and the same
+    # non-event for the person.
+    refused_calls: dict[str, int] = {}
+    for _file_id, result in outcomes:
+        if isinstance(result, CallRefused):
+            refused_calls[result.refusal_class] = (
+                refused_calls.get(result.refusal_class, 0) + 1)
+    for refusal_class, count_ in sorted(refused_calls.items()):
+        print(_wrapped(
+            f"{count_} refused: a part of this product declined to answer and the "
+            f"run went on without it ({refusal_class}). Nothing about "
+            f"{'those files' if count_ != 1 else 'that file'} was decided by a "
+            f"model; what this device could read and decide on its own still "
+            f"stands, and the next run asks again.", indent="  "), file=out)
     # THE GATE'S OWN WORD, NOT THE CLASS NAME. "the gate refused the release
     # (Refusal)" names the Python type that carried the answer and says nothing
     # about the answer: protected material and a dossier over the ceiling are
@@ -4605,16 +4632,144 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
               f"{reason.replace('_', ' ')} ({reason}).", file=out)
 
 
-def _print_protected_areas(areas, out) -> None:
-    """§1.1's containers: marked, counted, named, and never opened."""
+def _protected_file_count(conn: sqlite3.Connection, scan_run_id: str) -> int:
+    """How many of THIS scan's files P7 marked protected. `104` R-J.
+
+    Over the roster and not over the whole table, because the count sits beside a
+    count of this run's containers and a number from an earlier scan of another
+    folder would make the total a sum of two different questions.
+
+    The same query `folders_nothing_could_be_read_from` already asks -- current
+    classification rows, `protected = 1` -- so the screen's two protected counts
+    cannot come from two readings of the same column.
+    """
+    withheld = {row[0] for row in conn.execute(
+        "SELECT DISTINCT file_id FROM classifications "
+        "WHERE protected = 1 AND superseded_by IS NULL")}
+    return sum(1 for file_id, _hash in corpus_roster(conn, scan_run_id)
+               if file_id in withheld)
+
+
+#: One locked container, as the screen needs it: the name the person calls it and
+#: the reader's own sentence about why it was not opened.
+LockedContainer = namedtuple("LockedContainer", "name reason")
+
+
+def locked_reasons(conn: sqlite3.Connection,
+                   scan_run_id: str) -> dict[str, str]:
+    """Section 2.5's password-protected archives in this scan, by file. `104` R-D.
+
+    Read off P4's own extraction record rather than re-derived: the reader put the
+    reason there, P5 made the run `unreadable`, and that table is "THE
+    extraction-outcome record for the whole system". Matched on
+    `LOCKED_REASON_PREFIX` and on the archive extractor, so `malformed archive:` --
+    the other thing an `unreadable_reason` can say -- is never counted as marked.
+
+    Over THIS scan's roster, for the reason `_protected_file_count` gives: the
+    number stands beside a count of this run's containers and files, and a locked
+    archive from an earlier scan of another folder would make the total a sum of
+    two questions.
+
+    ONE LOOKUP, read twice: by the block at the top of the report and by the line
+    where the file itself is listed. Two lookups would be two answers to "is this
+    archive locked", and the screen would eventually carry both.
+    """
+    reasons = {
+        row["file_id"]: row["failure_reason"]
+        for row in conn.execute(
+            "SELECT file_id, failure_reason FROM extraction_runs "
+            "WHERE extractor_name = ? AND completeness = 'unreadable' "
+            "AND failure_reason LIKE ?",
+            (ARCHIVE_EXTRACTOR_NAME, f"{LOCKED_REASON_PREFIX}%"))}
+    found: dict[str, str] = {}
+    for file_id, _hash in corpus_roster(conn, scan_run_id):
+        reason = reasons.get(file_id)
+        if reason is None:
+            continue
+        # The reader's sentence, without P5's tail. `extract_archive` appends
+        # "; section 2.5 marks it rather than forcing it open" -- true, and it is
+        # what the block's own heading already says, so printing it here would say
+        # the same thing twice on one screen.
+        found[file_id] = (
+            reason.split(f"{LOCKED_REASON_PREFIX}: ", 1)[-1].split("; section")[0])
+    return found
+
+
+def locked_containers(conn: sqlite3.Connection, scan_run_id: str,
+                      names: Mapping[str, str]) -> tuple[LockedContainer, ...]:
+    """The same archives, named the way the person names them, for the block."""
+    return tuple(sorted(
+        LockedContainer(name=names.get(file_id, file_id), reason=reason)
+        for file_id, reason in locked_reasons(conn, scan_run_id).items()))
+
+
+def _print_protected(areas, *, protected_files: int,
+                     locked: Sequence[LockedContainer] = (), out=None) -> None:
+    """Everything this run marked and set aside, under ONE word and ONE total.
+
+    **`104` R-J.** Two lines apart the report used to say "Protected containers: 0
+    marked, none opened" and, further down, "4 protected files, marked and
+    counted". §1.1's folders and §8.4's files, both called protected, two counts,
+    and nothing on the screen saying that one of them was not the other. A person
+    reads that as a contradiction, and they are right to.
+
+    `00`'s rule is one rule -- marked and counted, never opened, never silently
+    omitted -- so there is one heading and one total, and each KIND says
+    underneath it what is true of that kind.
+
+    **"Never opened" moved down to the folders, and that is not a wording
+    choice.** It is false of a §8.4 file: that file WAS opened -- read, indexed
+    and classified, on this device. What it was not is sent to a model or filed in
+    one gesture with everything else. Printing "none opened" over it would be a
+    comfort the run has not earned, which is the same defect as the two
+    vocabularies, one rung quieter.
+
+    **Folders are named; files are not.** A protected container is a folder on the
+    person's own disk that Finder shows them anyway, and `00`:201 is about the
+    other list: "a summary such as '11 protected identity records' may be safe to
+    show, while a visible list of passport filenames on a shared screen may not
+    be." `93-PROTECTED-DISCLOSURE-RULING.md` is the owner's decision behind that,
+    and `--show-protected` is on the screen every time so the summary is never a
+    hiding place.
+    """
     out = out if out is not None else sys.stdout
-    print(f"\nProtected containers: {len(areas)} marked, none opened", file=out)
-    for area in areas:
-        print(f"  {area.display_label}  ({area.label})", file=out)
-        print(f"    {area.path}", file=out)
+    print(f"\nProtected: {len(areas) + len(locked) + protected_files} "
+          f"marked and counted", file=out)
     if areas:
+        print(f"  Application and system folders: {len(areas)}, never opened",
+              file=out)
+        for area in areas:
+            print(f"    {area.display_label}  ({area.label})", file=out)
+            print(f"      {area.path}", file=out)
         print("  Nothing inside these was read, indexed, classified or moved, and "
               "none of them is a place anything can be filed.", file=out)
+    if locked:
+        # `104` R-D. A THIRD KIND, and it belongs with the folders rather than
+        # with the files: nothing inside it was read either. Section 2.5 -- an
+        # archive whose members are encrypted is "marked as unreadable ... rather
+        # than forced open" -- and the standing rule is that what is marked is
+        # COUNTED, on the screen and not only in the database. `03938ae` recorded
+        # it correctly and said it nowhere.
+        #
+        # NAMED, like the folders above and unlike the files below. The name is
+        # the archive's own, which the person sees in Finder anyway; what stays
+        # unprinted is the MEMBER list, because a locked archive's members can be
+        # `passport.pdf` and `00`:201 is exactly about that list.
+        print(f"  Password-protected containers: {len(locked)}, never opened",
+              file=out)
+        for container in locked:
+            print(f"    {container.name}", file=out)
+            print(_wrapped(container.reason, indent="      "), file=out)
+    if protected_files:
+        print(_wrapped(
+            f"Protected material: {protected_files} "
+            f"{'file' if protected_files == 1 else 'files'}, read on this device "
+            f"and shown to no model, and filed only one at a time by you. Their "
+            f"names are not printed here, because a list of them is the part of "
+            f"this report least safe to have on a screen somebody else can see. "
+            f"Nothing is being kept from you -- to see every one:", indent="  "),
+            file=out)
+        print("      --show-protected", file=out)
 
 
 def _print_set_aside(summary: Mapping[str, object], aside, out) -> None:
@@ -6311,8 +6466,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # `exclusion_verdicts` and the person was told nothing. "Marked, counted,
         # never silently omitted" has no success-path exception, so it is said as
         # soon as it is known.
-        _print_protected_areas(
-            protected_areas(conn, scan_run_id=p1_p7.scan_run_id), out)
+        _print_protected(
+            protected_areas(conn, scan_run_id=p1_p7.scan_run_id),
+            protected_files=_protected_file_count(conn, p1_p7.scan_run_id),
+            locked=locked_containers(
+                conn, p1_p7.scan_run_id,
+                file_names(conn, directory, *also_read)),
+            out=out)
         # HERE for the reason above it, one rule further out. Every argument that
         # comment makes for the protected block is an argument for §1.1's other
         # three rules: the verdict is in `exclusion_verdicts` by now, a stage
@@ -7298,9 +7458,16 @@ NAMES_LISTED_PER_GROUP: int = 10
 #: number in the heading above it can never disagree. The second line is indented
 #: and is therefore printed verbatim -- `_role_lines`' convention, because a
 #: command a text wrapper has broken is not a command.
+#: "AND NONE OF THEM OPENED" IS GONE (`104` R-J). It was never true of a §8.4
+#: file: this product read it, indexed it and classified it on this device --
+#: that is how it knows the file is protected at all. What it did not do is send
+#: it to a model or file it in one gesture with everything else, and those are
+#: the two sentences the group's own heading already carries. "Of the N counted
+#: at the top" ties this number to the one in `_print_protected`, so a person
+#: meeting the word twice can see it is one count and not two.
 PROTECTED_SUMMARY: tuple[str, ...] = (
-    "{count} protected file{plural}, marked and counted, and none of them "
-    "opened. Their names are not printed here, because a list of them is the "
+    "{count} protected file{plural}, of the ones counted at the top of this "
+    "report. Their names are not printed here, because a list of them is the "
     "part of this report least safe to have on a screen somebody else can see. "
     "Nothing is being kept from you -- to see every one:",
     "      --show-protected",
@@ -7520,6 +7687,89 @@ def _review_note(items: Sequence, areas: Sequence[str]) -> tuple[str, ...]:
     return tuple(lines)
 
 
+def high_level_folders(directory: Path, also_read: Sequence[Path],
+                       candidate_roots: Sequence[Path]) -> dict[str, Path]:
+    """§1.1's folder landscape, built once for the screen and for the freeze.
+
+    It was built inline where the freeze is composed, and `104` R-N is what that
+    cost: the report had no landscape, so it could not say which of its own
+    proposals crossed one of these folders, and it offered a Desktop file a home
+    under Downloads that the freeze then refused. One landscape, two readers.
+
+    The candidate roots are in it because they are part of the landscape, and
+    being in it makes nothing a destination: a destination needs a NODE whose
+    `root_anchor` names it.
+    """
+    return {ROOT_ANCHOR: directory,
+            **{str(folder): folder
+               for folder in (*also_read, *candidate_roots)}}
+
+
+def _crossing_moves(conn: sqlite3.Connection, result: ProductionRun, *,
+                    landscape: Mapping[str, Path]) -> dict[str, str]:
+    """Every proposed placement that would cross a high-level folder. `104` R-N.
+
+    `file_id -> the folder the file is in now`, named the way a person names it.
+    Empty when the person has already said such moves are allowed, because then
+    there is nothing to mark: the proposal is one the plan will carry out.
+
+    P12's own predicate, imported. `00`:20 makes crossing the person's third
+    choice, and a screen that answered it a second way would eventually tell
+    somebody a move is fine that the freeze refuses -- which is R-N exactly,
+    arrived at from the other side.
+    """
+    paths = dict(conn.execute("SELECT file_id, current_path FROM files"))
+    anchors = {node.node_id: node.root_anchor for node in result.tree.tree.nodes}
+    crossing: dict[str, str] = {}
+    for decision in result.placement.decisions:
+        if decision.destination is None:
+            continue
+        anchor = anchors.get(decision.destination.node_id)
+        if anchor is None:
+            continue
+        for file_id in _files_of(decision):
+            here = paths.get(file_id)
+            if here is None:
+                continue
+            source = source_high_level_folder(Path(here), landscape)
+            if source is None or source == anchor:
+                continue
+            # The folder's own name, not its path and not P10's anchor id.
+            crossing[file_id] = (
+                Path(landscape[source]).name if source in landscape else source)
+    return crossing
+
+
+def duplicate_families(conn: sqlite3.Connection,
+                       scan_run_id: str) -> dict[str, tuple[str, ...]]:
+    """§3.11's `duplicate_family`, as families rather than as per-file facts.
+
+    `104` R-K. Four `(1)` twins on a 52-file corpus each got an independent,
+    identical decision and no line said "same file as", while the fact had been
+    on both members all along -- resolution G5 makes duplicate family a universal
+    fact and P9's `duplicate_or_version` already reads it to type an edge. What
+    was missing was the sentence.
+
+    Families of ONE are dropped: a `duplicate_family` value a single file carries
+    is a family with nothing to compare it to, and telling a person their file is
+    a duplicate of nothing is worse than saying nothing.
+
+    Over THIS scan's roster, for the reason `_protected_file_count` gives.
+    """
+    roster = {file_id for file_id, _hash in corpus_roster(conn, scan_run_id)}
+    families: dict[str, list[str]] = {}
+    for row in conn.execute(
+            'SELECT ff.file_id AS file_id, v.canonical_value AS family '
+            'FROM file_facts ff JOIN "values" v ON ff.value_id = v.value_id '
+            'WHERE ff.field_key = ? AND ff.active = 1 '
+            'AND ff.superseded_by IS NULL',
+            (DUPLICATE_FAMILY_FIELD,)):
+        if row["file_id"] in roster:
+            families.setdefault(row["family"], []).append(row["file_id"])
+    return {family: tuple(sorted(members))
+            for family, members in families.items() if len(members) > 1}
+
+
 def report(result: ProductionRun, names: dict[str, str], *, out=None,
            questions: Sequence = (), set_aside: Sequence = (),
            role_moment: Sequence[str] = (),
@@ -7527,6 +7777,9 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
            invite_freeze: bool = False,
            list_every_name: bool = False,
            show_protected: bool = False,
+           locked: Mapping[str, str] = MappingProxyType({}),
+           crossing: Mapping[str, str] = MappingProxyType({}),
+           duplicates: Mapping[str, tuple[str, ...]] = MappingProxyType({}),
            not_carried: Sequence = ()) -> tuple[str, ...]:
     """The run, in the order a person would ask about it.
 
@@ -7699,9 +7952,29 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # key. A protected file is marked and counted as ITSELF; it does not
         # take the syllabus beside it behind the summary with it.
         protected_here = _protected(decision, sets)
+        # `104` R-D. A PASSWORD-PROTECTED ARCHIVE KEYS APART. Its decision reads
+        # like every other unplaced file's -- "No legal destination cleared
+        # §6.10's conditions" -- which is true and says nothing about the one
+        # thing this file's record does know, so it was folded in with twelve
+        # others and, past the ten-name cap, was not even printed. Section 2.5
+        # marks it; the standing rule counts what is marked; and a count a person
+        # cannot find the file behind is half a count.
+        locked_here = tuple(sorted(
+            file_id for file_id in _files_of(decision) if file_id in locked))
+        # `104` R-N. A MOVE THAT CROSSES A HIGH-LEVEL FOLDER KEYS APART, because
+        # it is not the same offer: `00`:20 makes crossing the person's own
+        # choice, they have not made it, and `mutation/resolution.py` refuses
+        # this one when the freeze reaches it. Printed beside moves that WILL
+        # happen, with nothing telling the two apart, it is a proposal a person
+        # cannot act on -- measured on a real Desktop file offered a home under
+        # Downloads. The folder names are in the key so two sources do not merge
+        # into one sentence naming one of them.
+        crossing_here = tuple(sorted({
+            crossing[file_id] for file_id in _files_of(decision)
+            if file_id in crossing}))
         key = (decision.outcome, where, reason, review,
                decision.review_policy if decision.outcome == pv.PLACE else None,
-               settled, same_folder, protected_here)
+               settled, same_folder, protected_here, locked_here, crossing_here)
         members.setdefault(key, []).extend(_files_of(decision))
         shielded[key] = shielded.get(key, False) or protected_here
         marks = held_seen.setdefault(key, set())
@@ -7734,7 +8007,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
           + (f", {awaiting} waiting for you to approve" if awaiting else ""),
           file=out)
     for key in ordered:
-        outcome, where, reason, review, policy, settled, same_folder, _ = key
+        outcome, where, reason, review, policy, settled, same_folder, _, \
+            locked_here, crossing_here = key
         files = sorted(members[key], key=lambda f: names.get(f, f))
         # A placement's headline comes from its REVIEW POLICY, because that is
         # what says whether anything may happen to the file. An unknown policy
@@ -7751,6 +8025,17 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             if where:
                 heading = f"{heading} into {where}"
         plural = "" if len(files) == 1 else "s"
+        if crossing_here:
+            # ON THE HEADING, not in a footnote: the heading is what a person
+            # reads to decide whether to freeze, and this branch will not move
+            # until they answer `00`:20's third question.
+            #
+            # Joined with "and" when the heading already carries a clause, so a
+            # file waiting on two answers reads as one sentence rather than as
+            # two headings run together.
+            heading = (f"{heading} and once you allow moves across folders"
+                       if ", once you " in heading
+                       else f"{heading}, once you allow moves across folders")
         print(f"\n  {heading} -- {len(files)} file{plural}", file=out)
         # `list_every_name` is set by the freeze run and by nothing else. The
         # owner ruled that a freeze IS the person's approval, and an approval
@@ -7780,6 +8065,8 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
             # printed under this clause may ever be approved by a freeze, which
             # is the same conclusion the `not shielded[key]` guard below reaches
             # by the other road.
+            # NOTHING WAS NAMED, so nothing may be named about it below either.
+            shown_here = ()
             for line in PROTECTED_SUMMARY:
                 said = line.format(count=len(files), plural=plural)
                 print(said if said.startswith(" ")
@@ -7800,6 +8087,7 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 # is here as well as in `freeze` because two independent refusals
                 # are what "never" means.
                 named.extend(listed)
+            shown_here = listed
             for file_id in listed:
                 print(f"    {names.get(file_id, file_id)}", file=out)
             rest = len(files) - len(listed)
@@ -7814,6 +8102,49 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         if reason:
             print(_wrapped(f"Same reason for each: {reason}", indent="    "),
                   file=out)
+        # `104` R-D, said where the file is listed and not only at the top. The
+        # member NAMES are not printed: a locked archive's members can be
+        # `passport.pdf`, which is the list `00`:201 is about.
+        # `104` R-K. SAID OVER THE NAMES THIS GROUP PRINTED, and over no others.
+        # A duplicate line naming a file the screen is withholding would hand
+        # back exactly what `PROTECTED_SUMMARY` holds, and one naming a file
+        # inside the "...and N more" fold would name what the fold exists not to
+        # name. So `listed` is the whole world here, and a family with fewer
+        # than two of its members on this screen says nothing -- which is
+        # honest: what the person can act on is what they can see.
+        for family in sorted({
+                family for family, members in duplicates.items()
+                if len(set(members) & set(shown_here)) > 1}):
+            together = sorted(
+                names.get(file_id, file_id)
+                for file_id in duplicates[family] if file_id in shown_here)
+            elsewhere = len(duplicates[family]) - len(together)
+            also = (f" {elsewhere} more file(s) in this plan have the same "
+                    f"bytes and are listed elsewhere in this report."
+                    if elsewhere else "")
+            print(_wrapped(
+                f"{' and '.join(together)} are the same bytes, not two "
+                f"documents. Keeping one is probably what you want; nothing "
+                f"here deletes either, and both are filed the same way until "
+                f"you say otherwise.{also}", indent="    "), file=out)
+        if crossing_here:
+            where_from = ", ".join(crossing_here)
+            print(_wrapped(
+                f"These are in {where_from} and this folder is not, so filing "
+                f"them here would move them out of the folder they are in. "
+                f"`--may-cross-folders` is the permission for that and it was "
+                f"not given, so a freeze refuses this branch and nothing moves. "
+                f"Run the same command with `--may-cross-folders` to allow it, "
+                f"or leave it off and these stay where they are.",
+                indent="    "), file=out)
+        for file_id in locked_here:
+            print(_wrapped(
+                f"{names.get(file_id, file_id)} is password-protected: "
+                f"{locked[file_id]}. It is counted with the protected material "
+                f"at the top of this report: a locked archive is marked rather "
+                f"than forced open, so nothing inside it was read and nothing "
+                f"about it was assembled for a model.",
+                indent="    "), file=out)
         # `_role_lines`' convention: a line that begins with a space is a line
         # the person is meant to paste, and it is printed exactly as it is.
         for note in _review_note(held_sets.get(key, ()), areas):
@@ -8844,6 +9175,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
     # it one so it could ask a second part a question would make the report a
     # place where new facts are discovered.
     held = live_roles(conn)
+    _landscape = high_level_folders(directory, also_read, candidate_roots)
     shown = report(result, file_names(conn, directory, *also_read), out=out,
                    questions=open_now,
                    set_aside=set_aside_questions(conn),
@@ -8853,6 +9185,19 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
                    invite_freeze=not args.freeze,
                    list_every_name=args.freeze,
                    show_protected=args.show_protected,
+                   # Read here and passed IN, for the reason `report`'s own
+                   # docstring gives about `questions`: it takes a finished run
+                   # and a naming table and holds no connection.
+                   locked=locked_reasons(conn, result.p1_p7.scan_run_id),
+                   # `104` R-N, and the landscape below is the same object the
+                   # freeze resolves against, so the screen and the plan cannot
+                   # disagree about which folder a file is in.
+                   crossing=({} if args.may_cross_folders
+                             else _crossing_moves(conn, result,
+                                                  landscape=_landscape)),
+                   # `104` R-K, read here and passed IN like the rest.
+                   duplicates=duplicate_families(
+                       conn, result.p1_p7.scan_run_id),
                    # A §7.6 set answer belongs to the plan version it was given
                    # in, and every run mints a new one, so an answer given
                    # yesterday is not applied today. That is
@@ -8917,9 +9262,7 @@ def main(argv: Sequence[str] | None = None, *, out=None) -> int:
         # same reason -- they are part of the landscape -- and being in it makes
         # nothing a destination: a destination needs a NODE whose `root_anchor`
         # names it, and `adopted_folders` refuses to build one over a root.
-        high_level_folders={ROOT_ANCHOR: directory,
-                            **{str(folder): folder
-                               for folder in (*also_read, *candidate_roots)}},
+        high_level_folders=_landscape,
         volume_of=_volume_of,
         protected_handling_classes=PROTECTED_CLASSES,
         # `74` §8 Q3 is open, so the only behaviour that can be frozen is the
