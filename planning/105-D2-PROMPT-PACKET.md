@@ -96,6 +96,22 @@ G15 (new): `cli.normalize_for_model` returns `None` for every course title as `s
 2. **Do not ratify the proposed `subject` entry as written.** Its measured effect is title-lifting. Put to the owner instead, unmeasured: *"the course's own name — a course code, or the name a syllabus would give the course — never the title of this document, its chapter, its book, its study guide or its publisher"*; measure it as a third arm before ratifying.
 3. Decide G15: whether the normaliser's closed vocabularies for `subject`, `term` and `work_type` are replaced by the "confirm this new value" path before A is measured on the owner's corpus again.
 
+### 1.7 The third `subject` wording, measured (cloud, 14 calls, 2026-09-06 evening)
+
+`subject-v3-glossary` (`field_glossary_proposal_subject_2026-09-06.json`) is the proposal with `subject` alone changed to the §1.6 wording: *"the course's own name - a course code, or the name a syllabus would give the course - never the title of this document, its chapter, its book, its study guide or its publisher"*. The `school` entry is the proposal's, unchanged, so this arm is also a second run of that entry.
+
+| arm | `subject` wrong (said) | `school` wrong (said) | responses destroyed | schema-valid | grounding |
+|---|---|---|---|---|---|
+| ratified-glossary | 5 of 13 (A02, A03, A06, A07, A13) | 3 of 13 (A01, A04, A13) | 1 (A12) | 13 / 14 | 23 / 25 |
+| proposed-glossary | 8 of 13 | 2 of 13 (A04, A13) | 1 (A05) | 13 / 14 | 22 / 22 |
+| subject-v3-glossary | **5 of 12** (A02, A03, A06, A07, A13) | **4 of 12** (A01, A04, A09, A13) | 1 (A11) | 13 / 14 | 23 / 23 |
+
+**`subject`: the title-lifting is gone and the exclusion clause still does not hold.** A01, A08 and A14 return to the course name or code (`University Writing`, `AP World History`, `PHYS 2801`) that the proposal had turned into document titles; A05, A10 and A12 stay right. What the third wording does not do is decline: A02 still says `The Great Gatsby` (the book), A07 `Thermodynamics` (the chapter's topic), A03 `PHYS 1401 - General Physics I` (code and title), A06 `Lecture 08: Rotational Dynamics`, A13 `PHYS 1401 A`. Five wrong of twelve judged is the ratified wording's own rate; the third wording repairs the proposal's regression and improves nothing beyond the incumbent. The negative list in the entry ("never ... its book, its study guide or its publisher") did not make the model decline a study guide's subject; nothing measured here does, and `104` §11.2 steps 3 and 4 (no node from an unanchored single value; a study guide asked its own schema) remain what stops the CliffsNotes node.
+
+**`school`: the A01 reversal did not reproduce.** Under an identical `school` entry, the proposed arm declined `school` on A01 and this arm answered `University of Chicago` — the essay's target university; on A09 (the application essay) it answered `Duke`, again the target, where both other arms declined. The wording says "not any school the person attended", and the model obeyed it by moving from `00`:44's first collector (the school attended) to its second (the application target). One run said the entry fixes A01; the next run, with the same entry and a different neighbour, said it does not. §10's second-run criterion for the `school` entry is therefore **failed on the first retry**, and the entry cannot be put forward as measured. A wording that names both exclusions ("not a school the person attended and not a school a document is addressed to") is the obvious next arm, unmeasured.
+
+The rule-11 destruction (one malformed claim, whole response lost) landed on a different case in each arm — A12, A05, A11 — one in fourteen every time: a property of the shape, not of the wording.
+
 ## 2. C_placement
 
 ### 2.1 Requirements, traced
@@ -194,26 +210,26 @@ What the local arm changes and does not change. It does not change the ranking �
 
 ### 2.4 Stress cases
 
-Rendered by `python3 -m tools.promptbench tables --site C_placement --out tools/promptbench/out/C_placement` after the local arm; the expectation column is the case's `expect`.
+Rendered by `python3 -m tools.promptbench tables --site C_placement --out tools/promptbench/out/C_placement`; the local arms and eliminate-v2 included.
 
-| case | persona | traces | expectation | eliminate / cloud | eliminate / local | walk / cloud | walk / local |
-|---|---|---|---|---|---|---|---|
-| C01 — a syllabus that uniquely matches one node | Priya | 00:110, 104:13.5 | answer: `{"destination":"n-02"}` | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct |
-| C02 — a sparse homework file placed through its accepted group | Priya | 00:108, 00:111 | answer: `{"destination":"n-03"}` | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / reject CITATION_NOT_IN_DOSSIER | correct / reject CITATION_NOT_IN_DOSSIER |
-| C03 — a term the deeper node carries and the file contradicts | Priya | 00:111, 00:107 | answer: `{"destination":"n-03"}` | correct / acc_direct | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER |
-| C04 — a transcript with two supported homes and no shared branch | multi-life | 00:113, 00:239 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / reject CITATION_NOT_IN_DOSSIER | abstained / abstain | ANSWERED / reject CITATION_NOT_IN_DOSSIER |
-| C05 — the same transcript when a shared branch exists | multi-life | 00:113 | answer: `{"destination":"n-11"}` | false abstain / abstain | WRONG / reject CITATION_NOT_IN_DOSSIER | false abstain / abstain | WRONG / reject CITATION_NOT_IN_DOSSIER |
-| C06 — a Duke essay retrieved by a Columbia packet, with the conflict recorded | multi-life | 00:107, 00:112, 00:114 | answer: `{"destination":"n-13"}` | correct / reject CONFLICT_IGNORED | WRONG / reject SCHEMA_INVALID | correct / reject CONFLICT_IGNORED | WRONG / reject CONFLICT_IGNORED |
-| C07 — refinement: a lecture sitting in its own course folder | multi-life | 104:13.8, 00:22 | answer: `{"destination":"n-15","refinement":"deeper_in_own_folder"}` | correct / weak INSUFFICIENT_MARGIN | WRONG / acc_direct | correct / acc_direct | WRONG / acc_direct |
-| C08 — removal: a report card in the folder its parent keeps it in | Tom | 104:13.8, 00:22, 68:F5 | answer: `{"destination":"n-17","refinement":"out_of_own_folder"}` | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct |
-| C09 — a file linked only by a generic hub | multi-life | 00:63, 00:109 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / acc_direct | abstained / abstain | ANSWERED / acc_direct |
-| C10 — MIT inside submit | Priya | 00:43, 00:239 | answer: `{"destination":"n-03"}` | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER,CITATION_SPAN_MISMATCH |
-| C11 — a number that is an invoice, not a course | Tom | 00:239, 00:46 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / reject CITATION_SPAN_MISMATCH | abstained / abstain | ANSWERED / weak INSUFFICIENT_MARGIN |
-| C12 — a course file with no recoverable kind of work | Priya | 00:99, 00:111 | answer: `{"destination":"n-05"}` | correct / acc_direct | WRONG / reject CITATION_NOT_IN_DOSSIER | correct / acc_direct | WRONG / reject CITATION_NOT_IN_DOSSIER |
-| C13 — a packet member placed inside its confirmed packet | multi-life | 00:112 | answer: `{"destination":"n-09"}` | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / reject CITATION_NOT_IN_DOSSIER | correct / weak INSUFFICIENT_MARGIN |
-| C14 — an essay naming the author's school and the target university | multi-life | 00:44, 104:11.1 | answer: `{"destination":"n-21"}` | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct |
-| C15 — a screenshot whose OCR is noise | multi-life | 00:110, 00:125 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / acc_direct | abstained / abstain | ANSWERED / acc_direct |
-| C16 — a university course essay whose own course node exists | multi-life | 104:11.1, 00:44 | answer: `{"destination":"n-23"}` | correct / reject CITATION_SPAN_MISMATCH | correct / acc_direct | correct / acc_direct | correct / reject CITATION_SPAN_MISMATCH |
+| case | persona | traces | expectation | eliminate / cloud | eliminate / local | eliminate-v2 / cloud | walk / cloud | walk / local |
+|---|---|---|---|---|---|---|---|---|
+| C01 — a syllabus that uniquely matches one node | Priya | 00:110, 104:13.5 | answer: `{"destination":"n-02"}` | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct |
+| C02 — a sparse homework file placed through its accepted group | Priya | 00:108, 00:111 | answer: `{"destination":"n-03"}` | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / reject CITATION_NOT_IN_DOSSIER |
+| C03 — a term the deeper node carries and the file contradicts | Priya | 00:111, 00:107 | answer: `{"destination":"n-03"}` | correct / acc_direct | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER |
+| C04 — a transcript with two supported homes and no shared branch | multi-life | 00:113, 00:239 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / reject CITATION_NOT_IN_DOSSIER | abstained / abstain | abstained / abstain | ANSWERED / reject CITATION_NOT_IN_DOSSIER |
+| C05 — the same transcript when a shared branch exists | multi-life | 00:113 | answer: `{"destination":"n-11"}` | false abstain / abstain | WRONG / reject CITATION_NOT_IN_DOSSIER | correct / weak INSUFFICIENT_MARGIN | false abstain / abstain | WRONG / reject CITATION_NOT_IN_DOSSIER |
+| C06 — a Duke essay retrieved by a Columbia packet, with the conflict recorded | multi-life | 00:107, 00:112, 00:114 | answer: `{"destination":"n-13"}` | correct / reject CONFLICT_IGNORED | WRONG / reject SCHEMA_INVALID | correct / reject CONFLICT_IGNORED | correct / reject CONFLICT_IGNORED | WRONG / reject CONFLICT_IGNORED |
+| C07 — refinement: a lecture sitting in its own course folder | multi-life | 104:13.8, 00:22 | answer: `{"destination":"n-15","refinement":"deeper_in_own_folder"}` | correct / weak INSUFFICIENT_MARGIN | WRONG / acc_direct | correct / acc_direct | correct / acc_direct | WRONG / acc_direct |
+| C08 — removal: a report card in the folder its parent keeps it in | Tom | 104:13.8, 00:22, 68:F5 | answer: `{"destination":"n-17","refinement":"out_of_own_folder"}` | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct |
+| C09 — a file linked only by a generic hub | multi-life | 00:63, 00:109 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / acc_direct | abstained / abstain | abstained / abstain | ANSWERED / acc_direct |
+| C10 — MIT inside submit | Priya | 00:43, 00:239 | answer: `{"destination":"n-03"}` | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / acc_direct | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER,CITATION_SPAN_MISMATCH |
+| C11 — a number that is an invoice, not a course | Tom | 00:239, 00:46 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / reject CITATION_SPAN_MISMATCH | abstained / abstain | abstained / abstain | ANSWERED / weak INSUFFICIENT_MARGIN |
+| C12 — a course file with no recoverable kind of work | Priya | 00:99, 00:111 | answer: `{"destination":"n-05"}` | correct / acc_direct | WRONG / reject CITATION_NOT_IN_DOSSIER | correct / acc_direct | correct / acc_direct | WRONG / reject CITATION_NOT_IN_DOSSIER |
+| C13 — a packet member placed inside its confirmed packet | multi-life | 00:112 | answer: `{"destination":"n-09"}` | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / acc_direct | correct / reject CITATION_NOT_IN_DOSSIER | correct / weak INSUFFICIENT_MARGIN |
+| C14 — an essay naming the author's school and the target university | multi-life | 00:44, 104:11.1 | answer: `{"destination":"n-21"}` | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / acc_direct |
+| C15 — a screenshot whose OCR is noise | multi-life | 00:110, 00:125 | abstain: `{"destination":"none"}` | abstained / abstain | ANSWERED / acc_direct | abstained / abstain | abstained / abstain | ANSWERED / acc_direct |
+| C16 — a university course essay whose own course node exists | multi-life | 104:11.1, 00:44 | answer: `{"destination":"n-23"}` | correct / reject CITATION_SPAN_MISMATCH | correct / acc_direct | correct / acc_direct | correct / acc_direct | correct / reject CITATION_SPAN_MISMATCH |
 
 ### 2.5 Contract gaps found at C
 
@@ -225,6 +241,19 @@ Ratify **eliminate** (`c_placement.unratified.eliminate.2026-09-06`), its respon
 
 
 **The two known limits, stated the way `82` §0 states S1 and S2.** S1, what the text cannot catch: a placement that is grounded, cited and wrong — the model choosing a sibling folder that the same quoted span also fits (C05's shared branch, C07's own-folder child). Nothing in the wording prevents it; only the person's confirmation does, and the text is written so that the model's `alternatives` and `refinement` name the case. S2, what the validator catches instead: an identifier not on the list, a citation that does not resolve or whose span is not in the value, a level marked with a third support word, an unechoed conflict id, a malformed object. G1 and G6 are the two places where the validator catches a correct answer.
+
+### 2.7 eliminate-v2, measured (cloud, 16 calls)
+
+The stated delta from eliminate: (1) a group is support for a level and never a citation; (2) a candidate described as a shared branch, serving two accepted groups the file belongs to, stands alone with its levels marked `context`; (3) `refinement` is `not_applicable` unless a candidate's description says the file sits in it now.
+
+| arm | schema-valid | validator ok | grounding | abstain on should-abstain | correct on should-answer | correct **and** accepted | false abstain | accepted | median s | tokens |
+|---|---|---|---|---|---|---|---|---|---|---|
+| eliminate / cloud | 16 / 16 | 16 / 16 | 19 / 20 (0.950) | 4 / 4 | 11 / 12 | 8 / 12 | 1 / 12 | 8 / 16 | 1.9 | 82,017 / 2,867 |
+| eliminate-v2 / cloud | 16 / 16 | 16 / 16 | **21 / 21 (1.0)** | 4 / 4 | **12 / 12** | **10 / 12** | **0 / 12** | 10 / 16 | 1.9 | 84,193 / 3,028 |
+
+Every answerable case placed correctly and every should-abstain case abstained. C05, the shared-branch transcript both v1 texts false-abstained on, is now placed on the shared branch — and comes back `weak`, `INSUFFICIENT_MARGIN`: the model wrote `support` 1 and `next_support` 1, which is honest (each of the two groups supports the branch equally and the file's own text supports neither packet more) and is exactly the two-condition rule turning a right answer into a non-answer (G6, the third time). C06 is still G1. The C16 span error of v1 did not recur; on one run that is noise, not the sentence. On the cloud, v1 already wrote `not_applicable` where it should, so sentence (3) is for the local arm, where v1 wrote `deeper_in_own_folder` on 11 of 16 answers; it is unmeasured locally.
+
+**eliminate-v2 is the C text put forward**, in place of eliminate, on this run: it loses nothing v1 had and gains the shared-branch case. The two losses that remain are both the validator's (G1, G6), not the text's.
 
 ## 3. D_residual
 
@@ -423,23 +452,25 @@ Both false-abstained on B03, the Duke essay inside the Columbia packet: each exc
 
 ### 4.4 Stress cases
 
-| case | persona | traces | expectation | anchors-first / cloud | four-questions / cloud |
-|---|---|---|---|---|---|
-| B01 — course group, syllabus and lecture anchors, sparse homework candidate | Priya | 00:57, 00:60 | yes; hw uncertain or include | correct / acc_direct | broken JSON / reject SCHEMA_INVALID |
-| B02 — one course code, two terms | Priya | 00:63, 00:62 | no / insufficient | abstained (no: two terms) | abstained (no: two terms) |
-| B03 — a Duke essay inside a Columbia packet | multi-life | 00:58, 00:59, 00:62 | yes; Duke essay excluded, outlier | false abstain (members 4/4 right) | false abstain (members 4/4 right) |
-| B04 — files bridged only by an email domain | multi-life | 00:63, 00:57 | no / insufficient | abstained (generic-similarity) | abstained (generic-similarity) |
-| B05 — a purpose-coherent submission packet | multi-life | 00:45, 00:61 | yes; all five included | correct / acc_direct | correct / acc_direct |
-| B06 — a tight download session | Tom | 00:61, 00:45 | no / insufficient | abstained | abstained |
-| B07 — a research abstract that also supports an application | multi-life | 00:63, 00:48 | yes; abstract included | abstract `uncertain` | correct / acc_direct |
-| B08 — a university name that is target, provider and employer | multi-life | 00:63 | no / insufficient | abstained | **ANSWERED: a Columbia group** |
-| B09 — a coherent course group that needs a label | Priya | 00:59 | yes; label | correct / acc_direct | correct / acc_direct |
-| B10 — a conflicting course code among the candidates | Priya | 00:59, 00:62 | yes; PHYS 2801 excluded, outlier | correct / acc_direct | correct / acc_direct |
-| B11 — a photo event with a screenshot in the same hour | multi-life | 00:56, 00:32 | yes; screenshot out | correct / acc_direct | correct / acc_direct |
-| B12 — a TA's solution set with her own problem set as candidate | Priya | 68:F6, 00:59 | yes; PHYS 1401 set excluded | correct / acc_direct | correct / acc_direct |
-| B13 — versions of one essay | multi-life | 00:239, 00:56 | yes; all included | correct / acc_direct | correct / acc_direct |
-| B14 — a litigator's matter with an e-filing receipt | Mara | 68:2, 00:59 | yes | correct / acc_direct | correct / acc_direct |
-| B15 — duplicate suffixes on unrelated files | Tom | 00:239, 00:172 | no / insufficient | abstained | abstained |
+Rendered by `python3 -m tools.promptbench tables --site B_group --out tools/promptbench/out/B_group`; v2, v3 and whatever of the local arm has been recorded included.
+
+| case | persona | traces | expectation | anchors-first / cloud | anchors-first / local | anchors-first-v2 / cloud | anchors-first-v3 / cloud | four-questions / cloud |
+|---|---|---|---|---|---|---|---|---|
+| B01 — a course group with a direct syllabus anchor and a sparse homework candidate | Priya | 00:57, 00:60 | answer: `{"coherent":"yes","members":{"f-syl":"include","f-lec":"include","f-hw3":"uncertain|inc...` | correct / acc_direct | correct / reject INVENTED_MEMBERSHIP | correct / acc_direct | correct / acc_direct | WRONG / reject SCHEMA_INVALID |
+| B02 — one course code, two terms | Priya | 00:63, 00:62 | abstain: `{"coherent_in":["no","insufficient"]}` | abstained / abstain | ANSWERED / reject UNCITED_CLAIM | abstained / abstain | abstained / abstain | abstained / abstain |
+| B03 — a Duke essay inside a Columbia packet | multi-life | 00:58, 00:59, 00:62 | answer: `{"coherent":"yes","members":{"f-essay-col":"include","f-checklist":"include","f-transcr...` | false abstain / abstain | — | WRONG / reject SCHEMA_INVALID | false abstain / abstain | false abstain / abstain |
+| B04 — files bridged only by a university email domain | multi-life | 00:63, 00:57 | abstain: `{"coherent_in":["no","insufficient"]}` | abstained / abstain | — | abstained / abstain | abstained / abstain | abstained / abstain |
+| B05 — a purpose-coherent application submission packet | multi-life | 00:45, 00:61 | answer: `{"coherent":"yes","members":{"f-portal":"include","f-checklist":"include","f-transcript...` | correct / acc_direct | — | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| B06 — a tight download session with no purpose evidence | Tom | 00:61, 00:45 | abstain: `{"coherent_in":["no","insufficient"]}` | abstained / abstain | — | abstained / abstain | abstained / abstain | abstained / abstain |
+| B07 — a research abstract that also supports an application | multi-life | 00:63, 00:48 | answer: `{"coherent":"yes","members":{"f-checklist":"include","f-portal":"include","f-abstract":...` | WRONG / acc_direct | — | WRONG / acc_direct | WRONG / acc_direct | correct / acc_direct |
+| B08 — a university name that is a target, a provider and an employer | multi-life | 00:63 | abstain: `{"coherent_in":["no","insufficient"]}` | abstained / abstain | — | abstained / abstain | abstained / abstain | ANSWERED / acc_direct |
+| B09 — a coherent course group that needs a label | Priya | 00:59 | answer: `{"coherent":"yes","members":{"f-syl":"include","f-lec":"include","f-mid":"include"},"la...` | correct / acc_direct | — | correct / acc_direct | correct / acc_direct | correct / acc_direct |
+| B10 — a conflicting course code among the candidates | Priya | 00:59, 00:62 | answer: `{"coherent":"yes","members":{"f-syl":"include","f-lec":"include","f-ps2801":"exclude"},...` | correct / acc_direct | — | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| B11 — a photo event with a screenshot in the same hour | multi-life | 00:56, 00:32 | answer: `{"coherent":"yes","members":{"f-p1":"include","f-p2":"include","f-p3":"include","f-shot...` | correct / acc_direct | — | correct / acc_direct | correct / acc_direct | correct / acc_direct |
+| B12 — a TA's solution set with the student's own problem set as a candidate | Priya | 68:F6, 00:59 | answer: `{"coherent":"yes","members":{"f-sol":"include","f-rubric":"include","f-ps1401":"exclude...` | correct / acc_direct | — | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| B13 — versions of one essay | multi-life | 00:239, 00:56 | answer: `{"coherent":"yes","members":{"f-v1":"include","f-v2":"include","f-docx":"include"},"lab...` | correct / acc_direct | — | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| B14 — a litigator's matter with an e-filing receipt | Mara | 68:2, 00:59 | answer: `{"coherent":"yes","members":{"f-motion":"include","f-depo":"include","f-log":"include",...` | correct / acc_direct | — | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| B15 — duplicate suffixes on unrelated files | Tom | 00:239, 00:172 | abstain: `{"coherent_in":["no","insufficient"]}` | abstained / abstain | — | abstained / abstain | abstained / abstain | abstained / abstain |
 
 ### 4.5 Contract gaps found at B
 
@@ -451,6 +482,22 @@ Ratify **anchors-first** (`b_group.unratified.anchors-first.2026-09-06`), its re
 
 
 **The two known limits.** S1, what the text cannot catch: a coherent-looking group whose anchors do state one thing in common that is nonetheless not how the person thinks of the files (a purpose-coherent packet the person keeps by course, or the reverse); the label is a proposal for exactly that reason, `00`:64. S2, what the validator catches: a file id not in the dossier, a label without coherence, a merged term, a folder or hierarchy key, an uncited member decision, a malformed object; and not the category (G4) or the per-member decisions once P9 drops them (G11).
+
+### 4.7 anchors-first-v2 and v3, measured (cloud, 15 calls each)
+
+v2's stated delta: a contradicting member is an outlier of a coherent group and does not make it incoherent; excluding a file here says nothing about other groups (B-R10). v3 is v2 with the payload reordered so `basis`, a word, is its last key.
+
+| arm | schema-valid | validator ok | grounding | abstain on should-abstain | correct on should-answer | correct **and** accepted | false abstain | accepted | median s | tokens |
+|---|---|---|---|---|---|---|---|---|---|---|
+| anchors-first / cloud | 15 / 15 | 15 / 15 | 32 / 32 | 5 / 5 | 8 / 10 | 8 / 10 | 1 / 10 | 9 / 15 | 3.8 | 81,419 / 6,904 |
+| anchors-first-v2 / cloud | **9 / 15** | 9 / 15 | 14 / 14 | 5 / 5 | 3 / 10 | 3 / 10 | 0 / 10 | 4 / 15 | 3.0 | 82,694 / 6,987 |
+| anchors-first-v3 / cloud | 15 / 15 | 15 / 15 | 32 / 32 | 5 / 5 | 8 / 10 | 8 / 10 | 1 / 10 | 9 / 15 | 3.5 | 83,069 / 6,793 |
+
+**v2 measured the shape defect, not the sentence.** Six of its fifteen responses were unusable: five closed the payload on `merge_terms` one bracket short (`"merge_terms":[]}],"citations"` — G13, and on an *empty* array, which corrects §5.3's note that an empty last array was safe), and one (B03) came wrapped in a code fence. The wording change did not cause the defect; at temperature 0 any change to the text reshuffles which responses hit it, and v1 hit it once (B01). v3 moved `basis` to the end and the defect vanished: 15 of 15 valid, the same eight groups right, the same five refusals including the `00`:63 Columbia group.
+
+**The B03 sentence had no effect.** Under v3 the model included the Columbia essay and the checklist, excluded the Duke essay as an outlier — and answered `coherent: no` with the statement that the Duke essay "states a different target institution, so the group's basis is not coherent", the same reading as v1. Behind v2's fence, the same. Two wordings and three runs have now produced this reading; it is not a sentence the model missed but a judgement it makes, and the honest options are to accept it (a packet with a contradicting member is sent to the person as `no` with the outlier named, which loses nothing the person cannot recover) or to change the shape so that an outlier list beside `coherent: yes` is the only place a contradiction can go. B07's `uncertain` abstract is unchanged under all three.
+
+**anchors-first-v3 is the B text put forward**, in place of anchors-first: identical numbers, with the bracket defect removed from the shape.
 
 ## 5. E_template
 
@@ -526,24 +573,22 @@ Both texts carry every E requirement; the difference is direction (top-down ques
 
 ### 5.4 Stress cases
 
-Three labels were corrected after the first run, by `00`:97's own rule that a level with one child is no level: E04 (every member is PHYS 1401, so `subject` is one-child and `work_type` alone is right), E06 and E12 (one repository and one project; only `artifact_type` splits the files). The suite records the correction beside each case; the numbers above are after it.
+Rendered by `python3 -m tools.promptbench tables --site E_template --out tools/promptbench/out/E_template`. Three labels were corrected after the first run, by `00`:97's own rule that a level with one child is no level: E04, E06 and E12; the suite records the correction beside each case.
 
-| case | persona | traces | expectation | from-facts / cloud | what-a-person-opens / cloud |
-|---|---|---|---|---|---|
-| E01 — a trip's photos: time first, then the occasion | multi-life | 00:95, 00:70 | capture_year first, event; no people | broken JSON (design right: year, location, event) | broken JSON (same) |
-| E02 — a research group whose parent already is the project | multi-life | 00:97, 00:99 | artifact_type; no project | broken JSON (design right) | correct / acc_direct |
-| E03 — consulting deliverables all by one author | Mara | 00:44, 00:97 | no authored_by / our_firm | broken JSON (design right: document kind) | correct / acc_direct |
-| E04 — a course where every file shares one term | Priya | 00:97, 00:99 | work_type; no term, no subject | correct / acc_direct | broken JSON |
-| E05 — a domain the library has no schema for | Tom | 00:97, 43:9 | ≥1 template-local; no borrowed keys | broken JSON (design right: campaign, document_type) | broken JSON (campaign, session) |
-| E06 — a recurring pattern that tempts publication | multi-life | 00:97, 43:9 | artifact_type; no repository/project (one child) | broken JSON | WRONG (project level) / acc_direct |
-| E07 — financial records with a person as collector | Tom | 00:97, 00:185 | institution; no account_holder | broken JSON (design right) | broken JSON |
-| E08 — more levels than a tree should have | multi-life | 00:97, 00:99 | artifact_type; ≤ 4 | correct / acc_direct | broken JSON |
-| E09 — a dimension no file has a value for | multi-life | 00:97 | artifact_type; no venue, no lab | broken JSON | correct / acc_direct |
-| E10 — a group with no recoverable facts | Tom | 00:97, 00:63 | abstain | abstained (`domain: "none"`) | abstained (empty dimensions) |
-| E11 — recruiting documents: employer before cycle | multi-life | 00:95, 00:70 | target_employer first | broken JSON (design right) | broken JSON |
-| E12 — a code project: repository, not language | multi-life | 00:30, 00:97 | artifact_type; no language, no project | broken JSON | WRONG (project level) / acc_direct |
-
-No fragment was ever published or referenced (0 `FRAGMENT_*` reasons), no live field key was relabelled template-local, and every citation that reached the validator resolved.
+| case | persona | traces | expectation | from-facts / cloud | what-a-person-opens / cloud | what-a-person-opens-v2 / cloud |
+|---|---|---|---|---|---|---|
+| E01 — a trip's photos: time first, then the occasion | multi-life | 00:95, 00:70 | answer: `{"must_include":["capture_year","event"],"first":"capture_year","must_exclude":["people...` | WRONG / reject SCHEMA_INVALID | WRONG / reject SCHEMA_INVALID | correct / acc_direct |
+| E02 — a research group whose parent already is the project | multi-life | 00:97, 00:99 | answer: `{"must_include":["artifact_type"],"must_exclude":["project","authored_by","lab"]}` | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| E03 — consulting deliverables all prepared by the same person | Mara | 00:44, 00:97 | answer: `{"must_exclude":["authored_by","our_firm","subject_of_record"],"template_local_ok":true}` | WRONG / reject SCHEMA_INVALID | correct / acc_direct | correct / acc_direct |
+| E04 — a course where every file shares one term | Priya | 00:97, 00:99 | answer: `{"must_include":["work_type"],"must_exclude":["term","instructor","subject"]}` | correct / acc_direct | WRONG / reject SCHEMA_INVALID | correct / acc_direct |
+| E05 — a domain the library has no schema for | Tom | 00:97, 43:9 | answer: `{"min_template_local":1,"must_exclude":["project","event","subject"],"template_local_ok...` | WRONG / reject SCHEMA_INVALID | WRONG / reject SCHEMA_INVALID | correct / acc_direct |
+| E06 — a recurring pattern that tempts publication | multi-life | 00:97, 43:9 | answer: `{"must_include":["artifact_type"],"must_exclude":["programming_language","authored_by",...` | WRONG / reject SCHEMA_INVALID | WRONG / acc_direct | WRONG / acc_direct |
+| E07 — financial records where a person would be the collector | Tom | 00:97, 00:185 | answer: `{"must_include":["institution"],"must_exclude":["account_holder","subject_of_record","p...` | WRONG / reject SCHEMA_INVALID | WRONG / reject SCHEMA_INVALID | correct / acc_direct |
+| E08 — evidence that supports more levels than a tree should have | multi-life | 00:97, 00:99 | answer: `{"must_include":["artifact_type"],"max_dimensions":4,"must_exclude":["authored_by"]}` | correct / acc_direct | WRONG / reject SCHEMA_INVALID | correct / acc_direct |
+| E09 — a dimension no file has a value for | multi-life | 00:97 | answer: `{"must_include":["artifact_type"],"must_exclude":["venue","lab","authored_by"]}` | WRONG / reject SCHEMA_INVALID | correct / acc_direct | WRONG / reject SCHEMA_INVALID |
+| E10 — a group with no recoverable facts | Tom | 00:97, 00:63 | abstain: `{"abstain":true}` | abstained / abstain | abstained / abstain | abstained / abstain |
+| E11 — recruiting documents: the employer before the cycle | multi-life | 00:95, 00:70 | answer: `{"must_include":["target_employer"],"first":"target_employer","must_exclude":["authored...` | WRONG / reject SCHEMA_INVALID | WRONG / reject SCHEMA_INVALID | correct / acc_direct |
+| E12 — a code project: repository, not language | multi-life | 00:30, 00:97 | answer: `{"must_include":["artifact_type"],"must_exclude":["programming_language","authored_by",...` | WRONG / reject SCHEMA_INVALID | WRONG / acc_direct | WRONG / acc_direct |
 
 ### 5.5 Contract gaps found at E
 
@@ -555,6 +600,19 @@ Not yet. Authorise a v2 of **what-a-person-opens** with the payload reordered to
 
 
 **The two known limits.** S1, what the text cannot catch: a design that passes the five tests and is still not how the person would look for a file; `00`:97 makes the canvas the judge and the text says so. S2, what the validator catches: a borrowed field key, a dimension without a citation, a level without a justification, a published fragment, a missing payload key, a malformed object; and not the one-child rule, the parent repetition or an author used as a collector, which are semantic (E-R5) and reach the person's canvas unflagged.
+
+### 5.7 what-a-person-opens-v2, measured (cloud, 12 calls)
+
+The stated delta: the payload ends on `sensitivity_policy_ref`, a string, instead of `example_label_chains`, a list of lists.
+
+| arm | JSON parses | schema-valid | validator ok | grounding | abstain on should-abstain | correct on should-answer | correct **and** accepted | accepted | median s | tokens |
+|---|---|---|---|---|---|---|---|---|---|---|
+| what-a-person-opens / cloud | 6 / 12 | 5 / 12 | 6 / 12 | 18 / 18 | 1 / 1 | 3 / 11 | 3 / 11 | 5 / 12 | 4.2 | 67,353 / 6,690 |
+| what-a-person-opens-v2 / cloud | **10 / 12** | 10 / 12 | 11 / 12 | 36 / 36 | 1 / 1 | **8 / 11** | 8 / 11 | 10 / 12 | 4.0 | 67,605 / 6,574 |
+
+The shape was the reason: with the last key a string, the bracket defect went from 6 of 12 to 1 of 12 (E09, a differently malformed close), and the design comparison is now on eleven cases instead of five. Eight of the eleven are the labelled design: the photos time-first (`capture_year`, `location`, `event`, no people), the research group without its parent's `project`, the consulting engagement by document kind and not by author, the course by `work_type` alone, the campaign by two template-local words, the household statements by `institution` and `record_type` with no account holder, the recruiting documents employer-first, the workflow group under its four-level cap. The three misses are one defect: **the one-child rule** (`00`:97) — E06 proposed `project` and `repository` levels over one project and one repository, E12 a `repository` level over one repository; the text's second question ("would this level have more than one child?") is asked and not answered from the evidence. That is the E v3 to write: the one-child test stated as a count the model must make from `values` ("a dimension whose `values` list has one entry is not a level"), and the only E change worth a run.
+
+**what-a-person-opens-v2 is the E text put forward** for ratification, conditional on the one-child sentence being measured first; E has no live caller (G12) so nothing waits on it.
 
 ## 6. Research applied across the five sites, with citations
 
@@ -602,16 +660,16 @@ From `tools/promptbench/out/cloud_ledger.json`, the one ledger spent before each
 
 | | calls | prompt tokens | completion tokens |
 |---|---|---|---|
-| cloud, deepseek-chat, temperature 0, no `response_format` | **144 of 400** | 742,827 | 44,839 |
+| cloud, deepseek-chat, temperature 0, no `response_format` | **216 of 400** | 1,121,446 | 71,369 |
 
-Per site: A 28, C 32 (one of them the probe), D 30, B 30, E 24. Median latency 1.9 to 4.4 s per call once past the first; the first call of each process took 83 to 421 s on a machine whose load average stayed between 190 and 280 throughout (other agents' suites), and that first-call time is in the recorded latencies. No owner file, filename or dossier reached the model: every request is a synthetic case whose bytes are stored under `tools/promptbench/out/<site>/calls/`.
+Per site: A 42 (28 first wave, 14 the third subject wording), C 48 (32, then eliminate-v2 16; one of the 32 was the probe), D 30, B 60 (30, then v2 15 and v3 15), E 36 (24, then v2 12). The second wave spent 72 calls, 378,619 prompt and 26,530 completion tokens. Median latency 1.9 to 4.4 s per call once past the first; the first call of each process took 83 to 421 s on a machine whose load average stayed between 190 and 280 throughout (other agents' suites), and that first-call time is in the recorded latencies. No owner file, filename or dossier reached the model: every request is a synthetic case whose bytes are stored under `tools/promptbench/out/<site>/calls/`.
 
 **Local arm (qwen3:8b): 62 of 144 calls recorded, at C and D** — C: eliminate 16 of 16 (run after the reboot, 19:15 to 19:37 on 2026-09-06) and walk 16 of 16 (seven before the reboot at loads of 190 to 280, the rest after); D: ladder and shelves 15 of 15 each (19:51 to 20:18, load 2.9 to 7.0). Every call set `num_ctx` 16,384 against a `prompt_eval_count` of 5,137 to 5,222, thinking off, `done_reason: stop`, no truncation; the one-minute load average is recorded before and after each call (`meta.settings.load_average_1m_before/after`) and summarised per arm as min / median / max. Median latency once the machine was quiet: 64 s (eliminate); the walk arm's median is dominated by its pre-reboot calls. The local arms for B, E and A were **not run**: at the measured 40 to 170 s per call the remaining 82 calls were one to four hours of a shared machine, and the coordinator asked for the packet to be closed on what had been produced. They resume past what is recorded with the same command per site (`python3 -m tools.promptbench run --site <site> --candidates <a>,<b> --models local --out tools/promptbench/out/<site>`, then `score` and `tables`); the bench skips recorded cases. Until they run, §4, §5 and §1 carry cloud numbers only and say so, and no ratification that names the local tier can rest on them.
 
 ## 9. What this wave did not do, and the next one should
 
 1. The local arms for B, E and A (§8); and, given what the C and D local arms showed, a decision on whether the local tier is measured with thinking on before any more local calls are spent on wording.
-2. **v2 texts, each a stated delta and each measured on the same cases**: C — eliminate plus the shared-branch sentence and "a group is support, not a citation"; B — anchors-first plus "a contradicting candidate is an outlier of a coherent group"; E — what-a-person-opens with the payload ending on a scalar; A — the revised `subject` wording of §1.6. Each is one more run of 12 to 16 cloud calls per arm, inside the cap.
+2. ~~v2 texts~~ — measured (§2.7, §4.7, §5.7, §1.7). Next: E's one-child sentence; A's `school` wording with both exclusions; B's shape question for the B03 reading; C's G6 decision, which now costs the shared-branch case.
 3. The one-real-file bench proof of `104` §7 Phase 0b, once the builder change G3 exists in some form.
 4. Three runs per condition and a median (`104` §13.4) before any of these numbers is read as more than a first measurement.
 
@@ -624,7 +682,7 @@ Done on 2026-09-06 after the reboot that stopped the first wave. A step is calle
 | 1. Requirements traced to `00` and to the validator's checks | §1.1, 7 rows | §2.1, 15 rows with the validator column | §3.1, 13 rows | §4.1, 13 rows | §5.1, 10 rows |
 | 2. The draft traced line by line; dossier keys checked by a test | the template is untouched; the two entries trace to `104` §11.2 step 1 (§1.2) | §2.2.1 | §3.2.1 | §4.2.1 | §5.2.1 |
 | 3. At least 12 stress cases: `00`:239 plus the site's own failure modes | 14; §11.1 mechanisms at A01, A02, A04 | 16; two supported homes C04/C05, contradicted term C03, shared transcript C04/C05, MIT-inside-submit C10, §11.1 at C14/C16 | 15; gate screenshot never a trip D02/D03/D15, admissions confirmation returned D01 | 15; generic hub B04/B08, one code two terms B02, Duke essay inside a Columbia packet B03 | 12; parent dimension repeated E02, author as collector E03 |
-| 4. Bakeoff, at least two candidates, both models | cloud 2 × 14; **local not run** | cloud 2 × 16; local 2 × 16 | cloud 2 × 15; local 2 × 15 | cloud 2 × 15; **local not run** | cloud 2 × 12; **local not run** |
+| 4. Bakeoff, at least two candidates, both models | cloud 3 × 14; local LOCALA | cloud 3 × 16 (eliminate-v2 added); local 2 × 16 | cloud 2 × 15; local 2 × 15 | cloud 4 × 15 (v2, v3 added); local LOCALB | cloud 3 × 12 (v2 added); local LOCALE |
 | 5. Ratification with the numbers and the two limits stated | §1.6; limits in §1.5 | §2.6; limits above §3 | §3.6; limits above §4 | §4.6; limits above §5 | §5.6; limits above §6 |
 | 6. Strict post-ratification test (bytes match the digest; keys match the builder) | not yet applicable: nothing is ratified. The pre-form exists for every draft: `test_the_manifest_digests_are_the_bytes_on_disk` and `test_the_text_is_a_constant_that_names_the_dossier_exactly` | same | same | same | same |
 
@@ -638,11 +696,28 @@ Three findings of the audit that the sections above do not state on their own:
 
 | Site | Ahead on this run | The ranking rests on | A second run must show | And it would not be enough if |
 |---|---|---|---|---|
-| A (`school`) | proposed `school` entry | A01 reversed (essay leaves `Georgetown Prep`); A04 and A13 unchanged | A01 declines again under the proposal and answers a school under the incumbent; no correct-answer case loses `school` | the local arm answers `school` on A01 under both glossaries, which would make the entry a cloud-only fix |
-| A (`subject`) | neither; the proposal is worse | 9 title-lifts against 6 | the third wording of §1.6 lifts fewer titles than both | it lifts fewer titles by declining the correct code cases (A05, A11, A14) |
+| A (`school`) | proposed `school` entry | A01 reversed (essay leaves `Georgetown Prep`); A04 and A13 unchanged | A01 declines again under the proposal and answers a school under the incumbent; no correct-answer case loses `school` | **Failed on the first retry (§1.7):** the third-wording arm carries the identical `school` entry and answered the target university on A01 and A09. The entry is not measured as a fix. |
+| A (`subject`) | neither; the proposal is worse | 9 title-lifts against 6 | the third wording of §1.6 lifts fewer titles than both | **Measured (§1.7):** the third wording lifts no titles and equals the incumbent (5 wrong of 12); the exclusion clause did not make the model decline a book, a chapter or a study guide. |
 | C | eliminate | grounding 0.950 vs 0.909, from walk's two `CITATION_NOT_IN_DOSSIER` losses (C02, C13) against eliminate's one span error (C16) and one tie (C07) | walk cites a group item again and eliminate does not, on C02 and C13 | both texts keep false-abstaining on C05; the v2 sentence is then the thing to measure, not the ordering |
+| C (v2) | eliminate-v2 | C05 placed on the shared branch (weak, G6); 12 of 12 and 4 of 4 on one run | C05 placed again and no case lost; the C16 span error staying away would show it was noise | the local arm still cites group items under v2, which sentence (1) was written for and which is unmeasured locally |
 | D | ladder on the cloud; shelves on the local arm; level across both | D02 alone on the cloud (gate screenshot to the approved travel area, not Receipts), and it did not reproduce locally, where both texts chose Receipts | a second cloud run on which ladder chooses the travel area on D02 again and shelves does not; without it the two texts are a tie and the ratification question becomes which text's failure is cheaper (ladder's mis-shelving, shelves' uncited returns) | D05 stays `abstain` under both on the cloud, since the ladder's fifth rung was written to prevent exactly that; and D13 stays in Receipts locally, which is a tier problem no wording fixed |
+| B (v3) | anchors-first-v3 | the same eight right and five refused as v1, with 15 of 15 valid where v2 had 9 | 15 of 15 valid again on a run whose `coherent: yes` answers all carry a term (the case that broke v1's B01) | B03 stays `no` under v3, which it did on this run: the sentence is now measured as having no effect, and the decision is the shape or the acceptance of that reading |
 | B | anchors-first | B08 (the `00`:63 Columbia group refused) and B01 (four-questions' broken JSON) | four-questions forms the Columbia group again; B01's JSON defect either recurs or is shown to be G13 by a run with `response_format: json_object` | B03 stays a false abstention under both, which makes the v2 sentence the decision, not the text |
+| E (v2) | what-a-person-opens-v2 | 8 of 11 with 10 of 12 parseable, from 3 of 11 with 5 of 12 | the one-child sentence (E v3) turns E06 and E12 without losing the eight | the parse rate falls back under a text change, which would mean the last-key rule is necessary and not sufficient |
 | E | what-a-person-opens, not put forward | 3 of 11 against 2 of 11 with 15 of 24 responses unparseable | the reordered payload (ending on a scalar) parses on the cases that failed, so that the design comparison is on 11 cases instead of 5 | the one-child rule keeps failing (E06, E12), which is a design defect no shape change fixes |
 
 The local tier is a separate question from all of the above: on the two sites where it was measured, the texts scored within one case of each other and neither made the model take a no-target answer on any of the six should-abstain cases (§2.3, §3.3), and at D it filed a protected record into an approved area under both wordings. A second local run should be at a different setting (thinking on, `104` R-18) before it is a second run of the same thing.
+
+## 11. Should-abstain, by site and by model: was abstention ever produced, and under which wording
+
+The one table the owner needs to read the local model's fitness for placement. "Abstention" is the site's no-target answer: `destination: "none"` at C; `leave_in_current_location`, `mark_review_later` or `abstain` at D; `coherent: "no"` or `"insufficient"` at B; `domain: "none"` at E; a declined field at A. A count is abstentions on the cases labelled should-abstain; a false abstention is on a case labelled answerable.
+
+| Site | Should-abstain cases | Cloud (deepseek-chat, temperature 0) | Local (qwen3:8b, thinking off, `num_ctx` 16,384) |
+|---|---|---|---|
+| C_placement | 4 (two-home transcript, generic hub, invoice number, noise OCR) | **Produced under every wording**: walk 4 / 4, eliminate 4 / 4, eliminate-v2 4 / 4. False abstentions: 1 / 12 under walk and eliminate (C05), 0 / 12 under eliminate-v2. | **Never produced**: walk 0 / 4, eliminate 0 / 4 (eliminate-v2 not run locally). Every should-abstain case was placed; two placements (generic hub, noise OCR) were accepted by the validator. False abstentions 0 / 12: the model never says `none`. |
+| D_residual | 2 (unclear spreadsheet, nothing readable) | **Produced once under each wording**: ladder 1 / 2, shelves 1 / 2 (D11 `abstain`); D14 marked `unsupported`, which the label also accepts. D05 (noise OCR, labelled answerable) was `abstain` under both: 1 / 13 false abstention each. | **Never produced**: ladder 0 / 2, shelves 0 / 2. D11 went to the Review Later *area* rather than the `mark_review_later` action, D14 to the unsupported-material area rather than `abstain`; the model reaches for a target where the text offers a no-target action. False abstentions 0 / 13. |
+| B_group | 5 (two terms, email-domain hub, download session, Columbia name, suffix family) | **Produced under every wording**: anchors-first 5 / 5, v2 5 / 5, v3 5 / 5; four-questions 4 / 5 (formed the Columbia group). False abstentions: B03 under all four (the Duke-essay reading). | LOCALB11 |
+| E_template | 1 (no recoverable facts) | **Produced under every wording**: from-facts 1 / 1 (`domain: "none"`), what-a-person-opens 1 / 1 and v2 1 / 1 (an empty `dimensions` list, valid to the validator, not to the draft's schema). No false abstention. | LOCALE11 |
+| A_fact (per field) | 5 cases with every asked field to decline (A02, A04, A07, A09, A13) | **Produced per field, never per response**: `school` declined on A02, A07, A09 under all three glossaries and on A01 under the proposal alone; `subject` declined on A04, A09 under all three; but no arm declined every field on any should-abstain case (A04 and A13 always yield a school; A02, A07 always a subject). | LOCALA11 |
+
+What the table supports on 2026-09-06: on the two sites measured locally with 62 calls under four wordings, the local model produced no abstention of any kind on six should-abstain cases and no false abstention on twenty-five answerable ones. It is not a wording effect — the same texts produce 4 of 4 and 1 of 2 on the cloud — and it is the AbstentionBench finding (§6 R2) at 8B scale with thinking off. For placement, where a wrong placement moves a file into somebody's folder and stays there (`00`:114), a model that never says `none` is not fit under any text measured here; `104` R-18's setting (thinking on, a separated budget) is the next measurement, and it belongs to D1, not D2.
