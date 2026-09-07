@@ -94,6 +94,14 @@ _CEILING_SECONDS = 8.0
 #: number that only cleared one ceiling would stop separating the two answers.
 _HANG_SECONDS = 90.0
 
+#: The ceiling for the ONE test that has to let the first attempt reach the reader.
+#: Generous where `_CEILING_SECONDS` is tight, because the window it bounds contains a
+#: worker spawn -- a fresh interpreter re-importing the composition root -- and this
+#: file already records two tests failing at load 13 for exactly that reason. A run
+#: that pays it is paying the ceiling itself: the wedged reader is killed the moment
+#: it expires, so the number is the test's cost and not a sleep.
+_REACHED_CEILING_SECONDS = 20.0
+
 #: The ceiling the fake-clock tests run under, in FAKE seconds. Large on purpose:
 #: under a driven clock the only wait that ends at a ceiling is the one the script
 #: sends past it, so every other wait has headroom no machine load can eat.
@@ -492,12 +500,14 @@ def test_a_file_the_ceiling_killed_is_read_on_the_retry_in_the_same_run(
     # THE REAL CLOCK, and this is the one test in the file that needs it. A driven
     # clock's first wait expires with a timeout of zero, so the worker is killed
     # before it has entered the reader at all -- and a first attempt that never
-    # reached the wedge cannot show that the SECOND one gets past it. Eight real
-    # seconds against a mark written in the reader's first statement is not a race:
-    # the mark is there long before the ceiling looks.
+    # reached the wedge cannot show that the SECOND one gets past it. What has to
+    # fit inside the ceiling is a worker spawn and the reader's first statement, so
+    # the number is `_REACHED_CEILING_SECONDS` and not the tight one: a machine slow
+    # enough to miss it would fail this test for a true sentence about the load and
+    # a false one about the code.
     pool = ProcessPool(workers=2, context_factory=_hanging_once_context,
                        lookahead_per_worker=2, floor=0,
-                       seconds_per_extraction=_CEILING_SECONDS)
+                       seconds_per_extraction=_REACHED_CEILING_SECONDS)
     try:
         handles = [pool.submit(_request(corpus, name)) for name in CORPUS]
         outcomes = {name: pool.result(handle)
