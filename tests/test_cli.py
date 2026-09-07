@@ -2203,8 +2203,15 @@ def test_the_reminder_line_is_not_the_question_asked_again(tmp_path):
     # The prompt belonging to THIS question, derived rather than hard-coded: the
     # last question line printed before its own options. The run also asks a
     # branch question that was never skipped, and that one is meant to stay.
+    #
+    # Searched from the QUESTION LIST and not from the top, because `104` R-92
+    # made the answers appear twice: a blocked file group now names the answer
+    # that reaches it, above the question block, and walking back from that copy
+    # reaches the file names rather than a prompt.
+    asked = lines.index("Questions only you can answer:")
     option = next(i for i, line in enumerate(lines)
-                  if "--answer reading.organization:BUSIB4300=" in line)
+                  if i > asked
+                  and "--answer reading.organization:BUSIB4300=" in line)
     prompt = next(lines[i].strip() for i in range(option, -1, -1)
                   if lines[i].strip().endswith("?"))
 
