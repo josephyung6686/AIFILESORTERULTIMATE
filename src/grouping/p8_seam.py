@@ -291,6 +291,33 @@ def _edge_support(dossier: CandidateGroupDossier, file_id: str) -> tuple[Support
     )
 
 
+@dataclass(frozen=True)
+class ObservedOnly:
+    """A real P8 outcome that this run recorded and will not act on.
+
+    **`104` §7 Phase 1 step 6: "record dossiers, responses and verdicts; apply
+    nothing until Phase 3 fixes R-15 and R-16."** The recording is P8's and has
+    already happened by the time this exists: `run_call` wrote the dossier, the
+    response and the verdict before returning the value wrapped here. What is
+    withheld is the APPLICATION -- the memberships and the acceptance row that
+    would turn a model's answer into a group the person sees.
+
+    A WRAPPER RATHER THAN A FLAG ON THE CALL, because the two things that must not
+    drift are "the call happened" and "nothing was applied", and a boolean travelling
+    beside the result can be read by one branch and missed by another. `result` is
+    kept and not discarded: the outcome is still attributable, and a reader of this
+    object can see exactly what would have been applied.
+
+    R-15 IS THE REASON THIS IS NOT A PHASE-3 PROBLEM YET. `_invented_dimension`
+    checks date, institution and project VALUES against the node-id vocabulary, so
+    any real value reads as invented the moment C answers. Applying a verdict under
+    a validator known to be wrong would write the wrong thing confidently, which is
+    the failure this product exists not to have.
+    """
+
+    result: object
+
+
 def apply_p8_verdict(
     conn: sqlite3.Connection,
     *,
@@ -327,6 +354,14 @@ def apply_p8_verdict(
     carry `validation_verdict_ref`, an SR5 refusal becomes a `StopRuleOutcome`, and
     a failed or refused call becomes a `FailurePoint`.
     """
+    if isinstance(result, ObservedOnly):
+        # RECORDED AND NOT ACTED ON. `_decision`'s defaults are `membership_ids=()`
+        # and no acceptance row, which is exactly "no accepted state written by B":
+        # the group keeps the state P9's own engine gave it, and what the model
+        # said is on disk in `llm_dossier`, `llm_response` and `llm_verdict` under
+        # a template id carrying the word `unratified`.
+        return _decision(group, dossier)
+
     if isinstance(result, NeedsConsent):
         return result
 

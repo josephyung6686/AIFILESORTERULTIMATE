@@ -111,3 +111,38 @@ def test_a_template_id_nobody_published_is_refused_and_names_what_there_is():
     sibling draft would send text under an id no record could be checked against."""
     with pytest.raises(DraftNotInManifest, match="anchors-first-v3"):
         draft_bytes("b_group.unratified.anchors-first-v3.2026-09-06")
+
+
+# --- the hook the four sites apply nothing through --------------------------
+
+def test_an_observed_result_writes_no_accepted_state_and_keeps_what_it_saw():
+    """`104` §7 Phase 1 step 6: record dossiers, responses and verdicts, apply
+    nothing. The recording is P8's and has already happened by the time this
+    exists -- `run_call` writes all three before returning. What `ObservedOnly`
+    withholds is the APPLICATION: the memberships and the acceptance row that
+    would turn a model's answer into a group the person sees.
+
+    `_decision`'s defaults are `membership_ids=()` and no acceptance row, which is
+    exactly the pass condition "no accepted group is written". The wrapped result
+    is KEPT rather than discarded, so the outcome stays attributable and a reader
+    can see what would have been applied."""
+    from grouping.p8_seam import ObservedOnly
+
+    observed = ObservedOnly(result="a verdict that will not be acted on")
+
+    assert observed.result == "a verdict that will not be acted on"
+
+
+def test_the_observe_hook_is_a_wrapper_and_not_a_flag():
+    """A boolean travelling beside a result can be read by one branch and missed
+    by another, and the two things that must not drift are "the call happened" and
+    "nothing was applied". A type carries both at once: a caller that forgets to
+    unwrap gets an object `apply_p8_verdict` refuses to treat as a verdict, rather
+    than a verdict applied under a flag nobody checked."""
+    import dataclasses
+
+    from grouping.p8_seam import ObservedOnly
+
+    assert dataclasses.is_dataclass(ObservedOnly)
+    assert [f.name for f in dataclasses.fields(ObservedOnly)] == ["result"]
+    assert ObservedOnly.__dataclass_params__.frozen
