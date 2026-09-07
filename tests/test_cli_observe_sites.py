@@ -470,6 +470,65 @@ def _b_result(monkeypatch, *, ratified: bool):
         validation_dependencies=_BDeps(), observed_at=None)
 
 
+def test_the_template_site_asks_nobody_when_there_is_no_model_on_this_device():
+    """Packet G12's caller, and `None` is the ordinary deployment.
+
+    Same three terms as site B's builder: no routing, or E's tier does not resolve
+    to a model on this device. A run that asks nobody designs the branch exactly as
+    it always has, and the C3 refusal still reaches the person through the report.
+    """
+    import cli as _cli
+
+    assert _cli.observe_template_call(
+        None, _fact_authorities_with(), routing=None, catalogue=object()) is None
+
+
+def test_the_template_site_asks_under_its_own_text_and_applies_nothing(monkeypatch):
+    """`104` R-05's seam at the fifth site, and `00`:97's own last sentence.
+
+    Site E is the one site where observe-only is not a lever waiting to be moved:
+    "valid shape is not activation -- the person reviews, edits and accepts or
+    discards", and that canvas is Release 2. So the prompt is E's own, the call is
+    made and recorded, and nothing this chain does reads a result -- the caller
+    returns `None` by signature.
+    """
+    import cli as _cli
+    from llm_harness.vocabulary import E_TEMPLATE as E
+
+    seen = {}
+
+    def spy(_conn, request, **keywords):
+        seen["request"] = request
+        seen["prompt"] = keywords["prompt"]
+        seen["usage_recorder"] = keywords["usage_recorder"]
+        return "recorded, applied to nothing"
+
+    monkeypatch.setattr(_cli, "run_call", spy)
+    monkeypatch.setattr(_cli, "template_request_for",
+                        lambda *_a, **_k: SimpleNamespace(call_site=E))
+    # A REAL `TemplateDependencies`, because `SiteDependencies` refuses anything
+    # else by name -- P8 owns which validator runs at each site.
+    from llm_harness.template_validation import TemplateDependencies
+
+    monkeypatch.setattr(_cli, "template_dependencies", lambda _c: (
+        TemplateDependencies(schema_validator=lambda _p: True,
+                             published_fragment=lambda _i, _v: True)))
+    monkeypatch.setattr(_cli, "allowed_vocabulary_for", lambda _c, **_k: ())
+
+    mailbox = _cli.UsageMailbox()
+    ask = _cli.observe_template_call(
+        None, _fact_authorities_with(usage_recorder=mailbox),
+        routing=_LocalRouting(), catalogue=object())
+    assert ask is not None
+    assert ask([SimpleNamespace(group_id="g-1", members=(), domain="academic")],
+               "plan-1") is None
+
+    assert seen["request"].call_site == E
+    assert seen["prompt"].call_site == E
+    assert seen["prompt"].template_id == cli.OBSERVE_TEMPLATE_ID[E]
+    assert seen["usage_recorder"] is mailbox
+
+
 def test_the_group_seam_hands_run_call_the_same_mailbox_site_a_reads(monkeypatch):
     """`104` R-71. B's response had no `llm_call_usage` row and A's had one each.
 

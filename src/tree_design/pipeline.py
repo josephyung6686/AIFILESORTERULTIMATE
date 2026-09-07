@@ -71,8 +71,8 @@ from tree_design.upstream import (
 )
 from tree_design.validation import ValidationReport, run_checks
 from tree_design.vocabulary import (
-    ACCEPT, ADD_SCOPED_GENERAL, EXISTING, ORDINARY, PROPOSED, REVIEW_SURFACES,
-    SET_SHARED_MATERIAL_POLICY, check,
+    ACCEPT, ADD_SCOPED_GENERAL, C3, EXISTING, ORDINARY, PROPOSED,
+    REVIEW_SURFACES, SET_SHARED_MATERIAL_POLICY, check,
 )
 
 #: §5's chain, in §5's order, plus §6.1 and §8.8. Named so the shape is checkable
@@ -186,6 +186,17 @@ class TreeDesignAuthorities:
     #: still mean. `protected_handling_classes` refuses its absence because a set
     #: chosen there would weaken a floor; a mapping missing here weakens nothing.
     group_level_roles: Mapping[str, frozenset[str]] = MappingProxyType({})
+    #: Packet G12. WHO TO ASK FOR A TEMPLATE when C3 refuses -- when this branch's
+    #: evidence recognises no shipped situation and `00`:97's site E is the answer.
+    #: Handed the branch's accepted groups and its plan version; returns nothing,
+    #: because a template design that reached this chain would be structure nobody
+    #: approved (`00`:97: "valid shape is not activation").
+    #:
+    #: `None` is the ordinary deployment and is not a refusal: a run with no model
+    #: designs the branch exactly as it always has and the C3 refusal still reaches
+    #: the person through the report.
+    template_call_for: Callable[
+        [Sequence[AcceptedGroup], str], None] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.limits, TreeLimits):
@@ -378,6 +389,35 @@ def _route(conn, authorities, *, branch_node_id: str,
         # routing, so a rename lived on one node in one plan version and the
         # next route re-derived the catalogue's word over it.
         user_edits=user_edits)
+
+
+def _ask_for_a_template(authorities, report: RoutingReport, *,
+                        groups: Sequence[AcceptedGroup],
+                        plan_version: str) -> None:
+    """Packet G12: a C3 refusal becomes a site-E request, or nothing happens.
+
+    C3 is the gate that refuses to widen "to every row sharing a schema", and its
+    message is the one place the product says *"no recipe recognises the situation
+    these files are in"*. `00`:97's site E is the answer to exactly that sentence,
+    and until now the refusal reached no caller: E "can be ratified and stay
+    inert".
+
+    **P10 asks and reads nothing back.** The callable is injected, takes the
+    groups the refusal is about, and returns nothing at all -- there is no result
+    for this chain to act on, because `00`:97 ends with "valid shape is not
+    activation: the person reviews, edits and accepts or discards", and the canvas
+    that review happens on is Release 2. A return value would be a template design
+    reaching a tree nobody approved.
+
+    **`None` is the ordinary deployment.** A run with no model, or one whose E
+    tier is not on this device, asks nobody and designs the branch exactly as it
+    always has; the refusal is still in the report and still reaches the person.
+    """
+    if authorities.template_call_for is None:
+        return
+    if not any(conflict.gate == C3 for conflict in report.conflicts):
+        return
+    authorities.template_call_for(groups, plan_version)
 
 
 def _group_level_roles(authorities, candidate: CompositionCandidate) -> frozenset[str]:
@@ -919,6 +959,8 @@ def _design_one_branch(conn, authorities, decisions, *, candidate, groups,
 
     report = _route(conn, authorities, branch_node_id=parent.node_id,
                     groups=groups, user_edits=user_edits)
+    _ask_for_a_template(authorities, report, groups=groups,
+                        plan_version=parent.plan_version_id)
     materialise, validate, preview, evidence_by, reports = _option_bindings(
         conn, authorities, parent=parent, members=members, groups=groups)
     options = vertical_options(

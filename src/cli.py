@@ -127,6 +127,7 @@ from llm_harness.schema import create_llm_schema
 from llm_harness.vocabulary import (
     A_FACT, B_GROUP, C_PLACEMENT, CONTEXT_SUPPORTED, D_RESIDUAL, DIRECT_ANCHOR,
     E_TEMPLATE, PRE_CALL_NAMESPACE,
+    SCOPE_TEMPLATE as TEMPLATE_SCOPE,
 )
 from placement import vocabulary as pv
 from placement.config import CEILINGS, SupportPolicy, placement_limits
@@ -256,6 +257,10 @@ from tree_design.pipeline import (
     TreeDesignDecisions,
 )
 from tree_design.store import ReviewActionRefused
+from tree_design.template_schema import (
+    allowed_vocabulary_for, template_dependencies,
+)
+from model_template import template_request_for
 from tree_design.templates import CompositionConflict
 from scan_agent.selection import selection_candidate_roots
 from tree_design.upstream import (
@@ -699,6 +704,10 @@ assert set(OBSERVE_TEMPLATE_ID) == OBSERVE_CALL_SITES
 #: the model was asked to do.
 GROUP_PROPOSAL_CLASS: str = "group.llm_coherence"
 
+#: And site E's, on the same terms and for the same reason. The subject kind is a
+#: template, and what the model was asked to do is design one.
+TEMPLATE_PROPOSAL_CLASS: str = "template.llm_design"
+
 
 def observe_allowed_vocabulary(call_site: str) -> tuple[str, ...]:
     """The closed set the answer must come from, READ OUT OF THE SCHEMA.
@@ -836,6 +845,100 @@ def observe_group_authorities(fact_authorities, *, routing: TierRouting,
         # The SAME target the client is pointed at, read off the client rather
         # than built beside it.
         model_target=client.model_target)
+
+
+def observe_template_call(conn: sqlite3.Connection, fact_authorities, *,
+                          routing: TierRouting, catalogue):
+    """Site E, wired to run and to change nothing. Packet G12's missing caller.
+
+    `None` on the same three terms site B's builder uses: no routing, or E's tier
+    does not resolve to a model on this device. A deployment with a cloud key and
+    no local model is correctly configured and simply does not run the observe
+    sites, because their text is unratified and `observe_locality_permits` is what
+    keeps that from being a promise nobody enforces.
+
+    **Everything shared with site A is TAKEN from A's authorities**, for the reason
+    `observe_group_authorities` gives at length: the gate, the budget, the costs,
+    the policy version, the handle key and `104` R-14's mailbox are facts about
+    this deployment and this run, not about which site is asking. A second `Gate`
+    beside the first would be a second answer to "what may leave this device".
+
+    **The answer is wrapped whatever `prompt.ratified` says, and site E is the one
+    site where that is not a lever waiting to be moved.** B, C and D withhold while
+    their text is a draft and begin applying the day the owner ratifies it. `00`:97
+    ends with "valid shape is not activation -- the person reviews, edits and
+    accepts or discards", and that canvas is Release 2 (`104` §13.3). So the
+    condition here is not the ratification; there is no condition.
+    """
+    if routing is None:
+        return None
+    locality = routing.locality_for(E_TEMPLATE)
+    if not observe_locality_permits(E_TEMPLATE, locality):
+        return None
+    require_observe_locality(E_TEMPLATE, locality)
+    client = routing.client_for(E_TEMPLATE)
+    prompt = prompt_for(E_TEMPLATE)
+
+    def ask(groups, plan_version: str) -> None:
+        for group in groups:
+            request = template_request_for(
+                conn, group=group, plan_version=plan_version,
+                model_target=client.model_target, prompt=prompt,
+                max_dossier_tokens=GROUPING_LIMITS.max_dossier_tokens)
+            if request is None:
+                # A group whose anchors cite nothing P7 may release has nothing to
+                # design a template FROM, and `00`:97 forbids inventing one. Not
+                # asked rather than asked emptily.
+                continue
+            run_call(
+                conn, request, gate=fact_authorities.gate, model_client=client,
+                prompt=prompt,
+                validation_dependencies=dataclasses.replace(
+                    _template_dependencies(fact_authorities, catalogue, group),
+                    basis_key=group.group_id,
+                    learning_subject_id=group.group_id),
+                observed_at=fact_authorities.observed_at,
+                usage_recorder=fact_authorities.usage_recorder)
+
+    return ask
+
+
+def _template_dependencies(fact_authorities, catalogue, group) -> CallDependencies:
+    """One site-E call's `CallDependencies`. P10's two authorities, and A's rest.
+
+    `allowed_vocabulary` is `allowed_vocabulary_for`, which is P10's own closure
+    over ONE schema's allowed fields and is deliberately not extendable -- it
+    reaches the dossier as the set a proposed dimension name is classified
+    against, and a name outside it is a template-local label rather than a
+    rejection (Contract W2). The schema is the group's own `group_category`; a
+    group with none gets the empty closure, which is the honest answer and still
+    produces a reviewable design.
+    """
+    return CallDependencies(
+        proposal_class=TEMPLATE_PROPOSAL_CLASS,
+        learning_scope=TEMPLATE_SCOPE,
+        basis_key=TEMPLATE_SCOPE,
+        learning_subject_id=TEMPLATE_SCOPE,
+        evidence_resolver=fact_authorities.evidence_resolver,
+        site_dependencies=SiteDependencies(
+            fact=None, placement=None, residual=None,
+            template=template_dependencies(catalogue)),
+        # A template proposal names no per-file field value, so there is no
+        # stronger fact for one to contradict. Site B's answer, at a site whose
+        # subject is a group for the same reason.
+        contradicts=_no_group_contradiction,
+        unreduced_fits=True, summarized_fits=False, anchors_fit=False,
+        split_shard_fits=(), split_shards=(),
+        scan_budget=fact_authorities.scan_budget,
+        estimated_cost=fact_authorities.estimated_cost,
+        actual_cost=fact_authorities.actual_cost,
+        allowed_vocabulary=allowed_vocabulary_for(
+            catalogue, uses_schema=group.domain or ""),
+        # E DESIGNS the levels rather than filling them, so the situation's own
+        # folder levels are not what it is shown. Empty is the truthful list.
+        folder_levels=(),
+        policy_version=fact_authorities.policy_version,
+        wire_handle_key=fact_authorities.wire_handle_key)
 
 
 def observed_run_call(conn, request, *, gate, model_client, prompt,
@@ -5071,6 +5174,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # because a role is what a dimension carries and the applicability row
             # is what turns one into the other.
             group_level_roles=GROUP_LEVEL_ROLES,
+            # PACKET G12. A C3 refusal -- "no recipe recognises the situation
+            # these files are in" -- becomes a site-E request, observe-only.
+            # `None` when the fact pass did not run, when there is no model, or
+            # when E's tier is not on this device, which is the ordinary run and
+            # designs the branch exactly as it always has.
+            template_call_for=(observe_template_call(
+                conn, fact_authorities[0], routing=routing, catalogue=release)
+                if fact_authorities else None),
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,
             selection_id=selection_id, scan_run_id=scan_run_id[0],
             active_domains=(schema,),

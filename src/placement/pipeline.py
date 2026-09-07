@@ -1029,10 +1029,39 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     # validator -- runs INSIDE `run_call`; P11 supplies authorities and reads a
     # verdict, and re-checks none of Site C's fifteen.
     chosen_node_id: str | None = None
+    #: The model's own answer, when there was one. Hoisted out of the branch for
+    #: `104` R-75: `two_condition` below has to be able to read `requires_review`
+    #: off it, and inside the branch there was nowhere for the record to see it.
+    verdict = None
+    #: Whether this file reached the model path and was turned away by §8.4 --
+    #: `104` R-74's own condition, carried to the explanation so the record names
+    #: the rules as the actor rather than saying nothing about why no judge spoke.
+    gate_refused = False
     if needs_model_call(assessment, model_decides=inputs.model_decides()):
+        # `104` R-74. WHETHER THE DETERMINISTIC PATH WOULD HAVE PLACED THIS FILE,
+        # asked of the same function with the model taken out of it. R-19 sends
+        # every placeable file to site C, so a protected file with a unique direct
+        # match now reaches the gate for the first time -- and the gate refuses,
+        # correctly, and the file abstained `privacy_blocked` where offline it
+        # went home.
+        #
+        # §13.5's own clause is the answer: "with no model configured the
+        # deterministic path remains the fallback". A gate refusal is that
+        # condition arriving one step later -- there is no model answer to be had
+        # about this file -- so the file takes the placement the rules can defend
+        # rather than losing its home to a question nobody could ask.
+        #
+        # NOT a widening of what may be sent. Nothing about the file is assembled
+        # and nothing leaves; what changes is only what the run does with the
+        # refusal it already had. And it is `False` here, not `True`: a file the
+        # deterministic path called a BOUNDED AMBIGUITY has no answer to fall back
+        # to either, and its abstention is the same one an offline run makes.
+        offline_would_place = not needs_model_call(assessment, model_decides=False)
         if not may_assemble_dossier(privacy):
-            return _abstention(conn, context, reason=PRIVACY_BLOCKED)
-        if inputs.model_path_available():
+            if not offline_would_place:
+                return _abstention(conn, context, reason=PRIVACY_BLOCKED)
+            gate_refused = True
+        elif inputs.model_path_available():
             result = _judge_with_model(
                 conn, subject=subject, inputs=inputs, retrieval=retrieval,
                 evidence=evidence, call_site=C_PLACEMENT,
@@ -1048,26 +1077,33 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             )
             if isinstance(result, Refusal):
                 # P7 denied the release, from inside `run_call`. That is §8.4's
-                # own answer arrived at from the other direction, and it is the
-                # reason the record already has.
-                return _abstention(conn, context, reason=PRIVACY_BLOCKED)
-            verdict = _require_verdict(result, call_site=C_PLACEMENT)
-            outcome, reason, deferred = transcribe(verdict, assessment=assessment)
-            if outcome != PLACE:
-                return _abstention(conn, context, reason=reason,
-                                   deferred_stage=deferred)
-            # The model chose among P11's candidates; which one it chose is read
-            # back through the injected resolver, because `P8Verdict` names a
-            # `claim_ref` and not a destination.
-            chosen_node_id = inputs.chosen_node_of(verdict)
-            if chosen_node_id not in legal_node_ids(
-                    conn, plan_version=inputs.plan_version):
-                raise ValueError(
-                    f"{chosen_node_id!r} is not a legal destination of "
-                    f"{inputs.plan_version!r}. P8 already refuses an invented "
-                    "node; reaching here means the resolver disagreed with the "
-                    "index, and P11 places nothing on a disagreement"
-                )
+                # own answer arrived at from the other direction -- and `104`
+                # R-74 applies to it for the same reason it applies to the gate
+                # above: a file the deterministic path could place keeps that
+                # placement rather than losing its home because the question could
+                # not be asked. A bounded ambiguity still abstains.
+                if not offline_would_place:
+                    return _abstention(conn, context, reason=PRIVACY_BLOCKED)
+                gate_refused = True
+            else:
+                verdict = _require_verdict(result, call_site=C_PLACEMENT)
+                outcome, reason, deferred = transcribe(
+                    verdict, assessment=assessment)
+                if outcome != PLACE:
+                    return _abstention(conn, context, reason=reason,
+                                       deferred_stage=deferred)
+                # The model chose among P11's candidates; which one it chose is
+                # read back through the injected resolver, because `P8Verdict`
+                # names a `claim_ref` and not a destination.
+                chosen_node_id = inputs.chosen_node_of(verdict)
+                if chosen_node_id not in legal_node_ids(
+                        conn, plan_version=inputs.plan_version):
+                    raise ValueError(
+                        f"{chosen_node_id!r} is not a legal destination of "
+                        f"{inputs.plan_version!r}. P8 already refuses an invented "
+                        "node; reaching here means the resolver disagreed with "
+                        "the index, and P11 places nothing on a disagreement"
+                    )
 
     # Step 9.
     if chosen_node_id is None and assessment.abstention_reason is not None:
@@ -1098,6 +1134,25 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
     two = (assessment.two_condition if direct
            else dataclasses.replace(assessment.two_condition,
                                     requires_review=True))
+    # `104` R-75. THE MODEL'S OWN REVIEW CLASS, READ AND NEVER OVERWRITTEN.
+    #
+    # `requires_review` is what separates P8's two acceptances: `accept_direct` and
+    # `accept_context_supported` are both placements and `p8_seam.transcribe` says
+    # so -- "the difference between them is `requires_review`, which gates
+    # `review_policy` and not the outcome". P11 never read it. So a model that
+    # confirmed the top node on a unique direct match, and answered
+    # `accept_context_supported` because its own evidence was context, kept P11's
+    # exact-fact-match `two_condition` and came out `auto_eligible`: the model
+    # asked for a look and the record said none was needed.
+    #
+    # Reachable only since R-19 put a unique direct match through site C at all.
+    #
+    # OR, NEVER ASSIGNMENT. `104` §13.5 is "model decides, rules validate", and
+    # rules that could CLEAR a review the model asked for would be validating in
+    # the wrong direction; the deterministic reasons for review stand whatever the
+    # model said. An offline run has no verdict and is untouched.
+    if verdict is not None and verdict.requires_review:
+        two = dataclasses.replace(two, requires_review=True)
     decision_id, supersedes = _identity(
         conn, plan_version=inputs.plan_version, subject_ref=subject_ref,
         observed_at=observed_at)
@@ -1134,6 +1189,7 @@ def place_file(conn: sqlite3.Connection, *, subject, inputs: PipelineInputs,
             automatic_move_permitted=automatic_move_permitted),
         explanation=_explain(entry, assessment, retrieval,
                              model_decided=chosen_node_id is not None,
+                             gate_refused=gate_refused,
                              refinements=refinements),
         residual=None,
     )
@@ -1169,8 +1225,17 @@ def _facts_of(retrieval, node_id: str) -> tuple:
 
 
 def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
+             gate_refused: bool = False,
              refinements: frozenset[str] = frozenset()) -> str:
-    """§6.4 and §6.11: state the actual basis, claim no evidence the file lacks."""
+    """§6.4 and §6.11: state the actual basis, claim no evidence the file lacks.
+
+    `gate_refused` is `104` R-74's half of §6.4, and it is the ACTOR that has to be
+    right. Nothing was sent about this file, no model saw it and nobody was asked;
+    the rules placed it on evidence the rules can defend. R-28's rule is that a
+    record must not say the model or the person when the rules decided, so the
+    sentence names the rules and the gate, and `model_decided` is `False` beside
+    it because no judge was consulted.
+    """
     parts = [f"{entry.display_label} expects "
              + (", ".join(f"{field} = {value}"
                           for field, value in entry.expected_values)
@@ -1188,6 +1253,14 @@ def _explain(entry, assessment, retrieval, *, model_decided: bool = False,
         # trust", which a reviewer can only apply if the record says which it is.
         parts.append("chosen by the hierarchical destination judge from P11's "
                      "legal candidates, and validated by P8")
+    if gate_refused:
+        # `104` R-74 and `00`'s amendment of line 110: the model decides whenever
+        # one can be asked, and the deterministic path is the fallback when one
+        # cannot. Said in the rules' own voice -- no "you", no model -- because
+        # that is who decided.
+        parts.append("placed by the rules on this file's own direct match, "
+                     "because nothing about it may be assembled for a model "
+                     "(§8.4) and the deterministic path is what remains")
     if retrieval.conflicts:
         # Named first, counted always. The named ones are the branches something
         # was pulling this file towards; the count is every branch the conflict
