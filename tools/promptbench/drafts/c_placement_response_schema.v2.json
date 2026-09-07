@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "C_placement response v2 (unratified draft, 2026-09-07)",
+  "description": "The one JSON object a model may return at call site C_placement, under the owner's ruling of 7 Sep 2026 (105 \u00a714.1). The delta from the 2026-09-06 schema: a level marked context names its accepted group in context_group (required there, forbidden on a direct level); a placement lists at least one level; citations may be an empty list when every level is context, and must hold at least one citation when any level is direct. Every object stays closed and the decline shape is unchanged. The validator that enforces most of it is llm_harness.placement_validation, and where the two could differ the template is what the model was told.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "claims"
+  ],
+  "properties": {
+    "claims": {
+      "description": "Exactly one entry: one file, one decision.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
+    }
+  },
+  "$defs": {
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payload"
+      ],
+      "properties": {
+        "claim_ref": {
+          "type": "string"
+        },
+        "payload": {
+          "$ref": "#/$defs/payload"
+        },
+        "citations": {
+          "$ref": "#/$defs/citations"
+        },
+        "unknown": {
+          "$ref": "#/$defs/unknown"
+        }
+      },
+      "oneOf": [
+        {
+          "title": "place",
+          "required": [
+            "citations"
+          ],
+          "not": {
+            "required": [
+              "unknown"
+            ]
+          },
+          "properties": {
+            "payload": {
+              "required": [
+                "destination",
+                "per_dimension_support",
+                "alternatives",
+                "conflicts_considered",
+                "support",
+                "next_support",
+                "refinement"
+              ],
+              "properties": {
+                "destination": {
+                  "not": {
+                    "const": "none"
+                  }
+                },
+                "per_dimension_support": {
+                  "minItems": 1
+                }
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "per_dimension_support": {
+                    "contains": {
+                      "properties": {
+                        "support": {
+                          "const": "direct"
+                        }
+                      },
+                      "required": [
+                        "support"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "citations": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "title": "none",
+          "required": [
+            "unknown"
+          ],
+          "not": {
+            "required": [
+              "citations"
+            ]
+          },
+          "properties": {
+            "payload": {
+              "required": [
+                "destination",
+                "conflicts_considered"
+              ],
+              "properties": {
+                "destination": {
+                  "const": "none"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "destination"
+      ],
+      "properties": {
+        "destination": {
+          "description": "An identifier copied from allowed_vocabulary, or the word none.",
+          "type": "string",
+          "minLength": 1
+        },
+        "per_dimension_support": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dimension",
+              "value",
+              "support"
+            ],
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1
+              },
+              "support": {
+                "type": "string",
+                "enum": [
+                  "direct",
+                  "context"
+                ]
+              },
+              "context_group": {
+                "description": "The evidence_ref of the accepted_group item that carries this level's value; present exactly when support is context.",
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "if": {
+              "properties": {
+                "support": {
+                  "const": "context"
+                }
+              },
+              "required": [
+                "support"
+              ]
+            },
+            "then": {
+              "required": [
+                "context_group"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "context_group"
+                ]
+              }
+            }
+          }
+        },
+        "alternatives": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "conflicts_considered": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "support": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_support": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refinement": {
+          "type": "string",
+          "enum": [
+            "deeper_in_own_folder",
+            "out_of_own_folder",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/citation"
+      },
+      "description": "Empty only when every level of per_dimension_support is context (the claim-level if/then requires one citation for any direct level)."
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "why_it_supports"
+      ],
+      "properties": {
+        "evidence_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cited_span": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata_field_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "why_it_supports": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "cited_span"
+          ],
+          "not": {
+            "required": [
+              "metadata_field_name"
+            ]
+          }
+        },
+        {
+          "required": [
+            "metadata_field_name"
+          ],
+          "not": {
+            "required": [
+              "cited_span"
+            ]
+          }
+        }
+      ]
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "insufficiency_statement"
+      ],
+      "properties": {
+        "insufficiency_statement": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

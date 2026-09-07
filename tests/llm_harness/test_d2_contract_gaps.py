@@ -26,6 +26,7 @@ from llm_harness.dossier import field_glossary  # noqa: E402
 from llm_harness.records import Dossier  # noqa: E402
 from llm_harness.vocabulary import (  # noqa: E402
     ACCEPT_DIRECT, BELOW_SUPPORT_THRESHOLD, C_PLACEMENT, CHOOSE_BROAD_PARENT,
+    SCHEMA_INVALID,
     CONFLICT_IGNORED, D_RESIDUAL, EVIDENCE_NOT_IN_FILE_RECORD, INVENTED_PROJECT,
     REJECT, RETURN_ACCEPTED_PACKET, STRONGER_RELATIONSHIP_OVERLOOKED, WEAK,
 )
@@ -99,8 +100,12 @@ def _cite(case: Case, span: str) -> list[dict]:
 
 
 def _c_response(case: Case, **payload) -> bytes:
-    body = {"destination": "node-hw", "per_dimension_support": [],
-            "alternatives": ["node-course"], "conflicts_considered": [],
+    # One supported level and no standing alternative: under `105` §14.1 an
+    # empty level list is BELOW_SUPPORT_THRESHOLD and a listed alternative is
+    # INSUFFICIENT_MARGIN, so the accepted baseline carries neither.
+    body = {"destination": "node-hw", "per_dimension_support": [
+                {"dimension": "course", "value": "PHYS 1401", "support": "direct"}],
+            "alternatives": [], "conflicts_considered": [],
             "support": 1, "next_support": 0}
     body.update(payload)
     return json.dumps({"claims": [{"payload": body,
@@ -337,10 +342,10 @@ def test_g8_site_d_return_target_must_be_a_frozen_node_so_a_group_id_is_refused(
 # --- G6: site C demands numeric support and next_support from the model -----------
 
 
-def test_g6_site_c_without_the_two_numbers_is_weak_not_a_placement():
-    """`00`:114's two-condition rule is applied to numbers the MODEL writes into
-    the payload; 13.5 makes scores rank and shortlist, not veto. Pinned as a fact
-    so the packet's ratification question about these two keys rests on it."""
+def test_g6_site_c_without_the_two_numbers_is_a_shape_violation_not_a_weak_placement():
+    """G6, closed by `105` §14.1: the two counts are recorded diagnostics. They
+    are still part of the shape -- absent, the answer is malformed and is
+    rejected as such -- but no threshold is applied to them."""
     case = _c_case()
     response = json.loads(_c_response(case))
     del response["claims"][0]["payload"]["support"]
@@ -348,25 +353,24 @@ def test_g6_site_c_without_the_two_numbers_is_weak_not_a_placement():
     verdict = judge(case, dossier_of(case), json.dumps(response).encode(),
                     schema={"type": "object"},
                     site_dependencies=site_dependencies_for(case))
-    assert verdict.worst_outcome == WEAK
-    assert [BELOW_SUPPORT_THRESHOLD] in [v["reasons"] for v in verdict.verdicts]
-    assert verdict.accepted is False and verdict.correct is True
+    assert verdict.worst_outcome == REJECT
+    assert [SCHEMA_INVALID] in [v["reasons"] for v in verdict.verdicts]
+    assert BELOW_SUPPORT_THRESHOLD not in [r for v in verdict.verdicts for r in v["reasons"]]
 
 
-def test_g6_the_deployment_threshold_makes_integer_counts_pass_or_tie():
-    """With `cli.SUPPORT_POLICY` (0.5 threshold, 0.2 margin on a 1.0 scale), an
-    integer count of citing items passes whenever the runner-up has fewer and
-    ties whenever it has as many -- which is the tie the draft tells the model
-    to answer `none` on itself."""
+def test_g6_a_tie_in_the_counts_no_longer_turns_a_placement_weak():
+    """The third time C05 came back `weak` on `support` 1, `next_support` 1 was
+    the ruling's own example (`105` §14.1): counts do not establish uniqueness.
+    A tie, a runner-up ahead, and a clear win are all recorded and none vetoes."""
     case = _c_case()
-    tie = judge(case, dossier_of(case), _c_response(case, support=1, next_support=1),
-                schema={"type": "object"},
-                site_dependencies=site_dependencies_for(case))
-    assert tie.worst_outcome == WEAK
-    win = judge(case, dossier_of(case), _c_response(case, support=2, next_support=1),
-                schema={"type": "object"},
-                site_dependencies=site_dependencies_for(case))
-    assert win.worst_outcome == ACCEPT_DIRECT
+    for support, next_support in ((1, 1), (0, 3), (2, 1)):
+        verdict = judge(case, dossier_of(case),
+                        _c_response(case, support=support, next_support=next_support),
+                        schema={"type": "object"},
+                        site_dependencies=site_dependencies_for(case))
+        assert verdict.worst_outcome == ACCEPT_DIRECT, (support, next_support)
+        assert BELOW_SUPPORT_THRESHOLD not in [
+            r for v in verdict.verdicts for r in v["reasons"]]
 
 
 # --- G7: D's controlled set has a broad-parent action with no channel for depth ----

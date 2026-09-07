@@ -812,20 +812,66 @@ def test_r15_a_date_the_file_states_is_not_invented_and_one_it_does_not_is():
     assert _validate_c(unstated)[0][0].reasons == (INVENTED_DATE,)
 
 
+def _with_accepted_group(pair, group_id: str, *, accepted: bool = True):
+    """The same pair, its dossier also carrying an `accepted_group` item: one the
+    person accepted the file into (`user_confirmed`), or one it was merely
+    retrieved for (`possible`), which `105` §14.1 says is not support."""
+    from llm_harness.records import EvidenceItem
+    from llm_harness.vocabulary import CONTEXT_SUPPORTED
+    item = EvidenceItem(
+        evidence_ref=group_id, kind="accepted_group",
+        location="accepted group: a project the person accepted this file into",
+        excerpt_span=None,
+        reliability_state="user_confirmed" if accepted else "possible",
+        basis=CONTEXT_SUPPORTED)
+    dossier = dataclasses.replace(
+        pair.dossier, evidence_items=pair.dossier.evidence_items + (item,))
+    return dataclasses.replace(pair, dossier=dossier)
+
+
 def test_r15_a_context_supported_level_is_not_grounded_against_this_files_evidence():
     """A `context` level's value comes from the accepted group the file belongs
     to, not from the file's own text (`00`:111, the C draft's rule 3), and the
     dossier carries no group values to ground it against (packet G3). So the
     check does not fire on one, and firing it would re-create R-15 one step over:
-    every context-supported level rejected as invented."""
+    every context-supported level rejected as invented. What IS verified since
+    `105` §14.1 is the membership: the level names its group, and the group is
+    one the person accepted the file into."""
     pair = _with_payload_fields(
-        _c_direct_pair(),
+        _with_accepted_group(_c_direct_pair(), "group-pva"),
         per_dimension_support=[
-            {"dimension": "project", "value": "PVA/RDP", "support": "context"},
+            {"dimension": "project", "value": "PVA/RDP", "support": "context",
+             "context_group": "group-pva"},
         ])
     verdict = _validate_c(pair)[0][0]
     assert INVENTED_PROJECT not in verdict.reasons
     assert verdict.outcome == ACCEPT_DIRECT
+
+
+def test_a_context_level_that_names_no_accepted_group_is_a_slot_filled_without_evidence():
+    """`105` §14.1: accepted-group support is allowed because it is VERIFIABLE.
+    A `context` level that names no group, names one the dossier does not carry,
+    or names one the file was merely retrieved for is refused, and the value it
+    carries is never the reason -- grounding still does not run on it."""
+    unnamed = _with_payload_fields(
+        _with_accepted_group(_c_direct_pair(), "group-pva"),
+        per_dimension_support=[
+            {"dimension": "project", "value": "PVA/RDP", "support": "context"}])
+    unknown = _with_payload_fields(
+        _with_accepted_group(_c_direct_pair(), "group-pva"),
+        per_dimension_support=[
+            {"dimension": "project", "value": "PVA/RDP", "support": "context",
+             "context_group": "group-elsewhere"}])
+    retrieved = _with_payload_fields(
+        _with_accepted_group(_c_direct_pair(), "group-pva", accepted=False),
+        per_dimension_support=[
+            {"dimension": "project", "value": "PVA/RDP", "support": "context",
+             "context_group": "group-pva"}])
+    for pair in (unnamed, unknown, retrieved):
+        verdict = _validate_c(pair)[0][0]
+        assert verdict.reasons == (SLOT_FILLED_WITHOUT_EVIDENCE,)
+        assert verdict.outcome == REJECT
+        assert verdict.disposition == NO_DESTINATION
 
 
 def test_r15_a_destination_outside_the_frozen_tree_is_still_rejected():

@@ -55,9 +55,16 @@ def _candidates(*ids: str) -> tuple[Item, ...]:
                  for node in ids)
 
 
-def _group(group_id: str, text: str) -> Item:
+def _group(group_id: str, text: str, *, accepted: bool = True) -> Item:
+    """An accepted-group item. `accepted` is the structured membership signal
+    the validator reads (`placement_validation.ACCEPTED_MEMBERSHIP_STATE`):
+    `user_confirmed` is a group the person accepted the file into and can
+    support a `context` level; `possible` is a group the file was merely
+    retrieved for, which `105` §14.1 says is not support. The `location` text
+    says the same thing in words, for the model."""
     return Item(evidence_ref=group_id, kind="accepted_group", location=text,
-                reliability_state="possible", basis="context-supported")
+                reliability_state="user_confirmed" if accepted else "possible",
+                basis="context-supported")
 
 
 def _shuffled(case_id: str, ids) -> tuple[str, ...]:
@@ -137,7 +144,7 @@ CASES = (
         ("n-13", "n-12"),
         {"destination": "n-13"}, should_abstain=False,
         conflicts=(("conflict-target-duke", "target_university"),),
-        extra_items=(_group("group-columbia", "accepted group: Columbia application packet; this file was retrieved as a candidate member"),),
+        extra_items=(_group("group-columbia", "accepted group: Columbia application packet; this file was retrieved as a candidate member", accepted=False),),
         notes="Measures G1: a correct answer that echoes the shown conflict id is rejected CONFLICT_IGNORED."),
     _case(
         "C07", "refinement: a lecture sitting in its own course folder", "multi-life",
@@ -219,4 +226,34 @@ CASES = (
         ("n-23", "n-22"),
         {"destination": "n-23"}, should_abstain=False,
         notes="The five essays: University Writing/essay, not Coursework/Georgetown Prep/essay."),
+    # --- the activation cases of `105` §14.6, added 2026-09-07 with the v3 bundle ---
+    _case(
+        "C17", "context-only: an accepted group supports every level and the file names none", "Priya",
+        ("105:14.1", "00:111"), "file:c17",
+        [dict(address="body:1", value="1. A block of mass m slides down a frictionless incline of angle theta. Find its acceleration.", zone="body"),
+         dict(address="body:2", value="2. Two masses hang from a pulley. Find the tension in the rope.", zone="body")],
+        ("n-03", "n-07", "n-01"),
+        {"destination": "n-03"}, should_abstain=False,
+        extra_items=(_group("group-phys1401-hw", "accepted group: PHYS1401 homework, the course's problem sets; this file is a member the person accepted"),),
+        notes="No file text names the course or the kind of work; the accepted group carries both. Every level is context, citations are empty, and the course folder above it is resolved, not standing."),
+    _case(
+        "C18", "parent/child: one passage supports both and context establishes the child", "Priya",
+        ("105:14.1", "00:111"), "file:c18",
+        [dict(address="heading:1", value="PHYS 1401", zone="heading"),
+         dict(address="body:1", value="Problem 1. Compute the moment of inertia of a thin rod about its end.", zone="body")],
+        ("n-01", "n-03", "n-04"),
+        {"destination": "n-03"}, should_abstain=False,
+        extra_items=(_group("group-phys1401-hw", "accepted group: PHYS1401 homework, the course's problem sets; this file is a member the person accepted"),),
+        notes="The heading supports the course folder and its homework child alike; the accepted group establishes the kind of work, so the child stands and the parent is resolved -- never an alternative, never a tie."),
+)
+
+#: `105` §14.6: the cases the revised bundle must pass through the deployment
+#: validator under the intended local model before site C is activated. One
+#: case per ruled behaviour, and every existing should-abstain case.
+ACTIVATION: tuple[str, ...] = (
+    "C17",  # context-only
+    "C05",  # shared branch
+    "C14",  # multiple institution
+    "C18",  # parent/child
+    "C04", "C09", "C11", "C15",  # should abstain
 )
