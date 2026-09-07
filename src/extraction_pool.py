@@ -249,7 +249,8 @@ class ProcessPool:
     def __init__(self, *, workers: int,
                  context_factory: Callable[[], ExtractionContext],
                  lookahead_per_worker: int, floor: int,
-                 seconds_per_extraction: float) -> None:
+                 seconds_per_extraction: float,
+                 now: Callable[[], float] = time.monotonic) -> None:
         if workers < 1:
             raise ValueError(f"a pool needs at least one worker, not {workers}")
         #: R-50. HOW LONG ONE EXTRACTION MAY TAKE BEFORE ITS WORKER IS KILLED.
@@ -278,6 +279,24 @@ class ProcessPool:
                 f"a ceiling of {seconds_per_extraction} would fail every file "
                 "before it started; a ceiling is how long an extraction may take")
         self._ceiling = float(seconds_per_extraction)
+        #: THE CLOCK THE CEILING IS MEASURED ON, and the one thing here that DOES
+        #: carry a default. `seconds_per_extraction` is a policy with teeth and
+        #: refuses one; a monotonic source is not a policy, `time.monotonic` is the
+        #: only real answer, and requiring every caller to pass it would be
+        #: ceremony rather than a decision.
+        #:
+        #: It is injectable because the guard that protects this ceiling's SEMANTICS
+        #: could not be written against the real clock. What the guard has to prove
+        #: is that the ceiling starts when the consuming loop begins waiting for a
+        #: file and not when the file was submitted -- and expressing that in real
+        #: seconds means a sleeping neighbour racing a wall clock, which fails on a
+        #: loaded machine for a reason that has nothing to do with the defect.
+        #: Observed: two of these tests failed at load 13 with "01-alpha.pdf was
+        #: failed by its neighbour" while eight suites ran, on CPU contention rather
+        #: than on the clock. Driven by a test, fake time can pass between submit
+        #: and the first wait, which is exactly the condition a submit-measured
+        #: ceiling gets wrong, and no amount of machine load changes the answer.
+        self._now = now
         self._workers = workers
         self._factory = context_factory
         #: How far the caller reads ahead. Deep enough that a worker is never idle
@@ -364,7 +383,7 @@ class ProcessPool:
         #: long has this file been the one holding up the run", which is the
         #: question `00`:257 actually asks and the only one whose answer is not
         #: distorted by the queue. The run still cannot hang: every wait is bounded.
-        deadline = time.monotonic() + self._ceiling
+        deadline = self._now() + self._ceiling
         while True:
             current = handle
             while current in self._replaced:
@@ -372,7 +391,7 @@ class ProcessPool:
             request, attempts = self._outstanding.get(current, (None, 0))
             try:
                 outcome = current.result(
-                    timeout=max(0.0, deadline - time.monotonic()))
+                    timeout=max(0.0, deadline - self._now()))
             except FuturesTimeout:
                 # R-50. NOBODY DIED AND NOBODY ANSWERED. There is no retry here and
                 # that is deliberate: the death path retries because a segfault can
@@ -445,7 +464,7 @@ class ProcessPool:
                 # predecessor's death cost would kill a file for surviving a
                 # segfault, which is the same unfairness the paragraph above is
                 # about, one exception further along.
-                deadline = time.monotonic() + self._ceiling
+                deadline = self._now() + self._ceiling
                 continue
             except Exception as error:               # noqa: BLE001
                 # Never delivered at all -- an argument that would not pickle, a

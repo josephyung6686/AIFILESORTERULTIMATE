@@ -134,6 +134,7 @@ from privacy.denial import unclassified_denies
 from privacy.gate import Gate
 from privacy.defaults import LOCAL_FIRST_MODES
 from privacy.display import display_policy
+from privacy.moves import may_move_automatically
 from privacy.policy import UNSET_POLICY_VERSION, Policy, set_policy
 from privacy.vocabulary import MODE_SEMANTICS
 from questions.explanation import explain_question, render_explanation
@@ -781,6 +782,36 @@ PDF_PAGE_CEILING: int = 50
 #: are COUNTED before they are dropped, so that total is the file's real size and not
 #: the ceiling wearing a full count.
 SPREADSHEET_CELL_CEILING: int = 2000
+
+#: §8.6's "Maximum pages OCRed per file" (`00`:245), and the only place it is chosen.
+#:
+#: WHY IT WAS MISSING RATHER THAN SET WRONG. `readers/ocr_vision.py` has honoured a
+#: `page_cap` since it was written -- it stops between pages, reports `capped=True`,
+#: and `extractors/ocr.py` turns that into `completeness="capped"` with P4's own
+#: `coverage {"processed": n, "total": m}`. `VISION_CONFIG` carried languages, dpi
+#: and recognition level and no ceiling, so `page_cap` was `None` on every run this
+#: product has made and §8.6's most expensive operation was the one with no bound.
+#:
+#: THE NUMBER, MEASURED. Over the owner's ground-truth corpus on 2026-09-06 with
+#: pdfium, no OCR and no model: 68 readable PDFs, median 2 pages, longest 287. At 20
+#: pages, 61 of the 68 are untouched; at 50 it is 63. Seven files buy the whole tail,
+#: and the tail is what §8.6 means by "a large scanned textbook should not consume
+#: the same budget as hundreds of ordinary PDFs". Twenty pages of Vision at 200 DPI
+#: is the order of a minute; 287 would be twenty.
+OCR_PAGE_CEILING: int = 20
+
+#: §8.6's "Maximum OCR time per file" (`00`:246), in seconds, and it is deliberately
+#: a fraction of `EXTRACTION_SECONDS_PER_FILE` below.
+#:
+#: THE TWO CLOCKS ARE RELATED AND THE ORDER MATTERS. R-50 gave `ProcessPool` a
+#: per-extraction ceiling that kills a worker wedged inside Vision, because a Python
+#: timeout cannot interrupt a C dispatch wait. That rescue costs the file everything:
+#: the worker dies holding whatever it had read. This ceiling is checked BETWEEN
+#: pages, so when it fires the run keeps the pages it finished and records why it
+#: stopped. An in-process limit is only worth having if it is reached first, which is
+#: why 120 sits well under 600 and why a test asserts the inequality rather than
+#: trusting whoever next edits one of them.
+OCR_SECONDS_PER_FILE: int = 120
 
 #: HOW MANY PROCESSES READ FILES AT ONCE, and the only place the number is chosen.
 #: `extraction_pool.ProcessPool` refuses to default it, for the reason every number
@@ -2971,7 +3002,13 @@ def extraction_context() -> ExtractionContext:
         readers=macos_readers(find_structured_strings=find_structured_strings,
                               read_pdf=pdfium_reader(
                                   max_pages=PDF_PAGE_CEILING),
-                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING),
+                              spreadsheet_cell_ceiling=SPREADSHEET_CELL_CEILING,
+                              # §8.6's two per-file OCR ceilings. `_bootstrap`
+                              # publishes these same two numbers on P1's table, so
+                              # what bounded a run can be read back from the run's
+                              # own database rather than from this file.
+                              ocr_page_ceiling=OCR_PAGE_CEILING,
+                              ocr_seconds_per_file=OCR_SECONDS_PER_FILE),
         # Transcription opens audio and video. Not authorised, and saying so is
         # what keeps it off rather than the absence of a transcriber.
         transcription_authorized=lambda: False)
@@ -3045,6 +3082,118 @@ def p1_p7_authorities(*, now, detector,
         corpus_form="snapshot", policy_settings={"operation_mode": operation_mode},
         file_entry_body=lambda row: {"payload_ref": row["content_hash"]},
         p7_component_version=COMPONENT_VERSION)
+
+
+def _file_id_of_subject(subject_ref: str) -> str | None:
+    """`placement.store.subject_ref_of`, read back, and only the file form.
+
+    P11 spells a file version `file:<id>:<hash>` and a group `group:<id>`. The
+    hash is dropped because §8.4's predicate re-reads it from `files` itself: a
+    caller-supplied hash would let a stale dossier ask about a version of the file
+    that is no longer the current one, and the answer would look authoritative.
+
+    Anything that is not the file form returns `None` and the caller refuses.
+    That includes P8's fixture shorthand `file-1`: a bare string read as a file id
+    would make this answer about a file nobody addressed, and a wrong answer here
+    is a protected file filed automatically.
+    """
+    kind, separator, rest = subject_ref.partition(":")
+    if not separator or kind != pv.FILE:
+        return None
+    file_id, _separator, _content_hash = rest.partition(":")
+    return file_id or None
+
+
+def _proposes_a_move(payload: Mapping[str, object]) -> bool:
+    """Does this response put the file somewhere? Site C's key and Site D's.
+
+    A response that moves nothing cannot ignore a move restriction, and refusing
+    one would be worse than pointless: `leave_in_current_location` and
+    `mark_review_later` are the two dispositions that leave a protected file
+    exactly where its owner put it, and a policy that rejected them would be
+    pushing protected material out of its own shelter.
+    """
+    for key in ("destination", "target"):
+        value = payload.get(key)
+        if isinstance(value, str) and value and value != "none":
+            return True
+    return False
+
+
+def sensitivity_policy_for(conn: sqlite3.Connection):
+    """P7's answer to P8's two sensitivity checks. An adapter, and nothing more.
+
+    **What was wrong.** `SENSITIVITY_POLICY_VIOLATION` (Site C) and
+    `SENSITIVITY_RESTRICTION_IGNORED` (Site D) are two of P8's fifteen placement
+    checks and both call one injected predicate. This file passed `None` for it on
+    every run this product has ever made and every test in the tree stubbed it
+    `True`, so nobody was asking P7 the question. The D2 bakeoff measured the
+    consequence: both local D texts filed the redacted statement into Receipts and
+    P8 accepted it.
+
+    **Why this is not a new rule.** §8.4's automatic-move predicate already exists
+    and is published as `privacy.moves.may_move_automatically`. It reads the live
+    classification record and, for a protected one, the user policy that permits
+    that file's move; it refuses by default; it writes nothing. This function
+    hands P8 that answer and adds two things only: which subject the dossier is
+    about, and whether the response proposes a move at all. Any further judgement
+    belongs in P7, which owns the classification.
+
+    **A proposal is not a move, and that is the one judgement this adapter makes.**
+    §8.4's predicate answers "may this be moved automatically" and refuses a file
+    P7 has never classified. That refusal is right for a move and wrong for a
+    proposal: P8 is validating something a person then reviews, automatic filing is
+    Release 2, and on the owner's corpus 95 of 199 readable files carry no
+    classification record. Refusing those would spend coverage protecting them from
+    a move this release does not make. So absence of a record permits the proposal
+    and P7 owns every other branch unchanged -- not protected is permitted,
+    protected is refused unless a user policy names the file. The handling class is
+    not read at all: `privacy/classification.py` says neighbouring parts consume
+    the `protected` flag rather than inferring it from the class, and leaves open
+    whether the two coincide.
+
+    Injected alongside seven `None`s. `model_path_available` reads this field, so
+    supplying it alone does not switch the model path on -- there is still no
+    ratified placement prompt, and `model_placement` says why the other seven are
+    withheld together. A refusal, unlike a call, needs no prompt to be correct.
+    """
+    def permitted(dossier, payload: Mapping[str, object]) -> bool:
+        if not _proposes_a_move(payload):
+            return True
+        file_id = _file_id_of_subject(getattr(dossier, "subject_ref", "") or "")
+        if file_id is None:
+            return False
+        row = get_file(conn, file_id)
+        if row is None:
+            return False
+        # AN UNCLASSIFIED FILE MAY BE PROPOSED, AND THIS IS THE ONE PLACE THE TWO
+        # QUESTIONS COME APART. §8.4's predicate answers "may this be moved
+        # automatically", and for a file P7 has never classified its answer is
+        # `unreadable_unclassified` and its refusal is right: it will not read
+        # absence as permission. P8 is judging a PROPOSAL that a person reviews,
+        # and automatic filing is Release 2. Refusing the proposal would take 95
+        # of the owner's 199 readable files out of the engine to protect them from
+        # a move nothing is going to make -- coverage spent on a risk that does not
+        # exist in this release. The file still reaches the person through the
+        # review-required path the offline run already gives it.
+        #
+        # THE CLASS IS NOT CONSULTED, deliberately. `privacy/classification.py`
+        # states the rule: "Neighbouring parts should consume the `protected` flag,
+        # not infer it from the class", and its Open question 1 -- whether
+        # `protected` is exactly the top two classes -- is unsettled. So P7's flag
+        # is the whole of the answer here and a handling class read as a second
+        # opinion would be P11 deciding a question P7 has left open.
+        if ClassificationStore(conn).current(file_id, row["content_hash"]) is None:
+            return True
+        # Classified. P7 owns every remaining branch: not protected is permitted,
+        # protected is refused unless a user policy names this file. `or ""` is both
+        # validator sites' own convention for a dossier with no plan version --
+        # `current_policy` finds no row, so a protected file is refused and an
+        # unprotected one is not held hostage to the version.
+        return may_move_automatically(
+            conn, file_id, getattr(dossier, "plan_version", None) or "").allowed
+
+    return permitted
 
 
 # ======================================================================================
@@ -3412,6 +3561,17 @@ def _bootstrap(conn: sqlite3.Connection) -> None:
         else:
             value = CEILING_VALUE
         set_ceiling(conn, key, value)
+    # §8.6's two per-file OCR ceilings, published because something obeys them.
+    #
+    # THE OTHER TWO P5 KEYS ARE LEFT UNSET ON PURPOSE. `ocr.max_time_per_scan` and
+    # `image.max_analysis_ops_per_scan` have no enforcement point anywhere in `src/`:
+    # nothing accumulates a per-scan OCR clock and nothing counts image operations.
+    # `database_agent/budget.py` opens by saying "P1 holds and publishes values; P1
+    # enforces none of them. Reading a ceiling is not enforcing it", and a published
+    # number nothing obeys is worse than an absent one, because it reads as a bound
+    # somebody chose. They stay absent until there is something to obey them.
+    set_ceiling(conn, "ocr.max_pages_per_file", OCR_PAGE_CEILING)
+    set_ceiling(conn, "ocr.max_time_per_file", OCR_SECONDS_PER_FILE)
 
 
 def _validate_residuals(names: Sequence[str]) -> tuple[str, ...]:
@@ -4635,7 +4795,14 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # abstains with a reason instead of being decided by nothing.
             gate=None, model_client=None, prompt=None, call_dependencies=None,
             model_call_request=None, chosen_node_of=None, residual_action_of=None,
-            sensitivity_policy=None,
+            # SEVEN of the eight, not eight. This one is the exception and R-55 is
+            # why: P8's two sensitivity checks REFUSE with it, and a refusal that
+            # needs no ratified prompt should not wait for one. `None` here meant
+            # `SENSITIVITY_RESTRICTION_IGNORED` could never fire, which the D2
+            # bakeoff measured -- both local D texts filed the redacted statement
+            # into Receipts and P8 accepted it. Supplying it alone leaves
+            # `model_path_available` false, so the path stays off.
+            sensitivity_policy=sensitivity_policy_for(conn),
             # THE POLICY, and this file is where it belongs. P11 asks which files
             # are worth a person's attention and holds no answer of its own;
             # `folders_nothing_could_be_read_from` is the answer and carries the
@@ -5208,6 +5375,33 @@ def _nothing_could_be_read_report(
     return tuple(lines)
 
 
+#: P4's two ceiling completenesses, and they are NOT interchangeable: `capped` read
+#: something and stopped, `deferred` never started. `extractors/stage_output.py`
+#: holds them as one tuple because both mean "a budget was reached"; the sentences
+#: they earn are different, which is why each is named here.
+CAPPED: str = "capped"
+DEFERRED: str = "deferred"
+
+#: WHICH CEILING STOPPED A `capped` RUN, by the `source_type` that recorded it.
+#: Three extractors write `capped` under three different ceilings and every one of
+#: those numbers is chosen in THIS file, which is why the mapping lives here and
+#: not in `review_run/progress.py`: P13 renders a cause and holds none.
+#:
+#: `text_document` is pdfium's, because `pdf.py` is the only extractor writing that
+#: source type that caps. The long-tail families other than `spreadsheet` carry no
+#: ceiling at all -- `readers/deployment.py` says why for the archive manifest and
+#: the same holds for the rest -- so `spreadsheet` is the only one of the six here.
+#: A source type absent from this mapping produces no sentence rather than a guess.
+_CAPPED_BY_SOURCE_TYPE: Mapping[str, str] = MappingProxyType({
+    "ocr": ("OCR stopped at this deployment's per-file ceiling of "
+            f"{OCR_PAGE_CEILING} pages or {OCR_SECONDS_PER_FILE} seconds"),
+    "text_document": ("PDF text extraction stopped at this deployment's ceiling "
+                      f"of {PDF_PAGE_CEILING} pages per file"),
+    "spreadsheet": ("a spreadsheet stopped at this deployment's ceiling of "
+                    f"{SPREADSHEET_CELL_CEILING} cells per file"),
+})
+
+
 def _no_extractor_cause(conn: sqlite3.Connection):
     """P13's `cause_for`, answered where this run actually knows the answer.
 
@@ -5228,6 +5422,32 @@ def _no_extractor_cause(conn: sqlite3.Connection):
     ).fetchone()[0]
 
     def cause_for(label: str) -> str | None:
+        if label == CAPPED:
+            # §8.6 requires the cause NAMED rather than implied, and THREE
+            # extractors write `capped` -- `ocr.py`, `pdf.py` and `long_tail.py` --
+            # under three different ceilings. `review_surface.progress` buckets by
+            # state, so one bucket holds all of them, and a sentence naming one
+            # ceiling for the whole bucket would be a wrong cause printed with
+            # confidence. That is worse than the gap it replaced: the gap was true.
+            # So the run is asked which ceilings actually fired.
+            fired = sorted(row[0] for row in conn.execute(
+                "SELECT DISTINCT source_type FROM extraction_runs "
+                "WHERE completeness = ?", (CAPPED,)))
+            named = [_CAPPED_BY_SOURCE_TYPE[source] for source in fired
+                     if source in _CAPPED_BY_SOURCE_TYPE]
+            if not named:
+                # A ceiling this file does not hold. P13's own sentence says the
+                # cause is unrecorded, which is the truth here.
+                return None
+            return ("; ".join(named)
+                    + " -- and what was read before stopping was kept")
+        if label == DEFERRED:
+            # A budget stopped this extractor BEFORE it started, so nothing about
+            # it is a routing failure and the sentence below would misattribute it.
+            # This build records no deferral -- `extractors/budgets.deferred_result`
+            # has no caller -- and P13's own "no ceiling is recorded" is the honest
+            # answer for one until something records which budget fired.
+            return None
         if routed or not unrouted:
             return None
         return ("no reader in this deployment handles these files' format, so "
