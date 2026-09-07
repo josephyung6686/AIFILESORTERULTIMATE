@@ -190,6 +190,15 @@ def _argv(corpus: Path, database: Path) -> list[str]:
 #: and the "why" is the design sentence that says the two must meet -- not a
 #: description of what the code happens to do, which is how a census becomes a
 #: whitelist.
+#: `P5 -> READERS` IS NOT IN THIS LIST AND HAS NOT GONE DARK. `02` requires it --
+#: "the libraries a deployment chooses fill P5's shapes from outside the part" --
+#: and since R-138 every reader runs in a spawned worker, because a reader on the
+#: calling thread cannot be given a deadline and Apple's Vision framework
+#: deadlocks. `sys.setprofile` is a statement about THIS process, so the call is
+#: made where this instrument cannot see it. It is asserted instead from the rows
+#: the run wrote, by
+#: `test_the_reader_seam_is_asserted_from_the_rows_it_left`, and moving it here
+#: rather than deleting it is what keeps that a promise rather than a gap.
 LIVE_SEAMS: tuple[tuple[str, str, str], ...] = (
     ("P3", "P1", "`02`: P3 publishes a populated `files`, which is P1's table"),
     ("P4", "P1", "`P4 SPEC` Contract in: P4 appends its runs through P1"),
@@ -197,8 +206,6 @@ LIVE_SEAMS: tuple[tuple[str, str, str], ...] = (
                  "shape -- the reason P4 precedes P5"),
     ("P5", "P3", "`P5 SPEC` Contract in: an excluded path never reaches an "
                  "extractor"),
-    ("P5", "READERS", "`02`: the libraries a deployment chooses fill P5's "
-                      "shapes from outside the part"),
     ("P6", "P4", "`22` §1: P6 reads `Observation` and the P4 store, by "
                  "`observation_key`"),
     ("P7", "P4", "`22` §1: the three context fields exist so §8.4 can redact a "
@@ -258,20 +265,89 @@ DARK_SEAMS: tuple[tuple[str, str, str], ...] = (
 
 
 @pytest.fixture(scope="module")
-def _census(tmp_path_factory) -> tuple[Counter, dict, str]:
+def _census(tmp_path_factory) -> tuple[Counter, dict, str, Path]:
     """One traced run of the whole product, shared by every assertion below.
 
     Module-scoped because the run is the expensive part and every test here asks
     a different question of the SAME run -- two runs would let two tests
     disagree about what the product did.
+
+    **ONE SEAM IS NOW READ IN A CHILD PROCESS, and `sys.setprofile` is a
+    statement about this one.** R-138 moved every reader into a spawned worker,
+    because a reader on the calling thread cannot be given a deadline and Apple's
+    Vision framework deadlocks. `P5 -> READERS` used to be traced here, for the
+    files that fell below the pool floor; it is now made in a process this
+    profiler cannot enter. The seam did not go dark, the instrument went blind to
+    it, and a census that cannot tell those apart is the whitelist this file's own
+    docstring warns about.
+
+    So that one seam is asserted from what CROSSED the boundary and was written
+    down, which is the other half this file's docstring already allows: "the rows
+    a run of `cli.main` actually left in a database". The database is returned
+    alongside the edges for `test_the_reader_seam_is_asserted_from_the_rows_it_left`
+    below. No hook of any kind observes it, and no run is made twice.
     """
     root = tmp_path_factory.mktemp("holder")
     corpus = _corpus(root)
+    database = root / "plan.sqlite"
     out = io.StringIO()
     with _SeamRecorder() as recorder:
-        code = cli.main(_argv(corpus, root / "plan.sqlite"), out=out)
+        code = cli.main(_argv(corpus, database), out=out)
     assert code == 0, out.getvalue()
-    return recorder.edges, recorder.symbols, out.getvalue()
+    return recorder.edges, recorder.symbols, out.getvalue(), database
+
+
+def test_the_reader_seam_is_asserted_from_the_rows_it_left(_census):
+    """`P5 -> READERS`, read from what crossed the process boundary.
+
+    `02` requires this seam and R-138 moved it into a spawned worker, so the
+    profiler above cannot reach it. What CAN be read is what the worker sent back
+    and the run wrote down, and it is better evidence than a call count: a call
+    count says a function was entered, and these rows say a reader opened a file
+    on disk and P5 recorded what it found.
+
+    **NOTHING IN `src/extractors/` OPENS A FILE.** That is P5's own rule -- "It
+    reads nothing. Every reader is injected through `Readers`" -- so a `text_units`
+    row holding a corpus file's own bytes cannot have been produced by P5 alone.
+    The text is in the database, the file is on the disk, and the only path
+    between them runs through `src/readers/`. A deployment that wired no reader
+    records `unsupported` with `coverage {"processed": 0}` and no text at all,
+    which is the state this asserts against.
+
+    Both halves are checked, because each fails differently. A run row with a
+    version says P5 dispatched to a named extractor; the recovered text says a
+    reader actually read the bytes. A stub returning empty documents would pass
+    the first and fail the second.
+    """
+    _edges, _symbols, _text, database = _census
+
+    conn = sqlite3.connect(database)
+    conn.row_factory = sqlite3.Row
+    try:
+        runs = conn.execute(
+            "SELECT f.filename, r.extractor_name, r.extractor_version "
+            "FROM extraction_runs r JOIN files f ON f.file_id = r.file_id "
+            "WHERE r.extractor_name != 'filesystem.record'").fetchall()
+        recovered = [row["text"] for row in conn.execute(
+            "SELECT text FROM text_units")]
+    finally:
+        conn.close()
+
+    assert runs, (
+        "the run recorded no content extraction at all, so no reader filled "
+        "P5's shapes on this run")
+    unversioned = [row["filename"] for row in runs if not row["extractor_version"]]
+    assert not unversioned, (
+        "content extractions carry no extractor version, so nothing says which "
+        f"reader produced them: {unversioned}")
+
+    # A sentence from `_corpus` above, and a distinctive one: it is in the file's
+    # bytes and nowhere in this product's code, so it can only have been read off
+    # the disk.
+    assert any("no identifiers at all" in text for text in recovered), (
+        "no text unit holds the corpus's own words, so P5 recorded runs that read "
+        "nothing -- the readers are wired but no file was opened. "
+        f"{len(recovered)} text unit(s) were written")
 
 
 def test_every_seam_the_design_requires_carries_traffic_on_a_real_run(_census):
@@ -281,7 +357,7 @@ def test_every_seam_the_design_requires_carries_traffic_on_a_real_run(_census):
     in one direction, and the seam that actually broke every time was a consumer
     whose producer was never called.
     """
-    edges, _symbols, _text = _census
+    edges, _symbols, _text, _database = _census
     missing = [f"{a} -> {b}: {why}" for a, b, why in LIVE_SEAMS
                if (a, b) not in edges]
     assert not missing, (
@@ -296,7 +372,7 @@ def test_the_dark_seams_are_still_the_ones_the_census_says_they_are(_census):
     names each of these and why it is dark; when one lights up, the entry there
     is what has to change, and this is what says so.
     """
-    edges, _symbols, _text = _census
+    edges, _symbols, _text, _database = _census
     lit = [f"{a} -> {b}: recorded as dark because {why}"
            for a, b, why in DARK_SEAMS if (a, b) in edges]
     assert not lit, (
@@ -314,7 +390,7 @@ def test_the_only_thing_a_live_run_asks_of_p8_p12_and_p13_is_a_table(_census):
     reaches the same conclusion by counting unreachable mechanisms; this reaches
     it by watching a run.
     """
-    _edges, symbols, _text = _census
+    _edges, symbols, _text, _database = _census
     assert symbols.get((ROOT, "P8")) is not None, (
         "P8 is not reached at all -- even its schema. That is a different "
         "defect from the one this guards.")
