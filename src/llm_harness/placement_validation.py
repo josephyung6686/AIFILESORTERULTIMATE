@@ -216,27 +216,36 @@ def _invented_dimension(payload: Mapping[str, object], dossier: Dossier) -> str 
     the day C was wired -- and the only way a fixture could pass was to put
     values into the node-id list, which `_C_VOCAB` did until this landed.
 
-    **`direct` levels only.** A `context` level's value comes from the accepted
-    group the file belongs to rather than from its own text (`00`:111, the C
-    draft's rule 3), and the dossier carries no group values to ground it
-    against (packet §7 G3: the live C dossier has no node profiles and no
-    accepted-group items). Grounding one against the FILE's evidence would
+    **Every level except a `context` one.** A `context` level's value comes from
+    the accepted group the file belongs to rather than from its own text
+    (`00`:111, the C draft's rule 3), and the dossier carries no group values to
+    ground it against (packet §7 G3: the live C dossier has no node profiles and
+    no accepted-group items). Grounding one against the FILE's evidence would
     re-create R-15 one step over -- every context-supported level rejected as
     invented -- so the check does not fire on one, and `00`:111's own example is
     the reason: `HW 3.pdf` is placed under a course it never names.
 
+    That exemption is written as "everything but `context`" rather than "only
+    `direct`" ON PURPOSE. `support` has two legal words and the response schema
+    enumerates them; a THIRD word is a malformed answer, and a check that
+    grounded only the word it recognised would let any unrecognised one through
+    ungrounded -- fail-open on exactly the input that is already wrong. The
+    model's own "unsupported" keeps its more precise reason because
+    `SLOT_FILLED_WITHOUT_EVIDENCE` is asked first, above.
+
     **The schema half of §13.6 has no channel at C, and is not faked here.** At
-    site A the schema check is real (`active_schema_for` over the domain's
-    fields). At C the dimensions a model may name are the frozen tree's own
-    levels; `Dossier.folder_levels` is empty at C by design ("empty at B, C and
-    D, which design no tree") and `allowed_vocabulary` is node ids, so nothing
-    in the dossier says which levels exist. The response schema constrains
-    `dimension` to a non-empty string and `SCHEMA_INVALID` carries that much.
-    Naming the levels is the node-profile change R-17 makes; a check invented
-    here would be a rule guessing at the tree.
+    site A the schema check is real: the dossier's vocabulary IS the domain's
+    field keys, so "the field exists" is a lookup. At C the dimensions a model
+    may name are the frozen tree's own levels; `Dossier.folder_levels` is empty
+    at C by design ("empty at B, C and D, which design no tree") and
+    `allowed_vocabulary` is node ids, so nothing in the dossier says which levels
+    exist. The response schema constrains `dimension` to a non-empty string and
+    `SCHEMA_INVALID` carries that much. Naming the levels is the node-profile
+    change R-17 makes; a check invented here would be a rule guessing at the
+    tree.
     """
     for item in _dimensions(payload):
-        if item.get("support") != "direct":
+        if item.get("support") == "context":
             continue
         reason = _DIMENSION_REASON.get(item.get("dimension"))
         if reason is None:
@@ -270,11 +279,15 @@ def _placement_site(
         return _reject(verdict, INVENTED_NODE, NO_DESTINATION)
     if not dependencies.node_exists(destination, plan_version):
         return _reject(verdict, NODE_NOT_IN_FROZEN_TREE, NO_DESTINATION)
+    # THE MODEL'S OWN ADMISSION FIRST. A level it marks `unsupported` is a slot
+    # filled without evidence and has a reason code of its own; grounding it
+    # would relabel a failure the model reported honestly as an invention.
+    # Everything else goes to the grounding check below.
+    if any(item.get("support") == "unsupported" for item in _dimensions(payload)):
+        return _reject(verdict, SLOT_FILLED_WITHOUT_EVIDENCE, NO_DESTINATION)
     invented = _invented_dimension(payload, dossier)
     if invented is not None:
         return _reject(verdict, invented, NO_DESTINATION)
-    if any(item.get("support") == "unsupported" for item in _dimensions(payload)):
-        return _reject(verdict, SLOT_FILLED_WITHOUT_EVIDENCE, NO_DESTINATION)
     considered = payload.get("conflicts_considered")
     considered_ids = set(considered) if isinstance(considered, Sequence) and not isinstance(
         considered, (str, bytes),

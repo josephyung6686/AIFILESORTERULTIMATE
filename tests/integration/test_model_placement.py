@@ -398,50 +398,97 @@ def test_a_malformed_address_is_returned_whole_rather_than_repaired():
     assert _file_id_of("no-colons-at-all") == "no-colons-at-all"
 
 
-# --- `104` R-15, pinned as it will fire the moment C answers ------------------
+# --- `104` R-15, CLOSED: the value is grounded, the destination is looked up ----
+#
+# This was a strict xfail against the defect: `_invented_dimension` compared a
+# level's VALUE against `dossier.allowed_vocabulary`, which P11 fills with the
+# legal NODE IDS, so a real institution was "invented". The xfail's own reason
+# named the fix -- "check the value against the evidence it cites, and the
+# node-id set stays the check for `destination` alone" -- and that is what
+# landed, so both halves are asserted green here instead.
 
-@pytest.mark.xfail(strict=True, reason=(
-    "104 R-15: `_invented_dimension` compares a dimension's VALUE against "
-    "`dossier.allowed_vocabulary`, which P11 fills with the legal NODE IDS. A "
-    "real institution, date or project is never a node id, so every grounded "
-    "answer is rejected as invented. Phase 3 owns the validators; the fix is to "
-    "check the value against the evidence it cites, and the node-id set stays "
-    "the check for `destination` alone, which is what it was written for."))
-def test_a_real_institution_is_not_an_invented_one():
-    """The check that makes site C reject every correct answer it will ever give.
 
-    Written as a STRICT xfail rather than left latent: it fails now for the exact
-    reason it will fail on a real corpus, and the moment Phase 3 fixes the
-    validator this test passes and the marker's own strictness reports it. A
-    latent defect with no test is one nobody is told about when it stops being
-    latent.
+def _grounded_in(*values: str):
+    """A site-C dossier whose file states `values`, built from P8's own record."""
+    from llm_harness.records import Dossier, EvidenceItem, ReleasedEvidence
+    from llm_harness.vocabulary import C_PLACEMENT
 
-    `104` R-15 is rated High and "latent, code" precisely because nothing called
-    it -- and W2-D is the wave that calls it. Observe mode is what keeps that
-    safe: the verdict is recorded and applied to nothing.
-    """
+    return Dossier(
+        dossier_id="ds-r15", call_site=C_PLACEMENT, subject_ref="file:f1:h1",
+        eligibility_reason="several_legal_nodes_plausible", plan_version="plan-1",
+        policy_version="policy-1",
+        allowed_vocabulary=("node_f1d70c8a_1", "node_f1d70c8a_2"),
+        evidence_items=(EvidenceItem(
+            evidence_ref="obs-1", kind="excerpt", location="body",
+            excerpt_span=(0, 8), reliability_state="direct",
+            basis="direct-anchor"),),
+        conflicts=(),
+        released_evidence=tuple(
+            ReleasedEvidence(observation_key="obs-1", address="body:1",
+                             value=value, zone="body")
+            for value in values),
+        max_dossier_tokens=4000, reduction_rung="none", release_id="rel-1")
+
+
+def test_a_real_institution_the_file_states_is_not_an_invented_one():
+    """The correct answer site C will actually give: a real institution, in the
+    file's own released text."""
     from llm_harness.placement_validation import _invented_dimension
 
-    # What P11 puts in `allowed_vocabulary`: the legal destinations.
-    node_ids = {"node_f1d70c8a_1", "node_f1d70c8a_2"}
-    # What a correct model answer looks like -- a real institution, cited.
     payload = {"per_dimension_support": [
         {"dimension": "institution", "value": "Columbia University",
-         "support": "cited"}]}
+         "support": "direct"}]}
 
-    assert _invented_dimension(payload, node_ids) is None
+    assert _invented_dimension(
+        payload, _grounded_in("Submitted to Columbia University")) is None
+
+
+def test_an_institution_the_file_never_states_is_still_invented():
+    """The control: grounding is a check and not a rubber stamp."""
+    from llm_harness.placement_validation import _invented_dimension
+    from llm_harness.vocabulary import INVENTED_INSTITUTION
+
+    payload = {"per_dimension_support": [
+        {"dimension": "institution", "value": "Columbia University",
+         "support": "direct"}]}
+
+    assert _invented_dimension(
+        payload, _grounded_in("a page about nothing in particular")
+    ) == INVENTED_INSTITUTION
+
+
+def test_a_node_id_is_no_longer_what_a_value_is_measured_against():
+    """The defect itself, asserted gone. A legal node id in a VALUE slot says
+    nothing about what the file states, and used to be the only thing that
+    passed."""
+    from llm_harness.placement_validation import _invented_dimension
+    from llm_harness.vocabulary import INVENTED_INSTITUTION
+
+    payload = {"per_dimension_support": [
+        {"dimension": "institution", "value": "node_f1d70c8a_1",
+         "support": "direct"}]}
+
+    assert _invented_dimension(
+        payload, _grounded_in("Submitted to Columbia University")
+    ) == INVENTED_INSTITUTION
 
 
 def test_the_same_check_is_right_about_a_destination_and_that_half_stays():
-    """The half of R-15 that is NOT broken, asserted beside it so a fix cannot
-    take it away. A destination outside the frozen tree IS invented, and the
-    node-id set is exactly the right vocabulary for that question -- which is the
-    question this check was written for before it was pointed at values too."""
+    """The half of R-15 that was NOT broken. A destination outside the frozen
+    tree IS invented and the node-id set is exactly the right vocabulary for
+    that question -- which is the question the check was written for before it
+    was pointed at values too. The two questions are now asked in two places:
+    the destination against `allowed_vocabulary` and the tree, in
+    `_placement_site`; the values against the evidence, here. So a bogus
+    destination is not this function's finding, and its own reason code is what
+    reports it (pinned end to end in `tests/p8/test_p8_placement_validation.py::
+    test_r15_a_destination_outside_the_frozen_tree_is_still_rejected`)."""
     from llm_harness.placement_validation import _invented_dimension
 
-    node_ids = {"node_f1d70c8a_1"}
-    payload = {"per_dimension_support": [
-        {"dimension": "institution", "value": "node_f1d70c8a_1",
-         "support": "cited"}]}
+    payload = {"destination": "node-hallucinated",
+               "per_dimension_support": [
+                   {"dimension": "institution", "value": "Columbia University",
+                    "support": "direct"}]}
 
-    assert _invented_dimension(payload, node_ids) is None
+    assert _invented_dimension(
+        payload, _grounded_in("Submitted to Columbia University")) is None
