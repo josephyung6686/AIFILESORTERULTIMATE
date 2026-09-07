@@ -5873,10 +5873,17 @@ def anchor_line_citations(conn: sqlite3.Connection, *, scan_run_id: str,
     changed in `104` R-135 is only that a span covering a whole HEADING unit is no
     longer refused, which is what makes an address like this releasable at all.
 
-    A statement whose `line_evidence_ref` is `None` -- P4 emitted no containing reading
-    -- yields nothing, and so does one whose key no longer resolves in this file.
-    `located_citations` states the reason: "a citation that does not resolve is not
-    evidence and is dropped rather than carried with a made-up address."
+    A statement whose `line_evidence_ref` is `None` yields nothing HERE, and that is
+    site C's own answer rather than a gap. `facts.anchor_statements` returns `None` for
+    a code whose line it will not mint -- no stored unit text, or a line whose
+    characters are the code's own -- and at this site the code is already offered, by
+    the loop above, as the citation of the fact that matched it. Falling back to it
+    would offer one reading twice. The site-A path has no such duplicate and does fall
+    back; `anchor_context_observations` says so where it does.
+
+    A key that no longer resolves in this file also yields nothing. `located_citations`
+    states the reason: "a citation that does not resolve is not evidence and is dropped
+    rather than carried with a made-up address."
     """
     lines = []
     for statement in anchor_statements_for(conn, scan_run_id,
@@ -5967,8 +5974,15 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
     store = ClassificationStore(conn)
     wanted: dict[str, set[str]] = {}
     for statement in anchor_statements_for(conn, scan_run_id):
-        if statement.line_evidence_ref is None:
-            continue
+        # `104` R-135's fallback: the LINE when the corpus has one and the code's own
+        # span when it does not. `facts.anchor_statements` mints a line for a code that
+        # sits inside a span-less body reading, and returns `None` for the two cases it
+        # refuses -- no stored unit text to read the line back from, and a line whose
+        # characters are the code's own. In both, the code span is what there is, and a
+        # code beside a neighbouring file is more than the model is shown without it.
+        # Skipping instead is what this loop used to do, and on the measured run it
+        # skipped 91 of 99 statements and every dossier carried no context at all.
+        ref = statement.line_evidence_ref or statement.code_evidence_ref
         if statement.stating_file_id == file_id:
             continue
         stating = get_file(conn, statement.stating_file_id)
@@ -5981,8 +5995,7 @@ def anchor_context_observations(conn: sqlite3.Connection, *, scan_run_id: str,
             # `Denied(unclassified)` for a cloud target and a protected one is
             # `ProtectedItemRequested`; either would cost this file its whole call.
             continue
-        wanted.setdefault(statement.stating_file_id, set()).add(
-            statement.line_evidence_ref)
+        wanted.setdefault(statement.stating_file_id, set()).add(ref)
     offered = []
     for stating_file_id, keys in wanted.items():
         stating = get_file(conn, stating_file_id)
