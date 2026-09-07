@@ -1054,7 +1054,10 @@ def _second_group(conn, *, group_id, file_ids):
         anchor_facts=(AnchorFact(field="subject", value="PHYS1402",
                                  file_ids=tuple(file_ids),
                                  reliability_state=VALIDATED,
-                                 observation_key=f"obs-{group_id}"),),
+                                 observation_key=f"obs-{group_id}",
+                                 # `104` R-97: each stating file cites its own.
+                                 observation_keys=tuple(
+                                     f"obs-{one}" for one in file_ids)),),
         pre_model_signals={}, anchor_count=len(file_ids),
         coherence_verdict=COHERENT, coherence_citations=(f"obs-{group_id}",),
         # `academic` and not `course`: P9 refuses a category outside

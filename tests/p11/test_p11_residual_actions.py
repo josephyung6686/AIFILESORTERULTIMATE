@@ -8,10 +8,13 @@ from llm_harness.placement_validation import (
     ResidualDependencies, validate_residual_response,
 )
 from llm_harness.vocabulary import (
-    ABSTAIN as P8_ABSTAIN, CHOOSE_BROAD_PARENT, CHOOSE_RESIDUAL_DESTINATION,
-    INVENTED_FOLDER, LEAVE_IN_CURRENT_LOCATION, MARK_PROTECTED_OR_UNSUPPORTED,
+    ABSTAIN as P8_ABSTAIN, ACCEPT_DIRECT, CHOOSE_BROAD_PARENT,
+    CHOOSE_RESIDUAL_DESTINATION,
+    INVENTED_FOLDER, LEAVE_IN_CURRENT_LOCATION,
+    LEAVE_IN_PLACE as P8_LEAVE_IN_PLACE_DISPOSITION,
+    MARK_PROTECTED_OR_UNSUPPORTED,
     MARK_REVIEW_LATER as P8_MARK_REVIEW_LATER, REJECT, RESIDUAL_ACTIONS,
-    RETURN_ACCEPTED_PACKET, RETURN_CONFIRMED_GROUP,
+    RESIDUAL_DESTINATION, RETURN_ACCEPTED_PACKET, RETURN_CONFIRMED_GROUP,
     RETURN_TO_PLACEMENT as P8_RETURN_DISPOSITION,
     STRONGER_RELATIONSHIP_OVERLOOKED,
 )
@@ -41,6 +44,30 @@ def _residual_deps(pair):
 def _verdict_for(expected_reason):
     pair = next(p for p in SITE_D_REASON_PAIRS
                 if p.expected_reasons == (expected_reason,))
+    verdicts, _ = validate_residual_response(
+        pair.dossier, pair.response_bytes,
+        evidence_resolver=lambda key: "span-1" if key.startswith("obs-") else None,
+        contradicts=lambda *_a, **_k: False, dependencies=_residual_deps(pair),
+        model_id="fixture-model", prompt_fingerprint="fp-canonical",
+        dossier_builder="p11-test", release_audit_id=17, handle_key=FIXTURE_HANDLE_KEY)
+    return verdicts[0]
+
+
+def _verdict_for_action(action, *, target=None):
+    """P8's verdict on a well-cited D response carrying one of the eight actions.
+
+    Built from the direct-accept outcome pair rather than a reason pair, because
+    the question here is what an ACCEPTED answer is recorded as.
+    """
+    import dataclasses
+    import json
+
+    from llm_harness.fixtures import SITE_D_OUTCOME_PAIRS
+
+    pair = next(p for p in SITE_D_OUTCOME_PAIRS if p.name == "direct_accept")
+    parsed = json.loads(pair.response_bytes)
+    parsed["claims"][0]["payload"].update(action=action, target=target)
+    pair = dataclasses.replace(pair, response_bytes=json.dumps(parsed).encode())
     verdicts, _ = validate_residual_response(
         pair.dossier, pair.response_bytes,
         evidence_resolver=lambda key: "span-1" if key.startswith("obs-") else None,
@@ -362,4 +389,41 @@ def test_the_residual_action_path_is_reachable_from_somewhere_in_placement():
         assert _placement_sources_calling(entry_point) - {"residual.py"}, entry_point
 
 
+# --- `104` R-104: the two halves of one choice, and they disagreed ----------------
 
+
+def test_p8_and_p11_record_the_same_thing_when_the_model_says_leave_it_here():
+    """The ladder above has always mapped `leave_in_current_location` onto
+    `leave_in_place`; P8's own record of the same answer said
+    `residual_destination`.
+
+    P11 reads the ACTION through the injected `residual_action_of` and never the
+    disposition, so the two never had to agree for the file to end up in the right
+    place -- which is why this went unnoticed. What disagreed is what a person and
+    a replay READ: `llm_verdict` said the model had chosen a residual destination
+    and `placement_decisions` said the file stayed put.
+
+    The two constants are one string, and `placement/vocabulary.py:171-176` says so
+    in the codebase's own words -- "P8 -- whose value P11's `LEAVE_IN_PLACE`
+    OUTCOME is". Asserted on each side's own name so a future split of the two
+    spellings breaks here rather than passing silently.
+    """
+    verdict = _verdict_for_action(LEAVE_IN_CURRENT_LOCATION)
+
+    assert verdict.outcome == ACCEPT_DIRECT
+    assert verdict.disposition == P8_LEAVE_IN_PLACE_DISPOSITION
+    assert verdict.disposition != RESIDUAL_DESTINATION
+    assert ACTION_OUTCOME[LEAVE_IN_CURRENT_LOCATION] == v.LEAVE_IN_PLACE
+    assert outcome_for_action(LEAVE_IN_CURRENT_LOCATION,
+                              target=None) == (v.LEAVE_IN_PLACE, None)
+    assert verdict.disposition == ACTION_OUTCOME[LEAVE_IN_CURRENT_LOCATION]
+
+
+def test_only_a_choice_of_destination_is_recorded_as_a_destination():
+    """The two actions that DO name a home keep `residual_destination`; the fix
+    above narrows that disposition to them rather than replacing it."""
+    for action, target in ((CHOOSE_RESIDUAL_DESTINATION, "node-legal"),
+                           (CHOOSE_BROAD_PARENT, "node-parent")):
+        verdict = _verdict_for_action(action, target=target)
+        assert verdict.disposition == RESIDUAL_DESTINATION, action
+        assert ACTION_OUTCOME[action] == v.PLACE, action

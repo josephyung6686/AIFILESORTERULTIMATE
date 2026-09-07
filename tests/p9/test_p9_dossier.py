@@ -35,7 +35,9 @@ from evidence_shape.store import record_observation, record_run
 from grouping.config import ConfigurationRequired, GroupingLimits
 from grouping.dossier import DossierRefused, assemble_group_dossier
 from grouping.graph import build_graph
-from grouping.records import AnchorFact, CandidateGroupDossier, Conflict, Group
+from grouping.records import (
+    AnchorFact, CandidateGroupDossier, Conflict, Group, MalformedGroupRecord,
+)
 from grouping.retrieval import Neighbor, Neighborhood
 from grouping.seeds import Seed
 from grouping.vocabulary import (
@@ -413,7 +415,9 @@ def test_an_unresolvable_key_becomes_no_excerpt_rather_than_a_quotation(
 def test_a_shared_fact_never_lends_one_files_observation_to_another(
     dossier_conn, corpus,
 ):
-    """An `AnchorFact` stated by two files carries ONE observation key -- the
+    """`104` R-97, and the fix is on the record rather than at this seam.
+
+    An `AnchorFact` stated by two files used to carry ONE observation key -- the
     first file's. Attached to the second file it is a quotation from somewhere
     else, and P7's gate resolves every requested item to its file and raises
     `UnresolvableSpan` when that file is outside the request's target -- which it
@@ -423,9 +427,10 @@ def test_a_shared_fact_never_lends_one_files_observation_to_another(
     traceback after 37 minutes of A-site calls, at the first B dossier, because
     two cover letters cited a job posting's `term = Summer2026`.
 
-    So every excerpt on a dossier file is that file's own observation, and a
-    shared key the file has no observation for is no excerpt rather than a
-    borrowed one.
+    The fact now names one key per stating file, so every excerpt on a dossier
+    file is that file's OWN observation -- and the second file keeps an excerpt
+    instead of losing one, which is the difference between this and narrowing the
+    dossier.
     """
     from evidence_shape.store import observations_by_key
 
@@ -433,13 +438,16 @@ def test_a_shared_fact_never_lends_one_files_observation_to_another(
     lecture_id, _lh, lecture_key = corpus["Lecture.pdf"]
     shared = AnchorFact(field="subject", value="PHYS1401",
                         file_ids=(seed_id, lecture_id),
-                        reliability_state="validated", observation_key=seed_key)
+                        reliability_state="validated", observation_key=seed_key,
+                        observation_keys=(seed_key, lecture_key))
     dossier = _assemble(dossier_conn, corpus, group=_group(shared))
 
     by_file = {item.file_id: item
                for item in (*dossier.anchor_files, *dossier.candidate_files)}
     assert seed_key in {e.observation_key for e in by_file[seed_id].excerpts}
     assert seed_key not in {e.observation_key for e in by_file[lecture_id].excerpts}
+    # Its own, and it HAS one: the shared fact costs the second file nothing.
+    assert lecture_key in {e.observation_key for e in by_file[lecture_id].excerpts}
     # And the whole dossier: every excerpt resolves to the file it sits on.
     for item in by_file.values():
         for excerpt in item.excerpts:
@@ -448,22 +456,51 @@ def test_a_shared_fact_never_lends_one_files_observation_to_another(
             assert item.file_id in owners, (item.file_id, excerpt.observation_key)
 
 
+def test_the_record_refuses_to_say_two_files_cite_one_observation(corpus):
+    """The cause, refused where it was written. Two stating files and one key is
+    not a record P9 may build any more: the caller says which key each file cites,
+    and `None` is how it says a file cites nothing of its own."""
+    seed_id, _sh, seed_key = corpus["Syllabus.pdf"]
+    lecture_id, _lh, lecture_key = corpus["Lecture.pdf"]
+    with pytest.raises(MalformedGroupRecord):
+        AnchorFact(field="subject", value="PHYS1401",
+                   file_ids=(seed_id, lecture_id),
+                   reliability_state="validated", observation_key=seed_key)
+    with pytest.raises(MalformedGroupRecord):
+        AnchorFact(field="subject", value="PHYS1401",
+                   file_ids=(seed_id, lecture_id),
+                   reliability_state="validated", observation_key=seed_key,
+                   observation_keys=(seed_key,))
+
+    fact = AnchorFact(field="subject", value="PHYS1401",
+                      file_ids=(seed_id, lecture_id),
+                      reliability_state="validated", observation_key=seed_key,
+                      observation_keys=(seed_key, lecture_key))
+    assert fact.key_for(seed_id) == seed_key
+    assert fact.key_for(lecture_id) == lecture_key
+    assert fact.key_for("a-file-that-does-not-state-it") is None
+
+
 def test_a_dossier_with_no_excerpt_of_its_own_is_refused_not_requested(
     dossier_conn, corpus,
 ):
-    """The other half of the shared-fact case. When the file whose observation a
-    shared fact cites is withheld (unclassified), every remaining file states the
-    basis by the fact's word and cites nothing of its own. Such a dossier has no
-    item a release could resolve, and `ModelCallRequest` refuses to be built
-    from it -- measured as `MalformedRequest: a request with no items has
-    nothing to release` ending a 48-minute local-model run. It is refused here,
-    with the reason named, and P9 records the group as not judged.
+    """The other half of the shared-fact case, and since R-97 it is a narrower
+    one: a file that states the basis and cites NOTHING of its own, which is what
+    a `user_confirmed` value is -- the person's answer, with no extractor reading
+    behind it. `key_for` returns `None` there and no excerpt is offered.
+
+    When the only file that does cite something is withheld, the dossier has no
+    item a release could resolve, and `ModelCallRequest` refuses to be built from
+    it -- measured as `MalformedRequest: a request with no items has nothing to
+    release` ending a 48-minute local-model run. It is refused here, with the
+    reason named, and P9 records the group as not judged.
     """
     seed_id, _sh, seed_key = corpus["Syllabus.pdf"]
     lecture_id, _lh, _lk = corpus["Lecture.pdf"]
     shared = AnchorFact(field="subject", value="PHYS1401",
                         file_ids=(seed_id, lecture_id),
-                        reliability_state="validated", observation_key=seed_key)
+                        reliability_state="validated", observation_key=seed_key,
+                        observation_keys=(seed_key, None))
     result = _assemble(
         dossier_conn, corpus, group=_group(shared),
         classification_store=_classified(missing=(seed_id,)))

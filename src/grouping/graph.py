@@ -25,6 +25,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from database_agent.learning import learning_records
+from evidence_shape.observation import is_observation_key
 
 from grouping.config import ConfigurationRequired, GroupingLimits
 from grouping.records import Conflict, StopRuleOutcome, TypedEdge
@@ -298,6 +299,20 @@ def _standing_reject(
     return False
 
 
+def _anchoring_edges(graph: LocalEvidenceGraph) -> tuple[TypedEdge, ...]:
+    """The edges that make a file an anchor, and the ONE place that filter lives.
+
+    `anchoring_files` and `anchor_observation_keys` have to select the same edges
+    in the same order -- the second answers, per file, what the first returned --
+    and two copies of `edge_type == SHARED_VALIDATED_FACT and not hub_suppressed`
+    is how they would drift the day a third edge type may anchor.
+    """
+    return tuple(
+        edge for edge in graph.edges
+        if edge.edge_type == SHARED_VALIDATED_FACT and not edge.hub_suppressed
+    )
+
+
 def anchoring_files(
     graph: LocalEvidenceGraph, *, seed_anchors: bool,
 ) -> tuple[str, ...]:
@@ -317,10 +332,7 @@ def anchoring_files(
     `len()` still counts files and not edges -- `meets_support_bar` reads it as a
     count of INDEPENDENT anchors.
     """
-    reached = {
-        edge.to_file_id for edge in graph.edges
-        if edge.edge_type == SHARED_VALIDATED_FACT and not edge.hub_suppressed
-    }
+    reached = {edge.to_file_id for edge in _anchoring_edges(graph)}
     if seed_anchors:
         reached.add(graph.seed_file_id)
     ordered = [file_id for file_id in graph.file_ids if file_id in reached]
@@ -329,6 +341,43 @@ def anchoring_files(
     # ever did, dropping it silently would understate the group's own support.
     ordered.extend(sorted(reached.difference(ordered)))
     return tuple(ordered)
+
+
+def anchor_observation_keys(
+    graph: LocalEvidenceGraph, *, seed_anchors: bool,
+    seed_observation_key: str | None,
+) -> tuple[str | None, ...]:
+    """One P4 key per anchoring file, aligned with `anchoring_files`' order.
+
+    `104` R-97. `AnchorFact` carried one key for the whole group, the seed's, and
+    every other stating file was recorded as citing it -- an observation of
+    another file's bytes, which P7 refuses to resolve into a request that does not
+    name that file. The per-file key was never missing: the shared-fact channel
+    already reads it. `retrieval._shared_fact_neighbors` sets
+    `evidence_ref=_first_ref(match)` from the CANDIDATE's own fact row, and
+    `build_graph` carries it onto the edge. This function is the read that had not
+    been written.
+
+    **The edge's `evidence_ref` is not always a citation.** `build_graph` falls
+    back to the edge's own id when a channel cites no observation -- "a channel
+    that cites no observation is still addressable" -- and a `user_confirmed`
+    anchor genuinely has none, because the value is the person's answer rather
+    than an extractor's reading. `is_observation_key` is what tells the two apart,
+    asked of the key by the module that mints one rather than by a prefix match
+    written here, and the answer for a fallback id is `None`: this file cites
+    nothing of its own, which is a true thing to record and a safe one to carry.
+    """
+    by_file: dict[str, str | None] = {}
+    for edge in _anchoring_edges(graph):
+        by_file.setdefault(edge.to_file_id, edge.evidence_ref)
+    if seed_anchors:
+        # The seed's own, and never an edge's: `build_graph` writes edges FROM the
+        # seed, so no edge carries the seed's citation.
+        by_file[graph.seed_file_id] = seed_observation_key
+    return tuple(
+        by_file[file_id] if is_observation_key(by_file.get(file_id)) else None
+        for file_id in anchoring_files(graph, seed_anchors=seed_anchors)
+    )
 
 
 def meets_support_bar(

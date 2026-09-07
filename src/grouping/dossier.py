@@ -109,16 +109,23 @@ def _excerpts_for(
     citation by resolving it, so an excerpt whose key resolves to nothing would be
     a quotation the model could not be held to.
 
-    THE FILE'S OWN OBSERVATION, OR NONE. An `AnchorFact` shared by several files
-    carries ONE `observation_key`, the observation of whichever file stated the
-    value first. Attached to a second file that key is a quotation from somewhere
-    else, and P7's gate resolves every requested item to the file it belongs to
-    and raises `UnresolvableSpan` when that file is outside the request's target
-    -- which it is whenever the first file was withheld or bounded out of the
-    graph. Measured on a 52-file Downloads with a local model: the whole run
-    died with that traceback after 37 minutes of A-site calls, at the first B
-    dossier, because two cover letters cited a job posting's `Summer2026`.
-    The evidence a file is offered is its own (the same rule P7 applies at A).
+    THE FILE'S OWN OBSERVATION, OR NONE, AND THE CALLER NOW ASKS FOR IT BY NAME.
+    An `AnchorFact` shared by several files used to carry ONE `observation_key`,
+    the observation of whichever file stated the value first; attached to a second
+    file that key is a quotation from somewhere else, and P7's gate resolves every
+    requested item to the file it belongs to and raises `UnresolvableSpan` when
+    that file is outside the request's target -- which it is whenever the first
+    file was withheld or bounded out of the graph. Measured on a 52-file Downloads
+    with a local model: the whole run died with that traceback after 37 minutes of
+    A-site calls, at the first B dossier, because two cover letters cited a job
+    posting's `Summer2026`.
+
+    `AnchorFact.key_for` is the fix at the cause (`104` R-97): the fact carries one
+    key per stating file, so the caller hands this function the file's OWN key and
+    a shared fact no longer costs the second file its excerpt. The narrowing below
+    stays as the guard it always was -- a key that resolves to no observation of
+    this file is skipped, whoever chose it -- so the release can never be asked to
+    resolve a span to a file the request did not name.
     """
     found: list[Excerpt] = []
     for key in dict.fromkeys(keys):
@@ -213,8 +220,16 @@ def _merged(facts: Sequence[AnchorFact]) -> tuple[AnchorFact, ...]:
         if held is None:
             merged[key] = fact
             continue
-        merged[key] = dataclasses.replace(held, file_ids=tuple(sorted(
-            dict.fromkeys((*held.file_ids, *fact.file_ids)))))
+        # The two tuples move together or they pair a file with another file's
+        # citation, which is the whole of `104` R-97. Built as a mapping and
+        # unzipped rather than sorted twice.
+        cited: dict[str, str | None] = dict(zip(held.file_ids,
+                                                held.observation_keys))
+        cited.update(zip(fact.file_ids, fact.observation_keys))
+        ordered = tuple(sorted(cited))
+        merged[key] = dataclasses.replace(
+            held, file_ids=ordered,
+            observation_keys=tuple(cited[one] for one in ordered))
     return tuple(merged.values())
 
 
@@ -331,7 +346,12 @@ def assemble_group_dossier(
             basis=DIRECT_ANCHOR if is_anchor else CONTEXT_SUPPORTED,
             key_facts=facts,
             excerpts=_excerpts_for(
-                conn, [fact.observation_key for fact in facts],
+                # THIS FILE'S citation for each fact it states, never the fact's
+                # first stating file's (`104` R-97). `key_for` answers `None` for
+                # a file that cites nothing of its own -- a `user_confirmed`
+                # value has no reading behind it -- and none is offered for it.
+                conn, [key for key in (fact.key_for(file_id) for fact in facts)
+                       if key],
                 # How short a short excerpt is decides how much of a file
                 # reaches a model. That is a policy, and it arrives injected.
                 limit=limits.max_excerpt_characters, file_id=file_id),
@@ -351,10 +371,11 @@ def assemble_group_dossier(
             withheld=tuple(withheld),
         )
     if not any(item.excerpts for item in (*anchors, *candidates)):
-        # Anchors, and not one quotation among them. A shared `AnchorFact`
-        # carries the first stating file's observation key; when that file was
-        # withheld or bounded out of the graph, every remaining file states the
-        # basis by the fact's word and cites nothing of its own. A request with
+        # Anchors, and not one quotation among them. Since `104` R-97 a shared
+        # `AnchorFact` carries each stating file's own key, so this is no longer
+        # what a withheld first file costs -- it is what a group of
+        # `user_confirmed` anchors looks like: every file states the basis by the
+        # person's word and cites no reading of its own. A request with
         # no items is what `ModelCallRequest` refuses to construct -- measured:
         # `MalformedRequest: a request with no items has nothing to release`
         # ended a 48-minute local-model run at this site. Refused HERE, as a
@@ -363,8 +384,7 @@ def assemble_group_dossier(
             group_id=group.group_id,
             reason=(
                 "no file in the graph carries an observation of its own for the "
-                "group's basis; the cited observations belong to files outside "
-                "the graph, so there is no excerpt a release could resolve"
+                "group's basis, so there is no excerpt a release could resolve"
             ),
             withheld=tuple(withheld),
         )
