@@ -52,13 +52,20 @@ old one would be a lie about what this run spent. The two columns dangle on purp
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 
 _ROOT = Path(__file__).resolve().parents[2]
+
+#: The `--user` every scoreboard run is given. Here rather than spelled twice,
+#: because `_one_run` passes it to `cli` and the pre-scan below passes it to
+#: `record_selection`, and a selection recorded under a different name than the run
+#: that follows it would say two people chose this corpus.
+SCOREBOARD_USER = "groundtruth"
 
 
 class ReuseRefused(Exception):
@@ -70,22 +77,29 @@ class ReuseRefused(Exception):
     """
 
 
-#: Which rows of each table a reuse can be decided from, in insert order. The filter
-#: is written against the ATTACHED prior, never against `main`: `main` is empty when
-#: this runs and a filter that read it would silently copy nothing.
-_DOSSIERS = "(SELECT dossier_id FROM prior.llm_call_identity)"
-_COPIED_VERDICTS = (
-    f"(SELECT verdict_id FROM prior.llm_verdict WHERE dossier_id IN {_DOSSIERS})"
-)
+#: The tables copied verbatim, in insert order, once the identity and the dossier
+#: have been TRANSLATED. Each filter reads `main`, which by then holds exactly the
+#: dossiers whose file this corpus still has at that path with those bytes: a prior
+#: answer about a file that moved or changed is left behind, and so is everything
+#: under it. Filtering against the prior instead would copy a response and a verdict
+#: whose dossier never arrived.
 SEED_PLAN: tuple[tuple[str, str], ...] = (
-    ("llm_call_identity", ""),
-    ("llm_dossier", f"WHERE dossier_id IN {_DOSSIERS}"),
-    ("llm_response", f"WHERE dossier_id IN {_DOSSIERS}"),
-    ("llm_verdict", f"WHERE dossier_id IN {_DOSSIERS}"),
+    ("llm_response", "WHERE dossier_id IN (SELECT dossier_id FROM main.llm_dossier)"),
+    ("llm_verdict", "WHERE dossier_id IN (SELECT dossier_id FROM main.llm_dossier)"),
+    # Both endpoints, so a supersession can never name a verdict that is not here.
+    # `llm_verdict` is filled by the line above before this one reads it.
     ("llm_verdict_supersession",
-     f"WHERE old_verdict_id IN {_COPIED_VERDICTS} "
-     f"AND new_verdict_id IN {_COPIED_VERDICTS}"),
+     "WHERE old_verdict_id IN (SELECT verdict_id FROM main.llm_verdict) "
+     "AND new_verdict_id IN (SELECT verdict_id FROM main.llm_verdict)"),
 )
+
+
+def _canonical(mapping) -> str:
+    """The dimensions as `store.canonical_json` writes them, so a re-read matches."""
+    _src_on_path()
+    from evidence_shape.canonical import canonical_json
+
+    return canonical_json(mapping)
 
 
 @dataclass(frozen=True)
@@ -100,6 +114,12 @@ class Seeded:
     #: Kept apart from `rows` because it is the one number the spend arithmetic
     #: needs: a response row that was seeded is not a call this run made.
     responses: int
+    #: Prior answers left behind because this corpus has no file at that path with
+    #: those bytes -- a file changed, moved, renamed or deleted since. Reported
+    #: rather than swallowed: it is the difference between "the prior directory
+    #: had nothing for this corpus" and "the corpus moved on", and a person
+    #: choosing whether to trust a cheap rerun needs to know which.
+    skipped: int = 0
 
 
 def _src_on_path() -> None:
@@ -116,6 +136,43 @@ def _src_on_path() -> None:
 def prior_database(directory: Path, situation: str) -> Path:
     """Where a prior run of `situation` left its database. `run.py`'s own naming."""
     return directory / f"{situation.replace('.', '_')}.sqlite"
+
+
+def seeded_note(out_dir: Path, situation: str) -> Path:
+    """Where a run records what it was handed, beside the database it was handed to.
+
+    A file rather than a column: every `llm_*` table is append-only by trigger, and
+    a "this row was seeded" column would be a change to the PRODUCT's schema made
+    for the scoreboard's convenience. `--score-only` re-reads these databases long
+    after the run, and without this it would report seeded rows as calls somebody
+    paid for.
+    """
+    return out_dir / f"{situation.replace('.', '_')}.seeded.json"
+
+
+def write_seeded(out_dir: Path, situation: str, given: "Seeded") -> None:
+    seeded_note(out_dir, situation).write_text(
+        json.dumps({"answers": given.answers, "skipped": given.skipped,
+                    "rows": dict(given.rows)}, indent=2, sort_keys=True),
+        encoding="utf-8")
+
+
+def read_seeded(out_dir: Path, situation: str) -> dict[str, int]:
+    """Rows seeded into this situation's database, or `{}` if none ever were.
+
+    Unreadable is treated as none, and deliberately: this decides how a number is
+    LABELLED, and a scoreboard that refused to print because a note beside it was
+    malformed would withhold the measurement to protect its footnote.
+    """
+    note = seeded_note(out_dir, situation)
+    if not note.exists():
+        return {}
+    try:
+        return {str(k): int(v)
+                for k, v in json.loads(note.read_text(encoding="utf-8"))
+                .get("rows", {}).items()}
+    except (TypeError, ValueError):
+        return {}
 
 
 def _llm_schema_objects(conn: sqlite3.Connection) -> set[tuple[str, str, str]]:
@@ -206,8 +263,68 @@ def refuse_unless_seedable(directory: Path, situations, *, out_dir: Path,
             )
 
 
-def seed(fresh: Path, prior: Path) -> Seeded:
-    """Create `fresh` and give it the rows a reuse can be decided from.
+def _scan_the_corpus(conn, corpus: Path) -> None:
+    """`cli.run`'s own P3 step, with `cli.p1_p7_authorities`' own arguments.
+
+    THE FILE ID IS WHY THIS IS HERE. `store.CALL_IDENTITY_DIMENSIONS` carries
+    `subject_ref`, `model_facts.call_identity_dimensions` fills it with the
+    `file_id`, and `files_table.py:286` mints that as `str(uuid.uuid4())` the first
+    time a path is seen -- so it names a file WITHIN one database and nothing
+    across two. Seeding a prior run's identity rows verbatim is therefore inert:
+    measured, 2 calls, seed, 2 calls again, `llm_call_reuse` empty, with
+    `subject_ref` the only dimension of nine that moved. The fix is not to weaken
+    the key but to learn what this database will call each file, which means
+    scanning it, which means running the scan the run itself runs.
+
+    Every argument is read off the composition root rather than chosen here, and
+    the path is resolved the way `cli.main` resolves it (`cli.py:8714`). That last
+    one is not a detail: on macOS the corpus arrives as `/var/...` and the run
+    records `/private/var/...`, so an unresolved path matches no file and every
+    answer is silently skipped. Measured, before it was fixed: 0 of 2 translated.
+
+    The run then scans again and finds this scan's rows unchanged --
+    `observe_path` matches on path and content hash and returns the same
+    `file_id` -- so the run's own work is not skipped and not repeated. Measured
+    against a plain run of the same corpus: `files`, `text_units`, `evidence`,
+    `extraction_runs` and `file_facts` identical. What differs is a second
+    `scan_runs` row and its cache verdicts, which are records OF this scan and not
+    changes to the run's.
+    """
+    _src_on_path()
+    import cli
+    from scan_agent.corpus_source import FilesystemCorpusSource
+    from scan_agent.scan import scan
+    from scan_agent.selection import record_selection
+
+    cli._bootstrap(conn)
+    selection_id = record_selection(
+        conn, sources=[corpus.expanduser().resolve()], candidate_roots=[],
+        cross_folder_moves=False, selected_by=SCOREBOARD_USER)
+    scan(conn, selection_id, source=FilesystemCorpusSource(),
+         mime_type_for=cli._mime_type_for, scan_state=cli.P1_INCLUDED_SCAN_STATE,
+         budget_exhausted=lambda: False)
+
+
+def _file_versions(rows) -> dict:
+    """`(current_path, content_hash) -> file_id`, which is a file VERSION.
+
+    The pair and not the hash alone, and the difference decides a correctness
+    question rather than a lookup one. `00`:44 promises a rename costs nothing,
+    and matching on the hash would keep that promise -- but the dossier carries
+    `filename_citation`, and `work_type` is a field the filename can settle, so a
+    renamed file's prior answer may rest on a name it no longer has. Matching on
+    the pair re-asks that file. Conservative in the direction that spends money
+    rather than the one that files a person's work under a stale answer.
+
+    The pair is unique: `observe_path` keeps two live copies of identical bytes as
+    two rows (I1), each under its own path.
+    """
+    return {(row["current_path"], row["content_hash"]): row["file_id"]
+            for row in rows}
+
+
+def seed(fresh: Path, prior: Path, *, corpus: Path) -> Seeded:
+    """Create `fresh`, scan the corpus into it, and translate the prior's answers.
 
     The database is created HERE rather than by the run, because "before the run
     starts" is the only moment at which seeding leaves the run itself untouched:
@@ -219,37 +336,127 @@ def seed(fresh: Path, prior: Path) -> Seeded:
     database's `table_info` rather than with `SELECT *`, because `llm_verdict`
     carries `record_id` as a VIRTUAL generated column: `SELECT *` returns it and
     `table_info` does not, and an INSERT that offered it would be rejected.
+
+    A prior answer whose file is not in this corpus at that path with those bytes
+    is SKIPPED, and so is everything under its dossier: a dossier row naming a
+    file id this database does not have would be a dangling reference of exactly
+    the kind the rest of this module refuses to write.
     """
     _src_on_path()
     from database_agent.db import open_database
     from llm_harness.schema import create_llm_schema
+    from llm_harness.store import call_identity
 
     conn = open_database(fresh)
     try:
+        _scan_the_corpus(conn, corpus)
         create_llm_schema(conn)
+        here = _file_versions(conn.execute(
+            "SELECT current_path, content_hash, file_id FROM files"))
         conn.execute("ATTACH DATABASE ? AS prior", (str(prior),))
         rows: dict[str, int] = {}
         try:
+            there = {row["file_id"]: (row["current_path"], row["content_hash"])
+                     for row in conn.execute(
+                         "SELECT current_path, content_hash, file_id "
+                         "FROM prior.files")}
             conn.execute("BEGIN IMMEDIATE")
+            # The identity is rewritten and not copied, and the digest is
+            # recomputed by the PRODUCT's own `call_identity` over the rewritten
+            # mapping. Never by editing the stored digest: the row carries the
+            # mapping the digest was taken over precisely so the two can be
+            # checked against each other, and a hand-made digest would be the one
+            # thing that reads back as sound and is not.
+            # `translated` maps a DOSSIER to the file id this database gives it,
+            # and `digests` counts the QUESTIONS. They are not the same number and
+            # a run says why: two identities reach one dossier when the same file
+            # is asked of two different models, because `model_id` is a dimension
+            # of the identity and is not in the bytes the dossier addresses. That
+            # is the rerun-with-a-different-model case this flag exists for, so
+            # counting dossiers as answers would under-report exactly it.
+            translated: dict[str, str] = {}
+            digests: set[str] = set()
+            written: set[tuple[str, str]] = set()
+            skipped = 0
+            for row in conn.execute(
+                    "SELECT identity_id, dossier_id, call_site, subject_ref, "
+                    "dimensions, observed_at FROM prior.llm_call_identity"
+                    ).fetchall():
+                version = there.get(row["subject_ref"])
+                mine = here.get(version) if version is not None else None
+                if mine is None:
+                    skipped += 1
+                    continue
+                # A row whose mapping this checkout cannot take a digest over is
+                # SKIPPED and never fatal. The schema check upstream compares
+                # tables, not row contents, so a database written by a checkout
+                # whose dimension set differed reaches here -- and the cost of
+                # skipping is that the file is asked again, which is the only
+                # direction a reuse may ever fail in.
+                try:
+                    dimensions = json.loads(row["dimensions"])
+                    dimensions["subject_ref"] = mine
+                    digest = call_identity(dimensions)
+                except Exception:
+                    skipped += 1
+                    continue
+                # `(identity, dossier)` is the primary key, and two prior rows
+                # CAN land on one pair here: their prior file ids differ and both
+                # resolve to the same file version of this corpus. Skipped rather
+                # than inserted twice, because the second insert would abort the
+                # whole seeding over two rows that say the same thing.
+                if (digest, row["dossier_id"]) in written:
+                    skipped += 1
+                    continue
+                conn.execute(
+                    "INSERT INTO main.llm_call_identity (identity_id, dossier_id, "
+                    "call_site, subject_ref, dimensions, observed_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (digest, row["dossier_id"], row["call_site"], mine,
+                     _canonical(dimensions), row["observed_at"]))
+                written.add((digest, row["dossier_id"]))
+                translated[row["dossier_id"]] = mine
+                digests.add(digest)
+            rows["llm_call_identity"] = len(written)
+
+            # The dossier's own `subject_ref` is translated for the same reason
+            # the identity's is, and `measure.py` is the reason it matters:
+            # `_blocked_tally` counts a file with no dossier row as one that
+            # reached no model, so a seeded dossier still naming the prior run's
+            # file id would report every reused file as never built.
+            rows["llm_dossier"] = 0
+            for row in conn.execute(
+                    "SELECT dossier_id, call_site, eligibility_reason, "
+                    "plan_version, policy_version, reduction_rung, payload, "
+                    "observed_at FROM prior.llm_dossier").fetchall():
+                if row["dossier_id"] not in translated:
+                    continue
+                conn.execute(
+                    "INSERT INTO main.llm_dossier (dossier_id, call_site, "
+                    "subject_ref, eligibility_reason, plan_version, "
+                    "policy_version, reduction_rung, payload, observed_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (row["dossier_id"], row["call_site"],
+                     translated[row["dossier_id"]], row["eligibility_reason"],
+                     row["plan_version"], row["policy_version"],
+                     row["reduction_rung"], row["payload"], row["observed_at"]))
+                rows["llm_dossier"] += 1
+
             for table, where in SEED_PLAN:
-                columns = [row["name"] for row in
+                columns = [column["name"] for column in
                            conn.execute(f"PRAGMA main.table_info({table})")]
                 named = ", ".join(columns)
                 cursor = conn.execute(
                     f"INSERT INTO main.{table} ({named}) "
-                    f"SELECT {named} FROM prior.{table} {where}"
-                )
+                    f"SELECT {named} FROM prior.{table} {where}")
                 rows[table] = cursor.rowcount
-            answers = conn.execute(
-                "SELECT count(DISTINCT identity_id) AS n FROM main.llm_call_identity"
-            ).fetchone()["n"]
             conn.execute("COMMIT")
         except Exception:
             conn.execute("ROLLBACK")
             raise
         finally:
             conn.execute("DETACH DATABASE prior")
-        return Seeded(answers=answers, rows=rows,
+        return Seeded(answers=len(digests), rows=rows, skipped=skipped,
                       responses=rows.get("llm_response", 0))
     finally:
         conn.close()

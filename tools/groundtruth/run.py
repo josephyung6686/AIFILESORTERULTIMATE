@@ -29,7 +29,9 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from tools.groundtruth.reuse import Seeded, prior_database, seed, spend
+from tools.groundtruth.reuse import (
+    Seeded, prior_database, seed, seeded_note, spend, write_seeded,
+)
 
 
 #: How much of a failing run's stderr to keep. Generous on purpose: a frame in
@@ -100,6 +102,10 @@ class RunResult:
     seeded: int = 0
     reused: int = 0
     calls: int = 0
+    #: Prior answers left behind because this corpus has no file at that path with
+    #: those bytes. Printed beside the rest, because "seeded 4" over a corpus that
+    #: has moved on says nothing without it.
+    skipped: int = 0
 
 
 def label_for(situation: str) -> str:
@@ -125,7 +131,7 @@ def run_situations(corpus: Path, situations, out_dir: Path, *,
         stem = situation.replace(".", "_")
         database = out_dir / f"{stem}.sqlite"
         report = out_dir / f"{stem}.report.txt"
-        for stale in (database, report):
+        for stale in (database, report, seeded_note(out_dir, situation)):
             stale.unlink(missing_ok=True)
         # `104` R-123. AFTER the unlink and BEFORE the run, which is the one
         # position that leaves both halves alone: the database this creates is
@@ -136,7 +142,14 @@ def run_situations(corpus: Path, situations, out_dir: Path, *,
         # was protecting had been deleted.
         given = Seeded(answers=0, rows={}, responses=0)
         if reuse_answers_from is not None:
-            given = seed(database, prior_database(reuse_answers_from, situation))
+            given = seed(database, prior_database(reuse_answers_from, situation),
+                         corpus=corpus)
+            # Beside the database and not inside it, because every `llm_*` table
+            # is append-only by trigger and a column saying "this row was seeded"
+            # would be a schema change to the product for the scoreboard's
+            # benefit. `--score-only` re-reads these databases weeks later and has
+            # to be able to tell a seeded row from one this run paid for.
+            write_seeded(out_dir, situation, given)
         started = time.monotonic()
         command = [sys.executable, "-m", "tools.groundtruth._one_run", str(corpus),
                    situation, label_for(situation), str(database), str(report)]
@@ -152,7 +165,8 @@ def run_situations(corpus: Path, situations, out_dir: Path, *,
         return RunResult(situation, label_for(situation), database, report,
                          completed.returncode, seconds,
                          _tail(completed.stderr),
-                         seeded=given.answers, reused=reused, calls=calls)
+                         seeded=given.answers, reused=reused, calls=calls,
+                         skipped=given.skipped)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(one, s): s for s in situations}

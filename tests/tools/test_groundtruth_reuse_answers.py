@@ -25,13 +25,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import json
+import pathlib
 import sqlite3
 import subprocess
 
 import pytest
 
+from tools.groundtruth import reuse as reuse_module
 from tools.groundtruth.reuse import (
-    ReuseRefused, Seeded, prior_database, refuse_unless_seedable, seed, spend,
+    ReuseRefused, prior_database, refuse_unless_seedable, seed, spend,
 )
 from tools.groundtruth.run import run_situations
 
@@ -55,14 +57,21 @@ KEPT_OUT = ("placement_decisions", "structural_answers", "cloud_consent",
 MARKER = "sentinel-from-the-prior-run"
 
 
-def _bootstrapped(path: Path):
-    """A database with every table a real run's database has."""
+def _scanned(path: Path):
+    """A database holding the corpus as a run would have recorded it.
+
+    Scanned rather than invented, because the whole of R-123's remaining work is
+    the translation from one database's `file_id` to another's, and a fixture that
+    made those ids up would test the copier while pretending to test the
+    translation.
+    """
     sys.path.insert(0, str(ROOT / "src"))
-    import cli
     from database_agent.db import open_database
 
     conn = open_database(path)
-    cli._bootstrap(conn)
+    reuse_module._scan_the_corpus(conn, CORPUS)
+    from llm_harness.schema import create_llm_schema
+    create_llm_schema(conn)
     return conn
 
 
@@ -94,11 +103,25 @@ def _stuff(conn, table: str) -> None:
                  f"VALUES ({', '.join('?' * len(names))})", values)
 
 
+def _dimensions(subject: str) -> dict:
+    """All nine terms `store.CALL_IDENTITY_DIMENSIONS` names, none extra.
+
+    Spelled in full rather than stubbed, because `call_identity` refuses a mapping
+    over a different set of terms and the seeder recomputes the digest through it:
+    a fixture with a short mapping would be testing a path the product forbids.
+    """
+    return {"call_site": "A_fact", "content_hash": "a-hash",
+            "extractor_versions": [["text.structured", "1"]],
+            "model_id": "a-model", "plan_version": None, "policy": "{}",
+            "prompt_fingerprint": "a-fingerprint", "schema_id": ["academic"],
+            "subject_ref": subject}
+
+
 def _identity(conn, *, identity: str, dossier: str, subject: str) -> None:
     conn.execute(
         "INSERT INTO llm_call_identity (identity_id, dossier_id, call_site, "
         "subject_ref, dimensions, observed_at) VALUES (?, ?, 'A_fact', ?, ?, 'T')",
-        (identity, dossier, subject, json.dumps({"subject_ref": subject})))
+        (identity, dossier, subject, json.dumps(_dimensions(subject))))
 
 
 def _dossier(conn, dossier: str, subject: str) -> None:
@@ -125,26 +148,43 @@ def _verdict(conn, dossier: str, field: str, *, superseded_by: str | None = None
     return verdict_id
 
 
+#: Two files of the fixture corpus the prior run is pretended to have answered
+#: about, and one path that is not in it at all.
+ANSWERED = ("Coursework/PHYS 1403 homework 2.txt", "Coursework/PHYS 1403 syllabus.txt")
+GONE = "Coursework/a file this corpus does not have.txt"
+
+
 @pytest.fixture()
 def prior(tmp_path) -> Path:
     """A prior run's out directory: one database with answers and with sentinels.
 
     Two dossiers carry an identity and are the answers a reuse is decided from. A
     third carries none -- which is what a refusal, a call failure and a pre-call
-    abstention leave behind -- and must not travel.
+    abstention leave behind -- and must not travel. A fourth is about a file this
+    corpus does not have, and must not travel either.
     """
     directory = tmp_path / "prior"
     directory.mkdir()
-    conn = _bootstrapped(prior_database(directory, SITUATION))
+    conn = _scanned(prior_database(directory, SITUATION))
     try:
-        for number in (1, 2):
-            _dossier(conn, f"dossier-{number}", f"file-{number}")
+        ids = {pathlib.Path(row["current_path"]).relative_to(CORPUS).as_posix():
+               row["file_id"]
+               for row in conn.execute("SELECT current_path, file_id FROM files")}
+        for number, relative in enumerate(ANSWERED, start=1):
+            subject = ids[relative]
+            _dossier(conn, f"dossier-{number}", subject)
             _identity(conn, identity=f"identity-{number}",
-                      dossier=f"dossier-{number}", subject=f"file-{number}")
+                      dossier=f"dossier-{number}", subject=subject)
             _verdict(conn, f"dossier-{number}", "term")
             _verdict(conn, f"dossier-{number}", "work_type")
+        # An answer about a file this corpus does not have. Its identity cannot be
+        # translated, so neither it nor anything under it may travel.
+        _dossier(conn, "dossier-gone", "a-file-id-from-another-corpus")
+        _identity(conn, identity="identity-gone", dossier="dossier-gone",
+                  subject="a-file-id-from-another-corpus")
+        _verdict(conn, "dossier-gone", "term")
         # No identity row: the file was refused at the door, or the call failed.
-        _dossier(conn, "dossier-no-identity", "file-3")
+        _dossier(conn, "dossier-no-identity", ids[ANSWERED[0]])
         _verdict(conn, "dossier-no-identity", "term")
         # A re-judgement under a dossier that IS copied, and one that is not.
         old = _verdict(conn, "dossier-1", "superseded", superseded_by="dossier-1:term")
@@ -190,16 +230,70 @@ def _count(database: Path, table: str) -> int:
 def test_the_four_tables_a_reuse_is_decided_from_are_copied(prior, tmp_path):
     fresh = tmp_path / "fresh.sqlite"
 
-    given = seed(fresh, prior_database(prior, SITUATION))
+    given = seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
 
-    assert given == Seeded(
-        answers=2,
-        rows={"llm_call_identity": 2, "llm_dossier": 2, "llm_response": 2,
-              "llm_verdict": 5, "llm_verdict_supersession": 1},
-        responses=2)
-    assert {row["identity_id"] for row in
-            _rows(fresh, "SELECT identity_id FROM llm_call_identity")} == {
-        "identity-1", "identity-2"}
+    assert given.answers == 2
+    assert given.rows == {"llm_call_identity": 2, "llm_dossier": 2,
+                          "llm_response": 2, "llm_verdict": 5,
+                          "llm_verdict_supersession": 1}
+    assert given.responses == 2
+    # The answer about a file this corpus does not have.
+    assert given.skipped == 1
+
+
+def test_the_identity_is_recomputed_for_the_file_id_this_database_will_use(
+        prior, tmp_path):
+    """The whole of what R-123 needed beyond the copy.
+
+    `subject_ref` is the per-database `file_id`, so a copied identity is under a
+    digest this run will never compute. The seeder scans first, learns what this
+    database calls each file, rewrites the term and asks the PRODUCT's own
+    `call_identity` for the digest -- never editing the stored one, because the
+    mapping is stored beside the digest exactly so the two can be checked against
+    each other.
+    """
+    sys.path.insert(0, str(ROOT / "src"))
+    from llm_harness.store import call_identity
+
+    fresh = tmp_path / "fresh.sqlite"
+    seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
+
+    mine = {pathlib.Path(row["current_path"]).relative_to(CORPUS).as_posix():
+            row["file_id"]
+            for row in _rows(fresh, "SELECT current_path, file_id FROM files")}
+    seeded = _rows(fresh, "SELECT identity_id, subject_ref, dimensions "
+                          "FROM llm_call_identity")
+    assert {row["subject_ref"] for row in seeded} == {
+        mine[relative] for relative in ANSWERED}
+    for row in seeded:
+        dimensions = json.loads(row["dimensions"])
+        assert dimensions["subject_ref"] == row["subject_ref"]
+        assert call_identity(dimensions) == row["identity_id"], (
+            "the stored digest must be the one the product computes from the "
+            "stored mapping, or nothing can ever check it")
+    # And the prior's own ids are gone: a digest under them is one nothing will
+    # ever look up, which is the defect this closes.
+    assert {"identity-1", "identity-2"}.isdisjoint(
+        {row["identity_id"] for row in seeded})
+
+
+def test_an_answer_about_a_file_this_corpus_does_not_have_is_left_behind(
+        prior, tmp_path):
+    """With everything under it, so no seeded row can name a file that is absent."""
+    fresh = tmp_path / "fresh.sqlite"
+
+    given = seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
+
+    assert given.skipped == 1
+    assert not _rows(fresh, "SELECT 1 FROM llm_dossier "
+                            "WHERE dossier_id = 'dossier-gone'")
+    assert not _rows(fresh, "SELECT 1 FROM llm_verdict "
+                            "WHERE dossier_id = 'dossier-gone'")
+    here = {row["file_id"] for row in _rows(fresh, "SELECT file_id FROM files")}
+    for table in ("llm_call_identity", "llm_dossier"):
+        for row in _rows(fresh, f"SELECT subject_ref FROM {table}"):
+            assert row["subject_ref"] in here, (
+                f"{table} names a file this database does not have")
 
 
 def test_a_dossier_no_identity_answered_for_is_not_copied(prior, tmp_path):
@@ -212,7 +306,7 @@ def test_a_dossier_no_identity_answered_for_is_not_copied(prior, tmp_path):
     """
     fresh = tmp_path / "fresh.sqlite"
 
-    seed(fresh, prior_database(prior, SITUATION))
+    seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
 
     assert {row["dossier_id"] for row in
             _rows(fresh, "SELECT dossier_id FROM llm_dossier")} == {
@@ -225,7 +319,7 @@ def test_a_supersession_is_copied_only_when_both_its_verdicts_are(prior, tmp_pat
     """So the copy can never hold a reference to a row that is not in it."""
     fresh = tmp_path / "fresh.sqlite"
 
-    seed(fresh, prior_database(prior, SITUATION))
+    seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
 
     assert [row["supersession_id"] for row in
             _rows(fresh, "SELECT supersession_id FROM llm_verdict_supersession")] == [
@@ -237,7 +331,7 @@ def test_nothing_about_placement_answers_consent_or_plan_versions_is_copied(
     """The list this asserts against is the reason the database is fresh at all."""
     fresh = tmp_path / "fresh.sqlite"
 
-    seed(fresh, prior_database(prior, SITUATION))
+    seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
 
     # `llm_call_reuse` is the one of the five the fresh database already has, and
     # the one most easily copied by accident: it sits beside the four that ARE
@@ -256,7 +350,7 @@ def test_nothing_about_placement_answers_consent_or_plan_versions_is_copied(
 def test_the_run_is_told_what_it_reused_and_what_it_paid_for_anyway(prior, tmp_path):
     """`spend` subtracts what was HANDED to the run from what the run sent."""
     fresh = tmp_path / "fresh.sqlite"
-    given = seed(fresh, prior_database(prior, SITUATION))
+    given = seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
     conn = sqlite3.connect(fresh)
     # One call this run made, and one question it did not ask.
     conn.execute("INSERT INTO llm_response (response_id, dossier_id, "
@@ -379,8 +473,11 @@ def test_the_flag_seeds_the_run_and_the_scoreboard_says_how_many(prior, tmp_path
     assert f"seeding each run's answers from {prior}" in completed.stdout
     # Seeded is what it was handed, reused is what it therefore did not ask, and
     # called is what it paid for anyway. Three numbers rather than one, because
-    # "reused 2" alone cannot be told from a run that dropped every file.
-    assert "seeded 2, reused 0, called 0" in completed.stdout
+    # "reused 2" alone cannot be told from a run that dropped every file. The
+    # fourth appears only when there is one: the prior holds an answer about a
+    # file this corpus does not have, and a person deciding whether to trust a
+    # cheap rerun needs to know the corpus moved on.
+    assert "seeded 2, 1 not in this corpus, reused 0, called 0" in completed.stdout
     database = out / f"{SITUATION.replace('.', '_')}.sqlite"
     assert _count(database, "llm_call_identity") == 2
     assert _count(database, "llm_verdict") == 5
@@ -393,3 +490,94 @@ def test_the_flag_seeds_the_run_and_the_scoreboard_says_how_many(prior, tmp_path
         assert not any(MARKER in str(value)
                        for cell in found for value in cell.values()), (
             f"a sentinel row from the prior run reached {row['name']}")
+
+
+def _score(out: Path, labels: Path, *extra: str):
+    return subprocess.run(
+        [sys.executable, "-m", "tools.groundtruth", "--corpus", str(CORPUS),
+         "--labels", str(labels), "--out", str(out), "--workers", "1", "--force",
+         *extra],
+        cwd=ROOT, capture_output=True, text=True)
+
+
+def test_the_scorecard_never_counts_a_seeded_row_as_a_call_somebody_paid_for(
+        prior, tmp_path):
+    """`104` R-123: two lines, never one total, and the difference is money.
+
+    The seeded rows are in the same tables the run writes, so a single MODEL total
+    would report a rerun that spent nothing as one that spent everything again --
+    exactly the number a person reads to decide whether the rerun was worth it.
+    And `report.py` reads an empty `llm_dossier` as "no model was configured": a
+    seeded dossier is a record of a call an EARLIER run made, so counting it there
+    would put three blocked-file numbers under a heading that exists to say none
+    of them is a fact about the files.
+
+    This run is offline -- no model is configured for it -- so everything under
+    MODEL is seeded and nothing is its own, which is the sharpest form of the test.
+    """
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(LABELS), encoding="utf-8")
+    out = tmp_path / "out"
+
+    completed = _score(out, labels, "--reuse-answers-from", str(prior))
+
+    assert completed.returncode in (0, 1), completed.stderr
+    card = (out / "scorecard.txt").read_text(encoding="utf-8")
+    assert "seeded from a prior run, not bought here: " in card
+    assert "dossier=2" in card and "verdict=5" in card and "response=2" in card
+    model = next(line for line in card.splitlines() if line.startswith("MODEL"))
+    assert "dossier=0" in model and "verdict=0" in model, model
+    assert "no model was configured for these runs" in card
+
+
+def test_score_only_still_knows_which_rows_were_seeded(prior, tmp_path):
+    """Which is the whole reason the count is written beside the database.
+
+    `--score-only` re-reads databases a previous run left in `--out`, and it is
+    what a person uses while changing the scoring rules. Without the note it would
+    read every seeded row as a call this project paid for, months after the run
+    that was handed them.
+    """
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(LABELS), encoding="utf-8")
+    out = tmp_path / "out"
+    seeded_first = _score(out, labels, "--reuse-answers-from", str(prior))
+    assert seeded_first.returncode in (0, 1), seeded_first.stderr
+
+    again = _score(out, labels, "--score-only")
+
+    assert again.returncode in (0, 1), again.stderr
+    card = (out / "scorecard.txt").read_text(encoding="utf-8")
+    assert "seeded from a prior run, not bought here: " in card
+    assert "no model was configured for these runs" in card
+
+
+def test_one_dossier_asked_of_two_models_is_two_answers_and_not_one(prior, tmp_path):
+    """`model_id` is a dimension of the identity and is not in the dossier's bytes.
+
+    So the same file asked of two models is one dossier and TWO identities -- and
+    that is the rerun this flag exists for, which makes it the worst case to
+    under-report. Counting dossiers as answers would say "seeded 1" for two
+    answers, and a person comparing it with the reuse count would find the
+    scoreboard short by one and have no way to tell which.
+    """
+    conn = sqlite3.connect(prior_database(prior, SITUATION))
+    dimensions = _dimensions(_rows(
+        prior_database(prior, SITUATION),
+        "SELECT subject_ref FROM llm_call_identity WHERE identity_id = 'identity-1'"
+    )[0]["subject_ref"])
+    dimensions["model_id"] = "a-second-model"
+    conn.execute(
+        "INSERT INTO llm_call_identity (identity_id, dossier_id, call_site, "
+        "subject_ref, dimensions, observed_at) "
+        "VALUES ('identity-1b', 'dossier-1', 'A_fact', ?, ?, 'T')",
+        (dimensions["subject_ref"], json.dumps(dimensions)))
+    conn.commit()
+    conn.close()
+    fresh = tmp_path / "fresh.sqlite"
+
+    given = seed(fresh, prior_database(prior, SITUATION), corpus=CORPUS)
+
+    assert given.answers == 3
+    assert given.rows["llm_call_identity"] == 3
+    assert _count(fresh, "llm_dossier") == 2, "still two dossiers, not three"

@@ -37,7 +37,7 @@ from tools.groundtruth.protected_evidence import (                  # noqa: E402
     report as protected_evidence_report,
 )
 from tools.groundtruth.reuse import (                               # noqa: E402
-    ReuseRefused, refuse_unless_seedable,
+    ReuseRefused, read_seeded, refuse_unless_seedable,
 )
 from tools.groundtruth.run import label_for, run_situations         # noqa: E402
 from tools.groundtruth.score import (                               # noqa: E402
@@ -68,7 +68,8 @@ def _seeding(result, asked_for) -> str:
     """
     if asked_for is None:
         return ""
-    return (f"  seeded {result.seeded}, reused {result.reused}, "
+    left = f", {result.skipped} not in this corpus" if result.skipped else ""
+    return (f"  seeded {result.seeded}{left}, reused {result.reused}, "
             f"called {result.calls}")
 
 
@@ -111,10 +112,15 @@ def main(argv: list[str] | None = None) -> int:
              "copied and no others: the four a reuse is decided from -- the call "
              "identity, the dossier it reached, the response and the verdicts -- "
              "and the supersession rows that explain a superseded verdict, when "
-             "both of its verdicts travel. Keyed by R-109's identity, whose "
-             "dimensions include the file's content hash, the prompt "
-             "fingerprint, the model and the policy: a file, prompt, model or "
-             "policy that moved is a different key and is asked again. Nothing "
+             "both of its verdicts travel. It SCANS the corpus into the fresh "
+             "database first, with the product's own scan, because R-109's key "
+             "carries the file id and that id is minted per database: the scan is "
+             "what tells this run's name for a file from the last one's. The run "
+             "then scans again and finds those rows unchanged. Keyed by R-109's "
+             "identity, whose dimensions include the file's content hash, the "
+             "prompt fingerprint, the model and the policy: a file, prompt, model "
+             "or policy that moved is a different key and is asked again, and so "
+             "is a file that was renamed or is no longer here. Nothing "
              "about placement, structural answers, consent or plan versions is "
              "copied, because keeping those out is why the database is fresh. "
              "The three-run median is a measurement of the MODEL's variance and "
@@ -209,6 +215,10 @@ def main(argv: list[str] | None = None) -> int:
         runs.append(observe_run(
             database, args.corpus, situation=situation, label=label_for(situation),
             promised_levels=promised.get(situation, ()),
+            # Read from the out directory rather than carried from `results`, so
+            # `--score-only` over a seeded run months later still knows which rows
+            # nobody paid for. `104` R-123.
+            seeded=read_seeded(args.out, situation),
             report=report.read_text(encoding="utf-8") if report.exists() else ""))
     if missing:
         print(f"no database for: {', '.join(missing)}", file=sys.stderr)

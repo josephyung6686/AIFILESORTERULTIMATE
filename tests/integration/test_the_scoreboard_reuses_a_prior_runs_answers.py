@@ -9,18 +9,24 @@ of its run so that no answer, plan version or consent reaches the next situation
 decided from, and nothing else. `tests/tools/test_groundtruth_reuse_answers.py`
 measures the copier; this measures whether the product then reuses.
 
-**It does not, and the measurement below says why in one word.**
+**A copy alone could not do it, and one term is why.**
 `store.CALL_IDENTITY_DIMENSIONS` includes `subject_ref`, and
 `model_facts.call_identity_dimensions` fills it with the `file_id`. That id is a
 UUID `database_agent.files_table.observe_path` mints the first time a path is seen,
 so it is per-DATABASE and not per-file: two databases over one unchanged corpus give
-one file two ids and therefore two identities.
+one file two ids and therefore two identities, and a verbatim copy of the prior's
+identity rows sits under a digest this run will never compute. Measured before the
+translation was written: 2 calls, seed, 2 calls again, `llm_call_reuse` empty.
 `test_two_databases_over_one_corpus_agree_on_every_dimension_but_the_subject_ref`
-measures exactly that -- every other term, `content_hash` and `prompt_fingerprint`
-and `model_id` and the policy included, is identical -- and the two `xfail`s above
-it are R-123's own acceptance tests, written now and red until the owner rules on
-which of the three ways out to take. What the ruling has to choose between, with
-what each costs, is in the handoff for R-123; nothing here prejudges it.
+is that measurement, kept: every other term, `content_hash` and `prompt_fingerprint`
+and `model_id` and the policy included, is identical, so `subject_ref` alone is what
+the seeder has to translate. It is a guard as much as a record -- the day `file_id`
+becomes derivable from the file, it goes red and the translation can come out.
+
+So `reuse.seed` runs the product's own P3 scan into the fresh database first, learns
+what THIS database calls each file, rewrites that one term and asks the product's own
+`call_identity` for the digest. The run then scans again and finds those rows
+unchanged, so its own work is neither skipped nor repeated.
 
 **Everything is real except the socket**, exactly as in
 `test_a_fact_reuse_after_a_verdict.py`, whose `_Socket` this borrows in shape:
@@ -160,15 +166,24 @@ def _paths(database) -> dict[str, str]:
             for row in _rows(database, "SELECT file_id, current_path FROM files")}
 
 
-def _asked(socket, database, since: int) -> set[str]:
-    """The NAMES of the files asked about after `since` calls. Never the ids.
+def _asked_again(first, second) -> set[str]:
+    """The NAMES of the files the second run built a dossier for that the first did.
 
-    A `subject_ref` is a per-database id and means nothing across two of them,
-    which is the defect this module measures; a filename is what a person reading
-    the failure needs.
+    Read from the databases and not from the socket, because what the socket sees
+    is a WIRE HANDLE: `privacy.gate` rotates the identifier before the dossier
+    leaves, so `subject_ref` in the payload is `handle:<digest>` and names nothing
+    a person can look up. `llm_dossier.subject_ref` is the local id, and a dossier
+    the second run built is one whose address the first run's database does not
+    hold -- a seeded dossier keeps the id it was given.
     """
-    names = _paths(database)
-    return {names.get(subject, subject) for subject in socket.subjects()[since:]}
+    def dossiers(database):
+        return {row["dossier_id"]: row["subject_ref"] for row in
+                _rows(database, "SELECT dossier_id, subject_ref FROM llm_dossier")}
+
+    before, after = dossiers(first), dossiers(second)
+    names = _paths(second)
+    return {names.get(subject, subject) for address, subject in after.items()
+            if address not in before}
 
 
 # --- the copier, against rows a real run wrote ------------------------------------
@@ -180,7 +195,7 @@ def test_the_seeded_rows_are_the_prior_runs_own_answers(corpus, socket, tmp_path
     _run(corpus, first)
     assert len(socket) == 2, socket.subjects()
 
-    given = seed(second, first)
+    given = seed(second, first, corpus=corpus)
 
     assert given.answers == 2
     assert given.rows["llm_call_identity"] == 2
@@ -204,8 +219,9 @@ def test_two_databases_over_one_corpus_agree_on_every_dimension_but_the_subject_
     computes for an unchanged file can never equal the one a prior run recorded --
     however carefully the row is copied.
 
-    This goes RED, and the two `xfail`s below go green, on the day the owner rules.
-    That is the intended pairing: R-123 is not closed while this passes.
+    Kept after the translation was written, because it is what justifies the
+    translation: the day `file_id` is derivable from the file rather than minted
+    per database, this goes red and `reuse.seed` can stop scanning.
     """
     first, second = tmp_path / "one.sqlite", tmp_path / "two.sqlite"
     _run(corpus, first)
@@ -229,16 +245,9 @@ def test_two_databases_over_one_corpus_agree_on_every_dimension_but_the_subject_
             f"and these moved: {differing}")
 
 
-# --- R-123's own acceptance tests, red until the owner rules ----------------------
+# --- R-123's own acceptance tests -------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`104` R-123 is not closed. The copier works; the KEY does not survive the "
-    "copy. `subject_ref` is the per-database `file_id` and is one of "
-    "`CALL_IDENTITY_DIMENSIONS`, so a seeded identity is never looked up. Measured "
-    "beside this by "
-    "`test_two_databases_over_one_corpus_agree_on_every_dimension_but_the_"
-    "subject_ref`: 2 calls, seed, 2 calls again, `llm_call_reuse` empty."))
 def test_a_seeded_fresh_database_asks_nothing_the_prior_run_answered(
         corpus, socket, tmp_path):
     """R-123 in one number: the second run of an unchanged corpus spends nothing."""
@@ -247,18 +256,15 @@ def test_a_seeded_fresh_database_asks_nothing_the_prior_run_answered(
     paid_for = len(socket)
     assert paid_for == 2, socket.subjects()
 
-    seed(second, first)
+    seed(second, first, corpus=corpus)
     _run(corpus, second)
 
     assert len(socket) == paid_for, (
         f"the seeded run re-asked {len(socket) - paid_for} questions whose answers "
-        f"it had been handed: {sorted(_asked(socket, second, paid_for))}")
+        f"it had been handed: {sorted(_asked_again(first, second))}")
     assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == paid_for
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "`104` R-123 is not closed; same cause as the test above. Today BOTH files are "
-    "asked again, so the changed one cannot be told from the unchanged one."))
 def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_path):
     """The safety half of R-123, and the reason the identity stays the key.
 
@@ -273,7 +279,10 @@ def test_only_the_file_whose_bytes_changed_is_asked_again(corpus, socket, tmp_pa
     (corpus / "week two notes.txt").write_text(
         "Rewritten between the runs. Notes from the seminar on elasticity, with "
         "the essay the instructor set for the vacation.\n")
-    seed(second, first)
+    seed(second, first, corpus=corpus)
     _run(corpus, second)
 
-    assert _asked(socket, second, paid_for) == {"week two notes.txt"}
+    assert len(socket) - paid_for == 1, socket.subjects()[paid_for:]
+    assert _asked_again(first, second) == {"week two notes.txt"}
+    # And the one that did not change was answered from the record.
+    assert len(_rows(second, "SELECT 1 FROM llm_call_reuse")) == 1
