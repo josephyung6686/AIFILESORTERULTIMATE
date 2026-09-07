@@ -221,6 +221,11 @@ def test_prompt_definition_is_frozen_and_carries_exact_bytes():
         "call_site",
         "call_site_version",
         "shaping_policy_bytes",
+        # `104` W2-D: whether the OWNER ratified this text, set by the loader from
+        # the packet manifest. It is a field and not an id convention because the
+        # finish line's invariant -- no verdict produced under an unratified
+        # prompt is ever applied -- must not depend on a naming habit.
+        "ratified",
     )
     assert prompt.template_bytes == b"TEMPLATE"
     assert prompt.response_schema_bytes == b'{"type":"object"}'

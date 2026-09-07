@@ -20,6 +20,7 @@ import json
 from decimal import Decimal
 
 import pytest
+from types import SimpleNamespace
 
 from database_agent.budget import set_ceiling
 from database_agent.files_table import get_file, record_file
@@ -523,7 +524,11 @@ def _call_dependencies():
 
 
 def _model_inputs(conn, **overrides):
-    values = dict(gate=object(), model_client=object(), prompt=object(),
+    # `ratified=True`: these tests mean the model path to APPLY. A bare stand-in
+    # answers `False` to `prompt.ratified`, which is the observe abstention and
+    # the safe default -- a prompt that says nothing is not acted on.
+    values = dict(gate=object(), model_client=object(),
+                  prompt=SimpleNamespace(ratified=True),
                   call_dependencies=_call_dependencies(),
                   model_call_request=_model_call_request,
                   chosen_node_of=lambda _verdict: "n-course-shared",

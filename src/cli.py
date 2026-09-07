@@ -260,6 +260,11 @@ from tree_design.upstream import (
     handling_class_for, protected_areas, settled_values_stated_by_every_file,
 )
 from tree_design.schema import create_tree_schema
+#: The one word this command may put in a record's subject position. P10 already
+#: spells it for §8.2's event sentences; `refinement_for` and the residual home's
+#: reason read it from the same place, so the frozen tree and the audit log cannot
+#: end up naming two different actors for one run.
+from tree_design.provenance import actor_phrase
 from mutation.schema import create_mutation_schema
 from mutation import vocabulary as mv
 from mutation.constraints import FilesystemConstraints
@@ -943,6 +948,10 @@ def observe_prompt(call_site: str) -> PromptDefinition:
         response_schema_bytes=response_schema,
         call_site=call_site,
         call_site_version="1",
+        # THE PACKET'S OWN STATUS, read from the manifest. Every one of these is a
+        # D2 draft and `drafts_status()` says `unratified`; when the owner ratifies
+        # the packet this becomes true without a line of this file changing.
+        ratified=drafts_status() == "ratified",
         shaping_policy_bytes=shaping_policy)
 
 
@@ -2840,6 +2849,12 @@ def a_fact_prompt() -> PromptDefinition:
         response_schema_bytes=a_fact_response_schema_bytes(),
         call_site=A_FACT,
         call_site_version="1",
+        # RATIFIED, and `planning/82-FACT-PROMPT-DRAFT.md` §0 is the record of it.
+        # The id says `unratified` because the folder-levels REVISION has not been
+        # put to the owner; what is ratified is the text this revision derives
+        # from, and site A has always applied its answers on that basis. Stated
+        # here rather than parsed out of the id, which is the whole of the ruling.
+        ratified=True,
         shaping_policy_bytes=a_fact_shaping_policy_bytes())
 
 
@@ -3868,19 +3883,47 @@ def refinement_for(node, file_count: int, *, was_split: bool) -> tuple[str, str]
     reason deliberately makes no claim about whether the branch has children:
     this answer is stamped before the branch is routed, so a sentence that said
     "left as one folder" would be a second unchecked claim in the same place.
+
+    **Every reason names its author, and none of them is the person.** The
+    count fixed WHICH branches are called shallow; it did not fix WHO is
+    recorded as having called them that, and `shallow-by-choice` on a branch
+    nobody was shown is R-28's live half. SPEC:231 makes the reason the
+    "user/evidence-backed explanation", so the reason is exactly where the
+    author belongs -- and the word is not invented here: `actor_phrase`
+    (`tree_design.provenance`) already returns "The rules" for
+    `SURFACE_UNATTENDED`, and it is the subject §8.2's own event sentences
+    carry on this run. One source, so a rename is one edit and the frozen tree
+    and the audit log cannot disagree about who acted.
+
+    The VALUE is left as the count found it. `refine-later` on a one-file
+    branch would trade one false statement for another -- it says the depth is
+    unfinished work, and there is nothing a single file can usefully be split
+    into. What was wrong was never that a measured branch is called shallow; it
+    was that the sentence beside it was written in the person's voice about a
+    judgement they were never asked to make.
+
+    **Each reason claims the actor and the count, and nothing else.** The rule
+    two paragraphs up is not suspended by adding a subject to the sentence: a
+    reason saying "left as one folder" would be the same unchecked claim about
+    SHAPE that the paragraph forbids, and it would be false in a case that
+    already exists -- an adopted folder nested under another adopted folder is
+    never `was_split`, keeps its pre-routing verdict, and is not one folder. The
+    actor and the number are both things this function has in its hands.
     """
+    actor = actor_phrase(SURFACE_UNATTENDED)
     if node.parent_node_id is None or was_split:
         return (REFINED,
-                "The levels beneath this branch were populated from facts that "
+                f"{actor} built the levels beneath this branch from facts that "
                 "were already settled in your files.")
     if file_count <= TREE_LIMITS.tiny_folder_max_files:
         return (SHALLOW_BY_CHOICE,
-                f"This branch holds {file_count} file(s) -- few enough files that "
-                "splitting it further would not help you find anything.")
+                f"{actor} counted {file_count} file(s) in this branch -- few "
+                "enough that splitting it further could not help anyone find "
+                "them. Nobody was asked, so say so if you want it split.")
     return (REFINE_LATER,
-            f"This branch holds {file_count} files. Nobody was asked how deep it "
-            "should go, so it is not shallow on purpose -- how far it is split is "
-            "yours to decide.")
+            f"{actor} counted {file_count} files in this branch. Nobody was "
+            "asked how deep it should go, so it is not shallow on purpose -- "
+            "how far it is split is yours to decide.")
 
 
 # ======================================================================================
@@ -4993,11 +5036,18 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # the home is flat DELIBERATELY, and `refine-later` would say the
             # opposite -- that it is unfinished and something should still
             # split it. P11 reads this rather than re-deriving it.
+            #
+            # Whose deliberate design, though. `--residual` is the person's
+            # gesture and the template is here because they typed its name, but
+            # the FLATNESS is the product's: nothing could split this home
+            # however they answered. So the sentence opens with the same actor
+            # `refinement_for` uses, for the same reason -- a `shallow-by-choice`
+            # that does not say whose choice it was is R-28 in one more place.
             residual_refinement=(
                 SHALLOW_BY_CHOICE,
-                "This is a home for files that do not belong to any one "
-                "folder. It is meant to stay flat, so nothing here will be "
-                "split into deeper folders."),
+                f"{actor_phrase(SURFACE_UNATTENDED)} keep this home flat. It is "
+                "for files that do not belong to any one folder, so nothing "
+                "here will be split into deeper folders."),
             # §6.9's policy. NOT optional -- `validate_for_freeze` refuses a plan
             # version without one, because a file that belongs to two homes leaves
             # P11 having to pick an institution. `mandatory-review` is the answer
@@ -6711,6 +6761,13 @@ OUTCOME_WORDS: dict[str, str] = {
 #: splitting it further would not help you find anything." Nobody said that. P13
 #: will show it back to them as their own words unless something says otherwise.
 #:
+#: TWO things now say otherwise, and both are needed. This list says it on the
+#: screen; `refinement_for` says it IN THE RECORD, by opening every reason with
+#: the actor that produced it -- "The rules", `actor_phrase(SURFACE_UNATTENDED)`,
+#: the same subject §8.2's events carry on this run. The screen is read by a
+#: person once; the record is read by P13, by a replay and by the audit log
+#: forever, and R-28 is about the second one.
+#:
 #: This is not the registry and does not pretend to be: no question has an id, no
 #: answer is persisted, nothing is asked. It is the smaller thing the registry
 #: cannot be built without -- the list of what was decided on the person's behalf,
@@ -6752,10 +6809,11 @@ DEFAULTED_DECISIONS: tuple[tuple[str, str], ...] = (
     ("How deep each folder goes",
      "the top-level folder is treated as fully refined. Every branch under it is "
      f"counted: one holding {TREE_LIMITS.tiny_folder_max_files} file(s) or fewer "
-     "is marked deliberately shallow, because splitting it could not help you "
-     "find anything, and every other one is marked as left for you to split "
+     "is marked shallow, because splitting it could not help anyone find "
+     "anything, and every other one is marked as left for you to split "
      "further. Nobody was asked which a branch should be, so the count is "
-     "standing in for an answer only you can give."),
+     "standing in for an answer only you can give -- and each of those "
+     "answers is recorded as the rules', in the rules' words, not yours."),
     ("Where material that belongs to two folders goes",
      "kept as your decision, file by file, rather than sent to one of them. It "
      "is the only answer a command with nobody to ask may make for you."),
