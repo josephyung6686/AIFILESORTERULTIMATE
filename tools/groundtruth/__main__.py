@@ -183,10 +183,12 @@ def main(argv: list[str] | None = None) -> int:
             # would be telling a person their key matched when it did not, and
             # which questions were found is the only honest form of the claim.
             print(f"seeding each run's answers from {args.reuse_answers_from}. "
-                  f"Every question is looked up under R-109's call identity "
-                  f"before it is asked, and `reused` on each line below is how "
-                  f"many were found there; `called` is this run's own spend. The "
-                  f"MODEL line in the scorecard counts the seeded rows as well.")
+                  f"Each run's database is scanned first, so this run's name for "
+                  f"a file is known before a question is looked up under R-109's "
+                  f"call identity; `reused` on each line below is how many were "
+                  f"found there and `called` is this run's own spend. The "
+                  f"scorecard's MODEL line counts only what this run bought, and "
+                  f"names the seeded rows beneath it.")
         if args.enable_cloud:
             print(f"!! SENDING TO THE CLOUD MODEL: {len(situations)} runs over "
                   f"{corpus_files} files each. This spends money.", flush=True)

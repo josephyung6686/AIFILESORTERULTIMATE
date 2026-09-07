@@ -471,6 +471,11 @@ def test_the_flag_seeds_the_run_and_the_scoreboard_says_how_many(prior, tmp_path
 
     assert completed.returncode in (0, 1), completed.stderr
     assert f"seeding each run's answers from {prior}" in completed.stdout
+    # The whole sentence, not its opening. It has twice said something the code
+    # then stopped doing -- once promising a saving the key could not deliver, once
+    # saying the MODEL line counted seeded rows after it had been changed not to.
+    assert ("scorecard's MODEL line counts only what this run bought, and names "
+            "the seeded rows beneath it") in completed.stdout
     # Seeded is what it was handed, reused is what it therefore did not ask, and
     # called is what it paid for anyway. Three numbers rather than one, because
     # "reused 2" alone cannot be told from a run that dropped every file. The
@@ -581,3 +586,48 @@ def test_one_dossier_asked_of_two_models_is_two_answers_and_not_one(prior, tmp_p
     assert given.answers == 3
     assert given.rows["llm_call_identity"] == 3
     assert _count(fresh, "llm_dossier") == 2, "still two dossiers, not three"
+
+
+def test_a_prior_whose_files_table_cannot_be_matched_against_is_refused(
+        prior, tmp_path):
+    """The `llm_*` comparison says nothing about `files`, and translation needs it.
+
+    Checked with the other refusals rather than found in a worker thread: by then
+    the situation's database has been deleted and the refusal arrives after the
+    thing it was protecting.
+    """
+    conn = sqlite3.connect(prior_database(prior, SITUATION))
+    conn.execute("ALTER TABLE files RENAME COLUMN content_hash TO was_content_hash")
+    conn.commit()
+    conn.close()
+
+    with pytest.raises(ReuseRefused) as refused:
+        refuse_unless_seedable(prior, [SITUATION], out_dir=tmp_path / "out",
+                               score_only=False)
+    assert "`files` table has no content_hash" in str(refused.value)
+    assert "Nothing has been run" in str(refused.value)
+
+
+def test_a_situation_whose_seeding_fails_does_not_take_the_others_down(
+        prior, tmp_path, monkeypatch):
+    """One situation, not the scoreboard.
+
+    Before R-123 nothing in `one()` could raise -- `subprocess.run` captures
+    whatever the run does. Seeding is real work in the pool's own thread, so an
+    exception would come out of `future.result()` and lose every other situation's
+    result, after their databases had already been deleted.
+    """
+    import tools.groundtruth.run as run_module
+
+    def explode(*_args, **_kwargs):
+        raise OSError("the disk went away mid-scan")
+
+    monkeypatch.setattr(run_module, "seed", explode)
+
+    results = run_situations(CORPUS, [SITUATION], tmp_path / "out", workers=1,
+                             load_ceiling=0.0, force=True,
+                             reuse_answers_from=prior)
+
+    assert results[0].exit_code == 1
+    assert "seeding failed, and the run was not started" in results[0].stderr
+    assert "the disk went away mid-scan" in results[0].stderr

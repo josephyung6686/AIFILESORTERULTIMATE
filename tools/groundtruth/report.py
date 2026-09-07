@@ -312,7 +312,7 @@ def scorecard(runs: Sequence[RunObservation],
     w("MODEL       " + (
         ", ".join(f"{k.removeprefix('llm_')}={own[k]}" for k in sorted(own))
         or "no model tables in these databases"))
-    if seeded:
+    if any(seeded.values()):
         w("            seeded from a prior run, not bought here: " + ", ".join(
             f"{k.removeprefix('llm_')}={seeded[k]}" for k in sorted(seeded)
             if seeded[k]))

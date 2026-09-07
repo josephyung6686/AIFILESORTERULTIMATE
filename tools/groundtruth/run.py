@@ -12,12 +12,15 @@ situation's decisions reach the second.
 
 `104` R-123: that freshness costs a rerun every model call the last run paid for,
 because R-109's reuse reads the product's own database and there is nothing in this
-one to read. `reuse_answers_from` is the exception, and it is exactly one exception:
-before a run starts, the fresh database is given the rows a reuse can be DECIDED
-from -- the call identity, its dossier, its response and its verdicts -- and nothing
-else. `tools.groundtruth.reuse` says which and why. A seeded identity whose file,
-prompt, model or policy has moved is a different digest and is never looked up, so
-this seeds a cache and never an answer.
+one to read. `reuse_answers_from` is the exception, and it is exactly two things:
+before a run starts, the fresh database is scanned by the product's own P3 scan --
+which is how this run's `file_id` for a file becomes known, and R-109's key carries
+it -- and given the rows a reuse can be DECIDED from: the call identity, its
+dossier, its response and its verdicts. Answers, plan versions, consent and the
+reuse ledger itself are still kept out, which is the whole of what the fresh
+database is for. `tools.groundtruth.reuse` says which rows and why. A seeded
+identity whose file, prompt, model or policy has moved is a different digest and is
+never looked up, so this seeds a cache and never an answer.
 """
 from __future__ import annotations
 
@@ -26,6 +29,7 @@ import os
 import subprocess
 import sys
 import time
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -140,17 +144,32 @@ def run_situations(corpus: Path, situations, out_dir: Path, *,
         # could refuse was raised at the composition root before the first
         # `unlink` above, because a refusal here would arrive after the thing it
         # was protecting had been deleted.
+        started = time.monotonic()
         given = Seeded(answers=0, rows={}, responses=0)
         if reuse_answers_from is not None:
-            given = seed(database, prior_database(reuse_answers_from, situation),
-                         corpus=corpus)
-            # Beside the database and not inside it, because every `llm_*` table
-            # is append-only by trigger and a column saying "this row was seeded"
-            # would be a schema change to the product for the scoreboard's
-            # benefit. `--score-only` re-reads these databases weeks later and has
-            # to be able to tell a seeded row from one this run paid for.
-            write_seeded(out_dir, situation, given)
-        started = time.monotonic()
+            # ONE SITUATION, NOT THE SCOREBOARD. Before R-123 nothing in here could
+            # raise: `subprocess.run` captures whatever the run does. Seeding is
+            # real work in this thread -- a scan the access check can refuse, a
+            # prior that will not open, a full disk -- and an exception would come
+            # out of `future.result()` below and take every other situation's
+            # result with it, after their databases had already been deleted. A
+            # failure is reported the way a failed run is, and the others finish.
+            try:
+                given = seed(database,
+                             prior_database(reuse_answers_from, situation),
+                             corpus=corpus)
+                # Beside the database and not inside it, because every `llm_*`
+                # table is append-only by trigger and a column saying "this row
+                # was seeded" would be a schema change to the product for the
+                # scoreboard's benefit. `--score-only` re-reads these databases
+                # weeks later and has to be able to tell a seeded row from one
+                # this run paid for.
+                write_seeded(out_dir, situation, given)
+            except Exception:
+                return RunResult(situation, label_for(situation), database,
+                                 report, 1, time.monotonic() - started,
+                                 _tail("seeding failed, and the run was not "
+                                       "started:\n" + traceback.format_exc()))
         command = [sys.executable, "-m", "tools.groundtruth._one_run", str(corpus),
                    situation, label_for(situation), str(database), str(report)]
         if cloud:

@@ -10,7 +10,17 @@ although no file, no prompt and no model had changed, and a cloud rerun is bille
 twice for the same reason.
 
 So the fresh database stays fresh in every respect that made it fresh, and is given
-one thing before the run starts: the rows a reuse can be DECIDED from.
+two things before the run starts: the corpus as the product's own P3 scan records
+it, and the rows a reuse can be DECIDED from.
+
+The scan is not a convenience. R-109's key carries `subject_ref`, which is the
+`file_id`, and `files_table.py:286` mints that as `str(uuid.uuid4())` the first time
+a path is seen -- so it names a file within ONE database and nothing across two, and
+a verbatim copy of a prior run's identities sits under a digest this run will never
+compute. Measured before the scan was added: 2 calls, seed, 2 calls again,
+`llm_call_reuse` empty, with `subject_ref` the only one of nine dimensions that
+moved. Scanning first is what lets the prior's answers be re-keyed to the ids THIS
+database will use. `_scan_the_corpus` says what it costs and what it does not.
 
 **What is copied, and why each.**
 
@@ -114,11 +124,13 @@ class Seeded:
     #: Kept apart from `rows` because it is the one number the spend arithmetic
     #: needs: a response row that was seeded is not a call this run made.
     responses: int
-    #: Prior answers left behind because this corpus has no file at that path with
-    #: those bytes -- a file changed, moved, renamed or deleted since. Reported
-    #: rather than swallowed: it is the difference between "the prior directory
-    #: had nothing for this corpus" and "the corpus moved on", and a person
-    #: choosing whether to trust a cheap rerun needs to know which.
+    #: Prior answers LEFT BEHIND: this corpus has no file at that path with those
+    #: bytes (changed, moved, renamed or deleted), or the row's dimensions are not
+    #: a mapping this checkout can take a digest over, or two prior rows resolved
+    #: to one question here. Reported rather than swallowed: it is the difference
+    #: between "the prior directory had nothing for this corpus" and "the corpus
+    #: moved on", and a person choosing whether to trust a cheap rerun needs to
+    #: know which. Every one of them costs a question asked again, and nothing else.
     skipped: int = 0
 
 
@@ -242,6 +254,8 @@ def refuse_unless_seedable(directory: Path, situations, *, out_dir: Path,
             conn = sqlite3.connect(path)
             try:
                 found = _llm_schema_objects(conn)
+                columns = {row[1] for row in conn.execute(
+                    "PRAGMA table_info(files)")}
             finally:
                 conn.close()
         except sqlite3.Error as error:
@@ -249,6 +263,18 @@ def refuse_unless_seedable(directory: Path, situations, *, out_dir: Path,
                 f"--reuse-answers-from {path}: SQLite cannot read it ({error}). "
                 f"Nothing has been run."
             ) from error
+        # The `llm_*` comparison above says nothing about `files`, and the
+        # translation cannot happen without it: these three columns are the whole
+        # of what turns a prior run's file id into this run's. Checked HERE with
+        # everything else, because the alternative is an `OperationalError` out of
+        # a worker thread after that situation's database has been deleted.
+        wanted = {"file_id", "current_path", "content_hash"}
+        if not wanted <= columns:
+            raise ReuseRefused(
+                f"--reuse-answers-from {path}: its `files` table has no "
+                f"{', '.join(sorted(wanted - columns))}, so a prior answer cannot "
+                f"be matched to a file of this corpus. Nothing has been run."
+            )
         if found != expected:
             missing = sorted(name for _kind, name, _sql in expected - found)
             extra = sorted(name for _kind, name, _sql in found - expected)
