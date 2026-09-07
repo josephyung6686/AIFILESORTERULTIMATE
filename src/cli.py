@@ -51,7 +51,7 @@ from itertools import count
 from pathlib import Path, PurePosixPath
 from functools import lru_cache, partial
 from types import MappingProxyType
-from typing import Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from database_agent.budget import set_ceiling
 from database_agent.cloud_consent import (
@@ -84,6 +84,9 @@ from facts.families import (
 from facts.discount import MetadataScreen
 from facts.learning import NoSuchClaim, reject_claim
 from facts.domains import ActivationSignal, ActivationSignals
+from branch_situation import (
+    Branch, BranchPartition, partition_by_branch, single_owner_terms,
+)
 # `MEDIA_TYPE_FIELD` left this import with `104` R-09: the retired
 # `active_schema_for` literal was the only line in this file that named it.
 from facts.photo_event import media_type
@@ -93,10 +96,12 @@ from facts.rules import ACADEMIC_CONTEXT_TERMS, Rule, apply_rules
 from facts.unresolved import NO_CANDIDATE_EVIDENCE
 from facts.usable import record_pass
 from facts.fields import DOMAIN_FIELDS
+from facts.file_facts import facts_for_file
 from facts.states import VALIDATED, strength
 from facts.kind import tokens as kind_tokens
 from facts.kind import compile_vocabulary, kind_facts
 from grouping.acceptance import group_state_as_of, record_acceptance
+from grouping.seeds import ANCHOR_STATES
 from grouping.config import GroupingLimits
 from grouping.embeddings import (
     EmbeddingConfig, EmbeddingsOff, EmbeddingsOn, EncodedVector,
@@ -188,12 +193,14 @@ from questions.role_report import (
     questions_a_run_could_not_settle, role_moment_lines, role_panel_lines,
     shortlist_lines,
 )
+from questions.registry import SITUATION_KIND, kind_of
 from questions.roles import (
     apply_declarations, apply_descriptions, described_sentences, live_roles,
 )
 from questions.schema import create_questions_schema
 from questions.store import (
     activated_schemas, chosen_destination, gated_template, live_answer,
+    selected_situation,
     live_answer_id,
     open_questions,
     record_answer,
@@ -201,6 +208,7 @@ from questions.store import (
 )
 from questions.triggers import (
     DestinationChoice, NestingChoice, question_for_nesting,
+    question_for_situation,
     question_for_unreadable_folder, tied_readings_and_the_files_they_reach,
 )
 from questions.vocabulary import (
@@ -3453,6 +3461,16 @@ def _work_type_vocabulary():
 
 WORK_TYPE_VOCABULARY = _work_type_vocabulary()
 
+#: `104` R-37's anchor table: `work_type` term -> the ONE schema that authored it,
+#: over the same four schemas as the vocabulary above. Measured: 940 of the 942
+#: terms have one owner; `reference letter` and `reference list` are academic's
+#: and career's both, and anchor neither. `branch_situation` carries the argument.
+WORK_TYPE_OWNER: Mapping[str, str] = MappingProxyType(single_owner_terms({
+    schema_id: json.loads(_RECOGNITION_MANIFEST.read_text())["schemas"]
+    .get(schema_id, {}).get("work_type_terms", ())
+    for schema_id, fields in DOMAIN_FIELDS.items()
+    if WORK_TYPE_FIELD in fields}))
+
 #: P7's naming zones, MINUS `heading`, and the subtraction is the composition root's
 #: because it is a policy rather than a rule. A heading names a SECTION; a filename
 #: and a document title name the DOCUMENT, and `work_type` is a claim about the
@@ -4352,8 +4370,23 @@ def sensitivity_policy_for(conn: sqlite3.Connection):
 def review_and_accept(conn: sqlite3.Connection,
                       results: Sequence[GroupingResult], *,
                       group_category: str, label: str,
-                      created_at: str) -> tuple[str, ...]:
+                      created_at: str,
+                      branch_for: Callable[[str], Branch | None] | None = None,
+                      on_accepted: Callable[[str, Branch | None], None] | None = None,
+                      ) -> tuple[str, ...]:
     """The review screen, non-interactively: keep everything, as one named group.
+
+    **`104` R-37: one named group PER BRANCH, when the run proposes more than
+    one.** `branch_for(file_id)` is `BranchPartition.branch_of` bound to this
+    run's partition; with it, each P9 group is accepted under the branch most of
+    its members are under -- its label and its schema -- rather than under the
+    one `--label`. A group whose members are under no branch, or split evenly
+    between two, is not accepted: its files are the ones the ruling holds for
+    review, and accepting them under a branch would be the walkthrough's cover
+    letters under `Coursework` again. `None` keeps every group under `label`,
+    which is the run with one branch and is byte-identical to the run before.
+    `on_accepted` is told each merged id and its branch, so the design can hand
+    P10 the branch's own situation signal.
 
     **The justification this docstring used to give was false, and correcting it
     matters more than it looks.** It said `src/grouping/pipeline.py` writes
@@ -4397,6 +4430,58 @@ def review_and_accept(conn: sqlite3.Connection,
                if result.group is not None and result.stop_rule_outcome is None]
     if not grouped:
         return ()
+    if branch_for is None:
+        buckets = [(None, group_category, label, grouped)]
+    else:
+        buckets = _grouped_by_branch(grouped, branch_for)
+    accepted: list[str] = []
+    for branch, category, branch_label, bucket in buckets:
+        merged_id = _accept_as_one(
+            conn, bucket, group_category=category, label=branch_label,
+            created_at=created_at)
+        if on_accepted is not None:
+            on_accepted(merged_id, branch)
+        accepted.append(merged_id)
+    return tuple(accepted)
+
+
+def _grouped_by_branch(grouped: Sequence[GroupingResult],
+                       branch_for: Callable[[str], Branch | None]):
+    """P9's formed groups, bucketed by the branch most of their members are under.
+
+    In BRANCH order, the default first, and within a bucket in P9's own order, so
+    two runs over one folder accept the same groups under the same addresses.
+    A group with no member under any branch, or with two branches tied for its
+    members, is in no bucket and is not accepted -- see `review_and_accept`.
+    """
+    buckets: dict[str, tuple[Branch, list[GroupingResult]]] = {}
+    for result in grouped:
+        votes: dict[str, int] = {}
+        branches: dict[str, Branch] = {}
+        for membership in result.memberships:
+            branch = branch_for(membership.file_id)
+            if branch is None:
+                continue
+            votes[branch.label] = votes.get(branch.label, 0) + 1
+            branches[branch.label] = branch
+        if not votes:
+            continue
+        most = max(votes.values())
+        leaders = [name for name, count_ in votes.items() if count_ == most]
+        if len(leaders) != 1:
+            continue
+        chosen = branches[leaders[0]]
+        buckets.setdefault(chosen.label, (chosen, []))[1].append(result)
+    ordered = sorted(buckets.values(),
+                     key=lambda pair: (not pair[0].is_default, pair[0].label))
+    return [(branch, branch.schema, branch.label, bucket)
+            for branch, bucket in ordered]
+
+
+def _accept_as_one(conn: sqlite3.Connection, grouped: Sequence[GroupingResult],
+                   *, group_category: str, label: str, created_at: str) -> str:
+    """One merged, accepted group over these formed groups. `review_and_accept`'s
+    body, unchanged, so the single-branch run writes the records it always wrote."""
     first = grouped[0].group
     # DERIVED FROM WHAT IT MERGES, which is P9's own rule for its own ids:
     # "a group id derived from its seed is an address, so a rerun over unchanged
@@ -4460,7 +4545,7 @@ def review_and_accept(conn: sqlite3.Connection,
         group_id=merged_id, membership_id=None, acceptance=ACCEPTED,
         review_state=PENDING_REVIEW, user_edited_label=label, aliases=(),
         review_decision_ref=None, decided_by=RULES, created_at=created_at))
-    return (merged_id,)
+    return merged_id
 
 
 def choose_option(candidate, options) -> str:
@@ -4900,6 +4985,24 @@ WITHHELD_UNCLASSIFIED: str = "unclassified"
 WITHHELD_PROTECTED: str = "protected"
 WITHHELD_PRIVACY: str = "privacy"
 
+#: `104` R-37's two reasons a file is asked nothing, beside the three above.
+#: `NOT_ASKED_UNREACHED` is a file no branch of this folder reaches, or two do;
+#: `NOT_ASKED_UNSETTLED` is a file under a branch whose situation the person has
+#: not yet chosen, so there is no question of that branch's to put to a model.
+NOT_ASKED_UNREACHED: str = "no_branch"
+NOT_ASKED_UNSETTLED: str = "branch_unsettled"
+
+NOT_ASKED_SENTENCE: Mapping[str, str] = MappingProxyType({
+    NOT_ASKED_UNREACHED:
+        "none of the folders this run proposes reaches them, so there is no "
+        "question that applies to them yet. They are held for you below, under "
+        "the reason the plan records for each.",
+    NOT_ASKED_UNSETTLED:
+        "they sit under a folder you have not yet said the situation of, and a "
+        "model is asked a folder's questions only once its situation is known. "
+        "The question is printed below with the answers you can give.",
+})
+
 #: The sentence each cause earns. Written out rather than assembled, because a
 #: reason a person reads is prose and not a code with a template around it.
 WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
@@ -4919,7 +5022,8 @@ WITHHELD_SENTENCE: Mapping[str, str] = MappingProxyType({
 
 def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
                      outcomes: Sequence[tuple[str, object]], model_id: str,
-                     out) -> None:
+                     out, not_asked: Mapping[str, int] = MappingProxyType({}),
+                     ) -> None:
     """What the model pass actually did, in counts a person can check.
 
     **The withheld count is the line that earns this block.** On a real folder most
@@ -4962,6 +5066,15 @@ def _print_fact_pass(*, written: int, withheld: Mapping[str, int], files: int,
             f"quietly: {WITHHELD_SENTENCE[cause]} Each one has an `unresolved` "
             f"row per open field saying `privacy_withheld`, so none of them is "
             f"recorded as a file with nothing to say.", indent="  "), file=out)
+    # `104` R-37. A file the run's branches do not reach, or a file under a
+    # branch whose situation the person has not yet said, was not shown to a
+    # model under a question that does not apply to it. Named by its own reason,
+    # like the withheld files above, and only when a run has more than one
+    # branch: with one, nothing is here and the screen is the screen it was.
+    for reason, count_ in sorted(not_asked.items()):
+        print(_wrapped(
+            f"{count_} of {files} files were not asked anything: "
+            f"{NOT_ASKED_SENTENCE[reason]}", indent="  "), file=out)
     named = {"CallFailed": "the call did not come back",
              "ValidationUnavailable": "something the check needed was missing",
              "NeedsConsent": "it needs an answer from you first"}
@@ -5967,7 +6080,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                 if fact_authorities else None),
             limits=TREE_LIMITS, root_anchor=ROOT_ANCHOR,
             selection_id=selection_id, scan_run_id=scan_run_id[0],
-            active_domains=(schema,),
+            # `104` R-37: every branch's schema, not only the typed situation's.
+            # With one branch this is `(schema,)`, exactly as it was.
+            active_domains=tuple(dict.fromkeys(
+                branch.schema for branch in (
+                    partition_cell[0].branches if partition_cell else ()))
+                or (schema,)),
             # Which accepted groups hold sensitive material. P7 classifies FILES
             # and publishes no group-level answer, so this deployment names none
             # and every group is offered; the per-file floors below are what keep
@@ -5979,7 +6097,12 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             # its files by accident.
             privacy_rank=lambda floor: 0,
             satisfies_purpose_profile=lambda ref, groups: True,
-            detection_signals_for=lambda group: frozenset({signal}),
+            # `104` R-37: the branch's OWN situation, read off the group it was
+            # accepted under. A branch whose situation is unsettled names no
+            # signal, so P10 routes it on its schema alone; a group accepted
+            # with one branch is the typed situation's, as it always was.
+            detection_signals_for=lambda group: _signals_for_branch(
+                branch_of_group.get(group.group_id)),
             # §5.7's ranking. The router already emits candidates in the library's
             # own order and this deployment has no telemetry to re-rank them with,
             # so it keeps that order rather than inventing a score.
@@ -6024,6 +6147,13 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
             template_context_for=lambda field_ref, order_index: None,
             mint_node_id=lambda: f"node_{run_token}_{next(ids)}",
             mint_version_id=lambda: f"version_{run_token}_{next(ids)}")
+
+    def _signals_for_branch(branch: Branch | None) -> frozenset[str]:
+        if branch is None:
+            return frozenset({signal})
+        if branch.situation is None:
+            return frozenset()
+        return frozenset({f"recognition:{branch.situation}"})
 
     def adopted_folders() -> tuple[str, ...]:
         """The person's own folders, offered to the design as branches (`00`:100).
@@ -6170,8 +6300,20 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
 
     def accept_groups(db: sqlite3.Connection,
                       results: Sequence[GroupingResult]) -> tuple[str, ...]:
+        partition = partition_cell[0] if partition_cell else None
+        if partition is None or partition.single:
+            # ONE branch: the acceptance the run has always made, unchanged.
+            return review_and_accept(db, results, group_category=schema,
+                                     label=label, created_at=clock)
+
+        def remember(merged_id: str, branch: Branch | None) -> None:
+            if branch is not None:
+                branch_of_group[merged_id] = branch
+
         return review_and_accept(db, results, group_category=schema, label=label,
-                                 created_at=clock)
+                                 created_at=clock,
+                                 branch_for=partition.branch_of,
+                                 on_accepted=remember)
 
     def approve_plan(db: sqlite3.Connection, accepted: Sequence[str],
                      plan_version: str) -> None:
@@ -6979,6 +7121,65 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
     #: closure and this is the one value that has to cross out of it.
     fact_authorities: list = []
 
+    #: `104` R-37: the run's top-level branches and the situation each carries,
+    #: filled by `_partition_branches` in `downstream` once the deterministic
+    #: facts exist, and read by the fact pass, the acceptance and the design.
+    #: One slot for the same reason as `fact_authorities`.
+    partition_cell: list[BranchPartition] = []
+    #: merged accepted group id -> the branch it was accepted under, filled by
+    #: `accept_groups` and read by `design_authorities` for P10's signals.
+    branch_of_group: dict[str, Branch] = {}
+    #: `104` R-37's questions and the files each reaches, merged into R-92's
+    #: mailbox at the end of the run.
+    branch_reaches: dict[str, tuple[str, ...]] = {}
+
+    def _anchor_facts_of(file_id: str, content_hash: str) -> tuple[tuple[str, str], ...]:
+        """The file's `(field, value)` facts at P9's anchor bar, and no lower."""
+        return tuple(
+            (row["field_key"], row["canonical_value"])
+            for row in facts_for_file(conn, file_id, content_hash)
+            if row["active"] and row["superseded_by"] is None
+            and row["reliability_state"] in ANCHOR_STATES)
+
+    def _situations_of(schema_id: str) -> tuple[str, ...]:
+        return tuple(row.name for row in shipped_situations(catalogue)
+                     if row.schema == schema_id)
+
+    def _partition_branches(run_id: str) -> BranchPartition:
+        """`104` R-37. Which branch each file is under, from the facts P6 wrote.
+
+        AFTER the deterministic passes and BEFORE the model pass, because the
+        anchor is a validated `work_type` and the whole point is that a model is
+        asked a branch's questions only of that branch's files. The recogniser is
+        `detector.explain`, the same term detector `classify` ran, read here and
+        written nowhere: `test_step4_recognition_as_a_gate` pins that its verdict
+        reaches no column, and this keeps it so.
+
+        A branch whose situation is unsettled has its question recorded here --
+        `question_for_situation`, the trigger that was registered and never
+        fired -- and the files it reaches are remembered for the screen.
+        """
+        partition = partition_by_branch(
+            roster=corpus_roster(conn, run_id),
+            default_label=label, default_situation=situation,
+            default_schema=schema,
+            anchor_facts_of=_anchor_facts_of, owner_of_term=WORK_TYPE_OWNER,
+            fields_of_schema=lambda schema_id: DOMAIN_FIELDS.get(schema_id, ()),
+            verdict_of=lambda file_id, content_hash: detector.explain(
+                conn, file_id, content_hash),
+            situations_of=_situations_of,
+            chosen_situation=lambda scope: selected_situation(conn, scope=scope))
+        for branch in partition.branches:
+            if branch.settled or not branch.file_ids:
+                continue
+            question = question_for_situation(
+                branch_label=branch.label,
+                situations=branch.candidate_situations,
+                file_count=len(branch.file_ids))
+            record_question(conn, question, asked_at=clock)
+            branch_reaches[question.question_id] = branch.file_ids
+        return partition
+
     def _model_fact_pass(run_id: str) -> None:
         """Ask a model about the fields the deterministic producers left open.
 
@@ -7066,6 +7267,51 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # where A was not.
         fact_authorities[:] = [authorities]
         resolver = model_fact_resolver(conn, authorities=authorities)
+        # `104` R-37. One resolver PER SETTLED BRANCH, each asking that branch's
+        # situation's own questions: its schema's allowlist, its folder levels
+        # less the group-level ones, its schema's authored readings. Built by
+        # `replace` over the default branch's authorities so the gate, the
+        # budget, the key, the client and the counting sink are the SAME objects
+        # -- a second gate would be a second answer to what may leave this
+        # device. With one branch this map holds the default resolver and the
+        # loop below is the loop it was.
+        partition = partition_cell[0] if partition_cell else None
+        resolvers: dict[str, FactResolver] = {}
+        if partition is not None:
+            for branch in partition.branches:
+                if branch.is_default:
+                    resolvers[branch.label] = resolver
+                    continue
+                if not branch.settled:
+                    continue
+                levels = folder_levels_for(catalogue, branch.situation)
+                group_levels = group_level_fields_for(catalogue, branch.situation)
+                resolvers[branch.label] = model_fact_resolver(
+                    conn, authorities=dataclasses.replace(
+                        authorities,
+                        activation_signals=ActivationSignals(signals=(
+                            ActivationSignal(schema_id=branch.schema,
+                                             activates=lambda facts: True),)),
+                        folder_levels=tuple(
+                            level for level in levels
+                            if level.field not in group_levels),
+                        deferred_readings=rules.schemas[
+                            branch.schema].deferred_readings))
+        not_asked: dict[str, int] = {}
+
+        def resolver_for(file_id: str) -> FactResolver | None:
+            if partition is None or partition.single:
+                return resolver
+            branch = partition.branch_of(file_id)
+            if branch is None:
+                not_asked[NOT_ASKED_UNREACHED] = (
+                    not_asked.get(NOT_ASKED_UNREACHED, 0) + 1)
+                return None
+            chosen = resolvers.get(branch.label)
+            if chosen is None:
+                not_asked[NOT_ASKED_UNSETTLED] = (
+                    not_asked.get(NOT_ASKED_UNSETTLED, 0) + 1)
+            return chosen
 
         written: list[str] = []
         # WHY EACH FILE WAS WITHHELD, not just how many. The route bars for two
@@ -7078,7 +7324,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         store = ClassificationStore(conn)
         withheld: dict[str, int] = {}
         for file_id, content_hash in roster:
-            result = resolver.resolve(
+            asking = resolver_for(file_id)
+            if asking is None:
+                continue
+            result = asking.resolve(
                 conn, file_id=file_id, content_hash=content_hash)
             written.extend(result.fact_ids)
             if result.stages_barred.get(LLM_ROUTE) != PRIVACY_BAR:
@@ -7093,7 +7342,8 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         _print_fact_pass(
             written=len(written), withheld=withheld,
             files=len(roster), outcomes=outcomes,
-            model_id=routing.model_id_for(A_FACT), out=out)
+            model_id=routing.model_id_for(A_FACT), out=out,
+            not_asked=not_asked)
 
     def _family_pass(run_id: str) -> None:
         """§3.11's two family fields, over the whole corpus at once.
@@ -7215,6 +7465,9 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
         # §3.11's universal families, BEFORE the model pass and before P9 groups.
         # See `_family_pass` for why a corpus producer cannot be a resolver stage.
         _family_pass(p1_p7.scan_run_id)
+        # `104` R-37. The branches, once every deterministic fact exists and
+        # before a model is asked anything: the fact pass asks per branch.
+        partition_cell[:] = [_partition_branches(p1_p7.scan_run_id)]
         # §8.6's THIRD producer, and the only point in the run where it can stand.
         # See `model_fact_resolver` for why it is a second pass and not the `llm`
         # stage of the pass P1-P7 already ran. BEFORE the three blocks below on
@@ -7436,6 +7689,10 @@ def run(conn: sqlite3.Connection, directory: Path, *, situation: str, label: str
                   "the plan below is the run that was already computed.",
                   file=out)
     reaches = _raise_blocked_questions(conn, detector=detector, asked_at=clock)
+    # `104` R-37's branch questions reach their branch's files, and the screen
+    # prints the `--answer` lines beside those files for the same reason R-92
+    # prints a reading's beside its files.
+    reaches.update(branch_reaches)
     if questions_reach is not None:
         # `104` R-92's mailbox, filled the way `usage_recorder` is: the tie a
         # question was raised from is a fact about a file that no table holds
@@ -8456,7 +8713,12 @@ def _option_lines(question, family: Sequence[str], *,
     inside, outside, plain = [], [], []
     for option in question.options:
         schema = option.activates_schema
-        if schema is None:
+        if schema is None and option.selects_situation:
+            # `104` R-37: choosing a branch's situation says what the material
+            # under it is, as a reading does, so under "each of these answers
+            # reaches these files" it is printed rather than left out.
+            inside.append(option)
+        elif schema is None:
             plain.append(option)
         elif schema in family:
             inside.append(option)
@@ -9322,6 +9584,19 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
                 say(note, handle=handle,
                     again="Waiting on the same thing as the {first}, and what "
                           "to do about it is printed there.")
+        elif reaching_here:
+            # `104` R-37. A held group under a branch whose situation is not yet
+            # answered is reached by that branch's question, and the answer
+            # lines are printed beside the files they reach for R-92's reason:
+            # the gesture that moves these files forward is on this screen, and
+            # a person should not have to find it. Only the situation question:
+            # every other kind prints beside the placements it blocks, above.
+            asked = tuple(asked_here[question_id]
+                          for question_id in reaching_here
+                          if kind_of(question_id) is SITUATION_KIND)
+            for line in _how_to_say_what_these_are(asked, reading_family) if asked else ():
+                print(line if line.startswith(" ")
+                      else _wrapped(line, indent="    "), file=out)
         # `_role_lines`' convention: a line that begins with a space is a line
         # the person is meant to paste, and it is printed exactly as it is.
         # THE COUNT TRAVELS WITH THE POINTER. "N review sets of it have files
@@ -9412,9 +9687,15 @@ def report(result: ProductionRun, names: dict[str, str], *, out=None,
         # a `branch:` question is about the shape of one branch and always has a
         # default; every other kind is about what something MEANS, and meaning is
         # what placement is blocked on.
-        blocking = [q for q in questions
-                    if not q.scope.startswith(f"{SCOPE_BRANCH}:")]
-        offers = [q for q in questions if q.scope.startswith(f"{SCOPE_BRANCH}:")]
+        # `104` R-37: a SITUATION question shares the branch scope and is not an
+        # offer. Until it is answered the files under that branch are asked
+        # nothing and its folders cannot be designed, which is a blockage.
+        def _blocks(question) -> bool:
+            return (not question.scope.startswith(f"{SCOPE_BRANCH}:")
+                    or kind_of(question.question_id) is SITUATION_KIND)
+
+        blocking = [q for q in questions if _blocks(q)]
+        offers = [q for q in questions if not _blocks(q)]
 
         def ask(question) -> None:
             print(f"\n  {question.prompt}", file=out)
