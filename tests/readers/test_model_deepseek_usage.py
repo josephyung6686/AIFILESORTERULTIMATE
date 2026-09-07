@@ -211,22 +211,61 @@ def test_a_provider_with_no_usage_block_calls_the_sink_with_nothing():
 # --- and it is recordable -------------------------------------------------------
 
 
+OBSERVED = {
+    "model_id": "a-model", "prompt_tokens": 4970, "completion_tokens": 120,
+    "prompt_cache_hit_tokens": 4480, "prompt_cache_miss_tokens": 490,
+    "response_format": "json_object",
+}
+
+
 def test_the_usage_row_carries_the_cache_counters(conn):
     from llm_harness.schema import create_llm_schema
     from llm_harness.store import record_call_usage
 
     create_llm_schema(conn)
     record_call_usage(
-        conn, dossier_id="d-1", release_id="r-1", model_id="a-model",
-        prompt_tokens=4970, completion_tokens=120, prompt_cache_hit_tokens=4480,
-        prompt_cache_miss_tokens=490, response_format="json_object",
-        observed_at="2026-09-06T00:00:00+00:00")
+        conn, dossier_id="d-1", release_id="r-1", reserved_cost="1",
+        observed=OBSERVED, observed_at="2026-09-06T00:00:00+00:00")
 
     row = conn.execute("SELECT * FROM llm_call_usage").fetchone()
     assert row["prompt_cache_hit_tokens"] == 4480
     assert row["prompt_tokens"] == 4970
     assert row["dossier_id"] == "d-1"
     assert row["response_format"] == "json_object"
+    assert row["reserved_cost"] == "1"
+
+
+def test_a_call_the_provider_said_nothing_about_is_still_a_row(conn):
+    """`{}` is a real answer: the call was made and the budget spent for it. A row
+    of nulls says "asked, and it told us nothing"; no row is indistinguishable from
+    a call that never happened."""
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import record_call_usage
+
+    create_llm_schema(conn)
+    record_call_usage(
+        conn, dossier_id="d-1", release_id="r-1", reserved_cost="1",
+        observed={}, observed_at="2026-09-06T00:00:00+00:00")
+
+    row = conn.execute("SELECT * FROM llm_call_usage").fetchone()
+    assert row["prompt_tokens"] is None
+    assert row["model_id"] is None
+    assert row["reserved_cost"] == "1"
+
+
+def test_a_column_the_table_does_not_have_is_refused(conn):
+    """A number nobody can read back is worse than a refusal, and dropping it
+    silently would lose the one thing the row exists to keep."""
+    from llm_harness.records import MalformedRecord
+    from llm_harness.schema import create_llm_schema
+    from llm_harness.store import record_call_usage
+
+    create_llm_schema(conn)
+    with pytest.raises(MalformedRecord):
+        record_call_usage(
+            conn, dossier_id="d-1", release_id="r-1", reserved_cost="1",
+            observed={**OBSERVED, "reasoning_tokens": 40},
+            observed_at="2026-09-06T00:00:00+00:00")
 
 
 def test_the_usage_row_is_append_only_like_every_other_p8_row(conn):
@@ -235,10 +274,8 @@ def test_the_usage_row_is_append_only_like_every_other_p8_row(conn):
 
     create_llm_schema(conn)
     record_call_usage(
-        conn, dossier_id="d-1", release_id="r-1", model_id="a-model",
-        prompt_tokens=1, completion_tokens=1, prompt_cache_hit_tokens=None,
-        prompt_cache_miss_tokens=None, response_format="json_object",
-        observed_at="2026-09-06T00:00:00+00:00")
+        conn, dossier_id="d-1", release_id="r-1", reserved_cost="1",
+        observed=OBSERVED, observed_at="2026-09-06T00:00:00+00:00")
 
     import sqlite3
 
