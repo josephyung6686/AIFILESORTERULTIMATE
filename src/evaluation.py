@@ -119,12 +119,21 @@ def extraction_adapter(ctx: ReplayContext) -> list[StageResult]:
     envelopes = [extraction_stage_output(run=_decoded(row))
                  for row in extraction_runs(ctx.conn, ctx.bundle_id)]
 
-    by_subject: dict[str, list] = {}
+    # Keyed on the subject AND the file. The subject is `(content hash,
+    # extractor)`, and two byte-identical files -- `IMG_4821.jpg` beside
+    # `IMG_4821 (1).jpg`, the ordinary state of a Downloads folder -- share it
+    # while carrying different filenames, which the image extractor reads
+    # (`00`:32, "filename pattern"). Their measurements differ by that one
+    # observation and are two measurements of two FILES, not the residual this
+    # refusal exists for: one extractor at two versions over ONE file. Keyed on
+    # the subject alone, every corpus with a duplicate image was unreplayable.
+    by_subject: dict[tuple[str, str], list] = {}
     for envelope in envelopes:
         for value in envelope["values"]:
-            by_subject.setdefault(value.subject_ref, []).append(value)
+            by_subject.setdefault(
+                (value.subject_ref, envelope["subject_ref"]), []).append(value)
 
-    for subject_ref, values in by_subject.items():
+    for (subject_ref, _file_id), values in by_subject.items():
         distinct = {canonical_json([value.outcome, value.value]) for value in values}
         if len(distinct) > 1:
             raise AmbiguousExtractionMeasurement(

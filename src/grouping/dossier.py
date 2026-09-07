@@ -98,17 +98,29 @@ def _file_row(conn: sqlite3.Connection, file_id: str) -> sqlite3.Row | None:
 
 
 def _excerpts_for(
-    conn: sqlite3.Connection, keys: Sequence[str], *, limit: int,
+    conn: sqlite3.Connection, keys: Sequence[str], *, limit: int, file_id: str,
 ) -> tuple[Excerpt, ...]:
     """One short excerpt per cited observation key, in the order cited.
 
     A key that resolves to nothing is skipped rather than carried. P8 verifies a
     citation by resolving it, so an excerpt whose key resolves to nothing would be
     a quotation the model could not be held to.
+
+    THE FILE'S OWN OBSERVATION, OR NONE. An `AnchorFact` shared by several files
+    carries ONE `observation_key`, the observation of whichever file stated the
+    value first. Attached to a second file that key is a quotation from somewhere
+    else, and P7's gate resolves every requested item to the file it belongs to
+    and raises `UnresolvableSpan` when that file is outside the request's target
+    -- which it is whenever the first file was withheld or bounded out of the
+    graph. Measured on a 52-file Downloads with a local model: the whole run
+    died with that traceback after 37 minutes of A-site calls, at the first B
+    dossier, because two cover letters cited a job posting's `Summer2026`.
+    The evidence a file is offered is its own (the same rule P7 applies at A).
     """
     found: list[Excerpt] = []
     for key in dict.fromkeys(keys):
-        observations = observations_by_key(conn, key)
+        observations = [item for item in observations_by_key(conn, key)
+                        if item.file_id == file_id]
         if not observations:
             continue
         observation = observations[0]
@@ -220,7 +232,7 @@ def assemble_group_dossier(
                 conn, [fact.observation_key for fact in facts],
                 # How short a short excerpt is decides how much of a file
                 # reaches a model. That is a policy, and it arrives injected.
-                limit=limits.max_excerpt_characters),
+                limit=limits.max_excerpt_characters, file_id=file_id),
             why_retrieved=None if is_anchor else _why_retrieved(graph, file_id),
         )
         (anchors if is_anchor else candidates).append(item)
@@ -233,6 +245,24 @@ def assemble_group_dossier(
                 "no anchor has nothing for the model to judge"
                 if withheld else
                 "no file in the graph states the group's basis directly"
+            ),
+            withheld=tuple(withheld),
+        )
+    if not any(item.excerpts for item in (*anchors, *candidates)):
+        # Anchors, and not one quotation among them. A shared `AnchorFact`
+        # carries the first stating file's observation key; when that file was
+        # withheld or bounded out of the graph, every remaining file states the
+        # basis by the fact's word and cites nothing of its own. A request with
+        # no items is what `ModelCallRequest` refuses to construct -- measured:
+        # `MalformedRequest: a request with no items has nothing to release`
+        # ended a 48-minute local-model run at this site. Refused HERE, as a
+        # dossier that names why, so P9 records "not judged" and moves on.
+        return DossierRefused(
+            group_id=group.group_id,
+            reason=(
+                "no file in the graph carries an observation of its own for the "
+                "group's basis; the cited observations belong to files outside "
+                "the graph, so there is no excerpt a release could resolve"
             ),
             withheld=tuple(withheld),
         )
